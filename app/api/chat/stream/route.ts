@@ -54,16 +54,21 @@ export async function POST(request: NextRequest) {
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          await streamHollyResponse(
+          console.log('🚀 Starting streamHollyResponse...');
+          const finalResponse = await streamHollyResponse(
             message,
             conversationHistory,
             (chunk) => {
               // Send each chunk as Server-Sent Event
+              console.log('📦 Sending chunk:', chunk.substring(0, 50));
               const data = JSON.stringify({ content: chunk, done: false });
               controller.enqueue(new TextEncoder().encode(`data: ${data}\n\n`));
             }
-          ).then((finalResponse) => {
-            // Send final metadata
+          );
+          
+          console.log('✅ Stream complete, sending final response');
+          
+          // Send final metadata
             const finalData = JSON.stringify({
               done: true,
               emotion: finalResponse.emotion,
@@ -73,7 +78,6 @@ export async function POST(request: NextRequest) {
             });
             controller.enqueue(new TextEncoder().encode(`data: ${finalData}\n\n`));
             controller.close();
-          });
         } catch (error) {
           console.error('Streaming error:', error);
           const errorData = JSON.stringify({

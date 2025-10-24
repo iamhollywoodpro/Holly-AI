@@ -116,6 +116,18 @@ export function ChatInterface() {
               }
               
               if (data.done) {
+                // If we got done without ever creating a message, create one now
+                if (!streamingMessageIdRef.current && streamedContent) {
+                  addMessage({
+                    role: 'assistant',
+                    content: streamedContent,
+                    isStreaming: false,
+                  });
+                } else if (streamingMessageIdRef.current) {
+                  // Mark the streaming message as complete
+                  updateMessage(streamingMessageIdRef.current, streamedContent);
+                }
+                
                 setEmotion(data.emotion || 'confident');
                 setTyping(false);
                 
