@@ -2,6 +2,7 @@
   "name": "holly-super-agent",
   "version": "1.0.0",
   "description": "HOLLY - Hyper-Optimized Logic & Learning Yield - Autonomous AI Development Partner",
+  "__IMPORTANT_NOTE__": "DO NOT upgrade tailwindcss to v4+ - it requires @tailwindcss/postcss. Keep at v3.4.1",
   "main": "index.js",
   "scripts": {
     "dev": "next dev",
