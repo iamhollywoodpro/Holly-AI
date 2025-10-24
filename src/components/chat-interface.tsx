@@ -82,7 +82,8 @@ export function ChatInterface() {
       streamingMessageIdRef.current = null;
       
       console.log('📡 Starting to read stream...');
-        while (true) {
+      
+      while (true) {
           const { done, value } = await reader.read();
           if (done) break;
 
@@ -131,7 +132,6 @@ export function ChatInterface() {
             }
           }
         }
-      }
     } catch (error) {
       console.error('❌ Chat error:', error);
       setTyping(false);
