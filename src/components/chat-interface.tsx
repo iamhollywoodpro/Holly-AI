@@ -80,6 +80,7 @@ export function ChatInterface() {
       let streamedContent = '';
       let chunksReceived = 0;
       streamingMessageIdRef.current = null;
+      let updatePending = false;
       
       console.log('📡 Starting to read stream...');
       
@@ -102,16 +103,23 @@ export function ChatInterface() {
                 
                 // Add initial message on first chunk
                 if (!streamingMessageIdRef.current) {
-                  // addMessage now returns the ID
+                  // addMessage now returns the ID - call directly to get ID
                   const messageId = addMessage({
                     role: 'assistant',
                     content: streamedContent,
                     isStreaming: true,
                   });
                   streamingMessageIdRef.current = messageId;
-                } else {
-                  // Update using the stored message ID
-                  updateMessage(streamingMessageIdRef.current, streamedContent);
+                  updatePending = false;
+                } else if (!updatePending) {
+                  // Throttle updates - only update if not already pending
+                  updatePending = true;
+                  requestAnimationFrame(() => {
+                    if (streamingMessageIdRef.current) {
+                      updateMessage(streamingMessageIdRef.current, streamedContent);
+                    }
+                    updatePending = false;
+                  });
                 }
               }
               
