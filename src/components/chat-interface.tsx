@@ -14,6 +14,7 @@ export function ChatInterface() {
   const { messages, currentEmotion, isTyping, addMessage, updateMessage, setTyping, setEmotion, clearMessages } = useChatStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const streamingMessageIdRef = useRef<string | null>(null);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -77,8 +78,8 @@ export function ChatInterface() {
       
       const decoder = new TextDecoder();
       let streamedContent = '';
-      let streamMessageAdded = false;
       let chunksReceived = 0;
+      streamingMessageIdRef.current = null;
       
       console.log('📡 Starting to read stream...');
         while (true) {
@@ -99,20 +100,17 @@ export function ChatInterface() {
                 streamedContent += data.content;
                 
                 // Add initial message on first chunk
-                if (!streamMessageAdded) {
-                  addMessage({
+                if (!streamingMessageIdRef.current) {
+                  // addMessage now returns the ID
+                  const messageId = addMessage({
                     role: 'assistant',
                     content: streamedContent,
                     isStreaming: true,
                   });
-                  streamMessageAdded = true;
+                  streamingMessageIdRef.current = messageId;
                 } else {
-                  // Update the last message (which is the streaming one)
-                  const currentMessages = useChatStore.getState().messages;
-                  const lastMessage = currentMessages[currentMessages.length - 1];
-                  if (lastMessage && lastMessage.role === 'assistant') {
-                    updateMessage(lastMessage.id, streamedContent);
-                  }
+                  // Update using the stored message ID
+                  updateMessage(streamingMessageIdRef.current, streamedContent);
                 }
               }
               

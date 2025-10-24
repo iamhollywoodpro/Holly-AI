@@ -18,7 +18,7 @@ interface ChatState {
   messages: Message[];
   currentEmotion: EmotionType;
   isTyping: boolean;
-  addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => void;
+  addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => string;
   updateMessage: (id: string, content: string) => void;
   setTyping: (typing: boolean) => void;
   setEmotion: (emotion: EmotionType) => void;
@@ -38,17 +38,20 @@ export const useChatStore = create<ChatState>((set) => ({
   currentEmotion: 'confident',
   isTyping: false,
 
-  addMessage: (message) =>
+  addMessage: (message) => {
+    const id = `msg-${Date.now()}-${Math.random()}`;
     set((state) => ({
       messages: [
         ...state.messages,
         {
           ...message,
-          id: `msg-${Date.now()}-${Math.random()}`,
+          id,
           timestamp: new Date(),
         },
       ],
-    })),
+    }));
+    return id;
+  },
 
   updateMessage: (id, content) =>
     set((state) => ({
