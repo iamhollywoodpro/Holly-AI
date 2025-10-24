@@ -45,7 +45,12 @@ export function ChatInterface() {
         },
       ];
 
-      // Call HOLLY API with streaming
+      // Call HOLLY API with streaming (with timeout)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+      
+      console.log('🚀 Sending message to API:', content.substring(0, 50));
+      
       const response = await fetch('/api/chat/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -54,7 +59,11 @@ export function ChatInterface() {
           userId: 'hollywood',
           conversationHistory,
         }),
+        signal: controller.signal,
       });
+      
+      clearTimeout(timeoutId);
+      console.log('✅ API response received, status:', response.status);
 
       if (!response.ok) {
         throw new Error('API request failed');
@@ -62,17 +71,24 @@ export function ChatInterface() {
 
       // Handle streaming response
       const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
+      if (!reader) {
+        throw new Error('No response body reader available');
+      }
       
+      const decoder = new TextDecoder();
       let streamedContent = '';
       let streamMessageAdded = false;
-
-      if (reader) {
+      let chunksReceived = 0;
+      
+      console.log('📡 Starting to read stream...');
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
 
           const chunk = decoder.decode(value);
+          chunksReceived++;
+          console.log(`📦 Chunk ${chunksReceived}:`, chunk.substring(0, 100));
+          
           const lines = chunk.split('\n').filter(line => line.trim().startsWith('data:'));
 
           for (const line of lines) {
@@ -113,17 +129,28 @@ export function ChatInterface() {
                 }
               }
             } catch (e) {
-              // Skip invalid JSON
+              console.warn('⚠️ Failed to parse SSE line:', line, e);
             }
           }
         }
       }
     } catch (error) {
-      console.error('Chat error:', error);
+      console.error('❌ Chat error:', error);
       setTyping(false);
+      
+      let errorMessage = "Oops! Something went wrong on my end. Let me get that fixed for you, Hollywood. 🔧";
+      
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          errorMessage = "Timeout! The AI is taking too long to respond. This might be a temporary issue - try again? ⏱️";
+        } else {
+          console.error('Error details:', error.message, error.stack);
+        }
+      }
+      
       addMessage({
         role: 'assistant',
-        content: "Oops! Something went wrong on my end. Let me get that fixed for you, Hollywood. 🔧",
+        content: errorMessage,
         emotion: 'thoughtful',
       });
     } finally {
