@@ -3,7 +3,7 @@
  * 
  * Hybrid system that intelligently routes between:
  * - Claude Opus 4 (primary brain - deep reasoning)
- * - Groq Llama 3.1 (speed brain - fast responses)
+ * - Groq Llama 3.3 (speed brain - fast responses)
  * 
  * Always applies HOLLY's personality layer on top
  */
@@ -166,7 +166,7 @@ async function getGroqResponse(
   
   try {
     const response = await groq.chat.completions.create({
-      model: 'llama-3.1-70b-versatile',
+      model: 'llama-3.3-70b-versatile',
       messages: [
         { role: 'system', content: HOLLY_PERSONALITY },
         ...conversationHistory.slice(-5), // Last 5 messages for context
