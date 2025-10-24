@@ -38,27 +38,46 @@ export default function TestPage() {
       const decoder = new TextDecoder();
       let fullContent = '';
 
+      console.log('📡 Starting to read stream...');
+
       while (true) {
         const { done, value } = await reader.read();
-        if (done) break;
+        if (done) {
+          console.log('✅ Stream ended');
+          break;
+        }
 
         const chunk = decoder.decode(value);
+        console.log('📦 Raw chunk:', chunk);
         const lines = chunk.split('\n').filter(l => l.trim().startsWith('data:'));
+        console.log('📋 Parsed lines:', lines);
 
         for (const line of lines) {
           try {
             const data = JSON.parse(line.replace('data: ', ''));
+            console.log('📄 Parsed data:', data);
+            
             if (data.content) {
               fullContent += data.content;
+              console.log('💬 Content so far:', fullContent.substring(0, 50));
             }
+            
             if (data.done) {
+              console.log('✅ Done! Final content:', fullContent);
               setMessages(prev => [...prev, { role: 'assistant', content: fullContent }]);
               setLoading(false);
             }
           } catch (e) {
-            console.error('Parse error:', e);
+            console.error('❌ Parse error:', e, 'Line:', line);
           }
         }
+      }
+      
+      // Fallback: if we got content but never got 'done' signal
+      if (fullContent && loading) {
+        console.log('⚠️ Stream ended without done signal, adding message anyway');
+        setMessages(prev => [...prev, { role: 'assistant', content: fullContent }]);
+        setLoading(false);
       }
     } catch (error) {
       console.error('Error:', error);
