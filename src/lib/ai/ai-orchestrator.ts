@@ -12,13 +12,15 @@ import Anthropic from '@anthropic-ai/sdk';
 import Groq from 'groq-sdk';
 import { EmotionType } from '@/store/chat-store';
 
-// Initialize clients
+// Initialize clients with better error handling
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || '',
+  timeout: 30000, // 30 second timeout
 });
 
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY || '',
+  timeout: 30000, // 30 second timeout
 });
 
 // HOLLY's core personality (applied to all responses)
