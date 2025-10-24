@@ -6,6 +6,10 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  // Force cache busting by adding build ID
+  generateBuildId: async () => {
+    return `build-${Date.now()}`;
+  },
 }
 
 module.exports = nextConfig
