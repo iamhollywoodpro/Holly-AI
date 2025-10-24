@@ -11,7 +11,7 @@ import { HollyAvatar } from './holly-avatar';
 import { Settings, Trash2, Sparkles } from 'lucide-react';
 
 export function ChatInterface() {
-  const { messages, currentEmotion, isTyping, addMessage, setTyping, setEmotion, clearMessages } = useChatStore();
+  const { messages, currentEmotion, isTyping, addMessage, updateMessage, setTyping, setEmotion, clearMessages } = useChatStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -33,11 +33,17 @@ export function ChatInterface() {
     setIsLoading(true);
 
     try {
-      // Prepare conversation history (last 10 messages)
-      const conversationHistory = messages.slice(-10).map(msg => ({
-        role: msg.role,
-        content: msg.content,
-      }));
+      // Prepare conversation history (last 10 messages + current user message)
+      const conversationHistory = [
+        ...messages.slice(-10).map(msg => ({
+          role: msg.role,
+          content: msg.content,
+        })),
+        {
+          role: 'user' as const,
+          content,
+        },
+      ];
 
       // Call HOLLY API with streaming
       const response = await fetch('/api/chat/stream', {
@@ -59,14 +65,7 @@ export function ChatInterface() {
       const decoder = new TextDecoder();
       
       let streamedContent = '';
-      const streamMessageId = `msg-${Date.now()}-${Math.random()}`;
-      
-      // Add initial streaming message
-      addMessage({
-        role: 'assistant',
-        content: '',
-        isStreaming: true,
-      });
+      let streamMessageAdded = false;
 
       if (reader) {
         while (true) {
@@ -82,8 +81,23 @@ export function ChatInterface() {
               
               if (data.content) {
                 streamedContent += data.content;
-                // Update the streaming message
-                updateMessage(streamMessageId, streamedContent);
+                
+                // Add initial message on first chunk
+                if (!streamMessageAdded) {
+                  addMessage({
+                    role: 'assistant',
+                    content: streamedContent,
+                    isStreaming: true,
+                  });
+                  streamMessageAdded = true;
+                } else {
+                  // Update the last message (which is the streaming one)
+                  const currentMessages = useChatStore.getState().messages;
+                  const lastMessage = currentMessages[currentMessages.length - 1];
+                  if (lastMessage && lastMessage.role === 'assistant') {
+                    updateMessage(lastMessage.id, streamedContent);
+                  }
+                }
               }
               
               if (data.done) {
