@@ -253,74 +253,59 @@ export async function getHollyResponse(
 }
 
 // Streaming response (for real-time typing effect)
+// NOTE: Groq Llama 3.3 streaming appears broken - using Claude for all streaming
 export async function streamHollyResponse(
   message: string,
   conversationHistory: Message[] = [],
   onChunk: (chunk: string) => void
 ): Promise<HollyResponse> {
   const complexity = analyzeComplexity(message, conversationHistory);
-  const useGroq = complexity === 'simple';
   
-  console.log(`🌊 Streaming from: ${useGroq ? 'GROQ' : 'CLAUDE OPUS 4'}`);
+  // TEMPORARY FIX: Always use Claude for streaming until Groq streaming works
+  console.log(`🌊 Streaming from: CLAUDE OPUS 4 (Groq streaming temporarily disabled)`);
   
   const startTime = Date.now();
   let fullContent = '';
   let tokensUsed = 0;
   
   try {
-    if (useGroq) {
-      // Groq streaming
-      const stream = await groq.chat.completions.create({
-        model: 'llama-3.1-70b-versatile',
-        messages: [
-          { role: 'system', content: HOLLY_PERSONALITY },
-          ...conversationHistory.slice(-5),
-          { role: 'user', content: message },
-        ],
-        max_tokens: 1024,
-        temperature: 0.7,
-        stream: true,
-      });
-      
-      for await (const chunk of stream) {
-        const content = chunk.choices[0]?.delta?.content || '';
-        if (content) {
-          fullContent += content;
-          onChunk(content);
-        }
+    // Claude streaming (proven to work)
+    const stream = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 2048,
+      system: HOLLY_PERSONALITY,
+      messages: [
+        ...conversationHistory.slice(-10),
+        { role: 'user', content: message },
+      ],
+      stream: true,
+    });
+    
+    console.log('✅ [CLAUDE] Stream created, starting iteration...');
+    let chunkCount = 0;
+    
+    for await (const event of stream) {
+      if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+        const content = event.delta.text;
+        chunkCount++;
+        fullContent += content;
+        console.log(`📤 [CLAUDE CHUNK ${chunkCount}] Length: ${content.length}`);
+        onChunk(content);
       }
-    } else {
-      // Claude streaming
-      const stream = await anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 2048,
-        system: HOLLY_PERSONALITY,
-        messages: [
-          ...conversationHistory.slice(-10),
-          { role: 'user', content: message },
-        ],
-        stream: true,
-      });
       
-      for await (const event of stream) {
-        if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
-          const content = event.delta.text;
-          fullContent += content;
-          onChunk(content);
-        }
-        
-        if (event.type === 'message_stop') {
-          tokensUsed = (event as any).usage?.output_tokens || 0;
-        }
+      if (event.type === 'message_delta' && 'usage' in event) {
+        tokensUsed = (event as any).usage?.output_tokens || 0;
       }
     }
+    
+    console.log(`✅ [CLAUDE COMPLETE] Total chunks: ${chunkCount}, Total length: ${fullContent.length}`);
     
     const emotion = detectEmotion(message);
     
     return {
       content: fullContent,
       emotion,
-      model: useGroq ? 'groq-llama' : 'claude-opus-4',
+      model: 'claude-opus-4',
       tokensUsed,
       responseTime: Date.now() - startTime,
     };
