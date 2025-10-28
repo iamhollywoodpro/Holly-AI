@@ -22,6 +22,7 @@ interface ChatState {
   updateMessage: (id: string, content: string) => void;
   setTyping: (typing: boolean) => void;
   setEmotion: (emotion: EmotionType) => void;
+  setMessages: (messages: Message[]) => void;  // ← NEW: Load conversation history
   clearMessages: () => void;
 }
 
@@ -63,6 +64,9 @@ export const useChatStore = create<ChatState>((set) => ({
   setTyping: (typing) => set({ isTyping: typing }),
 
   setEmotion: (emotion) => set({ currentEmotion: emotion }),
+
+  // NEW: Load messages from database
+  setMessages: (messages) => set({ messages }),
 
   clearMessages: () =>
     set({

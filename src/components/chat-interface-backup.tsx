@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useChatStore } from '@/store/chat-store';
+import { useChatStore, Message } from '@/store/chat-store';
 import { ChatMessage } from './chat-message';
 import { TypingIndicator } from './typing-indicator';
 import { MessageInput } from './message-input';
@@ -11,15 +11,30 @@ import { HollyAvatar } from './holly-avatar';
 import { Settings, Trash2, Sparkles } from 'lucide-react';
 
 export function ChatInterface() {
-  const { messages, currentEmotion, isTyping, addMessage, updateMessage, setTyping, setEmotion, clearMessages } = useChatStore();
+  const { messages, currentEmotion, isTyping, addMessage, setTyping, setEmotion, clearMessages } = useChatStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const streamingMessageIdRef = useRef<string | null>(null);
+  const [streamingMessage, setStreamingMessage] = useState<string>('');
+  const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Auto-scroll to bottom when new messages arrive
+  // Combine real messages with streaming message for display
+  const displayMessages = streamingMessage
+    ? [
+        ...messages,
+        {
+          id: 'streaming-temp',
+          role: 'assistant' as const,
+          content: streamingMessage,
+          timestamp: new Date(),
+          isStreaming: true,
+        },
+      ]
+    : messages;
+
+  // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isTyping]);
+  }, [displayMessages, isTyping]);
 
   const handleSendMessage = async (content: string) => {
     // Add user message
@@ -28,30 +43,29 @@ export function ChatInterface() {
       content,
     });
 
-    // Show typing indicator
+    // Show typing
     setTyping(true);
     setEmotion('thoughtful');
     setIsLoading(true);
+    setStreamingMessage('');
+
+    // Abort previous request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
 
     try {
-      // Prepare conversation history (last 10 messages + current user message)
       const conversationHistory = [
         ...messages.slice(-10).map(msg => ({
           role: msg.role,
           content: msg.content,
         })),
-        {
-          role: 'user' as const,
-          content,
-        },
+        { role: 'user' as const, content },
       ];
 
-      // Call HOLLY API with streaming (with timeout)
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
-      
-      console.log('🚀 Sending message to API:', content.substring(0, 50));
-      
+      console.log('🚀 Sending:', content.substring(0, 50));
+
       const response = await fetch('/api/chat/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -60,124 +74,82 @@ export function ChatInterface() {
           userId: 'hollywood',
           conversationHistory,
         }),
-        signal: controller.signal,
+        signal: abortControllerRef.current.signal,
       });
-      
-      clearTimeout(timeoutId);
-      console.log('✅ API response received, status:', response.status);
+
+      console.log('✅ Response:', response.status);
 
       if (!response.ok) {
-        throw new Error('API request failed');
+        throw new Error(`API error: ${response.status}`);
       }
 
-      // Handle streaming response
       const reader = response.body?.getReader();
-      if (!reader) {
-        throw new Error('No response body reader available');
-      }
-      
+      if (!reader) throw new Error('No reader');
+
       const decoder = new TextDecoder();
-      let streamedContent = '';
-      let chunksReceived = 0;
-      streamingMessageIdRef.current = null;
-      let updatePending = false;
-      
-      console.log('📡 Starting to read stream...');
-      
+      let fullContent = '';
+
+      console.log('📡 Streaming...');
+
       while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
+        const { done, value } = await reader.read();
+        if (done) break;
 
-          const chunk = decoder.decode(value);
-          chunksReceived++;
-          console.log(`📦 Chunk ${chunksReceived}:`, chunk.substring(0, 100));
-          
-          const lines = chunk.split('\n').filter(line => line.trim().startsWith('data:'));
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n').filter(l => l.trim().startsWith('data:'));
 
-          for (const line of lines) {
-            try {
-              const data = JSON.parse(line.replace('data: ', ''));
-              
-              if (data.content) {
-                streamedContent += data.content;
-                
-                // Add initial message on first chunk
-                if (!streamingMessageIdRef.current) {
-                  // addMessage now returns the ID - call directly to get ID
-                  const messageId = addMessage({
-                    role: 'assistant',
-                    content: streamedContent,
-                    isStreaming: true,
-                  });
-                  streamingMessageIdRef.current = messageId;
-                  updatePending = false;
-                } else if (!updatePending) {
-                  // Throttle updates - only update if not already pending
-                  updatePending = true;
-                  requestAnimationFrame(() => {
-                    if (streamingMessageIdRef.current) {
-                      updateMessage(streamingMessageIdRef.current, streamedContent);
-                    }
-                    updatePending = false;
-                  });
-                }
-              }
-              
-              if (data.done) {
-                // If we got done without ever creating a message, create one now
-                if (!streamingMessageIdRef.current && streamedContent) {
-                  addMessage({
-                    role: 'assistant',
-                    content: streamedContent,
-                    isStreaming: false,
-                  });
-                } else if (streamingMessageIdRef.current) {
-                  // Mark the streaming message as complete
-                  updateMessage(streamingMessageIdRef.current, streamedContent);
-                }
-                
-                setEmotion(data.emotion || 'confident');
-                setTyping(false);
-                
-                // Log model info
-                if (data.model) {
-                  console.log(`🧠 Response from: ${data.model}`);
-                  if (data.responseTime) {
-                    console.log(`⚡ Response time: ${data.responseTime}ms`);
-                  }
-                }
-              }
-            } catch (e) {
-              console.warn('⚠️ Failed to parse SSE line:', line, e);
+        for (const line of lines) {
+          try {
+            const data = JSON.parse(line.replace('data: ', ''));
+
+            if (data.content) {
+              fullContent += data.content;
+              // Update LOCAL state only - no Zustand updates!
+              setStreamingMessage(fullContent);
             }
+
+            if (data.done) {
+              console.log('✅ Done');
+              // NOW update Zustand with final message
+              setStreamingMessage('');
+              addMessage({
+                role: 'assistant',
+                content: fullContent,
+                emotion: data.emotion || 'confident',
+              });
+
+              setEmotion(data.emotion || 'confident');
+              setTyping(false);
+
+              if (data.model) {
+                console.log(`🧠 ${data.model} - ${data.responseTime}ms`);
+              }
+            }
+          } catch (e) {
+            console.warn('⚠️ Parse error:', e);
           }
         }
-    } catch (error) {
-      console.error('❌ Chat error:', error);
-      setTyping(false);
-      
-      let errorMessage = "Oops! Something went wrong on my end. Let me get that fixed for you, Hollywood. 🔧";
-      
-      if (error instanceof Error) {
-        if (error.name === 'AbortError') {
-          errorMessage = "Timeout! The AI is taking too long to respond. This might be a temporary issue - try again? ⏱️";
-        } else {
-          console.error('Error details:', error.message, error.stack);
-        }
       }
-      
-      addMessage({
-        role: 'assistant',
-        content: errorMessage,
-        emotion: 'thoughtful',
-      });
+    } catch (error) {
+      console.error('❌ Error:', error);
+      setTyping(false);
+      setStreamingMessage('');
+
+      if (error instanceof Error && error.name !== 'AbortError') {
+        addMessage({
+          role: 'assistant',
+          content: "Oops! Something went wrong. Try again? 🔧",
+          emotion: 'thoughtful',
+        });
+      }
     } finally {
       setIsLoading(false);
+      abortControllerRef.current = null;
     }
   };
 
   const handleClearChat = () => {
-    if (confirm('Clear all messages? This cannot be undone.')) {
+    if (confirm('Clear all messages?')) {
       clearMessages();
     }
   };
@@ -204,7 +176,6 @@ export function ChatInterface() {
 
           <div className="flex items-center gap-3">
             <EmotionIndicator emotion={currentEmotion} />
-            
             <div className="flex gap-2">
               <button
                 onClick={handleClearChat}
@@ -213,10 +184,9 @@ export function ChatInterface() {
               >
                 <Trash2 className="w-5 h-5" />
               </button>
-              
               <button
                 className="p-2 rounded-lg glass-hover text-gray-400 hover:text-white"
-                title="Settings (coming soon)"
+                title="Settings"
               >
                 <Settings className="w-5 h-5" />
               </button>
@@ -229,10 +199,10 @@ export function ChatInterface() {
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-4xl mx-auto px-4 py-8">
           <AnimatePresence mode="popLayout">
-            {messages.map((message) => (
+            {displayMessages.map((message) => (
               <ChatMessage key={message.id} message={message} />
             ))}
-            {isTyping && <TypingIndicator />}
+            {isTyping && !streamingMessage && <TypingIndicator />}
           </AnimatePresence>
           <div ref={messagesEndRef} />
         </div>
