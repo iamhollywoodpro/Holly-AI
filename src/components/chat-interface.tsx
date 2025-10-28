@@ -1,15 +1,16 @@
-// HOLLY Phase 2D Complete: Chat Interface with Tags, Export, and Stats
-// Integrated all Phase 2D features
+// HOLLY Chat Interface - FULLY FIXED VERSION
+// With emotion indicator, working export, stats, and new conversation
 
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Send, Loader2, Plus, BarChart3 } from 'lucide-react';
+import { Send, Loader2, BarChart3 } from 'lucide-react';
 import { ConversationSidebar } from './conversation-sidebar';
 import { ConversationSearch } from './conversation-search';
 import { ConversationTags } from './conversation-tags';
 import { ConversationExport } from './conversation-export';
 import { StatsDashboard } from './stats-dashboard';
+import { EmotionIndicator } from './emotion-indicator';
 import { useConversations } from '@/hooks/use-conversations';
 import { useConversationStats } from '@/hooks/use-conversation-stats';
 
@@ -24,6 +25,8 @@ interface Message {
   metadata?: Record<string, any>;
 }
 
+type EmotionType = 'focused' | 'excited' | 'thoughtful' | 'playful' | 'confident' | 'curious';
+
 interface ChatInterfaceProps {
   userId: string;
 }
@@ -34,6 +37,7 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
   const [streamingMessage, setStreamingMessage] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [showStats, setShowStats] = useState(false);
+  const [currentEmotion, setCurrentEmotion] = useState<EmotionType>('confident');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const {
@@ -80,9 +84,15 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
     setShowSearch(false);
   }, [selectConversation]);
 
-  // Handle new conversation
+  // Handle new conversation - FIXED
   const handleNewConversation = async () => {
-    await createConversation('New Conversation');
+    console.log('Creating new conversation...');
+    const newConv = await createConversation('New Conversation');
+    if (newConv) {
+      console.log('New conversation created:', newConv.id);
+    } else {
+      console.error('Failed to create conversation');
+    }
   };
 
   // Handle tag changes
@@ -114,6 +124,7 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
     setInput('');
     setIsStreaming(true);
     setStreamingMessage('');
+    setCurrentEmotion('thoughtful'); // Set thinking emotion
 
     try {
       // Create conversation if none exists
@@ -139,6 +150,7 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
             { role: 'user', content: userMessage },
           ],
           conversationId: conversation.id,
+          userId,
         }),
       });
 
@@ -166,6 +178,8 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
                 if (parsed.content) {
                   fullResponse += parsed.content;
                   setStreamingMessage(fullResponse);
+                  // Update emotion during streaming
+                  setCurrentEmotion('confident');
                 }
               } catch (e) {
                 // Skip invalid JSON
@@ -189,6 +203,7 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
       }
     } catch (err) {
       console.error('Error sending message:', err);
+      setCurrentEmotion('curious'); // Show curious on error
     } finally {
       setIsStreaming(false);
       setStreamingMessage('');
@@ -232,14 +247,25 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
           <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4">
             <div className="flex items-center justify-between">
               <div className="flex-1">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                  {currentConversation.title}
-                </h2>
+                <div className="flex items-center gap-3 mb-2">
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                    {currentConversation.title}
+                  </h2>
+                  {/* Emotion Indicator - RESTORED */}
+                  <EmotionIndicator emotion={currentEmotion} />
+                </div>
                 <div className="mt-2">
                   <ConversationTags
                     conversationId={currentConversation.id}
                     tags={currentConversation.metadata?.tags || []}
                     onTagsChange={handleTagsChange}
+                    availableTags={[
+                      { id: 'work', name: 'Work', color: '#3b82f6' },
+                      { id: 'research', name: 'Research', color: '#8b5cf6' },
+                      { id: 'ideas', name: 'Ideas', color: '#f59e0b' },
+                      { id: 'bugs', name: 'Bugs', color: '#ef4444' },
+                      { id: 'personal', name: 'Personal', color: '#10b981' },
+                    ]}
                   />
                 </div>
               </div>
@@ -343,7 +369,7 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
         />
       )}
 
-      {/* Stats Dashboard */}
+      {/* Stats Dashboard - FIXED with proper close handler */}
       {showStats && statsData && (
         <StatsDashboard
           data={statsData}

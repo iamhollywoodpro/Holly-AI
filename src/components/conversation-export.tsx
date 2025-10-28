@@ -1,5 +1,6 @@
-// HOLLY Phase 2D: Export Conversations Component
+// HOLLY Phase 2D: Export Conversations Component - FIXED
 // Export to PDF and Markdown with formatting
+// Fixed z-index and positioning issues
 
 'use client';
 
@@ -181,25 +182,35 @@ export function ConversationExport({ conversation, messages }: ConversationExpor
         Export
       </button>
 
+      {/* FIXED: Added higher z-index and better visibility */}
       {showMenu && (
-        <div className="absolute top-full right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-2 z-10 min-w-[180px]">
-          <button
-            onClick={exportToMarkdown}
-            disabled={isExporting}
-            className="flex items-center gap-3 w-full px-3 py-2 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
-          >
-            <FileText className="w-4 h-4" />
-            Export as Markdown
-          </button>
-          <button
-            onClick={exportToPDF}
-            disabled={isExporting}
-            className="flex items-center gap-3 w-full px-3 py-2 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
-          >
-            <File className="w-4 h-4" />
-            Export as PDF
-          </button>
-        </div>
+        <>
+          {/* Backdrop to close menu when clicking outside */}
+          <div 
+            className="fixed inset-0 z-40" 
+            onClick={() => setShowMenu(false)}
+          />
+          
+          {/* Export menu with proper z-index */}
+          <div className="absolute top-full right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl p-2 z-50 min-w-[200px]">
+            <button
+              onClick={exportToMarkdown}
+              disabled={isExporting}
+              className="flex items-center gap-3 w-full px-3 py-2 text-sm text-gray-900 dark:text-gray-100 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+            >
+              <FileText className="w-4 h-4" />
+              <span>Export as Markdown</span>
+            </button>
+            <button
+              onClick={exportToPDF}
+              disabled={isExporting}
+              className="flex items-center gap-3 w-full px-3 py-2 text-sm text-gray-900 dark:text-gray-100 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+            >
+              <File className="w-4 h-4" />
+              <span>Export as PDF</span>
+            </button>
+          </div>
+        </>
       )}
     </div>
   );
