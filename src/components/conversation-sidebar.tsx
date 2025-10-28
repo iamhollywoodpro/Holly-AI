@@ -1,7 +1,7 @@
 'use client';
 
-// HOLLY Phase 2D: Enhanced Conversation Sidebar
-// Includes search trigger, pin favorites, and improved UX
+// HOLLY Phase 2D: Enhanced Conversation Sidebar - FIXED VERSION
+// Matches chat-interface prop names
 
 import React, { useState } from 'react';
 import { PlusCircle, MessageSquare, Trash2, Edit2, Check, X, Search, Pin, PinOff } from 'lucide-react';
@@ -14,13 +14,12 @@ interface Conversation {
   pinned?: boolean;
 }
 
-interface ConversationSidebarEnhancedProps {
+interface ConversationSidebarProps {
   conversations: Conversation[];
-  currentConversationId: string | null;
+  currentConversation: Conversation | null;  // FIXED: Changed from currentConversationId
   onSelectConversation: (id: string) => void;
-  onCreateConversation: () => void;
+  onNewConversation: () => void;  // FIXED: Changed from onCreateConversation
   onDeleteConversation: (id: string) => void;
-  onUpdateTitle: (id: string, title: string) => void;
   onTogglePin: (id: string) => void;
   onOpenSearch: () => void;
   isLoading?: boolean;
@@ -28,26 +27,36 @@ interface ConversationSidebarEnhancedProps {
 
 export function ConversationSidebar({
   conversations,
-  currentConversationId,
+  currentConversation,  // FIXED
   onSelectConversation,
-  onCreateConversation,
+  onNewConversation,  // FIXED
   onDeleteConversation,
-  onUpdateTitle,
   onTogglePin,
   onOpenSearch,
   isLoading = false,
-}: ConversationSidebarEnhancedProps) {
+}: ConversationSidebarProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
+
+  const currentConversationId = currentConversation?.id || null;  // FIXED: Extract ID
 
   const handleStartEdit = (conv: Conversation) => {
     setEditingId(conv.id);
     setEditTitle(conv.title);
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (editingId && editTitle.trim()) {
-      onUpdateTitle(editingId, editTitle.trim());
+      // FIXED: Call API directly instead of relying on prop
+      try {
+        await fetch(`/api/conversations/${editingId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: editTitle.trim() }),
+        });
+      } catch (error) {
+        console.error('Failed to update title:', error);
+      }
       setEditingId(null);
     }
   };
@@ -69,89 +78,99 @@ export function ConversationSidebar({
     if (diffMins < 60) return `${diffMins}m ago`;
     if (diffHours < 24) return `${diffHours}h ago`;
     if (diffDays < 7) return `${diffDays}d ago`;
-    return date.toLocaleDateString();
+    
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
   // Separate pinned and unpinned conversations
   const pinnedConversations = conversations.filter(c => c.pinned);
   const unpinnedConversations = conversations.filter(c => !c.pinned);
 
-  const renderConversation = (conv: Conversation) => (
-    <div
-      key={conv.id}
-      className={`group relative rounded-lg transition-all ${
-        currentConversationId === conv.id
-          ? 'bg-purple-600/20 border border-purple-500/50'
-          : 'hover:bg-gray-800 border border-transparent'
-      }`}
-    >
-      {editingId === conv.id ? (
-        // Edit Mode
-        <div className="p-3 flex items-center gap-2">
-          <input
-            type="text"
-            value={editTitle}
-            onChange={(e) => setEditTitle(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') handleSaveEdit();
-              if (e.key === 'Escape') handleCancelEdit();
-            }}
-            className="flex-1 bg-gray-800 text-white px-2 py-1 rounded text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-            autoFocus
-          />
-          <button
-            onClick={handleSaveEdit}
-            className="p-1 hover:bg-green-600/20 rounded text-green-400"
-          >
-            <Check size={16} />
-          </button>
-          <button
-            onClick={handleCancelEdit}
-            className="p-1 hover:bg-red-600/20 rounded text-red-400"
-          >
-            <X size={16} />
-          </button>
-        </div>
-      ) : (
-        // View Mode
-        <div
-          onClick={() => onSelectConversation(conv.id)}
-          className="p-3 cursor-pointer"
-        >
-          <div className="flex items-start justify-between gap-2">
+  const renderConversation = (conv: Conversation) => {
+    const isActive = currentConversationId === conv.id;
+    const isEditing = editingId === conv.id;
+
+    return (
+      <div
+        key={conv.id}
+        className={`group relative flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-all ${
+          isActive
+            ? 'bg-blue-600 text-white'
+            : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-900 dark:text-gray-100'
+        }`}
+        onClick={() => !isEditing && onSelectConversation(conv.id)}
+      >
+        <MessageSquare className="w-4 h-4 flex-shrink-0" />
+
+        {isEditing ? (
+          <div className="flex-1 flex items-center gap-2">
+            <input
+              type="text"
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSaveEdit();
+                if (e.key === 'Escape') handleCancelEdit();
+              }}
+              className="flex-1 px-2 py-1 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded"
+              autoFocus
+              onClick={(e) => e.stopPropagation()}
+            />
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSaveEdit();
+              }}
+              className="p-1 hover:bg-green-500/20 rounded"
+            >
+              <Check className="w-4 h-4 text-green-600" />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleCancelEdit();
+              }}
+              className="p-1 hover:bg-red-500/20 rounded"
+            >
+              <X className="w-4 h-4 text-red-600" />
+            </button>
+          </div>
+        ) : (
+          <>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                {conv.pinned && (
-                  <Pin size={14} className="text-purple-400 flex-shrink-0" />
-                )}
-                <h3 className="text-sm font-medium text-white truncate">
-                  {conv.title}
-                </h3>
-              </div>
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-sm font-medium truncate">{conv.title}</p>
+              <p className={`text-xs ${isActive ? 'text-blue-200' : 'text-gray-500 dark:text-gray-400'}`}>
                 {formatDate(conv.updated_at)}
               </p>
             </div>
-            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+
+            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   onTogglePin(conv.id);
                 }}
-                className="p-1 hover:bg-purple-600/20 rounded text-purple-400"
-                title={conv.pinned ? 'Unpin' : 'Pin'}
+                className={`p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 ${
+                  isActive ? 'text-white' : 'text-gray-600 dark:text-gray-400'
+                }`}
+                aria-label={conv.pinned ? 'Unpin' : 'Pin'}
               >
-                {conv.pinned ? <PinOff size={14} /> : <Pin size={14} />}
+                {conv.pinned ? <PinOff className="w-4 h-4" /> : <Pin className="w-4 h-4" />}
               </button>
+              
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   handleStartEdit(conv);
                 }}
-                className="p-1 hover:bg-blue-600/20 rounded text-blue-400"
+                className={`p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 ${
+                  isActive ? 'text-white' : 'text-gray-600 dark:text-gray-400'
+                }`}
+                aria-label="Edit title"
               >
-                <Edit2 size={14} />
+                <Edit2 className="w-4 h-4" />
               </button>
+
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -159,79 +178,92 @@ export function ConversationSidebar({
                     onDeleteConversation(conv.id);
                   }
                 }}
-                className="p-1 hover:bg-red-600/20 rounded text-red-400"
+                className={`p-1 rounded hover:bg-red-500/20 ${
+                  isActive ? 'text-white' : 'text-red-600'
+                }`}
+                aria-label="Delete"
               >
-                <Trash2 size={14} />
+                <Trash2 className="w-4 h-4" />
               </button>
             </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+          </>
+        )}
+      </div>
+    );
+  };
 
   return (
-    <div className="w-80 bg-gray-900 border-r border-gray-800 flex flex-col h-screen">
+    <div className="w-80 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col h-screen">
       {/* Header */}
-      <div className="p-4 border-b border-gray-800 space-y-3">
+      <div className="p-4 border-b border-gray-200 dark:border-gray-800">
         <button
-          onClick={onCreateConversation}
+          onClick={onNewConversation}
           disabled={isLoading}
-          className="w-full flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-600/50 text-white px-4 py-3 rounded-lg transition-colors font-medium"
+          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg transition-colors font-medium"
         >
-          <PlusCircle size={20} />
+          <PlusCircle className="w-5 h-5" />
           New Conversation
         </button>
+      </div>
 
-        {/* Search Button */}
+      {/* Search Trigger */}
+      <div className="px-3 py-2 border-b border-gray-200 dark:border-gray-800">
         <button
           onClick={onOpenSearch}
-          className="w-full flex items-center gap-2 bg-gray-800 hover:bg-gray-700 text-gray-300 px-4 py-2.5 rounded-lg transition-colors"
+          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
         >
-          <Search size={18} />
-          <span className="flex-1 text-left text-sm">Search conversations...</span>
-          <span className="text-xs text-gray-500">⌘K</span>
+          <Search className="w-4 h-4" />
+          <span>Search conversations...</span>
+          <kbd className="ml-auto px-2 py-0.5 text-xs bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded">
+            ⌘K
+          </kbd>
         </button>
       </div>
 
       {/* Conversations List */}
-      <div className="flex-1 overflow-y-auto">
-        {conversations.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-gray-500 px-4 text-center">
-            <MessageSquare size={48} className="mb-3 opacity-50" />
-            <p className="text-sm">No conversations yet</p>
-            <p className="text-xs mt-1">Start a new one to begin!</p>
+      <div className="flex-1 overflow-y-auto p-3 space-y-4">
+        {/* Pinned Section */}
+        {pinnedConversations.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 px-3 mb-2">
+              <Pin className="w-3 h-3 text-gray-500" />
+              <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Pinned
+              </h3>
+            </div>
+            <div className="space-y-1">
+              {pinnedConversations.map(renderConversation)}
+            </div>
           </div>
-        ) : (
-          <div className="p-2 space-y-1">
-            {/* Pinned Section */}
-            {pinnedConversations.length > 0 && (
-              <>
-                <div className="px-2 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                  Pinned
-                </div>
-                {pinnedConversations.map(renderConversation)}
-                <div className="h-4" /> {/* Spacer */}
-              </>
-            )}
+        )}
 
-            {/* All Conversations */}
-            {unpinnedConversations.length > 0 && pinnedConversations.length > 0 && (
-              <div className="px-2 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+        {/* All Conversations */}
+        {unpinnedConversations.length > 0 && (
+          <div>
+            {pinnedConversations.length > 0 && (
+              <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider px-3 mb-2">
                 All Conversations
-              </div>
+              </h3>
             )}
-            {unpinnedConversations.map(renderConversation)}
+            <div className="space-y-1">
+              {unpinnedConversations.map(renderConversation)}
+            </div>
+          </div>
+        )}
+
+        {conversations.length === 0 && !isLoading && (
+          <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+            <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-50" />
+            <p className="text-sm">No conversations yet</p>
+            <p className="text-xs mt-1">Create one to get started!</p>
           </div>
         )}
       </div>
 
-      {/* Footer Info */}
-      <div className="p-4 border-t border-gray-800 text-xs text-gray-500">
-        <p>💜 HOLLY Memory System</p>
-        <p className="mt-1">
-          {conversations.length} conversation{conversations.length !== 1 ? 's' : ''}
-          {pinnedConversations.length > 0 && ` • ${pinnedConversations.length} pinned`}
+      {/* Footer */}
+      <div className="p-3 border-t border-gray-200 dark:border-gray-800">
+        <p className="text-xs text-center text-gray-500 dark:text-gray-400">
+          💜 HOLLY Memory System
         </p>
       </div>
     </div>

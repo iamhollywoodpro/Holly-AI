@@ -1,5 +1,5 @@
-// HOLLY Phase 2D: Enhanced Conversations Hook
-// Adds pin/unpin functionality
+// HOLLY Phase 2D: Enhanced Conversations Hook - FINAL VERSION
+// Exports: useConversations (correct name)
 
 import { useState, useEffect, useCallback } from 'react';
 
