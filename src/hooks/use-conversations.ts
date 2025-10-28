@@ -23,7 +23,7 @@ interface Conversation {
   metadata?: Record<string, any>;
 }
 
-export function useConversations(userId: string = 'default-user') {
+export function useConversations(userId?: string) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversation, setCurrentConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -32,10 +32,11 @@ export function useConversations(userId: string = 'default-user') {
 
   // Fetch all conversations
   const fetchConversations = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const response = await fetch(`/api/conversations?userId=${userId}`);
+  if (!userId) return; // Add this line
+  setIsLoading(true);
+  setError(null);
+  try {
+    const response = await fetch(`/api/conversations?userId=${userId}`);
       if (!response.ok) throw new Error('Failed to fetch conversations');
       const data = await response.json();
       setConversations(data.conversations || []);

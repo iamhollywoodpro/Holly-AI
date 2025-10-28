@@ -1,5 +1,6 @@
 'use client';
 
+import { useAuth } from '@/contexts/auth-context';
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useChatStore, Message } from '@/store/chat-store';
@@ -21,16 +22,18 @@ export function ChatInterface() {
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // Memory system integration
-  const {
-    conversations,
-    currentConversation,
-    messages: dbMessages,
-    createConversation,
-    selectConversation,
-    addMessage: addDbMessage,
-    updateConversationTitle,
-    deleteConversation,
-  } = useConversations('hollywood');
+  const { user } = useAuth(); // Add this line
+
+const {
+  conversations,
+  currentConversation,
+  messages: dbMessages,
+  createConversation,
+  selectConversation,
+  addMessage: addDbMessage,
+  updateConversationTitle,
+  deleteConversation,
+} = useConversations(user?.id); // Change 'hollywood' to user?.id
 
   // Load conversation messages from database when switching conversations
   useEffect(() => {
@@ -114,13 +117,13 @@ export function ChatInterface() {
       console.log('🚀 Sending:', content.substring(0, 50));
 
       const response = await fetch('/api/chat/stream', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: content,
-          userId: 'hollywood',
-          conversationHistory,
-        }),
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    message: content,
+    userId: user?.email || 'anonymous',
+    conversationHistory,
+  }),
         signal: abortControllerRef.current.signal,
       });
 
