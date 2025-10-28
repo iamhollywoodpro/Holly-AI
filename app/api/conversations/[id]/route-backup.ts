@@ -1,5 +1,5 @@
-// HOLLY Phase 2D: Enhanced Individual Conversation API Route
-// Supports metadata updates (pinned status)
+// HOLLY Phase 2B: Individual Conversation API Route
+// Handles single conversation operations (get, update, delete)
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
@@ -38,21 +38,11 @@ export async function PATCH(
 ) {
   try {
     const body = await request.json();
-    const { title, metadata } = body;
-
-    const updateData: any = { updated_at: new Date().toISOString() };
-    
-    if (title !== undefined) {
-      updateData.title = title;
-    }
-    
-    if (metadata !== undefined) {
-      updateData.metadata = metadata;
-    }
+    const { title } = body;
 
     const { data: conversation, error } = await supabase
       .from('holly_conversations')
-      .update(updateData)
+      .update({ title, updated_at: new Date().toISOString() })
       .eq('id', params.id)
       .select()
       .single();

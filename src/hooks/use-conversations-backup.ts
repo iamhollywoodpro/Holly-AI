@@ -1,5 +1,5 @@
-// HOLLY Phase 2D: Enhanced Conversations Hook
-// Adds pin/unpin functionality
+// HOLLY Phase 2B: Conversations Hook
+// React hook for managing conversations and messages
 
 import { useState, useEffect, useCallback } from 'react';
 
@@ -21,10 +21,9 @@ interface Conversation {
   created_at: string;
   updated_at: string;
   metadata?: Record<string, any>;
-  pinned?: boolean;
 }
 
-export function useConversationsEnhanced(userId?: string) {
+export function useConversations(userId?: string) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversation, setCurrentConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -33,21 +32,14 @@ export function useConversationsEnhanced(userId?: string) {
 
   // Fetch all conversations
   const fetchConversations = useCallback(async () => {
-    if (!userId) return;
-    setIsLoading(true);
-    setError(null);
-    try {
-      const response = await fetch(`/api/conversations?userId=${userId}`);
+  if (!userId) return; // Add this line
+  setIsLoading(true);
+  setError(null);
+  try {
+    const response = await fetch(`/api/conversations?userId=${userId}`);
       if (!response.ok) throw new Error('Failed to fetch conversations');
       const data = await response.json();
-      
-      // Extract pinned from metadata
-      const conversationsWithPinned = (data.conversations || []).map((conv: Conversation) => ({
-        ...conv,
-        pinned: conv.metadata?.pinned || false,
-      }));
-      
-      setConversations(conversationsWithPinned);
+      setConversations(data.conversations || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
@@ -57,7 +49,6 @@ export function useConversationsEnhanced(userId?: string) {
 
   // Create new conversation
   const createConversation = useCallback(async (title?: string) => {
-    if (!userId) return null;
     setIsLoading(true);
     setError(null);
     try {
@@ -68,7 +59,7 @@ export function useConversationsEnhanced(userId?: string) {
       });
       if (!response.ok) throw new Error('Failed to create conversation');
       const data = await response.json();
-      const newConv = { ...data.conversation, pinned: false };
+      const newConv = data.conversation;
       setConversations(prev => [newConv, ...prev]);
       setCurrentConversation(newConv);
       setMessages([]);
@@ -90,11 +81,7 @@ export function useConversationsEnhanced(userId?: string) {
       const convResponse = await fetch(`/api/conversations/${conversationId}`);
       if (!convResponse.ok) throw new Error('Failed to fetch conversation');
       const convData = await convResponse.json();
-      const conversation = {
-        ...convData.conversation,
-        pinned: convData.conversation.metadata?.pinned || false,
-      };
-      setCurrentConversation(conversation);
+      setCurrentConversation(convData.conversation);
 
       // Fetch messages
       const messagesResponse = await fetch(`/api/conversations/${conversationId}/messages`);
@@ -151,15 +138,11 @@ export function useConversationsEnhanced(userId?: string) {
       });
       if (!response.ok) throw new Error('Failed to update conversation');
       const data = await response.json();
-      const updatedConv = {
-        ...data.conversation,
-        pinned: data.conversation.metadata?.pinned || false,
-      };
       setConversations(prev =>
-        prev.map(conv => (conv.id === conversationId ? updatedConv : conv))
+        prev.map(conv => (conv.id === conversationId ? data.conversation : conv))
       );
       if (currentConversation?.id === conversationId) {
-        setCurrentConversation(updatedConv);
+        setCurrentConversation(data.conversation);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
@@ -167,45 +150,6 @@ export function useConversationsEnhanced(userId?: string) {
       setIsLoading(false);
     }
   }, [currentConversation]);
-
-  // Toggle pin status
-  const togglePin = useCallback(async (conversationId: string) => {
-    const conversation = conversations.find(c => c.id === conversationId);
-    if (!conversation) return;
-
-    const newPinnedStatus = !conversation.pinned;
-    
-    setIsLoading(true);
-    setError(null);
-    try {
-      const response = await fetch(`/api/conversations/${conversationId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          metadata: {
-            ...conversation.metadata,
-            pinned: newPinnedStatus,
-          },
-        }),
-      });
-      if (!response.ok) throw new Error('Failed to toggle pin');
-      const data = await response.json();
-      const updatedConv = {
-        ...data.conversation,
-        pinned: newPinnedStatus,
-      };
-      setConversations(prev =>
-        prev.map(conv => (conv.id === conversationId ? updatedConv : conv))
-      );
-      if (currentConversation?.id === conversationId) {
-        setCurrentConversation(updatedConv);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [conversations, currentConversation]);
 
   // Delete conversation
   const deleteConversation = useCallback(async (conversationId: string) => {
@@ -244,7 +188,6 @@ export function useConversationsEnhanced(userId?: string) {
     selectConversation,
     addMessage,
     updateConversationTitle,
-    togglePin,
     deleteConversation,
   };
 }

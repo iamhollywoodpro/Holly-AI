@@ -1,5 +1,6 @@
 'use client';
 
+import { ConversationSearch } from './conversation-search';
 import { useAuth } from '@/contexts/auth-context';
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -19,21 +20,24 @@ export function ChatInterface() {
   const [isLoading, setIsLoading] = useState(false);
   const [streamingMessage, setStreamingMessage] = useState<string>('');
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [searchOpen, setSearchOpen] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Memory system integration
-  const { user } = useAuth(); // Add this line
+  // Auth integration
+  const { user } = useAuth();
 
-const {
-  conversations,
-  currentConversation,
-  messages: dbMessages,
-  createConversation,
-  selectConversation,
-  addMessage: addDbMessage,
-  updateConversationTitle,
-  deleteConversation,
-} = useConversations(user?.id); // Change 'hollywood' to user?.id
+  // Memory system integration
+  const {
+    conversations,
+    currentConversation,
+    messages: dbMessages,
+    createConversation,
+    selectConversation,
+    addMessage: addDbMessage,
+    updateConversationTitle,
+    togglePin,
+    deleteConversation,
+  } = useConversations(user?.id);
 
   // Load conversation messages from database when switching conversations
   useEffect(() => {
@@ -71,6 +75,19 @@ const {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [displayMessages, isTyping]);
+
+  // Global search shortcut (Cmd+K / Ctrl+K)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setSearchOpen(true);
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const handleSendMessage = async (content: string) => {
     // Create new conversation if none exists
@@ -117,13 +134,13 @@ const {
       console.log('🚀 Sending:', content.substring(0, 50));
 
       const response = await fetch('/api/chat/stream', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    message: content,
-    userId: user?.email || 'anonymous',
-    conversationHistory,
-  }),
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: content,
+          userId: user?.email || 'anonymous',
+          conversationHistory,
+        }),
         signal: abortControllerRef.current.signal,
       });
 
@@ -138,8 +155,6 @@ const {
 
       const decoder = new TextDecoder();
       let fullContent = '';
-      let finalEmotion = 'confident';
-      let finalModel = '';
 
       console.log('📡 Streaming...');
 
@@ -230,10 +245,6 @@ const {
     await deleteConversation(id);
   };
 
-  const handleUpdateTitle = async (id: string, title: string) => {
-    await updateConversationTitle(id, title);
-  };
-
   return (
     <div className="flex h-screen">
       {/* Sidebar */}
@@ -251,7 +262,10 @@ const {
               onSelectConversation={handleSelectConversation}
               onCreateConversation={handleNewConversation}
               onDeleteConversation={handleDeleteConversation}
-              onUpdateTitle={handleUpdateTitle}
+              onUpdateTitle={updateConversationTitle}
+              onTogglePin={togglePin}
+              onOpenSearch={() => setSearchOpen(true)}
+              isLoading={isLoading}
             />
           </motion.div>
         )}
@@ -336,6 +350,18 @@ const {
 
         {/* Input */}
         <MessageInput onSend={handleSendMessage} disabled={isLoading} />
+
+        {/* Search Modal */}
+        <AnimatePresence>
+          {searchOpen && (
+            <ConversationSearch
+              conversations={conversations}
+              onSelectConversation={handleSelectConversation}
+              isOpen={searchOpen}
+              onClose={() => setSearchOpen(false)}
+            />
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
