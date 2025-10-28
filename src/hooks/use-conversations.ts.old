@@ -24,7 +24,7 @@ interface Conversation {
   pinned?: boolean;
 }
 
-export function useConversations(userId?: string) {
+export function useConversationsEnhanced(userId?: string) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversation, setCurrentConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
