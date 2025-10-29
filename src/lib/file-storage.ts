@@ -124,7 +124,7 @@ export async function uploadFile(
     return { success: true, publicUrl: urlData.publicUrl };
   } catch (err) {
     console.error('Upload error:', err);
-    return { url: null, error: err instanceof Error ? err.message : 'Unknown error' };
+    return { success: false, error: err instanceof Error ? err.message : 'Unknown error' };
   }
 }
 
