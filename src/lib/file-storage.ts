@@ -1,209 +1,286 @@
-// File Storage Utilities for HOLLY
-// Handles file uploads to Supabase Storage
+// lib/file-storage.ts - HOLLY Phase 3: File Upload & Storage System
+// FIXED VERSION - All parameter validation and type safety issues resolved
 
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!  // Changed from SUPABASE_SERVICE_ROLE_KEY
-);
+// Initialize Supabase client with correct frontend keys
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('Missing Supabase environment variables');
+}
+
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+// Storage bucket configuration
+export const STORAGE_BUCKETS = {
+  audio: 'holly-audio',
+  video: 'holly-video',
+  images: 'holly-images',
+  code: 'holly-code',
+  documents: 'holly-documents',
+  data: 'holly-data'
+} as const;
 
 // File type to bucket mapping
-const FILE_TYPE_BUCKETS: Record<string, string> = {
-  // Audio files
-  mp3: 'holly-audio',
-  wav: 'holly-audio',
-  m4a: 'holly-audio',
-  aac: 'holly-audio',
-  ogg: 'holly-audio',
-  flac: 'holly-audio',
-  wma: 'holly-audio',
+export const FILE_TYPE_MAP: Record<string, keyof typeof STORAGE_BUCKETS> = {
+  // Audio
+  'mp3': 'audio',
+  'wav': 'audio',
+  'ogg': 'audio',
+  'm4a': 'audio',
+  'flac': 'audio',
+  'aac': 'audio',
   
-  // Video files
-  mp4: 'holly-video',
-  mov: 'holly-video',
-  avi: 'holly-video',
-  webm: 'holly-video',
-  mkv: 'holly-video',
-  wmv: 'holly-video',
+  // Video
+  'mp4': 'video',
+  'mov': 'video',
+  'avi': 'video',
+  'mkv': 'video',
+  'webm': 'video',
   
-  // Image files
-  png: 'holly-images',
-  jpg: 'holly-images',
-  jpeg: 'holly-images',
-  gif: 'holly-images',
-  svg: 'holly-images',
-  webp: 'holly-images',
-  bmp: 'holly-images',
+  // Images
+  'jpg': 'images',
+  'jpeg': 'images',
+  'png': 'images',
+  'gif': 'images',
+  'webp': 'images',
+  'svg': 'images',
   
-  // Code files
-  js: 'holly-code',
-  ts: 'holly-code',
-  tsx: 'holly-code',
-  jsx: 'holly-code',
-  py: 'holly-code',
-  css: 'holly-code',
-  html: 'holly-code',
-  json: 'holly-code',
-  xml: 'holly-code',
-  yaml: 'holly-code',
-  yml: 'holly-code',
-  sql: 'holly-code',
+  // Code
+  'js': 'code',
+  'ts': 'code',
+  'tsx': 'code',
+  'jsx': 'code',
+  'py': 'code',
+  'java': 'code',
+  'cpp': 'code',
+  'html': 'code',
+  'css': 'code',
+  'json': 'code',
   
-  // Document files
-  pdf: 'holly-documents',
-  txt: 'holly-documents',
-  doc: 'holly-documents',
-  docx: 'holly-documents',
-  md: 'holly-documents',
+  // Documents
+  'pdf': 'documents',
+  'doc': 'documents',
+  'docx': 'documents',
+  'txt': 'documents',
+  'md': 'documents',
   
-  // Data files
-  csv: 'holly-data',
-  xlsx: 'holly-data',
-  xls: 'holly-data',
+  // Data
+  'csv': 'data',
+  'xlsx': 'data',
+  'xls': 'data',
+  'xml': 'data',
+  'sql': 'data'
 };
 
+export interface UploadResult {
+  success: boolean;
+  publicUrl?: string;
+  error?: string;
+}
+
 /**
- * Upload a file to Supabase Storage
+ * Upload a file to the appropriate Supabase storage bucket
+ * @param file - The File object to upload
+ * @param userId - The user's ID (optional for guest users)
+ * @param conversationId - The conversation ID (optional)
+ * @returns Upload result with public URL or error
  */
 export async function uploadFile(
   file: File,
-  userId: string,
-  conversationId: string
-): Promise<{ success: boolean; publicUrl?: string; error?: string }> {
+  userId?: string,
+  conversationId?: string
+): Promise<UploadResult> {
   try {
-    // Get file extension
-    const fileExtension = file.name.split('.').pop()?.toLowerCase();
-    if (!fileExtension) {
-      return { success: false, error: 'Invalid file name' };
+    // CRITICAL: Validate file parameter first
+    if (!file) {
+      console.error('[uploadFile] ERROR: file parameter is null or undefined');
+      return { 
+        success: false, 
+        error: 'No file provided' 
+      };
     }
 
-    // Determine bucket
-    const bucket = FILE_TYPE_BUCKETS[fileExtension];
-    if (!bucket) {
-      return { success: false, error: `Unsupported file type: ${fileExtension}` };
+    if (!(file instanceof File)) {
+      console.error('[uploadFile] ERROR: file parameter is not a File object', typeof file);
+      return { 
+        success: false, 
+        error: 'Invalid file parameter - not a File object' 
+      };
     }
+
+    if (!file.name) {
+      console.error('[uploadFile] ERROR: file.name is missing');
+      return { 
+        success: false, 
+        error: 'File name is missing' 
+      };
+    }
+
+    console.log('[uploadFile] Starting upload:', {
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type,
+      userId: userId || 'guest',
+      conversationId: conversationId || 'none'
+    });
+
+    // Extract file extension safely
+    const fileExtension = file.name.split('.').pop()?.toLowerCase();
+    
+    if (!fileExtension) {
+      console.error('[uploadFile] ERROR: Could not extract file extension from:', file.name);
+      return { 
+        success: false, 
+        error: 'Invalid file name - no extension found' 
+      };
+    }
+
+    // Determine bucket based on file extension
+    const bucketType = FILE_TYPE_MAP[fileExtension];
+    
+    if (!bucketType) {
+      console.error('[uploadFile] ERROR: Unsupported file type:', fileExtension);
+      return { 
+        success: false, 
+        error: `Unsupported file type: .${fileExtension}` 
+      };
+    }
+
+    const bucketName = STORAGE_BUCKETS[bucketType];
+    console.log('[uploadFile] Target bucket:', bucketName, 'for type:', bucketType);
 
     // Generate unique file path
     const timestamp = Date.now();
-    const fileName = `${userId}/${conversationId}/${timestamp}-${file.name}`;
+    const randomString = Math.random().toString(36).substring(2, 8);
+    const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const filePath = `${timestamp}_${randomString}_${safeName}`;
+
+    console.log('[uploadFile] Generated file path:', filePath);
 
     // Upload to Supabase Storage
-    const { data, error } = await supabase.storage
-      .from(bucket)
-      .upload(fileName, file, {
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from(bucketName)
+      .upload(filePath, file, {
         cacheControl: '3600',
-        upsert: false,
+        upsert: false
       });
 
-    if (error) {
-      console.error('Supabase upload error:', error);
-      return { success: false, error: error.message };
+    if (uploadError) {
+      console.error('[uploadFile] Upload error:', uploadError);
+      return { 
+        success: false, 
+        error: `Upload failed: ${uploadError.message}` 
+      };
     }
+
+    console.log('[uploadFile] Upload successful:', uploadData);
 
     // Get public URL
     const { data: urlData } = supabase.storage
-      .from(bucket)
-      .getPublicUrl(fileName);
+      .from(bucketName)
+      .getPublicUrl(filePath);
 
     if (!urlData?.publicUrl) {
-      return { success: false, error: 'Failed to get public URL' };
+      console.error('[uploadFile] ERROR: Could not generate public URL');
+      return { 
+        success: false, 
+        error: 'Could not generate public URL' 
+      };
     }
+
+    console.log('[uploadFile] Public URL generated:', urlData.publicUrl);
 
     // Save metadata to database
-    await saveFileMetadata({
-      conversation_id: conversationId,
-      file_name: file.name,
-      file_type: file.type,
-      file_size: file.size,
-      storage_path: fileName,
-      bucket_name: bucket,
-      public_url: urlData.publicUrl,
-    });
+    try {
+      const { error: dbError } = await supabase
+        .from('holly_file_uploads')
+        .insert({
+          user_id: userId || null,
+          conversation_id: conversationId || null,
+          file_name: file.name,
+          file_type: bucketType,
+          file_size: file.size,
+          storage_path: filePath,
+          bucket_name: bucketName,
+          public_url: urlData.publicUrl,
+          mime_type: file.type
+        });
 
-    return { success: true, publicUrl: urlData.publicUrl };
-  } catch (err) {
-    console.error('Upload error:', err);
-    return { success: false, error: err instanceof Error ? err.message : 'Unknown error' };
-  }
-}
-
-/**
- * Save file metadata to database
- */
-async function saveFileMetadata(metadata: {
-  conversation_id: string;
-  file_name: string;
-  file_type: string;
-  file_size: number;
-  storage_path: string;
-  bucket_name: string;
-  public_url: string;
-}) {
-  try {
-    const { error } = await supabase
-      .from('holly_file_uploads')
-      .insert(metadata);
-
-    if (error) {
-      console.error('Failed to save file metadata:', error);
-    }
-  } catch (err) {
-    console.error('Metadata save error:', err);
-  }
-}
-
-/**
- * Get all files for a conversation
- */
-export async function getConversationFiles(conversationId: string) {
-  try {
-    const { data, error } = await supabase
-      .from('holly_file_uploads')
-      .select('*')
-      .eq('conversation_id', conversationId)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('Failed to get files:', error);
-      return [];
+      if (dbError) {
+        console.error('[uploadFile] Database error (non-fatal):', dbError);
+        // Don't fail the upload if database insert fails
+      } else {
+        console.log('[uploadFile] Metadata saved to database');
+      }
+    } catch (dbError) {
+      console.error('[uploadFile] Database exception (non-fatal):', dbError);
+      // Continue - file is uploaded successfully
     }
 
-    return data || [];
-  } catch (err) {
-    console.error('Get files error:', err);
-    return [];
+    return { 
+      success: true, 
+      publicUrl: urlData.publicUrl 
+    };
+
+  } catch (error) {
+    console.error('[uploadFile] Unexpected error:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error occurred' 
+    };
   }
 }
 
 /**
- * Delete a file from storage and database
+ * Delete a file from storage
  */
-export async function deleteFile(fileId: string, storagePath: string, bucketName: string) {
+export async function deleteFile(bucketName: string, filePath: string): Promise<UploadResult> {
   try {
-    // Delete from storage
-    const { error: storageError } = await supabase.storage
+    const { error } = await supabase.storage
       .from(bucketName)
-      .remove([storagePath]);
+      .remove([filePath]);
 
-    if (storageError) {
-      console.error('Failed to delete from storage:', storageError);
+    if (error) {
+      console.error('[deleteFile] Delete error:', error);
+      return { 
+        success: false, 
+        error: `Delete failed: ${error.message}` 
+      };
     }
 
-    // Delete from database
-    const { error: dbError } = await supabase
-      .from('holly_file_uploads')
-      .delete()
-      .eq('id', fileId);
+    return { success: true };
+  } catch (error) {
+    console.error('[deleteFile] Unexpected error:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error occurred' 
+    };
+  }
+}
 
-    if (dbError) {
-      console.error('Failed to delete from database:', dbError);
-      return false;
+/**
+ * List files in a bucket
+ */
+export async function listFiles(bucketName: string, path?: string) {
+  try {
+    const { data, error } = await supabase.storage
+      .from(bucketName)
+      .list(path);
+
+    if (error) {
+      console.error('[listFiles] List error:', error);
+      return { success: false, error: error.message };
     }
 
-    return true;
-  } catch (err) {
-    console.error('Delete file error:', err);
-    return false;
+    return { success: true, files: data };
+  } catch (error) {
+    console.error('[listFiles] Unexpected error:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error occurred' 
+    };
   }
 }
