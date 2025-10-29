@@ -1,18 +1,22 @@
 // HOLLY Chat Interface - FULLY FIXED VERSION
 // With emotion indicator, working export, stats, and new conversation
+// Phase 3: File Upload Integration
 
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Send, Loader2, BarChart3 } from 'lucide-react';
+import { Send, Loader2, BarChart3, Paperclip } from 'lucide-react';
 import { ConversationSidebar } from './conversation-sidebar';
 import { ConversationSearch } from './conversation-search';
 import { ConversationTags } from './conversation-tags';
 import { ConversationExport } from './conversation-export';
 import { StatsDashboard } from './stats-dashboard';
 import { EmotionIndicator } from './emotion-indicator';
+import { FileUploadZone } from './file-upload-zone';
 import { useConversations } from '@/hooks/use-conversations';
 import { useConversationStats } from '@/hooks/use-conversation-stats';
+import { uploadFile } from '@/lib/file-storage';
+import { analyzeAudioComplete, generateFeedbackSummary } from '@/lib/audio-analyzer';
 
 interface Message {
   id: string;
@@ -39,6 +43,11 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
   const [showStats, setShowStats] = useState(false);
   const [currentEmotion, setCurrentEmotion] = useState<EmotionType>('confident');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // Phase 3: File Upload State
+  const [showUploadZone, setShowUploadZone] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
 
   const {
     conversations,
@@ -115,10 +124,82 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
     }
   };
 
+  // Phase 3: Handle file uploads
+const handleFilesSelected = async (files: File[]) => {
+  if (!currentConversation) {
+    alert('Please start a conversation first');
+    return;
+  }
+
+  setIsUploading(true);
+  setShowUploadZone(false);
+
+  try {
+    const uploadedUrls: string[] = [];
+    const feedbackMessages: string[] = [];
+
+    for (const file of files) {
+      // Upload file to Supabase Storage - FIXED: passing userId
+      const uploadResult = await uploadFile(file, userId, currentConversation.id);
+      
+      if (!uploadResult.success || uploadResult.error) {
+        console.error('Upload error:', uploadResult.error);
+        feedbackMessages.push(`❌ Failed to upload ${file.name}: ${uploadResult.error}`);
+        continue;
+      }
+
+      if (uploadResult.publicUrl) {
+        uploadedUrls.push(uploadResult.publicUrl);
+        
+        // If it's an audio file, analyze it
+        const audioExtensions = ['mp3', 'wav', 'm4a', 'aac', 'ogg', 'flac', 'wma'];
+        const fileExtension = file.name.split('.').pop()?.toLowerCase();
+        
+        if (fileExtension && audioExtensions.includes(fileExtension)) {
+          try {
+            const analysisResult = await analyzeAudioComplete(uploadResult.publicUrl);
+            
+            if (analysisResult.success && analysisResult.data) {
+              const feedback = generateFeedbackSummary(analysisResult.data);
+              feedbackMessages.push(`🎵 **Analysis for "${file.name}"**:\n\n${feedback}`);
+            } else {
+              feedbackMessages.push(`✅ Uploaded ${file.name} (audio analysis unavailable)`);
+            }
+          } catch (analysisError) {
+            console.error('Analysis error:', analysisError);
+            feedbackMessages.push(`✅ Uploaded ${file.name} (analysis failed)`);
+          }
+        } else {
+          feedbackMessages.push(`✅ Uploaded ${file.name}`);
+        }
+      }
+    }
+
+    // Add upload feedback as user message
+    if (feedbackMessages.length > 0) {
+      const messageContent = feedbackMessages.join('\n\n');
+      await addMessage('user', messageContent);
+    }
+  } catch (error) {
+    console.error('Upload error:', error);
+    alert('Failed to upload files. Please try again.');
+  } finally {
+    setIsUploading(false);
+  }
+};
+
   // Handle message submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isStreaming) return;
+    if ((!input.trim() && attachedFiles.length === 0) || isStreaming || isUploading) return;
+
+    // Handle file uploads first if any
+    if (attachedFiles.length > 0) {
+      await handleFilesSelected(attachedFiles);
+    }
+
+    // Then handle text message if any
+    if (!input.trim()) return;
 
     const userMessage = input.trim();
     setInput('');
@@ -331,8 +412,33 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
               </div>
             ))
           )}
+          
+          {/* Phase 3: Upload indicator */}
+          {isUploading && (
+            <div className="flex justify-start">
+              <div className="bg-white dark:bg-gray-800 rounded-lg px-4 py-3 border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span className="text-sm">Uploading and analyzing files...</span>
+                </div>
+              </div>
+            </div>
+          )}
+          
           <div ref={messagesEndRef} />
         </div>
+
+        {/* Phase 3: File Upload Zone */}
+        {showUploadZone && (
+          <div className="px-4 pb-4">
+            <FileUploadZone
+              onFilesSelected={handleFilesSelected}
+              onCancel={() => setShowUploadZone(false)}
+              maxFiles={5}
+              maxSizeMB={50}
+            />
+          </div>
+        )}
 
         {/* Input */}
         <div className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-4">
@@ -342,12 +448,22 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Message HOLLY..."
-              disabled={isStreaming}
+              disabled={isStreaming || isUploading}
               className="flex-1 px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
             />
+            {/* Phase 3: Paperclip button */}
+            <button
+              type="button"
+              onClick={() => setShowUploadZone(!showUploadZone)}
+              disabled={isStreaming || isUploading}
+              className="px-4 py-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 disabled:bg-gray-300 dark:disabled:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg transition-colors flex items-center gap-2"
+              title="Attach files"
+            >
+              <Paperclip className="w-5 h-5" />
+            </button>
             <button
               type="submit"
-              disabled={isStreaming || !input.trim()}
+              disabled={isStreaming || isUploading || (!input.trim() && attachedFiles.length === 0)}
               className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg transition-colors flex items-center gap-2"
             >
               {isStreaming ? (
