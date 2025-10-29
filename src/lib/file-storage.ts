@@ -75,13 +75,13 @@ export async function uploadFile(
     // Get file extension
     const fileExtension = file.name.split('.').pop()?.toLowerCase();
     if (!fileExtension) {
-      return { url: null, error: 'Invalid file name' };
+      return { success: false, error: 'Invalid file name' };
     }
 
     // Determine bucket
     const bucket = FILE_TYPE_BUCKETS[fileExtension];
     if (!bucket) {
-      return { url: null, error: `Unsupported file type: ${fileExtension}` };
+      return { success: false, error: `Unsupported file type: ${fileExtension}` };
     }
 
     // Generate unique file path
@@ -98,7 +98,7 @@ export async function uploadFile(
 
     if (error) {
       console.error('Supabase upload error:', error);
-      return { url: null, error: error.message };
+      return { success: false, error: error.message };
     }
 
     // Get public URL
@@ -107,7 +107,7 @@ export async function uploadFile(
       .getPublicUrl(fileName);
 
     if (!urlData?.publicUrl) {
-      return { url: null, error: 'Failed to get public URL' };
+      return { success: false, error: 'Failed to get public URL' };
     }
 
     // Save metadata to database
@@ -121,7 +121,7 @@ export async function uploadFile(
       public_url: urlData.publicUrl,
     });
 
-    return { url: urlData.publicUrl, error: null };
+    return { success: true, publicUrl: urlData.publicUrl };
   } catch (err) {
     console.error('Upload error:', err);
     return { url: null, error: err instanceof Error ? err.message : 'Unknown error' };
