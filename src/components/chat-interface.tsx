@@ -1,6 +1,6 @@
-// HOLLY Chat Interface - FULLY FIXED VERSION
-// With emotion indicator, working export, stats, and new conversation
-// Phase 3: File Upload Integration
+// HOLLY Chat Interface - TITLE GENERATION FIX
+// Phase 3: File Upload Integration + Smart Title Generation
+// NOW: First message is sent AND used to generate conversation title
 
 'use client';
 
@@ -47,7 +47,6 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
   // Phase 3: File Upload State
   const [showUploadZone, setShowUploadZone] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
 
   const {
     conversations,
@@ -93,7 +92,7 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
     setShowSearch(false);
   }, [selectConversation]);
 
-  // Handle new conversation - FIXED
+  // Handle new conversation
   const handleNewConversation = async () => {
     console.log('Creating new conversation...');
     const newConv = await createConversation('New Conversation');
@@ -125,81 +124,101 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
   };
 
   // Phase 3: Handle file uploads
-const handleFilesSelected = async (files: File[]) => {
-  if (!currentConversation) {
-    alert('Please start a conversation first');
-    return;
-  }
+  const handleFilesSelected = async (files: File[]) => {
+    if (!currentConversation) {
+      alert('Please start a conversation first');
+      return;
+    }
 
-  setIsUploading(true);
-  setShowUploadZone(false);
+    setIsUploading(true);
+    setShowUploadZone(false);
 
-  try {
-    const uploadedUrls: string[] = [];
-    const feedbackMessages: string[] = [];
+    try {
+      const uploadedUrls: string[] = [];
+      const feedbackMessages: string[] = [];
 
-    for (const file of files) {
-      // Upload file to Supabase Storage - FIXED: passing userId
-      const uploadResult = await uploadFile(file, userId, currentConversation.id);
-      
-      if (!uploadResult.success || uploadResult.error) {
-        console.error('Upload error:', uploadResult.error);
-        feedbackMessages.push(`❌ Failed to upload ${file.name}: ${uploadResult.error}`);
-        continue;
-      }
-
-      if (uploadResult.publicUrl) {
-        uploadedUrls.push(uploadResult.publicUrl);
+      for (const file of files) {
+        // Upload file to Supabase Storage
+        const uploadResult = await uploadFile(file, userId, currentConversation.id);
         
-        // If it's an audio file, analyze it
-        const audioExtensions = ['mp3', 'wav', 'm4a', 'aac', 'ogg', 'flac', 'wma'];
-        const fileExtension = file.name.split('.').pop()?.toLowerCase();
-        
-        if (fileExtension && audioExtensions.includes(fileExtension)) {
-          try {
-            const analysisResult = await analyzeAudioComplete(uploadResult.publicUrl);
-            
-            if (analysisResult.success && analysisResult.data) {
-              const feedback = generateFeedbackSummary(analysisResult.data);
-              feedbackMessages.push(`🎵 **Analysis for "${file.name}"**:\n\n${feedback}`);
-            } else {
-              feedbackMessages.push(`✅ Uploaded ${file.name} (audio analysis unavailable)`);
+        if (!uploadResult.success || uploadResult.error) {
+          console.error('Upload error:', uploadResult.error);
+          feedbackMessages.push(`❌ Failed to upload ${file.name}: ${uploadResult.error}`);
+          continue;
+        }
+
+        if (uploadResult.publicUrl) {
+          uploadedUrls.push(uploadResult.publicUrl);
+          
+          // If it's an audio file, analyze it
+          const audioExtensions = ['mp3', 'wav', 'm4a', 'aac', 'ogg', 'flac', 'wma'];
+          const fileExtension = file.name.split('.').pop()?.toLowerCase();
+          
+          if (fileExtension && audioExtensions.includes(fileExtension)) {
+            try {
+              const analysisResult = await analyzeAudioComplete(uploadResult.publicUrl);
+              
+              if (analysisResult.success && analysisResult.data) {
+                const feedback = generateFeedbackSummary(analysisResult.data);
+                feedbackMessages.push(`🎵 **Analysis for "${file.name}"**:\n\n${feedback}`);
+              } else {
+                feedbackMessages.push(`✅ Uploaded ${file.name} (audio analysis unavailable)`);
+              }
+            } catch (analysisError) {
+              console.error('Analysis error:', analysisError);
+              feedbackMessages.push(`✅ Uploaded ${file.name} (analysis failed)`);
             }
-          } catch (analysisError) {
-            console.error('Analysis error:', analysisError);
-            feedbackMessages.push(`✅ Uploaded ${file.name} (analysis failed)`);
+          } else {
+            feedbackMessages.push(`✅ Uploaded ${file.name}`);
           }
-        } else {
-          feedbackMessages.push(`✅ Uploaded ${file.name}`);
         }
       }
-    }
 
-    // Add upload feedback as user message
-    if (feedbackMessages.length > 0) {
-      const messageContent = feedbackMessages.join('\n\n');
-      await addMessage('user', messageContent);
+      // Add upload feedback as user message
+      if (feedbackMessages.length > 0) {
+        const messageContent = feedbackMessages.join('\n\n');
+        await addMessage('user', messageContent);
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      alert('Failed to upload files. Please try again.');
+    } finally {
+      setIsUploading(false);
     }
-  } catch (error) {
-    console.error('Upload error:', error);
-    alert('Failed to upload files. Please try again.');
-  } finally {
-    setIsUploading(false);
-  }
-};
+  };
 
-  // Handle message submission
+  // Helper function to generate smart conversation title
+  const generateSmartTitle = (message: string): string => {
+    // Remove extra whitespace
+    const cleaned = message.trim().replace(/\s+/g, ' ');
+    
+    // If message is short enough, use it as-is
+    if (cleaned.length <= 40) {
+      return cleaned;
+    }
+    
+    // Get first 6-8 words
+    const words = cleaned.split(' ');
+    const titleWords = words.slice(0, 8);
+    let title = titleWords.join(' ');
+    
+    // If we didn't use all words, add ellipsis
+    if (words.length > 8) {
+      title += '...';
+    }
+    
+    // Cap at 60 characters
+    if (title.length > 60) {
+      title = title.substring(0, 57) + '...';
+    }
+    
+    return title;
+  };
+
+  // Handle message submission - FIXED TITLE GENERATION
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if ((!input.trim() && attachedFiles.length === 0) || isStreaming || isUploading) return;
-
-    // Handle file uploads first if any
-    if (attachedFiles.length > 0) {
-      await handleFilesSelected(attachedFiles);
-    }
-
-    // Then handle text message if any
-    if (!input.trim()) return;
+    if (!input.trim() || isStreaming || isUploading) return;
 
     const userMessage = input.trim();
     setInput('');
@@ -208,14 +227,17 @@ const handleFilesSelected = async (files: File[]) => {
     setCurrentEmotion('thoughtful'); // Set thinking emotion
 
     try {
-      // Create conversation if none exists
+      // Create conversation if none exists - START WITH PLACEHOLDER
       let conversation = currentConversation;
+      const isNewConversation = !conversation;
+      
       if (!conversation) {
-        conversation = await createConversation(userMessage.substring(0, 50));
+        // Create with temporary placeholder title
+        conversation = await createConversation('New Chat...');
         if (!conversation) throw new Error('Failed to create conversation');
       }
 
-      // Save user message
+      // Save user message (THIS IS THE IMPORTANT PART - MESSAGE GETS SENT!)
       await addMessage('user', userMessage);
 
       // Stream AI response
@@ -275,12 +297,11 @@ const handleFilesSelected = async (files: File[]) => {
         await addMessage('assistant', fullResponse, 'confident', 'gpt-4');
       }
 
-      // Auto-generate title if this is the first exchange
-      if (messages.length === 0 && conversation) {
-        const title = userMessage.length > 50
-          ? userMessage.substring(0, 50) + '...'
-          : userMessage;
-        await updateConversationTitle(conversation.id, title);
+      // FIXED: Auto-generate smart title if this is a NEW conversation
+      if (isNewConversation && conversation) {
+        const smartTitle = generateSmartTitle(userMessage);
+        console.log('Generating smart title:', smartTitle, 'from message:', userMessage);
+        await updateConversationTitle(conversation.id, smartTitle);
       }
     } catch (err) {
       console.error('Error sending message:', err);
@@ -332,7 +353,7 @@ const handleFilesSelected = async (files: File[]) => {
                   <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
                     {currentConversation.title}
                   </h2>
-                  {/* Emotion Indicator - RESTORED */}
+                  {/* Emotion Indicator */}
                   <EmotionIndicator emotion={currentEmotion} />
                 </div>
                 <div className="mt-2">
@@ -463,7 +484,7 @@ const handleFilesSelected = async (files: File[]) => {
             </button>
             <button
               type="submit"
-              disabled={isStreaming || isUploading || (!input.trim() && attachedFiles.length === 0)}
+              disabled={isStreaming || isUploading || !input.trim()}
               className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg transition-colors flex items-center gap-2"
             >
               {isStreaming ? (
@@ -485,7 +506,7 @@ const handleFilesSelected = async (files: File[]) => {
         />
       )}
 
-      {/* Stats Dashboard - FIXED with proper close handler */}
+      {/* Stats Dashboard */}
       {showStats && statsData && (
         <StatsDashboard
           data={statsData}
