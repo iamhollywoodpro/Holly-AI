@@ -1,5 +1,5 @@
-// HOLLY Chat Interface - FINAL WORKING VERSION
-// Phase 3: File Upload + Title Generation - PROPERLY FIXED
+// HOLLY Chat Interface - SERVER-SIDE UPLOAD VERSION
+// Fixes: 1) Conversation state synchronization, 2) Supabase RLS by using server API
 
 'use client';
 
@@ -14,7 +14,7 @@ import { EmotionIndicator } from './emotion-indicator';
 import { FileUploadZone } from './file-upload-zone';
 import { useConversations } from '@/hooks/use-conversations';
 import { useConversationStats } from '@/hooks/use-conversation-stats';
-import { uploadFile } from '@/lib/file-storage';
+import { uploadFileViaAPI } from '@/lib/file-upload-client';
 import { analyzeAudioComplete, generateFeedbackSummary } from '@/lib/audio-analyzer';
 
 interface Message {
@@ -34,7 +34,6 @@ interface ChatInterfaceProps {
   userId: string;
 }
 
-// FileUploadZone's UploadedFile interface (for type compatibility)
 interface UploadedFile {
   id: string;
   file: File;
@@ -58,7 +57,6 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
   const [currentEmotion, setCurrentEmotion] = useState<EmotionType>('confident');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
-  // Phase 3: File Upload State
   const [showUploadZone, setShowUploadZone] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -78,7 +76,6 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
 
   const { statsData, isLoading: statsLoading, refetchStats } = useConversationStats(userId);
 
-  // Auto-scroll to bottom
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -87,7 +84,6 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
     scrollToBottom();
   }, [messages, streamingMessage]);
 
-  // Keyboard shortcut for search (Cmd+K / Ctrl+K)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -95,18 +91,15 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
         setShowSearch(true);
       }
     };
-
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Handle conversation selection from search
   const handleSelectConversation = useCallback((conversationId: string) => {
     selectConversation(conversationId);
     setShowSearch(false);
   }, [selectConversation]);
 
-  // Handle new conversation
   const handleNewConversation = async () => {
     console.log('Creating new conversation...');
     const newConv = await createConversation('New Conversation');
@@ -117,19 +110,14 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
     }
   };
 
-  // Handle tag changes
   const handleTagsChange = async (tags: Array<{ id: string; name: string; color: string }>) => {
     if (!currentConversation) return;
-
     try {
       await fetch(`/api/conversations/${currentConversation.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          metadata: {
-            ...currentConversation.metadata,
-            tags,
-          },
+          metadata: { ...currentConversation.metadata, tags },
         }),
       });
     } catch (err) {
@@ -137,9 +125,9 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
     }
   };
 
-  // Phase 3: Handle file uploads - FIXED to extract File from UploadedFile
+  // FIXED: File upload using server-side API
   const handleFilesSelected = async (uploadedFiles: UploadedFile[]) => {
-    console.log('[handleFilesSelected] Received UploadedFile objects:', uploadedFiles.length);
+    console.log('[handleFilesSelected] Received files:', uploadedFiles.length);
 
     if (!currentConversation) {
       alert('Please start a conversation first');
@@ -154,25 +142,18 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
       const feedbackMessages: string[] = [];
 
       for (const uploadedFile of uploadedFiles) {
-        // CRITICAL FIX: Extract the actual File object from UploadedFile
         const file = uploadedFile.file;
         
-        console.log('[handleFilesSelected] Processing file:', {
-          name: file.name,
-          size: file.size,
-          type: file.type,
-          isFile: file instanceof File
-        });
+        console.log('[handleFilesSelected] Processing:', file.name);
 
-        // Validate it's a File object
         if (!(file instanceof File)) {
-          console.error('[handleFilesSelected] ERROR: Not a File object:', file);
+          console.error('[handleFilesSelected] Not a File object:', file);
           feedbackMessages.push(`❌ Invalid file: ${uploadedFile.id}`);
           continue;
         }
 
-        // Upload file to Supabase Storage
-        const uploadResult = await uploadFile(file, userId, currentConversation.id);
+        // Upload via server-side API (bypasses RLS)
+        const uploadResult = await uploadFileViaAPI(file, userId, currentConversation.id);
         
         if (!uploadResult.success || uploadResult.error) {
           console.error('Upload error:', uploadResult.error);
@@ -183,14 +164,13 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
         if (uploadResult.publicUrl) {
           uploadedUrls.push(uploadResult.publicUrl);
           
-          // If it's an audio file, analyze it
+          // Analyze audio files
           const audioExtensions = ['mp3', 'wav', 'm4a', 'aac', 'ogg', 'flac', 'wma'];
           const fileExtension = file.name.split('.').pop()?.toLowerCase();
           
           if (fileExtension && audioExtensions.includes(fileExtension)) {
             try {
               const analysisResult = await analyzeAudioComplete(uploadResult.publicUrl);
-              
               if (analysisResult.success && analysisResult.data) {
                 const feedback = generateFeedbackSummary(analysisResult.data);
                 feedbackMessages.push(`🎵 **Analysis for "${file.name}"**:\n\n${feedback}`);
@@ -207,7 +187,6 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
         }
       }
 
-      // Add upload feedback as user message
       if (feedbackMessages.length > 0) {
         const messageContent = feedbackMessages.join('\n\n');
         await addMessage('user', messageContent);
@@ -220,35 +199,25 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
     }
   };
 
-  // Handle file removal (required by FileUploadZone)
   const handleFileRemove = (fileId: string) => {
-    console.log('[handleFileRemove] Removed file:', fileId);
+    console.log('[handleFileRemove] Removed:', fileId);
   };
 
-  // Helper function to generate smart conversation title
   const generateSmartTitle = (message: string): string => {
     const cleaned = message.trim().replace(/\s+/g, ' ');
-    
-    if (cleaned.length <= 40) {
-      return cleaned;
-    }
+    if (cleaned.length <= 40) return cleaned;
     
     const words = cleaned.split(' ');
     const titleWords = words.slice(0, 8);
     let title = titleWords.join(' ');
     
-    if (words.length > 8) {
-      title += '...';
-    }
-    
-    if (title.length > 60) {
-      title = title.substring(0, 57) + '...';
-    }
+    if (words.length > 8) title += '...';
+    if (title.length > 60) title = title.substring(0, 57) + '...';
     
     return title;
   };
 
-  // Handle message submission - FIXED CONVERSATION CREATION + TITLE
+  // FIXED: Conversation state handling
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isStreaming || isUploading) return;
@@ -260,31 +229,34 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
     setCurrentEmotion('thoughtful');
 
     try {
-      // Track if this is a new conversation
-      let conversation = currentConversation;
-      const isFirstMessage = !conversation;
+      let conversationToUse = currentConversation;
+      let isNewConversation = false;
       
-      // Create conversation if needed with placeholder
-      if (!conversation) {
-        console.log('[handleSubmit] Creating new conversation...');
-        conversation = await createConversation('New Chat...');
+      // Create conversation if needed
+      if (!conversationToUse) {
+        console.log('[handleSubmit] Creating conversation...');
+        isNewConversation = true;
         
-        if (!conversation) {
+        const newConv = await createConversation('New Chat...');
+        if (!newConv) {
           throw new Error('Failed to create conversation');
         }
         
-        console.log('[handleSubmit] Conversation created:', conversation.id);
+        conversationToUse = newConv;
+        console.log('[handleSubmit] Created:', conversationToUse.id);
         
-        // Small delay to ensure state updates
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // Wait for state to sync
+        await new Promise(resolve => setTimeout(resolve, 200));
       }
 
-      // Verify conversation exists
-      if (!conversation?.id) {
-        throw new Error('No active conversation');
+      // Verify we have a conversation
+      if (!conversationToUse?.id) {
+        throw new Error('No active conversation - state sync failed');
       }
 
-      // Save user message
+      console.log('[handleSubmit] Using conversation:', conversationToUse.id);
+
+      // Add user message
       await addMessage('user', userMessage);
 
       // Stream AI response
@@ -293,13 +265,10 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages: [
-            ...messages.map(m => ({
-              role: m.role,
-              content: m.content,
-            })),
+            ...messages.map(m => ({ role: m.role, content: m.content })),
             { role: 'user', content: userMessage },
           ],
-          conversationId: conversation.id,
+          conversationId: conversationToUse.id,
           userId,
         }),
       });
@@ -338,45 +307,42 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
         }
       }
 
-      // Save assistant message
+      // Save assistant response
       if (fullResponse) {
         await addMessage('assistant', fullResponse, 'confident', 'gpt-4');
       }
 
-      // FIXED: Update title ONLY if this was the first message
-      if (isFirstMessage && conversation?.id) {
+      // Update title for new conversations
+      if (isNewConversation && conversationToUse?.id) {
         const smartTitle = generateSmartTitle(userMessage);
-        console.log('[handleSubmit] Setting title to:', smartTitle);
-        await updateConversationTitle(conversation.id, smartTitle);
+        console.log('[handleSubmit] Updating title to:', smartTitle);
+        await updateConversationTitle(conversationToUse.id, smartTitle);
       }
     } catch (err) {
       console.error('Error sending message:', err);
       setCurrentEmotion('curious');
+      alert(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
       setIsStreaming(false);
       setStreamingMessage('');
     }
   };
 
-  // Combined messages for display
   const displayMessages = [
     ...messages,
     ...(streamingMessage
-      ? [
-          {
-            id: 'streaming',
-            conversation_id: currentConversation?.id || '',
-            role: 'assistant' as const,
-            content: streamingMessage,
-            created_at: new Date().toISOString(),
-          },
-        ]
+      ? [{
+          id: 'streaming',
+          conversation_id: currentConversation?.id || '',
+          role: 'assistant' as const,
+          content: streamingMessage,
+          created_at: new Date().toISOString(),
+        }]
       : []),
   ];
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Sidebar */}
       <ConversationSidebar
         conversations={conversations}
         currentConversation={currentConversation}
@@ -388,9 +354,7 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
         isLoading={isLoading}
       />
 
-      {/* Main Chat Area */}
       <div className="flex-1 flex flex-col">
-        {/* Header */}
         {currentConversation && (
           <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4">
             <div className="flex items-center justify-between">
@@ -436,7 +400,6 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
           </div>
         )}
 
-        {/* Messages */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {displayMessages.length === 0 ? (
             <div className="flex items-center justify-center h-full">
@@ -453,9 +416,7 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
             displayMessages.map((message) => (
               <div
                 key={message.id}
-                className={`flex ${
-                  message.role === 'user' ? 'justify-end' : 'justify-start'
-                }`}
+                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div
                   className={`max-w-3xl rounded-lg px-4 py-3 ${
@@ -493,7 +454,6 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* File Upload Zone - FIXED with onFileRemove */}
         {showUploadZone && (
           <div className="px-4 pb-4">
             <FileUploadZone
@@ -505,7 +465,6 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
           </div>
         )}
 
-        {/* Input */}
         <div className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-4">
           <form onSubmit={handleSubmit} className="flex gap-2">
             <input
@@ -540,7 +499,6 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
         </div>
       </div>
 
-      {/* Search Modal */}
       {showSearch && (
         <ConversationSearch
           conversations={conversations}
@@ -549,7 +507,6 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
         />
       )}
 
-      {/* Stats Dashboard */}
       {showStats && statsData && (
         <StatsDashboard
           data={statsData}
