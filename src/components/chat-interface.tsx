@@ -1,6 +1,5 @@
-// HOLLY Chat Interface - TITLE GENERATION FIX
-// Phase 3: File Upload Integration + Smart Title Generation
-// NOW: First message is sent AND used to generate conversation title
+// HOLLY Chat Interface - FINAL WORKING VERSION
+// Phase 3: File Upload + Title Generation - PROPERLY FIXED
 
 'use client';
 
@@ -33,6 +32,21 @@ type EmotionType = 'focused' | 'excited' | 'thoughtful' | 'playful' | 'confident
 
 interface ChatInterfaceProps {
   userId: string;
+}
+
+// FileUploadZone's UploadedFile interface (for type compatibility)
+interface UploadedFile {
+  id: string;
+  file: File;
+  preview?: string;
+  status: 'pending' | 'uploading' | 'processing' | 'complete' | 'error';
+  progress: number;
+  type: 'audio' | 'video' | 'image' | 'code' | 'document' | 'data' | 'other';
+  metadata?: {
+    duration?: number;
+    dimensions?: { width: number; height: number };
+    size: number;
+  };
 }
 
 export function ChatInterface({ userId }: ChatInterfaceProps) {
@@ -123,8 +137,10 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
     }
   };
 
-  // Phase 3: Handle file uploads
-  const handleFilesSelected = async (files: File[]) => {
+  // Phase 3: Handle file uploads - FIXED to extract File from UploadedFile
+  const handleFilesSelected = async (uploadedFiles: UploadedFile[]) => {
+    console.log('[handleFilesSelected] Received UploadedFile objects:', uploadedFiles.length);
+
     if (!currentConversation) {
       alert('Please start a conversation first');
       return;
@@ -137,7 +153,24 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
       const uploadedUrls: string[] = [];
       const feedbackMessages: string[] = [];
 
-      for (const file of files) {
+      for (const uploadedFile of uploadedFiles) {
+        // CRITICAL FIX: Extract the actual File object from UploadedFile
+        const file = uploadedFile.file;
+        
+        console.log('[handleFilesSelected] Processing file:', {
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          isFile: file instanceof File
+        });
+
+        // Validate it's a File object
+        if (!(file instanceof File)) {
+          console.error('[handleFilesSelected] ERROR: Not a File object:', file);
+          feedbackMessages.push(`❌ Invalid file: ${uploadedFile.id}`);
+          continue;
+        }
+
         // Upload file to Supabase Storage
         const uploadResult = await uploadFile(file, userId, currentConversation.id);
         
@@ -187,27 +220,27 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
     }
   };
 
+  // Handle file removal (required by FileUploadZone)
+  const handleFileRemove = (fileId: string) => {
+    console.log('[handleFileRemove] Removed file:', fileId);
+  };
+
   // Helper function to generate smart conversation title
   const generateSmartTitle = (message: string): string => {
-    // Remove extra whitespace
     const cleaned = message.trim().replace(/\s+/g, ' ');
     
-    // If message is short enough, use it as-is
     if (cleaned.length <= 40) {
       return cleaned;
     }
     
-    // Get first 6-8 words
     const words = cleaned.split(' ');
     const titleWords = words.slice(0, 8);
     let title = titleWords.join(' ');
     
-    // If we didn't use all words, add ellipsis
     if (words.length > 8) {
       title += '...';
     }
     
-    // Cap at 60 characters
     if (title.length > 60) {
       title = title.substring(0, 57) + '...';
     }
@@ -215,7 +248,7 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
     return title;
   };
 
-  // Handle message submission - FIXED TITLE GENERATION
+  // Handle message submission - FIXED CONVERSATION CREATION + TITLE
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isStreaming || isUploading) return;
@@ -224,20 +257,34 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
     setInput('');
     setIsStreaming(true);
     setStreamingMessage('');
-    setCurrentEmotion('thoughtful'); // Set thinking emotion
+    setCurrentEmotion('thoughtful');
 
     try {
-      // Create conversation if none exists - START WITH PLACEHOLDER
+      // Track if this is a new conversation
       let conversation = currentConversation;
-      const isNewConversation = !conversation;
+      const isFirstMessage = !conversation;
       
+      // Create conversation if needed with placeholder
       if (!conversation) {
-        // Create with temporary placeholder title
+        console.log('[handleSubmit] Creating new conversation...');
         conversation = await createConversation('New Chat...');
-        if (!conversation) throw new Error('Failed to create conversation');
+        
+        if (!conversation) {
+          throw new Error('Failed to create conversation');
+        }
+        
+        console.log('[handleSubmit] Conversation created:', conversation.id);
+        
+        // Small delay to ensure state updates
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
 
-      // Save user message (THIS IS THE IMPORTANT PART - MESSAGE GETS SENT!)
+      // Verify conversation exists
+      if (!conversation?.id) {
+        throw new Error('No active conversation');
+      }
+
+      // Save user message
       await addMessage('user', userMessage);
 
       // Stream AI response
@@ -281,7 +328,6 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
                 if (parsed.content) {
                   fullResponse += parsed.content;
                   setStreamingMessage(fullResponse);
-                  // Update emotion during streaming
                   setCurrentEmotion('confident');
                 }
               } catch (e) {
@@ -297,15 +343,15 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
         await addMessage('assistant', fullResponse, 'confident', 'gpt-4');
       }
 
-      // FIXED: Auto-generate smart title if this is a NEW conversation
-      if (isNewConversation && conversation) {
+      // FIXED: Update title ONLY if this was the first message
+      if (isFirstMessage && conversation?.id) {
         const smartTitle = generateSmartTitle(userMessage);
-        console.log('Generating smart title:', smartTitle, 'from message:', userMessage);
+        console.log('[handleSubmit] Setting title to:', smartTitle);
         await updateConversationTitle(conversation.id, smartTitle);
       }
     } catch (err) {
       console.error('Error sending message:', err);
-      setCurrentEmotion('curious'); // Show curious on error
+      setCurrentEmotion('curious');
     } finally {
       setIsStreaming(false);
       setStreamingMessage('');
@@ -353,7 +399,6 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
                   <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
                     {currentConversation.title}
                   </h2>
-                  {/* Emotion Indicator */}
                   <EmotionIndicator emotion={currentEmotion} />
                 </div>
                 <div className="mt-2">
@@ -434,7 +479,6 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
             ))
           )}
           
-          {/* Phase 3: Upload indicator */}
           {isUploading && (
             <div className="flex justify-start">
               <div className="bg-white dark:bg-gray-800 rounded-lg px-4 py-3 border border-gray-200 dark:border-gray-700">
@@ -449,12 +493,12 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Phase 3: File Upload Zone */}
+        {/* File Upload Zone - FIXED with onFileRemove */}
         {showUploadZone && (
           <div className="px-4 pb-4">
             <FileUploadZone
               onFilesSelected={handleFilesSelected}
-              onCancel={() => setShowUploadZone(false)}
+              onFileRemove={handleFileRemove}
               maxFiles={5}
               maxSizeMB={50}
             />
@@ -472,7 +516,6 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
               disabled={isStreaming || isUploading}
               className="flex-1 px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
             />
-            {/* Phase 3: Paperclip button */}
             <button
               type="button"
               onClick={() => setShowUploadZone(!showUploadZone)}
