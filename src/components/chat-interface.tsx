@@ -188,8 +188,12 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
       }
 
       if (feedbackMessages.length > 0) {
-        const messageContent = feedbackMessages.join('\n\n');
-        await addMessage('user', messageContent);
+        // Include file URLs in the message so HOLLY can see them
+        let messageContent = feedbackMessages.join('\n\n');
+        if (uploadedUrls.length > 0) {
+          messageContent += '\n\n**Uploaded Files:**\n' + uploadedUrls.map(url => `- ${url}`).join('\n');
+        }
+        await addMessage('user', messageContent, undefined, undefined, currentConversation.id);
       }
     } catch (error) {
       console.error('Upload error:', error);
@@ -245,8 +249,7 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
         conversationToUse = newConv;
         console.log('[handleSubmit] Created:', conversationToUse.id);
         
-        // Wait for state to sync
-        await new Promise(resolve => setTimeout(resolve, 200));
+        // No need to wait - we pass conversationId explicitly to addMessage
       }
 
       // Verify we have a conversation
@@ -256,8 +259,8 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
 
       console.log('[handleSubmit] Using conversation:', conversationToUse.id);
 
-      // Add user message
-      await addMessage('user', userMessage);
+      // Add user message - pass conversationId explicitly
+      await addMessage('user', userMessage, undefined, undefined, conversationToUse.id);
 
       // Stream AI response
       const response = await fetch('/api/chat', {
@@ -307,9 +310,9 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
         }
       }
 
-      // Save assistant response
+      // Save assistant response - pass conversationId explicitly
       if (fullResponse) {
-        await addMessage('assistant', fullResponse, 'confident', 'gpt-4');
+        await addMessage('assistant', fullResponse, 'confident', 'gpt-4', conversationToUse.id);
       }
 
       // Update title for new conversations

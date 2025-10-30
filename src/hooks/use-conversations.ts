@@ -1,5 +1,5 @@
-// HOLLY Phase 2D: Enhanced Conversations Hook - FINAL VERSION
-// Exports: useConversations (correct name)
+// HOLLY Phase 3: FIXED Conversations Hook
+// Fixed: addMessage now accepts optional conversationId to avoid state sync issues
 
 import { useState, useEffect, useCallback } from 'react';
 
@@ -41,7 +41,6 @@ export function useConversations(userId?: string) {
       if (!response.ok) throw new Error('Failed to fetch conversations');
       const data = await response.json();
       
-      // Extract pinned from metadata
       const conversationsWithPinned = (data.conversations || []).map((conv: Conversation) => ({
         ...conv,
         pinned: conv.metadata?.pinned || false,
@@ -86,7 +85,6 @@ export function useConversations(userId?: string) {
     setIsLoading(true);
     setError(null);
     try {
-      // Fetch conversation details
       const convResponse = await fetch(`/api/conversations/${conversationId}`);
       if (!convResponse.ok) throw new Error('Failed to fetch conversation');
       const convData = await convResponse.json();
@@ -96,7 +94,6 @@ export function useConversations(userId?: string) {
       };
       setCurrentConversation(conversation);
 
-      // Fetch messages
       const messagesResponse = await fetch(`/api/conversations/${conversationId}/messages`);
       if (!messagesResponse.ok) throw new Error('Failed to fetch messages');
       const messagesData = await messagesResponse.json();
@@ -108,21 +105,25 @@ export function useConversations(userId?: string) {
     }
   }, []);
 
-  // Add message to current conversation
+  // FIXED: Add message with optional conversationId parameter
   const addMessage = useCallback(async (
     role: 'user' | 'assistant',
     content: string,
     emotion?: string,
-    model?: string
+    model?: string,
+    conversationId?: string  // ← NEW: Optional parameter
   ) => {
-    if (!currentConversation) {
+    // Use provided conversationId OR fall back to currentConversation
+    const targetConversationId = conversationId || currentConversation?.id;
+    
+    if (!targetConversationId) {
       throw new Error('No active conversation');
     }
 
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch(`/api/conversations/${currentConversation.id}/messages`, {
+      const response = await fetch(`/api/conversations/${targetConversationId}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role, content, emotion, model }),
