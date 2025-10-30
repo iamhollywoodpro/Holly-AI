@@ -170,16 +170,20 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
           
           if (fileExtension && audioExtensions.includes(fileExtension)) {
             try {
-              const analysisResult = await analyzeAudioComplete(uploadResult.publicUrl);
-              if (analysisResult.success && analysisResult.data) {
-                const feedback = generateFeedbackSummary(analysisResult.data);
-                feedbackMessages.push(`🎵 **Analysis for "${file.name}"**:\n\n${feedback}`);
+              // Analyze music file with feedback
+              const analysisResult = await analyzeAudioComplete(file, uploadResult.publicUrl, true);
+              
+              if (analysisResult.feedback) {
+                const feedback = generateFeedbackSummary(analysisResult.feedback);
+                feedbackMessages.push(`🎵 **Music Analysis for "${file.name}"**:\n\n${feedback}`);
+              } else if (analysisResult.error) {
+                feedbackMessages.push(`✅ Uploaded ${file.name}\n⚠️ Analysis error: ${analysisResult.error}`);
               } else {
                 feedbackMessages.push(`✅ Uploaded ${file.name} (audio analysis unavailable)`);
               }
             } catch (analysisError) {
               console.error('Analysis error:', analysisError);
-              feedbackMessages.push(`✅ Uploaded ${file.name} (analysis failed)`);
+              feedbackMessages.push(`✅ Uploaded ${file.name}\n⚠️ Analysis failed: ${analysisError instanceof Error ? analysisError.message : 'Unknown error'}`);
             }
           } else {
             feedbackMessages.push(`✅ Uploaded ${file.name}`);
