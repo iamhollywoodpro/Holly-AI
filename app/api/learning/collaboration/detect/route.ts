@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
     }
 
     const collaboration = new CollaborationAI();
-    const mode = await collaboration.detectConfidenceLevel(userMessage, conversationHistory);
+    const mode = await collaboration.detectUserConfidence(userMessage);
 
     return NextResponse.json({ success: true, mode });
   } catch (error: any) {

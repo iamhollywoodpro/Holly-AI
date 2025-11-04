@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
     }
 
     const collaboration = new CollaborationAI();
-    const style = await collaboration.adaptLeadershipStyle(userConfidence, taskComplexity);
+    const style = await collaboration.adaptLeadershipStyle(userConfidence);
 
     return NextResponse.json({ success: true, style });
   } catch (error: any) {
