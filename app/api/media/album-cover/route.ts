@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
  */
 export async function POST(request: NextRequest) {
   try {
-    const albumData = await request.json();
+    const albumData = await request.json() as any;
     
     // Build prompt for album cover
     const prompt = buildAlbumCoverPrompt(albumData);

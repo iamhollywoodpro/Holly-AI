@@ -37,7 +37,7 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const body = await request.json();
+    const body = await request.json() as any;
     const { title } = body;
 
     const { data: conversation, error } = await supabase
