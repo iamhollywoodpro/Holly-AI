@@ -12,6 +12,10 @@ const config: Config = {
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",
+        border: {
+          primary: "hsl(var(--border-primary))",
+          secondary: "hsl(var(--border-secondary))",
+        },
         'holly-purple': {
           DEFAULT: '#8B5CF6',
           50: '#F5F3FF',
@@ -38,6 +42,11 @@ const config: Config = {
           800: '#9D174D',
           900: '#831843',
         },
+      },
+      borderColor: {
+        DEFAULT: 'hsl(var(--border-primary))',
+        primary: 'hsl(var(--border-primary))',
+        secondary: 'hsl(var(--border-secondary))',
       },
     },
   },
