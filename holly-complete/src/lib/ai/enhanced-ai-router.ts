@@ -237,7 +237,7 @@ export class EnhancedAIRouter {
     if (message.includes('imagine') || message.includes('visualize')) {
       return {
         capability: 'video',
-        reason: 'I can turn that visualization into an actual video if you'd like!',
+        reason: "I can turn that visualization into an actual video if you'd like!",
       };
     }
 
