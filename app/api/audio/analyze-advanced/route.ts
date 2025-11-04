@@ -1,54 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { AdvancedAudioAnalyzer } from '@/lib/audio/advanced-audio-analyzer';
+import { advancedAudioAnalyzer } from '@/lib/audio/advanced-audio-analyzer';
 
-export async function POST(req: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
-    const formData = await req.formData();
+    const formData = await request.formData();
     const audioFile = formData.get('audio') as File;
-    const analysisType = formData.get('type') as string || 'complete';
-    const genre = formData.get('genre') as string;
+    const analysisType = (formData.get('analysisType') as string) || 'full';
 
     if (!audioFile) {
       return NextResponse.json(
-        { error: 'Audio file is required' },
+        { error: 'No audio file provided' },
         { status: 400 }
       );
     }
 
-    const analyzer = new AdvancedAudioAnalyzer();
+    // Convert File to ArrayBuffer
     const arrayBuffer = await audioFile.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
 
     let result;
-
     switch (analysisType) {
       case 'mix':
-        result = await analyzer.analyzeMixQuality(buffer);
+        result = await advancedAudioAnalyzer.analyzeMixQuality(arrayBuffer);
         break;
       case 'mastering':
-        result = await analyzer.checkMastering(buffer);
+        result = await advancedAudioAnalyzer.checkMastering(audioFile.name);
         break;
-      case 'vocals':
-        result = await analyzer.analyzeVocals(buffer);
-        break;
-      case 'hit-factor':
-        if (!genre) {
-          return NextResponse.json(
-            { error: 'Genre is required for hit factor analysis' },
-            { status: 400 }
-          );
-        }
-        result = await analyzer.calculateHitFactor(buffer, genre);
-        break;
-      case 'complete':
       default:
-        result = await analyzer.completeAnalysis(buffer);
-        break;
+        result = await advancedAudioAnalyzer.analyzeAudio(audioFile.name);
     }
 
-    return NextResponse.json({ success: true, analysis: result });
+    return NextResponse.json({
+      success: true,
+      analysis: result,
+    });
+
   } catch (error: any) {
-    console.error('Advanced audio analysis API error:', error);
+    console.error('Audio analysis error:', error);
     return NextResponse.json(
       { error: error.message || 'Audio analysis failed' },
       { status: 500 }
