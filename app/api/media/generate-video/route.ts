@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
  */
 export async function POST(request: NextRequest) {
   try {
-    const { type, prompt, duration, style } = await request.json();
+    const { type, prompt, duration, style } = await request.json() as any;
     
     if (!type || !prompt) {
       return NextResponse.json(

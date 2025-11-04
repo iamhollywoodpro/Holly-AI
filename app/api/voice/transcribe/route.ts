@@ -1,28 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { VoiceInterface } from '@/lib/voice/voice-interface';
+import { voiceInterface } from '@/lib/voice/voice-interface';
 
-export async function POST(req: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
-    const formData = await req.formData();
+    const formData = await request.formData();
     const audioFile = formData.get('audio') as File;
-    const language = formData.get('language') as string || 'en';
 
     if (!audioFile) {
       return NextResponse.json(
-        { error: 'Audio file is required' },
+        { error: 'No audio file provided' },
         { status: 400 }
       );
     }
 
-    const voice = new VoiceInterface();
+    // Convert File to Buffer
     const arrayBuffer = await audioFile.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    const result = await voice.transcribe(buffer, language);
+    // Transcribe the audio
+    const result = await voiceInterface.transcribe(buffer);
 
-    return NextResponse.json({ success: true, transcription: result });
+    return NextResponse.json({
+      success: true,
+      text: result.text,
+      language: result.language,
+    });
+
   } catch (error: any) {
-    console.error('Voice transcription API error:', error);
+    console.error('Transcription error:', error);
     return NextResponse.json(
       { error: error.message || 'Transcription failed' },
       { status: 500 }
