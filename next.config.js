@@ -1,15 +1,20 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  typescript: {
-    ignoreBuildErrors: true,
+  experimental: {
+    serverComponentsExternalPackages: ['@xenova/transformers', 'onnxruntime-node']
   },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  // Force cache busting by adding build ID
-  generateBuildId: async () => {
-    return `build-${Date.now()}`;
-  },
-}
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      // Don't bundle these server-only packages in client
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        '@xenova/transformers': false,
+        'onnxruntime-node': false,
+        'sharp': false
+      };
+    }
+    return config;
+  }
+};
 
-module.exports = nextConfig
+module.exports = nextConfig;
