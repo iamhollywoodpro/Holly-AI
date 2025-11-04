@@ -57,7 +57,7 @@ async function pollSunoStatus(clipIds: string[], maxAttempts = 60, delayMs = 500
 export async function POST(request: NextRequest) {
   try {
     const body: GenerateSongRequest = await request.json();
-    const { lyrics, style, language, artist_id, title } = body;
+    const { lyrics, style, language, artist_id, title } = body as any;
 
     // Validate input
     if (!lyrics && !style) {

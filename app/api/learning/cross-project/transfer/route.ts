@@ -3,8 +3,8 @@ import { CrossProjectAI } from '@/lib/learning/cross-project-ai';
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { sourceProject, targetDomain } = body;
+    const body = await req.json() as any;
+    const { sourceProject, targetDomain } = body as any;
 
     if (!sourceProject || !targetDomain) {
       return NextResponse.json(

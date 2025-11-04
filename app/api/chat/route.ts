@@ -22,7 +22,7 @@ interface ChatRequest {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json() as ChatRequest;
-    const { messages, conversationId, userId = 'default-user' } = body;
+    const { messages, conversationId, userId = 'default-user' } = body as any;
 
     if (!messages || messages.length === 0) {
       return new Response(

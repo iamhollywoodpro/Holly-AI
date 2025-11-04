@@ -4,7 +4,7 @@ import { EnhancedAIRouter } from '@/lib/ai/enhanced-ai-router';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json() as any;
-    const { message, conversationHistory, context } = body;
+    const { message, conversationHistory, context } = body as any;
 
     if (!message) {
       return NextResponse.json(

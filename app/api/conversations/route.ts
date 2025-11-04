@@ -34,8 +34,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { userId = 'default-user', title = 'New Conversation' } = body;
+    const body = await request.json() as any;
+    const { userId = 'default-user', title = 'New Conversation' } = body as any;
 
     const { data: conversation, error } = await supabase
       .from('holly_conversations')

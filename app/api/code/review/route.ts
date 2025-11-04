@@ -9,7 +9,7 @@ interface CodeReviewRequest {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json() as CodeReviewRequest;
-    const { code, language } = body;
+    const { code, language } = body as any;
 
     if (!code || !language) {
       return NextResponse.json(

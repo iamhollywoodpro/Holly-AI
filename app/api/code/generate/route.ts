@@ -9,7 +9,7 @@ interface CodeGenerateRequest {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json() as CodeGenerateRequest;
-    const { prompt, language, userId } = body;
+    const { prompt, language, userId } = body as any;
 if (!prompt || !language || !userId) {
       return NextResponse.json(
         { error: 'Missing required fields: prompt, language, userId' },

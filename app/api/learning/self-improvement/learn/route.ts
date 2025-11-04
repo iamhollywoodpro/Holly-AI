@@ -3,8 +3,8 @@ import { SelfImprovement } from '@/lib/learning/self-improvement';
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { skillArea } = body;
+    const body = await req.json() as any;
+    const { skillArea } = body as any;
 
     if (!skillArea) {
       return NextResponse.json(

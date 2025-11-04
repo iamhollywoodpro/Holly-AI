@@ -3,8 +3,8 @@ import { SelfImprovement } from '@/lib/learning/self-improvement';
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { workflowName, performanceData } = body;
+    const body = await req.json() as any;
+    const { workflowName, performanceData } = body as any;
 
     if (!workflowName) {
       return NextResponse.json(

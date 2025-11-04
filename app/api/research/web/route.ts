@@ -3,8 +3,8 @@ import { WebResearcher } from '@/lib/research/web-researcher';
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { query, type = 'general', depth = 'comprehensive' } = body;
+    const body = await req.json() as any;
+    const { query, type = 'general', depth = 'comprehensive' } = body as any;
 
     if (!query) {
       return NextResponse.json(

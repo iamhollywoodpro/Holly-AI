@@ -3,8 +3,8 @@ import { ContextualIntelligence } from '@/lib/learning/contextual-intelligence';
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { projectId, update } = body;
+    const body = await req.json() as any;
+    const { projectId, update } = body as any;
 
     if (!projectId || !update) {
       return NextResponse.json(

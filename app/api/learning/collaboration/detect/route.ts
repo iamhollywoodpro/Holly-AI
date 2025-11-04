@@ -3,8 +3,8 @@ import { CollaborationAI } from '@/lib/interaction/collaboration-ai';
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { userMessage, conversationHistory } = body;
+    const body = await req.json() as any;
+    const { userMessage, conversationHistory } = body as any;
 
     if (!userMessage) {
       return NextResponse.json(

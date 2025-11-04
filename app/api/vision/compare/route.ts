@@ -3,8 +3,8 @@ import { ComputerVision } from '@/lib/vision/computer-vision';
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { imageUrl1, imageUrl2, comparisonPrompt } = body;
+    const body = await req.json() as any;
+    const { imageUrl1, imageUrl2, comparisonPrompt } = body as any;
 
     if (!imageUrl1 || !imageUrl2) {
       return NextResponse.json(

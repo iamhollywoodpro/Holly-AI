@@ -37,8 +37,8 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const body = await request.json();
-    const { title, metadata } = body;
+    const body = await request.json() as any;
+    const { title, metadata } = body as any;
 
     const updateData: any = { updated_at: new Date().toISOString() };
     

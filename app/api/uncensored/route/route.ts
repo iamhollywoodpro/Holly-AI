@@ -3,8 +3,8 @@ import { UncensoredRouter } from '@/lib/ai/uncensored-router';
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { prompt, context } = body;
+    const body = await req.json() as any;
+    const { prompt, context } = body as any;
 
     if (!prompt) {
       return NextResponse.json(

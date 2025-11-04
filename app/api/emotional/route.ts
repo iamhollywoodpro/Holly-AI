@@ -27,8 +27,8 @@ const getEmotionalManager = () => {
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { action, user_id } = body;
+    const body = await req.json() as any;
+    const { action, user_id } = body as any;
 
     if (!user_id) {
       return NextResponse.json(
@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
       // ANALYZE EMOTION
       // -----------------------------------------------------------------------
       case 'analyze_emotion': {
-        const { message } = body;
+        const { message } = body as any;
 
         if (!message) {
           return NextResponse.json(
@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
       // ADAPT TONE
       // -----------------------------------------------------------------------
       case 'adapt_tone': {
-        const { message, response } = body;
+        const { message, response } = body as any;
 
         if (!message || !response) {
           return NextResponse.json(
@@ -105,7 +105,7 @@ export async function POST(req: NextRequest) {
       // PROCESS MESSAGE (Full workflow)
       // -----------------------------------------------------------------------
       case 'process_message': {
-        const { message, response } = body;
+        const { message, response } = body as any;
 
         if (!message || !response) {
           return NextResponse.json(
@@ -138,7 +138,7 @@ export async function POST(req: NextRequest) {
       // GET RECENT EMOTIONS
       // -----------------------------------------------------------------------
       case 'get_recent_emotions': {
-        const { limit = 20 } = body;
+        const { limit = 20 } = body as any;
 
         const emotions = await manager.getRecentEmotions(user_id, limit);
 
@@ -179,7 +179,7 @@ export async function POST(req: NextRequest) {
       // GET CONVERSATION HISTORY
       // -----------------------------------------------------------------------
       case 'get_conversation_history': {
-        const { limit } = body;
+        const { limit } = body as any;
 
         const history = manager.getConversationHistory(user_id, limit);
 
@@ -206,7 +206,7 @@ export async function POST(req: NextRequest) {
       // BATCH ANALYZE
       // -----------------------------------------------------------------------
       case 'batch_analyze': {
-        const { messages } = body;
+        const { messages } = body as any;
 
         if (!Array.isArray(messages) || messages.length === 0) {
           return NextResponse.json(
@@ -239,7 +239,7 @@ export async function POST(req: NextRequest) {
       // DETECT PATTERNS
       // -----------------------------------------------------------------------
       case 'detect_patterns': {
-        const { limit = 20 } = body;
+        const { limit = 20 } = body as any;
 
         const emotions = await manager.getRecentEmotions(user_id, limit);
         
@@ -257,7 +257,7 @@ export async function POST(req: NextRequest) {
       // GET STATS
       // -----------------------------------------------------------------------
       case 'get_stats': {
-        const { days = 7 } = body;
+        const { days = 7 } = body as any;
 
         const supabase = createClient(
           process.env.NEXT_PUBLIC_SUPABASE_URL!,

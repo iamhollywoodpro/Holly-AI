@@ -3,8 +3,8 @@ import { VideoGenerator } from '@/lib/video/video-generator';
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { prompt, type = 'text-to-video', imageUrl, duration = 3, fps = 24 } = body;
+    const body = await req.json() as any;
+    const { prompt, type = 'text-to-video', imageUrl, duration = 3, fps = 24 } = body as any;
 
     if (!prompt) {
       return NextResponse.json(

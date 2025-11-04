@@ -3,8 +3,8 @@ import { TasteLearner } from '@/lib/learning/taste-learner';
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { itemId, category, userAction, context } = body;
+    const body = await req.json() as any;
+    const { itemId, category, userAction, context } = body as any;
 
     if (!itemId || !category || !userAction) {
       return NextResponse.json(

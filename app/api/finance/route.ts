@@ -23,8 +23,8 @@ const getCoordinator = () => {
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { action, user_id } = body;
+    const body = await req.json() as any;
+    const { action, user_id } = body as any;
 
     if (!user_id) {
       return NextResponse.json({ error: 'user_id is required' }, { status: 400 });
@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
       // TRANSACTION OPERATIONS
       // -----------------------------------------------------------------------
       case 'create_transaction': {
-        const { amount, type, category, description, date, metadata } = body;
+        const { amount, type, category, description, date, metadata } = body as any;
         if (amount === undefined || !type || !category) {
           return NextResponse.json(
             { error: 'amount, type, and category are required' },
@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
       }
 
       case 'quick_add_expense': {
-        const { amount, description, category } = body;
+        const { amount, description, category } = body as any;
         const transaction = await transactionManager.quickAddExpense(
           user_id,
           amount,
@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
       }
 
       case 'quick_add_income': {
-        const { amount, description, category } = body;
+        const { amount, description, category } = body as any;
         const transaction = await transactionManager.quickAddIncome(
           user_id,
           amount,
@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
       }
 
       case 'update_transaction': {
-        const { transaction_id, updates } = body;
+        const { transaction_id, updates } = body as any;
         if (!transaction_id) {
           return NextResponse.json({ error: 'transaction_id is required' }, { status: 400 });
         }
@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
       }
 
       case 'delete_transaction': {
-        const { transaction_id } = body;
+        const { transaction_id } = body as any;
         if (!transaction_id) {
           return NextResponse.json({ error: 'transaction_id is required' }, { status: 400 });
         }
@@ -107,7 +107,7 @@ export async function POST(req: NextRequest) {
       }
 
       case 'list_transactions': {
-        const { type, category, start_date, end_date, limit } = body;
+        const { type, category, start_date, end_date, limit } = body as any;
         const transactions = await transactionManager.listTransactions(user_id, {
           type,
           category,
@@ -119,13 +119,13 @@ export async function POST(req: NextRequest) {
       }
 
       case 'search_transactions': {
-        const { search_term } = body;
+        const { search_term } = body as any;
         const transactions = await transactionManager.searchTransactions(user_id, search_term);
         return NextResponse.json({ success: true, transactions, count: transactions.length });
       }
 
       case 'get_summary': {
-        const { start_date, end_date } = body;
+        const { start_date, end_date } = body as any;
         if (!start_date || !end_date) {
           return NextResponse.json(
             { error: 'start_date and end_date are required' },
@@ -143,7 +143,7 @@ export async function POST(req: NextRequest) {
       }
 
       case 'suggest_category': {
-        const { description } = body;
+        const { description } = body as any;
         const category = transactionManager.suggestCategory(description);
         return NextResponse.json({ success: true, category });
       }
@@ -152,7 +152,7 @@ export async function POST(req: NextRequest) {
       // BUDGET OPERATIONS
       // -----------------------------------------------------------------------
       case 'create_budget': {
-        const { category, monthly_limit, period_start, period_end } = body;
+        const { category, monthly_limit, period_start, period_end } = body as any;
         if (!category || !monthly_limit || !period_start || !period_end) {
           return NextResponse.json(
             { error: 'category, monthly_limit, period_start, and period_end are required' },
@@ -172,7 +172,7 @@ export async function POST(req: NextRequest) {
       }
 
       case 'create_monthly_budget': {
-        const { category, monthly_limit } = body;
+        const { category, monthly_limit } = body as any;
         if (!category || !monthly_limit) {
           return NextResponse.json(
             { error: 'category and monthly_limit are required' },
@@ -185,7 +185,7 @@ export async function POST(req: NextRequest) {
       }
 
       case 'setup_default_budgets': {
-        const { monthly_income } = body;
+        const { monthly_income } = body as any;
         if (!monthly_income) {
           return NextResponse.json({ error: 'monthly_income is required' }, { status: 400 });
         }
@@ -195,7 +195,7 @@ export async function POST(req: NextRequest) {
       }
 
       case 'update_budget': {
-        const { budget_id, updates } = body;
+        const { budget_id, updates } = body as any;
         if (!budget_id) {
           return NextResponse.json({ error: 'budget_id is required' }, { status: 400 });
         }
@@ -205,7 +205,7 @@ export async function POST(req: NextRequest) {
       }
 
       case 'delete_budget': {
-        const { budget_id } = body;
+        const { budget_id } = body as any;
         if (!budget_id) {
           return NextResponse.json({ error: 'budget_id is required' }, { status: 400 });
         }
@@ -215,13 +215,13 @@ export async function POST(req: NextRequest) {
       }
 
       case 'list_budgets': {
-        const { category, active_only } = body;
+        const { category, active_only } = body as any;
         const budgets = await budgetManager.listBudgets(user_id, { category, active_only });
         return NextResponse.json({ success: true, budgets, count: budgets.length });
       }
 
       case 'get_budget_status': {
-        const { budget_id } = body;
+        const { budget_id } = body as any;
         if (!budget_id) {
           return NextResponse.json({ error: 'budget_id is required' }, { status: 400 });
         }
@@ -241,7 +241,7 @@ export async function POST(req: NextRequest) {
       }
 
       case 'check_can_afford': {
-        const { category, amount } = body;
+        const { category, amount } = body as any;
         if (!category || !amount) {
           return NextResponse.json(
             { error: 'category and amount are required' },

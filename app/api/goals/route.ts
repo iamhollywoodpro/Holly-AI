@@ -24,8 +24,8 @@ const getCoordinator = () => {
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { action, user_id } = body;
+    const body = await req.json() as any;
+    const { action, user_id } = body as any;
 
     if (!user_id) {
       return NextResponse.json({ error: 'user_id is required' }, { status: 400 });
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
       // GOAL OPERATIONS
       // -----------------------------------------------------------------------
       case 'create_goal': {
-        const { title, description, project_id, category, priority, deadline } = body;
+        const { title, description, project_id, category, priority, deadline } = body as any;
         if (!title) {
           return NextResponse.json({ error: 'title is required' }, { status: 400 });
         }
@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
       }
 
       case 'create_goal_with_ai': {
-        const { title, description, project_id, category, priority, deadline } = body;
+        const { title, description, project_id, category, priority, deadline } = body as any;
         if (!title) {
           return NextResponse.json({ error: 'title is required' }, { status: 400 });
         }
@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
       }
 
       case 'update_goal': {
-        const { goal_id, updates } = body;
+        const { goal_id, updates } = body as any;
         if (!goal_id) {
           return NextResponse.json({ error: 'goal_id is required' }, { status: 400 });
         }
@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
       }
 
       case 'delete_goal': {
-        const { goal_id } = body;
+        const { goal_id } = body as any;
         if (!goal_id) {
           return NextResponse.json({ error: 'goal_id is required' }, { status: 400 });
         }
@@ -101,25 +101,25 @@ export async function POST(req: NextRequest) {
       }
 
       case 'start_goal': {
-        const { goal_id } = body;
+        const { goal_id } = body as any;
         const goal = await goalManager.startGoal(goal_id, user_id);
         return NextResponse.json({ success: true, goal });
       }
 
       case 'complete_goal': {
-        const { goal_id } = body;
+        const { goal_id } = body as any;
         const goal = await goalManager.completeGoal(goal_id, user_id);
         return NextResponse.json({ success: true, goal });
       }
 
       case 'update_progress': {
-        const { goal_id, progress } = body;
+        const { goal_id, progress } = body as any;
         const goal = await goalManager.updateProgress(goal_id, user_id, progress);
         return NextResponse.json({ success: true, goal });
       }
 
       case 'list_goals': {
-        const { project_id, status, category, priority } = body;
+        const { project_id, status, category, priority } = body as any;
         const goals = await goalManager.listGoals(user_id, {
           project_id,
           status,
@@ -130,19 +130,19 @@ export async function POST(req: NextRequest) {
       }
 
       case 'search_goals': {
-        const { search_term } = body;
+        const { search_term } = body as any;
         const goals = await goalManager.searchGoals(user_id, search_term);
         return NextResponse.json({ success: true, goals, count: goals.length });
       }
 
       case 'get_goal_progress': {
-        const { goal_id } = body;
+        const { goal_id } = body as any;
         const progress = await goalManager.getGoalProgress(goal_id, user_id);
         return NextResponse.json({ success: true, progress });
       }
 
       case 'get_goal_analytics': {
-        const { project_id, since } = body;
+        const { project_id, since } = body as any;
         const analytics = await goalManager.getAnalytics(user_id, { project_id, since });
         return NextResponse.json({ success: true, analytics });
       }
@@ -151,7 +151,7 @@ export async function POST(req: NextRequest) {
       // PROJECT OPERATIONS
       // -----------------------------------------------------------------------
       case 'create_project': {
-        const { name, description, color, icon, deadline } = body;
+        const { name, description, color, icon, deadline } = body as any;
         if (!name) {
           return NextResponse.json({ error: 'name is required' }, { status: 400 });
         }
@@ -173,7 +173,7 @@ export async function POST(req: NextRequest) {
       }
 
       case 'update_project': {
-        const { project_id, updates } = body;
+        const { project_id, updates } = body as any;
         if (!project_id) {
           return NextResponse.json({ error: 'project_id is required' }, { status: 400 });
         }
@@ -183,7 +183,7 @@ export async function POST(req: NextRequest) {
       }
 
       case 'delete_project': {
-        const { project_id, delete_goals } = body;
+        const { project_id, delete_goals } = body as any;
         if (!project_id) {
           return NextResponse.json({ error: 'project_id is required' }, { status: 400 });
         }
@@ -193,37 +193,37 @@ export async function POST(req: NextRequest) {
       }
 
       case 'start_project': {
-        const { project_id } = body;
+        const { project_id } = body as any;
         const project = await projectManager.startProject(project_id, user_id);
         return NextResponse.json({ success: true, project });
       }
 
       case 'complete_project': {
-        const { project_id } = body;
+        const { project_id } = body as any;
         const project = await projectManager.completeProject(project_id, user_id);
         return NextResponse.json({ success: true, project });
       }
 
       case 'list_projects': {
-        const { status } = body;
+        const { status } = body as any;
         const projects = await projectManager.listProjects(user_id, { status });
         return NextResponse.json({ success: true, projects, count: projects.length });
       }
 
       case 'get_project_progress': {
-        const { project_id } = body;
+        const { project_id } = body as any;
         const progress = await projectManager.getProjectProgress(project_id, user_id);
         return NextResponse.json({ success: true, progress });
       }
 
       case 'get_project_analytics': {
-        const { project_id } = body;
+        const { project_id } = body as any;
         const analytics = await projectManager.getProjectAnalytics(project_id, user_id);
         return NextResponse.json({ success: true, analytics });
       }
 
       case 'add_goal_to_project': {
-        const { project_id, goal_id } = body;
+        const { project_id, goal_id } = body as any;
         await projectManager.addGoalToProject(project_id, goal_id, user_id);
         return NextResponse.json({ success: true });
       }
@@ -232,7 +232,7 @@ export async function POST(req: NextRequest) {
       // MILESTONE OPERATIONS
       // -----------------------------------------------------------------------
       case 'create_milestone': {
-        const { goal_id, title, description, order } = body;
+        const { goal_id, title, description, order } = body as any;
         if (!goal_id || !title) {
           return NextResponse.json(
             { error: 'goal_id and title are required' },
@@ -255,7 +255,7 @@ export async function POST(req: NextRequest) {
       }
 
       case 'create_milestone_template': {
-        const { goal_id, template_name } = body;
+        const { goal_id, template_name } = body as any;
         if (!goal_id || !template_name) {
           return NextResponse.json(
             { error: 'goal_id and template_name are required' },
@@ -273,7 +273,7 @@ export async function POST(req: NextRequest) {
       }
 
       case 'update_milestone': {
-        const { milestone_id, updates } = body;
+        const { milestone_id, updates } = body as any;
         if (!milestone_id) {
           return NextResponse.json({ error: 'milestone_id is required' }, { status: 400 });
         }
@@ -287,7 +287,7 @@ export async function POST(req: NextRequest) {
       }
 
       case 'delete_milestone': {
-        const { milestone_id } = body;
+        const { milestone_id } = body as any;
         if (!milestone_id) {
           return NextResponse.json({ error: 'milestone_id is required' }, { status: 400 });
         }
@@ -297,13 +297,13 @@ export async function POST(req: NextRequest) {
       }
 
       case 'complete_milestone': {
-        const { milestone_id } = body;
+        const { milestone_id } = body as any;
         const milestone = await milestoneTracker.completeMilestone(milestone_id, user_id);
         return NextResponse.json({ success: true, milestone });
       }
 
       case 'list_milestones': {
-        const { goal_id } = body;
+        const { goal_id } = body as any;
         if (!goal_id) {
           return NextResponse.json({ error: 'goal_id is required' }, { status: 400 });
         }
@@ -313,7 +313,7 @@ export async function POST(req: NextRequest) {
       }
 
       case 'reorder_milestones': {
-        const { goal_id, milestone_ids } = body;
+        const { goal_id, milestone_ids } = body as any;
         if (!goal_id || !milestone_ids) {
           return NextResponse.json(
             { error: 'goal_id and milestone_ids are required' },
@@ -329,7 +329,7 @@ export async function POST(req: NextRequest) {
       // DEPENDENCY OPERATIONS
       // -----------------------------------------------------------------------
       case 'create_dependency': {
-        const { goal_id, depends_on_goal_id, dependency_type } = body;
+        const { goal_id, depends_on_goal_id, dependency_type } = body as any;
         if (!goal_id || !depends_on_goal_id) {
           return NextResponse.json(
             { error: 'goal_id and depends_on_goal_id are required' },
@@ -348,19 +348,19 @@ export async function POST(req: NextRequest) {
       }
 
       case 'delete_dependency': {
-        const { dependency_id } = body;
+        const { dependency_id } = body as any;
         await milestoneTracker.deleteDependency(dependency_id, user_id);
         return NextResponse.json({ success: true });
       }
 
       case 'get_dependency_graph': {
-        const { goal_id } = body;
+        const { goal_id } = body as any;
         const graph = await milestoneTracker.getDependencyGraph(goal_id, user_id);
         return NextResponse.json({ success: true, graph });
       }
 
       case 'get_critical_path': {
-        const { project_id } = body;
+        const { project_id } = body as any;
         const criticalPath = await milestoneTracker.getCriticalPath(project_id, user_id);
         return NextResponse.json({ success: true, critical_path: criticalPath });
       }
@@ -379,7 +379,7 @@ export async function POST(req: NextRequest) {
       // AI-POWERED OPERATIONS
       // -----------------------------------------------------------------------
       case 'breakdown_goal': {
-        const { goal_title, goal_description } = body;
+        const { goal_title, goal_description } = body as any;
         if (!goal_title) {
           return NextResponse.json({ error: 'goal_title is required' }, { status: 400 });
         }
@@ -389,7 +389,7 @@ export async function POST(req: NextRequest) {
       }
 
       case 'get_suggestions': {
-        const { goal_id } = body;
+        const { goal_id } = body as any;
         if (!goal_id) {
           return NextResponse.json({ error: 'goal_id is required' }, { status: 400 });
         }

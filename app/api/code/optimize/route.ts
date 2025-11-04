@@ -8,7 +8,7 @@ interface CodeOptimizeRequest {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json() as CodeOptimizeRequest;
-    const { code, language } = body;
+    const { code, language } = body as any;
 if (!code || !language) {
       return NextResponse.json(
         { error: 'Missing required fields: code, language' },

@@ -3,8 +3,8 @@ import { PredictiveEngine } from '@/lib/creativity/predictive-engine';
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { projectHistory, currentStage } = body;
+    const body = await req.json() as any;
+    const { projectHistory, currentStage } = body as any;
 
     if (!projectHistory) {
       return NextResponse.json(

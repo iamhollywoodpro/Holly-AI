@@ -18,7 +18,7 @@ const VIDEO_API_KEY = process.env.GOOGLE_API_KEY || '';
 export async function POST(request: NextRequest) {
   try {
     const body: CreateMusicVideoRequest = await request.json();
-    const { song_id, style_prompt, use_artist_likeness = false } = body;
+    const { song_id, style_prompt, use_artist_likeness = false } = body as any;
 
     if (!song_id || !style_prompt) {
       return NextResponse.json(

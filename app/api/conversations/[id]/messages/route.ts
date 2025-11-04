@@ -37,8 +37,8 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const body = await request.json();
-    const { role, content, emotion, model } = body;
+    const body = await request.json() as any;
+    const { role, content, emotion, model } = body as any;
 
     // Save the message
     const { data: message, error: messageError } = await supabase

@@ -125,7 +125,7 @@ function calculateConfidence(text: string, detectedLang: Language): number {
 export async function POST(request: NextRequest) {
   try {
     const body: DetectLanguageRequest = await request.json();
-    const { text } = body;
+    const { text } = body as any;
 
     if (!text || text.trim().length === 0) {
       return NextResponse.json(
