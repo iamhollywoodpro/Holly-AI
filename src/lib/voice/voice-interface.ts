@@ -378,6 +378,7 @@ class VoiceInterface {
 
 // Export singleton instance
 export const voiceInterface = new VoiceInterface();
+export { VoiceInterface };
 
 // Export types
-export type { VoiceOptions, TranscriptionResult, TTSStatus, STTStatus };
+export type { VoiceOptions, TranscriptionResult, TTSStatus, STTStatus };export { VoiceInterface };
