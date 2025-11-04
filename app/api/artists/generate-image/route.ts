@@ -1,147 +1,51 @@
-// ============================================
-// ARTIST IMAGE GENERATION API ROUTE
-// ============================================
-
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-import type { GenerateArtistImageRequest, GenerateArtistImageResponse } from '@/types/music';
+import OpenAI from 'openai';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_KEY!
-);
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
-// FAL.AI API configuration
-const FAL_API_KEY = process.env.FAL_API_KEY || '';
-const FAL_API_URL = 'https://fal.run/fal-ai/flux-pro/ultra';
+interface GenerateArtistImageRequest {
+  artist_id: string;
+  prompt?: string;
+  use_artist_style?: boolean;
+}
 
 export async function POST(request: NextRequest) {
   try {
-    const body: GenerateArtistImageRequest = await request.json();
-    const { artist_id, prompt, use_artist_style = true } = body;
+    const body = await request.json();
+    const { artist_id, prompt, use_artist_style = true } = body as GenerateArtistImageRequest;
 
     if (!artist_id) {
       return NextResponse.json(
-        { error: 'artist_id is required' },
+        { error: 'Artist ID is required' },
         { status: 400 }
       );
     }
 
-    // Get artist details
-    const { data: artist, error: artistError } = await supabase
-      .from('artists')
-      .select('*')
-      .eq('id', artist_id)
-      .single();
-
-    if (artistError || !artist) {
-      return NextResponse.json(
-        { error: 'Artist not found' },
-        { status: 404 }
-      );
-    }
-
-    // Build image generation prompt
-    let imagePrompt = prompt || artist.image_generation_prompt;
-
-    if (!imagePrompt && use_artist_style) {
-      // Generate default prompt based on artist style
-      const styles = artist.style_preferences || [];
-      const vocal = artist.vocal_characteristics || {};
-      
-      imagePrompt = `Professional portrait of a ${vocal.range || 'mid-range'} ${styles.join('/')} artist, ${vocal.tone || 'confident'} expression, studio lighting, high quality, 4K, photorealistic`;
-    }
-
-    if (!imagePrompt) {
-      imagePrompt = 'Professional portrait of a music artist, studio lighting, high quality, 4K, photorealistic';
-    }
-
-    // Generate image with flux-pro/ultra
-    const generateResponse = await fetch(FAL_API_URL, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Key ${FAL_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        prompt: imagePrompt,
-        image_size: 'square',
-        num_inference_steps: 28,
-        guidance_scale: 3.5,
-        num_images: 1,
-        enable_safety_checker: true,
-        output_format: 'jpeg',
-      }),
+    // Generate artist image using DALL-E 3
+    const imagePrompt = prompt || `A professional music artist portrait in high quality, photorealistic style`;
+    
+    const response = await openai.images.generate({
+      model: "dall-e-3",
+      prompt: imagePrompt,
+      n: 1,
+      size: "1024x1024",
+      quality: "hd",
     });
 
-    if (!generateResponse.ok) {
-      throw new Error(`Image generation API error: ${generateResponse.statusText}`);
-    }
+    const imageUrl = response.data[0]?.url;
 
-    const generateData = await generateResponse.json();
-    const imageUrl = generateData.images?.[0]?.url;
+    return NextResponse.json({
+      success: true,
+      image_url: imageUrl,
+      artist_id,
+    });
 
-    if (!imageUrl) {
-      throw new Error('No image URL returned from generation API');
-    }
-
-    // Download image
-    const imageResponse = await fetch(imageUrl);
-    const imageBlob = await imageResponse.blob();
-    const imageBuffer = await imageBlob.arrayBuffer();
-
-    // Upload to Supabase Storage
-    const fileName = `${artist_id}-${Date.now()}.jpg`;
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('artist-avatars')
-      .upload(fileName, imageBuffer, {
-        contentType: 'image/jpeg',
-        upsert: true,
-      });
-
-    if (uploadError) {
-      console.error('Upload error:', uploadError);
-      throw new Error('Failed to upload image to storage');
-    }
-
-    // Get public URL
-    const { data: urlData } = supabase.storage
-      .from('artist-avatars')
-      .getPublicUrl(fileName);
-
-    const avatarUrl = urlData.publicUrl;
-
-    // Update artist with new avatar
-    const { error: updateError } = await supabase
-      .from('artists')
-      .update({
-        avatar_url: avatarUrl,
-        image_generation_prompt: imagePrompt,
-      })
-      .eq('id', artist_id);
-
-    if (updateError) {
-      console.error('Failed to update artist:', updateError);
-    }
-
-    const response: GenerateArtistImageResponse = {
-      avatar_url: avatarUrl,
-      generation_metadata: {
-        prompt: imagePrompt,
-        model: 'flux-pro/ultra',
-        generated_at: new Date().toISOString(),
-      },
-    };
-
-    return NextResponse.json(response);
-
-  } catch (error) {
-    console.error('Artist image generation error:', error);
+  } catch (error: any) {
+    console.error('Error generating artist image:', error);
     return NextResponse.json(
-      {
-        error: 'Failed to generate artist image',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      },
+      { error: error.message || 'Failed to generate artist image' },
       { status: 500 }
     );
   }
