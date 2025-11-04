@@ -1,0 +1,193 @@
+// HOLLY Phase 2B: Conversations Hook
+// React hook for managing conversations and messages
+
+import { useState, useEffect, useCallback } from 'react';
+
+interface Message {
+  id: string;
+  conversation_id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  emotion?: string;
+  model?: string;
+  created_at: string;
+  metadata?: Record<string, any>;
+}
+
+interface Conversation {
+  id: string;
+  user_id: string;
+  title: string;
+  created_at: string;
+  updated_at: string;
+  metadata?: Record<string, any>;
+}
+
+export function useConversations(userId?: string) {
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [currentConversation, setCurrentConversation] = useState<Conversation | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch all conversations
+  const fetchConversations = useCallback(async () => {
+  if (!userId) return; // Add this line
+  setIsLoading(true);
+  setError(null);
+  try {
+    const response = await fetch(`/api/conversations?userId=${userId}`);
+      if (!response.ok) throw new Error('Failed to fetch conversations');
+      const data = await response.json();
+      setConversations(data.conversations || []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [userId]);
+
+  // Create new conversation
+  const createConversation = useCallback(async (title?: string) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/conversations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, title }),
+      });
+      if (!response.ok) throw new Error('Failed to create conversation');
+      const data = await response.json();
+      const newConv = data.conversation;
+      setConversations(prev => [newConv, ...prev]);
+      setCurrentConversation(newConv);
+      setMessages([]);
+      return newConv;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [userId]);
+
+  // Select a conversation
+  const selectConversation = useCallback(async (conversationId: string) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      // Fetch conversation details
+      const convResponse = await fetch(`/api/conversations/${conversationId}`);
+      if (!convResponse.ok) throw new Error('Failed to fetch conversation');
+      const convData = await convResponse.json();
+      setCurrentConversation(convData.conversation);
+
+      // Fetch messages
+      const messagesResponse = await fetch(`/api/conversations/${conversationId}/messages`);
+      if (!messagesResponse.ok) throw new Error('Failed to fetch messages');
+      const messagesData = await messagesResponse.json();
+      setMessages(messagesData.messages || []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Add message to current conversation
+  const addMessage = useCallback(async (
+    role: 'user' | 'assistant',
+    content: string,
+    emotion?: string,
+    model?: string
+  ) => {
+    if (!currentConversation) {
+      throw new Error('No active conversation');
+    }
+
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(`/api/conversations/${currentConversation.id}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role, content, emotion, model }),
+      });
+      if (!response.ok) throw new Error('Failed to add message');
+      const data = await response.json();
+      setMessages(prev => [...prev, data.message]);
+      return data.message;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentConversation]);
+
+  // Update conversation title
+  const updateConversationTitle = useCallback(async (conversationId: string, title: string) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(`/api/conversations/${conversationId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title }),
+      });
+      if (!response.ok) throw new Error('Failed to update conversation');
+      const data = await response.json();
+      setConversations(prev =>
+        prev.map(conv => (conv.id === conversationId ? data.conversation : conv))
+      );
+      if (currentConversation?.id === conversationId) {
+        setCurrentConversation(data.conversation);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentConversation]);
+
+  // Delete conversation
+  const deleteConversation = useCallback(async (conversationId: string) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(`/api/conversations/${conversationId}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) throw new Error('Failed to delete conversation');
+      setConversations(prev => prev.filter(conv => conv.id !== conversationId));
+      if (currentConversation?.id === conversationId) {
+        setCurrentConversation(null);
+        setMessages([]);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentConversation]);
+
+  // Load conversations on mount
+  useEffect(() => {
+    fetchConversations();
+  }, [fetchConversations]);
+
+  return {
+    conversations,
+    currentConversation,
+    messages,
+    isLoading,
+    error,
+    fetchConversations,
+    createConversation,
+    selectConversation,
+    addMessage,
+    updateConversationTitle,
+    deleteConversation,
+  };
+}

@@ -1,0 +1,27 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { CollaborationAI } from '@/lib/interaction/collaboration-ai';
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const { userMessage, conversationHistory } = body;
+
+    if (!userMessage) {
+      return NextResponse.json(
+        { error: 'User message is required' },
+        { status: 400 }
+      );
+    }
+
+    const collaboration = new CollaborationAI();
+    const mode = await collaboration.detectConfidenceLevel(userMessage, conversationHistory);
+
+    return NextResponse.json({ success: true, mode });
+  } catch (error: any) {
+    console.error('Collaboration detection API error:', error);
+    return NextResponse.json(
+      { error: error.message || 'Confidence detection failed' },
+      { status: 500 }
+    );
+  }
+}

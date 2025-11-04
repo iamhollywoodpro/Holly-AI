@@ -1,0 +1,31 @@
+SOUNDSTREAM FEATURES TO REMOVE (Platform/Marketplace)
+======================================================
+
+LIBRARIES (4 files):
+1. src/lib/music/sync-finder.ts - Marketplace sync search
+2. src/lib/music/sync-scrapers.ts - Automated scraping
+3. src/lib/music/playlist-curator.ts - CRM/networking
+4. src/lib/music/music-memory.ts - Platform search
+
+COMPONENTS (4 files):
+5. src/components/music/SubmissionsTracker.tsx - Marketplace submissions
+6. src/components/music/RevenueDashboard.tsx - Business analytics
+7. src/components/music/IndustryContactsCRM.tsx - CRM tools
+8. src/components/music/MusicDashboard.tsx - (Keep A&R parts, remove marketplace tabs)
+
+API ROUTES (11 files):
+9. app/api/music-manager/sync/route.ts
+10. app/api/music-manager/memory/route.ts
+11. app/api/music-manager/playlist/route.ts
+12. app/api/revenue/route.ts
+13. app/api/revenue/dashboard/route.ts
+14. app/api/revenue/goals/route.ts
+15. app/api/scraper/auto-update/route.ts
+16. app/api/scraper/manual/route.ts
+17. app/api/scraper/songtradr/route.ts
+18. app/api/scraper/taxi/route.ts
+19. app/api/scraper/music-gateway/route.ts
+20. app/api/scraper/airgigs/route.ts
+
+Total: 20 files to remove
+Reason: Platform/marketplace features, not AI creative assistance
