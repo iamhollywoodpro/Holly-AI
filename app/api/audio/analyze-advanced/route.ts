@@ -5,7 +5,7 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     const audioFile = formData.get('audio') as File;
-    const analysisType = (formData.get('analysisType') as string) || 'full';
+    const analysisType = (formData.get('analysisType') as string) || 'quick';
 
     if (!audioFile) {
       return NextResponse.json(
@@ -14,30 +14,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Convert File to ArrayBuffer for mix analysis
     const arrayBuffer = await audioFile.arrayBuffer();
-
     let result;
+
     switch (analysisType) {
       case 'mix':
         result = await advancedAudioAnalyzer.analyzeMixQuality(arrayBuffer);
         break;
-      case 'mastering':
-        // Pass a dummy URL since the method doesn't actually process it
-        result = await advancedAudioAnalyzer.checkMastering('dummy-url');
+      case 'quick':
+        // Create a temporary URL for the audio file
+        const blob = new Blob([arrayBuffer]);
+        const url = URL.createObjectURL(blob);
+        result = await advancedAudioAnalyzer.quickMixCheck(url);
+        URL.revokeObjectURL(url);
         break;
       default:
-        // Return mock full analysis
-        result = {
-          duration: 180,
-          tempo: 120,
-          key: 'C Major',
-          energy: 0.8,
-          hitPotential: 85,
-          productionQuality: 90,
-          mixQuality: 88,
-          radioReady: true
-        };
+        result = await advancedAudioAnalyzer.quickMixCheck('audio-file');
     }
 
     return NextResponse.json({
