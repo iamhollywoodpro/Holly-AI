@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const body: StemSeparationRequest = await req.json()
+    const body: StemSeparationRequest = await req.json() as any;
     const { audio_url, song_id, stems = ['vocals', 'drums', 'bass', 'other'] } = body
 
     if (!audio_url || !song_id) {

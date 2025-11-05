@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const body: RemixRequest = await req.json()
+    const body: RemixRequest = await req.json() as any;
     const {
       audio_url,
       prompt,
@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const remixData: SunoRemixResponse = await remixResponse.json()
+    const remixData: SunoRemixResponse = await remixResponse.json() as any;
     console.log('✅ Remix initiated:', remixData)
 
     if (remixData.code !== 200) {
@@ -123,7 +123,7 @@ export async function POST(req: NextRequest) {
       )
 
       if (statusResponse.ok) {
-        const statusData: SunoRemixResponse = await statusResponse.json()
+        const statusData: SunoRemixResponse = await statusResponse.json() as any;
         const clips = statusData.data?.clips || []
 
         // Check if all clips are complete

@@ -118,7 +118,7 @@ Write the lyrics now, ensuring cultural authenticity and emotional depth:`;
 
 export async function POST(request: NextRequest) {
   try {
-    const body: GenerateLyricsRequest = await request.json();
+    const body: GenerateLyricsRequest = await request.json() as any;
     const { 
       theme = 'love and longing', 
       style, 

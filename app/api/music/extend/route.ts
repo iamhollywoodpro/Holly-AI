@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const body: ExtendRequest = await req.json()
+    const body: ExtendRequest = await req.json() as any;
     const {
       continue_clip_id,
       prompt,
@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const extendData: SunoExtendResponse = await extendResponse.json()
+    const extendData: SunoExtendResponse = await extendResponse.json() as any;
     console.log('✅ Extension initiated:', extendData)
 
     if (extendData.code !== 200) {
@@ -113,7 +113,7 @@ export async function POST(req: NextRequest) {
       )
 
       if (statusResponse.ok) {
-        const statusData: SunoExtendResponse = await statusResponse.json()
+        const statusData: SunoExtendResponse = await statusResponse.json() as any;
         const clips = statusData.data?.clips || []
 
         // Check if all clips are complete

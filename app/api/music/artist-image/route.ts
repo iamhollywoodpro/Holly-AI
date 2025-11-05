@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const body: ArtistImageRequest = await req.json()
+    const body: ArtistImageRequest = await req.json() as any
     const { name, style = 'musician', bio = '' } = body
 
     if (!name) {
