@@ -176,11 +176,11 @@ export class CapabilityOrchestrator {
   private async handleResearch(action: string, params: any) {
     switch (action) {
       case 'general':
-        return await this.research.research(params.query, params.depth);
+        return await this.research.researchTopic(params.query, params.context);
       case 'trends':
-        return await this.research.analyzeTrends(params.query);
+        return await this.research.trackTrendingTopics(params.category || params.query);
       case 'competitor':
-        return await this.research.competitorResearch(params.query);
+        return await this.research.researchCompetitors(params.artistName, params.genre);
       default:
         throw new Error(`Unknown research action: ${action}`);
     }
