@@ -127,7 +127,7 @@ export function ConversationExport({ conversation, messages }: ConversationExpor
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(0);
         const role = msg.role === 'user' ? 'YOU' : 'HOLLY';
-        const roleColor = msg.role === 'user' ? [59, 130, 246] : [139, 92, 246]; // blue : purple
+        const roleColor: [number, number, number] = msg.role === 'user' ? [59, 130, 246] : [139, 92, 246]; // blue : purple
         doc.setTextColor(...roleColor);
         doc.text(role, margin, yPosition);
         
