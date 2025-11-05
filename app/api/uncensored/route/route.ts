@@ -4,7 +4,7 @@ import { UncensoredRouter } from '@/lib/ai/uncensored-router';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json() as any;
-    const { prompt, context } = body as any;
+    const { prompt, type = 'text', adult = false } = body as any;
 
     if (!prompt) {
       return NextResponse.json(
@@ -14,7 +14,11 @@ export async function POST(req: NextRequest) {
     }
 
     const router = new UncensoredRouter();
-    const recommendation = await router.routeRequest(prompt, context);
+    const recommendation = await router.routeRequest({
+      type,
+      content: prompt,
+      adult
+    });
 
     return NextResponse.json({ success: true, recommendation });
   } catch (error: any) {
