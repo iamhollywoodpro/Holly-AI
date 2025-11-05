@@ -130,7 +130,7 @@ export class CapabilityOrchestrator {
   private async handleVision(action: string, params: any) {
     switch (action) {
       case 'analyze':
-        return await this.vision.analyzeImage(params.imageUrl, params.prompt);
+        return await this.vision.analyzeImage({ imageUrl: params.imageUrl, prompt: params.prompt });
       case 'compare':
         return await this.vision.compareImages(params.imageUrl1, params.imageUrl2, params.prompt);
       case 'design-review':
