@@ -151,7 +151,8 @@ export class CapabilityOrchestrator {
       case 'speak':
         return await this.voice.speak(params.text, { voice: params.voice, speed: params.speed });
       case 'command':
-        return await this.voice.processVoiceCommand(params.audio);
+        // TODO: Implement voice command processing
+        throw new Error('Voice command processing not yet implemented');
       default:
         throw new Error(`Unknown voice action: ${action}`);
     }
