@@ -91,7 +91,7 @@ export default function LoginPage() {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
-            <HollyAvatar emotion="confident" size="xl" animated={true} />
+            <HollyAvatar emotion="confident" size="lg" animated={true} />
           </div>
           <h1 className="text-4xl font-bold text-gradient mb-2 flex items-center justify-center gap-2">
             HOLLY
