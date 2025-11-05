@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
         break;
       case 'general':
       default:
-        result = await vision.analyzeImage(imageUrl, prompt);
+        result = await vision.analyzeImage({ imageUrl, prompt });
         break;
     }
 
