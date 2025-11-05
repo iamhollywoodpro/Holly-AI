@@ -240,11 +240,11 @@ export class CapabilityOrchestrator {
   private async handlePredictive(action: string, params: any) {
     switch (action) {
       case 'concepts':
-        return await this.predictive.generateConcepts(params.projectId, params.currentContext);
+        return await this.predictive.generateDraftConcepts(params.userId);
       case 'needs':
-        return await this.predictive.predictNextNeeds(params.projectHistory, params.currentStage);
+        return await this.predictive.predictNextNeeds(params.userId);
       case 'blockers':
-        return await this.predictive.anticipateBlockers(params.projectData, params.timeline);
+        return await this.predictive.anticipateBlockers(params.userId);
       default:
         throw new Error(`Unknown predictive action: ${action}`);
     }
