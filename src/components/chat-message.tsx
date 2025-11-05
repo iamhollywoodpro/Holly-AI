@@ -50,7 +50,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{
-                code: ({ node, inline, className, children, ...props }) => {
+                code: ({ node, inline, className, children, ...props }: any) => {
                   return inline ? (
                     <code
                       className="bg-black/30 px-2 py-1 rounded text-holly-purple-300 font-mono text-sm"
