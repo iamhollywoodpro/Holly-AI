@@ -18,10 +18,10 @@ import {
   generateBatchSyncPitches,
   generateBatchPlaylistPitches,
   type EmailTemplate,
+  type SyncOpportunity,
+  type PlaylistCurator,
 } from '@/lib/music/email-templates';
 import type { AudioFeatures } from '@/lib/music/audio-processor';
-import type { SyncOpportunity } from '@/lib/music/sync-finder';
-import type { PlaylistCurator } from '@/lib/music/playlist-curator';
 
 export const runtime = 'nodejs';
 
