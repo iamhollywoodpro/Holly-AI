@@ -162,6 +162,8 @@ export interface GenerateSongResponse {
   song_id: string;
   status: GenerationStatus;
   message: string;
+  audio_url?: string;
+  artwork_url?: string;
 }
 
 export interface GenerateLyricsRequest {
