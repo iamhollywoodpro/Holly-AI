@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
     }
 
     const intelligence = new ContextualIntelligence();
-    await intelligence.trackProject(projectId, update);
+    await intelligence.trackActivity(projectId, update);
 
     return NextResponse.json({ success: true, message: 'Project update tracked' });
   } catch (error: any) {

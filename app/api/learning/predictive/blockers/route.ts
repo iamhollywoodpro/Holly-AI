@@ -4,17 +4,17 @@ import { PredictiveEngine } from '@/lib/creativity/predictive-engine';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json() as any;
-    const { projectData, timeline } = body as any;
+    const { userId } = body as any;
 
-    if (!projectData) {
+    if (!userId) {
       return NextResponse.json(
-        { error: 'Project data is required' },
+        { error: 'User ID is required' },
         { status: 400 }
       );
     }
 
     const engine = new PredictiveEngine();
-    const blockers = await engine.anticipateBlockers(projectData, timeline);
+    const blockers = await engine.anticipateBlockers(userId);
 
     return NextResponse.json({ success: true, blockers });
   } catch (error: any) {

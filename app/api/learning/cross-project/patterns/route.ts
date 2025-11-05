@@ -4,17 +4,17 @@ import { CrossProjectAI } from '@/lib/learning/cross-project-ai';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json() as any;
-    const { domain1, domain2 } = body as any;
+    const { projects } = body as any;
 
-    if (!domain1 || !domain2) {
+    if (!projects || !Array.isArray(projects)) {
       return NextResponse.json(
-        { error: 'Two domains are required for cross-domain analysis' },
+        { error: 'Array of projects is required for cross-domain analysis' },
         { status: 400 }
       );
     }
 
     const crossProject = new CrossProjectAI();
-    const patterns = await crossProject.findCrossDomainPatterns(domain1, domain2);
+    const patterns = await crossProject.findCrossDomainPatterns(projects);
 
     return NextResponse.json({ success: true, patterns });
   } catch (error: any) {

@@ -4,17 +4,17 @@ import { PredictiveEngine } from '@/lib/creativity/predictive-engine';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json() as any;
-    const { projectId, currentContext } = body as any;
+    const { userId } = body as any;
 
-    if (!projectId) {
+    if (!userId) {
       return NextResponse.json(
-        { error: 'Project ID is required' },
+        { error: 'User ID is required' },
         { status: 400 }
       );
     }
 
     const engine = new PredictiveEngine();
-    const concepts = await engine.generateConcepts(projectId, currentContext);
+    const concepts = await engine.generateDraftConcepts(userId);
 
     return NextResponse.json({ success: true, concepts });
   } catch (error: any) {

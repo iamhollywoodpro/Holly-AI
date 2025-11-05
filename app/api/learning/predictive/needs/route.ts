@@ -4,17 +4,17 @@ import { PredictiveEngine } from '@/lib/creativity/predictive-engine';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json() as any;
-    const { projectHistory, currentStage } = body as any;
+    const { userId } = body as any;
 
-    if (!projectHistory) {
+    if (!userId) {
       return NextResponse.json(
-        { error: 'Project history is required' },
+        { error: 'User ID is required' },
         { status: 400 }
       );
     }
 
     const engine = new PredictiveEngine();
-    const needs = await engine.predictNextNeeds(projectHistory, currentStage);
+    const needs = await engine.predictNextNeeds(userId);
 
     return NextResponse.json({ success: true, needs });
   } catch (error: any) {
