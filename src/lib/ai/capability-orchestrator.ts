@@ -147,9 +147,9 @@ export class CapabilityOrchestrator {
   private async handleVoice(action: string, params: any) {
     switch (action) {
       case 'transcribe':
-        return await this.voice.transcribe(params.audio, params.language);
+        return await this.voice.transcribe(params.audio);
       case 'speak':
-        return await this.voice.speak(params.text, params.voice, params.speed);
+        return await this.voice.speak(params.text, { voice: params.voice, speed: params.speed });
       case 'command':
         return await this.voice.processVoiceCommand(params.audio);
       default:
