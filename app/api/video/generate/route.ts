@@ -25,17 +25,17 @@ export async function POST(req: NextRequest) {
 
     switch (type) {
       case 'image-to-video':
-        result = await generator.imageToVideo(imageUrl!, prompt, { duration, fps });
+        result = await generator.generateImageToVideo(imageUrl!, prompt, 'medium');
         break;
       case 'music-video':
-        result = await generator.generateMusicVideo(prompt, { duration, fps });
+        result = await generator.createMusicVideo({ songTitle: prompt, artist: '', prompt });
         break;
       case 'social-reel':
-        result = await generator.generateSocialReel(prompt, { duration, fps });
+        result = await generator.createSocialReel({ content: prompt, style: 'instagram', duration });
         break;
       case 'text-to-video':
       default:
-        result = await generator.textToVideo(prompt, { duration, fps });
+        result = await generator.generateTextToVideo({ prompt, duration, fps });
         break;
     }
 
