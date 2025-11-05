@@ -86,10 +86,10 @@ REQUIREMENTS:
 - Use appropriate poetic devices from the tradition
 
 EXAMPLES OF AUTHENTIC PHRASES:
-${config.lyricExamples.authentic.slice(0, 3).map(ex => `✓ ${ex}`).join('\n')}
+${config.lyricExamples.filter(ex => ex.type === 'authentic').slice(0, 3).map(ex => `✓ ${ex.text}`).join('\n')}
 
 AVOID THESE (Too literal/translated):
-${config.lyricExamples.avoid.slice(0, 3).map(ex => `✗ ${ex}`).join('\n')}
+${config.lyricExamples.filter(ex => ex.type === 'avoid').slice(0, 3).map(ex => `✗ ${ex.text}`).join('\n')}
 
 OUTPUT FORMAT:
 [Verse 1]
