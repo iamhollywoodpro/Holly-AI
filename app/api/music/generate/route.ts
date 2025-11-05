@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
         throw new Error(`SunoAPI.org error: ${sunoResponse.statusText} - ${errorText}`);
       }
 
-      const sunoData = await sunoResponse.json();
+      const sunoData = await sunoResponse.json() as any;
       console.log('SunoAPI.org response:', sunoData);
 
       // SunoAPI.org returns array of clips
