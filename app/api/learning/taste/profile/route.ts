@@ -4,10 +4,17 @@ import { TasteLearner } from '@/lib/learning/taste-learner';
 export async function GET(req: NextRequest) {
   try {
     const searchParams = req.nextUrl.searchParams;
-    const category = searchParams.get('category');
+    const userId = searchParams.get('userId');
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'User ID is required' },
+        { status: 400 }
+      );
+    }
 
     const learner = new TasteLearner();
-    const profile = await learner.getTasteProfile(category || undefined);
+    const profile = await learner.initializeTasteProfile(userId);
 
     return NextResponse.json({ success: true, profile });
   } catch (error: any) {
