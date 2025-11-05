@@ -189,15 +189,17 @@ export class CapabilityOrchestrator {
   private async handleAudio(action: string, params: any) {
     switch (action) {
       case 'complete':
-        return await this.audio.completeAnalysis(params.audioBuffer);
+        return await this.audio.analyzeAudio({ audioUrl: params.audioUrl, analysisType: 'full' });
       case 'mix':
         return await this.audio.analyzeMixQuality(params.audioBuffer);
       case 'mastering':
-        return await this.audio.checkMastering(params.audioBuffer);
+        return await this.audio.checkMastering(params.audioUrl);
       case 'vocals':
-        return await this.audio.analyzeVocals(params.audioBuffer);
+        return await this.audio.analyzeVocalPerformance(params.audioUrl);
       case 'hit-factor':
-        return await this.audio.calculateHitFactor(params.audioBuffer, params.genre);
+        // First get analysis, then calculate hit factor
+        const analysis = await this.audio.analyzeAudio({ audioUrl: params.audioUrl, analysisType: 'full' });
+        return this.audio.calculateHitFactor(analysis);
       default:
         throw new Error(`Unknown audio action: ${action}`);
     }
