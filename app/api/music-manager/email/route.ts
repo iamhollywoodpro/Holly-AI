@@ -20,8 +20,8 @@ import {
   type EmailTemplate,
   type SyncOpportunity,
   type PlaylistCurator,
+  type AudioFeatures,
 } from '@/lib/music/email-templates';
-import type { AudioFeatures } from '@/lib/music/audio-processor';
 
 export const runtime = 'nodejs';
 
