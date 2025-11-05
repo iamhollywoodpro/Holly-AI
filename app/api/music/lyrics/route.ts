@@ -65,15 +65,9 @@ function buildLyricsPrompt(
     .map(d => `- ${d.name}: ${d.description}`)
     .join('\n');
 
-  return `You are HOLLY, an expert songwriter with deep cultural knowledge of ${config.native_name} (${config.name}) music.
+  return `You are HOLLY, an expert songwriter with deep cultural knowledge of ${config.nativeName} (${config.name}) music.
 
 TASK: Write song lyrics in ${config.name} language.
-
-CULTURAL CONTEXT:
-${config.cultural_context}
-
-UNTRANSLATABLE CONCEPT:
-${config.untranslatable_concept?.term || 'N/A'}: ${config.untranslatable_concept?.meaning || ''}
 
 MUSICAL TRADITION (${relevantTradition.name}):
 ${relevantTradition.description}
@@ -96,9 +90,6 @@ ${config.lyricExamples.authentic.slice(0, 3).map(ex => `✓ ${ex}`).join('\n')}
 
 AVOID THESE (Too literal/translated):
 ${config.lyricExamples.avoid.slice(0, 3).map(ex => `✗ ${ex}`).join('\n')}
-
-CULTURAL NOTES:
-${config.cultural_notes.slice(0, 3).map(note => `• ${note}`).join('\n')}
 
 OUTPUT FORMAT:
 [Verse 1]
@@ -165,7 +156,7 @@ export async function POST(request: NextRequest) {
 
     // Get cultural notes for the language
     const config = LANGUAGE_CONFIGS[language];
-    const culturalNotes = config.cultural_notes.slice(0, 3);
+    // Cultural notes removed - not in LanguageConfig interface
 
     const response: GenerateLyricsResponse = {
       lyrics: lyrics.trim(),
