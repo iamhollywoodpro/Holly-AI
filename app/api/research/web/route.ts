@@ -18,14 +18,14 @@ export async function POST(req: NextRequest) {
 
     switch (type) {
       case 'trend':
-        result = await researcher.analyzeTrends(query);
+        result = await researcher.trackTrendingTopics(query);
         break;
       case 'competitor':
-        result = await researcher.competitorResearch(query);
+        result = await researcher.researchCompetitors(query, '');
         break;
       case 'general':
       default:
-        result = await researcher.research(query, depth as 'quick' | 'comprehensive');
+        result = await researcher.researchTopic(query);
         break;
     }
 
