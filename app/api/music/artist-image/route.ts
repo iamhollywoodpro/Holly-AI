@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
       throw new Error(`DALL-E API failed: ${response.statusText}`)
     }
 
-    const data = await response.json()
+    const data = await response.json() as any
     const image_url = data.data[0].url
 
     console.log('✅ Artist portrait generated successfully')
