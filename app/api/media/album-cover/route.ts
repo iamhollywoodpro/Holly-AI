@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
       throw new Error('DALL-E API failed');
     }
     
-    const data = await response.json();
+    const data = await response.json() as any;
     
     return NextResponse.json({
       success: true,

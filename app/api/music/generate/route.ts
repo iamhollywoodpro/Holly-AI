@@ -32,7 +32,7 @@ async function pollSunoStatus(clipIds: string[], maxAttempts = 60, delayMs = 500
         throw new Error(`Query API error: ${response.statusText}`);
       }
 
-      const clips = await response.json();
+      const clips = await response.json() as any;
       
       // Check if all clips are complete or failed
       const allComplete = clips.every((clip: any) => 

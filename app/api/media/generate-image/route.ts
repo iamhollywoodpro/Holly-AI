@@ -61,7 +61,7 @@ async function generateWithDALLE(prompt: string, quality: string): Promise<strin
     throw new Error('DALL-E API failed');
   }
   
-  const data = await response.json();
+  const data = await response.json() as any;
   return data.data[0].url;
 }
 
