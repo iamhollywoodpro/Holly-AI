@@ -61,14 +61,12 @@ export async function POST(request: NextRequest) {
             { status: 400 }
           );
         }
-        result = generateSyncPitchEmail({
-          opportunity: opportunity as SyncOpportunity,
+        result = generateSyncPitchEmail(
+          opportunity as SyncOpportunity,
           artistName,
           trackTitle,
-          features: features as AudioFeatures,
-          streamingLinks,
-          additionalContext,
-        });
+          features as AudioFeatures
+        );
         break;
 
       // Single playlist pitch
@@ -79,15 +77,12 @@ export async function POST(request: NextRequest) {
             { status: 400 }
           );
         }
-        result = generatePlaylistPitchEmail({
-          curator: curator as PlaylistCurator,
+        result = generatePlaylistPitchEmail(
+          curator as PlaylistCurator,
           artistName,
           trackTitle,
-          features: features as AudioFeatures,
-          releaseDate,
-          spotifyUri,
-          additionalContext,
-        });
+          features as AudioFeatures
+        );
         break;
 
       // Follow-up email
@@ -99,8 +94,7 @@ export async function POST(request: NextRequest) {
           );
         }
         result = generateFollowUpEmail(
-          followUpContext.originalContext,
-          followUpContext.type,
+          followUpContext.originalEmail,
           followUpContext.daysSinceSent || 7
         );
         break;
@@ -117,8 +111,7 @@ export async function POST(request: NextRequest) {
           opportunities as SyncOpportunity[],
           artistName,
           trackTitle,
-          features as AudioFeatures,
-          streamingLinks
+          features as AudioFeatures
         );
         break;
 
@@ -134,9 +127,7 @@ export async function POST(request: NextRequest) {
           curators as PlaylistCurator[],
           artistName,
           trackTitle,
-          features as AudioFeatures,
-          spotifyUri,
-          releaseDate
+          features as AudioFeatures
         );
         break;
 
