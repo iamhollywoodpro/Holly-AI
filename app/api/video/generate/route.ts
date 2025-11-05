@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
         result = await generator.generateImageToVideo(imageUrl!, prompt, 'medium');
         break;
       case 'music-video':
-        result = await generator.createMusicVideo({ songTitle: prompt, artist: '', prompt });
+        result = await generator.createMusicVideo({ songTitle: prompt, artist: '', genre: '', mood: '', duration });
         break;
       case 'social-reel':
         result = await generator.createSocialReel({ content: prompt, style: 'instagram', duration });
