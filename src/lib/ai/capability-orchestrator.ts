@@ -208,11 +208,11 @@ export class CapabilityOrchestrator {
   private async handleContextual(action: string, params: any) {
     switch (action) {
       case 'track':
-        return await this.contextual.trackProject(params.projectId, params.update);
+        return await this.contextual.trackActivity(params.projectId, params.activity);
       case 'context':
         return await this.contextual.getProjectContext(params.projectId);
       case 'patterns':
-        return await this.contextual.detectPatterns(params.projectId);
+        return await this.contextual.detectPatterns(params.userId);
       default:
         throw new Error(`Unknown contextual action: ${action}`);
     }
