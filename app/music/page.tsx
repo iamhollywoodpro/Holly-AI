@@ -132,7 +132,7 @@ function CreateTab() {
   const [detectedLanguage, setDetectedLanguage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [recentGenerations, setRecentGenerations] = useState<Song[]>([])
-  const { showToast } = useToast()
+  const { toast } = useToast()
 
   // Auto-detect language as user types
   useEffect(() => {
@@ -159,7 +159,7 @@ function CreateTab() {
 
   const handleGenerateLyrics = async () => {
     if (!lyrics.trim()) {
-      showToast('Please enter a theme or topic for lyrics generation', 'error')
+      toast({ title: 'Please enter a theme or topic for lyrics generation', variant: 'destructive' })
       return
     }
 
@@ -183,10 +183,10 @@ function CreateTab() {
 
       const data = await response.json()
       setLyrics(data.lyrics)
-      showToast('Lyrics generated successfully!', 'success')
+      toast({ title: 'Lyrics generated successfully!' })
     } catch (error) {
       setError('Failed to generate lyrics. Please try again.')
-      showToast('Lyrics generation failed', 'error')
+      toast({ title: 'Lyrics generation failed', variant: 'destructive' })
     } finally {
       setIsGeneratingLyrics(false)
     }
@@ -194,7 +194,7 @@ function CreateTab() {
 
   const handleGenerateSong = async () => {
     if (!lyrics.trim()) {
-      showToast('Please enter lyrics or a prompt', 'error')
+      toast({ title: 'Please enter lyrics or a prompt', variant: 'destructive' })
       return
     }
 
@@ -202,7 +202,7 @@ function CreateTab() {
     setError(null)
 
     try {
-      showToast('Generating 2 versions of your song...', 'loading')
+      toast({ title: 'Generating 2 versions of your song...' })
 
       const response = await fetch('/api/music/generate', {
         method: 'POST',
@@ -224,7 +224,7 @@ function CreateTab() {
       
       if (data.clips && data.clips.length > 0) {
         setRecentGenerations(prev => [...data.clips, ...prev])
-        showToast(`✅ Generated ${data.clips.length} versions successfully!`, 'success')
+        toast({ title: `✅ Generated ${data.clips.length} versions successfully!` })
         
         // Save to database
         for (const clip of data.clips) {
@@ -242,7 +242,7 @@ function CreateTab() {
       }
     } catch (error) {
       setError('Failed to generate song. Please try again.')
-      showToast('Song generation failed', 'error')
+      toast({ title: 'Song generation failed', variant: 'destructive' })
     } finally {
       setIsGeneratingSong(false)
     }
@@ -439,7 +439,7 @@ function LibraryTab() {
   const [remixModalOpen, setRemixModalOpen] = useState(false)
   const [stemModalOpen, setStemModalOpen] = useState(false)
   const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null)
-  const { showToast } = useToast()
+  const { toast } = useToast()
 
   useEffect(() => {
     fetchSongs()
@@ -469,7 +469,7 @@ function LibraryTab() {
       setSongs(data || [])
     } catch (error) {
       console.error('Failed to fetch songs:', error)
-      showToast('Failed to load library', 'error')
+      toast({ title: 'Failed to load library', variant: 'destructive' })
     } finally {
       setIsLoading(false)
     }
@@ -495,7 +495,7 @@ function LibraryTab() {
 
   const handleCreateVideo = async (song: Song) => {
     try {
-      showToast('Creating music video...', 'loading')
+      toast({ title: 'Creating music video...' })
       
       const response = await fetch('/api/music/video', {
         method: 'POST',
@@ -510,7 +510,7 @@ function LibraryTab() {
       if (!response.ok) throw new Error('Failed to create video')
 
       const data = await response.json()
-      showToast('Music video created successfully!', 'success')
+      toast({ title: 'Music video created successfully!' })
       
       // Save to database
       await supabase.from('music_videos').insert({
@@ -519,7 +519,7 @@ function LibraryTab() {
         prompt: song.title,
       })
     } catch (error) {
-      showToast('Failed to create video', 'error')
+      toast({ title: 'Failed to create video', variant: 'destructive' })
     }
   }
 
@@ -538,16 +538,16 @@ function LibraryTab() {
       if (!response.ok) throw new Error('Failed to extend song')
 
       const result = await response.json()
-      showToast('Song extended successfully!', 'success')
+      toast({ title: 'Song extended successfully!' })
       fetchSongs() // Refresh list
     } catch (error) {
-      showToast('Failed to extend song', 'error')
+      toast({ title: 'Failed to extend song', variant: 'destructive' })
     }
   }
 
   const handleRemixSong = async (data: any) => {
     try {
-      showToast('Creating remix...', 'loading')
+      toast({ title: 'Creating remix...' })
       
       const response = await fetch('/api/music/remix', {
         method: 'POST',
@@ -558,16 +558,16 @@ function LibraryTab() {
       if (!response.ok) throw new Error('Failed to remix song')
 
       const result = await response.json()
-      showToast('Remix created successfully!', 'success')
+      toast({ title: 'Remix created successfully!' })
       fetchSongs() // Refresh list
     } catch (error) {
-      showToast('Failed to create remix', 'error')
+      toast({ title: 'Failed to create remix', variant: 'destructive' })
     }
   }
 
   const handleStemSeparation = async (data: any) => {
     try {
-      showToast('Separating stems... This may take 30-90 seconds', 'loading')
+      toast({ title: 'Separating stems... This may take 30-90 seconds' })
       
       const response = await fetch('/api/music/separate-stems', {
         method: 'POST',
@@ -581,10 +581,10 @@ function LibraryTab() {
       }
 
       const result = await response.json()
-      showToast(`Stems separated in ${result.processing_time_seconds.toFixed(1)}s!`, 'success')
+      toast({ title: `Stems separated in ${result.processing_time_seconds.toFixed(1)}s!` })
       return result // Return result to modal
     } catch (error) {
-      showToast(error instanceof Error ? error.message : 'Failed to separate stems', 'error')
+      toast({ title: error instanceof Error ? error.message : 'Failed to separate stems', variant: 'destructive' })
       throw error
     }
   }
@@ -770,7 +770,7 @@ function ArtistsTab() {
   const [isCreating, setIsCreating] = useState(false)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [newArtist, setNewArtist] = useState({ name: '', style: '', bio: '' })
-  const { showToast } = useToast()
+  const { toast } = useToast()
 
   useEffect(() => {
     fetchArtists()
@@ -787,7 +787,7 @@ function ArtistsTab() {
       setArtists(data || [])
     } catch (error) {
       console.error('Failed to fetch artists:', error)
-      showToast('Failed to load artists', 'error')
+      toast({ title: 'Failed to load artists', variant: 'destructive' })
     } finally {
       setIsLoading(false)
     }
@@ -795,7 +795,7 @@ function ArtistsTab() {
 
   const handleCreateArtist = async () => {
     if (!newArtist.name.trim()) {
-      showToast('Please enter artist name', 'error')
+      toast({ title: 'Please enter artist name', variant: 'destructive' })
       return
     }
 
@@ -825,12 +825,12 @@ function ArtistsTab() {
 
       if (error) throw error
 
-      showToast('Artist created successfully!', 'success')
+      toast({ title: 'Artist created successfully!' })
       setShowCreateModal(false)
       setNewArtist({ name: '', style: '', bio: '' })
       fetchArtists()
     } catch (error) {
-      showToast('Failed to create artist', 'error')
+      toast({ title: 'Failed to create artist', variant: 'destructive' })
     } finally {
       setIsCreating(false)
     }
@@ -842,10 +842,10 @@ function ArtistsTab() {
     try {
       const { error } = await supabase.from('artists').delete().eq('id', id)
       if (error) throw error
-      showToast('Artist deleted successfully', 'success')
+      toast({ title: 'Artist deleted successfully' })
       fetchArtists()
     } catch (error) {
-      showToast('Failed to delete artist', 'error')
+      toast({ title: 'Failed to delete artist', variant: 'destructive' })
     }
   }
 
@@ -971,7 +971,7 @@ function PlaylistsTab() {
   const [isLoading, setIsLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [newPlaylist, setNewPlaylist] = useState({ name: '', description: '' })
-  const { showToast } = useToast()
+  const { toast } = useToast()
 
   useEffect(() => {
     fetchPlaylists()
@@ -988,7 +988,7 @@ function PlaylistsTab() {
       setPlaylists(data || [])
     } catch (error) {
       console.error('Failed to fetch playlists:', error)
-      showToast('Failed to load playlists', 'error')
+      toast({ title: 'Failed to load playlists', variant: 'destructive' })
     } finally {
       setIsLoading(false)
     }
@@ -996,7 +996,7 @@ function PlaylistsTab() {
 
   const handleCreatePlaylist = async () => {
     if (!newPlaylist.name.trim()) {
-      showToast('Please enter playlist name', 'error')
+      toast({ title: 'Please enter playlist name', variant: 'destructive' })
       return
     }
 
@@ -1008,12 +1008,12 @@ function PlaylistsTab() {
 
       if (error) throw error
 
-      showToast('Playlist created successfully!', 'success')
+      toast({ title: 'Playlist created successfully!' })
       setShowCreateModal(false)
       setNewPlaylist({ name: '', description: '' })
       fetchPlaylists()
     } catch (error) {
-      showToast('Failed to create playlist', 'error')
+      toast({ title: 'Failed to create playlist', variant: 'destructive' })
     }
   }
 
@@ -1023,10 +1023,10 @@ function PlaylistsTab() {
     try {
       const { error } = await supabase.from('playlists').delete().eq('id', id)
       if (error) throw error
-      showToast('Playlist deleted successfully', 'success')
+      toast({ title: 'Playlist deleted successfully' })
       fetchPlaylists()
     } catch (error) {
-      showToast('Failed to delete playlist', 'error')
+      toast({ title: 'Failed to delete playlist', variant: 'destructive' })
     }
   }
 
