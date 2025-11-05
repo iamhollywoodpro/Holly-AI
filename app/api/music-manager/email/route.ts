@@ -145,7 +145,7 @@ export async function POST(request: NextRequest) {
     }
 
     const isBatch = Array.isArray(result);
-    const emailCount = isBatch ? result.length : 1;
+    const emailCount = isBatch ? (result as EmailTemplate[]).length : 1;
 
     console.log(`✅ Generated ${emailCount} email${emailCount > 1 ? 's' : ''}`);
 
