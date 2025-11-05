@@ -161,7 +161,6 @@ export async function POST(request: NextRequest) {
     const response: GenerateLyricsResponse = {
       lyrics: lyrics.trim(),
       detected_language: language,
-      cultural_notes: culturalNotes,
     };
 
     return NextResponse.json(response);
