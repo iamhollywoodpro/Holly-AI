@@ -364,7 +364,8 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
       {showSearch && (
         <ConversationSearch
           conversations={conversations}
-          onSelect={handleSelectConversation}
+          onSelectConversation={handleSelectConversation}
+          isOpen={showSearch}
           onClose={() => setShowSearch(false)}
         />
       )}
