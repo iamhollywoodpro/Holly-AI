@@ -221,11 +221,17 @@ export class CapabilityOrchestrator {
   private async handleTaste(action: string, params: any) {
     switch (action) {
       case 'track':
-        return await this.taste.trackPreference(params.itemId, params.category, params.userAction, params.context);
+        return await this.taste.recordTasteSignal(params.userId, {
+          type: params.userAction,
+          category: params.category,
+          item: params.item,
+          context: params.context,
+          timestamp: new Date()
+        });
       case 'predict':
-        return await this.taste.predictPreference(params.itemId, params.category, params.context);
+        return await this.taste.predictPreference(params.userId, params.item, params.category);
       case 'profile':
-        return await this.taste.getTasteProfile(params.category);
+        return await this.taste.initializeTasteProfile(params.userId);
       default:
         throw new Error(`Unknown taste action: ${action}`);
     }
