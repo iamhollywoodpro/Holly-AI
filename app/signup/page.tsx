@@ -88,7 +88,7 @@ export default function SignupPage() {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
-            <HollyAvatar emotion="excited" size="xl" animated={true} />
+            <HollyAvatar emotion="excited" size="lg" animated={true} />
           </div>
           <h1 className="text-4xl font-bold text-gradient mb-2 flex items-center justify-center gap-2">
             HOLLY
