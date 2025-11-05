@@ -81,7 +81,8 @@ export async function POST(request: NextRequest) {
           curator as PlaylistCurator,
           artistName,
           trackTitle,
-          features as AudioFeatures
+          features as AudioFeatures,
+          spotifyUri || ''
         );
         break;
 
@@ -127,7 +128,8 @@ export async function POST(request: NextRequest) {
           curators as PlaylistCurator[],
           artistName,
           trackTitle,
-          features as AudioFeatures
+          features as AudioFeatures,
+          spotifyUri || ''
         );
         break;
 
