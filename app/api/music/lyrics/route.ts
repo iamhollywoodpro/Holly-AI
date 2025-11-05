@@ -56,12 +56,12 @@ function buildLyricsPrompt(
   };
 
   // Get relevant musical tradition
-  const relevantTradition = config.musical_traditions.find(t => 
+  const relevantTradition = config.musicalTraditions.find(t => 
     t.name.toLowerCase().includes(style.toLowerCase())
-  ) || config.musical_traditions[0];
+  ) || config.musicalTraditions[0];
 
   // Get relevant poetic devices
-  const poeticDevices = config.poetic_devices.slice(0, 3)
+  const poeticDevices = config.poeticDevices.slice(0, 3)
     .map(d => `- ${d.name}: ${d.description}`)
     .join('\n');
 
@@ -92,10 +92,10 @@ REQUIREMENTS:
 - Use appropriate poetic devices from the tradition
 
 EXAMPLES OF AUTHENTIC PHRASES:
-${config.lyric_examples.authentic.slice(0, 3).map(ex => `✓ ${ex}`).join('\n')}
+${config.lyricExamples.authentic.slice(0, 3).map(ex => `✓ ${ex}`).join('\n')}
 
 AVOID THESE (Too literal/translated):
-${config.lyric_examples.avoid.slice(0, 3).map(ex => `✗ ${ex}`).join('\n')}
+${config.lyricExamples.avoid.slice(0, 3).map(ex => `✗ ${ex}`).join('\n')}
 
 CULTURAL NOTES:
 ${config.cultural_notes.slice(0, 3).map(note => `• ${note}`).join('\n')}
