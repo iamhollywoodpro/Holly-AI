@@ -161,13 +161,13 @@ export class CapabilityOrchestrator {
   private async handleVideo(action: string, params: any) {
     switch (action) {
       case 'text-to-video':
-        return await this.video.textToVideo(params.prompt, params.options);
+        return await this.video.generateTextToVideo({ prompt: params.prompt, ...params.options });
       case 'image-to-video':
-        return await this.video.imageToVideo(params.imageUrl, params.prompt, params.options);
+        return await this.video.generateImageToVideo(params.imageUrl, params.prompt, params.motion || 'medium');
       case 'music-video':
-        return await this.video.generateMusicVideo(params.prompt, params.options);
+        return await this.video.createMusicVideo(params);
       case 'social-reel':
-        return await this.video.generateSocialReel(params.prompt, params.options);
+        return await this.video.createSocialReel(params);
       default:
         throw new Error(`Unknown video action: ${action}`);
     }
