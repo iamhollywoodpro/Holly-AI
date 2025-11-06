@@ -279,9 +279,9 @@ export class CapabilityOrchestrator {
   private async handleCollaboration(action: string, params: any) {
     switch (action) {
       case 'detect':
-        return await this.collaboration.detectConfidenceLevel(params.userMessage, params.conversationHistory);
+        return await this.collaboration.detectUserConfidence(params.interaction);
       case 'adapt':
-        return await this.collaboration.adaptLeadershipStyle(params.userConfidence, params.taskComplexity);
+        return await this.collaboration.adaptLeadershipStyle(params.confidence);
       default:
         throw new Error(`Unknown collaboration action: ${action}`);
     }
