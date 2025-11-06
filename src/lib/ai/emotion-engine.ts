@@ -386,7 +386,7 @@ export async function detectEmotion(
   const isShort = message.split(' ').length < 5;
 
   if (hasExclamation) {
-    emotionScores.excited += 0.2;
+    emotionScores.happy += 0.2;
     emotionScores.frustrated += 0.1;
   }
 
