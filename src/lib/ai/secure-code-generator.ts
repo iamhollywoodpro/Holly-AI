@@ -9,7 +9,7 @@
  */
 
 import { CodeGenerationEngine, CodeGenerationRequest, GeneratedCode } from './holly-code-generator';
-import { EthicsFramework, EthicsCheckRequest, CodeSecurityScan } from './ethics-framework';
+import { EthicsFramework, EthicsCheckRequest, CodeSecurityScan } from '../safety/ethics-framework';
 
 // ============================================================================
 // Types & Interfaces
