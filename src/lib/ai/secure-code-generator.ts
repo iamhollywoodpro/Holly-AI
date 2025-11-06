@@ -8,7 +8,7 @@
  * @created 2024
  */
 
-import { CodeGenerationEngine, CodeGenerationRequest, GeneratedCode } from './code-generator';
+import { CodeGenerationEngine, CodeGenerationRequest, GeneratedCode } from './holly-code-generator';
 import { EthicsFramework, EthicsCheckRequest, CodeSecurityScan } from './ethics-framework';
 
 // ============================================================================
