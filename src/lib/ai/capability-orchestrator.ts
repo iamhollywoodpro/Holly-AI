@@ -290,9 +290,9 @@ export class CapabilityOrchestrator {
   private async handleCrossProject(action: string, params: any) {
     switch (action) {
       case 'patterns':
-        return await this.crossProject.findCrossDomainPatterns(params.domain1, params.domain2);
+        return await this.crossProject.findCrossDomainPatterns(params.projects || [params.domain1, params.domain2]);
       case 'transfer':
-        return await this.crossProject.transferSuccessfulApproach(params.sourceProject, params.targetDomain);
+        return await this.crossProject.applyLearning(params.fromProject || params.sourceProject, params.toProject || params.targetDomain);
       default:
         throw new Error(`Unknown cross-project action: ${action}`);
     }
