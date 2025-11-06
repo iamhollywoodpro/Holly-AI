@@ -258,16 +258,6 @@ export class DatabaseClient {
   }
 
   async incrementViolationCount(userId: string): Promise<void> {
-    await this.supabase
-      .from('users')
-      .update({
-        violation_count: this.supabase.rpc('increment', { field: 'violation_count' }),
-        last_violation_at: new Date().toISOString(),
-      })
-      .eq('id', userId);
-  }
-
-  async incrementViolationCount(userId: string): Promise<void> {
   // First get current count
   const { data: user } = await this.supabase
     .from('users')
