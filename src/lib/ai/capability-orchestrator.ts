@@ -253,11 +253,11 @@ export class CapabilityOrchestrator {
   private async handleSelfImprove(action: string, params: any) {
     switch (action) {
       case 'analyze':
-        return await this.selfImprove.analyzePerformance(params.timeRange);
+        return await this.selfImprove.analyzePerformance(params.userId);
       case 'learn':
         return await this.selfImprove.learnNewSkill(params.skillArea);
       case 'optimize':
-        return await this.selfImprove.optimizeWorkflows(params.workflowName, params.performanceData);
+        return await this.selfImprove.optimizeWorkflow(params.workflowId);
       default:
         throw new Error(`Unknown self-improve action: ${action}`);
     }
