@@ -37,7 +37,7 @@ if (!supabaseAnonKey) {
  * Public Supabase client (uses anon key)
  * Safe for frontend use - respects Row Level Security (RLS)
  */
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+export const supabase = createClient<any>(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
@@ -59,7 +59,7 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
  * Use with caution!
  */
 export const supabaseAdmin = supabaseServiceKey
-  ? createClient<Database>(supabaseUrl, supabaseServiceKey, {
+  ? createClient<any>(supabaseUrl, supabaseServiceKey, {
       auth: {
         persistSession: false,
         autoRefreshToken: false
