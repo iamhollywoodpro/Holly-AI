@@ -266,7 +266,7 @@ export class CapabilityOrchestrator {
   private async handleUncensored(action: string, params: any) {
     switch (action) {
       case 'route':
-        return await this.uncensored.routeRequest(params.prompt, params.context);
+        return await this.uncensored.routeRequest({ prompt: params.prompt, context: params.context });
       default:
         throw new Error(`Unknown uncensored action: ${action}`);
     }
