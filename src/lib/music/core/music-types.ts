@@ -347,7 +347,6 @@ export interface LyricExample {
 // ==================== EXPORT ALL ====================
 
 export type {
-  LanguageConfig,
   MusicalTradition,
   SongStructure,
   LyricContent,
