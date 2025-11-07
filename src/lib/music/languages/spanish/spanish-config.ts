@@ -462,7 +462,7 @@ const spanishMusicalScales: MusicalScale[] = [
   {
     id: 'andalusian-cadence',
     name: 'Andalusian Cadence',
-    type: 'progression',
+    type: 'modal',
     notes: ['Am', 'G', 'F', 'E'],
     mood: 'Quintessentially Spanish/Flamenco',
     culturalContext: 'THE sound of Spain - appears in countless flamenco songs',
