@@ -13,6 +13,7 @@ export type SupportedLanguage =
   | 'tamil'
   | 'malayalam'
   | 'portuguese-eu'
+  | 'brazilian-portuguese'
   | 'italian'
   | 'spanish'
   | 'telugu'
