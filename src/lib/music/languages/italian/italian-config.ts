@@ -422,7 +422,7 @@ const italianMusicalScales: MusicalScale[] = [
   {
     id: 'italian-major',
     name: 'Major Scale (Italian)',
-    type: 'scale',
+    type: 'major',
     notes: ['C', 'D', 'E', 'F', 'G', 'A', 'B'],
     mood: 'Bright, joyful, Italian sun',
     culturalContext: 'Used extensively in Italian opera and popular music',
@@ -433,7 +433,7 @@ const italianMusicalScales: MusicalScale[] = [
   {
     id: 'italian-minor',
     name: 'Natural Minor (Italian)',
-    type: 'scale',
+    type: 'minor',
     notes: ['A', 'B', 'C', 'D', 'E', 'F', 'G'],
     mood: 'Melancholic, emotional, Italian soul',
     culturalContext: 'Used in melancholic Italian songs',
@@ -444,7 +444,7 @@ const italianMusicalScales: MusicalScale[] = [
   {
     id: 'harmonic-minor-italian',
     name: 'Harmonic Minor (Italian usage)',
-    type: 'scale',
+    type: 'minor',
     notes: ['A', 'B', 'C', 'D', 'E', 'F', 'G#'],
     mood: 'Dramatic, operatic, passionate',
     culturalContext: 'Opera and dramatic Italian music',
@@ -455,7 +455,7 @@ const italianMusicalScales: MusicalScale[] = [
   {
     id: 'pentatonic-italian',
     name: 'Pentatonic (Italian folk)',
-    type: 'scale',
+    type: 'pentatonic',
     notes: ['C', 'D', 'E', 'G', 'A'],
     mood: 'Folk, traditional, simple beauty',
     culturalContext: 'Italian regional folk music',
@@ -466,7 +466,7 @@ const italianMusicalScales: MusicalScale[] = [
   {
     id: 'italian-chromatic',
     name: 'Chromatic (Opera)',
-    type: 'scale',
+    type: 'modal',
     notes: ['All 12 semitones'],
     mood: 'Dramatic, operatic, virtuosic',
     culturalContext: 'Italian opera for dramatic effect',
