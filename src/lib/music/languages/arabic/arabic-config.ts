@@ -39,7 +39,7 @@ const arabicMusicalTraditions: MusicalTradition[] = [
   {
     id: 'tarab',
     name: 'Tarab (طرب)',
-    category: 'traditional',
+    category: 'classical',
     description: 'Arabic musical ecstasy - emotional, transcendent',
     characteristics: [
       'Emotional ecstasy (tarab)',
