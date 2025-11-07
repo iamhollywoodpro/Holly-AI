@@ -125,7 +125,7 @@ const spanishMusicalTraditions: MusicalTradition[] = [
   {
     id: 'copla',
     name: 'Copla',
-    category: 'traditional',
+    category: 'folk',
     description: 'Traditional Spanish song style, emotional and theatrical',
     characteristics: [
       'Theatrical delivery',
@@ -418,7 +418,7 @@ const spanishMusicalScales: MusicalScale[] = [
   {
     id: 'phrygian-dominant',
     name: 'Phrygian Dominant (Flamenco Scale)',
-    type: 'mode',
+    type: 'modal',
     notes: ['E', 'F', 'G#', 'A', 'B', 'C', 'D'],
     mood: 'Spanish, exotic, passionate, flamenco',
     culturalContext: 'THE flamenco scale - Andalusian cadence',
@@ -429,7 +429,7 @@ const spanishMusicalScales: MusicalScale[] = [
   {
     id: 'phrygian-mode',
     name: 'Phrygian Mode',
-    type: 'mode',
+    type: 'modal',
     notes: ['E', 'F', 'G', 'A', 'B', 'C', 'D'],
     mood: 'Dark, Spanish, mysterious',
     culturalContext: 'Common in flamenco and Spanish music',
@@ -440,7 +440,7 @@ const spanishMusicalScales: MusicalScale[] = [
   {
     id: 'harmonic-minor-spanish',
     name: 'Harmonic Minor (Spanish usage)',
-    type: 'scale',
+    type: 'minor',
     notes: ['A', 'B', 'C', 'D', 'E', 'F', 'G#'],
     mood: 'Dramatic, passionate, exotic',
     culturalContext: 'Used in flamenco and Spanish classical guitar',
@@ -451,7 +451,7 @@ const spanishMusicalScales: MusicalScale[] = [
   {
     id: 'major-alegrias',
     name: 'Major Scale (Alegrías)',
-    type: 'scale',
+    type: 'major',
     notes: ['C', 'D', 'E', 'F', 'G', 'A', 'B'],
     mood: 'Joyful, bright, celebratory',
     culturalContext: 'Used in Alegrías and festive Spanish music',
