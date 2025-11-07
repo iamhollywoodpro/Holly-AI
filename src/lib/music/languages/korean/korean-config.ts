@@ -91,7 +91,7 @@ const koreanMusicalTraditions: MusicalTradition[] = [
   {
     id: 'trot-classic',
     name: 'Trot (Classic)',
-    category: 'traditional',
+    category: 'folk',
     description: 'Traditional Korean popular music - older generation appeal',
     characteristics: [
       'Traditional Korean pop',
@@ -420,7 +420,7 @@ const koreanMusicalScales: MusicalScale[] = [
   {
     id: 'korean-pentatonic',
     name: 'Korean Pentatonic',
-    type: 'scale',
+    type: 'pentatonic',
     notes: ['C', 'D', 'E', 'G', 'A'],
     mood: 'Traditional Korean, folk',
     culturalContext: 'Traditional Korean music, trot',
@@ -431,7 +431,7 @@ const koreanMusicalScales: MusicalScale[] = [
   {
     id: 'major-kpop',
     name: 'Major Scale (K-Pop)',
-    type: 'scale',
+    type: 'major',
     notes: ['C', 'D', 'E', 'F', 'G', 'A', 'B'],
     mood: 'Bright, pop, energetic',
     culturalContext: 'Modern K-Pop',
@@ -442,7 +442,7 @@ const koreanMusicalScales: MusicalScale[] = [
   {
     id: 'minor-natural-kpop',
     name: 'Natural Minor (K-Pop Ballad)',
-    type: 'scale',
+    type: 'minor',
     notes: ['A', 'B', 'C', 'D', 'E', 'F', 'G'],
     mood: 'Melancholic, emotional',
     culturalContext: 'K-Pop ballads, OST',
@@ -453,7 +453,7 @@ const koreanMusicalScales: MusicalScale[] = [
   {
     id: 'harmonic-minor-dramatic',
     name: 'Harmonic Minor (Dramatic)',
-    type: 'scale',
+    type: 'minor',
     notes: ['A', 'B', 'C', 'D', 'E', 'F', 'G#'],
     mood: 'Dramatic, emotional intensity',
     culturalContext: 'Dramatic K-Pop songs',
@@ -464,7 +464,7 @@ const koreanMusicalScales: MusicalScale[] = [
   {
     id: 'blues-scale-khiphop',
     name: 'Blues Scale (K-Hip Hop)',
-    type: 'scale',
+    type: 'pentatonic',
     notes: ['C', 'Eb', 'F', 'F#', 'G', 'Bb'],
     mood: 'Hip hop, R&B feel',
     culturalContext: 'K-Hip Hop, K-R&B',
