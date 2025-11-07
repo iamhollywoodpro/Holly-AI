@@ -425,7 +425,7 @@ const brazilianPortugueseMusicalScales: MusicalScale[] = [
   {
     id: 'bossa-nova-harmony',
     name: 'Bossa Nova Harmony (Jazz-influenced)',
-    type: 'harmonic system',
+    type: 'modal',
     notes: ['Complex jazz chords', 'Extended harmonies'],
     mood: 'Sophisticated, jazzy, coastal',
     culturalContext: 'Bossa nova\'s signature sophisticated harmony',
@@ -436,7 +436,7 @@ const brazilianPortugueseMusicalScales: MusicalScale[] = [
   {
     id: 'major-brazilian',
     name: 'Major Scale (Brazilian)',
-    type: 'scale',
+    type: 'major',
     notes: ['C', 'D', 'E', 'F', 'G', 'A', 'B'],
     mood: 'Bright, joyful, Brazilian sun',
     culturalContext: 'Used in samba, bossa nova, MPB',
@@ -447,7 +447,7 @@ const brazilianPortugueseMusicalScales: MusicalScale[] = [
   {
     id: 'minor-brazilian',
     name: 'Natural Minor (Brazilian)',
-    type: 'scale',
+    type: 'minor',
     notes: ['A', 'B', 'C', 'D', 'E', 'F', 'G'],
     mood: 'Melancholic, saudade',
     culturalContext: 'Used for melancholic Brazilian songs',
@@ -458,7 +458,7 @@ const brazilianPortugueseMusicalScales: MusicalScale[] = [
   {
     id: 'northeastern-modes',
     name: 'Northeastern Brazilian Modes',
-    type: 'mode',
+    type: 'modal',
     notes: ['Modal scales from Northeastern Brazil'],
     mood: 'Regional, folk, northeastern identity',
     culturalContext: 'Northeastern Brazil (forró, baião)',
@@ -469,7 +469,7 @@ const brazilianPortugueseMusicalScales: MusicalScale[] = [
   {
     id: 'mixolydian-brazilian',
     name: 'Mixolydian (Brazilian usage)',
-    type: 'mode',
+    type: 'modal',
     notes: ['G', 'A', 'B', 'C', 'D', 'E', 'F'],
     mood: 'Bright, folk, Brazilian character',
     culturalContext: 'Common in Brazilian folk and popular music',
