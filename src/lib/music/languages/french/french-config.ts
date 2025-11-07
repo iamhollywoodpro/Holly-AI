@@ -21,7 +21,7 @@ const frenchMusicalTraditions: MusicalTradition[] = [
   {
     id: 'chanson-francaise-classic',
     name: 'Chanson française (Classic)',
-    category: 'traditional',
+    category: 'classical',
     description: 'Classic French chanson - poetic, romantic, sophisticated',
     characteristics: [
       'Poetic lyrics',
@@ -38,7 +38,7 @@ const frenchMusicalTraditions: MusicalTradition[] = [
   {
     id: 'chanson-realiste',
     name: 'Chanson Réaliste',
-    category: 'traditional',
+    category: 'classical',
     description: 'Realistic chanson - working class, emotional, dramatic',
     characteristics: [
       'Working class themes',
@@ -422,7 +422,7 @@ const frenchMusicalScales: MusicalScale[] = [
   {
     id: 'major-french',
     name: 'Major Scale (French)',
-    type: 'scale',
+    type: 'major',
     notes: ['C', 'D', 'E', 'F', 'G', 'A', 'B'],
     mood: 'Bright, joyful, French joie de vivre',
     culturalContext: 'French chanson and pop',
@@ -433,7 +433,7 @@ const frenchMusicalScales: MusicalScale[] = [
   {
     id: 'minor-natural-french',
     name: 'Natural Minor (French)',
-    type: 'scale',
+    type: 'minor',
     notes: ['A', 'B', 'C', 'D', 'E', 'F', 'G'],
     mood: 'Melancholic, romantic',
     culturalContext: 'French chanson, romantic ballads',
@@ -444,7 +444,7 @@ const frenchMusicalScales: MusicalScale[] = [
   {
     id: 'harmonic-minor-french',
     name: 'Harmonic Minor (Dramatic)',
-    type: 'scale',
+    type: 'minor',
     notes: ['A', 'B', 'C', 'D', 'E', 'F', 'G#'],
     mood: 'Dramatic, passionate',
     culturalContext: 'Dramatic French chanson',
@@ -455,7 +455,7 @@ const frenchMusicalScales: MusicalScale[] = [
   {
     id: 'mixolydian-french-rock',
     name: 'Mixolydian (French Rock)',
-    type: 'mode',
+    type: 'modal',
     notes: ['G', 'A', 'B', 'C', 'D', 'E', 'F'],
     mood: 'Rock, rebellious',
     culturalContext: 'French rock music',
@@ -466,7 +466,7 @@ const frenchMusicalScales: MusicalScale[] = [
   {
     id: 'pentatonic-french-pop',
     name: 'Pentatonic (French Pop)',
-    type: 'scale',
+    type: 'pentatonic',
     notes: ['C', 'D', 'E', 'G', 'A'],
     mood: 'Accessible, pop',
     culturalContext: 'Modern French pop',
