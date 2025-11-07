@@ -21,7 +21,7 @@ const germanMusicalTraditions: MusicalTradition[] = [
   {
     id: 'schlager-classic',
     name: 'Schlager (Classic)',
-    category: 'traditional',
+    category: 'modern',
     description: 'Classic German pop - catchy, romantic, mainstream',
     characteristics: [
       'Catchy melodies',
@@ -424,7 +424,7 @@ const germanMusicalScales: MusicalScale[] = [
   {
     id: 'major-german',
     name: 'Major Scale (German)',
-    type: 'scale',
+    type: 'major',
     notes: ['C', 'D', 'E', 'F', 'G', 'A', 'B'],
     mood: 'Bright, optimistic, Schlager',
     culturalContext: 'German Schlager and pop',
@@ -435,7 +435,7 @@ const germanMusicalScales: MusicalScale[] = [
   {
     id: 'minor-natural-german',
     name: 'Natural Minor (German)',
-    type: 'scale',
+    type: 'minor',
     notes: ['A', 'B', 'C', 'D', 'E', 'F', 'G'],
     mood: 'Melancholic, German Weltschmerz',
     culturalContext: 'German ballads, emotional songs',
@@ -446,7 +446,7 @@ const germanMusicalScales: MusicalScale[] = [
   {
     id: 'harmonic-minor-dramatic',
     name: 'Harmonic Minor (Dramatic)',
-    type: 'scale',
+    type: 'minor',
     notes: ['A', 'B', 'C', 'D', 'E', 'F', 'G#'],
     mood: 'Dramatic, powerful',
     culturalContext: 'Dramatic German rock',
@@ -457,7 +457,7 @@ const germanMusicalScales: MusicalScale[] = [
   {
     id: 'chromatic-industrial',
     name: 'Chromatic (Industrial)',
-    type: 'scale',
+    type: 'modal',
     notes: ['All 12 semitones'],
     mood: 'Industrial, experimental',
     culturalContext: 'Industrial and experimental German music',
@@ -468,7 +468,7 @@ const germanMusicalScales: MusicalScale[] = [
   {
     id: 'pentatonic-german-pop',
     name: 'Pentatonic (German Pop)',
-    type: 'scale',
+    type: 'pentatonic',
     notes: ['C', 'D', 'E', 'G', 'A'],
     mood: 'Accessible, pop',
     culturalContext: 'Modern German pop',
