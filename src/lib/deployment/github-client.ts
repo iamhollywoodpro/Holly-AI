@@ -197,7 +197,7 @@ export class GitHubClient {
 
       return repository;
     } catch (error: any) {
-      logger.error('github_create_repo_failed', error, { name });
+      logger.error('github_create_repo_failed', { error, ...{ name } });
       throw new Error(`Failed to create repository: ${error.message}`);
     }
   }
@@ -224,7 +224,7 @@ export class GitHubClient {
         default_branch: data.default_branch,
       };
     } catch (error: any) {
-      logger.error('github_get_repo_failed', error, { owner, repo });
+      logger.error('github_get_repo_failed', { error, ...{ owner, repo } });
       throw new Error(`Failed to get repository: ${error.message}`);
     }
   }
@@ -277,7 +277,7 @@ export class GitHubClient {
 
       logger.info('github_delete_repo_success', { owner, repo });
     } catch (error: any) {
-      logger.error('github_delete_repo_failed', error, { owner, repo });
+      logger.error('github_delete_repo_failed', { error, ...{ owner, repo } });
       throw new Error(`Failed to delete repository: ${error.message}`);
     }
   }
@@ -338,7 +338,7 @@ export class GitHubClient {
 
       return targetPath;
     } catch (error: any) {
-      logger.error('github_clone_failed', error, { owner, repo });
+      logger.error('github_clone_failed', { error, ...{ owner, repo } });
       throw new Error(`Failed to clone repository: ${error.message}`);
     }
   }
@@ -375,7 +375,7 @@ export class GitHubClient {
 
       logger.info('github_pull_success', { owner, repo, branch });
     } catch (error: any) {
-      logger.error('github_pull_failed', error, { owner, repo, branch });
+      logger.error('github_pull_failed', { error, ...{ owner, repo, branch } });
       throw new Error(`Failed to pull changes: ${error.message}`);
     }
   }
@@ -464,7 +464,7 @@ export class GitHubClient {
         protected: branch.protected,
       }));
     } catch (error: any) {
-      logger.error('github_list_branches_failed', error, { owner, repo });
+      logger.error('github_list_branches_failed', { error, ...{ owner, repo } });
       throw new Error(`Failed to list branches: ${error.message}`);
     }
   }
@@ -624,7 +624,7 @@ export class GitHubClient {
         updated_at: pr.updated_at,
       }));
     } catch (error: any) {
-      logger.error('github_list_prs_failed', error, { owner, repo });
+      logger.error('github_list_prs_failed', { error, ...{ owner, repo } });
       throw new Error(`Failed to list pull requests: ${error.message}`);
     }
   }
@@ -654,7 +654,7 @@ export class GitHubClient {
 
       logger.info('github_merge_pr_success', { owner, repo, pullNumber });
     } catch (error: any) {
-      logger.error('github_merge_pr_failed', error, { owner, repo, pullNumber });
+      logger.error('github_merge_pr_failed', { error, ...{ owner, repo, pullNumber } });
       throw new Error(`Failed to merge pull request: ${error.message}`);
     }
   }
@@ -735,7 +735,7 @@ export class GitHubClient {
           updated_at: issue.updated_at,
         }));
     } catch (error: any) {
-      logger.error('github_list_issues_failed', error, { owner, repo });
+      logger.error('github_list_issues_failed', { error, ...{ owner, repo } });
       throw new Error(`Failed to list issues: ${error.message}`);
     }
   }
@@ -836,7 +836,7 @@ export class GitHubClient {
         updated_at: run.updated_at,
       }));
     } catch (error: any) {
-      logger.error('github_list_workflow_runs_failed', error, { owner, repo });
+      logger.error('github_list_workflow_runs_failed', { error, ...{ owner, repo } });
       throw new Error(`Failed to list workflow runs: ${error.message}`);
     }
   }
@@ -903,7 +903,7 @@ export class GitHubClient {
 
       return data;
     } catch (error: any) {
-      logger.error('github_get_contents_failed', error, { owner, repo, path });
+      logger.error('github_get_contents_failed', { error, ...{ owner, repo, path } });
       throw new Error(`Failed to get repository contents: ${error.message}`);
     }
   }
@@ -920,7 +920,7 @@ export class GitHubClient {
       
       logger.info('github_cleanup_success', { owner, repo });
     } catch (error: any) {
-      logger.error('github_cleanup_failed', error, { owner, repo });
+      logger.error('github_cleanup_failed', { error, ...{ owner, repo } });
       throw new Error(`Failed to cleanup local repository: ${error.message}`);
     }
   }
