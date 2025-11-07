@@ -14,6 +14,7 @@ export type SupportedLanguage =
   | 'malayalam'
   | 'portuguese-eu'
   | 'brazilian-portuguese'
+  | 'french'
   | 'italian'
   | 'spanish'
   | 'telugu'
