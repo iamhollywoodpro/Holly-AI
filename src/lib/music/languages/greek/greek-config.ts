@@ -424,7 +424,7 @@ const greekMusicalScales: MusicalScale[] = [
   {
     id: 'greek-minor-harmonic',
     name: 'Greek Minor (Harmonic Minor)',
-    type: 'scale',
+    type: 'minor',
     notes: ['E', 'F#', 'G', 'A', 'B', 'C', 'D#'],
     mood: 'Greek melancholy, rebetiko soul',
     culturalContext: 'THE rebetiko scale - Greek blues',
@@ -435,7 +435,7 @@ const greekMusicalScales: MusicalScale[] = [
   {
     id: 'phrygian-greek',
     name: 'Phrygian Mode (Greek)',
-    type: 'mode',
+    type: 'modal',
     notes: ['E', 'F', 'G', 'A', 'B', 'C', 'D'],
     mood: 'Greek traditional, Byzantine echoes',
     culturalContext: 'Ancient Greek modes, Byzantine chant influence',
@@ -446,7 +446,7 @@ const greekMusicalScales: MusicalScale[] = [
   {
     id: 'double-harmonic-greek',
     name: 'Double Harmonic Major (Greek/Turkish)',
-    type: 'scale',
+    type: 'major',
     notes: ['C', 'Db', 'E', 'F', 'G', 'Ab', 'B'],
     mood: 'Exotic, Eastern Mediterranean',
     culturalContext: 'Greek-Turkish cultural exchange, rebetiko',
