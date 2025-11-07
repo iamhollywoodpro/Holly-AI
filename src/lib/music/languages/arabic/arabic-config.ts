@@ -215,7 +215,7 @@ const arabicPoeticDevices: PoeticDevice[] = [
 
   {
     name: 'Maqam System (مقام)',
-    type: 'musical',
+    type: 'structure',
     description: 'Arabic modal system - not just scales, but melodic frameworks',
     examples: [
       'Maqam Bayati (بياتي)',
