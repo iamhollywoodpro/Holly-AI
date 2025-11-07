@@ -21,7 +21,7 @@ const brazilianPortugueseMusicalTraditions: MusicalTradition[] = [
   {
     id: 'bossa-nova-classic',
     name: 'Bossa Nova (Classic)',
-    category: 'traditional',
+    category: 'folk',
     description: 'Classic Brazilian bossa nova - sophisticated, jazzy, coastal',
     characteristics: [
       'Sophisticated harmony',
@@ -73,7 +73,7 @@ const brazilianPortugueseMusicalTraditions: MusicalTradition[] = [
   {
     id: 'samba-canção',
     name: 'Samba-Canção',
-    category: 'traditional',
+    category: 'folk',
     description: 'Slow, romantic samba - melancholic and lyrical',
     characteristics: [
       'Slow tempo',
