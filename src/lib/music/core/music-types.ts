@@ -346,26 +346,4 @@ export interface LyricExample {
 
 // ==================== EXPORT ALL ====================
 
-export type {
-  MusicalTradition,
-  SongStructure,
-  LyricContent,
-  PoeticDevice,
-  RhymeScheme,
-  MusicalScale,
-  RhythmPattern,
-  SingingStyle,
-  CulturalContext,
-  AuthenticityCheck,
-  AuthenticityReport,
-  LyricGenerationParams,
-  LyricGenerationResult,
-  SunoGenerationParams,
-  SunoTrack,
-  SunoGenerationResult,
-  MusicGenerationRequest,
-  MusicGenerationResponse,
-  MusicGeneratorUIState,
-  LyricExample,
-  LyricLine,
-};
+// All types above are already exported individually
