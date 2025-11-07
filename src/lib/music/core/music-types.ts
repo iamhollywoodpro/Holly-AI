@@ -19,7 +19,8 @@ export type SupportedLanguage =
   | 'kannada'
   | 'marathi'
   | 'bengali'
-  | 'punjabi';
+  | 'punjabi'
+  | 'arabic';
 
 export type LanguageTier = 'tier1' | 'tier2' | 'tier3';
 
