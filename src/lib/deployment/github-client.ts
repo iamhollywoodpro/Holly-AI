@@ -436,7 +436,8 @@ export class GitHubClient {
         message: commitInfo.message,
       });
     } catch (error: any) {
-      logger.error('github_commit_push_failed', error, {
+      logger.error('github_commit_push_failed', {
+        error,
         repo: commitInfo.repo,
         branch: commitInfo.branch,
       });
@@ -513,7 +514,8 @@ export class GitHubClient {
         sha: newRef.object.sha,
       };
     } catch (error: any) {
-      logger.error('github_create_branch_failed', error, {
+      logger.error('github_create_branch_failed', {
+        error,
         owner,
         repo,
         branchName,
@@ -537,7 +539,8 @@ export class GitHubClient {
 
       logger.info('github_delete_branch_success', { owner, repo, branchName });
     } catch (error: any) {
-      logger.error('github_delete_branch_failed', error, {
+      logger.error('github_delete_branch_failed', {
+        error,
         owner,
         repo,
         branchName,
@@ -588,7 +591,8 @@ export class GitHubClient {
         title: pr.title,
       };
     } catch (error: any) {
-      logger.error('github_create_pr_failed', error, {
+      logger.error('github_create_pr_failed', {
+        error,
         repo: prInfo.repo,
         title: prInfo.title,
       });
@@ -698,7 +702,8 @@ export class GitHubClient {
         title: issue.title,
       };
     } catch (error: any) {
-      logger.error('github_create_issue_failed', error, {
+      logger.error('github_create_issue_failed', {
+        error,
         repo: issueInfo.repo,
         title: issueInfo.title,
       });
@@ -756,7 +761,8 @@ export class GitHubClient {
 
       logger.info('github_close_issue_success', { owner, repo, issueNumber });
     } catch (error: any) {
-      logger.error('github_close_issue_failed', error, {
+      logger.error('github_close_issue_failed', {
+        error,
         owner,
         repo,
         issueNumber,
@@ -801,7 +807,8 @@ export class GitHubClient {
         workflowId,
       });
     } catch (error: any) {
-      logger.error('github_trigger_workflow_failed', error, {
+      logger.error('github_trigger_workflow_failed', {
+        error,
         owner,
         repo,
         workflowId,
@@ -875,7 +882,8 @@ export class GitHubClient {
         username,
       });
     } catch (error: any) {
-      logger.error('github_add_collaborator_failed', error, {
+      logger.error('github_add_collaborator_failed', {
+        error,
         owner,
         repo,
         username,
