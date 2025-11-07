@@ -171,7 +171,8 @@ export class WHCDeployClient {
 
       return client;
     } catch (error: any) {
-      logger.error('whc_ftp_connect_failed', error, {
+      logger.error('whc_ftp_connect_failed', {
+        error,
         host: this.config.ftp.host,
       });
       throw new Error(`Failed to connect to FTP: ${error.message}`);
@@ -237,7 +238,8 @@ export class WHCDeployClient {
 
       return connection;
     } catch (error: any) {
-      logger.error('whc_mysql_connect_failed', error, {
+      logger.error('whc_mysql_connect_failed', {
+        error,
         host: this.config.mysql.host,
         database: this.config.mysql.database,
       });
@@ -295,7 +297,8 @@ export class WHCDeployClient {
         remotePath,
       });
     } catch (error: any) {
-      logger.error('whc_upload_file_failed', error, {
+      logger.error('whc_upload_file_failed', {
+        error,
         localPath,
         remotePath,
       });
@@ -353,7 +356,8 @@ export class WHCDeployClient {
 
       return { filesUploaded, bytesUploaded };
     } catch (error: any) {
-      logger.error('whc_upload_directory_failed', error, {
+      logger.error('whc_upload_directory_failed', {
+        error,
         localDir,
         remoteDir,
       });
@@ -382,7 +386,8 @@ export class WHCDeployClient {
         localPath,
       });
     } catch (error: any) {
-      logger.error('whc_download_file_failed', error, {
+      logger.error('whc_download_file_failed', {
+        error,
         remotePath,
         localPath,
       });
@@ -405,7 +410,8 @@ export class WHCDeployClient {
         modifiedTime: item.modifiedAt || new Date(),
       }));
     } catch (error: any) {
-      logger.error('whc_list_files_failed', error, { remotePath });
+      logger.error('whc_list_files_failed', {
+        error, remotePath });
       throw new Error(`Failed to list files: ${error.message}`);
     }
   }
@@ -429,7 +435,8 @@ export class WHCDeployClient {
 
       logger.info('whc_delete_success', { remotePath });
     } catch (error: any) {
-      logger.error('whc_delete_failed', error, { remotePath });
+      logger.error('whc_delete_failed', {
+        error, remotePath });
       throw new Error(`Failed to delete: ${error.message}`);
     }
   }
@@ -521,7 +528,8 @@ export class WHCDeployClient {
 
       return result;
     } catch (error: any) {
-      logger.error('whc_deploy_failed', error, {
+      logger.error('whc_deploy_failed', {
+        error,
         source: options.source,
       });
 
@@ -566,7 +574,8 @@ export class WHCDeployClient {
 
       return backupId;
     } catch (error: any) {
-      logger.error('whc_backup_failed', error, { remotePath });
+      logger.error('whc_backup_failed', {
+        error, remotePath });
       throw new Error(`Failed to create backup: ${error.message}`);
     }
   }
@@ -588,7 +597,8 @@ export class WHCDeployClient {
 
       logger.info('whc_restore_success', { backupId });
     } catch (error: any) {
-      logger.error('whc_restore_failed', error, { backupId });
+      logger.error('whc_restore_failed', {
+        error, backupId });
       throw new Error(`Failed to restore backup: ${error.message}`);
     }
   }
@@ -633,7 +643,8 @@ export class WHCDeployClient {
 
       logger.info('whc_set_env_success', { remotePath });
     } catch (error: any) {
-      logger.error('whc_set_env_failed', error, { remotePath });
+      logger.error('whc_set_env_failed', {
+        error, remotePath });
       throw new Error(`Failed to set environment variables: ${error.message}`);
     }
   }
@@ -651,7 +662,8 @@ export class WHCDeployClient {
       const [results] = await connection.execute(sql);
       return results;
     } catch (error: any) {
-      logger.error('whc_sql_execute_failed', error, { sql: sql.slice(0, 100) });
+      logger.error('whc_sql_execute_failed', {
+        error, sql: sql.slice(0, 100) });
       throw new Error(`SQL execution failed: ${error.message}`);
     }
   }
