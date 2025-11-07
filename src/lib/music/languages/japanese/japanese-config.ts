@@ -56,7 +56,7 @@ const japaneseMusicalTraditions: MusicalTradition[] = [
   {
     id: 'enka-traditional',
     name: 'Enka (Traditional)',
-    category: 'traditional',
+    category: 'folk',
     description: 'Traditional Japanese popular music - soul and nostalgia',
     characteristics: [
       'Traditional Japanese soul',
@@ -73,7 +73,7 @@ const japaneseMusicalTraditions: MusicalTradition[] = [
   {
     id: 'enka-modern',
     name: 'Enka (Modern)',
-    category: 'traditional',
+    category: 'folk',
     description: 'Modern enka with contemporary production',
     characteristics: [
       'Traditional enka roots',
@@ -418,7 +418,7 @@ const japaneseMusicalScales: MusicalScale[] = [
   {
     id: 'pentatonic-japanese',
     name: 'Japanese Pentatonic (Yo Scale)',
-    type: 'scale',
+    type: 'pentatonic',
     notes: ['C', 'D', 'E', 'G', 'A'],
     mood: 'Traditional Japanese, peaceful',
     culturalContext: 'Traditional Japanese music, enka',
@@ -429,7 +429,7 @@ const japaneseMusicalScales: MusicalScale[] = [
   {
     id: 'in-scale',
     name: 'In Scale (Japanese Minor Pentatonic)',
-    type: 'scale',
+    type: 'pentatonic',
     notes: ['C', 'D', 'Eb', 'G', 'Ab'],
     mood: 'Melancholic, traditional Japanese',
     culturalContext: 'Traditional Japanese music',
@@ -440,7 +440,7 @@ const japaneseMusicalScales: MusicalScale[] = [
   {
     id: 'hirajoshi',
     name: 'Hirajoshi Scale',
-    type: 'scale',
+    type: 'pentatonic',
     notes: ['C', 'Db', 'E', 'F', 'Ab'],
     mood: 'Japanese traditional, exotic',
     culturalContext: 'Traditional Japanese music',
@@ -451,7 +451,7 @@ const japaneseMusicalScales: MusicalScale[] = [
   {
     id: 'major-western-jpop',
     name: 'Major Scale (J-Pop)',
-    type: 'scale',
+    type: 'major',
     notes: ['C', 'D', 'E', 'F', 'G', 'A', 'B'],
     mood: 'Bright, pop, universal',
     culturalContext: 'Modern J-Pop influenced by Western pop',
@@ -462,7 +462,7 @@ const japaneseMusicalScales: MusicalScale[] = [
   {
     id: 'minor-natural-jpop',
     name: 'Natural Minor (J-Pop Ballad)',
-    type: 'scale',
+    type: 'minor',
     notes: ['A', 'B', 'C', 'D', 'E', 'F', 'G'],
     mood: 'Melancholic, emotional',
     culturalContext: 'J-Pop ballads, emotional songs',
