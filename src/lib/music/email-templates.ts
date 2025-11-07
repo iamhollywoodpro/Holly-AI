@@ -213,7 +213,7 @@ ${metadata?.artistName} Team`;
       ...metadata,
       followUp: true,
       daysSince,
-    },
+    } as any,
   };
 }
 
