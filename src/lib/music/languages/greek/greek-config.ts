@@ -468,7 +468,7 @@ const greekMusicalScales: MusicalScale[] = [
   {
     id: 'byzantine-modes',
     name: 'Byzantine Modes (Echoi)',
-    type: 'modal system',
+    type: 'modal',
     notes: ['Eight Byzantine modes'],
     mood: 'Sacred, ancient Greek, spiritual',
     culturalContext: 'Greek Orthodox Church music',
