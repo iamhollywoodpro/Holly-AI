@@ -271,7 +271,7 @@ class VoiceInterface {
     }
 
     const formData = new FormData();
-    formData.append('file', new Blob([audioBuffer]), 'audio.mp3');
+    formData.append('file', new Blob([new Uint8Array(audioBuffer)]), 'audio.mp3');
     formData.append('model', 'whisper-1');
     formData.append('language', 'en');
 
