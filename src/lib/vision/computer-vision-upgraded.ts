@@ -108,6 +108,7 @@ class ComputerVision {
       const processingTime = Date.now() - startTime;
 
       return {
+        description: parsedResult.description || analysisText,
         ...parsedResult,
         metadata: {
           provider: 'Google Gemini 2.0 Flash',
@@ -115,7 +116,7 @@ class ComputerVision {
           processingTime,
           cost: 0, // FREE! ✅
         },
-      };
+      } as VisionResult;
     } catch (error) {
       console.error('[Vision] Gemini analysis failed:', error);
       throw error;
