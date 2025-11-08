@@ -10,7 +10,7 @@ import type { GenerateSongRequest, GenerateSongResponse } from '@/types/music';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_KEY!
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
 const SUNO_API_KEY = process.env.SUNO_API_KEY || 'c3367b96713745a2de3b1f8e1dde4787';
