@@ -5,7 +5,7 @@
 // Makes awareness feel natural, not mechanical
 
 import { DepthControlSystem, getDepthControl } from './depth-control-system';
-import { logger } from '../logging/logger';
+import { logger } from '../logging';
 
 interface AwarenessState {
   mode: 'creative' | 'functional';
