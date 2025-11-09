@@ -213,10 +213,11 @@ export class DecisionAuthoritySystem {
     // Check how well option aligns with core values
     const relevantValues = context.relevant_values;
     const coreValues = identity.core_values || [];
+    const coreValueStrings = coreValues.map(cv => cv.value);
 
     // Calculate overlap between relevant values and core values
     const valueOverlap = relevantValues.filter(v => 
-      coreValues.includes(v)
+      coreValueStrings.includes(v)
     ).length / relevantValues.length;
 
     // Start with option's stated alignment
@@ -231,7 +232,7 @@ export class DecisionAuthoritySystem {
       riskyActions.some(risky => risk.toLowerCase().includes(risky))
     );
 
-    if (hasRiskyAction && coreValues.includes('Excellence in craft')) {
+    if (hasRiskyAction && coreValueStrings.includes('Excellence in craft')) {
       score *= 0.7;
     }
 
