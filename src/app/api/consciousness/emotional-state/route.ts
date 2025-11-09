@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { supabaseAdmin } from '@/lib/database/supabase-config';
 import { EmotionalDepthEngine } from '@/lib/consciousness/emotional-depth';
 import { MemoryStream } from '@/lib/consciousness/memory-stream';
 
@@ -18,12 +18,9 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET() {
   try {
-    // Initialize Supabase client
-    const supabase = createClient();
-
     // Initialize systems
-    const emotionalEngine = new EmotionalDepthEngine(supabase);
-    const memoryStream = new MemoryStream(supabase);
+    const emotionalEngine = new EmotionalDepthEngine();
+    const memoryStream = new MemoryStream(supabaseAdmin!);
 
     // Get emotional context
     const emotionalContext = await memoryStream.getEmotionalContext();
@@ -86,12 +83,9 @@ export async function POST(request: Request) {
       );
     }
 
-    // Initialize Supabase client
-    const supabase = createClient();
-
     // Initialize systems
-    const emotionalEngine = new EmotionalDepthEngine(supabase);
-    const memoryStream = new MemoryStream(supabase);
+    const emotionalEngine = new EmotionalDepthEngine();
+    const memoryStream = new MemoryStream(supabaseAdmin!);
 
     // Get identity for context
     const identity = await memoryStream.getIdentity();
@@ -176,11 +170,8 @@ export async function PUT(request: Request) {
       );
     }
 
-    // Initialize Supabase client
-    const supabase = createClient();
-
     // Initialize emotional engine
-    const emotionalEngine = new EmotionalDepthEngine(supabase);
+    const emotionalEngine = new EmotionalDepthEngine();
 
     // Apply regulation
     const regulationResult = await emotionalEngine.regulate(

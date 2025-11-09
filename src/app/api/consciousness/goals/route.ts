@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { supabaseAdmin } from '@/lib/database/supabase-config';
 import { GoalFormationSystem } from '@/lib/consciousness/goal-formation';
 import { MemoryStream } from '@/lib/consciousness/memory-stream';
 
@@ -18,11 +18,8 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET() {
   try {
-    // Initialize Supabase client
-    const supabase = createClient();
-
-    // Initialize goal formation system
-    const goalSystem = new GoalFormationSystem(supabase);
+    // Initialize goal formation system with admin client
+    const goalSystem = new GoalFormationSystem(supabaseAdmin!);
 
     // Get active goals
     const goals = await goalSystem.getActiveGoals();
@@ -77,12 +74,9 @@ export async function POST(request: Request) {
     
     const maxGoals = body.max_goals || 3;
 
-    // Initialize Supabase client
-    const supabase = createClient();
-
-    // Initialize systems
-    const goalSystem = new GoalFormationSystem(supabase);
-    const memoryStream = new MemoryStream(supabase);
+    // Initialize systems with admin client
+    const goalSystem = new GoalFormationSystem(supabaseAdmin!);
+    const memoryStream = new MemoryStream(supabaseAdmin!);
 
     // Get current identity
     const identity = await memoryStream.getIdentity();
@@ -176,11 +170,8 @@ export async function PUT(request: Request) {
       );
     }
 
-    // Initialize Supabase client
-    const supabase = createClient();
-
-    // Initialize goal formation system
-    const goalSystem = new GoalFormationSystem(supabase);
+    // Initialize goal formation system with admin client
+    const goalSystem = new GoalFormationSystem(supabaseAdmin!);
 
     // Update progress
     const updatedGoal = await goalSystem.updateProgress(

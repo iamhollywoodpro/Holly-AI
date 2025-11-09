@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { supabaseAdmin } from '@/lib/database/supabase-config';
 import { MemoryStream } from '@/lib/consciousness/memory-stream';
 
 export const runtime = 'nodejs';
@@ -40,11 +40,8 @@ export async function POST(request: Request) {
       );
     }
 
-    // Initialize Supabase client
-    const supabase = createClient();
-
-    // Initialize memory stream
-    const memoryStream = new MemoryStream(supabase);
+    // Initialize memory stream with admin client
+    const memoryStream = new MemoryStream(supabaseAdmin!);
 
     // Perform reflection
     const reflectionResult = await memoryStream.reflect(depth, timeRangeHours);

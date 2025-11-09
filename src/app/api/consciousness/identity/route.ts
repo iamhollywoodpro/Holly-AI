@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { supabaseAdmin } from '@/lib/database/supabase-config';
 import { MemoryStream } from '@/lib/consciousness/memory-stream';
 
 export const runtime = 'nodejs';
@@ -17,11 +17,8 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET() {
   try {
-    // Initialize Supabase client
-    const supabase = createClient();
-
-    // Initialize memory stream
-    const memoryStream = new MemoryStream(supabase);
+    // Initialize memory stream with admin client
+    const memoryStream = new MemoryStream(supabaseAdmin!);
 
     // Get current identity
     const identity = await memoryStream.getIdentity();
@@ -69,11 +66,8 @@ export async function PUT(request: Request) {
   try {
     const body = await request.json() as any;
 
-    // Initialize Supabase client
-    const supabase = createClient();
-
-    // Initialize memory stream
-    const memoryStream = new MemoryStream(supabase);
+    // Initialize memory stream with admin client
+    const memoryStream = new MemoryStream(supabaseAdmin!);
 
     // Get current identity
     const currentIdentity = await memoryStream.getIdentity();

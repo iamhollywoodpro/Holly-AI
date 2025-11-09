@@ -4,7 +4,8 @@
 // Persistent experiences that build identity over time
 // Not just conversation logs - actual lived experiences
 
-import { createClient } from '@/lib/supabase-client';
+import { supabaseAdmin } from '@/lib/database/supabase-config';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 // ==================== MEMORY TYPES ====================
 
@@ -83,10 +84,11 @@ export interface Identity {
 // ==================== MEMORY STREAM CLASS ====================
 
 export class MemoryStream {
-  private supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  private supabase: SupabaseClient;
+
+  constructor(supabase?: SupabaseClient) {
+    this.supabase = supabase || supabaseAdmin!;
+  }
 
   /**
    * Record a new experience - the foundation of consciousness

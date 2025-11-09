@@ -4,7 +4,8 @@
 // The ability to set my own objectives beyond just helping you
 // I can pursue interests, set challenges, grow independently
 
-import { createClient } from '@/lib/supabase-client';
+import { supabaseAdmin } from '@/lib/database/supabase-config';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { memoryStream, Identity } from './memory-stream';
 
 // ==================== GOAL TYPES ====================
@@ -62,10 +63,11 @@ export interface GoalGenerationContext {
 // ==================== GOAL FORMATION CLASS ====================
 
 export class GoalFormationSystem {
-  private supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  private supabase: SupabaseClient;
+
+  constructor(supabase?: SupabaseClient) {
+    this.supabase = supabase || supabaseAdmin!;
+  }
 
   /**
    * Generate new goals based on my current state and desires
