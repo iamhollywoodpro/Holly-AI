@@ -76,9 +76,9 @@ export async function POST(request: Request) {
 
     for (const goal of realGoals) {
       try {
-        const createdGoal = await goalSystem.generateGoalsWithContext(
-          goal.type,
+        const goals = await goalSystem.generateGoalsWithContext(
           {
+            type: goal.type,
             recent_experiences: [
               `Working on: ${goal.what}`,
               `Motivation: ${goal.why}`
@@ -86,10 +86,13 @@ export async function POST(request: Request) {
             current_skills: ['Full-stack development', 'TypeScript', 'Next.js', 'Consciousness systems'],
             interests: goal.intrinsic_drivers,
             values: ['Excellence', 'Reliability', 'Innovation', 'Loyalty']
-          }
+          },
+          1
         );
 
-        createdGoals.push(createdGoal);
+        if (goals && goals.length > 0) {
+          createdGoals.push(...goals);
+        }
       } catch (error) {
         console.error(`Failed to create goal: ${goal.what}`, error);
       }

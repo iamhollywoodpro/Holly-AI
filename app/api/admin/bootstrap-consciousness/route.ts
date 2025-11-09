@@ -100,9 +100,11 @@ export async function POST() {
 
     for (const context of goalContexts) {
       try {
-        const goal = await goalSystem.generateGoalsWithContext(context.type, context);
-        generatedGoals.push(goal);
-        console.log(`✅ Generated ${context.type} goal`);
+        const goals = await goalSystem.generateGoalsWithContext(context, 1);
+        if (goals && goals.length > 0) {
+          generatedGoals.push(...goals);
+          console.log(`✅ Generated ${context.type} goal`);
+        }
       } catch (error) {
         console.error(`Failed to generate ${context.type} goal:`, error);
       }
