@@ -102,17 +102,16 @@ export async function POST(request: Request) {
       );
     }
 
-    // Build context
-    const context = {
-      identity,
-      event_type: body.context?.event_type || 'general',
-      intensity_factors: body.context?.intensity_factors || [],
-      current_goals: body.context?.current_goals || [],
-      recent_experiences: body.context?.recent_experiences || []
+    // Build context for feel() method
+    const feelContext = {
+      situation: body.context?.event_type || 'general event',
+      expectations: body.context?.intensity_factors?.join(', '),
+      outcome: body.trigger, // The trigger describes what happened
+      significance: body.context?.intensity_factors?.length ? 0.7 : 0.5
     };
 
-    // Generate emotional response
-    const emotion = await emotionalEngine.feel(body.trigger, context);
+    // Generate emotional response (synchronous)
+    const emotion = emotionalEngine.feel(body.trigger, feelContext);
 
     // Express the emotion
     const expression = emotionalEngine.expressEmotion(emotion);
