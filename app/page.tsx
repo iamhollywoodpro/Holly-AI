@@ -13,6 +13,8 @@ import { useAuth } from '@/contexts/auth-context';
 import { getVoiceInput, getVoiceOutput, isSpeechRecognitionAvailable, isSpeechSynthesisAvailable } from '@/lib/voice/voice-handler';
 import { useConsciousnessState } from '@/hooks/useConsciousnessState';
 import UserProfileDropdown from '@/components/ui/UserProfileDropdown';
+import FileUploadPreview from '@/components/chat/FileUploadPreview';
+import TypingIndicator from '@/components/chat/TypingIndicator';
 
 interface Message {
   id: string;
@@ -37,6 +39,8 @@ export default function ChatPage() {
   const [showMemory, setShowMemory] = useState(false);
   const [isVoiceInputActive, setIsVoiceInputActive] = useState(false);
   const [isVoiceOutputActive, setIsVoiceOutputActive] = useState(false);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [showFilePreview, setShowFilePreview] = useState(false);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   const [isLoadingConversation, setIsLoadingConversation] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -254,7 +258,33 @@ export default function ChatPage() {
     }
   };
 
-  const handleFileUpload = async (files: File[]) => {
+  // Show file preview before uploading
+  const handleFilesSelected = (files: File[]) => {
+    if (!files || files.length === 0) return;
+    setPendingFiles(Array.from(files));
+    setShowFilePreview(true);
+  };
+
+  // Remove file from preview
+  const handleRemoveFile = (index: number) => {
+    setPendingFiles(prev => prev.filter((_, i) => i !== index));
+    if (pendingFiles.length <= 1) {
+      setShowFilePreview(false);
+    }
+  };
+
+  // Cancel upload
+  const handleCancelUpload = () => {
+    setPendingFiles([]);
+    setShowFilePreview(false);
+  };
+
+  // Confirm and upload files
+  const handleConfirmUpload = async () => {
+    setShowFilePreview(false);
+    const files = pendingFiles;
+    setPendingFiles([]);
+    
     if (!files || files.length === 0) return;
 
     try {
@@ -498,15 +528,29 @@ export default function ChatPage() {
               </div>
             ) : (
               messages.map((message, index) => (
-                <MessageBubble
-                  key={message.id}
-                  message={message}
-                  index={index}
-                />
+                message.thinking ? (
+                  <TypingIndicator key={message.id} status="thinking" />
+                ) : (
+                  <MessageBubble
+                    key={message.id}
+                    message={message}
+                    index={index}
+                  />
+                )
               ))
             )}
             <div ref={messagesEndRef} />
           </div>
+
+          {/* File Upload Preview - Floating */}
+          {showFilePreview && (
+            <FileUploadPreview
+              files={pendingFiles}
+              onRemove={handleRemoveFile}
+              onConfirm={handleConfirmUpload}
+              onCancel={handleCancelUpload}
+            />
+          )}
 
           {/* Input Area with New Controls - MOBILE OPTIMIZED */}
           <motion.div 
@@ -518,7 +562,7 @@ export default function ChatPage() {
             <div className="max-w-4xl mx-auto w-full">
               <ChatInputControls
                 onSend={handleSend}
-                onFileUpload={handleFileUpload}
+                onFileUpload={handleFilesSelected}
                 onVoiceInput={handleVoiceInput}
                 disabled={isTyping || isLoadingConversation}
                 isVoiceActive={isVoiceInputActive}
