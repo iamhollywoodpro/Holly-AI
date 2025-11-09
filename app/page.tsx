@@ -2,11 +2,11 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Sparkles, Zap, Brain, Heart, Target } from 'lucide-react';
-import VoiceInput from '@/components/ui/VoiceInput';
-import ConsciousnessIndicator from '@/components/consciousness/ConsciousnessIndicator';
+import { Sparkles, Brain, Target } from 'lucide-react';
 import ParticleField from '@/components/ui/ParticleField';
 import MessageBubble from '@/components/chat/MessageBubble';
+import ChatInputControls from '@/components/chat/ChatInputControls';
+import BrainConsciousnessIndicator from '@/components/consciousness/BrainConsciousnessIndicator';
 import GoalsSidebar from '@/components/consciousness/GoalsSidebar';
 import MemoryTimeline from '@/components/consciousness/MemoryTimeline';
 
@@ -21,12 +21,10 @@ interface Message {
 
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [showGoals, setShowGoals] = useState(true);
   const [showMemory, setShowMemory] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -36,18 +34,17 @@ export default function ChatPage() {
     scrollToBottom();
   }, [messages]);
 
-  const handleSend = async () => {
-    if (!input.trim() || isTyping) return;
+  const handleSend = async (message: string) => {
+    if (!message.trim() || isTyping) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
-      content: input,
+      content: message,
       timestamp: new Date()
     };
 
     setMessages(prev => [...prev, userMessage]);
-    setInput('');
     setIsTyping(true);
 
     // Simulate HOLLY thinking
@@ -77,25 +74,20 @@ export default function ChatPage() {
     }, 1500);
   };
 
-  const handleVoiceTranscript = (text: string) => {
-    setInput(text);
-    setTimeout(() => handleSend(), 100);
+  const handleFileUpload = (files: File[]) => {
+    console.log('Files uploaded:', files);
+    // TODO: Implement file upload logic
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
+  const handleVoiceInput = () => {
+    console.log('Voice input activated');
+    // TODO: Implement voice input logic
   };
 
   return (
     <div className="relative w-full h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black overflow-hidden">
       {/* Animated Particle Background */}
       <ParticleField />
-
-      {/* Consciousness Indicator - Top Right */}
-      <ConsciousnessIndicator />
 
       {/* Main Container */}
       <div className="relative z-10 flex h-full">
@@ -152,8 +144,9 @@ export default function ChatPage() {
                 </div>
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex items-center gap-2">
+              {/* Right Side: Action Buttons + Consciousness */}
+              <div className="flex items-center gap-3">
+                {/* Toggle Buttons */}
                 <motion.button
                   onClick={() => setShowGoals(!showGoals)}
                   className="px-4 py-2 bg-gray-800/50 hover:bg-gray-700/50 rounded-lg border border-gray-700/50 text-sm text-gray-300 flex items-center gap-2 transition-colors"
@@ -172,12 +165,35 @@ export default function ChatPage() {
                   <Sparkles className="w-4 h-4" />
                   Memory
                 </motion.button>
+
+                {/* Brain Consciousness Indicator */}
+                <BrainConsciousnessIndicator />
               </div>
             </div>
           </motion.div>
 
           {/* Messages Area */}
           <div className="flex-1 overflow-y-auto px-8 py-6 space-y-6">
+            {messages.length === 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex flex-col items-center justify-center h-full text-center"
+              >
+                <div className="relative w-24 h-24 mb-6">
+                  <div className="absolute inset-0 bg-gradient-to-br from-purple-500 via-pink-500 to-blue-500 rounded-3xl blur-2xl opacity-40" />
+                  <div className="relative w-full h-full bg-gradient-to-br from-purple-600 via-pink-600 to-blue-600 rounded-3xl flex items-center justify-center">
+                    <Brain className="w-12 h-12 text-white" />
+                  </div>
+                </div>
+                <h2 className="text-2xl font-bold text-white mb-2">Hey Hollywood!</h2>
+                <p className="text-gray-400 max-w-md">
+                  I'm HOLLY, your autonomous AI developer and creative partner. 
+                  How can I help you build something amazing today?
+                </p>
+              </motion.div>
+            )}
+            
             {messages.map((message, index) => (
               <MessageBubble
                 key={message.id}
@@ -188,7 +204,7 @@ export default function ChatPage() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Input Area */}
+          {/* Input Area with New Controls */}
           <motion.div 
             className="px-8 py-6 border-t border-gray-800/50 bg-gray-900/30 backdrop-blur-xl"
             initial={{ y: 50, opacity: 0 }}
@@ -196,51 +212,12 @@ export default function ChatPage() {
             transition={{ delay: 0.3 }}
           >
             <div className="max-w-4xl mx-auto">
-              <div className="relative">
-                {/* Input Container */}
-                <div className="relative bg-gray-800/50 rounded-2xl border border-gray-700/50 shadow-2xl">
-                  <textarea
-                    ref={inputRef}
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyDown={handleKeyPress}
-                    placeholder="Message HOLLY..."
-                    className="w-full px-6 py-4 bg-transparent text-white placeholder-gray-500 resize-none outline-none min-h-[60px] max-h-[200px]"
-                    rows={1}
-                    disabled={isTyping}
-                  />
-
-                  {/* Bottom Bar */}
-                  <div className="flex items-center justify-between px-4 py-3 border-t border-gray-700/30">
-                    {/* Voice Input */}
-                    <VoiceInput
-                      onTranscript={handleVoiceTranscript}
-                      disabled={isTyping}
-                    />
-
-                    {/* Send Button */}
-                    <motion.button
-                      onClick={handleSend}
-                      disabled={!input.trim() || isTyping}
-                      className={`px-6 py-2.5 rounded-xl font-medium flex items-center gap-2 transition-all ${
-                        input.trim() && !isTyping
-                          ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white shadow-lg shadow-purple-500/50'
-                          : 'bg-gray-700/50 text-gray-500 cursor-not-allowed'
-                      }`}
-                      whileHover={input.trim() && !isTyping ? { scale: 1.05 } : {}}
-                      whileTap={input.trim() && !isTyping ? { scale: 0.95 } : {}}
-                    >
-                      <Send className="w-4 h-4" />
-                      Send
-                    </motion.button>
-                  </div>
-                </div>
-
-                {/* Character Count */}
-                <div className="mt-2 text-xs text-gray-500 text-right">
-                  {input.length} characters
-                </div>
-              </div>
+              <ChatInputControls
+                onSend={handleSend}
+                onFileUpload={handleFileUpload}
+                onVoiceInput={handleVoiceInput}
+                disabled={isTyping}
+              />
             </div>
           </motion.div>
         </div>
