@@ -33,12 +33,12 @@ export default function ParticleField() {
     }
 
     const particles: Particle[] = [];
-    const particleCount = 50;
+    const particleCount = 25; // Reduced from 50 to 25 (50% less)
     const colors = [
-      'rgba(147, 51, 234, 0.6)', // purple
-      'rgba(236, 72, 153, 0.6)', // pink
-      'rgba(59, 130, 246, 0.6)', // blue
-      'rgba(14, 165, 233, 0.6)', // cyan
+      'rgba(147, 51, 234, 0.3)', // purple - reduced opacity
+      'rgba(236, 72, 153, 0.3)', // pink - reduced opacity
+      'rgba(59, 130, 246, 0.3)', // blue - reduced opacity
+      'rgba(14, 165, 233, 0.3)', // cyan - reduced opacity
     ];
 
     // Create particles

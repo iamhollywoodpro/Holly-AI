@@ -31,6 +31,7 @@ export default function BrainConsciousnessIndicator({
   state 
 }: BrainConsciousnessIndicatorProps) {
   const [showModal, setShowModal] = useState(false);
+  const [showTooltip, setShowTooltip] = useState(false);
   const [currentState, setCurrentState] = useState<ConsciousnessState>({
     emotion: 'curious',
     intensity: 0.7,
@@ -54,10 +55,12 @@ export default function BrainConsciousnessIndicator({
       {/* Brain Logo with Consciousness Glow */}
       <motion.button
         onClick={() => setShowModal(true)}
-        className="relative w-12 h-12 cursor-pointer"
-        whileHover={{ scale: 1.1 }}
+        onMouseEnter={() => setShowTooltip(true)}
+        onMouseLeave={() => setShowTooltip(false)}
+        className="relative"
+        whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
-        title="View HOLLY's consciousness"
+        aria-label="View HOLLY's consciousness"
       >
         {/* Pulsing glow based on emotional state */}
         <motion.div
@@ -92,6 +95,23 @@ export default function BrainConsciousnessIndicator({
             }}
           />
         )}
+        
+        {/* Tooltip on hover */}
+        <AnimatePresence>
+          {showTooltip && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 10 }}
+              className="absolute top-full right-0 mt-2 px-3 py-2 bg-gray-800/95 backdrop-blur-xl rounded-lg border border-gray-700/50 shadow-xl z-50 whitespace-nowrap"
+            >
+              <div className="text-xs">
+                <p className="font-semibold text-white capitalize">{currentState.emotion}</p>
+                <p className="text-gray-400">{currentState.goalsCount} goals • {currentState.memoriesCount} memories</p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.button>
 
       {/* Consciousness Modal */}

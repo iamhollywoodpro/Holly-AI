@@ -12,6 +12,7 @@ import MemoryTimeline from '@/components/consciousness/MemoryTimeline';
 import { useAuth } from '@/contexts/auth-context';
 import { getVoiceInput, getVoiceOutput, isSpeechRecognitionAvailable, isSpeechSynthesisAvailable } from '@/lib/voice/voice-handler';
 import { useConsciousnessState } from '@/hooks/useConsciousnessState';
+import UserProfileDropdown from '@/components/ui/UserProfileDropdown';
 
 interface Message {
   id: string;
@@ -438,12 +439,14 @@ export default function ChatPage() {
                   </div>
                 </motion.div>
 
-                {/* Title - RESPONSIVE */}
-                <div className="min-w-0">
+                {/* Title - RESPONSIVE WITH STATUS */}
+                <div className="min-w-0 flex-1">
                   <h1 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent truncate">
                     HOLLY
                   </h1>
-                  <p className="text-xs sm:text-sm text-gray-400 truncate hidden sm:block">Hyper-Optimized Logic & Learning Yield</p>
+                  <p className="text-xs sm:text-sm text-gray-400 truncate">
+                    {user?.user_metadata?.full_name ? `Hey ${user.user_metadata.full_name.split(' ')[0]}!` : 'Hey Hollywood!'} Ready to build?
+                  </p>
                 </div>
               </div>
 
@@ -473,6 +476,9 @@ export default function ChatPage() {
 
                 {/* Brain Consciousness Indicator */}
                 <BrainConsciousnessIndicator state={consciousnessState} />
+                
+                {/* User Profile Dropdown */}
+                <UserProfileDropdown />
               </div>
             </div>
           </motion.div>
@@ -487,23 +493,9 @@ export default function ChatPage() {
                 </div>
               </div>
             ) : messages.length === 0 ? (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex flex-col items-center justify-center h-full text-center px-4"
-              >
-                <div className="relative w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 mb-4 sm:mb-6">
-                  <div className="absolute inset-0 bg-gradient-to-br from-purple-500 via-pink-500 to-blue-500 rounded-2xl sm:rounded-3xl blur-xl sm:blur-2xl opacity-40" />
-                  <div className="relative w-full h-full bg-gradient-to-br from-purple-600 via-pink-600 to-blue-600 rounded-2xl sm:rounded-3xl flex items-center justify-center">
-                    <Brain className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 text-white" />
-                  </div>
-                </div>
-                <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-2">Hey Hollywood!</h2>
-                <p className="text-sm sm:text-base text-gray-400 max-w-md">
-                  I'm HOLLY, your autonomous AI developer and creative partner. 
-                  How can I help you build something amazing today?
-                </p>
-              </motion.div>
+              <div className="flex items-center justify-center h-full">
+                <p className="text-gray-500 text-sm">Start a conversation...</p>
+              </div>
             ) : (
               messages.map((message, index) => (
                 <MessageBubble
