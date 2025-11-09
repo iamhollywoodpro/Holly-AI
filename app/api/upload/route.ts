@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('📤 Uploading file:', {
+    console.log('[Upload] Uploading file:', {
       name: file.name,
       size: file.size,
       type: file.type,
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('✅ File uploaded successfully:', result.publicUrl);
+    console.log('[Upload] File uploaded successfully:', result.publicUrl);
 
     return NextResponse.json({
       success: true,
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ Upload error:', error);
+    console.error('[Upload] Upload error:', error);
     return NextResponse.json(
       { 
         error: 'Upload failed',

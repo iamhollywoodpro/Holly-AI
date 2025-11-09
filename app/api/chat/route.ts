@@ -97,9 +97,9 @@ async function recordConversationExperience(
       .update({ user_id: userId })
       .eq('id', experience.id);
 
-    console.log(`✅ Conversation recorded to memory (significance: ${significance})`);
+    console.log(`[Memory] Conversation recorded to memory (significance: ${significance})`);
   } catch (error) {
-    console.error('❌ Error recording conversation:', error);
+    console.error('[Memory] Error recording conversation:', error);
     // Don't throw - memory recording shouldn't break chat
   }
 }

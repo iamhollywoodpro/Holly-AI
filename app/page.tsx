@@ -84,7 +84,7 @@ export default function ChatPage() {
       if (response.ok && data.conversation) {
         setCurrentConversationId(data.conversation.id);
         setMessages([]); // Clear messages for new conversation
-        console.log('✅ New conversation created:', data.conversation.id);
+        console.log('[Chat] New conversation created:', data.conversation.id);
       }
     } catch (error) {
       console.error('Failed to create conversation:', error);
@@ -111,7 +111,7 @@ export default function ChatPage() {
         
         setMessages(loadedMessages);
         setCurrentConversationId(conversationId);
-        console.log('✅ Loaded conversation:', conversationId, loadedMessages.length, 'messages');
+        console.log('[Chat] Loaded conversation:', conversationId, loadedMessages.length, 'messages');
       }
     } catch (error) {
       console.error('Failed to load conversation:', error);
