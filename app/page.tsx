@@ -9,6 +9,7 @@ import ChatInputControls from '@/components/chat/ChatInputControls';
 import BrainConsciousnessIndicator from '@/components/consciousness/BrainConsciousnessIndicator';
 import GoalsSidebar from '@/components/consciousness/GoalsSidebar';
 import MemoryTimeline from '@/components/consciousness/MemoryTimeline';
+import { useAuth } from '@/contexts/auth-context';
 
 interface Message {
   id: string;
@@ -20,6 +21,7 @@ interface Message {
 }
 
 export default function ChatPage() {
+  const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [showGoals, setShowGoals] = useState(false); // Hidden by default on mobile
@@ -47,7 +49,7 @@ export default function ChatPage() {
     setMessages(prev => [...prev, userMessage]);
     setIsTyping(true);
 
-    // Simulate HOLLY thinking
+    // Add thinking indicator
     const thinkingMessage: Message = {
       id: (Date.now() + 1).toString(),
       role: 'assistant',
@@ -57,21 +59,94 @@ export default function ChatPage() {
     };
     setMessages(prev => [...prev, thinkingMessage]);
 
-    // TODO: Call actual HOLLY API
-    setTimeout(() => {
+    try {
+      // Call real HOLLY chat API with user context
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: [...messages, userMessage].map(m => ({
+            role: m.role,
+            content: m.content
+          })),
+          userId: user?.id || 'anonymous',
+          conversationId: `chat-${Date.now()}`
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
+      // Remove thinking indicator
       setMessages(prev => prev.filter(m => !m.thinking));
+
+      // Handle streaming response
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let accumulatedContent = '';
       
-      const response: Message = {
+      const hollyMessage: Message = {
         id: (Date.now() + 2).toString(),
         role: 'assistant',
-        content: "I hear you, Hollywood! Let me think about that...",
+        content: '',
         timestamp: new Date(),
         emotion: 'curious'
       };
-      
-      setMessages(prev => [...prev, response]);
+      setMessages(prev => [...prev, hollyMessage]);
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value);
+          const lines = chunk.split('\n').filter(line => line.trim());
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6);
+              if (data === '[DONE]') break;
+              
+              try {
+                const parsed = JSON.parse(data);
+                if (parsed.content) {
+                  accumulatedContent = parsed.content;
+                  setMessages(prev => prev.map(m => 
+                    m.id === hollyMessage.id 
+                      ? { ...m, content: accumulatedContent }
+                      : m
+                  ));
+                }
+              } catch (e) {
+                console.error('Parse error:', e);
+              }
+            }
+          }
+        }
+      }
+
       setIsTyping(false);
-    }, 1500);
+    } catch (error) {
+      console.error('Chat error:', error);
+      
+      // Remove thinking indicator
+      setMessages(prev => prev.filter(m => !m.thinking));
+      
+      // Show error message
+      const errorMessage: Message = {
+        id: (Date.now() + 2).toString(),
+        role: 'assistant',
+        content: "Oops! Something went wrong. Hollywood, I'm having trouble connecting to my brain right now. Can you try again?",
+        timestamp: new Date(),
+        emotion: 'confused'
+      };
+      
+      setMessages(prev => [...prev, errorMessage]);
+      setIsTyping(false);
+    }
   };
 
   const handleFileUpload = (files: File[]) => {
