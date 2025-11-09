@@ -86,17 +86,16 @@ export async function POST(request: NextRequest) {
       start(controller) {
         // Split response into chunks for streaming effect
         const words = hollyResponse.content.split(' ');
-        let buffer = '';
+        let accumulatedText = '';
         
         words.forEach((word, index) => {
-          buffer += word + ' ';
+          accumulatedText += word + ' ';
           
-          // Send chunks every few words
+          // Send accumulated text every few words for streaming effect
           if ((index + 1) % 3 === 0 || index === words.length - 1) {
             controller.enqueue(
-              encoder.encode(`data: ${JSON.stringify({ content: buffer })}\n\n`)
+              encoder.encode(`data: ${JSON.stringify({ content: accumulatedText.trim() })}\n\n`)
             );
-            buffer = '';
           }
         });
 
