@@ -11,6 +11,8 @@
 import Anthropic from '@anthropic-ai/sdk';
 import Groq from 'groq-sdk';
 import { EmotionType } from '@/store/chat-store';
+import type { Tool } from '@anthropic-ai/sdk/resources/messages.mjs';
+import { HOLLY_TOOLS, executeTool } from './holly-tools';
 
 // Initialize clients with better error handling
 const anthropic = new Anthropic({
@@ -123,7 +125,7 @@ export function detectEmotion(message: string): EmotionType {
   return 'confident';
 }
 
-// Get response from Claude Opus 4
+// Get response from Claude Opus 4 (with function calling)
 async function getClaudeResponse(
   message: string,
   conversationHistory: Message[] = []
@@ -135,15 +137,58 @@ async function getClaudeResponse(
       model: 'claude-sonnet-4-20250514', // Latest Claude 4 Opus model
       max_tokens: 2048,
       system: HOLLY_PERSONALITY,
+      tools: HOLLY_TOOLS, // Add function calling tools
       messages: [
         ...conversationHistory.slice(-10), // Last 10 messages for context
         { role: 'user', content: message },
       ],
     });
     
-    const content = response.content[0].type === 'text' 
-      ? response.content[0].text 
-      : '';
+    // Check if Claude wants to use a tool
+    const toolUse = response.content.find((block: any) => block.type === 'tool_use');
+    
+    if (toolUse) {
+      console.log(`🔧 HOLLY using tool: ${toolUse.name}`);
+      
+      // Execute the tool
+      const toolResult = await executeTool(toolUse.name, toolUse.input);
+      
+      // Get Claude's response after tool execution
+      const followUpResponse = await anthropic.messages.create({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 2048,
+        system: HOLLY_PERSONALITY,
+        tools: HOLLY_TOOLS,
+        messages: [
+          ...conversationHistory.slice(-10),
+          { role: 'user', content: message },
+          { role: 'assistant', content: response.content },
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'tool_result',
+                tool_use_id: toolUse.id,
+                content: JSON.stringify(toolResult)
+              }
+            ]
+          }
+        ]
+      });
+      
+      const followUpContent = followUpResponse.content.find((block: any) => block.type === 'text');
+      
+      return {
+        content: followUpContent?.text || 'Tool executed successfully!',
+        model: 'claude-opus-4',
+        tokensUsed: response.usage.input_tokens + response.usage.output_tokens + followUpResponse.usage.input_tokens + followUpResponse.usage.output_tokens,
+        responseTime: Date.now() - startTime,
+      };
+    }
+    
+    // Normal text response (no tool use)
+    const textContent = response.content.find((block: any) => block.type === 'text');
+    const content = textContent?.text || '';
     
     return {
       content,
