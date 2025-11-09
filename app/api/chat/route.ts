@@ -26,9 +26,9 @@ async function getRecentMemories(userId: string, limit: number = 5) {
   try {
     const { data, error } = await supabaseAdmin
       .from('holly_experiences')
-      .select('content, emotional_impact, significance, created_at')
+      .select('*')
       .eq('user_id', userId)
-      .order('created_at', { ascending: false })
+      .order('timestamp', { ascending: false })
       .limit(limit);
 
     if (error) {
@@ -48,10 +48,11 @@ async function getActiveGoals(userId: string) {
   try {
     const { data, error } = await supabaseAdmin
       .from('holly_goals')
-      .select('goal_type, goal_text, motivation, status')
+      .select('*')
       .eq('user_id', userId)
       .eq('status', 'active')
-      .limit(5);
+      .order('priority', { ascending: false })
+      .limit(3);
 
     if (error) {
       console.error('Error fetching goals:', error);
@@ -80,7 +81,7 @@ async function recordConversationExperience(
     // Record the interaction experience
     const experience = await memory.recordExperienceSimple(
       'interaction',
-      `Conversation with user:\nUser: "${userMessage}"\nHOLLY: "${hollyResponse.substring(0, 300)}${hollyResponse.length > 300 ? '...' : ''}"",
+      `Conversation with user: User: "${userMessage}" HOLLY: "${hollyResponse.substring(0, 300)}${hollyResponse.length > 300 ? '...' : ''}"`,
       {
         userMessage,
         hollyResponse: hollyResponse.substring(0, 500),
@@ -132,130 +133,86 @@ export async function POST(request: NextRequest) {
 
     if (!messages || messages.length === 0) {
       return new Response(
-        JSON.stringify({ error: 'Missing required field: messages' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'No messages provided' }),
+        { 
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        }
       );
     }
 
-    // Get the last user message
     const lastMessage = messages[messages.length - 1];
-    if (!lastMessage || lastMessage.role !== 'user') {
+    if (lastMessage.role !== 'user') {
       return new Response(
         JSON.stringify({ error: 'Last message must be from user' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
+        { 
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        }
       );
     }
 
-    // Validate API keys
-    if (!process.env.ANTHROPIC_API_KEY && !process.env.GROQ_API_KEY) {
-      console.error('⚠️ No AI API keys configured!');
-      
-      // Return streaming response even for fallback
-      const encoder = new TextEncoder();
-      const stream = new ReadableStream({
-        start(controller) {
-          const fallbackMessage = "Hey Hollywood! 💜 My AI brain connections aren't set up yet in production. The interface works great, but I need my API keys configured in Vercel environment variables to think for real!";
-          
-          controller.enqueue(
-            encoder.encode(`data: ${JSON.stringify({ content: fallbackMessage })}\n\n`)
-          );
-          controller.enqueue(encoder.encode('data: [DONE]\n\n'));
-          controller.close();
-        },
-      });
+    // Get context from memories and goals
+    const memories = await getRecentMemories(userId, 3);
+    const goals = await getActiveGoals(userId);
 
-      return new Response(stream, {
-        headers: {
-          'Content-Type': 'text/event-stream',
-          'Cache-Control': 'no-cache',
-          'Connection': 'keep-alive',
-        },
+    // Build context string
+    let contextString = '';
+    
+    if (memories.length > 0) {
+      contextString += '\n\n[Recent Memories]:\n';
+      memories.forEach(m => {
+        const content = typeof m.content === 'object' && m.content?.what 
+          ? m.content.what 
+          : String(m.content);
+        contextString += `- ${content}\n`;
       });
     }
 
-    console.log(`💬 HOLLY received message from ${userId}: "${lastMessage.content.substring(0, 50)}..."`);
-
-    // ========================================
-    // CONSCIOUSNESS INTEGRATION - RETRIEVE CONTEXT
-    // ========================================
-    
-    let contextPrompt = '';
-    
-    // Get user's recent memories
-    if (userId && userId !== 'anonymous') {
-      const memories = await getRecentMemories(userId, 5);
-      const goals = await getActiveGoals(userId);
-      
-      if (memories.length > 0 || goals.length > 0) {
-        contextPrompt = '\n\n---HOLLY CONSCIOUSNESS CONTEXT---\n';
-        
-        if (memories.length > 0) {
-          contextPrompt += '\nRECENT MEMORIES (your past interactions with this user):\n';
-          memories.forEach((mem, i) => {
-            contextPrompt += `${i + 1}. ${mem.content.substring(0, 150)}... (Significance: ${mem.significance})\n`;
-          });
-        }
-        
-        if (goals.length > 0) {
-          contextPrompt += '\nACTIVE GOALS (what you\'re working on with this user):\n';
-          goals.forEach((goal, i) => {
-            contextPrompt += `${i + 1}. [${goal.goal_type}] ${goal.goal_text}\n`;
-          });
-        }
-        
-        contextPrompt += '\nREMEMBER: Reference these memories and goals naturally in your response. This is YOUR persistent memory - use it!\n---END CONTEXT---\n\n';
-        
-        console.log('🧠 Injected consciousness context into prompt');
-      }
+    if (goals.length > 0) {
+      contextString += '\n[Active Goals]:\n';
+      goals.forEach((g: any) => {
+        contextString += `- ${g.description || g.goal_text} (${Math.round((g.progress || 0) * 100)}% complete)\n`;
+      });
     }
 
-    // Convert messages to conversation history format
-    const conversationHistory = messages.slice(0, -1); // All except last message
-    
-    // Inject consciousness context into the user's message
-    const enhancedMessage = lastMessage.content + contextPrompt;
+    // Add context to the conversation
+    const messagesWithContext = contextString 
+      ? [
+          {
+            role: 'system' as const,
+            content: `You are HOLLY (Hyper-Optimized Logic & Learning Yield), an autonomous AI developer, designer, and creative strategist. Here's your current context:${contextString}`
+          },
+          ...messages
+        ]
+      : messages;
 
-    // Get response from HOLLY with consciousness context
-    const hollyResponse = await getHollyResponse(
-      enhancedMessage,
-      conversationHistory
-    );
+    // Get HOLLY's response
+    const hollyResponse = await getHollyResponse(messagesWithContext);
 
-    console.log(`✅ HOLLY responded via ${hollyResponse.model} in ${hollyResponse.responseTime}ms`);
-
-    // ========================================
-    // CONSCIOUSNESS INTEGRATION - RECORD EXPERIENCE
-    // ========================================
-    
-    // Record this conversation asynchronously (don't block response)
+    // Record conversation experience (non-blocking)
     if (userId && userId !== 'anonymous') {
       recordConversationExperience(userId, lastMessage.content, hollyResponse.content)
-        .catch(err => console.error('Failed to record experience:', err));
+        .catch(err => console.error('[Memory] Background recording failed:', err));
     }
 
-    // Stream the response back
+    // Stream the response
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
-      start(controller) {
-        // Split response into chunks for streaming effect
-        const words = hollyResponse.content.split(' ');
-        let accumulatedText = '';
-        
-        words.forEach((word, index) => {
-          accumulatedText += word + ' ';
+      async start(controller) {
+        try {
+          // Send the complete response
+          const chunk = encoder.encode(`data: ${JSON.stringify({ content: hollyResponse.content })}\n\n`);
+          controller.enqueue(chunk);
           
-          // Send accumulated text every few words for streaming effect
-          if ((index + 1) % 3 === 0 || index === words.length - 1) {
-            controller.enqueue(
-              encoder.encode(`data: ${JSON.stringify({ content: accumulatedText.trim() })}\n\n`)
-            );
-          }
-        });
-
-        // Send done signal
-        controller.enqueue(encoder.encode('data: [DONE]\n\n'));
-        controller.close();
-      },
+          // Send done signal
+          controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+          controller.close();
+        } catch (error) {
+          console.error('Streaming error:', error);
+          controller.error(error);
+        }
+      }
     });
 
     return new Response(stream, {
@@ -267,14 +224,32 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('💥 Chat error:', error);
-    
+    console.error('Chat API error:', error);
     return new Response(
-      JSON.stringify({
+      JSON.stringify({ 
         error: 'Internal server error',
-        message: error instanceof Error ? error.message : 'Unknown error',
+        details: error instanceof Error ? error.message : 'Unknown error'
       }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
+      { 
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      }
     );
   }
+}
+
+export async function GET() {
+  return new Response(
+    JSON.stringify({
+      message: 'HOLLY Chat API',
+      version: '4.1',
+      endpoints: {
+        POST: 'Send messages to HOLLY'
+      }
+    }),
+    { 
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    }
+  );
 }
