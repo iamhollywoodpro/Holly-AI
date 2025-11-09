@@ -79,16 +79,24 @@ interface GenerateGoalsRequest {
  */
 export async function POST(request: Request) {
   try {
+    // Get authenticated user
+    const user = await getAuthUser();
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json() as GenerateGoalsRequest;
     
     const maxGoals = body.max_goals || 3;
 
-    // Initialize systems with admin client
-    const goalSystem = new GoalFormationSystem(supabaseAdmin!);
-    const memoryStream = new MemoryStream(supabaseAdmin!);
+    // Initialize user-scoped consciousness
+    const { goals: goalSystem, memory } = createUserConsciousness(supabaseAdmin!, user.id);
 
     // Get current identity
-    const identity = await memoryStream.getIdentity();
+    const identity = await memory.getIdentity();
     if (!identity) {
       return NextResponse.json(
         { error: 'Identity not found - cannot generate goals' },
