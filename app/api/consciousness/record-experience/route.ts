@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/database/supabase-config';
 import { getAuthUser } from '@/lib/auth/auth-helpers';
-import { createUserConsciousness } from '@/lib/consciousness/user-consciousness';
+import { MemoryStream } from '@/lib/consciousness/memory-stream';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -67,10 +67,10 @@ export async function POST(request: Request) {
       );
     }
 
-    // Initialize user-scoped consciousness
-    const { memory } = createUserConsciousness(supabaseAdmin!, user.id);
+    // Initialize memory stream
+    const memory = new MemoryStream(supabaseAdmin!);
 
-    // Record the experience using user-scoped memory
+    // Record the experience
     const experience = await memory.recordExperienceSimple(
       body.type,
       body.content,
