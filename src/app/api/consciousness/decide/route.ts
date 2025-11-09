@@ -184,9 +184,9 @@ export async function PUT(request: Request) {
       success: body.success,
       learnings: body.learnings,
       impact: body.impact || {
-        on_goals: [],
-        on_identity: [],
-        on_relationships: []
+        on_goals: [] as string[],
+        on_identity: [] as string[],
+        on_relationships: [] as string[]
       },
       would_decide_same_again: body.would_decide_same_again
     });
