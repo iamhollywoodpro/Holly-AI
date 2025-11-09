@@ -176,19 +176,16 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Add context to the conversation
-    const messagesWithContext = contextString 
-      ? [
-          {
-            role: 'system' as const,
-            content: `You are HOLLY (Hyper-Optimized Logic & Learning Yield), an autonomous AI developer, designer, and creative strategist. Here's your current context:${contextString}`
-          },
-          ...messages
-        ]
-      : messages;
+    // Add context to user's message
+    const messageWithContext = contextString
+      ? `${contextString}\n\n${lastMessage.content}`
+      : lastMessage.content;
 
-    // Get HOLLY's response
-    const hollyResponse = await getHollyResponse(messagesWithContext);
+    // Get HOLLY's response with proper parameters
+    const hollyResponse = await getHollyResponse(
+      messageWithContext, // User's message with context (string)
+      messages.slice(0, -1) // Conversation history (exclude last message)
+    );
 
     // Record conversation experience (non-blocking)
     if (userId && userId !== 'anonymous') {
