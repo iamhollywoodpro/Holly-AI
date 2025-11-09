@@ -21,6 +21,9 @@
   html {
     overflow: hidden;
     height: 100%;
+    /* Mobile viewport height fix */
+    height: 100vh;
+    height: 100dvh; /* Dynamic viewport height for mobile browsers */
     /* Prevent pull-to-refresh on mobile */
     overscroll-behavior-y: none;
   }
@@ -29,7 +32,12 @@
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
     height: 100%;
+    height: 100vh;
+    height: 100dvh; /* Dynamic viewport height for mobile browsers */
     overflow: hidden;
+    /* Fix for mobile browser chrome (address bar, bottom nav) */
+    position: fixed;
+    width: 100%;
     /* Better font rendering on mobile */
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;

@@ -304,12 +304,12 @@ export default function ChatPage() {
   }, [messages]);
 
   return (
-    <div className="relative w-full h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black overflow-hidden">
+    <div className="relative w-full h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black overflow-hidden" style={{ height: '100dvh' }}>
       {/* Animated Particle Background */}
       <ParticleField />
 
       {/* Main Container */}
-      <div className="relative z-10 flex h-full">
+      <div className="relative z-10 flex h-full" style={{ height: '100%' }}>
         {/* Chat History Sidebar - Left - REPLACES GOALS */}
         <AnimatePresence>
           {showChatHistory && (
