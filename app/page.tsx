@@ -7,7 +7,7 @@ import ParticleField from '@/components/ui/ParticleField';
 import MessageBubble from '@/components/chat/MessageBubble';
 import ChatInputControls from '@/components/chat/ChatInputControls';
 import BrainConsciousnessIndicator from '@/components/consciousness/BrainConsciousnessIndicator';
-import GoalsSidebar from '@/components/consciousness/GoalsSidebar';
+import ChatHistory from '@/components/chat/ChatHistory';
 import MemoryTimeline from '@/components/consciousness/MemoryTimeline';
 import { useAuth } from '@/contexts/auth-context';
 import { getVoiceInput, getVoiceOutput, isSpeechRecognitionAvailable, isSpeechSynthesisAvailable } from '@/lib/voice/voice-handler';
@@ -25,10 +25,12 @@ export default function ChatPage() {
   const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
-  const [showGoals, setShowGoals] = useState(false); // Hidden by default on mobile
+  const [showChatHistory, setShowChatHistory] = useState(true); // Chat history instead of goals
   const [showMemory, setShowMemory] = useState(false);
   const [isVoiceInputActive, setIsVoiceInputActive] = useState(false);
   const [isVoiceOutputActive, setIsVoiceOutputActive] = useState(false);
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
+  const [isLoadingConversation, setIsLoadingConversation] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const voiceInputRef = useRef(getVoiceInput());
   const voiceOutputRef = useRef(getVoiceOutput());
@@ -41,8 +43,85 @@ export default function ChatPage() {
     scrollToBottom();
   }, [messages]);
 
+  // Create initial conversation on mount
+  useEffect(() => {
+    if (user && !currentConversationId) {
+      createNewConversation();
+    }
+  }, [user]);
+
+  // Save message to database
+  const saveMessageToDb = async (conversationId: string, role: 'user' | 'assistant', content: string, emotion?: string) => {
+    try {
+      await fetch(`/api/conversations/${conversationId}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role, content, emotion })
+      });
+    } catch (error) {
+      console.error('Failed to save message:', error);
+    }
+  };
+
+  // Create new conversation
+  const createNewConversation = async () => {
+    try {
+      const response = await fetch('/api/conversations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: 'New Conversation' })
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok && data.conversation) {
+        setCurrentConversationId(data.conversation.id);
+        setMessages([]); // Clear messages for new conversation
+        console.log('✅ New conversation created:', data.conversation.id);
+      }
+    } catch (error) {
+      console.error('Failed to create conversation:', error);
+    }
+  };
+
+  // Load conversation from history
+  const loadConversation = async (conversationId: string) => {
+    try {
+      setIsLoadingConversation(true);
+      
+      const response = await fetch(`/api/conversations/${conversationId}/messages`);
+      const data = await response.json();
+      
+      if (response.ok && data.messages) {
+        // Convert database messages to UI format
+        const loadedMessages: Message[] = data.messages.map((msg: any) => ({
+          id: msg.id,
+          role: msg.role,
+          content: msg.content,
+          timestamp: new Date(msg.created_at),
+          emotion: msg.emotion || 'curious'
+        }));
+        
+        setMessages(loadedMessages);
+        setCurrentConversationId(conversationId);
+        console.log('✅ Loaded conversation:', conversationId, loadedMessages.length, 'messages');
+      }
+    } catch (error) {
+      console.error('Failed to load conversation:', error);
+    } finally {
+      setIsLoadingConversation(false);
+    }
+  };
+
   const handleSend = async (message: string) => {
     if (!message.trim() || isTyping) return;
+
+    // Create conversation if none exists
+    if (!currentConversationId) {
+      await createNewConversation();
+      // Wait a bit for conversation to be created
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -53,6 +132,11 @@ export default function ChatPage() {
 
     setMessages(prev => [...prev, userMessage]);
     setIsTyping(true);
+
+    // Save user message to database
+    if (currentConversationId) {
+      saveMessageToDb(currentConversationId, 'user', message);
+    }
 
     // Add thinking indicator
     const thinkingMessage: Message = {
@@ -77,7 +161,7 @@ export default function ChatPage() {
             content: m.content
           })),
           userId: user?.id || 'anonymous',
-          conversationId: `chat-${Date.now()}`
+          conversationId: currentConversationId || `chat-${Date.now()}`
         }),
       });
 
@@ -131,6 +215,11 @@ export default function ChatPage() {
             }
           }
         }
+      }
+
+      // Save HOLLY's response to database
+      if (currentConversationId && accumulatedContent) {
+        saveMessageToDb(currentConversationId, 'assistant', accumulatedContent, 'curious');
       }
 
       setIsTyping(false);
@@ -221,9 +310,9 @@ export default function ChatPage() {
 
       {/* Main Container */}
       <div className="relative z-10 flex h-full">
-        {/* Goals Sidebar - Left - HIDDEN ON MOBILE */}
+        {/* Chat History Sidebar - Left - REPLACES GOALS */}
         <AnimatePresence>
-          {showGoals && (
+          {showChatHistory && (
             <motion.div
               initial={{ x: -300, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
@@ -231,7 +320,11 @@ export default function ChatPage() {
               transition={{ type: 'spring', damping: 25 }}
               className="hidden md:block w-80 border-r border-gray-800/50"
             >
-              <GoalsSidebar />
+              <ChatHistory
+                currentConversationId={currentConversationId || undefined}
+                onSelectConversation={loadConversation}
+                onNewConversation={createNewConversation}
+              />
             </motion.div>
           )}
         </AnimatePresence>
@@ -276,16 +369,16 @@ export default function ChatPage() {
 
               {/* Right Side: Action Buttons + Consciousness */}
               <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 flex-shrink-0">
-                {/* Toggle Buttons - ICON ONLY ON MOBILE */}
+                {/* Toggle Buttons - HIDDEN ON MOBILE */}
                 <motion.button
-                  onClick={() => setShowGoals(!showGoals)}
+                  onClick={() => setShowChatHistory(!showChatHistory)}
                   className="hidden md:flex px-3 sm:px-4 py-1.5 sm:py-2 bg-gray-800/50 hover:bg-gray-700/50 rounded-lg border border-gray-700/50 text-xs sm:text-sm text-gray-300 items-center gap-2 transition-colors"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  aria-label="Toggle goals"
+                  aria-label="Toggle chat history"
                 >
                   <Target className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  <span className="hidden sm:inline">Goals</span>
+                  <span className="hidden sm:inline">History</span>
                 </motion.button>
                 <motion.button
                   onClick={() => setShowMemory(!showMemory)}
@@ -306,7 +399,14 @@ export default function ChatPage() {
 
           {/* Messages Area - MOBILE OPTIMIZED */}
           <div className="flex-1 overflow-y-auto px-3 sm:px-6 md:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6">
-            {messages.length === 0 && (
+            {isLoadingConversation ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4" />
+                  <p className="text-gray-400">Loading conversation...</p>
+                </div>
+              </div>
+            ) : messages.length === 0 ? (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -324,15 +424,15 @@ export default function ChatPage() {
                   How can I help you build something amazing today?
                 </p>
               </motion.div>
+            ) : (
+              messages.map((message, index) => (
+                <MessageBubble
+                  key={message.id}
+                  message={message}
+                  index={index}
+                />
+              ))
             )}
-            
-            {messages.map((message, index) => (
-              <MessageBubble
-                key={message.id}
-                message={message}
-                index={index}
-              />
-            ))}
             <div ref={messagesEndRef} />
           </div>
 
@@ -348,7 +448,7 @@ export default function ChatPage() {
                 onSend={handleSend}
                 onFileUpload={handleFileUpload}
                 onVoiceInput={handleVoiceInput}
-                disabled={isTyping}
+                disabled={isTyping || isLoadingConversation}
                 isVoiceActive={isVoiceInputActive}
               />
             </div>
