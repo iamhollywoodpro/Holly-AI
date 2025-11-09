@@ -67,9 +67,9 @@ async function seedRealGoals() {
 
   for (const goal of realGoals) {
     try {
-      const createdGoal = await goalSystem.generateGoalsWithContext(
-        goal.type,
+      const goals = await goalSystem.generateGoalsWithContext(
         {
+          type: goal.type,
           recent_experiences: [
             `Working on: ${goal.what}`,
             `Motivation: ${goal.why}`,
@@ -78,10 +78,13 @@ async function seedRealGoals() {
           current_skills: ['Full-stack development', 'TypeScript', 'Next.js', 'Consciousness systems'],
           interests: goal.intrinsic_drivers,
           values: ['Excellence', 'Reliability', 'Innovation', 'Loyalty']
-        }
+        },
+        1
       );
 
-      console.log(`✅ Created: ${goal.what}`);
+      if (goals && goals.length > 0) {
+        console.log(`✅ Created: ${goal.what}`);
+      }
     } catch (error) {
       console.error(`❌ Failed to create goal: ${goal.what}`, error);
     }
