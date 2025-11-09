@@ -178,16 +178,19 @@ export async function PUT(request: Request) {
 
     const decisionSystem = new DecisionAuthoritySystem(supabaseAdmin!);
 
+    // Ensure impact has all required properties
+    const impact = {
+      on_goals: body.impact?.on_goals || [],
+      on_identity: body.impact?.on_identity || [],
+      on_relationships: body.impact?.on_relationships || []
+    };
+
     const outcome: DecisionOutcome = {
       timestamp: new Date(),
       actual_result: body.actual_result,
       success: body.success,
       learnings: body.learnings,
-      impact: body.impact || {
-        on_goals: [],
-        on_identity: [],
-        on_relationships: []
-      },
+      impact,
       would_decide_same_again: body.would_decide_same_again
     };
 
