@@ -178,6 +178,15 @@ interface UpdateProgressRequest {
  */
 export async function PUT(request: Request) {
   try {
+    // Get authenticated user
+    const user = await getAuthUser();
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json() as UpdateProgressRequest;
 
     if (!body.goal_id) {
@@ -187,8 +196,8 @@ export async function PUT(request: Request) {
       );
     }
 
-    // Initialize goal formation system with admin client
-    const goalSystem = new GoalFormationSystem(supabaseAdmin!);
+    // Initialize user-scoped consciousness
+    const { goals: goalSystem } = createUserConsciousness(supabaseAdmin!, user.id);
 
     // Update progress
     const updatedGoal = await goalSystem.updateProgress(
