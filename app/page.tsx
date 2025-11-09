@@ -32,18 +32,6 @@ export default function ChatPage() {
   const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   
-  // Fetch real consciousness state
-  const { state: consciousnessState, refresh: refreshConsciousness } = useConsciousnessState({
-    refreshInterval: 30000, // Update every 30 seconds
-    enabled: true
-  });
-
-  // Register keyboard shortcuts
-  useKeyboardShortcuts([
-    { key: '?', handler: () => setShowKeyboardShortcuts(true), description: 'Show shortcuts' },
-    { key: 'n', ctrl: true, handler: createNewConversation, description: 'New chat' },
-    { key: '/', ctrl: true, handler: () => setShowChatHistory(!showChatHistory), description: 'Toggle history' },
-  ], !showKeyboardShortcuts); // Disable when shortcuts modal is open
   const [isTyping, setIsTyping] = useState(false);
   const [showChatHistory, setShowChatHistory] = useState(true); // Chat history instead of goals
   const [showMemory, setShowMemory] = useState(false);
@@ -53,6 +41,12 @@ export default function ChatPage() {
   const [showFilePreview, setShowFilePreview] = useState(false);
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
+
+  // Fetch real consciousness state
+  const { state: consciousnessState, refresh: refreshConsciousness } = useConsciousnessState({
+    refreshInterval: 30000, // Update every 30 seconds
+    enabled: true
+  });
   const [isLoadingConversation, setIsLoadingConversation] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const voiceInputRef = useRef(getVoiceInput());
@@ -424,6 +418,13 @@ export default function ChatPage() {
       }, 500);
     }
   }, [messages]);
+
+  // Register keyboard shortcuts (after all functions are declared)
+  useKeyboardShortcuts([
+    { key: '?', handler: () => setShowKeyboardShortcuts(true), description: 'Show shortcuts' },
+    { key: 'n', ctrl: true, handler: createNewConversation, description: 'New chat' },
+    { key: '/', ctrl: true, handler: () => setShowChatHistory(!showChatHistory), description: 'Toggle history' },
+  ], !showKeyboardShortcuts); // Disable when shortcuts modal is open
 
   return (
     <div className="relative w-full h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black overflow-hidden" style={{ height: '100dvh' }}>
