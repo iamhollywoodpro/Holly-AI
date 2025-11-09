@@ -10,6 +10,7 @@ import BrainConsciousnessIndicator from '@/components/consciousness/BrainConscio
 import GoalsSidebar from '@/components/consciousness/GoalsSidebar';
 import MemoryTimeline from '@/components/consciousness/MemoryTimeline';
 import { useAuth } from '@/contexts/auth-context';
+import { getVoiceInput, getVoiceOutput, isSpeechRecognitionAvailable, isSpeechSynthesisAvailable } from '@/lib/voice/voice-handler';
 
 interface Message {
   id: string;
@@ -26,7 +27,11 @@ export default function ChatPage() {
   const [isTyping, setIsTyping] = useState(false);
   const [showGoals, setShowGoals] = useState(false); // Hidden by default on mobile
   const [showMemory, setShowMemory] = useState(false);
+  const [isVoiceInputActive, setIsVoiceInputActive] = useState(false);
+  const [isVoiceOutputActive, setIsVoiceOutputActive] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const voiceInputRef = useRef(getVoiceInput());
+  const voiceOutputRef = useRef(getVoiceOutput());
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -155,9 +160,59 @@ export default function ChatPage() {
   };
 
   const handleVoiceInput = () => {
-    console.log('Voice input activated');
-    // TODO: Implement voice input logic
+    if (!isSpeechRecognitionAvailable()) {
+      alert('Voice input is not supported in your browser. Please try Chrome, Edge, or Safari.');
+      return;
+    }
+
+    const voiceInput = voiceInputRef.current;
+
+    if (isVoiceInputActive) {
+      // Stop listening
+      voiceInput.stop();
+      setIsVoiceInputActive(false);
+    } else {
+      // Start listening
+      voiceInput.start(
+        (transcript) => {
+          // Voice recognized - send as message
+          handleSend(transcript);
+          setIsVoiceInputActive(false);
+        },
+        (error) => {
+          // Error occurred
+          console.error('Voice input error:', error);
+          alert(error);
+          setIsVoiceInputActive(false);
+        }
+      );
+      setIsVoiceInputActive(true);
+    }
   };
+
+  // Auto-speak HOLLY's responses
+  useEffect(() => {
+    if (!isSpeechSynthesisAvailable()) return;
+
+    const lastMessage = messages[messages.length - 1];
+    
+    // Only speak HOLLY's messages (assistant role)
+    if (lastMessage && lastMessage.role === 'assistant' && lastMessage.content && !lastMessage.thinking) {
+      const voiceOutput = voiceOutputRef.current;
+      
+      // Wait a bit for message to render, then speak
+      setTimeout(() => {
+        voiceOutput.speak(lastMessage.content, {
+          onStart: () => setIsVoiceOutputActive(true),
+          onEnd: () => setIsVoiceOutputActive(false),
+          onError: (error) => {
+            console.error('Voice output error:', error);
+            setIsVoiceOutputActive(false);
+          }
+        });
+      }, 500);
+    }
+  }, [messages]);
 
   return (
     <div className="relative w-full h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black overflow-hidden">
@@ -294,6 +349,7 @@ export default function ChatPage() {
                 onFileUpload={handleFileUpload}
                 onVoiceInput={handleVoiceInput}
                 disabled={isTyping}
+                isVoiceActive={isVoiceInputActive}
               />
             </div>
           </motion.div>

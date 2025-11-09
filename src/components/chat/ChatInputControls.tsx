@@ -103,14 +103,14 @@ export default function ChatInputControls({
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             className={`flex-shrink-0 w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 ${
-              isRecording
+              isVoiceActive
                 ? 'bg-red-500/20 text-red-400 animate-pulse'
                 : 'bg-gray-700/50 hover:bg-gray-700 text-gray-300 hover:text-white'
             }`}
-            title={isRecording ? 'Stop recording' : 'Voice input'}
-            aria-label={isRecording ? 'Stop recording' : 'Voice input'}
+            title={isVoiceActive ? 'Stop recording' : 'Voice input'}
+            aria-label={isVoiceActive ? 'Stop recording' : 'Voice input'}
           >
-            {isRecording ? <Volume2 className="w-4 h-4 sm:w-5 sm:h-5" /> : <Mic className="w-4 h-4 sm:w-5 sm:h-5" />}
+            {isVoiceActive ? <Volume2 className="w-4 h-4 sm:w-5 sm:h-5" /> : <Mic className="w-4 h-4 sm:w-5 sm:h-5" />}
           </motion.button>
 
           {/* Text input - grows to fill space */}
@@ -142,7 +142,7 @@ export default function ChatInputControls({
       </div>
 
       {/* Recording indicator */}
-      {isRecording && (
+      {isVoiceActive && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
