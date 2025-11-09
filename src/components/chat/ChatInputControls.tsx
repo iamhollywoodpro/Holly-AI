@@ -9,16 +9,17 @@ interface ChatInputControlsProps {
   onFileUpload: (files: File[]) => void;
   onVoiceInput: () => void;
   disabled?: boolean;
+  isVoiceActive?: boolean;
 }
 
 export default function ChatInputControls({
   onSend,
   onFileUpload,
   onVoiceInput,
-  disabled = false
+  disabled = false,
+  isVoiceActive = false
 }: ChatInputControlsProps) {
   const [message, setMessage] = useState('');
-  const [isRecording, setIsRecording] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -52,7 +53,6 @@ export default function ChatInputControls({
   };
 
   const handleVoiceClick = () => {
-    setIsRecording(!isRecording);
     onVoiceInput();
   };
 
