@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/database/supabase-config';
-import { MemoryStream } from '@/lib/consciousness/memory-stream';
+import { getAuthUser } from '@/lib/auth/auth-helpers';
+import { createUserConsciousness } from '@/lib/consciousness/user-consciousness';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -30,6 +31,15 @@ interface RecordExperienceRequest {
  */
 export async function POST(request: Request) {
   try {
+    // Get authenticated user
+    const user = await getAuthUser();
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json() as RecordExperienceRequest;
     
     // Validate required fields
@@ -57,11 +67,11 @@ export async function POST(request: Request) {
       );
     }
 
-    // Initialize memory stream with admin client
-    const memoryStream = new MemoryStream(supabaseAdmin!);
+    // Initialize user-scoped consciousness
+    const { memory } = createUserConsciousness(supabaseAdmin!, user.id);
 
-    // Record the experience using simplified API
-    const experience = await memoryStream.recordExperienceSimple(
+    // Record the experience using user-scoped memory
+    const experience = await memory.recordExperienceSimple(
       body.type,
       body.content,
       body.context,

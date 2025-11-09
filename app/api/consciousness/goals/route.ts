@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/database/supabase-config';
-import { GoalFormationSystem } from '@/lib/consciousness/goal-formation';
-import { MemoryStream } from '@/lib/consciousness/memory-stream';
+import { getAuthUser } from '@/lib/auth/auth-helpers';
+import { createUserConsciousness } from '@/lib/consciousness/user-consciousness';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -18,10 +18,19 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET() {
   try {
-    // Initialize goal formation system with admin client
-    const goalSystem = new GoalFormationSystem(supabaseAdmin!);
+    // Get authenticated user
+    const user = await getAuthUser();
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
 
-    // Get active goals
+    // Initialize user-scoped consciousness
+    const { goals: goalSystem } = createUserConsciousness(supabaseAdmin!, user.id);
+
+    // Get user's active goals
     const goals = await goalSystem.getActiveGoals();
 
     return NextResponse.json({
