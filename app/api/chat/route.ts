@@ -4,6 +4,7 @@
 import { NextRequest } from 'next/server';
 import { getHollyResponse } from '@/lib/ai/ai-orchestrator';
 import { supabaseAdmin } from '@/lib/database/supabase-config';
+import { MemoryStream } from '@/lib/consciousness/memory-stream';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -64,37 +65,64 @@ async function getActiveGoals(userId: string) {
   }
 }
 
-// Helper: Record conversation experience
-// TODO: Implement user-scoped memory recording
-// This should call the /api/consciousness/record-experience endpoint with user auth
+// Helper: Record conversation experience with user scoping
 async function recordConversationExperience(
   userId: string,
   userMessage: string,
   hollyResponse: string
 ) {
   try {
-    // Temporarily disabled - MemoryStream needs user_id support
-    // Will be implemented when consciousness API is integrated
-    console.log('📝 Memory recording pending user-scoped implementation');
+    const memory = new MemoryStream(supabaseAdmin);
     
-    /* TODO: Implement like this:
-    await fetch('/api/consciousness/record-experience', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        type: 'interaction',
-        content: `User: "${userMessage}"\nHOLLY: "${hollyResponse.substring(0, 200)}..."`,
-        context: {
-          userMessage,
-          responseLength: hollyResponse.length
-        },
-        significance: 0.5
-      })
-    });
-    */
+    // Determine significance based on conversation characteristics
+    const significance = calculateSignificance(userMessage, hollyResponse);
+    
+    // Record the interaction experience
+    const experience = await memory.recordExperienceSimple(
+      'interaction',
+      `Conversation with user:\nUser: "${userMessage}"\nHOLLY: "${hollyResponse.substring(0, 300)}${hollyResponse.length > 300 ? '...' : ''}"",
+      {
+        userMessage,
+        hollyResponse: hollyResponse.substring(0, 500),
+        responseLength: hollyResponse.length,
+        messageLength: userMessage.length,
+        timestamp: new Date().toISOString()
+      },
+      significance
+    );
+
+    // Update the experience with user_id (since MemoryStream doesn't support it directly yet)
+    await supabaseAdmin
+      .from('holly_experiences')
+      .update({ user_id: userId })
+      .eq('id', experience.id);
+
+    console.log(`✅ Conversation recorded to memory (significance: ${significance})`);
   } catch (error) {
-    console.error('Error recording conversation:', error);
+    console.error('❌ Error recording conversation:', error);
+    // Don't throw - memory recording shouldn't break chat
   }
+}
+
+// Helper: Calculate conversation significance
+function calculateSignificance(userMessage: string, hollyResponse: string): number {
+  let significance = 0.3; // Base significance for all interactions
+
+  // Increase for longer, more detailed conversations
+  if (userMessage.length > 200) significance += 0.1;
+  if (hollyResponse.length > 500) significance += 0.1;
+
+  // Increase for questions (likely learning moments)
+  if (userMessage.includes('?')) significance += 0.1;
+
+  // Increase for code/technical discussions
+  if (userMessage.match(/```|function|const|class|import/)) significance += 0.2;
+
+  // Increase for emotional expressions
+  if (userMessage.match(/!/g)?.length > 1) significance += 0.1;
+
+  // Cap at 0.9 (reserve 1.0 for truly exceptional moments)
+  return Math.min(significance, 0.9);
 }
 
 export async function POST(request: NextRequest) {

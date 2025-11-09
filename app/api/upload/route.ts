@@ -1,166 +1,118 @@
-// app/api/upload/route.ts - Server-side file upload handler
-// Bypasses Supabase RLS by using service role key
-
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { uploadFile } from '@/lib/file-storage';
+import { getAuthUser } from '@/lib/auth/auth-helpers';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
-// Server-side client with SERVICE ROLE KEY (bypasses RLS)
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false
-  }
-});
-
-const STORAGE_BUCKETS = {
-  audio: 'holly-audio',
-  video: 'holly-video',
-  images: 'holly-images',
-  code: 'holly-code',
-  documents: 'holly-documents',
-  data: 'holly-data'
-} as const;
-
-const FILE_TYPE_MAP: Record<string, keyof typeof STORAGE_BUCKETS> = {
-  mp3: 'audio', wav: 'audio', ogg: 'audio', m4a: 'audio', flac: 'audio', aac: 'audio',
-  mp4: 'video', mov: 'video', avi: 'video', mkv: 'video', webm: 'video',
-  jpg: 'images', jpeg: 'images', png: 'images', gif: 'images', webp: 'images', svg: 'images',
-  js: 'code', ts: 'code', tsx: 'code', jsx: 'code', py: 'code', css: 'code', html: 'code', json: 'code',
-  pdf: 'documents', txt: 'documents', doc: 'documents', docx: 'documents', md: 'documents',
-  csv: 'data', xlsx: 'data', xls: 'data', xml: 'data', sql: 'data'
-};
-
+/**
+ * POST /api/upload
+ * Handles file uploads from chat interface
+ * Stores files in Supabase Storage and returns public URLs
+ */
 export async function POST(request: NextRequest) {
   try {
-    console.log('[API /upload] Request received');
+    // Get authenticated user
+    const user = await getAuthUser();
     
+    // Parse form data
     const formData = await request.formData();
     const file = formData.get('file') as File;
-    const userId = formData.get('userId') as string;
-    const conversationId = formData.get('conversationId') as string;
+    const conversationId = formData.get('conversationId') as string | null;
 
     if (!file) {
-      console.error('[API /upload] No file in request');
       return NextResponse.json(
-        { success: false, error: 'No file provided' },
+        { error: 'No file provided' },
         { status: 400 }
       );
     }
 
-    console.log('[API /upload] File received:', {
+    // Validate file size (50MB limit)
+    const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+    if (file.size > MAX_FILE_SIZE) {
+      return NextResponse.json(
+        { error: 'File too large. Maximum size is 50MB.' },
+        { status: 400 }
+      );
+    }
+
+    console.log('📤 Uploading file:', {
       name: file.name,
       size: file.size,
-      type: file.type
+      type: file.type,
+      userId: user?.id || 'anonymous',
+      conversationId: conversationId || 'none'
     });
 
-    // Get file extension
-    const fileExtension = file.name.split('.').pop()?.toLowerCase();
-    if (!fileExtension) {
+    // Upload file
+    const result = await uploadFile(
+      file,
+      user?.id,
+      conversationId || undefined
+    );
+
+    if (!result.success) {
       return NextResponse.json(
-        { success: false, error: 'Invalid file name' },
-        { status: 400 }
-      );
-    }
-
-    // Determine bucket
-    const bucketType = FILE_TYPE_MAP[fileExtension];
-    if (!bucketType) {
-      return NextResponse.json(
-        { success: false, error: `Unsupported file type: .${fileExtension}` },
-        { status: 400 }
-      );
-    }
-
-    const bucketName = STORAGE_BUCKETS[bucketType];
-    console.log('[API /upload] Target bucket:', bucketName);
-
-    // Generate unique file path
-    const timestamp = Date.now();
-    const randomString = Math.random().toString(36).substring(2, 8);
-    const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-    const filePath = `${timestamp}_${randomString}_${safeName}`;
-
-    console.log('[API /upload] Generated path:', filePath);
-
-    // Convert File to ArrayBuffer for Supabase
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = new Uint8Array(arrayBuffer);
-
-    // Upload using SERVICE ROLE KEY (bypasses RLS)
-    const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
-      .from(bucketName)
-      .upload(filePath, buffer, {
-        contentType: file.type,
-        cacheControl: '3600',
-        upsert: false
-      });
-
-    if (uploadError) {
-      console.error('[API /upload] Upload error:', uploadError);
-      return NextResponse.json(
-        { success: false, error: `Upload failed: ${uploadError.message}` },
+        { error: result.error || 'Upload failed' },
         { status: 500 }
       );
     }
 
-    console.log('[API /upload] Upload successful');
-
-    // Get public URL
-    const { data: urlData } = supabaseAdmin.storage
-      .from(bucketName)
-      .getPublicUrl(filePath);
-
-    if (!urlData?.publicUrl) {
-      console.error('[API /upload] Could not generate public URL');
-      return NextResponse.json(
-        { success: false, error: 'Could not generate public URL' },
-        { status: 500 }
-      );
-    }
-
-    console.log('[API /upload] Public URL:', urlData.publicUrl);
-
-    // Save metadata to database
-    try {
-      const { error: dbError } = await supabaseAdmin
-        .from('holly_file_uploads')
-        .insert({
-          user_id: userId || null,
-          conversation_id: conversationId || null,
-          file_name: file.name,
-          file_type: bucketType,
-          file_size: file.size,
-          storage_path: filePath,
-          bucket_name: bucketName,
-          public_url: urlData.publicUrl,
-          mime_type: file.type
-        });
-
-      if (dbError) {
-        console.error('[API /upload] Database error:', dbError);
-        // Don't fail the upload if database insert fails
-      }
-    } catch (dbError) {
-      console.error('[API /upload] Database exception:', dbError);
-    }
+    console.log('✅ File uploaded successfully:', result.publicUrl);
 
     return NextResponse.json({
       success: true,
-      publicUrl: urlData.publicUrl,
-      fileType: bucketType
+      url: result.publicUrl,
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type
     });
 
   } catch (error) {
-    console.error('[API /upload] Unexpected error:', error);
+    console.error('❌ Upload error:', error);
     return NextResponse.json(
       { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+        error: 'Upload failed',
+        details: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
     );
   }
+}
+
+/**
+ * GET /api/upload
+ * Returns API documentation
+ */
+export async function GET() {
+  return NextResponse.json({
+    endpoint: '/api/upload',
+    method: 'POST',
+    description: 'Upload files to HOLLY storage',
+    contentType: 'multipart/form-data',
+    parameters: {
+      file: {
+        required: true,
+        type: 'File',
+        description: 'The file to upload'
+      },
+      conversationId: {
+        required: false,
+        type: 'string',
+        description: 'Optional conversation ID to associate file with'
+      }
+    },
+    limits: {
+      maxFileSize: '50MB',
+      supportedTypes: 'Audio, Video, Images, Code, Documents, Data files'
+    },
+    response: {
+      success: true,
+      url: 'https://storage.example.com/path/to/file.ext',
+      fileName: 'example.pdf',
+      fileSize: 1024000,
+      fileType: 'application/pdf'
+    }
+  });
 }

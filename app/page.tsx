@@ -11,6 +11,7 @@ import ChatHistory from '@/components/chat/ChatHistory';
 import MemoryTimeline from '@/components/consciousness/MemoryTimeline';
 import { useAuth } from '@/contexts/auth-context';
 import { getVoiceInput, getVoiceOutput, isSpeechRecognitionAvailable, isSpeechSynthesisAvailable } from '@/lib/voice/voice-handler';
+import { useConsciousnessState } from '@/hooks/useConsciousnessState';
 
 interface Message {
   id: string;
@@ -24,6 +25,12 @@ interface Message {
 export default function ChatPage() {
   const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
+  
+  // Fetch real consciousness state
+  const { state: consciousnessState, refresh: refreshConsciousness } = useConsciousnessState({
+    refreshInterval: 30000, // Update every 30 seconds
+    enabled: true
+  });
   const [isTyping, setIsTyping] = useState(false);
   const [showChatHistory, setShowChatHistory] = useState(true); // Chat history instead of goals
   const [showMemory, setShowMemory] = useState(false);
@@ -222,6 +229,9 @@ export default function ChatPage() {
         saveMessageToDb(currentConversationId, 'assistant', accumulatedContent, 'curious');
       }
 
+      // Refresh consciousness state after interaction
+      refreshConsciousness();
+
       setIsTyping(false);
     } catch (error) {
       console.error('Chat error:', error);
@@ -243,9 +253,79 @@ export default function ChatPage() {
     }
   };
 
-  const handleFileUpload = (files: File[]) => {
-    console.log('Files uploaded:', files);
-    // TODO: Implement file upload logic
+  const handleFileUpload = async (files: File[]) => {
+    if (!files || files.length === 0) return;
+
+    try {
+      // Show uploading message
+      const uploadingMessage: Message = {
+        id: `upload-${Date.now()}`,
+        role: 'assistant',
+        content: `📤 Uploading ${files.length} file(s)...`,
+        timestamp: new Date(),
+        thinking: true
+      };
+      setMessages(prev => [...prev, uploadingMessage]);
+
+      // Upload files in parallel
+      const uploadPromises = files.map(async (file) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('conversationId', currentConversationId || '');
+
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Upload failed');
+        }
+
+        return await response.json();
+      });
+
+      const results = await Promise.all(uploadPromises);
+
+      // Remove uploading message
+      setMessages(prev => prev.filter(m => m.id !== uploadingMessage.id));
+
+      // Add success message with file links
+      const fileLinks = results.map(r => 
+        `- [${r.fileName}](${r.url}) (${(r.fileSize / 1024).toFixed(1)} KB)`
+      ).join('\n');
+
+      const successMessage: Message = {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: `✅ **Files uploaded successfully!**\n\n${fileLinks}\n\nHow would you like me to help with these files?`,
+        timestamp: new Date(),
+        emotion: 'confident'
+      };
+      setMessages(prev => [...prev, successMessage]);
+
+      // Save to database
+      if (currentConversationId) {
+        saveMessageToDb(currentConversationId, 'assistant', successMessage.content, 'confident');
+      }
+
+    } catch (error) {
+      console.error('File upload error:', error);
+      
+      // Remove uploading message
+      setMessages(prev => prev.filter(m => m.thinking));
+      
+      // Show error message
+      const errorMessage: Message = {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: `❌ **Upload failed**: ${error instanceof Error ? error.message : 'Unknown error'}\n\nPlease try again or check your file size (max 50MB).`,
+        timestamp: new Date(),
+        emotion: 'concerned'
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    }
   };
 
   const handleVoiceInput = () => {
@@ -392,7 +472,7 @@ export default function ChatPage() {
                 </motion.button>
 
                 {/* Brain Consciousness Indicator */}
-                <BrainConsciousnessIndicator />
+                <BrainConsciousnessIndicator state={consciousnessState} />
               </div>
             </div>
           </motion.div>
