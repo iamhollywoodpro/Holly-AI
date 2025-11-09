@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/database/supabase-config';
 import { getAuthUser } from '@/lib/auth/auth-helpers';
 import { getUserGoals } from '@/lib/consciousness/user-consciousness-simple';
+import { GoalFormationSystem } from '@/lib/consciousness/goal-formation';
+import { MemoryStream } from '@/lib/consciousness/memory-stream';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -89,8 +91,9 @@ export async function POST(request: Request) {
     
     const maxGoals = body.max_goals || 3;
 
-    // Initialize user-scoped consciousness
-    const { goals: goalSystem, memory } = createUserConsciousness(supabaseAdmin!, user.id);
+    // Initialize consciousness systems
+    const goalSystem = new GoalFormationSystem(supabaseAdmin!);
+    const memory = new MemoryStream(supabaseAdmin!);
 
     // Get current identity
     const identity = await memory.getIdentity();
@@ -193,8 +196,8 @@ export async function PUT(request: Request) {
       );
     }
 
-    // Initialize user-scoped consciousness
-    const { goals: goalSystem } = createUserConsciousness(supabaseAdmin!, user.id);
+    // Initialize goal system
+    const goalSystem = new GoalFormationSystem(supabaseAdmin!);
 
     // Update progress
     const updatedGoal = await goalSystem.updateProgress(
