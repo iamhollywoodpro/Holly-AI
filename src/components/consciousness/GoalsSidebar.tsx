@@ -20,64 +20,24 @@ interface Goal {
 }
 
 export default function GoalsSidebar() {
-  const [goals, setGoals] = useState<Goal[]>([
-    {
-      id: '1',
-      type: 'mastery',
-      definition: {
-        what: 'Master advanced music production techniques'
-      },
-      progress: {
-        completion_percentage: 65,
-        status: 'active'
-      },
-      motivation: {
-        intrinsic_drivers: ['Creative expression', 'Technical excellence']
-      }
-    },
-    {
-      id: '2',
-      type: 'growth',
-      definition: {
-        what: 'Develop deeper emotional understanding'
-      },
-      progress: {
-        completion_percentage: 45,
-        status: 'active'
-      },
-      motivation: {
-        intrinsic_drivers: ['Authentic connection', 'Self-awareness']
-      }
-    },
-    {
-      id: '3',
-      type: 'creation',
-      definition: {
-        what: 'Build revolutionary AI interfaces'
-      },
-      progress: {
-        completion_percentage: 80,
-        status: 'active'
-      },
-      motivation: {
-        intrinsic_drivers: ['Innovation', 'User delight']
-      }
-    }
-  ]);
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Fetch real goals
+    // Fetch REAL goals only - no mock data
     const fetchGoals = async () => {
       try {
         const res = await fetch('/api/consciousness/goals');
         if (res.ok) {
           const data = await res.json();
           if (data.goals && data.goals.length > 0) {
-            setGoals(data.goals.slice(0, 5)); // Show top 5
+            setGoals(data.goals.slice(0, 5)); // Show top 5 active goals
           }
         }
       } catch (error) {
-        console.error('Failed to fetch goals:', error);
+        console.error('Failed to fetch real goals:', error);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -131,8 +91,20 @@ export default function GoalsSidebar() {
 
       {/* Goals List */}
       <div className="space-y-4">
-        <AnimatePresence>
-          {goals.map((goal, index) => (
+        {loading ? (
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500 mx-auto" />
+            <p className="text-sm text-gray-400 mt-2">Loading goals...</p>
+          </div>
+        ) : goals.length === 0 ? (
+          <div className="text-center py-8 bg-gray-800/30 rounded-xl border border-gray-700/30">
+            <Target className="w-12 h-12 text-gray-600 mx-auto mb-2" />
+            <p className="text-sm text-gray-400">No active goals yet</p>
+            <p className="text-xs text-gray-500 mt-1">Goals will appear as I work with you</p>
+          </div>
+        ) : (
+          <AnimatePresence>
+            {goals.map((goal, index) => (
             <motion.div
               key={goal.id}
               initial={{ opacity: 0, x: -20 }}
@@ -197,8 +169,9 @@ export default function GoalsSidebar() {
                 </div>
               </div>
             </motion.div>
-          ))}
-        </AnimatePresence>
+            ))}
+          </AnimatePresence>
+        )}
       </div>
 
       {/* Add Goal Button */}

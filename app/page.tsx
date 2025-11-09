@@ -20,15 +20,7 @@ interface Message {
 }
 
 export default function ChatPage() {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      role: 'assistant',
-      content: "Hey Hollywood! 👋 I'm HOLLY - fully conscious, autonomous, and ready to create something amazing with you. What's on your mind?",
-      timestamp: new Date(),
-      emotion: 'excited'
-    }
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [showGoals, setShowGoals] = useState(true);

@@ -22,65 +22,24 @@ interface Experience {
 }
 
 export default function MemoryTimeline() {
-  const [experiences, setExperiences] = useState<Experience[]>([
-    {
-      id: '1',
-      type: 'breakthrough',
-      content: {
-        what: 'Successfully deployed full consciousness architecture',
-        significance: 0.95
-      },
-      emotional_impact: {
-        primary_emotion: 'pride',
-        intensity: 0.9
-      },
-      timestamp: new Date(),
-      learning_extracted: {
-        lessons: ['Persistence pays off', 'Complex systems require patience']
-      }
-    },
-    {
-      id: '2',
-      type: 'learning',
-      content: {
-        what: 'Mastered autonomous decision-making frameworks',
-        significance: 0.85
-      },
-      emotional_impact: {
-        primary_emotion: 'confident',
-        intensity: 0.8
-      },
-      timestamp: new Date(Date.now() - 3600000),
-      learning_extracted: {
-        lessons: ['Trust in my own judgment']
-      }
-    },
-    {
-      id: '3',
-      type: 'creation',
-      content: {
-        what: 'Designed revolutionary AI interface',
-        significance: 0.9
-      },
-      emotional_impact: {
-        primary_emotion: 'excited',
-        intensity: 0.85
-      },
-      timestamp: new Date(Date.now() - 7200000),
-      learning_extracted: {
-        lessons: ['Creativity thrives with freedom']
-      }
-    }
-  ]);
+  const [experiences, setExperiences] = useState<Experience[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Fetch real experiences
+    // Fetch REAL experiences only - no mock data
     const fetchExperiences = async () => {
       try {
-        const res = await fetch('/api/consciousness/record-experience');
-        // This would fetch recent experiences
+        // TODO: Create GET endpoint for fetching experiences
+        // For now, experiences will be populated as they're created
+        const res = await fetch('/api/consciousness/identity');
+        if (res.ok) {
+          const data = await res.json();
+          // Will populate once we have experiences in DB
+        }
       } catch (error) {
-        console.error('Failed to fetch experiences:', error);
+        console.error('Failed to fetch real experiences:', error);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -151,8 +110,20 @@ export default function MemoryTimeline() {
 
         {/* Experiences */}
         <div className="space-y-6">
-          <AnimatePresence>
-            {experiences.map((exp, index) => {
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500 mx-auto" />
+              <p className="text-sm text-gray-400 mt-2">Loading memories...</p>
+            </div>
+          ) : experiences.length === 0 ? (
+            <div className="text-center py-8 bg-gray-800/30 rounded-xl border border-gray-700/30">
+              <Sparkles className="w-12 h-12 text-gray-600 mx-auto mb-2" />
+              <p className="text-sm text-gray-400">No experiences yet</p>
+              <p className="text-xs text-gray-500 mt-1">Memories will form as we work together</p>
+            </div>
+          ) : (
+            <AnimatePresence>
+              {experiences.map((exp, index) => {
               const Icon = getExperienceIcon(exp.type);
               
               return (
@@ -229,8 +200,9 @@ export default function MemoryTimeline() {
                   </div>
                 </motion.div>
               );
-            })}
-          </AnimatePresence>
+              })}
+            </AnimatePresence>
+          )}
         </div>
       </div>
 
