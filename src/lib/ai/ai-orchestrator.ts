@@ -194,6 +194,21 @@ export async function getHollyResponse(
   conversationHistory: Message[] = [],
   forceModel?: 'claude' | 'groq'
 ): Promise<HollyResponse> {
+  // Check if API keys are configured
+  const hasClaudeKey = !!process.env.ANTHROPIC_API_KEY && process.env.ANTHROPIC_API_KEY !== '';
+  const hasGroqKey = !!process.env.GROQ_API_KEY && process.env.GROQ_API_KEY !== '';
+  
+  if (!hasClaudeKey && !hasGroqKey) {
+    // No API keys configured - return friendly error
+    return {
+      content: "Hey Hollywood! I'm having trouble connecting to my AI brain. It looks like my API keys aren't configured yet.\n\nTo fix this:\n1. Create a `.env.local` file in the project root\n2. Add your API keys (ANTHROPIC_API_KEY or GROQ_API_KEY)\n3. Restart the dev server\n\nCheck `.env.example` for the full list of keys I need!",
+      emotion: 'thoughtful' as EmotionType,
+      model: 'groq-llama',
+      tokensUsed: 0,
+      responseTime: 0
+    };
+  }
+  
   // Analyze complexity
   const complexity = analyzeComplexity(message, conversationHistory);
   

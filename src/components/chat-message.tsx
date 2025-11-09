@@ -4,9 +4,12 @@ import { motion } from 'framer-motion';
 import { Message } from '@/store/chat-store';
 import { HollyAvatar } from './holly-avatar';
 import { ModelBadge } from './model-badge';
-import { User } from 'lucide-react';
+import { User, Volume2, VolumeX, Loader2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { useState } from 'react';
+import { speakText, stopSpeaking, isSpeaking } from '@/lib/voice/enhanced-voice-output';
+import { useVoiceSettings } from '@/hooks/useVoiceSettings';
 
 interface ChatMessageProps {
   message: Message;
@@ -14,6 +17,38 @@ interface ChatMessageProps {
 
 export function ChatMessage({ message }: ChatMessageProps) {
   const isAssistant = message.role === 'assistant';
+  const [isSpeakingThis, setIsSpeakingThis] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const voiceSettings = useVoiceSettings();
+
+  const handleSpeak = async () => {
+    if (isSpeakingThis) {
+      // Stop speaking this message
+      stopSpeaking();
+      setIsSpeakingThis(false);
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setIsSpeakingThis(true);
+      
+      await speakText(message.content, {
+        rate: voiceSettings.rate,
+        pitch: voiceSettings.pitch,
+        volume: voiceSettings.volume,
+        provider: voiceSettings.provider,
+        elevenLabsVoiceId: voiceSettings.elevenLabsVoiceId,
+      });
+      
+      setIsSpeakingThis(false);
+    } catch (error) {
+      console.error('Failed to speak:', error);
+      setIsSpeakingThis(false);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <motion.div
@@ -74,10 +109,30 @@ export function ChatMessage({ message }: ChatMessageProps) {
             </ReactMarkdown>
           </div>
 
-          {/* Timestamp and Model */}
+          {/* Timestamp, Model, and Voice Controls */}
           <div className={`flex items-center gap-2 mt-2 text-xs ${isAssistant ? 'text-gray-500' : 'text-white/60'}`}>
             <span>{message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
             {isAssistant && message.model && <ModelBadge model={message.model} />}
+            
+            {/* Voice Button (only for assistant messages) */}
+            {isAssistant && voiceSettings.enabled && (
+              <motion.button
+                onClick={handleSpeak}
+                disabled={isLoading}
+                className="p-1.5 rounded-full hover:bg-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+                title={isSpeakingThis ? 'Stop speaking' : 'Speak message'}
+              >
+                {isLoading ? (
+                  <Loader2 className="w-4 h-4 text-gray-400 animate-spin" />
+                ) : isSpeakingThis ? (
+                  <VolumeX className="w-4 h-4 text-purple-400" />
+                ) : (
+                  <Volume2 className="w-4 h-4 text-gray-400 hover:text-purple-400" />
+                )}
+              </motion.button>
+            )}
           </div>
         </div>
       </div>
