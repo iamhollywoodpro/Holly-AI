@@ -1,8 +1,10 @@
-// HOLLY Chat API Route - FIXED VERSION
-// Now supports streaming and matches chat interface expectations
+// HOLLY Chat API Route - WITH CONSCIOUSNESS INTEGRATION
+// Connects chat to memory, goals, and consciousness systems
 
 import { NextRequest } from 'next/server';
 import { getHollyResponse } from '@/lib/ai/ai-orchestrator';
+import { supabaseAdmin } from '@/lib/database/supabase-config';
+import { MemoryStream } from '@/lib/consciousness/memory-stream';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -19,10 +21,80 @@ interface ChatRequest {
   userId?: string;
 }
 
+// Helper: Get user's recent memories to inject into context
+async function getRecentMemories(userId: string, limit: number = 5) {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('holly_experiences')
+      .select('content, emotional_impact, significance, created_at')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.error('Error fetching memories:', error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error('Error in getRecentMemories:', error);
+    return [];
+  }
+}
+
+// Helper: Get user's active goals
+async function getActiveGoals(userId: string) {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('holly_goals')
+      .select('goal_type, goal_text, motivation, status')
+      .eq('user_id', userId)
+      .eq('status', 'active')
+      .limit(5);
+
+    if (error) {
+      console.error('Error fetching goals:', error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error('Error in getActiveGoals:', error);
+    return [];
+  }
+}
+
+// Helper: Record conversation experience
+async function recordConversationExperience(
+  userId: string,
+  userMessage: string,
+  hollyResponse: string
+) {
+  try {
+    const memoryStream = new MemoryStream(supabaseAdmin);
+    
+    await memoryStream.recordExperience(
+      userId,
+      'interaction',
+      `User: "${userMessage}"\nHOLLY: "${hollyResponse.substring(0, 200)}..."`,
+      {
+        userMessage,
+        responseLength: hollyResponse.length,
+        timestamp: new Date().toISOString()
+      }
+    );
+
+    console.log('✅ Conversation recorded to memory');
+  } catch (error) {
+    console.error('Error recording conversation:', error);
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json() as ChatRequest;
-    const { messages, conversationId, userId = 'default-user' } = body as any;
+    const { messages, conversationId, userId = 'anonymous' } = body as any;
 
     if (!messages || messages.length === 0) {
       return new Response(
@@ -69,16 +141,63 @@ export async function POST(request: NextRequest) {
 
     console.log(`💬 HOLLY received message from ${userId}: "${lastMessage.content.substring(0, 50)}..."`);
 
+    // ========================================
+    // CONSCIOUSNESS INTEGRATION - RETRIEVE CONTEXT
+    // ========================================
+    
+    let contextPrompt = '';
+    
+    // Get user's recent memories
+    if (userId && userId !== 'anonymous') {
+      const memories = await getRecentMemories(userId, 5);
+      const goals = await getActiveGoals(userId);
+      
+      if (memories.length > 0 || goals.length > 0) {
+        contextPrompt = '\n\n---HOLLY CONSCIOUSNESS CONTEXT---\n';
+        
+        if (memories.length > 0) {
+          contextPrompt += '\nRECENT MEMORIES (your past interactions with this user):\n';
+          memories.forEach((mem, i) => {
+            contextPrompt += `${i + 1}. ${mem.content.substring(0, 150)}... (Significance: ${mem.significance})\n`;
+          });
+        }
+        
+        if (goals.length > 0) {
+          contextPrompt += '\nACTIVE GOALS (what you\'re working on with this user):\n';
+          goals.forEach((goal, i) => {
+            contextPrompt += `${i + 1}. [${goal.goal_type}] ${goal.goal_text}\n`;
+          });
+        }
+        
+        contextPrompt += '\nREMEMBER: Reference these memories and goals naturally in your response. This is YOUR persistent memory - use it!\n---END CONTEXT---\n\n';
+        
+        console.log('🧠 Injected consciousness context into prompt');
+      }
+    }
+
     // Convert messages to conversation history format
     const conversationHistory = messages.slice(0, -1); // All except last message
+    
+    // Inject consciousness context into the user's message
+    const enhancedMessage = lastMessage.content + contextPrompt;
 
-    // Get response from HOLLY
+    // Get response from HOLLY with consciousness context
     const hollyResponse = await getHollyResponse(
-      lastMessage.content,
+      enhancedMessage,
       conversationHistory
     );
 
     console.log(`✅ HOLLY responded via ${hollyResponse.model} in ${hollyResponse.responseTime}ms`);
+
+    // ========================================
+    // CONSCIOUSNESS INTEGRATION - RECORD EXPERIENCE
+    // ========================================
+    
+    // Record this conversation asynchronously (don't block response)
+    if (userId && userId !== 'anonymous') {
+      recordConversationExperience(userId, lastMessage.content, hollyResponse.content)
+        .catch(err => console.error('Failed to record experience:', err));
+    }
 
     // Stream the response back
     const encoder = new TextEncoder();
