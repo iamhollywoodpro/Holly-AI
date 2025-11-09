@@ -66,26 +66,33 @@ async function getActiveGoals(userId: string) {
 }
 
 // Helper: Record conversation experience
+// TODO: Implement user-scoped memory recording
+// This should call the /api/consciousness/record-experience endpoint with user auth
 async function recordConversationExperience(
   userId: string,
   userMessage: string,
   hollyResponse: string
 ) {
   try {
-    const memoryStream = new MemoryStream(supabaseAdmin);
+    // Temporarily disabled - MemoryStream needs user_id support
+    // Will be implemented when consciousness API is integrated
+    console.log('📝 Memory recording pending user-scoped implementation');
     
-    await memoryStream.recordExperience(
-      userId,
-      'interaction',
-      `User: "${userMessage}"\nHOLLY: "${hollyResponse.substring(0, 200)}..."`,
-      {
-        userMessage,
-        responseLength: hollyResponse.length,
-        timestamp: new Date().toISOString()
-      }
-    );
-
-    console.log('✅ Conversation recorded to memory');
+    /* TODO: Implement like this:
+    await fetch('/api/consciousness/record-experience', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'interaction',
+        content: `User: "${userMessage}"\nHOLLY: "${hollyResponse.substring(0, 200)}..."`,
+        context: {
+          userMessage,
+          responseLength: hollyResponse.length
+        },
+        significance: 0.5
+      })
+    });
+    */
   } catch (error) {
     console.error('Error recording conversation:', error);
   }
