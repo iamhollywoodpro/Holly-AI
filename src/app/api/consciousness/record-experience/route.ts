@@ -6,7 +6,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 interface RecordExperienceRequest {
-  type: 'conversation' | 'achievement' | 'challenge' | 'discovery' | 'creation' | 'reflection';
+  type: 'interaction' | 'learning' | 'creation' | 'breakthrough' | 'failure' | 'reflection';
   content: string;
   context?: Record<string, any>;
   significance?: number;
@@ -22,7 +22,7 @@ interface RecordExperienceRequest {
  * @example
  * POST /api/consciousness/record-experience
  * {
- *   "type": "achievement",
+ *   "type": "breakthrough",
  *   "content": "Successfully debugged 170+ TypeScript errors and deployed to production",
  *   "context": { "project": "HOLLY Music Studio", "duration_days": 3 },
  *   "significance": 0.9
