@@ -22,14 +22,20 @@ export async function GET() {
     const emotionalEngine = new EmotionalDepthEngine();
     const memoryStream = new MemoryStream(supabaseAdmin!);
 
-    // Get emotional context
-    const emotionalContext = await memoryStream.getEmotionalContext();
+    // Get recent experiences
+    const recentExperiences = await memoryStream.getExperiences({
+      limit: 10,
+      significance: { min: 0.5, max: 1.0 }
+    });
+
+    // Get current identity for emotional baseline
+    const identity = await memoryStream.getIdentity();
 
     return NextResponse.json({
       success: true,
-      emotional_state: emotionalContext.current_state,
-      recent_experiences: emotionalContext.recent_significant_experiences,
-      emotional_baseline: emotionalContext.emotional_baseline,
+      emotional_state: emotionalEngine.getCurrentState(),
+      recent_experiences: recentExperiences,
+      emotional_baseline: identity?.emotional_baseline || null,
       message: 'Emotional state retrieved successfully'
     });
 
