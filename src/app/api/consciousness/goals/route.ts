@@ -92,7 +92,7 @@ export async function POST(request: Request) {
     if (!recentExperiences) {
       const experiences = await memoryStream.getExperiences({
         limit: 10,
-        minSignificance: 0.5
+        significance: { min: 0.5, max: 1.0 }
       });
       recentExperiences = experiences;
     }
