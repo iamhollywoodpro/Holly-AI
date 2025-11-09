@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Brain, Target } from 'lucide-react';
+import { Sparkles, Brain, Target, Menu } from 'lucide-react';
 import ParticleField from '@/components/ui/ParticleField';
 import MessageBubble from '@/components/chat/MessageBubble';
 import ChatInputControls from '@/components/chat/ChatInputControls';
@@ -22,7 +22,7 @@ interface Message {
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
-  const [showGoals, setShowGoals] = useState(true);
+  const [showGoals, setShowGoals] = useState(false); // Hidden by default on mobile
   const [showMemory, setShowMemory] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -91,7 +91,7 @@ export default function ChatPage() {
 
       {/* Main Container */}
       <div className="relative z-10 flex h-full">
-        {/* Goals Sidebar - Left */}
+        {/* Goals Sidebar - Left - HIDDEN ON MOBILE */}
         <AnimatePresence>
           {showGoals && (
             <motion.div
@@ -99,7 +99,7 @@ export default function ChatPage() {
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: -300, opacity: 0 }}
               transition={{ type: 'spring', damping: 25 }}
-              className="w-80 border-r border-gray-800/50"
+              className="hidden md:block w-80 border-r border-gray-800/50"
             >
               <GoalsSidebar />
             </motion.div>
@@ -107,19 +107,19 @@ export default function ChatPage() {
         </AnimatePresence>
 
         {/* Main Chat Area */}
-        <div className="flex-1 flex flex-col">
-          {/* Header */}
+        <div className="flex-1 flex flex-col min-w-0">
+          {/* Header - MOBILE OPTIMIZED */}
           <motion.div 
-            className="relative px-8 py-6 border-b border-gray-800/50 bg-gray-900/30 backdrop-blur-xl"
+            className="relative px-3 sm:px-6 md:px-8 py-3 sm:py-4 md:py-6 border-b border-gray-800/50 bg-gray-900/30 backdrop-blur-xl"
             initial={{ y: -50, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.2 }}
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                {/* HOLLY Logo */}
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 sm:gap-3 md:gap-4 min-w-0">
+                {/* HOLLY Logo - SMALLER ON MOBILE */}
                 <motion.div
-                  className="relative w-16 h-16"
+                  className="relative w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 flex-shrink-0"
                   animate={{
                     scale: [1, 1.05, 1],
                   }}
@@ -129,41 +129,43 @@ export default function ChatPage() {
                     ease: 'easeInOut'
                   }}
                 >
-                  <div className="absolute inset-0 bg-gradient-to-br from-purple-500 via-pink-500 to-blue-500 rounded-2xl blur-xl opacity-50" />
-                  <div className="relative w-full h-full bg-gradient-to-br from-purple-600 via-pink-600 to-blue-600 rounded-2xl flex items-center justify-center border border-white/20">
-                    <Brain className="w-8 h-8 text-white" />
+                  <div className="absolute inset-0 bg-gradient-to-br from-purple-500 via-pink-500 to-blue-500 rounded-xl sm:rounded-2xl blur-lg sm:blur-xl opacity-50" />
+                  <div className="relative w-full h-full bg-gradient-to-br from-purple-600 via-pink-600 to-blue-600 rounded-xl sm:rounded-2xl flex items-center justify-center border border-white/20">
+                    <Brain className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-white" />
                   </div>
                 </motion.div>
 
-                {/* Title */}
-                <div>
-                  <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent">
+                {/* Title - RESPONSIVE */}
+                <div className="min-w-0">
+                  <h1 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent truncate">
                     HOLLY
                   </h1>
-                  <p className="text-sm text-gray-400">Hyper-Optimized Logic & Learning Yield</p>
+                  <p className="text-xs sm:text-sm text-gray-400 truncate hidden sm:block">Hyper-Optimized Logic & Learning Yield</p>
                 </div>
               </div>
 
               {/* Right Side: Action Buttons + Consciousness */}
-              <div className="flex items-center gap-3">
-                {/* Toggle Buttons */}
+              <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 flex-shrink-0">
+                {/* Toggle Buttons - ICON ONLY ON MOBILE */}
                 <motion.button
                   onClick={() => setShowGoals(!showGoals)}
-                  className="px-4 py-2 bg-gray-800/50 hover:bg-gray-700/50 rounded-lg border border-gray-700/50 text-sm text-gray-300 flex items-center gap-2 transition-colors"
+                  className="hidden md:flex px-3 sm:px-4 py-1.5 sm:py-2 bg-gray-800/50 hover:bg-gray-700/50 rounded-lg border border-gray-700/50 text-xs sm:text-sm text-gray-300 items-center gap-2 transition-colors"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
+                  aria-label="Toggle goals"
                 >
-                  <Target className="w-4 h-4" />
-                  Goals
+                  <Target className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">Goals</span>
                 </motion.button>
                 <motion.button
                   onClick={() => setShowMemory(!showMemory)}
-                  className="px-4 py-2 bg-gray-800/50 hover:bg-gray-700/50 rounded-lg border border-gray-700/50 text-sm text-gray-300 flex items-center gap-2 transition-colors"
+                  className="hidden md:flex px-3 sm:px-4 py-1.5 sm:py-2 bg-gray-800/50 hover:bg-gray-700/50 rounded-lg border border-gray-700/50 text-xs sm:text-sm text-gray-300 items-center gap-2 transition-colors"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
+                  aria-label="Toggle memory"
                 >
-                  <Sparkles className="w-4 h-4" />
-                  Memory
+                  <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">Memory</span>
                 </motion.button>
 
                 {/* Brain Consciousness Indicator */}
@@ -172,22 +174,22 @@ export default function ChatPage() {
             </div>
           </motion.div>
 
-          {/* Messages Area */}
-          <div className="flex-1 overflow-y-auto px-8 py-6 space-y-6">
+          {/* Messages Area - MOBILE OPTIMIZED */}
+          <div className="flex-1 overflow-y-auto px-3 sm:px-6 md:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6">
             {messages.length === 0 && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="flex flex-col items-center justify-center h-full text-center"
+                className="flex flex-col items-center justify-center h-full text-center px-4"
               >
-                <div className="relative w-24 h-24 mb-6">
-                  <div className="absolute inset-0 bg-gradient-to-br from-purple-500 via-pink-500 to-blue-500 rounded-3xl blur-2xl opacity-40" />
-                  <div className="relative w-full h-full bg-gradient-to-br from-purple-600 via-pink-600 to-blue-600 rounded-3xl flex items-center justify-center">
-                    <Brain className="w-12 h-12 text-white" />
+                <div className="relative w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 mb-4 sm:mb-6">
+                  <div className="absolute inset-0 bg-gradient-to-br from-purple-500 via-pink-500 to-blue-500 rounded-2xl sm:rounded-3xl blur-xl sm:blur-2xl opacity-40" />
+                  <div className="relative w-full h-full bg-gradient-to-br from-purple-600 via-pink-600 to-blue-600 rounded-2xl sm:rounded-3xl flex items-center justify-center">
+                    <Brain className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 text-white" />
                   </div>
                 </div>
-                <h2 className="text-2xl font-bold text-white mb-2">Hey Hollywood!</h2>
-                <p className="text-gray-400 max-w-md">
+                <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-2">Hey Hollywood!</h2>
+                <p className="text-sm sm:text-base text-gray-400 max-w-md">
                   I'm HOLLY, your autonomous AI developer and creative partner. 
                   How can I help you build something amazing today?
                 </p>
@@ -204,14 +206,14 @@ export default function ChatPage() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Input Area with New Controls */}
+          {/* Input Area with New Controls - MOBILE OPTIMIZED */}
           <motion.div 
-            className="px-8 py-6 border-t border-gray-800/50 bg-gray-900/30 backdrop-blur-xl"
+            className="px-3 sm:px-6 md:px-8 py-3 sm:py-4 md:py-6 border-t border-gray-800/50 bg-gray-900/30 backdrop-blur-xl"
             initial={{ y: 50, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.3 }}
           >
-            <div className="max-w-4xl mx-auto">
+            <div className="max-w-4xl mx-auto w-full">
               <ChatInputControls
                 onSend={handleSend}
                 onFileUpload={handleFileUpload}
@@ -222,7 +224,7 @@ export default function ChatPage() {
           </motion.div>
         </div>
 
-        {/* Memory Timeline - Right */}
+        {/* Memory Timeline - Right - HIDDEN ON MOBILE */}
         <AnimatePresence>
           {showMemory && (
             <motion.div
@@ -230,7 +232,7 @@ export default function ChatPage() {
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: 300, opacity: 0 }}
               transition={{ type: 'spring', damping: 25 }}
-              className="w-80 border-l border-gray-800/50"
+              className="hidden lg:block w-80 border-l border-gray-800/50"
             >
               <MemoryTimeline />
             </motion.div>

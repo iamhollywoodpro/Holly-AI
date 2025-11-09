@@ -13,8 +13,46 @@
     --foreground: 210 40% 98%;
   }
   
+  /* Base styles */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  html {
+    overflow: hidden;
+    height: 100%;
+    /* Prevent pull-to-refresh on mobile */
+    overscroll-behavior-y: none;
+  }
+  
   body {
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
+    height: 100%;
+    overflow: hidden;
+    /* Better font rendering on mobile */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* Prevent text size adjustment on mobile */
+    -webkit-text-size-adjust: 100%;
+    /* Prevent text selection on touch */
+    -webkit-touch-callout: none;
+  }
+  
+  /* Better scrolling on mobile */
+  .overflow-y-auto {
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Fix input zoom on iOS */
+  input, textarea, select {
+    font-size: 16px;
+  }
+  
+  /* Better focus states for mobile */
+  button:focus-visible,
+  a:focus-visible {
+    outline: 2px solid rgba(147, 51, 234, 0.5);
+    outline-offset: 2px;
   }
 }
