@@ -105,8 +105,8 @@ export async function POST(request: Request) {
       interests: body.context?.interests || []
     };
 
-    // Generate goals
-    const generatedGoals = await goalSystem.generateGoals(context, maxGoals);
+    // Generate goals with context
+    const generatedGoals = await goalSystem.generateGoalsWithContext(context, maxGoals);
 
     return NextResponse.json({
       success: true,

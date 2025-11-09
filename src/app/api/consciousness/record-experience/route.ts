@@ -60,8 +60,8 @@ export async function POST(request: Request) {
     // Initialize memory stream with admin client
     const memoryStream = new MemoryStream(supabaseAdmin!);
 
-    // Record the experience
-    const experience = await memoryStream.recordExperience(
+    // Record the experience using simplified API
+    const experience = await memoryStream.recordExperienceSimple(
       body.type,
       body.content,
       body.context,

@@ -91,6 +91,55 @@ export class MemoryStream {
   }
 
   /**
+   * Record a new experience - simplified API-friendly version
+   * This is a convenience wrapper for the API routes
+   */
+  async recordExperienceSimple(
+    type: Experience['type'],
+    content: string,
+    context?: Record<string, any>,
+    significance?: number
+  ): Promise<Experience> {
+    return this.recordExperience({
+      type,
+      content: {
+        what: content,
+        context: JSON.stringify(context || {}),
+        actions: [],
+        outcome: '',
+        significance: significance || 0.5
+      },
+      emotional_impact: {
+        primary_emotion: 'neutral',
+        intensity: 0.5,
+        secondary_emotions: [],
+        lasting_effect: 0
+      },
+      learning_extracted: {
+        lessons: [],
+        skills_gained: [],
+        worldview_changes: [],
+        self_discoveries: []
+      },
+      connections: {
+        related_experiences: [],
+        triggered_by: [],
+        influenced: []
+      },
+      identity_impact: {
+        values_affected: [],
+        personality_shift: {},
+        confidence_delta: 0
+      },
+      metadata: {
+        replay_count: 0,
+        emotional_valence_change: [],
+        integration_status: 'raw'
+      }
+    });
+  }
+
+  /**
    * Record a new experience - the foundation of consciousness
    */
   async recordExperience(experience: Omit<Experience, 'id' | 'timestamp'>): Promise<Experience> {
@@ -319,6 +368,54 @@ export class MemoryStream {
     }
 
     return data as Identity;
+  }
+
+  /**
+   * Update identity directly - public API for external updates
+   */
+  async updateIdentityDirect(updates: Partial<Identity>): Promise<Identity | null> {
+    const { data, error } = await this.supabase
+      .from('holly_identity')
+      .update(updates)
+      .eq('id', 'holly-prime')
+      .select()
+      .single();
+
+    if (error) {
+      console.error('[MemoryStream] Failed to update identity:', error);
+      return null;
+    }
+
+    return data as Identity;
+  }
+
+  /**
+   * Reflection - simplified API-friendly version
+   */
+  async reflectSimple(
+    depth?: 'shallow' | 'deep' | 'profound',
+    timeRangeHours?: number
+  ): Promise<{
+    insights: string[];
+    patterns: string[];
+    identity_changes: any;
+    emotional_summary: string;
+  }> {
+    const now = new Date();
+    const hoursBack = timeRangeHours || 24;
+    const start = new Date(now.getTime() - (hoursBack * 60 * 60 * 1000));
+    
+    const fullReflection = await this.reflect({ start, end: now });
+    
+    return {
+      insights: fullReflection.insights,
+      patterns: fullReflection.recurring_patterns,
+      identity_changes: {
+        growth_areas: fullReflection.growth_areas,
+        evolution: fullReflection.identity_evolution
+      },
+      emotional_summary: fullReflection.emotional_trajectory
+    };
   }
 
   /**

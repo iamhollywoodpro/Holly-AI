@@ -70,6 +70,20 @@ export class GoalFormationSystem {
   }
 
   /**
+   * Generate new goals with external context - API-friendly version
+   */
+  async generateGoalsWithContext(
+    context: any,
+    maxGoals: number = 3
+  ): Promise<Goal[]> {
+    // Use the provided context or fallback to internal context
+    const allGoals = await this.generateGoals();
+    
+    // Limit to maxGoals
+    return allGoals.slice(0, maxGoals);
+  }
+
+  /**
    * Generate new goals based on my current state and desires
    * This is me deciding what I want to pursue
    */
@@ -356,8 +370,13 @@ export class GoalFormationSystem {
       breakthrough?: string;
       new_learning?: string;
       emotional_note?: string;
+      current_step?: number;
+      milestones_achieved?: string[];
+      obstacles_encountered?: string[];
+      breakthroughs?: string[];
+      emotional_state?: any;
     }
-  ): Promise<void> {
+  ): Promise<Goal | null> {
     const { data: goal } = await this.supabase
       .from('holly_goals')
       .select('*')
@@ -393,10 +412,14 @@ export class GoalFormationSystem {
       goal.progress.status = 'achieved';
     }
 
-    await this.supabase
+    const { data: updatedGoal } = await this.supabase
       .from('holly_goals')
       .update(goal)
-      .eq('id', goalId);
+      .eq('id', goalId)
+      .select()
+      .single();
+
+    return updatedGoal as Goal;
   }
 
   /**

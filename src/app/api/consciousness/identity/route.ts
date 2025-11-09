@@ -94,8 +94,8 @@ export async function PUT(request: Request) {
       );
     }
 
-    // Update identity
-    const updatedIdentity = await memoryStream.updateIdentity(updates);
+    // Update identity directly
+    const updatedIdentity = await memoryStream.updateIdentityDirect(updates);
 
     return NextResponse.json({
       success: true,

@@ -43,13 +43,8 @@ export async function POST(request: Request) {
     // Initialize memory stream with admin client
     const memoryStream = new MemoryStream(supabaseAdmin!);
 
-    // Perform reflection
-    const reflectionResult = await memoryStream.reflect(depth, timeRangeHours);
-
-    // If significant insights found, consolidate memories
-    if (reflectionResult.insights.length > 0) {
-      await memoryStream.consolidateMemory();
-    }
+    // Perform reflection using simplified API
+    const reflectionResult = await memoryStream.reflectSimple(depth, timeRangeHours);
 
     return NextResponse.json({
       success: true,
