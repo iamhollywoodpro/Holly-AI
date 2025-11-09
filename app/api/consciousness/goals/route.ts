@@ -107,7 +107,7 @@ export async function POST(request: Request) {
     // Get recent experiences if not provided
     let recentExperiences = body.context?.recent_experiences;
     if (!recentExperiences) {
-      const experiences = await memoryStream.getExperiences({
+      const experiences = await memory.getExperiences({
         limit: 10,
         significance: { min: 0.5, max: 1.0 }
       });
