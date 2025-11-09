@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/database/supabase-config';
-import { DecisionAuthoritySystem, DecisionContext, DecisionOption } from '@/lib/consciousness/decision-authority';
+import { DecisionAuthoritySystem, DecisionContext, DecisionOption, DecisionOutcome } from '@/lib/consciousness/decision-authority';
 import { MemoryStream } from '@/lib/consciousness/memory-stream';
 
 export const runtime = 'nodejs';
@@ -178,18 +178,20 @@ export async function PUT(request: Request) {
 
     const decisionSystem = new DecisionAuthoritySystem(supabaseAdmin!);
 
-    await decisionSystem.recordOutcome(body.decision_id, {
+    const outcome: DecisionOutcome = {
       timestamp: new Date(),
       actual_result: body.actual_result,
       success: body.success,
       learnings: body.learnings,
       impact: body.impact || {
-        on_goals: [] as string[],
-        on_identity: [] as string[],
-        on_relationships: [] as string[]
+        on_goals: [],
+        on_identity: [],
+        on_relationships: []
       },
       would_decide_same_again: body.would_decide_same_again
-    });
+    };
+
+    await decisionSystem.recordOutcome(body.decision_id, outcome);
 
     return NextResponse.json({
       success: true,
