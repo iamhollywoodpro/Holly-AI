@@ -15,6 +15,9 @@ import { useConsciousnessState } from '@/hooks/useConsciousnessState';
 import UserProfileDropdown from '@/components/ui/UserProfileDropdown';
 import FileUploadPreview from '@/components/chat/FileUploadPreview';
 import TypingIndicator from '@/components/chat/TypingIndicator';
+import KeyboardShortcuts from '@/components/ui/KeyboardShortcuts';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { HelpCircle } from 'lucide-react';
 
 interface Message {
   id: string;
@@ -34,6 +37,13 @@ export default function ChatPage() {
     refreshInterval: 30000, // Update every 30 seconds
     enabled: true
   });
+
+  // Register keyboard shortcuts
+  useKeyboardShortcuts([
+    { key: '?', handler: () => setShowKeyboardShortcuts(true), description: 'Show shortcuts' },
+    { key: 'n', ctrl: true, handler: createNewConversation, description: 'New chat' },
+    { key: '/', ctrl: true, handler: () => setShowChatHistory(!showChatHistory), description: 'Toggle history' },
+  ], !showKeyboardShortcuts); // Disable when shortcuts modal is open
   const [isTyping, setIsTyping] = useState(false);
   const [showChatHistory, setShowChatHistory] = useState(true); // Chat history instead of goals
   const [showMemory, setShowMemory] = useState(false);
@@ -41,6 +51,7 @@ export default function ChatPage() {
   const [isVoiceOutputActive, setIsVoiceOutputActive] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [showFilePreview, setShowFilePreview] = useState(false);
+  const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   const [isLoadingConversation, setIsLoadingConversation] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -504,6 +515,18 @@ export default function ChatPage() {
                   <span className="hidden sm:inline">Memory</span>
                 </motion.button>
 
+                {/* Keyboard Shortcuts Button */}
+                <motion.button
+                  onClick={() => setShowKeyboardShortcuts(true)}
+                  className="hidden sm:flex w-9 h-9 items-center justify-center rounded-lg bg-gray-800/50 hover:bg-gray-700/50 border border-gray-700/50 text-gray-400 hover:text-white transition-colors"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  aria-label="Keyboard shortcuts"
+                  title="Keyboard shortcuts (?)"
+                >
+                  <HelpCircle className="w-5 h-5" />
+                </motion.button>
+
                 {/* Brain Consciousness Indicator */}
                 <BrainConsciousnessIndicator state={consciousnessState} />
                 
@@ -551,6 +574,12 @@ export default function ChatPage() {
               onCancel={handleCancelUpload}
             />
           )}
+
+          {/* Keyboard Shortcuts Modal */}
+          <KeyboardShortcuts
+            isOpen={showKeyboardShortcuts}
+            onClose={() => setShowKeyboardShortcuts(false)}
+          />
 
           {/* Input Area with New Controls - MOBILE OPTIMIZED */}
           <motion.div 
