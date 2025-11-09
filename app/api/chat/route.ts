@@ -4,7 +4,6 @@
 import { NextRequest } from 'next/server';
 import { getHollyResponse } from '@/lib/ai/ai-orchestrator';
 import { supabaseAdmin } from '@/lib/database/supabase-config';
-import { MemoryStream } from '@/lib/consciousness/memory-stream';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
