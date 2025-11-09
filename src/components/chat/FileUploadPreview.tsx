@@ -38,7 +38,7 @@ export default function FileUploadPreview({
 
   const totalSize = files.reduce((sum, file) => sum + file.size, 0);
   const maxSize = 50 * 1024 * 1024; // 50MB
-  const exceeds Limit = totalSize > maxSize;
+  const exceedsLimit = totalSize > maxSize;
 
   return (
     <AnimatePresence>
