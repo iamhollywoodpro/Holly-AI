@@ -1,72 +1,137 @@
-// HOLLY Phase 2B: Messages API Route
-// Handles message operations within conversations
-
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { supabaseAdmin } from '@/lib/database/supabase-config';
+import { getAuthUser } from '@/lib/auth/auth-helpers';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
+/**
+ * GET /api/conversations/[id]/messages
+ * Get all messages for a specific conversation
+ */
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const { data: messages, error } = await supabase
-      .from('holly_messages')
-      .select('*')
-      .eq('conversation_id', params.id)
+    const user = await getAuthUser();
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    const conversationId = params.id;
+
+    // Verify user owns this conversation
+    const { data: conversation, error: convError } = await supabaseAdmin
+      .from('conversations')
+      .select('id')
+      .eq('id', conversationId)
+      .eq('user_id', user.id)
+      .single();
+
+    if (convError || !conversation) {
+      return NextResponse.json(
+        { error: 'Conversation not found' },
+        { status: 404 }
+      );
+    }
+
+    // Get messages
+    const { data, error } = await supabaseAdmin
+      .from('messages')
+      .select('id, role, content, emotion, created_at')
+      .eq('conversation_id', conversationId)
       .order('created_at', { ascending: true });
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error fetching messages:', error);
+      return NextResponse.json(
+        { error: 'Failed to fetch messages' },
+        { status: 500 }
+      );
+    }
 
-    return NextResponse.json({ messages });
+    return NextResponse.json({ messages: data || [] });
   } catch (error) {
-    console.error('Error fetching messages:', error);
+    console.error('Messages API error:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch messages' },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }
 }
 
+/**
+ * POST /api/conversations/[id]/messages
+ * Add a new message to a conversation
+ */
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const body = await request.json() as any;
-    const { role, content, emotion, model } = body as any;
+    const user = await getAuthUser();
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
 
-    // Save the message
-    const { data: message, error: messageError } = await supabase
-      .from('holly_messages')
+    const conversationId = params.id;
+    const { role, content, emotion } = await request.json();
+
+    if (!role || !content) {
+      return NextResponse.json(
+        { error: 'Role and content required' },
+        { status: 400 }
+      );
+    }
+
+    // Verify user owns this conversation
+    const { data: conversation, error: convError } = await supabaseAdmin
+      .from('conversations')
+      .select('id')
+      .eq('id', conversationId)
+      .eq('user_id', user.id)
+      .single();
+
+    if (convError || !conversation) {
+      return NextResponse.json(
+        { error: 'Conversation not found' },
+        { status: 404 }
+      );
+    }
+
+    // Insert message
+    const { data, error } = await supabaseAdmin
+      .from('messages')
       .insert({
-        conversation_id: params.id,
+        conversation_id: conversationId,
+        user_id: user.id,
         role,
         content,
-        emotion: emotion || null,
-        model: model || 'llama-3.3-70b-versatile',
-        metadata: {}
+        emotion: emotion || null
       })
       .select()
       .single();
 
-    if (messageError) throw messageError;
+    if (error) {
+      console.error('Error saving message:', error);
+      return NextResponse.json(
+        { error: 'Failed to save message' },
+        { status: 500 }
+      );
+    }
 
-    // Update conversation's updated_at timestamp
-    await supabase
-      .from('holly_conversations')
-      .update({ updated_at: new Date().toISOString() })
-      .eq('id', params.id);
-
-    return NextResponse.json({ message });
+    return NextResponse.json({ message: data });
   } catch (error) {
-    console.error('Error creating message:', error);
+    console.error('Save message error:', error);
     return NextResponse.json(
-      { error: 'Failed to create message' },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }
