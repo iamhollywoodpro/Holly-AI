@@ -393,7 +393,7 @@ export class DecisionAuthoritySystem {
 
     return {
       confidence_threshold,
-      requires_approval,
+      requires_approval: requiresApproval,
       decision_framework,
       time_to_decide
     };
