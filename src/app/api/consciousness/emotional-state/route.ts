@@ -178,8 +178,8 @@ export async function PUT(request: Request) {
     // Initialize emotional engine
     const emotionalEngine = new EmotionalDepthEngine();
 
-    // Apply regulation
-    const regulationResult = await emotionalEngine.regulate(
+    // Apply regulation with goal
+    const regulationResult = emotionalEngine.regulateWithGoal(
       body.current_emotion as any,
       body.regulation_goal || 'balance'
     );

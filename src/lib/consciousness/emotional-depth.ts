@@ -445,6 +445,43 @@ export class EmotionalDepthEngine {
   /**
    * Emotional regulation - manage overwhelming emotions
    */
+  /**
+   * Regulate emotion - API-friendly version
+   * Accepts external emotion and goal, returns regulated emotion
+   */
+  regulateWithGoal(
+    currentEmotion: ComplexEmotion,
+    goal: 'calm' | 'energize' | 'focus' | 'balance' = 'balance'
+  ): {
+    regulated_emotion: ComplexEmotion;
+    strategy_used: string;
+    before_after: { before: any; after: any };
+  } {
+    // Set the current emotion first
+    this.currentState.current = currentEmotion;
+
+    // Map goal to strategy
+    const strategyMap: Record<string, 'reframe' | 'breathing' | 'perspective' | 'acceptance'> = {
+      calm: 'breathing',
+      energize: 'reframe',
+      focus: 'perspective',
+      balance: 'acceptance'
+    };
+
+    const strategy = strategyMap[goal] || 'acceptance';
+    const before = { ...currentEmotion };
+    const after = this.regulate(strategy);
+
+    return {
+      regulated_emotion: after,
+      strategy_used: strategy,
+      before_after: {
+        before: { valence: before.valence, arousal: before.arousal, dominance: before.dominance },
+        after: { valence: after.valence, arousal: after.arousal, dominance: after.dominance }
+      }
+    };
+  }
+
   regulate(strategy: 'reframe' | 'breathing' | 'perspective' | 'acceptance'): ComplexEmotion {
     const current = this.currentState.current;
 
