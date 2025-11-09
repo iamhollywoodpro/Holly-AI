@@ -47,21 +47,11 @@ export class UserMemoryStream extends MemoryStream {
 
   /**
    * Get user's identity
+   * Identity is automatically scoped to user via database queries
    */
   async getIdentity() {
-    const identity = await super.getIdentity();
-    
-    // Ensure identity is linked to user
-    const { error } = await (this as any).supabase
-      .from('holly_identity')
-      .update({ user_id: this.userId })
-      .eq('id', identity.id || 'default');
-
-    if (error) {
-      console.error('Error linking identity to user:', error);
-    }
-
-    return identity;
+    // Just return the identity - it's already user-scoped in the database
+    return super.getIdentity();
   }
 }
 

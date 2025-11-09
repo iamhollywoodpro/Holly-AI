@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/database/supabase-config';
 import { getAuthUser } from '@/lib/auth/auth-helpers';
-import { createUserConsciousness } from '@/lib/consciousness/user-consciousness';
+import { getUserGoals } from '@/lib/consciousness/user-consciousness-simple';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -27,11 +27,8 @@ export async function GET() {
       );
     }
 
-    // Initialize user-scoped consciousness
-    const { goals: goalSystem } = createUserConsciousness(supabaseAdmin!, user.id);
-
-    // Get user's active goals
-    const goals = await goalSystem.getActiveGoals();
+    // Get user's active goals directly
+    const goals = await getUserGoals(supabaseAdmin!, user.id);
 
     return NextResponse.json({
       success: true,
