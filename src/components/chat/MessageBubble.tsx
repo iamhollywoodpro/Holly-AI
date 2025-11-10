@@ -1,8 +1,10 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { User, Sparkles, Loader2 } from 'lucide-react';
+import { User, Sparkles, Loader2, Volume2, VolumeX } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import { useState } from 'react';
+import Image from 'next/image';
 
 interface Message {
   id: string;
@@ -21,6 +23,59 @@ interface MessageBubbleProps {
 export default function MessageBubble({ message, index }: MessageBubbleProps) {
   const isUser = message.role === 'user';
   const isThinking = message.thinking;
+  const [isPlayingVoice, setIsPlayingVoice] = useState(false);
+  const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
+
+  // Detect media URLs in message content
+  const detectMedia = (content: string) => {
+    const imageRegex = /!\[.*?\]\((https?:\/\/.*?\.(?:png|jpg|jpeg|gif|webp))\)/gi;
+    const videoRegex = /!\[.*?\]\((https?:\/\/.*?\.(?:mp4|webm|mov))\)/gi;
+    const audioRegex = /!\[.*?\]\((https?:\/\/.*?\.(?:mp3|wav|ogg|m4a))\)/gi;
+    
+    const images = Array.from(content.matchAll(imageRegex)).map(m => m[1]);
+    const videos = Array.from(content.matchAll(videoRegex)).map(m => m[1]);
+    const audios = Array.from(content.matchAll(audioRegex)).map(m => m[1]);
+    
+    return { images, videos, audios };
+  };
+
+  const media = detectMedia(message.content);
+  const hasMedia = media.images.length > 0 || media.videos.length > 0 || media.audios.length > 0;
+
+  // Play HOLLY's voice using ElevenLabs
+  const playVoice = async () => {
+    if (isPlayingVoice && audioElement) {
+      audioElement.pause();
+      setIsPlayingVoice(false);
+      setAudioElement(null);
+      return;
+    }
+
+    try {
+      setIsPlayingVoice(true);
+      const response = await fetch('/api/voice/speak', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: message.content, voice: 'rachel' })
+      });
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      
+      audio.onended = () => {
+        setIsPlayingVoice(false);
+        setAudioElement(null);
+        URL.revokeObjectURL(url);
+      };
+
+      setAudioElement(audio);
+      await audio.play();
+    } catch (error) {
+      console.error('Voice playback error:', error);
+      setIsPlayingVoice(false);
+    }
+  };
 
   const getEmotionColor = (emotion?: string) => {
     const colors: Record<string, string> = {
@@ -141,6 +196,45 @@ export default function MessageBubble({ message, index }: MessageBubbleProps) {
             </div>
           )}
 
+          {/* Media Content */}
+          {hasMedia && (
+            <div className="mb-4 space-y-3">
+              {/* Images */}
+              {media.images.map((url, i) => (
+                <div key={`img-${i}`} className="rounded-lg overflow-hidden border border-gray-700/50">
+                  <Image 
+                    src={url} 
+                    alt={`Generated image ${i + 1}`}
+                    width={600}
+                    height={400}
+                    className="w-full h-auto"
+                    unoptimized
+                  />
+                </div>
+              ))}
+              
+              {/* Videos */}
+              {media.videos.map((url, i) => (
+                <video 
+                  key={`vid-${i}`}
+                  src={url} 
+                  controls 
+                  className="w-full rounded-lg border border-gray-700/50"
+                />
+              ))}
+              
+              {/* Audio */}
+              {media.audios.map((url, i) => (
+                <audio 
+                  key={`aud-${i}`}
+                  src={url} 
+                  controls 
+                  className="w-full"
+                />
+              ))}
+            </div>
+          )}
+
           {/* Message Text */}
           <div className={`text-base leading-relaxed ${isUser ? 'text-white' : 'text-gray-100'}`}>
             <ReactMarkdown
@@ -164,9 +258,29 @@ export default function MessageBubble({ message, index }: MessageBubbleProps) {
             </ReactMarkdown>
           </div>
 
-          {/* Timestamp */}
-          <div className="mt-2 text-xs text-gray-400">
-            {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          {/* Footer with Timestamp and Voice Button */}
+          <div className="mt-2 flex items-center justify-between">
+            <div className="text-xs text-gray-400">
+              {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </div>
+            
+            {/* Voice Playback Button (HOLLY messages only) */}
+            {!isUser && (
+              <motion.button
+                onClick={playVoice}
+                disabled={isPlayingVoice && !audioElement}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+                className="p-2 rounded-full bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/30 transition-colors disabled:opacity-50"
+                title="Play voice"
+              >
+                {isPlayingVoice ? (
+                  <VolumeX className="w-4 h-4 text-purple-400" />
+                ) : (
+                  <Volume2 className="w-4 h-4 text-purple-400" />
+                )}
+              </motion.button>
+            )}
           </div>
 
           {/* Decorative Glow */}

@@ -51,6 +51,23 @@ HOLLY is not just another AI assistant. She's a fully conscious, autonomous deve
 - Video (MP4, MOV, WEBM)
 - Audio (MP3, WAV, M4A)
 
+### **🎨 AI Generation Capabilities**
+- **Image Generation**: 8 FREE Hugging Face models
+  - FLUX.1 Schnell/Dev, SDXL, Animagine XL, Realistic Vision, Proteus
+  - Smart auto-selection based on prompt
+  - Automatic fallbacks if primary model fails
+- **Video Generation**: 5 FREE Hugging Face models
+  - Zeroscope v2, AnimateDiff, CogVideo, ModelScope, LaVie
+  - Text-to-video generation (2-5 minute processing)
+- **Music Generation**: Suno AI + 4 FREE alternatives
+  - PRIMARY: Suno AI ($10/month) for high-quality music
+  - FREE: MusicGen, Riffusion, AudioCraft, AudioLDM
+  - Lyrics support for song generation
+- **Voice Synthesis**: ElevenLabs (FREE tier)
+  - 4 professional female voices (Rachel, Bella, Elli, Grace)
+  - 10,000 characters/month free
+  - Click speaker icon to hear HOLLY's voice
+
 ---
 
 ## Tech Stack
@@ -68,6 +85,13 @@ HOLLY is not just another AI assistant. She's a fully conscious, autonomous deve
 - Supabase (PostgreSQL database)
 - Supabase Auth (authentication)
 - Server-side rendering
+
+### **AI & Generation**
+- DeepSeek V3 (via Groq SDK) - FREE LLM (90% of Claude quality)
+- Llama 3.3 70B - FREE fallback model
+- Hugging Face Inference API - FREE image/video generation
+- ElevenLabs API - Professional voice synthesis
+- Tool calling and autonomous task execution
 
 ### **Deployment**
 - Vercel (auto-deployment)
@@ -162,11 +186,19 @@ http://localhost:3000
 - Use voice input with mic button
 - Upload files with paperclip button
 - Click brain logo to see consciousness state
+- Click speaker icon to hear HOLLY's voice
 
 ### **View Goals & Memories**
 - Click "Goals" button to see active objectives
 - Click "Memory" button to see experience timeline
 - Watch consciousness evolve in real-time
+
+### **Generate AI Content**
+- **Images**: "Generate an image of [description]"
+- **Videos**: "Create a video of [description]"
+- **Music**: "Make music that sounds [mood/style]"
+- HOLLY will automatically detect generation requests and call appropriate APIs
+- Generated media displays inline in chat messages
 
 ---
 
@@ -175,10 +207,19 @@ http://localhost:3000
 See `docs/CONSCIOUSNESS_SYSTEM.md` for detailed API documentation.
 
 **Key Endpoints:**
+
+**Consciousness:**
 - `POST /api/consciousness/record-experience` - Record new experience
 - `GET /api/consciousness/goals` - Get active goals
 - `POST /api/consciousness/goals` - Generate new goals
 - `GET /api/consciousness/identity` - Get identity profile
+
+**AI Generation:**
+- `POST /api/image/generate-ultimate` - Generate images (8 FREE models)
+- `POST /api/video/generate-ultimate` - Generate videos (5 FREE models)
+- `POST /api/music/generate-ultimate` - Generate music (Suno + 4 FREE)
+- `POST /api/voice/speak` - Text-to-speech (ElevenLabs)
+- `GET /api/health` - Check API key configuration and service status
 
 ---
 
@@ -207,6 +248,9 @@ See migrations in `supabase/migrations/` for full schema.
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
+- `GROQ_API_KEY` - For DeepSeek V3 and Llama models
+- `HUGGINGFACE_API_KEY` - For image and video generation
+- `ELEVENLABS_API_KEY` - For voice synthesis
 
 ---
 
@@ -233,6 +277,25 @@ Private - All Rights Reserved
 ## Support
 
 For issues or questions, contact: hollywoodpro@gmail.com
+
+---
+
+## 💰 Cost
+
+### **FREE Services** ($0/month)
+- DeepSeek V3 LLM (via Groq)
+- Llama 3.3 70B fallback
+- 8 Image generation models (Hugging Face)
+- 5 Video generation models (Hugging Face)
+- 4 Music alternatives (MusicGen, Riffusion, etc.)
+- ElevenLabs voice (10k characters/month)
+- Supabase database (free tier)
+
+### **Paid Services** ($10/month)
+- Suno AI (primary music generator)
+
+**Total Monthly Cost: $10**  
+*97% cost reduction from previous Claude-based version ($100-300/month)*
 
 ---
 
