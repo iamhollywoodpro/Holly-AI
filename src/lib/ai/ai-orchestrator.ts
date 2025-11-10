@@ -150,4 +150,26 @@ export async function generateHollyResponse(
   }
 }
 
+// Legacy export names for backward compatibility
+export const getHollyResponse = generateHollyResponse;
+
+// Streaming version (wraps the same function)
+export async function streamHollyResponse(
+  messages: Array<{ role: string; content: string }>,
+  userId: string
+): Promise<ReadableStream> {
+  const response = await generateHollyResponse(messages, userId);
+  
+  // Convert string to streaming response
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    start(controller) {
+      controller.enqueue(encoder.encode(response));
+      controller.close();
+    }
+  });
+  
+  return stream;
+}
+
 export default generateHollyResponse;
