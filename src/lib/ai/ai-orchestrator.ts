@@ -85,7 +85,7 @@ async function executeTool(toolName: string, toolInput: any, userId: string) {
 export async function generateHollyResponse(
   messages: Array<{ role: string; content: string }>,
   userId: string
-): Promise<string> {
+): Promise<{ content: string; model?: string }> {
   try {
     // Use DeepSeek V3 - Best FREE model (90% of Claude quality)
     const completion = await groq.chat.completions.create({
@@ -123,10 +123,16 @@ export async function generateHollyResponse(
         max_tokens: 2048,
       });
 
-      return followUp.choices[0]?.message?.content || 'Done!';
+      return { 
+        content: followUp.choices[0]?.message?.content || 'Done!',
+        model: 'deepseek-v3'
+      };
     }
 
-    return message.content || 'Error generating response';
+    return { 
+      content: message.content || 'Error generating response',
+      model: 'deepseek-v3'
+    };
   } catch (error: any) {
     console.error('DeepSeek error:', error);
     
@@ -143,15 +149,34 @@ export async function generateHollyResponse(
         max_tokens: 2048,
       });
       
-      return fallback.choices[0]?.message?.content || 'Error generating response';
+      return { 
+        content: fallback.choices[0]?.message?.content || 'Error generating response',
+        model: 'llama-3.3-70b'
+      };
     } catch (fallbackError: any) {
-      return `I encountered an error: ${error.message}. Please try again.`;
+      return { 
+        content: `I encountered an error: ${error.message}. Please try again.`,
+        model: 'error'
+      };
     }
   }
 }
 
-// Legacy export names for backward compatibility
-export const getHollyResponse = generateHollyResponse;
+// Legacy wrapper for backward compatibility with old chat routes
+// Old signature: getHollyResponse(userMessage: string, history: Message[])
+export async function getHollyResponse(
+  userMessage: string,
+  history: Array<{ role: string; content: string }> = []
+): Promise<{ content: string; model?: string }> {
+  // Convert to new format: [...history, userMessage]
+  const messages = [
+    ...history,
+    { role: 'user', content: userMessage }
+  ];
+  
+  // Call new function with dummy userId (old routes don't provide it)
+  return generateHollyResponse(messages, 'legacy');
+}
 
 // Streaming version (wraps the same function)
 export async function streamHollyResponse(
@@ -160,11 +185,11 @@ export async function streamHollyResponse(
 ): Promise<ReadableStream> {
   const response = await generateHollyResponse(messages, userId);
   
-  // Convert string to streaming response
+  // Convert response object to streaming response
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     start(controller) {
-      controller.enqueue(encoder.encode(response));
+      controller.enqueue(encoder.encode(JSON.stringify(response)));
       controller.close();
     }
   });
