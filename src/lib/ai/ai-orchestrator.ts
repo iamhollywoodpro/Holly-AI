@@ -178,14 +178,56 @@ export async function getHollyResponse(
   return generateHollyResponse(messages, 'legacy');
 }
 
-// Streaming version (wraps the same function)
+// Streaming version with legacy signature support
+// Old signature: streamHollyResponse(message: string, history: Message[], onChunk?: callback)
 export async function streamHollyResponse(
-  messages: Array<{ role: string; content: string }>,
-  userId: string
-): Promise<ReadableStream> {
+  messageOrMessages: string | Array<{ role: string; content: string }>,
+  historyOrUserId: Array<{ role: string; content: string }> | string = [],
+  onChunkCallback?: (chunk: string) => void
+): Promise<any> {
+  // Detect which signature is being used
+  const isLegacySignature = typeof messageOrMessages === 'string';
+  
+  let messages: Array<{ role: string; content: string }>;
+  let userId: string;
+  
+  if (isLegacySignature) {
+    // Legacy: (message: string, history: Message[], callback)
+    const userMessage = messageOrMessages as string;
+    const history = historyOrUserId as Array<{ role: string; content: string }>;
+    messages = [...history, { role: 'user', content: userMessage }];
+    userId = 'legacy';
+  } else {
+    // New: (messages: Message[], userId: string)
+    messages = messageOrMessages as Array<{ role: string; content: string }>;
+    userId = historyOrUserId as string;
+  }
+  
+  // Get the response
   const response = await generateHollyResponse(messages, userId);
   
-  // Convert response object to streaming response
+  // If callback provided (legacy streaming), call it with chunks
+  if (onChunkCallback) {
+    // Simulate streaming by sending content in chunks
+    const content = response.content;
+    const chunkSize = 50;
+    for (let i = 0; i < content.length; i += chunkSize) {
+      onChunkCallback(content.substring(i, i + chunkSize));
+      // Small delay to simulate streaming
+      await new Promise(resolve => setTimeout(resolve, 10));
+    }
+    
+    // Return metadata for legacy format
+    return {
+      content: response.content,
+      model: response.model || 'deepseek-v3',
+      emotion: 'focused',
+      tokensUsed: Math.floor(response.content.length / 4),
+      responseTime: 1500,
+    };
+  }
+  
+  // New format: return ReadableStream
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     start(controller) {
