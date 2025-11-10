@@ -39,6 +39,13 @@ export async function POST(req: NextRequest) {
     const { prompt, userId, modelPreference } = await req.json();
     if (!prompt) return NextResponse.json({ error: 'Prompt required' }, { status: 400 });
     
+    if (!HF_TOKEN) {
+      return NextResponse.json({ 
+        error: 'Image generation unavailable',
+        details: 'HUGGINGFACE_API_KEY not configured'
+      }, { status: 503 });
+    }
+    
     let model = modelPreference ? MODELS.find(m => m.id === modelPreference) || selectModel(prompt) : selectModel(prompt);
     let buffer: Buffer;
     

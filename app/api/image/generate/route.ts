@@ -1,6 +1,6 @@
 // Redirect route for backward compatibility
-// Old UI components call /api/video/generate
-// Redirect to new /api/video/generate-ultimate
+// Old UI components call /api/image/generate
+// Redirect to new /api/image/generate-ultimate
 
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -10,18 +10,23 @@ export async function POST(req: NextRequest) {
     
     // Forward to new endpoint
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    const response = await fetch(`${baseUrl}/api/video/generate-ultimate`, {
+    const response = await fetch(`${baseUrl}/api/image/generate-ultimate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
     });
 
-    const data = await response.json();
-    return NextResponse.json(data);
+    // Return the blob directly
+    const blob = await response.blob();
+    return new NextResponse(blob, {
+      headers: {
+        'Content-Type': 'image/png',
+      },
+    });
   } catch (error: any) {
-    console.error('❌ Video redirect error:', error);
+    console.error('❌ Image redirect error:', error);
     return NextResponse.json(
-      { error: 'Video generation failed', details: error.message },
+      { error: 'Image generation failed', details: error.message },
       { status: 500 }
     );
   }
@@ -30,8 +35,8 @@ export async function POST(req: NextRequest) {
 // GET endpoint for metadata
 export async function GET() {
   return NextResponse.json({
-    message: 'This endpoint redirects to /api/video/generate-ultimate',
-    models: ['zeroscope-v2', 'animatediff', 'cogvideo', 'modelscope', 'lavie'],
+    message: 'This endpoint redirects to /api/image/generate-ultimate',
+    models: ['flux-schnell', 'flux-dev', 'sdxl', 'animagine', 'realistic', 'proteus'],
     status: 'active'
   });
 }
