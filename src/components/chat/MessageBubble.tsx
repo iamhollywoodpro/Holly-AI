@@ -264,11 +264,11 @@ export default function MessageBubble({ message, index }: MessageBubbleProps) {
             {!isUser && (
               <motion.button
                 onClick={playVoice}
-                disabled={isPlayingVoice && !audioElement}
+                disabled={false}
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}
-                className="p-2 rounded-full bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/30 transition-colors disabled:opacity-50"
-                title="Play voice"
+                className="p-2 rounded-full bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/30 transition-colors"
+                title={isPlayingVoice ? "Stop voice" : "Play voice"}
               >
                 {isPlayingVoice ? (
                   <VolumeX className="w-4 h-4 text-purple-400" />
