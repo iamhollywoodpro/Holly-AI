@@ -377,11 +377,11 @@ export default function ChatPage() {
   };
 
   // Keyboard shortcuts
-  useKeyboardShortcuts({
-    'ctrl+k': () => setShowKeyboardShortcuts(true),
-    'ctrl+/': () => setShowVoiceSettings(true),
-    'ctrl+n': () => createNewConversation(),
-  });
+  useKeyboardShortcuts([
+    { key: 'k', ctrl: true, handler: () => setShowKeyboardShortcuts(true), description: 'Show keyboard shortcuts' },
+    { key: '/', ctrl: true, handler: () => setShowVoiceSettings(true), description: 'Open voice settings' },
+    { key: 'n', ctrl: true, handler: () => createNewConversation(), description: 'New conversation' },
+  ]);
 
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 overflow-hidden">
