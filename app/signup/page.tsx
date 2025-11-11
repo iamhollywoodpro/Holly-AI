@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { getSupabaseBrowserClient } from '@/lib/auth/supabase-client';
 import { motion } from 'framer-motion';
 import { Brain, Mail, Lock, User, ArrowRight } from 'lucide-react';
 import ParticleField from '@/components/ui/ParticleField';
@@ -14,7 +14,7 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const supabase = createClientComponentClient();
+  const supabase = getSupabaseBrowserClient();
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
