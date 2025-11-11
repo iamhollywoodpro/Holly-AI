@@ -52,19 +52,19 @@ export default function BrainConsciousnessIndicator({
 
   return (
     <>
-      {/* Brain Logo with Consciousness Glow */}
+      {/* Brain Logo with Consciousness Glow - COMPACT VERSION */}
       <motion.button
         onClick={() => setShowModal(true)}
         onMouseEnter={() => setShowTooltip(true)}
         onMouseLeave={() => setShowTooltip(false)}
-        className="relative"
+        className="relative w-9 h-9 sm:w-10 sm:h-10 flex-shrink-0 z-[60]"
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         aria-label="View HOLLY's consciousness"
       >
         {/* Pulsing glow based on emotional state */}
         <motion.div
-          className={`absolute inset-0 bg-gradient-to-br ${emotionColor} rounded-xl blur-xl`}
+          className={`absolute inset-0 bg-gradient-to-br ${emotionColor} rounded-lg blur-md`}
           animate={{
             opacity: [0.3 * pulseIntensity, 0.6 * pulseIntensity, 0.3 * pulseIntensity],
             scale: [1, 1.1, 1],
@@ -76,15 +76,15 @@ export default function BrainConsciousnessIndicator({
           }}
         />
 
-        {/* Brain icon container */}
-        <div className={`relative w-full h-full bg-gradient-to-br ${emotionColor} rounded-xl flex items-center justify-center border border-white/20`}>
-          <Brain className="w-6 h-6 text-white" />
+        {/* Brain icon container - COMPACT */}
+        <div className={`relative w-full h-full bg-gradient-to-br ${emotionColor} rounded-lg flex items-center justify-center border border-white/20`}>
+          <Brain className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
         </div>
 
-        {/* Learning indicator dot */}
+        {/* Learning indicator dot - SMALLER */}
         {currentState.isLearning && (
           <motion.div
-            className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-900"
+            className="absolute -top-0.5 -right-0.5 w-2 h-2 sm:w-2.5 sm:h-2.5 bg-green-500 rounded-full border-2 border-gray-900"
             animate={{
               scale: [1, 1.2, 1],
               opacity: [1, 0.8, 1],
@@ -96,19 +96,21 @@ export default function BrainConsciousnessIndicator({
           />
         )}
         
-        {/* Tooltip on hover */}
+        {/* Tooltip on hover - FIXED Z-INDEX */}
         <AnimatePresence>
           {showTooltip && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 10 }}
-              className="absolute top-full right-0 mt-2 px-3 py-2 bg-gray-800/95 backdrop-blur-xl rounded-lg border border-gray-700/50 shadow-xl z-50 whitespace-nowrap"
+              className="fixed top-[72px] right-4 px-3 py-2 bg-gray-800/95 backdrop-blur-xl rounded-lg border border-gray-700/50 shadow-xl z-[9999] whitespace-nowrap pointer-events-none"
             >
               <div className="text-xs">
-                <p className="font-semibold text-white capitalize">{currentState.emotion}</p>
-                <p className="text-gray-400">{currentState.goalsCount} goals • {currentState.memoriesCount} memories</p>
+                <p className="font-semibold text-white capitalize mb-0.5">Feeling: {currentState.emotion}</p>
+                <p className="text-gray-400 text-[10px]">{currentState.goalsCount} goals • {currentState.memoriesCount} memories</p>
               </div>
+              {/* Arrow pointing to brain */}
+              <div className="absolute top-full right-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-800/95 -mt-px" />
             </motion.div>
           )}
         </AnimatePresence>
@@ -124,7 +126,7 @@ export default function BrainConsciousnessIndicator({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setShowModal(false)}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9998]"
             />
 
             {/* Modal */}
@@ -132,7 +134,7 @@ export default function BrainConsciousnessIndicator({
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md z-50"
+              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md z-[9999] px-4"
             >
               {/* Glow */}
               <div className={`absolute inset-0 bg-gradient-to-br ${emotionColor} rounded-3xl blur-2xl opacity-30`} />

@@ -456,7 +456,7 @@ export default function ChatPage() {
         <div className="flex-1 flex flex-col min-w-0">
           {/* Header - MOBILE OPTIMIZED */}
           <motion.div 
-            className="relative px-3 sm:px-6 md:px-8 py-3 sm:py-4 md:py-6 border-b border-gray-800/50 bg-gray-900/30 backdrop-blur-xl"
+            className="relative z-50 px-3 sm:px-6 md:px-8 py-3 sm:py-4 md:py-6 border-b border-gray-800/50 bg-gray-900/30 backdrop-blur-xl"
             initial={{ y: -50, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.2 }}
