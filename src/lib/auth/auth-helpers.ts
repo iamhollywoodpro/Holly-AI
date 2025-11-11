@@ -91,7 +91,8 @@ export async function getAuthUserFromRoute(): Promise<UserProfile | null> {
     return {
       id: user.id,
       email: user.email,
-      name: profile?.name || user.user_metadata?.name || null,
+      name: profile?.name || user.user_metadata?.name || user.email || 'User',
+      role: profile?.role || 'tester',
       avatar_url: profile?.avatar_url || user.user_metadata?.avatar_url || null,
       created_at: profile?.created_at,
       last_active: profile?.last_active,
