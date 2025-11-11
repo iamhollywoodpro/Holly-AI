@@ -1,11 +1,11 @@
 /**
- * Authentication Helper Functions
- * Server-side and client-side auth utilities
+ * Authentication Helper Functions - Modern @supabase/ssr
+ * Server-side auth utilities for Next.js 14 App Router
  */
 
-import { createServerComponentClient, createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
-import type { Database } from '@/types/supabase';
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { cookies } from 'next/headers'
+import type { Database } from '@/types/supabase'
 
 export type UserProfile = {
   id: string;
@@ -18,88 +18,79 @@ export type UserProfile = {
 };
 
 /**
- * Create Supabase client for server components
+ * Create Supabase client for Server Components and API Routes
+ * Uses modern @supabase/ssr package with proper cookie handling
  */
-export function createServerSupabaseClient() {
-  return createServerComponentClient<Database>({ cookies });
+export async function createClient() {
+  const cookieStore = cookies()
+
+  return createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value
+        },
+        set(name: string, value: string, options: CookieOptions) {
+          try {
+            cookieStore.set({ name, value, ...options })
+          } catch (error) {
+            // The `set` method was called from a Server Component.
+            // This can be ignored if you have middleware refreshing
+            // user sessions.
+          }
+        },
+        remove(name: string, options: CookieOptions) {
+          try {
+            cookieStore.set({ name, value: '', ...options })
+          } catch (error) {
+            // The `delete` method was called from a Server Component.
+            // This can be ignored if you have middleware refreshing
+            // user sessions.
+          }
+        },
+      },
+    }
+  )
 }
 
 /**
- * Create Supabase client for API Route handlers
- * USE THIS IN API ROUTES (not createServerSupabaseClient)
- */
-export function createRouteHandlerSupabaseClient() {
-  return createRouteHandlerClient<Database>({ cookies });
-}
-
-/**
- * Get authenticated user from server context
+ * Get authenticated user from Supabase session
+ * Works in both Server Components and API Routes
+ * Returns null if not authenticated
  */
 export async function getAuthUser(): Promise<UserProfile | null> {
   try {
-    const supabase = createServerSupabaseClient();
-    const { data: { user }, error } = await supabase.auth.getUser();
+    const supabase = await createClient()
+    const { data: { user }, error } = await supabase.auth.getUser()
 
     if (error || !user) {
-      return null;
+      console.error('[Auth] Error getting user:', error?.message || 'No user')
+      return null
     }
+
+    console.log('[Auth] ✅ User authenticated:', user.id, user.email)
 
     // Get user profile with additional data
     const { data: profile } = await supabase
       .from('user_profiles')
       .select('*')
       .eq('id', user.id)
-      .single();
+      .single()
 
     return {
       id: user.id,
       email: user.email,
       name: profile?.name || user.email || 'User',
       role: profile?.role || 'tester',
-      created_at: profile?.created_at,
-      last_active: profile?.last_active,
-    };
-  } catch (error) {
-    console.error('Error getting auth user:', error);
-    return null;
-  }
-}
-
-/**
- * Get authenticated user from API Route handler
- * USE THIS IN API ROUTES (not getAuthUser)
- */
-export async function getAuthUserFromRoute(): Promise<UserProfile | null> {
-  try {
-    const supabase = createRouteHandlerSupabaseClient();
-    const { data: { user }, error } = await supabase.auth.getUser();
-
-    if (error || !user) {
-      console.error('[Auth Route] Auth failed:', error?.message || 'No user');
-      return null;
-    }
-
-    console.log('[Auth Route] ✅ User authenticated:', user.id, user.email);
-
-    // Get user profile with additional data
-    const { data: profile } = await supabase
-      .from('user_profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single();
-
-    return {
-      id: user.id,
-      email: user.email,
-      name: profile?.name || user.user_metadata?.name || user.email || 'User',
-      role: profile?.role || 'tester',
       avatar_url: profile?.avatar_url || user.user_metadata?.avatar_url || null,
       created_at: profile?.created_at,
       last_active: profile?.last_active,
-    };
+    }
   } catch (error) {
-    console.error('[Auth Route] Exception:', error);
-    return null;
+    console.error('[Auth] Exception getting user:', error)
+    return null
   }
 }
 
@@ -107,33 +98,41 @@ export async function getAuthUserFromRoute(): Promise<UserProfile | null> {
  * Require authentication - throws if not authenticated
  */
 export async function requireAuth(): Promise<UserProfile> {
-  const user = await getAuthUser();
+  const user = await getAuthUser()
   
   if (!user) {
-    throw new Error('Authentication required');
+    throw new Error('Authentication required')
   }
 
-  return user;
+  return user
 }
 
 /**
  * Check if user has specific role
  */
-export function hasRole(user: UserProfile, roles: UserProfile['role'][]): boolean {
-  return roles.includes(user.role);
+export async function hasRole(role: 'owner' | 'team' | 'tester'): Promise<boolean> {
+  const user = await getAuthUser()
+  return user?.role === role
 }
 
 /**
- * Update user's last active timestamp
+ * Check if user is owner
  */
-export async function updateLastActive(userId: string): Promise<void> {
-  try {
-    const supabase = createServerSupabaseClient();
-    await supabase
-      .from('user_profiles')
-      .update({ last_active: new Date().toISOString() })
-      .eq('id', userId);
-  } catch (error) {
-    console.error('Error updating last active:', error);
+export async function isOwner(): Promise<boolean> {
+  return hasRole('owner')
+}
+
+/**
+ * Get current session
+ */
+export async function getSession() {
+  const supabase = await createClient()
+  const { data: { session }, error } = await supabase.auth.getSession()
+  
+  if (error) {
+    console.error('[Auth] Error getting session:', error)
+    return null
   }
+  
+  return session
 }

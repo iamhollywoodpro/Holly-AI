@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { uploadFile } from '@/lib/file-storage';
-import { getAuthUserFromRoute } from '@/lib/auth/auth-helpers';
+import { getAuthUser } from '@/lib/auth/auth-helpers';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -14,7 +14,7 @@ export const maxDuration = 60;
 export async function POST(request: NextRequest) {
   try {
     // Get authenticated user
-    const user = await getAuthUserFromRoute();
+    const user = await getAuthUser();
     
     // Parse form data
     const formData = await request.formData();

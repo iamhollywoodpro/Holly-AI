@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/database/supabase-config';
-import { getAuthUserFromRoute } from '@/lib/auth/auth-helpers';
+import { getAuthUser } from '@/lib/auth/auth-helpers';
 import { MemoryStream } from '@/lib/consciousness/memory-stream';
 
 export const runtime = 'nodejs';
@@ -32,7 +32,7 @@ interface RecordExperienceRequest {
 export async function POST(request: Request) {
   try {
     // Get authenticated user
-    const user = await getAuthUserFromRoute();
+    const user = await getAuthUser();
     if (!user) {
       return NextResponse.json(
         { error: 'Authentication required' },
