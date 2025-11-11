@@ -12,6 +12,7 @@ export type UserProfile = {
   name: string;
   role: 'owner' | 'team' | 'tester';
   email?: string;
+  avatar_url?: string;
   created_at?: string;
   last_active?: string;
 };
