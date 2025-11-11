@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/database/supabase-config';
-import { getAuthUser } from '@/lib/auth/auth-helpers';
+import { getAuthUserFromRoute } from '@/lib/auth/auth-helpers';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(request: NextRequest) {
   try {
-    const user = await getAuthUser();
+    const user = await getAuthUserFromRoute();
     if (!user) {
       return NextResponse.json(
         { error: 'Authentication required' },
@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const user = await getAuthUser();
+    const user = await getAuthUserFromRoute();
     if (!user) {
       return NextResponse.json(
         { error: 'Authentication required' },
@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
  */
 export async function DELETE(request: NextRequest) {
   try {
-    const user = await getAuthUser();
+    const user = await getAuthUserFromRoute();
     if (!user) {
       return NextResponse.json(
         { error: 'Authentication required' },

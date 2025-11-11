@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/database/supabase-config';
-import { getAuthUser } from '@/lib/auth/auth-helpers';
+import { getAuthUserFromRoute } from '@/lib/auth/auth-helpers';
 import { getUserGoals } from '@/lib/consciousness/user-consciousness-simple';
 import { GoalFormationSystem } from '@/lib/consciousness/goal-formation';
 import { MemoryStream } from '@/lib/consciousness/memory-stream';
@@ -21,7 +21,7 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   try {
     // Get authenticated user
-    const user = await getAuthUser();
+    const user = await getAuthUserFromRoute();
     if (!user) {
       return NextResponse.json(
         { error: 'Authentication required' },
@@ -79,7 +79,7 @@ interface GenerateGoalsRequest {
 export async function POST(request: Request) {
   try {
     // Get authenticated user
-    const user = await getAuthUser();
+    const user = await getAuthUserFromRoute();
     if (!user) {
       return NextResponse.json(
         { error: 'Authentication required' },
@@ -179,7 +179,7 @@ interface UpdateProgressRequest {
 export async function PUT(request: Request) {
   try {
     // Get authenticated user
-    const user = await getAuthUser();
+    const user = await getAuthUserFromRoute();
     if (!user) {
       return NextResponse.json(
         { error: 'Authentication required' },
