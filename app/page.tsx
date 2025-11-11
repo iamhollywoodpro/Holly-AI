@@ -527,7 +527,8 @@ export default function ChatPage() {
                 <div className="flex-1">
                   <ChatInputControls
                     onSend={handleSend}
-                    onFilesSelected={handleFilesSelected}
+                    onFileUpload={handleFilesSelected}
+                    onVoiceInput={() => {}} // Voice handled by VoiceInputButton now
                     disabled={isTyping}
                   />
                 </div>
