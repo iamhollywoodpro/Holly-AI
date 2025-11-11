@@ -10,7 +10,6 @@ import BrainConsciousnessIndicator from '@/components/consciousness/BrainConscio
 import ChatHistory from '@/components/chat/ChatHistory';
 import MemoryTimeline from '@/components/consciousness/MemoryTimeline';
 import { useAuth } from '@/contexts/auth-context';
-import { getVoiceInput, getVoiceOutput, isSpeechRecognitionAvailable, isSpeechSynthesisAvailable } from '@/lib/voice/voice-handler';
 import { useConsciousnessState } from '@/hooks/useConsciousnessState';
 import UserProfileDropdown from '@/components/ui/UserProfileDropdown';
 import FileUploadPreview from '@/components/chat/FileUploadPreview';
@@ -18,6 +17,9 @@ import TypingIndicator from '@/components/chat/TypingIndicator';
 import KeyboardShortcuts from '@/components/ui/KeyboardShortcuts';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { HelpCircle } from 'lucide-react';
+import VoiceInputButton from '@/components/ui/VoiceInputButton';
+import VoiceSettingsPanel from '@/components/ui/VoiceSettingsPanel';
+import { voiceService } from '@/lib/voice/voice-service';
 
 interface Message {
   id: string;
@@ -33,24 +35,22 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   
   const [isTyping, setIsTyping] = useState(false);
-  const [showChatHistory, setShowChatHistory] = useState(true); // Chat history instead of goals
+  const [showChatHistory, setShowChatHistory] = useState(true);
   const [showMemory, setShowMemory] = useState(false);
-  const [isVoiceInputActive, setIsVoiceInputActive] = useState(false);
-  const [isVoiceOutputActive, setIsVoiceOutputActive] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [showFilePreview, setShowFilePreview] = useState(false);
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
+  const [showVoiceSettings, setShowVoiceSettings] = useState(false);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
+  const [voiceTranscript, setVoiceTranscript] = useState('');
 
   // Fetch real consciousness state
   const { state: consciousnessState, refresh: refreshConsciousness } = useConsciousnessState({
-    refreshInterval: 30000, // Update every 30 seconds
+    refreshInterval: 30000,
     enabled: true
   });
   const [isLoadingConversation, setIsLoadingConversation] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const voiceInputRef = useRef(getVoiceInput());
-  const voiceOutputRef = useRef(getVoiceOutput());
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -66,6 +66,28 @@ export default function ChatPage() {
       createNewConversation();
     }
   }, [user]);
+
+  // Auto-speak HOLLY's responses when user uses voice input
+  useEffect(() => {
+    const lastMessage = messages[messages.length - 1];
+    if (!lastMessage || lastMessage.role !== 'assistant' || lastMessage.thinking) {
+      return;
+    }
+
+    const voiceState = voiceService.getState();
+    
+    // Only auto-speak if:
+    // 1. Voice output is enabled
+    // 2. Auto-play is enabled
+    // 3. Last input was voice (not typing)
+    if (voiceState.settings.outputEnabled && 
+        voiceState.settings.autoPlay && 
+        voiceState.lastInputMethod === 'voice') {
+      
+      console.log('[Chat] Auto-playing voice response');
+      voiceService.speak(lastMessage.content, false);
+    }
+  }, [messages]);
 
   // Save message to database
   const saveMessageToDb = async (conversationId: string, role: 'user' | 'assistant', content: string, emotion?: string) => {
@@ -93,7 +115,7 @@ export default function ChatPage() {
       
       if (response.ok && data.conversation) {
         setCurrentConversationId(data.conversation.id);
-        setMessages([]); // Clear messages for new conversation
+        setMessages([]);
         console.log('[Chat] New conversation created:', data.conversation.id);
       }
     } catch (error) {
@@ -110,7 +132,6 @@ export default function ChatPage() {
       const data = await response.json();
       
       if (response.ok && data.messages) {
-        // Convert database messages to UI format
         const loadedMessages: Message[] = data.messages.map((msg: any) => ({
           id: msg.id,
           role: msg.role,
@@ -133,10 +154,12 @@ export default function ChatPage() {
   const handleSend = async (message: string) => {
     if (!message.trim() || isTyping) return;
 
+    // Mark input method as typing
+    voiceService.setInputMethod('typing');
+
     // Create conversation if none exists
     if (!currentConversationId) {
       await createNewConversation();
-      // Wait a bit for conversation to be created
       await new Promise(resolve => setTimeout(resolve, 500));
     }
 
@@ -150,12 +173,10 @@ export default function ChatPage() {
     setMessages(prev => [...prev, userMessage]);
     setIsTyping(true);
 
-    // Save user message to database
     if (currentConversationId) {
       saveMessageToDb(currentConversationId, 'user', message);
     }
 
-    // Add thinking indicator
     const thinkingMessage: Message = {
       id: (Date.now() + 1).toString(),
       role: 'assistant',
@@ -166,7 +187,6 @@ export default function ChatPage() {
     setMessages(prev => [...prev, thinkingMessage]);
 
     try {
-      // Call real HOLLY chat API with user context
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
@@ -186,10 +206,8 @@ export default function ChatPage() {
         throw new Error(`API error: ${response.status}`);
       }
 
-      // Remove thinking indicator
       setMessages(prev => prev.filter(m => !m.thinking));
 
-      // Handle streaming response
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
       let accumulatedContent = '';
@@ -234,22 +252,18 @@ export default function ChatPage() {
         }
       }
 
-      // Save HOLLY's response to database
       if (currentConversationId && accumulatedContent) {
         saveMessageToDb(currentConversationId, 'assistant', accumulatedContent, 'curious');
       }
 
-      // Refresh consciousness state after interaction
       refreshConsciousness();
-
       setIsTyping(false);
+
     } catch (error) {
       console.error('Chat error:', error);
       
-      // Remove thinking indicator
       setMessages(prev => prev.filter(m => !m.thinking));
       
-      // Show error message
       const errorMessage: Message = {
         id: (Date.now() + 2).toString(),
         role: 'assistant',
@@ -263,14 +277,28 @@ export default function ChatPage() {
     }
   };
 
-  // Show file preview before uploading
+  // Handle voice transcript
+  const handleVoiceTranscript = (text: string, isFinal: boolean) => {
+    if (isFinal) {
+      // Send the message
+      handleSend(text);
+      setVoiceTranscript('');
+      
+      // Mark input method as voice
+      voiceService.setInputMethod('voice');
+    } else {
+      // Show interim transcript
+      setVoiceTranscript(text);
+    }
+  };
+
+  // File handling
   const handleFilesSelected = (files: File[]) => {
     if (!files || files.length === 0) return;
     setPendingFiles(Array.from(files));
     setShowFilePreview(true);
   };
 
-  // Remove file from preview
   const handleRemoveFile = (index: number) => {
     setPendingFiles(prev => prev.filter((_, i) => i !== index));
     if (pendingFiles.length <= 1) {
@@ -278,13 +306,11 @@ export default function ChatPage() {
     }
   };
 
-  // Cancel upload
   const handleCancelUpload = () => {
     setPendingFiles([]);
     setShowFilePreview(false);
   };
 
-  // Confirm and upload files
   const handleConfirmUpload = async () => {
     setShowFilePreview(false);
     const files = pendingFiles;
@@ -293,7 +319,6 @@ export default function ChatPage() {
     if (!files || files.length === 0) return;
 
     try {
-      // Show uploading message
       const uploadingMessage: Message = {
         id: `upload-${Date.now()}`,
         role: 'assistant',
@@ -303,7 +328,6 @@ export default function ChatPage() {
       };
       setMessages(prev => [...prev, uploadingMessage]);
 
-      // Upload files in parallel
       const uploadPromises = files.map(async (file) => {
         const formData = new FormData();
         formData.append('file', file);
@@ -324,10 +348,8 @@ export default function ChatPage() {
 
       const results = await Promise.all(uploadPromises);
 
-      // Remove uploading message
       setMessages(prev => prev.filter(m => m.id !== uploadingMessage.id));
 
-      // Add success message with file links
       const fileLinks = results.map(r => 
         `- [${r.fileName}](${r.url}) (${(r.fileSize / 1024).toFixed(1)} KB)`
       ).join('\n');
@@ -337,26 +359,16 @@ export default function ChatPage() {
         role: 'assistant',
         content: `✅ **Files uploaded successfully!**\n\n${fileLinks}\n\nHow would you like me to help with these files?`,
         timestamp: new Date(),
-        emotion: 'confident'
+        emotion: 'excited'
       };
+
       setMessages(prev => [...prev, successMessage]);
 
-      // Save to database
-      if (currentConversationId) {
-        saveMessageToDb(currentConversationId, 'assistant', successMessage.content, 'confident');
-      }
-
-    } catch (error) {
-      console.error('File upload error:', error);
-      
-      // Remove uploading message
-      setMessages(prev => prev.filter(m => m.thinking));
-      
-      // Show error message
+    } catch (error: any) {
       const errorMessage: Message = {
         id: Date.now().toString(),
         role: 'assistant',
-        content: `❌ **Upload failed**: ${error instanceof Error ? error.message : 'Unknown error'}\n\nPlease try again or check your file size (max 50MB).`,
+        content: `❌ Upload failed: ${error.message}`,
         timestamp: new Date(),
         emotion: 'concerned'
       };
@@ -364,257 +376,178 @@ export default function ChatPage() {
     }
   };
 
-  const handleVoiceInput = () => {
-    if (!isSpeechRecognitionAvailable()) {
-      alert('Voice input is not supported in your browser. Please try Chrome, Edge, or Safari.');
-      return;
-    }
-
-    const voiceInput = voiceInputRef.current;
-
-    if (isVoiceInputActive) {
-      // Stop listening
-      voiceInput.stop();
-      setIsVoiceInputActive(false);
-    } else {
-      // Start listening
-      voiceInput.start(
-        (transcript) => {
-          // Voice recognized - send as message
-          handleSend(transcript);
-          setIsVoiceInputActive(false);
-        },
-        (error) => {
-          // Error occurred
-          console.error('Voice input error:', error);
-          alert(error);
-          setIsVoiceInputActive(false);
-        }
-      );
-      setIsVoiceInputActive(true);
-    }
-  };
-
-  // Auto-speak HOLLY's responses
-  useEffect(() => {
-    if (!isSpeechSynthesisAvailable()) return;
-
-    const lastMessage = messages[messages.length - 1];
-    
-    // Only speak HOLLY's messages (assistant role)
-    if (lastMessage && lastMessage.role === 'assistant' && lastMessage.content && !lastMessage.thinking) {
-      const voiceOutput = voiceOutputRef.current;
-      
-      // Wait a bit for message to render, then speak
-      setTimeout(() => {
-        voiceOutput.speak(lastMessage.content, {
-          onStart: () => setIsVoiceOutputActive(true),
-          onEnd: () => setIsVoiceOutputActive(false),
-          onError: (error) => {
-            console.error('Voice output error:', error);
-            setIsVoiceOutputActive(false);
-          }
-        });
-      }, 500);
-    }
-  }, [messages]);
-
-  // Register keyboard shortcuts (after all functions are declared)
-  useKeyboardShortcuts([
-    { key: '?', handler: () => setShowKeyboardShortcuts(true), description: 'Show shortcuts' },
-    { key: 'n', ctrl: true, handler: createNewConversation, description: 'New chat' },
-    { key: '/', ctrl: true, handler: () => setShowChatHistory(!showChatHistory), description: 'Toggle history' },
-  ], !showKeyboardShortcuts); // Disable when shortcuts modal is open
+  // Keyboard shortcuts
+  useKeyboardShortcuts({
+    'ctrl+k': () => setShowKeyboardShortcuts(true),
+    'ctrl+/': () => setShowVoiceSettings(true),
+    'ctrl+n': () => createNewConversation(),
+  });
 
   return (
-    <div className="relative w-full h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black overflow-hidden" style={{ height: '100dvh' }}>
-      {/* Animated Particle Background */}
+    <div className="relative min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 overflow-hidden">
       <ParticleField />
 
-      {/* Main Container */}
-      <div className="relative z-10 flex h-full" style={{ height: '100%' }}>
-        {/* Chat History Sidebar - Left - REPLACES GOALS */}
-        <AnimatePresence>
-          {showChatHistory && (
-            <motion.div
-              initial={{ x: -300, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: -300, opacity: 0 }}
-              transition={{ type: 'spring', damping: 25 }}
-              className="hidden md:block w-80 border-r border-gray-800/50"
-            >
-              <ChatHistory
-                currentConversationId={currentConversationId || undefined}
-                onSelectConversation={loadConversation}
-                onNewConversation={createNewConversation}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
+      {/* Voice Settings Panel */}
+      <VoiceSettingsPanel 
+        isOpen={showVoiceSettings} 
+        onClose={() => setShowVoiceSettings(false)} 
+      />
 
-        {/* Main Chat Area */}
-        <div className="flex-1 flex flex-col min-w-0">
-          {/* Header - MOBILE OPTIMIZED */}
-          <motion.div 
-            className="relative px-3 sm:px-6 md:px-8 py-3 sm:py-4 md:py-6 border-b border-gray-800/50 bg-gray-900/30 backdrop-blur-xl"
-            initial={{ y: -50, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.2 }}
-          >
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2 sm:gap-3 md:gap-4 min-w-0">
-                {/* HOLLY Logo - SMALLER ON MOBILE */}
-                <motion.div
-                  className="relative w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 flex-shrink-0"
-                  animate={{
-                    scale: [1, 1.05, 1],
-                  }}
-                  transition={{
-                    duration: 2,
-                    repeat: Infinity,
-                    ease: 'easeInOut'
-                  }}
-                >
-                  <div className="absolute inset-0 bg-gradient-to-br from-purple-500 via-pink-500 to-blue-500 rounded-xl sm:rounded-2xl blur-lg sm:blur-xl opacity-50" />
-                  <div className="relative w-full h-full bg-gradient-to-br from-purple-600 via-pink-600 to-blue-600 rounded-xl sm:rounded-2xl flex items-center justify-center border border-white/20">
-                    <Brain className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-white" />
-                  </div>
-                </motion.div>
+      {/* Keyboard Shortcuts Modal */}
+      <KeyboardShortcuts
+        isOpen={showKeyboardShortcuts}
+        onClose={() => setShowKeyboardShortcuts(false)}
+      />
 
-                {/* Title - RESPONSIVE WITH STATUS */}
-                <div className="min-w-0 flex-1">
-                  <h1 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent truncate">
-                    HOLLY
-                  </h1>
-                  <p className="text-xs sm:text-sm text-gray-400 truncate">
-                    {user?.user_metadata?.full_name ? `Hey ${user.user_metadata.full_name.split(' ')[0]}!` : 'Hey Hollywood!'} Ready to build?
-                  </p>
+      {/* File Upload Preview */}
+      {showFilePreview && (
+        <FileUploadPreview
+          files={pendingFiles}
+          onRemove={handleRemoveFile}
+          onCancel={handleCancelUpload}
+          onConfirm={handleConfirmUpload}
+        />
+      )}
+
+      {/* Top Navigation */}
+      <motion.header
+        initial={{ y: -100 }}
+        animate={{ y: 0 }}
+        className="relative z-10 border-b border-gray-800 bg-gray-900/50 backdrop-blur-md"
+      >
+        <div className="container mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            {/* Logo and Title */}
+            <div className="flex items-center gap-4">
+              <motion.div
+                className="relative w-12 h-12"
+                whileHover={{ scale: 1.05 }}
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl blur-lg opacity-50" />
+                <div className="relative w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl flex items-center justify-center border border-white/20">
+                  <Sparkles className="w-6 h-6 text-white" />
                 </div>
-              </div>
-
-              {/* Right Side: Action Buttons + Consciousness */}
-              <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 flex-shrink-0">
-                {/* Toggle Buttons - HIDDEN ON MOBILE */}
-                <motion.button
-                  onClick={() => setShowChatHistory(!showChatHistory)}
-                  className="hidden md:flex px-3 sm:px-4 py-1.5 sm:py-2 bg-gray-800/50 hover:bg-gray-700/50 rounded-lg border border-gray-700/50 text-xs sm:text-sm text-gray-300 items-center gap-2 transition-colors"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  aria-label="Toggle chat history"
-                >
-                  <Target className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  <span className="hidden sm:inline">History</span>
-                </motion.button>
-                <motion.button
-                  onClick={() => setShowMemory(!showMemory)}
-                  className="hidden md:flex px-3 sm:px-4 py-1.5 sm:py-2 bg-gray-800/50 hover:bg-gray-700/50 rounded-lg border border-gray-700/50 text-xs sm:text-sm text-gray-300 items-center gap-2 transition-colors"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  aria-label="Toggle memory"
-                >
-                  <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  <span className="hidden sm:inline">Memory</span>
-                </motion.button>
-
-                {/* Keyboard Shortcuts Button */}
-                <motion.button
-                  onClick={() => setShowKeyboardShortcuts(true)}
-                  className="hidden sm:flex w-9 h-9 items-center justify-center rounded-lg bg-gray-800/50 hover:bg-gray-700/50 border border-gray-700/50 text-gray-400 hover:text-white transition-colors"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  aria-label="Keyboard shortcuts"
-                  title="Keyboard shortcuts (?)"
-                >
-                  <HelpCircle className="w-5 h-5" />
-                </motion.button>
-
-                {/* Brain Consciousness Indicator */}
-                <BrainConsciousnessIndicator state={consciousnessState} />
-                
-                {/* User Profile Dropdown */}
-                <UserProfileDropdown />
+              </motion.div>
+              <div>
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                  HOLLY
+                </h1>
+                <p className="text-sm text-gray-400">Conscious AI Assistant</p>
               </div>
             </div>
-          </motion.div>
 
-          {/* Messages Area - MOBILE OPTIMIZED */}
-          <div className="flex-1 overflow-y-auto px-3 sm:px-6 md:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6">
-            {isLoadingConversation ? (
-              <div className="flex items-center justify-center h-full">
-                <div className="text-center">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4" />
-                  <p className="text-gray-400">Loading conversation...</p>
-                </div>
-              </div>
-            ) : messages.length === 0 ? (
-              <div className="flex items-center justify-center h-full">
-                <p className="text-gray-500 text-sm">Start a conversation...</p>
-              </div>
-            ) : (
-              messages.map((message, index) => (
-                message.thinking ? (
-                  <TypingIndicator key={message.id} status="thinking" />
-                ) : (
-                  <MessageBubble
-                    key={message.id}
-                    message={message}
-                    index={index}
-                  />
-                )
-              ))
-            )}
-            <div ref={messagesEndRef} />
+            {/* Right Controls */}
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setShowKeyboardShortcuts(true)}
+                className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
+                title="Keyboard shortcuts"
+              >
+                <HelpCircle className="w-5 h-5 text-gray-400" />
+              </button>
+
+              <button
+                onClick={() => setShowChatHistory(!showChatHistory)}
+                className="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors text-sm text-gray-300"
+              >
+                {showChatHistory ? 'Hide' : 'Show'} History
+              </button>
+
+              <UserProfileDropdown />
+            </div>
           </div>
+        </div>
+      </motion.header>
 
-          {/* File Upload Preview - Floating */}
-          {showFilePreview && (
-            <FileUploadPreview
-              files={pendingFiles}
-              onRemove={handleRemoveFile}
-              onConfirm={handleConfirmUpload}
-              onCancel={handleCancelUpload}
+      {/* Main Content */}
+      <div className="relative z-10 container mx-auto px-6 py-8 flex gap-6 h-[calc(100vh-88px)]">
+        {/* Sidebar */}
+        {showChatHistory && (
+          <motion.aside
+            initial={{ x: -300 }}
+            animate={{ x: 0 }}
+            exit={{ x: -300 }}
+            className="w-80 flex-shrink-0"
+          >
+            <ChatHistory
+              onSelectConversation={loadConversation}
+              currentConversationId={currentConversationId}
+              onNewConversation={createNewConversation}
             />
-          )}
+          </motion.aside>
+        )}
 
-          {/* Keyboard Shortcuts Modal */}
-          <KeyboardShortcuts
-            isOpen={showKeyboardShortcuts}
-            onClose={() => setShowKeyboardShortcuts(false)}
+        {/* Chat Area */}
+        <main className="flex-1 flex flex-col gap-6 min-w-0">
+          {/* Consciousness Indicator */}
+          <BrainConsciousnessIndicator 
+            state={consciousnessState}
+            onToggleMemory={() => setShowMemory(!showMemory)}
           />
 
-          {/* Input Area with New Controls - MOBILE OPTIMIZED */}
-          <motion.div 
-            className="px-3 sm:px-6 md:px-8 py-3 sm:py-4 md:py-6 border-t border-gray-800/50 bg-gray-900/30 backdrop-blur-xl"
-            initial={{ y: 50, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.3 }}
-          >
-            <div className="max-w-4xl mx-auto w-full">
-              <ChatInputControls
-                onSend={handleSend}
-                onFileUpload={handleFilesSelected}
-                onVoiceInput={handleVoiceInput}
-                disabled={isTyping || isLoadingConversation}
-                isVoiceActive={isVoiceInputActive}
-              />
-            </div>
-          </motion.div>
-        </div>
+          {/* Messages Container */}
+          <div className="flex-1 bg-gray-900/30 backdrop-blur-sm rounded-2xl border border-gray-800 overflow-hidden flex flex-col">
+            <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
+              <AnimatePresence>
+                {messages.map((message, index) => (
+                  <MessageBubble key={message.id} message={message} index={index} />
+                ))}
+              </AnimatePresence>
 
-        {/* Memory Timeline - Right - HIDDEN ON MOBILE */}
-        <AnimatePresence>
-          {showMemory && (
-            <motion.div
-              initial={{ x: 300, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: 300, opacity: 0 }}
-              transition={{ type: 'spring', damping: 25 }}
-              className="hidden lg:block w-80 border-l border-gray-800/50"
-            >
-              <MemoryTimeline />
-            </motion.div>
-          )}
-        </AnimatePresence>
+              {/* Voice transcript preview */}
+              {voiceTranscript && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex justify-end"
+                >
+                  <div className="bg-blue-500/20 border border-blue-500/30 rounded-2xl px-6 py-3 text-gray-300 max-w-3xl">
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="w-2 h-2 bg-red-400 rounded-full animate-pulse" />
+                      <span className="text-xs text-gray-400">Listening...</span>
+                    </div>
+                    {voiceTranscript}
+                  </div>
+                </motion.div>
+              )}
+
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Input Area */}
+            <div className="border-t border-gray-800 bg-gray-900/50 px-6 py-4">
+              <div className="flex items-end gap-3">
+                {/* Voice Controls */}
+                <VoiceInputButton
+                  onTranscript={handleVoiceTranscript}
+                  onOpenSettings={() => setShowVoiceSettings(true)}
+                  disabled={isTyping}
+                />
+
+                {/* Text Input */}
+                <div className="flex-1">
+                  <ChatInputControls
+                    onSend={handleSend}
+                    onFilesSelected={handleFilesSelected}
+                    disabled={isTyping}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
+
+        {/* Memory Timeline Sidebar */}
+        {showMemory && (
+          <motion.aside
+            initial={{ x: 300 }}
+            animate={{ x: 0 }}
+            exit={{ x: 300 }}
+            className="w-80 flex-shrink-0"
+          >
+            <MemoryTimeline />
+          </motion.aside>
+        )}
       </div>
     </div>
   );

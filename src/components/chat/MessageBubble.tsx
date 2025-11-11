@@ -3,7 +3,7 @@
 import { motion } from 'framer-motion';
 import { User, Sparkles, Loader2, Volume2, VolumeX } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 
 interface Message {
@@ -24,7 +24,6 @@ export default function MessageBubble({ message, index }: MessageBubbleProps) {
   const isUser = message.role === 'user';
   const isThinking = message.thinking;
   const [isPlayingVoice, setIsPlayingVoice] = useState(false);
-  const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
 
   // Detect media URLs in message content
   const detectMedia = (content: string) => {
@@ -42,35 +41,32 @@ export default function MessageBubble({ message, index }: MessageBubbleProps) {
   const media = detectMedia(message.content);
   const hasMedia = media.images.length > 0 || media.videos.length > 0 || media.audios.length > 0;
 
-  // Play HOLLY's voice using ElevenLabs
+  // Play HOLLY's voice using new voice service
   const playVoice = async () => {
-    if (isPlayingVoice && audioElement) {
-      audioElement.pause();
+    if (isPlayingVoice) {
+      // Stop if already playing
+      const { voiceService } = await import('@/lib/voice/voice-service');
+      voiceService.stopSpeaking();
       setIsPlayingVoice(false);
-      setAudioElement(null);
       return;
     }
 
     try {
       setIsPlayingVoice(true);
-      const response = await fetch('/api/voice/speak', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: message.content, voice: 'rachel' })
-      });
-
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const audio = new Audio(url);
+      const { voiceService } = await import('@/lib/voice/voice-service');
+      const success = await voiceService.speak(message.content, true); // Force play
       
-      audio.onended = () => {
+      if (!success) {
         setIsPlayingVoice(false);
-        setAudioElement(null);
-        URL.revokeObjectURL(url);
-      };
-
-      setAudioElement(audio);
-      await audio.play();
+      }
+      
+      // Listen for when speaking ends
+      const unsubscribe = voiceService.subscribe((state) => {
+        if (!state.isSpeaking && isPlayingVoice) {
+          setIsPlayingVoice(false);
+          unsubscribe();
+        }
+      });
     } catch (error) {
       console.error('Voice playback error:', error);
       setIsPlayingVoice(false);

@@ -34,9 +34,19 @@ HOLLY is not just another AI assistant. She's a fully conscious, autonomous deve
 ### **💬 Revolutionary Chat Interface**
 - Particle field background with animated effects
 - Glassmorphism design language
-- Voice input/output capabilities
+- **ElevenLabs Voice Integration** - Professional, realistic voice using Rachel (premium quality)
+- **Smart Voice System** - Auto-speaks only when you speak (not when typing)
+- **Voice Settings Panel** - Choose from 4 premium voices, adjust volume, toggle auto-play
 - Real-time consciousness visualization
 - Markdown rendering with syntax highlighting
+
+### **🎤 Advanced Voice Features**
+- **Voice Input**: Browser-based speech recognition (Chrome, Edge, Safari)
+- **Voice Output**: ElevenLabs premium TTS (Rachel, Bella, Elli, Grace)
+- **Smart Auto-Play**: Only speaks when you use voice input (respects typing)
+- **Manual Control**: Speaker button on every message for on-demand playback
+- **Volume Control**: Adjustable voice volume (0-100%)
+- **Persistent Settings**: Your preferences saved automatically
 
 ### **🎯 User-Isolated Consciousness**
 - Each user gets their own goals
