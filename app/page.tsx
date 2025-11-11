@@ -480,12 +480,14 @@ export default function ChatPage() {
         {/* Chat Area */}
         <main className="flex-1 flex flex-col gap-6 min-w-0">
           {/* Consciousness Indicator */}
-          <BrainConsciousnessIndicator 
-            state={consciousnessState}
-          />
+          <div className="flex-shrink-0">
+            <BrainConsciousnessIndicator 
+              state={consciousnessState}
+            />
+          </div>
 
           {/* Messages Container */}
-          <div className="flex-1 bg-gray-900/30 backdrop-blur-sm rounded-2xl border border-gray-800 overflow-hidden flex flex-col">
+          <div className="flex-1 bg-gray-900/30 backdrop-blur-sm rounded-2xl border border-gray-800 overflow-hidden flex flex-col min-h-0">
             <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
               <AnimatePresence>
                 {messages.map((message, index) => (
