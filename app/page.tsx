@@ -83,6 +83,7 @@ export default function ChatPage() {
   // Create new conversation
   const createNewConversation = async () => {
     try {
+      console.log('[Chat] Creating new conversation for user:', user?.id || 'none');
       const response = await fetch('/api/conversations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -90,14 +91,20 @@ export default function ChatPage() {
       });
       
       const data = await response.json();
+      console.log('[Chat] Create conversation response:', data);
       
       if (response.ok && data.conversation) {
         setCurrentConversationId(data.conversation.id);
         setMessages([]); // Clear messages for new conversation
-        console.log('[Chat] New conversation created:', data.conversation.id);
+        console.log('[Chat] ✅ New conversation created:', data.conversation.id);
+        return data.conversation.id;
+      } else {
+        console.error('[Chat] ❌ Failed to create conversation:', data.error || 'Unknown error');
+        return null;
       }
     } catch (error) {
-      console.error('Failed to create conversation:', error);
+      console.error('[Chat] ❌ Failed to create conversation (exception):', error);
+      return null;
     }
   };
 
@@ -133,12 +140,20 @@ export default function ChatPage() {
   const handleSend = async (message: string) => {
     if (!message.trim() || isTyping) return;
 
-    // Create conversation if none exists
-    if (!currentConversationId) {
-      await createNewConversation();
-      // Wait a bit for conversation to be created
-      await new Promise(resolve => setTimeout(resolve, 500));
+    // Ensure conversation exists before sending message
+    let conversationId = currentConversationId;
+    if (!conversationId) {
+      console.log('[Chat] No conversation found, creating one...');
+      conversationId = await createNewConversation();
+      if (!conversationId) {
+        console.error('[Chat] Failed to create conversation, cannot send message');
+        return;
+      }
+      // Update state
+      setCurrentConversationId(conversationId);
     }
+
+    console.log('[Chat] Sending message with conversation ID:', conversationId);
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -150,10 +165,8 @@ export default function ChatPage() {
     setMessages(prev => [...prev, userMessage]);
     setIsTyping(true);
 
-    // Save user message to database
-    if (currentConversationId) {
-      saveMessageToDb(currentConversationId, 'user', message);
-    }
+    // Save user message to database (use local conversationId, not state)
+    saveMessageToDb(conversationId, 'user', message);
 
     // Add thinking indicator
     const thinkingMessage: Message = {
@@ -234,9 +247,9 @@ export default function ChatPage() {
         }
       }
 
-      // Save HOLLY's response to database
-      if (currentConversationId && accumulatedContent) {
-        saveMessageToDb(currentConversationId, 'assistant', accumulatedContent, 'curious');
+      // Save HOLLY's response to database (use conversationId variable from handleSend)
+      if (conversationId && accumulatedContent) {
+        saveMessageToDb(conversationId, 'assistant', accumulatedContent, 'curious');
       }
 
       // Refresh consciousness state after interaction

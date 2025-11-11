@@ -202,6 +202,14 @@ class VoiceService {
     this.stopSpeaking();
 
     try {
+      console.log('[VoiceService] 🎤 Starting TTS:', {
+        text: text.substring(0, 50) + '...',
+        voice: this.state.settings.voiceModel,
+        force,
+        outputEnabled: this.state.settings.outputEnabled,
+        autoPlay: this.state.settings.autoPlay
+      });
+
       this.state.isSpeaking = true;
       this.notifyListeners();
 
@@ -215,18 +223,25 @@ class VoiceService {
         })
       });
 
+      console.log('[VoiceService] API Response:', response.status, response.statusText);
+
       if (!response.ok) {
-        throw new Error(`Voice API failed: ${response.statusText}`);
+        const errorText = await response.text();
+        console.error('[VoiceService] API Error Response:', errorText);
+        throw new Error(`Voice API failed: ${response.statusText} - ${errorText}`);
       }
 
       // Create audio element
       const blob = await response.blob();
+      console.log('[VoiceService] Audio blob received:', blob.size, 'bytes, type:', blob.type);
+      
       const url = URL.createObjectURL(blob);
       const audio = new Audio(url);
       audio.volume = this.state.settings.volume;
 
       // Setup event handlers
       audio.onended = () => {
+        console.log('[VoiceService] ✅ Audio playback finished');
         this.state.isSpeaking = false;
         this.currentAudio = null;
         this.notifyListeners();
@@ -234,7 +249,7 @@ class VoiceService {
       };
 
       audio.onerror = (error) => {
-        console.error('[VoiceService] Audio playback error:', error);
+        console.error('[VoiceService] ❌ Audio playback error:', error);
         this.state.isSpeaking = false;
         this.currentAudio = null;
         this.notifyListeners();
@@ -243,9 +258,10 @@ class VoiceService {
 
       // Play audio
       this.currentAudio = audio;
+      console.log('[VoiceService] Starting audio playback...');
       await audio.play();
 
-      console.log('[VoiceService] Speaking with ElevenLabs:', this.state.settings.voiceModel);
+      console.log('[VoiceService] ✅ Speaking with ElevenLabs voice:', this.state.settings.voiceModel);
       return true;
 
     } catch (error) {

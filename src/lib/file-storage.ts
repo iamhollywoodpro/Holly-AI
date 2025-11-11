@@ -66,13 +66,32 @@ export const FILE_TYPE_MAP: Record<string, keyof typeof STORAGE_BUCKETS> = {
   'docx': 'documents',
   'txt': 'documents',
   'md': 'documents',
+  'pages': 'documents',  // Apple Pages
+  'numbers': 'documents',  // Apple Numbers
+  'key': 'documents',  // Apple Keynote
+  'rtf': 'documents',
+  'odt': 'documents',
   
   // Data
   'csv': 'data',
   'xlsx': 'data',
   'xls': 'data',
   'xml': 'data',
-  'sql': 'data'
+  'sql': 'data',
+  
+  // Archives
+  'zip': 'documents',
+  'rar': 'documents',
+  '7z': 'documents',
+  'tar': 'documents',
+  'gz': 'documents',
+  
+  // Design Files
+  'psd': 'images',
+  'ai': 'images',
+  'sketch': 'images',
+  'fig': 'images',
+  'xd': 'images'
 };
 
 export interface UploadResult {
@@ -139,14 +158,11 @@ export async function uploadFile(
     }
 
     // Determine bucket based on file extension
-    const bucketType = FILE_TYPE_MAP[fileExtension];
+    // If unknown extension, default to 'documents' bucket
+    const bucketType = FILE_TYPE_MAP[fileExtension] || 'documents';
     
-    if (!bucketType) {
-      console.error('[uploadFile] ERROR: Unsupported file type:', fileExtension);
-      return { 
-        success: false, 
-        error: `Unsupported file type: .${fileExtension}` 
-      };
+    if (!FILE_TYPE_MAP[fileExtension]) {
+      console.warn('[uploadFile] Unknown file type, using documents bucket:', fileExtension);
     }
 
     const bucketName = STORAGE_BUCKETS[bucketType];

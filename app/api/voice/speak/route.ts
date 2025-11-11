@@ -17,7 +17,10 @@ export async function POST(req: NextRequest) {
   try {
     const { text, voice = 'rachel' } = await req.json();
 
+    console.log('🎤 [TTS API] Request:', { textLength: text?.length, voice });
+
     if (!text) {
+      console.error('❌ [TTS API] No text provided');
       return NextResponse.json(
         { error: 'Text is required' },
         { status: 400 }
@@ -25,16 +28,21 @@ export async function POST(req: NextRequest) {
     }
 
     if (!process.env.ELEVENLABS_API_KEY) {
+      console.error('❌ [TTS API] ElevenLabs API key not configured in environment variables');
+      console.error('  → Check that ELEVENLABS_API_KEY is set in .env.local');
       return NextResponse.json(
-        { error: 'ElevenLabs API key not configured' },
+        { error: 'ElevenLabs API key not configured. Please set ELEVENLABS_API_KEY in .env.local' },
         { status: 500 }
       );
     }
 
+    console.log('✅ [TTS API] API key found, length:', process.env.ELEVENLABS_API_KEY.length);
+
     // Get voice ID
     const voiceId = HOLLY_VOICES[voice as keyof typeof HOLLY_VOICES] || HOLLY_VOICES.rachel;
 
-    console.log(`🎤 Generating speech with ${voice} voice`);
+    console.log(`🎤 [TTS API] Generating speech with ${voice} voice (ID: ${voiceId})`);
+    console.log(`  → Text: "${text.substring(0, 100)}${text.length > 100 ? '...' : ''}"`);
 
     // Generate audio
     const audio = await elevenlabs.generate({
@@ -43,12 +51,16 @@ export async function POST(req: NextRequest) {
       model_id: 'eleven_monolingual_v1', // Optimized for English
     });
 
+    console.log('✅ [TTS API] Audio stream received from ElevenLabs');
+
     // Convert audio stream to buffer
     const chunks: Buffer[] = [];
     for await (const chunk of audio) {
       chunks.push(chunk);
     }
     const audioBuffer = Buffer.concat(chunks);
+
+    console.log(`✅ [TTS API] Audio generated successfully: ${audioBuffer.length} bytes`);
 
     // Return audio file
     return new NextResponse(audioBuffer, {
