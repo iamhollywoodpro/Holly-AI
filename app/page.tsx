@@ -482,7 +482,6 @@ export default function ChatPage() {
           {/* Consciousness Indicator */}
           <BrainConsciousnessIndicator 
             state={consciousnessState}
-            onToggleMemory={() => setShowMemory(!showMemory)}
           />
 
           {/* Messages Container */}
