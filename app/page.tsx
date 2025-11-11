@@ -191,7 +191,7 @@ export default function ChatPage() {
             content: m.content
           })),
           userId: user?.id || 'anonymous',
-          conversationId: currentConversationId || `chat-${Date.now()}`
+          conversationId: conversationId || `chat-${Date.now()}`
         }),
       });
 
