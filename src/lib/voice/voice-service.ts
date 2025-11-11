@@ -82,7 +82,7 @@ class VoiceService {
   // Subscribe to state changes
   subscribe(callback: (state: VoiceServiceState) => void) {
     this.listeners.add(callback);
-    return () => this.listeners.delete(callback);
+    return () => { this.listeners.delete(callback); };
   }
 
   // Notify listeners of state change
