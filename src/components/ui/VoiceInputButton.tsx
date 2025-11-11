@@ -67,13 +67,13 @@ export default function VoiceInputButton({
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-1.5 md:gap-2">
       {/* Voice Input Button */}
       <div className="relative">
         <motion.button
           onClick={toggleListening}
           disabled={disabled}
-          className={`relative w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+          className={`relative w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-all ${
             voiceState.isListening
               ? 'bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/50'
               : 'bg-blue-500 hover:bg-blue-600 shadow-lg shadow-blue-500/30'

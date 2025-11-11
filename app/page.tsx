@@ -415,12 +415,12 @@ export default function ChatPage() {
         animate={{ y: 0 }}
         className="relative z-10 border-b border-gray-800 bg-gray-900/50 backdrop-blur-md"
       >
-        <div className="container mx-auto px-6 py-4">
+        <div className="container mx-auto px-4 md:px-6 py-3 md:py-4">
           <div className="flex items-center justify-between">
             {/* Logo and Title */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 md:gap-4">
               <motion.div
-                className="relative w-12 h-12"
+                className="relative w-10 h-10 md:w-12 md:h-12"
                 whileHover={{ scale: 1.05 }}
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl blur-lg opacity-50" />
@@ -429,15 +429,23 @@ export default function ChatPage() {
                 </div>
               </motion.div>
               <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
                   HOLLY
                 </h1>
-                <p className="text-sm text-gray-400">Conscious AI Assistant</p>
+                <p className="hidden md:block text-sm text-gray-400">Conscious AI Assistant</p>
               </div>
             </div>
 
             {/* Right Controls */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 md:gap-4">
+              {/* Mobile menu button */}
+              <button
+                onClick={() => setShowChatHistory(!showChatHistory)}
+                className="lg:hidden p-2 hover:bg-gray-800 rounded-lg transition-colors"
+                title="Toggle menu"
+              >
+                <Menu className="w-5 h-5 text-gray-400" />
+              </button>
               <button
                 onClick={() => setShowKeyboardShortcuts(true)}
                 className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
@@ -448,7 +456,7 @@ export default function ChatPage() {
 
               <button
                 onClick={() => setShowChatHistory(!showChatHistory)}
-                className="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors text-sm text-gray-300"
+                className="hidden md:block px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors text-sm text-gray-300"
               >
                 {showChatHistory ? 'Hide' : 'Show'} History
               </button>
@@ -460,25 +468,36 @@ export default function ChatPage() {
       </motion.header>
 
       {/* Main Content */}
-      <div className="relative z-10 container mx-auto px-6 py-8 flex gap-6 h-[calc(100vh-88px)]">
-        {/* Sidebar */}
+      <div className="relative z-10 container mx-auto px-4 md:px-6 py-4 md:py-8 flex gap-6 h-[calc(100vh-80px)] md:h-[calc(100vh-88px)]">
+        {/* Sidebar - Overlay on mobile, inline on desktop */}
         {showChatHistory && (
-          <motion.aside
-            initial={{ x: -300 }}
-            animate={{ x: 0 }}
-            exit={{ x: -300 }}
-            className="w-80 flex-shrink-0"
-          >
+          <>
+            {/* Mobile overlay backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowChatHistory(false)}
+              className="lg:hidden fixed inset-0 bg-black/60 z-40"
+            />
+            
+            <motion.aside
+              initial={{ x: -300 }}
+              animate={{ x: 0 }}
+              exit={{ x: -300 }}
+              className="fixed lg:relative left-0 top-0 h-full w-80 flex-shrink-0 z-50 lg:z-auto"
+            >
             <ChatHistory
               onSelectConversation={loadConversation}
               currentConversationId={currentConversationId}
               onNewConversation={createNewConversation}
             />
           </motion.aside>
+          </>
         )}
 
         {/* Chat Area */}
-        <main className="flex-1 flex flex-col gap-6 min-w-0">
+        <main className="flex-1 flex flex-col gap-3 md:gap-6 min-w-0">
           {/* Consciousness Indicator */}
           <div className="flex-shrink-0">
             <BrainConsciousnessIndicator 
@@ -516,8 +535,8 @@ export default function ChatPage() {
             </div>
 
             {/* Input Area */}
-            <div className="border-t border-gray-800 bg-gray-900/50 px-6 py-4">
-              <div className="flex items-end gap-3">
+            <div className="border-t border-gray-800 bg-gray-900/50 px-3 md:px-6 py-3 md:py-4 safe-bottom">
+              <div className="flex items-end gap-2 md:gap-3">
                 {/* Voice Controls */}
                 <VoiceInputButton
                   onTranscript={handleVoiceTranscript}
@@ -539,13 +558,13 @@ export default function ChatPage() {
           </div>
         </main>
 
-        {/* Memory Timeline Sidebar */}
+        {/* Memory Timeline Sidebar - Hidden on mobile */}
         {showMemory && (
           <motion.aside
             initial={{ x: 300 }}
             animate={{ x: 0 }}
             exit={{ x: 300 }}
-            className="w-80 flex-shrink-0"
+            className="hidden lg:block w-80 flex-shrink-0"
           >
             <MemoryTimeline />
           </motion.aside>

@@ -28,6 +28,22 @@
     overscroll-behavior-y: none;
   }
   
+  /* Mobile-specific fixes */
+  @supports (height: 100dvh) {
+    html {
+      height: 100dvh;
+    }
+  }
+  
+  /* Safe area for mobile devices (iPhone notch, etc) */
+  .safe-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+  
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+  
   body {
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
