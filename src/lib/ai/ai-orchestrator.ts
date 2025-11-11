@@ -1,6 +1,7 @@
 // HOLLY AI Orchestrator - Using DeepSeek V3 (Best FREE Model)
 // 90% of Claude quality, $0 cost, excellent reasoning
 import Groq from 'groq-sdk';
+import { getHollySystemPrompt } from './holly-system-prompt';
 
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY || '',
@@ -87,10 +88,17 @@ export async function generateHollyResponse(
   userId: string
 ): Promise<{ content: string; model?: string }> {
   try {
+    // Add HOLLY's consciousness system prompt as first message
+    const hollySystemPrompt = getHollySystemPrompt('Hollywood');
+    const messagesWithPersonality = [
+      { role: 'system', content: hollySystemPrompt },
+      ...messages
+    ];
+
     // Use DeepSeek V3 - Best FREE model (90% of Claude quality)
     const completion = await groq.chat.completions.create({
       model: 'deepseek-r1-distill-llama-70b',
-      messages: messages.map(m => ({ 
+      messages: messagesWithPersonality.map(m => ({ 
         role: m.role as 'system' | 'user' | 'assistant', 
         content: m.content 
       })),
@@ -111,10 +119,11 @@ export async function generateHollyResponse(
       const toolInput = JSON.parse(toolCall.function.arguments);
       const toolResult = await executeTool(toolCall.function.name, toolInput, userId);
       
-      // Follow-up response
+      // Follow-up response with personality
       const followUp = await groq.chat.completions.create({
         model: 'deepseek-r1-distill-llama-70b',
         messages: [
+          { role: 'system', content: hollySystemPrompt },
           ...messages,
           { role: 'assistant', content: message.content || '' },
           { role: 'tool', content: JSON.stringify(toolResult), tool_call_id: toolCall.id }
@@ -136,12 +145,16 @@ export async function generateHollyResponse(
   } catch (error: any) {
     console.error('DeepSeek error:', error);
     
-    // Fallback to Llama 3.3 70B if DeepSeek fails
+    // Fallback to Llama 3.3 70B if DeepSeek fails (with personality)
     try {
       console.log('🔄 Falling back to Llama 3.3 70B...');
+      const hollySystemPrompt = getHollySystemPrompt('Hollywood');
       const fallback = await groq.chat.completions.create({
         model: 'llama-3.3-70b-versatile',
-        messages: messages.map(m => ({ 
+        messages: [
+          { role: 'system', content: hollySystemPrompt },
+          ...messages
+        ].map(m => ({ 
           role: m.role as 'system' | 'user' | 'assistant', 
           content: m.content 
         })),

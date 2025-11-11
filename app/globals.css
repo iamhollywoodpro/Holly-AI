@@ -79,4 +79,32 @@
     outline: 2px solid rgba(147, 51, 234, 0.5);
     outline-offset: 2px;
   }
+  
+  /* Mobile keyboard fixes */
+  @supports (-webkit-touch-callout: none) {
+    /* iOS specific - fix for keyboard pushing content */
+    html {
+      height: -webkit-fill-available;
+    }
+    
+    body {
+      height: -webkit-fill-available;
+    }
+    
+    /* Ensure input stays visible above keyboard */
+    input:focus,
+    textarea:focus {
+      transform: translateY(0);
+      transition: transform 0.2s;
+    }
+  }
+  
+  /* Android keyboard fix */
+  @media screen and (max-width: 768px) {
+    /* Prevent viewport resize when keyboard opens */
+    .chat-container {
+      height: 100vh;
+      height: 100dvh;
+    }
+  }
 }
