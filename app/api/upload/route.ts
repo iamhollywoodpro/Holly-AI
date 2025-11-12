@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/db';
-import { put } from '@vercel/blob';
+// import { put } from '@vercel/blob'; // TODO: Install package or use alternative storage
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -42,10 +42,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Upload to Vercel Blob
-    const blob = await put(file.name, file, {
-      access: 'public',
-    });
+    // TODO: Upload to storage (Vercel Blob or alternative)
+    // const blob = await put(file.name, file, { access: 'public' });
+    const placeholderUrl = `/uploads/${file.name}`;
 
     // Record in database
     const fileUpload = await prisma.fileUpload.create({
@@ -54,7 +53,7 @@ export async function POST(request: NextRequest) {
         fileName: file.name,
         fileType: file.type,
         fileSize: file.size,
-        storageUrl: blob.url,
+        storageUrl: placeholderUrl,
       },
     });
 

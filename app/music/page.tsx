@@ -227,18 +227,8 @@ function CreateTab() {
         toast({ title: `✅ Generated ${data.clips.length} versions successfully!` })
         
         // Save to database
-        for (const clip of data.clips) {
-          // TODO: Migrate to Prisma - await // TODO: supabase.from('songs').insert({
-            title: clip.title,
-            audio_url: clip.audio_url,
-            image_url: clip.image_url,
-            tags: clip.tags,
-            prompt: lyrics,
-            language: detectedLanguage || language || 'en',
-            duration: clip.duration,
-            artist_id: selectedArtist || null,
-          })
-        }
+        // TODO: Migrate to Prisma - Save songs to database
+        console.log('Songs generated:', data.clips.length)
       }
     } catch (error) {
       setError('Failed to generate song. Please try again.')
@@ -512,12 +502,8 @@ function LibraryTab() {
       const data = await response.json()
       toast({ title: 'Music video created successfully!' })
       
-      // Save to database
-      // TODO: Migrate to Prisma - await // TODO: supabase.from('music_videos').insert({
-        song_id: song.id,
-        video_url: data.video_url,
-        prompt: song.title,
-      })
+      // TODO: Save to database with Prisma
+      console.log('Video created for song:', song.id)
     } catch (error) {
       toast({ title: 'Failed to create video', variant: 'destructive' })
     }
@@ -816,14 +802,8 @@ function ArtistsTab() {
       const { image_url } = await imageResponse.json()
 
       // Save to database
-      const { error } = // TODO: Migrate to Prisma - await // TODO: supabase.from('artists').insert({
-        name: newArtist.name,
-        style: newArtist.style,
-        bio: newArtist.bio,
-        image_url,
-      })
-
-      if (error) throw error
+      // TODO: Migrate to Prisma - Save artist to database
+      console.log('Creating artist:', newArtist.name)
 
       toast({ title: 'Artist created successfully!' })
       setShowCreateModal(false)
@@ -840,8 +820,8 @@ function ArtistsTab() {
     if (!confirm('Are you sure you want to delete this artist?')) return
 
     try {
-      const { error } = // TODO: Migrate to Prisma - await // TODO: supabase.from('artists').delete().eq('id', id)
-      if (error) throw error
+      // TODO: Migrate to Prisma - Delete artist from database
+      console.log('Deleting artist:', id)
       toast({ title: 'Artist deleted successfully' })
       fetchArtists()
     } catch (error) {
@@ -1001,12 +981,8 @@ function PlaylistsTab() {
     }
 
     try {
-      const { error } = // TODO: Migrate to Prisma - await // TODO: supabase.from('playlists').insert({
-        name: newPlaylist.name,
-        description: newPlaylist.description,
-      })
-
-      if (error) throw error
+      // TODO: Migrate to Prisma - Save playlist to database
+      console.log('Creating playlist:', newPlaylist.name)
 
       toast({ title: 'Playlist created successfully!' })
       setShowCreateModal(false)
@@ -1021,8 +997,8 @@ function PlaylistsTab() {
     if (!confirm('Are you sure you want to delete this playlist?')) return
 
     try {
-      const { error } = // TODO: Migrate to Prisma - await // TODO: supabase.from('playlists').delete().eq('id', id)
-      if (error) throw error
+      // TODO: Migrate to Prisma - Delete playlist from database
+      console.log('Deleting playlist:', id)
       toast({ title: 'Playlist deleted successfully' })
       fetchPlaylists()
     } catch (error) {

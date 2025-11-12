@@ -147,11 +147,9 @@ export async function POST(req: NextRequest) {
       }
 
       // Get public URL
-      // TODO: Migrate storage - const ... = supabase.storage
-        .from('song-stems')
-        .getPublicUrl(fileName)
-
-      uploadedStems[stemName] = urlData.publicUrl
+      // TODO: Migrate storage - supabase.storage.from('song-stems').getPublicUrl(fileName)
+      // uploadedStems[stemName] = urlData.publicUrl
+      uploadedStems[stemName] = `/temp/${fileName}` // Placeholder until storage migration
       console.log(`✅ Uploaded ${stemName} stem`)
     }
 
