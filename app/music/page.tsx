@@ -434,16 +434,11 @@ function LibraryTab() {
   useEffect(() => {
     fetchSongs()
     
-    // Subscribe to real-time updates
-    const channel = supabase
-      .channel('songs_changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'songs' }, () => {
-        fetchSongs()
-      })
-      .subscribe()
-
+    // TODO: Subscribe to real-time updates with Prisma/Pusher
+    // const channel = supabase.channel('songs_changes')
+    
     return () => {
-      // supabase.removeChannel(channel)
+      // Cleanup
     }
   }, [])
 
