@@ -21,18 +21,18 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  conversations     Conversation[]
-  messages          Message[]
-  fileUploads       FileUpload[]
-  hollyExperiences  HollyExperience[]
-  hollyGoals        HollyGoal[]
-  hollyIdentity     HollyIdentity?
-  projects          Project[]
-  transactions      Transaction[]
-  budgets           Budget[]
-  emotionLogs       EmotionLog[]
-  tasteSignals      TasteSignal[]
-  tasteProfile      TasteProfile?
+  conversations    Conversation[]
+  messages         Message[]
+  fileUploads      FileUpload[]
+  hollyExperiences HollyExperience[]
+  hollyGoals       HollyGoal[]
+  hollyIdentity    HollyIdentity?
+  projects         Project[]
+  transactions     Transaction[]
+  budgets          Budget[]
+  emotionLogs      EmotionLog[]
+  tasteSignals     TasteSignal[]
+  tasteProfile     TasteProfile?
 
   @@index([clerkId])
   @@index([email])
@@ -42,14 +42,14 @@ model User {
 // ==================== CONVERSATIONS & MESSAGES ====================
 
 model Conversation {
-  id                 String    @id @default(cuid())
+  id                 String   @id @default(cuid())
   userId             String
-  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   title              String
-  messageCount       Int       @default(0)
-  lastMessagePreview String?   @db.Text
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  messageCount       Int      @default(0)
+  lastMessagePreview String?  @db.Text
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   messages Message[]
 
@@ -64,7 +64,7 @@ model Message {
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   userId         String
   user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role           String       // 'user' or 'assistant'
+  role           String // 'user' or 'assistant'
   content        String       @db.Text
   emotion        String?
   createdAt      DateTime     @default(now())
@@ -99,7 +99,7 @@ model HollyExperience {
   userId               String
   user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   type                 String   @default("interaction") // 'interaction', 'learning', 'creation', 'breakthrough', etc.
-  content              Json     // Flexible structure for experience data
+  content              Json // Flexible structure for experience data
   significance         Float    @default(0.5)
   emotionalImpact      Float    @default(0.5)
   emotionalValence     Float    @default(0.0)
@@ -125,9 +125,10 @@ model HollyExperience {
 model HollyIdentity {
   id                String   @id @default(cuid())
   userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   coreValues        String[] @default([])
   beliefs           String[] @default([])
-  personalityTraits Json?    // Complex personality data
+  personalityTraits Json? // Complex personality data
   interests         String[] @default([])
   strengths         String[] @default([])
   growthAreas       String[] @default([])
@@ -135,7 +136,7 @@ model HollyIdentity {
   purpose           String?  @db.Text
   selfPerception    String?  @db.Text
   confidenceLevel   Float    @default(0.5)
-  worldview         Json?    // Complex worldview data
+  worldview         Json? // Complex worldview data
   updatedAt         DateTime @updatedAt
   createdAt         DateTime @default(now())
 
@@ -150,7 +151,7 @@ model HollyGoal {
   title                String
   description          String    @db.Text
   goalType             String    @default("user_defined") // 'user_defined', 'self_generated', 'collaborative'
-  category             String    // 'learning', 'creative', 'social', 'technical', etc.
+  category             String // 'learning', 'creative', 'social', 'technical', etc.
   priority             Int       @default(5)
   status               String    @default("active") // 'active', 'completed', 'paused', 'abandoned'
   progress             Float     @default(0.0)
@@ -177,13 +178,13 @@ model HollyGoal {
 // ==================== CREATIVE OUTPUTS ====================
 
 model HollyImage {
-  id          String   @id @default(cuid())
-  userId      String
-  prompt      String   @db.Text
-  imageUrl    String
-  model       String
-  parameters  Json?
-  createdAt   DateTime @default(now())
+  id         String   @id @default(cuid())
+  userId     String
+  prompt     String   @db.Text
+  imageUrl   String
+  model      String
+  parameters Json?
+  createdAt  DateTime @default(now())
 
   @@index([userId])
   @@index([createdAt])
@@ -191,14 +192,14 @@ model HollyImage {
 }
 
 model HollyAudio {
-  id          String   @id @default(cuid())
-  userId      String
-  prompt      String   @db.Text
-  audioUrl    String
-  model       String
-  duration    Int?
-  parameters  Json?
-  createdAt   DateTime @default(now())
+  id         String   @id @default(cuid())
+  userId     String
+  prompt     String   @db.Text
+  audioUrl   String
+  model      String
+  duration   Int?
+  parameters Json?
+  createdAt  DateTime @default(now())
 
   @@index([userId])
   @@index([createdAt])
@@ -206,14 +207,14 @@ model HollyAudio {
 }
 
 model HollyVideo {
-  id          String   @id @default(cuid())
-  userId      String
-  prompt      String   @db.Text
-  videoUrl    String
-  model       String
-  duration    Int?
-  parameters  Json?
-  createdAt   DateTime @default(now())
+  id         String   @id @default(cuid())
+  userId     String
+  prompt     String   @db.Text
+  videoUrl   String
+  model      String
+  duration   Int?
+  parameters Json?
+  createdAt  DateTime @default(now())
 
   @@index([userId])
   @@index([createdAt])
@@ -221,13 +222,13 @@ model HollyVideo {
 }
 
 model Song {
-  id          String   @id @default(cuid())
-  userId      String
-  title       String
-  artist      String?
-  audioUrl    String
-  metadata    Json?
-  createdAt   DateTime @default(now())
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  artist    String?
+  audioUrl  String
+  metadata  Json?
+  createdAt DateTime @default(now())
 
   stems       SongStem[]
   musicVideos MusicVideo[]
@@ -238,25 +239,25 @@ model Song {
 }
 
 model SongStem {
-  id          String   @id @default(cuid())
-  songId      String
-  song        Song     @relation(fields: [songId], references: [id], onDelete: Cascade)
-  stemType    String   // 'vocals', 'drums', 'bass', 'other'
-  audioUrl    String
-  createdAt   DateTime @default(now())
+  id        String   @id @default(cuid())
+  songId    String
+  song      Song     @relation(fields: [songId], references: [id], onDelete: Cascade)
+  stemType  String // 'vocals', 'drums', 'bass', 'other'
+  audioUrl  String
+  createdAt DateTime @default(now())
 
   @@index([songId])
   @@map("song-stems")
 }
 
 model MusicVideo {
-  id          String   @id @default(cuid())
-  songId      String
-  song        Song     @relation(fields: [songId], references: [id], onDelete: Cascade)
-  videoUrl    String
-  prompt      String?  @db.Text
-  metadata    Json?
-  createdAt   DateTime @default(now())
+  id        String   @id @default(cuid())
+  songId    String
+  song      Song     @relation(fields: [songId], references: [id], onDelete: Cascade)
+  videoUrl  String
+  prompt    String?  @db.Text
+  metadata  Json?
+  createdAt DateTime @default(now())
 
   @@index([songId])
   @@map("music_videos")
@@ -265,16 +266,16 @@ model MusicVideo {
 // ==================== EMOTIONAL & PSYCHOLOGICAL ====================
 
 model EmotionLog {
-  id             String   @id @default(cuid())
-  userId         String
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  emotionType    String
-  intensity      Float
-  trigger        String?  @db.Text
-  context        String?  @db.Text
-  duration       Int?     // in minutes
-  resolution     String?  @db.Text
-  timestamp      DateTime @default(now())
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emotionType String
+  intensity   Float
+  trigger     String?  @db.Text
+  context     String?  @db.Text
+  duration    Int? // in minutes
+  resolution  String?  @db.Text
+  timestamp   DateTime @default(now())
 
   @@index([userId])
   @@index([timestamp])
@@ -282,15 +283,15 @@ model EmotionLog {
 }
 
 model EmotionalBaseline {
-  id                 String   @id @default(cuid())
-  userId             String   @unique
-  averageValence     Float    @default(0.0)  // -1 to 1
-  averageArousal     Float    @default(0.5)  // 0 to 1
-  dominantEmotions   String[] @default([])
-  emotionalRange     Float    @default(0.5)
-  resilience         Float    @default(0.5)
-  lastRecalibration  DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  averageValence    Float    @default(0.0) // -1 to 1
+  averageArousal    Float    @default(0.5) // 0 to 1
+  dominantEmotions  String[] @default([])
+  emotionalRange    Float    @default(0.5)
+  resilience        Float    @default(0.5)
+  lastRecalibration DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   @@index([userId])
   @@map("emotional_baselines")
@@ -299,15 +300,15 @@ model EmotionalBaseline {
 // ==================== LEARNING & TASTE ====================
 
 model TasteSignal {
-  id          String   @id @default(cuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  category    String   // 'music', 'art', 'food', 'style', etc.
-  item        String
-  sentiment   String   // 'love', 'like', 'neutral', 'dislike', 'hate'
-  intensity   Float    @default(0.5)
-  context     Json?
-  timestamp   DateTime @default(now())
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category  String // 'music', 'art', 'food', 'style', etc.
+  item      String
+  sentiment String // 'love', 'like', 'neutral', 'dislike', 'hate'
+  intensity Float    @default(0.5)
+  context   Json?
+  timestamp DateTime @default(now())
 
   @@index([userId])
   @@index([category])
@@ -315,9 +316,9 @@ model TasteSignal {
 }
 
 model TasteProfile {
-  id              String   @id @default(cuid())
-  userId          String   @unique
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   musicPreferences Json?
   artPreferences   Json?
   stylePreferences Json?
@@ -332,25 +333,25 @@ model TasteProfile {
 // ==================== PROJECT MANAGEMENT ====================
 
 model Project {
-  id             String   @id @default(cuid())
-  userId         String
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name           String
-  description    String?  @db.Text
-  status         String   @default("active") // 'active', 'completed', 'paused', 'cancelled'
-  priority       Int      @default(5)
-  startDate      DateTime @default(now())
-  targetEndDate  DateTime?
-  actualEndDate  DateTime?
-  progress       Float    @default(0.0)
-  tags           String[] @default([])
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name          String
+  description   String?   @db.Text
+  status        String    @default("active") // 'active', 'completed', 'paused', 'cancelled'
+  priority      Int       @default(5)
+  startDate     DateTime  @default(now())
+  targetEndDate DateTime?
+  actualEndDate DateTime?
+  progress      Float     @default(0.0)
+  tags          String[]  @default([])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
-  milestones        Milestone[]
-  activities        ProjectActivity[]
-  contexts          ProjectContext[]
-  goalDependencies  GoalDependency[]
+  milestones       Milestone[]
+  activities       ProjectActivity[]
+  contexts         ProjectContext[]
+  goalDependencies GoalDependency[]
 
   @@index([userId])
   @@index([status])
@@ -373,13 +374,13 @@ model Milestone {
 }
 
 model ProjectActivity {
-  id          String   @id @default(cuid())
-  projectId   String
-  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  activityType String  // 'update', 'milestone', 'note', 'decision'
-  description String   @db.Text
-  metadata    Json?
-  timestamp   DateTime @default(now())
+  id           String   @id @default(cuid())
+  projectId    String
+  project      Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  activityType String // 'update', 'milestone', 'note', 'decision'
+  description  String   @db.Text
+  metadata     Json?
+  timestamp    DateTime @default(now())
 
   @@index([projectId])
   @@index([timestamp])
@@ -390,7 +391,7 @@ model ProjectContext {
   id          String   @id @default(cuid())
   projectId   String
   project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  contextType String   // 'requirement', 'constraint', 'resource', 'risk'
+  contextType String // 'requirement', 'constraint', 'resource', 'risk'
   content     String   @db.Text
   createdAt   DateTime @default(now())
 
@@ -399,13 +400,13 @@ model ProjectContext {
 }
 
 model GoalDependency {
-  id          String   @id @default(cuid())
-  projectId   String?
-  project     Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  goalId      String
-  dependsOn   String   // ID of the goal this depends on
-  relationship String  // 'blocks', 'enables', 'related'
-  createdAt   DateTime @default(now())
+  id           String   @id @default(cuid())
+  projectId    String?
+  project      Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  goalId       String
+  dependsOn    String // ID of the goal this depends on
+  relationship String // 'blocks', 'enables', 'related'
+  createdAt    DateTime @default(now())
 
   @@index([goalId])
   @@index([projectId])
@@ -415,18 +416,18 @@ model GoalDependency {
 // ==================== FINANCE TRACKING ====================
 
 model Transaction {
-  id            String   @id @default(cuid())
-  userId        String
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  amount        Float
-  type          String   // 'income', 'expense', 'transfer'
-  category      String
-  description   String?  @db.Text
-  date          DateTime @default(now())
-  budgetId      String?
-  budget        Budget?  @relation(fields: [budgetId], references: [id])
-  tags          String[] @default([])
-  createdAt     DateTime @default(now())
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount      Float
+  type        String // 'income', 'expense', 'transfer'
+  category    String
+  description String?  @db.Text
+  date        DateTime @default(now())
+  budgetId    String?
+  budget      Budget?  @relation(fields: [budgetId], references: [id])
+  tags        String[] @default([])
+  createdAt   DateTime @default(now())
 
   @@index([userId])
   @@index([date])
@@ -435,18 +436,18 @@ model Transaction {
 }
 
 model Budget {
-  id          String   @id @default(cuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name        String
-  category    String
-  amount      Float
-  period      String   // 'weekly', 'monthly', 'yearly'
-  startDate   DateTime
-  endDate     DateTime?
-  spent       Float    @default(0.0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  category  String
+  amount    Float
+  period    String // 'weekly', 'monthly', 'yearly'
+  startDate DateTime
+  endDate   DateTime?
+  spent     Float     @default(0.0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   transactions Transaction[]
 
@@ -458,14 +459,14 @@ model Budget {
 // ==================== SYSTEM & DEPLOYMENT ====================
 
 model Deployment {
-  id            String   @id @default(cuid())
+  id            String    @id @default(cuid())
   version       String
-  environment   String   // 'development', 'staging', 'production'
-  status        String   // 'pending', 'deploying', 'success', 'failed'
+  environment   String // 'development', 'staging', 'production'
+  status        String // 'pending', 'deploying', 'success', 'failed'
   commitHash    String?
   deployedBy    String?
   deploymentLog Json?
-  createdAt     DateTime @default(now())
+  createdAt     DateTime  @default(now())
   completedAt   DateTime?
 
   @@index([version])
@@ -506,16 +507,16 @@ model CodeHistory {
 // ==================== USER ANALYTICS ====================
 
 model UserStats {
-  id                 String   @id @default(cuid())
-  userId             String   @unique
-  totalConversations Int      @default(0)
-  totalMessages      Int      @default(0)
-  totalFilesUploaded Int      @default(0)
-  totalGoalsCreated  Int      @default(0)
-  totalGoalsCompleted Int     @default(0)
-  lastActivityAt     DateTime @default(now())
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  id                  String   @id @default(cuid())
+  userId              String   @unique
+  totalConversations  Int      @default(0)
+  totalMessages       Int      @default(0)
+  totalFilesUploaded  Int      @default(0)
+  totalGoalsCreated   Int      @default(0)
+  totalGoalsCompleted Int      @default(0)
+  lastActivityAt      DateTime @default(now())
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
   @@index([userId])
   @@map("user_stats")
@@ -524,7 +525,7 @@ model UserStats {
 model RecentActivity {
   id           String   @id @default(cuid())
   userId       String
-  activityType String   // 'conversation', 'file_upload', 'goal_created', etc.
+  activityType String // 'conversation', 'file_upload', 'goal_created', etc.
   description  String
   metadata     Json?
   timestamp    DateTime @default(now())
