@@ -51,7 +51,14 @@ export async function POST(request: NextRequest) {
     const hollyExperience = await prisma.hollyExperience.create({
       data: {
         userId: user.id,
-        experience,
+        type: 'interaction',
+        content: {
+          what: experience,
+          context: '',
+          actions: [],
+          outcome: '',
+          significance: significance || 0.5,
+        },
         significance: significance || 0.5,
         emotionalImpact: emotionalImpact || 0.5,
         relatedConcepts: relatedConcepts || [],
