@@ -4,7 +4,7 @@
 // Manages user authentication state across the app
 
 import React, { createContext, useContext } from 'react';
-import { useUser, useAuth } from '@clerk/nextjs';
+import { useUser, useAuth as useClerkAuth } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
 
 interface AuthContextType {
@@ -17,7 +17,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { user, isLoaded } = useUser();
-  const { signOut: clerkSignOut } = useAuth();
+  const { signOut: clerkSignOut } = useClerkAuth();
   const router = useRouter();
 
   const signOut = async () => {
