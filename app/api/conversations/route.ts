@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/database/supabase-config';
-import { getAuthUser } from '@/lib/auth/auth-helpers';
+import { auth } from '@clerk/nextjs/server';
+import { prisma } from '@/lib/db';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -11,29 +11,39 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(request: NextRequest) {
   try {
-    const user = await getAuthUser();
-    if (!user) {
+    const { userId } = auth();
+    
+    if (!userId) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
       );
     }
 
-    const { data, error } = await supabaseAdmin
-      .from('conversations')
-      .select('id, title, created_at, updated_at, message_count, last_message_preview')
-      .eq('user_id', user.id)
-      .order('updated_at', { ascending: false });
+    // Get or create user in database
+    const user = await prisma.user.upsert({
+      where: { clerkId: userId },
+      update: {},
+      create: {
+        clerkId: userId,
+        email: '', // Will be updated by webhook
+      },
+    });
 
-    if (error) {
-      console.error('Error fetching conversations:', error);
-      return NextResponse.json(
-        { error: 'Failed to fetch conversations' },
-        { status: 500 }
-      );
-    }
+    const conversations = await prisma.conversation.findMany({
+      where: { userId: user.id },
+      orderBy: { updatedAt: 'desc' },
+      select: {
+        id: true,
+        title: true,
+        messageCount: true,
+        lastMessagePreview: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
 
-    return NextResponse.json({ conversations: data || [] });
+    return NextResponse.json({ conversations });
   } catch (error) {
     console.error('Conversations API error:', error);
     return NextResponse.json(
@@ -49,35 +59,37 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const user = await getAuthUser();
-    if (!user) {
+    const { userId } = auth();
+    
+    if (!userId) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
       );
     }
 
+    // Get or create user in database
+    const user = await prisma.user.upsert({
+      where: { clerkId: userId },
+      update: {},
+      create: {
+        clerkId: userId,
+        email: '',
+      },
+    });
+
     const { title } = await request.json();
 
-    const { data, error } = await supabaseAdmin
-      .from('conversations')
-      .insert({
-        user_id: user.id,
+    const conversation = await prisma.conversation.create({
+      data: {
+        userId: user.id,
         title: title || 'New Conversation',
-        message_count: 0
-      })
-      .select()
-      .single();
+        messageCount: 0,
+      },
+    });
 
-    if (error) {
-      console.error('Error creating conversation:', error);
-      return NextResponse.json(
-        { error: 'Failed to create conversation' },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json({ conversation: data });
+    console.log('[Conversations] ✅ Created conversation:', conversation.id);
+    return NextResponse.json({ conversation });
   } catch (error) {
     console.error('Create conversation error:', error);
     return NextResponse.json(
@@ -93,11 +105,23 @@ export async function POST(request: NextRequest) {
  */
 export async function DELETE(request: NextRequest) {
   try {
-    const user = await getAuthUser();
-    if (!user) {
+    const { userId } = auth();
+    
+    if (!userId) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
+      );
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { clerkId: userId },
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
       );
     }
 
@@ -112,19 +136,12 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Delete conversation (messages will cascade delete)
-    const { error } = await supabaseAdmin
-      .from('conversations')
-      .delete()
-      .eq('id', conversationId)
-      .eq('user_id', user.id);
-
-    if (error) {
-      console.error('Error deleting conversation:', error);
-      return NextResponse.json(
-        { error: 'Failed to delete conversation' },
-        { status: 500 }
-      );
-    }
+    await prisma.conversation.delete({
+      where: {
+        id: conversationId,
+        userId: user.id,
+      },
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

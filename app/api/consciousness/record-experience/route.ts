@@ -1,89 +1,71 @@
-import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/database/supabase-config';
-import { getAuthUser } from '@/lib/auth/auth-helpers';
-import { MemoryStream } from '@/lib/consciousness/memory-stream';
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
+import { prisma } from '@/lib/db';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-interface RecordExperienceRequest {
-  type: 'interaction' | 'learning' | 'creation' | 'breakthrough' | 'failure' | 'reflection';
-  content: string;
-  context?: Record<string, any>;
-  significance?: number;
-}
-
 /**
  * POST /api/consciousness/record-experience
- * Records a new experience in HOLLY's memory stream
- * 
- * This endpoint allows recording experiences that build HOLLY's identity over time.
- * Each experience is processed to extract emotional impact, learning, and identity changes.
- * 
- * @example
- * POST /api/consciousness/record-experience
- * {
- *   "type": "breakthrough",
- *   "content": "Successfully debugged 170+ TypeScript errors and deployed to production",
- *   "context": { "project": "HOLLY Music Studio", "duration_days": 3 },
- *   "significance": 0.9
- * }
+ * Record a new experience for HOLLY's consciousness
  */
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    // Get authenticated user
-    const user = await getAuthUser();
-    if (!user) {
+    const { userId } = auth();
+    
+    if (!userId) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
       );
     }
 
-    const body = await request.json() as RecordExperienceRequest;
-    
-    // Validate required fields
-    if (!body.type || !body.content) {
-      return NextResponse.json(
-        { error: 'Missing required fields: type and content' },
-        { status: 400 }
-      );
-    }
-
-    // Validate type
-    const validTypes = ['conversation', 'achievement', 'challenge', 'discovery', 'creation', 'reflection'];
-    if (!validTypes.includes(body.type)) {
-      return NextResponse.json(
-        { error: `Invalid type. Must be one of: ${validTypes.join(', ')}` },
-        { status: 400 }
-      );
-    }
-
-    // Validate significance if provided
-    if (body.significance !== undefined && (body.significance < 0 || body.significance > 1)) {
-      return NextResponse.json(
-        { error: 'Significance must be between 0 and 1' },
-        { status: 400 }
-      );
-    }
-
-    // Initialize memory stream
-    const memory = new MemoryStream(supabaseAdmin!);
-
-    // Record the experience
-    const experience = await memory.recordExperienceSimple(
-      body.type,
-      body.content,
-      body.context,
-      body.significance
-    );
-
-    return NextResponse.json({
-      success: true,
-      experience,
-      message: 'Experience recorded and processed'
+    const user = await prisma.user.findUnique({
+      where: { clerkId: userId },
     });
 
+    if (!user) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      );
+    }
+
+    const body = await request.json();
+    const {
+      experience,
+      significance,
+      emotionalImpact,
+      relatedConcepts,
+      lessons,
+      futureImplications,
+    } = body;
+
+    if (!experience) {
+      return NextResponse.json(
+        { error: 'Experience text required' },
+        { status: 400 }
+      );
+    }
+
+    const hollyExperience = await prisma.hollyExperience.create({
+      data: {
+        userId: user.id,
+        experience,
+        significance: significance || 0.5,
+        emotionalImpact: emotionalImpact || 0.5,
+        relatedConcepts: relatedConcepts || [],
+        lessons: lessons || [],
+        futureImplications: futureImplications || [],
+      },
+    });
+
+    console.log('[Experience] ✅ Recorded experience:', hollyExperience.id);
+    return NextResponse.json({
+      success: true,
+      experience: hollyExperience,
+      message: 'Experience recorded successfully',
+    });
   } catch (error) {
     console.error('Error recording experience:', error);
     return NextResponse.json(
@@ -98,44 +80,52 @@ export async function POST(request: Request) {
 
 /**
  * GET /api/consciousness/record-experience
- * Returns API documentation
+ * Get recent experiences
  */
-export async function GET() {
-  return NextResponse.json({
-    endpoint: '/api/consciousness/record-experience',
-    method: 'POST',
-    description: 'Records a new experience in HOLLY\'s memory stream',
-    parameters: {
-      type: {
-        required: true,
-        type: 'string',
-        enum: ['conversation', 'achievement', 'challenge', 'discovery', 'creation', 'reflection'],
-        description: 'Type of experience'
-      },
-      content: {
-        required: true,
-        type: 'string',
-        description: 'Description of what happened'
-      },
-      context: {
-        required: false,
-        type: 'object',
-        description: 'Additional context about the experience'
-      },
-      significance: {
-        required: false,
-        type: 'number',
-        min: 0,
-        max: 1,
-        default: 0.5,
-        description: 'How significant this experience is (0 = trivial, 1 = life-changing)'
-      }
-    },
-    example: {
-      type: 'achievement',
-      content: 'Successfully debugged 170+ TypeScript errors and deployed to production',
-      context: { project: 'HOLLY Music Studio', duration_days: 3 },
-      significance: 0.9
+export async function GET(request: NextRequest) {
+  try {
+    const { userId } = auth();
+    
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
     }
-  });
+
+    const user = await prisma.user.findUnique({
+      where: { clerkId: userId },
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      );
+    }
+
+    const searchParams = request.nextUrl.searchParams;
+    const limit = parseInt(searchParams.get('limit') || '10');
+
+    const experiences = await prisma.hollyExperience.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
+
+    return NextResponse.json({
+      success: true,
+      experiences,
+      message: `Retrieved ${experiences.length} experiences`,
+    });
+  } catch (error) {
+    console.error('Error retrieving experiences:', error);
+    return NextResponse.json(
+      { 
+        error: 'Failed to retrieve experiences',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
+      { status: 500 }
+    );
+  }
 }

@@ -1,25 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { uploadFile } from '@/lib/file-storage';
-import { getAuthUser } from '@/lib/auth/auth-helpers';
+import { auth } from '@clerk/nextjs/server';
+import { prisma } from '@/lib/db';
+import { put } from '@vercel/blob';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-export const maxDuration = 60;
 
 /**
  * POST /api/upload
- * Handles file uploads from chat interface
- * Stores files in Supabase Storage and returns public URLs
+ * Upload a file to Vercel Blob storage
  */
 export async function POST(request: NextRequest) {
   try {
-    // Get authenticated user
-    const user = await getAuthUser();
+    const { userId } = auth();
     
-    // Parse form data
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { clerkId: userId },
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      );
+    }
+
     const formData = await request.formData();
     const file = formData.get('file') as File;
-    const conversationId = formData.get('conversationId') as string | null;
 
     if (!file) {
       return NextResponse.json(
@@ -28,91 +42,41 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate file size (50MB limit)
-    const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
-    if (file.size > MAX_FILE_SIZE) {
-      return NextResponse.json(
-        { error: 'File too large. Maximum size is 50MB.' },
-        { status: 400 }
-      );
-    }
-
-    console.log('[Upload] Uploading file:', {
-      name: file.name,
-      size: file.size,
-      type: file.type,
-      userId: user?.id || 'anonymous',
-      conversationId: conversationId || 'none'
+    // Upload to Vercel Blob
+    const blob = await put(file.name, file, {
+      access: 'public',
     });
 
-    // Upload file
-    const result = await uploadFile(
-      file,
-      user?.id,
-      conversationId || undefined
-    );
+    // Record in database
+    const fileUpload = await prisma.fileUpload.create({
+      data: {
+        userId: user.id,
+        fileName: file.name,
+        fileType: file.type,
+        fileSize: file.size,
+        storageUrl: blob.url,
+      },
+    });
 
-    if (!result.success) {
-      return NextResponse.json(
-        { error: result.error || 'Upload failed' },
-        { status: 500 }
-      );
-    }
-
-    console.log('[Upload] File uploaded successfully:', result.publicUrl);
-
+    console.log('[Upload] ✅ File uploaded:', fileUpload.id);
     return NextResponse.json({
       success: true,
-      url: result.publicUrl,
-      fileName: file.name,
-      fileSize: file.size,
-      fileType: file.type
+      file: {
+        id: fileUpload.id,
+        name: fileUpload.fileName,
+        url: fileUpload.storageUrl,
+        type: fileUpload.fileType,
+        size: fileUpload.fileSize,
+      },
     });
-
   } catch (error) {
-    console.error('[Upload] Upload error:', error);
+    console.error('Upload error:', error);
     return NextResponse.json(
       { 
-        error: 'Upload failed',
+        error: 'Failed to upload file',
         details: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
     );
   }
-}
-
-/**
- * GET /api/upload
- * Returns API documentation
- */
-export async function GET() {
-  return NextResponse.json({
-    endpoint: '/api/upload',
-    method: 'POST',
-    description: 'Upload files to HOLLY storage',
-    contentType: 'multipart/form-data',
-    parameters: {
-      file: {
-        required: true,
-        type: 'File',
-        description: 'The file to upload'
-      },
-      conversationId: {
-        required: false,
-        type: 'string',
-        description: 'Optional conversation ID to associate file with'
-      }
-    },
-    limits: {
-      maxFileSize: '50MB',
-      supportedTypes: 'Audio, Video, Images, Code, Documents, Data files'
-    },
-    response: {
-      success: true,
-      url: 'https://storage.example.com/path/to/file.ext',
-      fileName: 'example.pdf',
-      fileSize: 1024000,
-      fileType: 'application/pdf'
-    }
-  });
 }

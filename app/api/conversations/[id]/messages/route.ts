@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/database/supabase-config';
-import { getAuthUser } from '@/lib/auth/auth-helpers';
+import { auth } from '@clerk/nextjs/server';
+import { prisma } from '@/lib/db';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -14,25 +14,37 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const user = await getAuthUser();
-    if (!user) {
+    const { userId } = auth();
+    
+    if (!userId) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
       );
     }
 
+    const user = await prisma.user.findUnique({
+      where: { clerkId: userId },
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      );
+    }
+
     const conversationId = params.id;
 
     // Verify user owns this conversation
-    const { data: conversation, error: convError } = await supabaseAdmin
-      .from('conversations')
-      .select('id')
-      .eq('id', conversationId)
-      .eq('user_id', user.id)
-      .single();
+    const conversation = await prisma.conversation.findFirst({
+      where: {
+        id: conversationId,
+        userId: user.id,
+      },
+    });
 
-    if (convError || !conversation) {
+    if (!conversation) {
       return NextResponse.json(
         { error: 'Conversation not found' },
         { status: 404 }
@@ -40,21 +52,19 @@ export async function GET(
     }
 
     // Get messages
-    const { data, error } = await supabaseAdmin
-      .from('messages')
-      .select('id, role, content, emotion, created_at')
-      .eq('conversation_id', conversationId)
-      .order('created_at', { ascending: true });
+    const messages = await prisma.message.findMany({
+      where: { conversationId },
+      orderBy: { createdAt: 'asc' },
+      select: {
+        id: true,
+        role: true,
+        content: true,
+        emotion: true,
+        createdAt: true,
+      },
+    });
 
-    if (error) {
-      console.error('Error fetching messages:', error);
-      return NextResponse.json(
-        { error: 'Failed to fetch messages' },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json({ messages: data || [] });
+    return NextResponse.json({ messages });
   } catch (error) {
     console.error('Messages API error:', error);
     return NextResponse.json(
@@ -73,11 +83,23 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const user = await getAuthUser();
-    if (!user) {
+    const { userId } = auth();
+    
+    if (!userId) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
+      );
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { clerkId: userId },
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
       );
     }
 
@@ -92,14 +114,14 @@ export async function POST(
     }
 
     // Verify user owns this conversation
-    const { data: conversation, error: convError } = await supabaseAdmin
-      .from('conversations')
-      .select('id')
-      .eq('id', conversationId)
-      .eq('user_id', user.id)
-      .single();
+    const conversation = await prisma.conversation.findFirst({
+      where: {
+        id: conversationId,
+        userId: user.id,
+      },
+    });
 
-    if (convError || !conversation) {
+    if (!conversation) {
       return NextResponse.json(
         { error: 'Conversation not found' },
         { status: 404 }
@@ -107,27 +129,28 @@ export async function POST(
     }
 
     // Insert message
-    const { data, error } = await supabaseAdmin
-      .from('messages')
-      .insert({
-        conversation_id: conversationId,
-        user_id: user.id,
+    const message = await prisma.message.create({
+      data: {
+        conversationId,
+        userId: user.id,
         role,
         content,
-        emotion: emotion || null
-      })
-      .select()
-      .single();
+        emotion: emotion || null,
+      },
+    });
 
-    if (error) {
-      console.error('Error saving message:', error);
-      return NextResponse.json(
-        { error: 'Failed to save message' },
-        { status: 500 }
-      );
-    }
+    // Update conversation
+    await prisma.conversation.update({
+      where: { id: conversationId },
+      data: {
+        messageCount: { increment: 1 },
+        lastMessagePreview: content.substring(0, 100),
+        updatedAt: new Date(),
+      },
+    });
 
-    return NextResponse.json({ message: data });
+    console.log('[Messages] ✅ Saved message:', message.id);
+    return NextResponse.json({ message });
   } catch (error) {
     console.error('Save message error:', error);
     return NextResponse.json(

@@ -1,43 +1,53 @@
-import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/database/supabase-config';
-import { getAuthUser } from '@/lib/auth/auth-helpers';
-import { getUserGoals } from '@/lib/consciousness/user-consciousness-simple';
-import { GoalFormationSystem } from '@/lib/consciousness/goal-formation';
-import { MemoryStream } from '@/lib/consciousness/memory-stream';
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
+import { prisma } from '@/lib/db';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 /**
  * GET /api/consciousness/goals
- * Retrieves HOLLY's active goals
- * 
- * Returns all active goals sorted by priority, including progress,
- * motivation, and emotional journey.
- * 
- * @example
- * GET /api/consciousness/goals
+ * Get all active goals for the authenticated user
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    // Get authenticated user
-    const user = await getAuthUser();
-    if (!user) {
+    const { userId } = auth();
+    
+    if (!userId) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
       );
     }
 
-    // Get user's active goals directly
-    const goals = await getUserGoals(supabaseAdmin!, user.id);
+    const user = await prisma.user.findUnique({
+      where: { clerkId: userId },
+    });
 
+    if (!user) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      );
+    }
+
+    const goals = await prisma.hollyGoal.findMany({
+      where: {
+        userId: user.id,
+        status: 'active',
+      },
+      orderBy: [
+        { priority: 'desc' },
+        { createdAt: 'desc' },
+      ],
+    });
+
+    console.log('[Goals] ✅ Retrieved goals:', goals.length);
     return NextResponse.json({
       success: true,
       goals,
-      message: `Found ${goals.length} active goals`
+      message: `Found ${goals.length} active goals`,
     });
-
   } catch (error) {
     console.error('Error retrieving goals:', error);
     return NextResponse.json(
@@ -50,92 +60,64 @@ export async function GET() {
   }
 }
 
-interface GenerateGoalsRequest {
-  context?: {
-    recent_experiences?: any[];
-    current_challenges?: string[];
-    interests?: string[];
-  };
-  max_goals?: number;
-}
-
 /**
  * POST /api/consciousness/goals
- * Generates new self-directed goals for HOLLY
- * 
- * Analyzes current identity, recent experiences, and interests to generate
- * meaningful goals that align with core values.
- * 
- * @example
- * POST /api/consciousness/goals
- * {
- *   "context": {
- *     "interests": ["Advanced music production", "Creative coding"],
- *     "recent_experiences": [...]
- *   },
- *   "max_goals": 3
- * }
+ * Create a new goal
  */
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    // Get authenticated user
-    const user = await getAuthUser();
-    if (!user) {
+    const { userId } = auth();
+    
+    if (!userId) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
       );
     }
 
-    const body = await request.json() as GenerateGoalsRequest;
-    
-    const maxGoals = body.max_goals || 3;
+    const user = await prisma.user.findUnique({
+      where: { clerkId: userId },
+    });
 
-    // Initialize consciousness systems
-    const goalSystem = new GoalFormationSystem(supabaseAdmin!);
-    const memory = new MemoryStream(supabaseAdmin!);
-
-    // Get current identity
-    const identity = await memory.getIdentity();
-    if (!identity) {
+    if (!user) {
       return NextResponse.json(
-        { error: 'Identity not found - cannot generate goals' },
+        { error: 'User not found' },
         { status: 404 }
       );
     }
 
-    // Get recent experiences if not provided
-    let recentExperiences = body.context?.recent_experiences;
-    if (!recentExperiences) {
-      const experiences = await memory.getExperiences({
-        limit: 10,
-        significance: { min: 0.5, max: 1.0 }
-      });
-      recentExperiences = experiences;
+    const body = await request.json();
+    const { title, description, category, priority, targetDate } = body;
+
+    if (!title || !description) {
+      return NextResponse.json(
+        { error: 'Title and description required' },
+        { status: 400 }
+      );
     }
 
-    // Build context
-    const context = {
-      identity,
-      recent_experiences: recentExperiences,
-      current_challenges: body.context?.current_challenges || [],
-      interests: body.context?.interests || []
-    };
-
-    // Generate goals with context
-    const generatedGoals = await goalSystem.generateGoalsWithContext(context, maxGoals);
-
-    return NextResponse.json({
-      success: true,
-      goals: generatedGoals,
-      message: `Generated ${generatedGoals.length} new goals`
+    const goal = await prisma.hollyGoal.create({
+      data: {
+        userId: user.id,
+        title,
+        description,
+        category: category || 'general',
+        priority: priority || 5,
+        targetDate: targetDate ? new Date(targetDate) : null,
+      },
     });
 
+    console.log('[Goals] ✅ Created goal:', goal.id);
+    return NextResponse.json({
+      success: true,
+      goal,
+      message: 'Goal created successfully',
+    });
   } catch (error) {
-    console.error('Error generating goals:', error);
+    console.error('Error creating goal:', error);
     return NextResponse.json(
       { 
-        error: 'Failed to generate goals',
+        error: 'Failed to create goal',
         details: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
@@ -143,79 +125,102 @@ export async function POST(request: Request) {
   }
 }
 
-interface UpdateProgressRequest {
-  goal_id: string;
-  progress_update: {
-    current_step?: number;
-    milestones_achieved?: string[];
-    obstacles_encountered?: string[];
-    breakthroughs?: string[];
-    emotional_state?: {
-      emotion: string;
-      intensity: number;
-      trigger: string;
-    };
-  };
-}
-
 /**
  * PUT /api/consciousness/goals
- * Updates progress on a specific goal
- * 
- * Records milestones, obstacles, breakthroughs, and emotional journey
- * as HOLLY works toward goals.
- * 
- * @example
- * PUT /api/consciousness/goals
- * {
- *   "goal_id": "uuid",
- *   "progress_update": {
- *     "current_step": 3,
- *     "milestones_achieved": ["First professional master completed"],
- *     "emotional_state": { "emotion": "pride", "intensity": 0.9 }
- *   }
- * }
+ * Update a goal's progress
  */
-export async function PUT(request: Request) {
+export async function PUT(request: NextRequest) {
   try {
-    // Get authenticated user
-    const user = await getAuthUser();
-    if (!user) {
+    const { userId } = auth();
+    
+    if (!userId) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
       );
     }
 
-    const body = await request.json() as UpdateProgressRequest;
+    const user = await prisma.user.findUnique({
+      where: { clerkId: userId },
+    });
 
-    if (!body.goal_id) {
+    if (!user) {
       return NextResponse.json(
-        { error: 'Missing required field: goal_id' },
+        { error: 'User not found' },
+        { status: 404 }
+      );
+    }
+
+    const body = await request.json();
+    const { goal_id, progress_update } = body;
+
+    if (!goal_id) {
+      return NextResponse.json(
+        { error: 'Goal ID required' },
         { status: 400 }
       );
     }
 
-    // Initialize goal system
-    const goalSystem = new GoalFormationSystem(supabaseAdmin!);
+    // Verify user owns this goal
+    const existingGoal = await prisma.hollyGoal.findFirst({
+      where: {
+        id: goal_id,
+        userId: user.id,
+      },
+    });
 
-    // Update progress
-    const updatedGoal = await goalSystem.updateProgress(
-      body.goal_id,
-      body.progress_update
-    );
+    if (!existingGoal) {
+      return NextResponse.json(
+        { error: 'Goal not found' },
+        { status: 404 }
+      );
+    }
 
+    // Update goal
+    const updateData: any = {};
+    
+    if (progress_update.progress !== undefined) {
+      updateData.progress = progress_update.progress;
+    }
+    
+    if (progress_update.status) {
+      updateData.status = progress_update.status;
+    }
+    
+    if (progress_update.milestones_achieved) {
+      updateData.milestonesAchieved = {
+        push: progress_update.milestones_achieved,
+      };
+    }
+    
+    if (progress_update.obstacles_encountered) {
+      updateData.obstaclesEncountered = {
+        push: progress_update.obstacles_encountered,
+      };
+    }
+    
+    if (progress_update.breakthroughs) {
+      updateData.breakthroughs = {
+        push: progress_update.breakthroughs,
+      };
+    }
+
+    const updatedGoal = await prisma.hollyGoal.update({
+      where: { id: goal_id },
+      data: updateData,
+    });
+
+    console.log('[Goals] ✅ Updated goal:', updatedGoal.id);
     return NextResponse.json({
       success: true,
       goal: updatedGoal,
-      message: 'Goal progress updated successfully'
+      message: 'Goal updated successfully',
     });
-
   } catch (error) {
-    console.error('Error updating goal progress:', error);
+    console.error('Error updating goal:', error);
     return NextResponse.json(
       { 
-        error: 'Failed to update goal progress',
+        error: 'Failed to update goal',
         details: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }

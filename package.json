@@ -29,6 +29,7 @@
   "license": "MIT",
   "dependencies": {
     "@clerk/nextjs": "^5.0.0",
+    "svix": "^1.24.0",
     "@prisma/client": "^5.20.0",
     "@anthropic-ai/sdk": "^0.27.3",
     "@google/generative-ai": "^0.24.1",
