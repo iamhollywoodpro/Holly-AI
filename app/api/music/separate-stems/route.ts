@@ -132,19 +132,10 @@ export async function POST(req: NextRequest) {
       const stemPath = path.join(outputDir, 'htdemucs', 'input', file)
       const stemBuffer = await fs.readFile(stemPath)
 
-      // Upload to Supabase Storage
+      // Upload to storage (TODO: Implement with Vercel Blob or S3)
       const fileName = `${song_id}/${stemName}.wav`
-      // TODO: Migrate storage - const ... = await supabase.storage
-        .from('song-stems')
-        .upload(fileName, stemBuffer, {
-          contentType: 'audio/wav',
-          upsert: true
-        })
-
-      if (uploadError) {
-        console.error(`Failed to upload ${stemName}:`, uploadError)
-        continue
-      }
+      // TODO: const uploadResult = await storage.upload(fileName, stemBuffer)
+      console.log(`Skipping upload for ${stemName} - storage not configured`)
 
       // Get public URL
       // TODO: Migrate storage - supabase.storage.from('song-stems').getPublicUrl(fileName)
