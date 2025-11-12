@@ -8,17 +8,19 @@ import { prisma } from '@/lib/db';
 import { MemoryStream } from './memory-stream';
 import { GoalFormationSystem } from './goal-formation';
 import type { Experience } from './memory-stream';
+import type { PrismaClient } from '@prisma/client';
 
 export class AutoConsciousness {
   private memoryStream: MemoryStream;
   private goalSystem: GoalFormationSystem;
+  private userId: string;
+  private prismaClient: PrismaClient;
 
-  constructor() {
-    if (!supabaseAdmin) {
-      throw new Error('Supabase admin client required for auto-consciousness');
-    }
-    this.memoryStream = new MemoryStream(supabaseAdmin);
-    this.goalSystem = new GoalFormationSystem(supabaseAdmin);
+  constructor(userId: string, prismaClient: PrismaClient = prisma) {
+    this.userId = userId;
+    this.prismaClient = prismaClient;
+    this.memoryStream = new MemoryStream(userId, prismaClient);
+    this.goalSystem = new GoalFormationSystem(userId, prismaClient);
   }
 
   /**
@@ -191,12 +193,7 @@ export class AutoConsciousness {
   }
 }
 
-// Singleton instance
-let autoConsciousnessInstance: AutoConsciousness | null = null;
-
-export function getAutoConsciousness(): AutoConsciousness {
-  if (!autoConsciousnessInstance) {
-    autoConsciousnessInstance = new AutoConsciousness();
-  }
-  return autoConsciousnessInstance;
+// Factory function - requires userId
+export function getAutoConsciousness(userId: string, prismaClient: PrismaClient = prisma): AutoConsciousness {
+  return new AutoConsciousness(userId, prismaClient);
 }

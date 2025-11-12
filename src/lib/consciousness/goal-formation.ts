@@ -336,31 +336,31 @@ export class GoalFormationSystem {
    * Save goal to database
    */
   private async saveGoal(goal: Goal): Promise<void> {
-    const { error } = await this.supabase
-      .from('holly_goals')
-      .insert(goal);
-
-    if (error) {
-      console.error('[GoalFormation] Failed to save goal:', error);
-    }
+    // TODO: Implement with Prisma
+    // const { error } = await this.supabase
+    //   .from('holly_goals')
+    //   .insert(goal);
+    // if (error) {
+    //   console.error('[GoalFormation] Failed to save goal:', error);
+    // }
   }
 
   /**
    * Get active goals
    */
   async getActiveGoals(): Promise<Goal[]> {
-    const { data, error } = await this.supabase
-      .from('holly_goals')
-      .select('*')
-      .in('progress.status', ['active', 'planned'])
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('[GoalFormation] Failed to retrieve goals:', error);
-      return [];
-    }
-
-    return data as Goal[];
+    // TODO: Implement with Prisma
+    // const { data, error } = await this.supabase
+    //   .from('holly_goals')
+    //   .select('*')
+    //   .in('progress.status', ['active', 'planned'])
+    //   .order('created_at', { ascending: false });
+    // if (error) {
+    //   console.error('[GoalFormation] Failed to retrieve goals:', error);
+    //   return [];
+    // }
+    // return data as Goal[];
+    return [];
   }
 
   /**
@@ -381,13 +381,15 @@ export class GoalFormationSystem {
       emotional_state?: any;
     }
   ): Promise<Goal | null> {
-    const { data: goal } = await this.supabase
-      .from('holly_goals')
-      .select('*')
-      .eq('id', goalId)
-      .single();
-
-    if (!goal) return;
+    // TODO: Implement with Prisma
+    // const { data: goal } = await this.supabase
+    //   .from('holly_goals')
+    //   .select('*')
+    //   .eq('id', goalId)
+    //   .single();
+    // if (!goal) return;
+    const goal: any = null;
+    if (!goal) return null;
 
     // Update progress
     if (update.step_completed) {
@@ -416,14 +418,15 @@ export class GoalFormationSystem {
       goal.progress.status = 'achieved';
     }
 
-    const { data: updatedGoal } = await this.supabase
-      .from('holly_goals')
-      .update(goal)
-      .eq('id', goalId)
-      .select()
-      .single();
-
-    return updatedGoal as Goal;
+    // TODO: Implement with Prisma
+    // const { data: updatedGoal } = await this.supabase
+    //   .from('holly_goals')
+    //   .update(goal)
+    //   .eq('id', goalId)
+    //   .select()
+    //   .single();
+    // return updatedGoal as Goal;
+    return null;
   }
 
   /**

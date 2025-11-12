@@ -220,7 +220,7 @@ export class UnsupervisedLearningSystem {
     const sessions: LearningSession[] = [];
 
     // Get context
-    const memoryStream = new MemoryStream(this.supabase);
+    const memoryStream = new MemoryStream(this.userId, this.db);
     const [identity, recentExperiences] = await Promise.all([
       memoryStream.getIdentity(),
       memoryStream.getExperiences({ limit: 20 })
