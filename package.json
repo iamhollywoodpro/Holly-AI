@@ -5,6 +5,7 @@
   "__IMPORTANT_NOTE__": "DO NOT upgrade tailwindcss to v4+ - it requires @tailwindcss/postcss. Keep at v3.4.1",
   "main": "index.js",
   "scripts": {
+    "postinstall": "prisma generate",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
