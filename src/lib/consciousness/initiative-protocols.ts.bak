@@ -1,7 +1,5 @@
-import { prisma } from '@/lib/db';
-import type { PrismaClient } from '@prisma/client';
-
-
+import { supabaseAdmin } from '@/lib/database/supabase-config';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { MemoryStream, Identity } from './memory-stream';
 import { GoalFormationSystem } from './goal-formation';
 
@@ -61,8 +59,7 @@ export interface ConversationStarter {
 }
 
 export class InitiativeProtocolsSystem {
-  private db: PrismaClient;
-  private userId: string;
+  private supabase: SupabaseClient;
   private triggers: InitiativeTrigger[] = [];
   private actions: InitiativeAction[] = [];
 
@@ -75,9 +72,8 @@ export class InitiativeProtocolsSystem {
     creative_urge: 0.65 // Medium-high - balance creativity with timing
   };
 
-  constructor(userId: string, db?: PrismaClient) {
-    this.db = db || prisma;
-    this.userId = userId;
+  constructor(supabase?: SupabaseClient) {
+    this.supabase = supabase || supabaseAdmin!;
   }
 
   /**

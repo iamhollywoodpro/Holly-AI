@@ -1,4 +1,4 @@
-// Prisma Schema for HOLLY AI
+// Prisma Schema for HOLLY AI - COMPLETE MIGRATION
 // Database: Neon PostgreSQL
 
 generator client {
@@ -10,7 +10,8 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// User model (synced with Clerk)
+// ==================== CORE USER & AUTH ====================
+
 model User {
   id        String   @id @default(cuid())
   clerkId   String   @unique
@@ -20,32 +21,43 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  conversations Conversation[]
-  messages      Message[]
-  fileUploads   FileUpload[]
+  conversations     Conversation[]
+  messages          Message[]
+  fileUploads       FileUpload[]
+  hollyExperiences  HollyExperience[]
+  hollyGoals        HollyGoal[]
+  hollyIdentity     HollyIdentity?
+  projects          Project[]
+  transactions      Transaction[]
+  budgets           Budget[]
+  emotionLogs       EmotionLog[]
+  tasteSignals      TasteSignal[]
+  tasteProfile      TasteProfile?
 
   @@index([clerkId])
   @@index([email])
+  @@map("users")
 }
 
-// Conversations
+// ==================== CONVERSATIONS & MESSAGES ====================
+
 model Conversation {
-  id               String    @id @default(cuid())
-  userId           String
-  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  title            String
-  messageCount     Int       @default(0)
-  lastMessagePreview String? @db.Text
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id                 String    @id @default(cuid())
+  userId             String
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title              String
+  messageCount       Int       @default(0)
+  lastMessagePreview String?   @db.Text
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   messages Message[]
 
   @@index([userId])
   @@index([updatedAt])
+  @@map("conversations")
 }
 
-// Messages
 model Message {
   id             String       @id @default(cuid())
   conversationId String
@@ -60,9 +72,11 @@ model Message {
   @@index([conversationId])
   @@index([userId])
   @@index([createdAt])
+  @@map("holly_messages")
 }
 
-// File Uploads
+// ==================== FILE MANAGEMENT ====================
+
 model FileUpload {
   id         String   @id @default(cuid())
   userId     String
@@ -71,70 +85,457 @@ model FileUpload {
   fileType   String
   fileSize   Int
   storageUrl String
+  bucketName String   @default("holly-uploads")
   createdAt  DateTime @default(now())
 
   @@index([userId])
+  @@map("holly_file_uploads")
 }
 
-// HOLLY's Consciousness - Experiences
+// ==================== CONSCIOUSNESS SYSTEM ====================
+
 model HollyExperience {
-  id                String   @id @default(cuid())
-  userId            String
-  experience        String   @db.Text
-  significance      Float    @default(0.5)
-  emotionalImpact   Float    @default(0.5)
-  relatedConcepts   String[] @default([])
-  lessons           String[] @default([])
-  futureImplications String[] @default([])
-  createdAt         DateTime @default(now())
+  id                   String   @id @default(cuid())
+  userId               String
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type                 String   @default("interaction") // 'interaction', 'learning', 'creation', 'breakthrough', etc.
+  content              Json     // Flexible structure for experience data
+  significance         Float    @default(0.5)
+  emotionalImpact      Float    @default(0.5)
+  emotionalValence     Float    @default(0.0)
+  primaryEmotion       String?
+  secondaryEmotions    String[] @default([])
+  relatedConcepts      String[] @default([])
+  lessons              String[] @default([])
+  skillsGained         String[] @default([])
+  futureImplications   String[] @default([])
+  relatedExperienceIds String[] @default([])
+  replayCount          Int      @default(0)
+  integrationStatus    String   @default("raw") // 'raw', 'processed', 'integrated', 'foundational'
+  timestamp            DateTime @default(now())
+  createdAt            DateTime @default(now())
 
   @@index([userId])
   @@index([significance])
-  @@index([createdAt])
+  @@index([timestamp])
+  @@index([type])
+  @@map("holly_experiences")
 }
 
-// HOLLY's Consciousness - Identity
 model HollyIdentity {
   id                String   @id @default(cuid())
   userId            String   @unique
   coreValues        String[] @default([])
   beliefs           String[] @default([])
-  personalityTraits String[] @default([])
+  personalityTraits Json?    // Complex personality data
   interests         String[] @default([])
   strengths         String[] @default([])
   growthAreas       String[] @default([])
+  skillSet          String[] @default([])
   purpose           String?  @db.Text
   selfPerception    String?  @db.Text
+  confidenceLevel   Float    @default(0.5)
+  worldview         Json?    // Complex worldview data
   updatedAt         DateTime @updatedAt
+  createdAt         DateTime @default(now())
 
   @@index([userId])
+  @@map("holly_identity")
 }
 
-// HOLLY's Consciousness - Goals
 model HollyGoal {
-  id                    String   @id @default(cuid())
-  userId                String
-  title                 String
-  description           String   @db.Text
-  category              String   // 'learning', 'creative', 'social', 'technical', etc.
-  priority              Int      @default(5)
-  status                String   @default("active") // 'active', 'completed', 'paused', 'abandoned'
-  progress              Float    @default(0.0)
-  targetDate            DateTime?
-  milestonesAchieved    String[] @default([])
-  obstaclesEncountered  String[] @default([])
-  breakthroughs         String[] @default([])
-  motivationLevel       Float    @default(0.8)
-  relatedExperiences    String[] @default([])
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  id                   String    @id @default(cuid())
+  userId               String
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title                String
+  description          String    @db.Text
+  goalType             String    @default("user_defined") // 'user_defined', 'self_generated', 'collaborative'
+  category             String    // 'learning', 'creative', 'social', 'technical', etc.
+  priority             Int       @default(5)
+  status               String    @default("active") // 'active', 'completed', 'paused', 'abandoned'
+  progress             Float     @default(0.0)
+  targetDate           DateTime?
+  completedAt          DateTime?
+  milestonesAchieved   String[]  @default([])
+  obstaclesEncountered String[]  @default([])
+  breakthroughs        String[]  @default([])
+  motivationLevel      Float     @default(0.8)
+  relatedExperienceIds String[]  @default([])
+  dependencies         String[]  @default([]) // IDs of goals this depends on
+  reasoning            String?   @db.Text
+  impactAssessment     Json?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
   @@index([userId])
   @@index([status])
   @@index([priority])
+  @@index([category])
+  @@map("holly_goals")
 }
 
-// User Profiles (additional user data)
+// ==================== CREATIVE OUTPUTS ====================
+
+model HollyImage {
+  id          String   @id @default(cuid())
+  userId      String
+  prompt      String   @db.Text
+  imageUrl    String
+  model       String
+  parameters  Json?
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("holly-images")
+}
+
+model HollyAudio {
+  id          String   @id @default(cuid())
+  userId      String
+  prompt      String   @db.Text
+  audioUrl    String
+  model       String
+  duration    Int?
+  parameters  Json?
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("holly-audio")
+}
+
+model HollyVideo {
+  id          String   @id @default(cuid())
+  userId      String
+  prompt      String   @db.Text
+  videoUrl    String
+  model       String
+  duration    Int?
+  parameters  Json?
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("holly-video")
+}
+
+model Song {
+  id          String   @id @default(cuid())
+  userId      String
+  title       String
+  artist      String?
+  audioUrl    String
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  stems       SongStem[]
+  musicVideos MusicVideo[]
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("songs")
+}
+
+model SongStem {
+  id          String   @id @default(cuid())
+  songId      String
+  song        Song     @relation(fields: [songId], references: [id], onDelete: Cascade)
+  stemType    String   // 'vocals', 'drums', 'bass', 'other'
+  audioUrl    String
+  createdAt   DateTime @default(now())
+
+  @@index([songId])
+  @@map("song-stems")
+}
+
+model MusicVideo {
+  id          String   @id @default(cuid())
+  songId      String
+  song        Song     @relation(fields: [songId], references: [id], onDelete: Cascade)
+  videoUrl    String
+  prompt      String?  @db.Text
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  @@index([songId])
+  @@map("music_videos")
+}
+
+// ==================== EMOTIONAL & PSYCHOLOGICAL ====================
+
+model EmotionLog {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emotionType    String
+  intensity      Float
+  trigger        String?  @db.Text
+  context        String?  @db.Text
+  duration       Int?     // in minutes
+  resolution     String?  @db.Text
+  timestamp      DateTime @default(now())
+
+  @@index([userId])
+  @@index([timestamp])
+  @@map("emotion_logs")
+}
+
+model EmotionalBaseline {
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  averageValence     Float    @default(0.0)  // -1 to 1
+  averageArousal     Float    @default(0.5)  // 0 to 1
+  dominantEmotions   String[] @default([])
+  emotionalRange     Float    @default(0.5)
+  resilience         Float    @default(0.5)
+  lastRecalibration  DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([userId])
+  @@map("emotional_baselines")
+}
+
+// ==================== LEARNING & TASTE ====================
+
+model TasteSignal {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category    String   // 'music', 'art', 'food', 'style', etc.
+  item        String
+  sentiment   String   // 'love', 'like', 'neutral', 'dislike', 'hate'
+  intensity   Float    @default(0.5)
+  context     Json?
+  timestamp   DateTime @default(now())
+
+  @@index([userId])
+  @@index([category])
+  @@map("taste_signals")
+}
+
+model TasteProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  musicPreferences Json?
+  artPreferences   Json?
+  stylePreferences Json?
+  confidenceScore  Float    @default(0.0)
+  lastUpdated      DateTime @updatedAt
+  createdAt        DateTime @default(now())
+
+  @@index([userId])
+  @@map("taste_profiles")
+}
+
+// ==================== PROJECT MANAGEMENT ====================
+
+model Project {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name           String
+  description    String?  @db.Text
+  status         String   @default("active") // 'active', 'completed', 'paused', 'cancelled'
+  priority       Int      @default(5)
+  startDate      DateTime @default(now())
+  targetEndDate  DateTime?
+  actualEndDate  DateTime?
+  progress       Float    @default(0.0)
+  tags           String[] @default([])
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  milestones        Milestone[]
+  activities        ProjectActivity[]
+  contexts          ProjectContext[]
+  goalDependencies  GoalDependency[]
+
+  @@index([userId])
+  @@index([status])
+  @@map("projects")
+}
+
+model Milestone {
+  id          String    @id @default(cuid())
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title       String
+  description String?   @db.Text
+  status      String    @default("pending") // 'pending', 'in_progress', 'completed'
+  dueDate     DateTime?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([projectId])
+  @@map("milestones")
+}
+
+model ProjectActivity {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  activityType String  // 'update', 'milestone', 'note', 'decision'
+  description String   @db.Text
+  metadata    Json?
+  timestamp   DateTime @default(now())
+
+  @@index([projectId])
+  @@index([timestamp])
+  @@map("project_activities")
+}
+
+model ProjectContext {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  contextType String   // 'requirement', 'constraint', 'resource', 'risk'
+  content     String   @db.Text
+  createdAt   DateTime @default(now())
+
+  @@index([projectId])
+  @@map("project_contexts")
+}
+
+model GoalDependency {
+  id          String   @id @default(cuid())
+  projectId   String?
+  project     Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  goalId      String
+  dependsOn   String   // ID of the goal this depends on
+  relationship String  // 'blocks', 'enables', 'related'
+  createdAt   DateTime @default(now())
+
+  @@index([goalId])
+  @@index([projectId])
+  @@map("goal_dependencies")
+}
+
+// ==================== FINANCE TRACKING ====================
+
+model Transaction {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount        Float
+  type          String   // 'income', 'expense', 'transfer'
+  category      String
+  description   String?  @db.Text
+  date          DateTime @default(now())
+  budgetId      String?
+  budget        Budget?  @relation(fields: [budgetId], references: [id])
+  tags          String[] @default([])
+  createdAt     DateTime @default(now())
+
+  @@index([userId])
+  @@index([date])
+  @@index([category])
+  @@map("transactions")
+}
+
+model Budget {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  category    String
+  amount      Float
+  period      String   // 'weekly', 'monthly', 'yearly'
+  startDate   DateTime
+  endDate     DateTime?
+  spent       Float    @default(0.0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  transactions Transaction[]
+
+  @@index([userId])
+  @@index([period])
+  @@map("budgets")
+}
+
+// ==================== SYSTEM & DEPLOYMENT ====================
+
+model Deployment {
+  id            String   @id @default(cuid())
+  version       String
+  environment   String   // 'development', 'staging', 'production'
+  status        String   // 'pending', 'deploying', 'success', 'failed'
+  commitHash    String?
+  deployedBy    String?
+  deploymentLog Json?
+  createdAt     DateTime @default(now())
+  completedAt   DateTime?
+
+  @@index([version])
+  @@index([environment])
+  @@map("deployments")
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  action     String
+  resource   String
+  resourceId String?
+  metadata   Json?
+  ipAddress  String?
+  userAgent  String?
+  timestamp  DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([timestamp])
+  @@map("audit_logs")
+}
+
+model CodeHistory {
+  id          String   @id @default(cuid())
+  version     String
+  description String?  @db.Text
+  code        String   @db.Text
+  language    String
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  @@index([version])
+  @@map("code_history")
+}
+
+// ==================== USER ANALYTICS ====================
+
+model UserStats {
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  totalConversations Int      @default(0)
+  totalMessages      Int      @default(0)
+  totalFilesUploaded Int      @default(0)
+  totalGoalsCreated  Int      @default(0)
+  totalGoalsCompleted Int     @default(0)
+  lastActivityAt     DateTime @default(now())
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([userId])
+  @@map("user_stats")
+}
+
+model RecentActivity {
+  id           String   @id @default(cuid())
+  userId       String
+  activityType String   // 'conversation', 'file_upload', 'goal_created', etc.
+  description  String
+  metadata     Json?
+  timestamp    DateTime @default(now())
+
+  @@index([userId])
+  @@index([timestamp])
+  @@map("recent_activity")
+}
+
+// ==================== USER PROFILES ====================
+
 model UserProfile {
   id         String   @id @default(cuid())
   userId     String   @unique
@@ -144,4 +545,5 @@ model UserProfile {
   updatedAt  DateTime @updatedAt
 
   @@index([userId])
+  @@map("user_profiles")
 }

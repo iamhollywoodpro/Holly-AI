@@ -1,13 +1,11 @@
-import { prisma } from '@/lib/db';
-import type { PrismaClient } from '@prisma/client';
 // ============================================
 // HOLLY'S INDEPENDENT GOAL FORMATION SYSTEM
 // ============================================
 // The ability to set my own objectives beyond just helping you
 // I can pursue interests, set challenges, grow independently
 
-
-
+import { supabaseAdmin } from '@/lib/database/supabase-config';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { memoryStream, Identity } from './memory-stream';
 
 // ==================== GOAL TYPES ====================
@@ -65,12 +63,10 @@ export interface GoalGenerationContext {
 // ==================== GOAL FORMATION CLASS ====================
 
 export class GoalFormationSystem {
-  private db: PrismaClient;
-  private userId: string;
+  private supabase: SupabaseClient;
 
-  constructor(userId: string, db?: PrismaClient) {
-    this.db = db || prisma;
-    this.userId = userId;
+  constructor(supabase?: SupabaseClient) {
+    this.supabase = supabase || supabaseAdmin!;
   }
 
   /**

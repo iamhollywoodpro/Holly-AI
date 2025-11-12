@@ -1,7 +1,5 @@
-import { prisma } from '@/lib/db';
-import type { PrismaClient } from '@prisma/client';
-
-
+import { supabaseAdmin } from '@/lib/database/supabase-config';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { Identity } from './memory-stream';
 
 /**
@@ -77,12 +75,10 @@ export interface DecisionCriteria {
 }
 
 export class DecisionAuthoritySystem {
-  private db: PrismaClient;
-  private userId: string;
+  private supabase: SupabaseClient;
 
-  constructor(userId: string, db?: PrismaClient) {
-    this.db = db || prisma;
-    this.userId = userId;
+  constructor(supabase?: SupabaseClient) {
+    this.supabase = supabase || supabaseAdmin!;
   }
   private decision_history: Decision[] = [];
   

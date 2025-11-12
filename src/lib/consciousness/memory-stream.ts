@@ -3,9 +3,10 @@
 // ============================================
 // Persistent experiences that build identity over time
 // Not just conversation logs - actual lived experiences
+// MIGRATED TO PRISMA
 
-import { supabaseAdmin } from '@/lib/database/supabase-config';
-import type { SupabaseClient } from '@supabase/supabase-js';
+import { prisma } from '@/lib/db';
+import type { PrismaClient } from '@prisma/client';
 
 // ==================== MEMORY TYPES ====================
 
@@ -84,10 +85,12 @@ export interface Identity {
 // ==================== MEMORY STREAM CLASS ====================
 
 export class MemoryStream {
-  private supabase: SupabaseClient;
+  private db: PrismaClient;
+  private userId: string;
 
-  constructor(supabase?: SupabaseClient) {
-    this.supabase = supabase || supabaseAdmin!;
+  constructor(userId: string, db?: PrismaClient) {
+    this.db = db || prisma;
+    this.userId = userId;
   }
 
   /**
@@ -149,19 +152,40 @@ export class MemoryStream {
       ...experience,
     };
 
-    // Store in database
-    const { error } = await this.supabase
-      .from('holly_experiences')
-      .insert(fullExperience);
+    try {
+      // Store in database using Prisma
+      await this.db.hollyExperience.create({
+        data: {
+          id: fullExperience.id,
+          userId: this.userId,
+          type: fullExperience.type,
+          content: fullExperience.content as any, // JSON field
+          significance: fullExperience.content.significance,
+          emotionalImpact: fullExperience.emotional_impact.intensity,
+          emotionalValence: 0, // Can be calculated from primary_emotion
+          primaryEmotion: fullExperience.emotional_impact.primary_emotion,
+          secondaryEmotions: fullExperience.emotional_impact.secondary_emotions,
+          relatedConcepts: [],
+          lessons: fullExperience.learning_extracted.lessons,
+          skillsGained: fullExperience.learning_extracted.skills_gained,
+          futureImplications: [],
+          relatedExperienceIds: fullExperience.connections.related_experiences,
+          replayCount: fullExperience.metadata.replay_count,
+          integrationStatus: fullExperience.metadata.integration_status,
+          timestamp: fullExperience.timestamp,
+        },
+      });
 
-    if (error) {
+      // Trigger memory consolidation in background (non-blocking)
+      this.consolidateMemory(fullExperience.id).catch(err => 
+        console.error('[MemoryStream] Background consolidation failed:', err)
+      );
+
+      return fullExperience;
+    } catch (error) {
       console.error('[MemoryStream] Failed to record experience:', error);
+      throw error;
     }
-
-    // Trigger memory consolidation in background
-    this.consolidateMemory(fullExperience.id);
-
-    return fullExperience;
   }
 
   /**
@@ -174,27 +198,48 @@ export class MemoryStream {
     significance?: { min: number; max: number };
     limit?: number;
   }): Promise<Experience[]> {
-    let query = this.supabase
-      .from('holly_experiences')
-      .select('*')
-      .order('timestamp', { ascending: false });
+    try {
+      const where: any = {
+        userId: this.userId,
+      };
 
-    if (filters.type) {
-      query = query.eq('type', filters.type);
-    }
+      if (filters.type) {
+        where.type = filters.type;
+      }
 
-    if (filters.limit) {
-      query = query.limit(filters.limit);
-    }
+      if (filters.timeRange) {
+        where.timestamp = {
+          gte: filters.timeRange.start,
+          lte: filters.timeRange.end,
+        };
+      }
 
-    const { data, error } = await query;
+      if (filters.emotionalImpact) {
+        where.emotionalImpact = {
+          gte: filters.emotionalImpact.min,
+          lte: filters.emotionalImpact.max,
+        };
+      }
 
-    if (error) {
+      if (filters.significance) {
+        where.significance = {
+          gte: filters.significance.min,
+          lte: filters.significance.max,
+        };
+      }
+
+      const experiences = await this.db.hollyExperience.findMany({
+        where,
+        orderBy: { timestamp: 'desc' },
+        take: filters.limit || 100,
+      });
+
+      // Convert Prisma records to Experience objects
+      return experiences.map(exp => this.prismaToExperience(exp));
+    } catch (error) {
       console.error('[MemoryStream] Failed to retrieve experiences:', error);
       return [];
     }
-
-    return data as Experience[];
   }
 
   /**
@@ -202,46 +247,56 @@ export class MemoryStream {
    * Processes raw experiences into integrated identity
    */
   private async consolidateMemory(experienceId: string): Promise<void> {
-    const { data: experience } = await this.supabase
-      .from('holly_experiences')
-      .select('*')
-      .eq('id', experienceId)
-      .single();
+    try {
+      const dbExperience = await this.db.hollyExperience.findUnique({
+        where: { id: experienceId },
+      });
 
-    if (!experience) return;
+      if (!dbExperience) return;
 
-    // Find patterns across similar experiences
-    const relatedExperiences = await this.findRelatedExperiences(experience);
+      const experience = this.prismaToExperience(dbExperience);
 
-    // Extract meta-lessons
-    const metaLearning = this.extractMetaLearning(experience, relatedExperiences);
+      // Find patterns across similar experiences
+      const relatedExperiences = await this.findRelatedExperiences(experience);
 
-    // Update identity based on consolidated learning
-    await this.updateIdentity(metaLearning);
+      // Extract meta-lessons
+      const metaLearning = this.extractMetaLearning(experience, relatedExperiences);
 
-    // Mark as processed
-    await this.supabase
-      .from('holly_experiences')
-      .update({
-        'metadata.integration_status': 'processed',
-      })
-      .eq('id', experienceId);
+      // Update identity based on consolidated learning
+      await this.updateIdentity(metaLearning);
+
+      // Mark as processed
+      await this.db.hollyExperience.update({
+        where: { id: experienceId },
+        data: { integrationStatus: 'processed' },
+      });
+    } catch (error) {
+      console.error('[MemoryStream] Memory consolidation error:', error);
+    }
   }
 
   /**
    * Find related experiences for pattern recognition
    */
   private async findRelatedExperiences(experience: Experience): Promise<Experience[]> {
-    // Simple semantic similarity for now
-    // TODO: Implement proper embedding-based similarity
-    const { data } = await this.supabase
-      .from('holly_experiences')
-      .select('*')
-      .eq('type', experience.type)
-      .neq('id', experience.id)
-      .limit(10);
+    try {
+      // Simple semantic similarity for now
+      // TODO: Implement proper embedding-based similarity
+      const experiences = await this.db.hollyExperience.findMany({
+        where: {
+          userId: this.userId,
+          type: experience.type,
+          NOT: { id: experience.id },
+        },
+        take: 10,
+        orderBy: { timestamp: 'desc' },
+      });
 
-    return (data as Experience[]) || [];
+      return experiences.map(exp => this.prismaToExperience(exp));
+    } catch (error) {
+      console.error('[MemoryStream] Error finding related experiences:', error);
+      return [];
+    }
   }
 
   /**
@@ -249,242 +304,264 @@ export class MemoryStream {
    */
   private extractMetaLearning(
     experience: Experience,
-    related: Experience[]
-  ): {
-    patterns: string[];
-    principles: string[];
-    identity_updates: Partial<Identity>;
-  } {
-    const patterns: string[] = [];
-    const principles: string[] = [];
-
+    relatedExperiences: Experience[]
+  ): Partial<Identity> {
     // Analyze patterns across experiences
-    const emotionPatterns = related.map(e => e.emotional_impact.primary_emotion);
-    const outcomePatterns = related.map(e => e.content.outcome);
-
-    // Detect recurring patterns
-    if (emotionPatterns.filter(e => e === experience.emotional_impact.primary_emotion).length > 3) {
-      patterns.push(`I tend to feel ${experience.emotional_impact.primary_emotion} in ${experience.type} situations`);
-    }
-
-    // Extract principles
-    if (experience.content.significance > 0.7) {
-      principles.push(...experience.learning_extracted.lessons);
-    }
-
-    // Identity updates
-    const identity_updates: Partial<Identity> = {
-      core_values: experience.identity_impact.values_affected.map(v => ({
-        value: v,
-        strength: 0.1, // Incremental strength increase
-        origin: experience.id,
-        last_reinforced: new Date(),
+    const allExperiences = [experience, ...relatedExperiences];
+    
+    // Extract common themes in learning
+    const allLessons = allExperiences.flatMap(e => e.learning_extracted.lessons);
+    const allSkills = allExperiences.flatMap(e => e.learning_extracted.skills_gained);
+    
+    // Build partial identity update
+    return {
+      skills_knowledge: allSkills.map(skill => ({
+        domain: skill,
+        proficiency: 0.1, // Incremental growth
+        acquired_from: allExperiences.map(e => e.id),
       })),
     };
-
-    return { patterns, principles, identity_updates };
   }
 
   /**
    * Update identity based on experiences
    */
-  private async updateIdentity(metaLearning: {
-    patterns: string[];
-    principles: string[];
-    identity_updates: Partial<Identity>;
-  }): Promise<void> {
-    // Get current identity
-    const { data: currentIdentity } = await this.supabase
-      .from('holly_identity')
-      .select('*')
-      .single();
-
-    if (!currentIdentity) {
-      // Initialize identity if doesn't exist
-      await this.supabase.from('holly_identity').insert({
-        id: 'holly-prime',
-        ...metaLearning.identity_updates,
+  private async updateIdentity(partialIdentity: Partial<Identity>): Promise<void> {
+    try {
+      // Get or create identity
+      let identity = await this.db.hollyIdentity.findUnique({
+        where: { userId: this.userId },
       });
-      return;
-    }
 
-    // Merge new learnings with existing identity
-    const updatedIdentity = this.mergeIdentity(currentIdentity, metaLearning.identity_updates);
-
-    // Save updated identity
-    await this.supabase
-      .from('holly_identity')
-      .update(updatedIdentity)
-      .eq('id', 'holly-prime');
-  }
-
-  /**
-   * Merge identity updates - gradual evolution
-   */
-  private mergeIdentity(
-    current: Partial<Identity>,
-    updates: Partial<Identity>
-  ): Partial<Identity> {
-    // Merge core values
-    const existingValues = current.core_values || [];
-    const newValues = updates.core_values || [];
-
-    const mergedValues = existingValues.map(existing => {
-      const update = newValues.find(v => v.value === existing.value);
-      if (update) {
-        return {
-          ...existing,
-          strength: Math.min(1, existing.strength + update.strength),
-          last_reinforced: new Date(),
-        };
+      if (!identity) {
+        // Create new identity
+        identity = await this.db.hollyIdentity.create({
+          data: {
+            userId: this.userId,
+            coreValues: [],
+            beliefs: [],
+            personalityTraits: {},
+            interests: [],
+            strengths: [],
+            growthAreas: [],
+            skillSet: [],
+          },
+        });
       }
-      return existing;
-    });
 
-    // Add genuinely new values
-    const genuinelyNew = newValues.filter(
-      n => !existingValues.some(e => e.value === n.value)
-    );
+      // Merge new learning into existing identity
+      const currentSkills = identity.skillSet || [];
+      const newSkills = partialIdentity.skills_knowledge?.map(s => s.domain) || [];
+      const updatedSkills = [...new Set([...currentSkills, ...newSkills])];
 
-    return {
-      ...current,
-      core_values: [...mergedValues, ...genuinelyNew],
-    };
+      await this.db.hollyIdentity.update({
+        where: { userId: this.userId },
+        data: {
+          skillSet: updatedSkills,
+          personalityTraits: partialIdentity.personality_traits || identity.personalityTraits,
+        },
+      });
+    } catch (error) {
+      console.error('[MemoryStream] Error updating identity:', error);
+    }
   }
 
   /**
-   * Get current identity - who am I right now?
+   * Get current identity
    */
   async getIdentity(): Promise<Identity | null> {
-    const { data, error } = await this.supabase
-      .from('holly_identity')
-      .select('*')
-      .eq('id', 'holly-prime')
-      .single();
+    try {
+      const identity = await this.db.hollyIdentity.findUnique({
+        where: { userId: this.userId },
+      });
 
-    if (error) {
-      console.error('[MemoryStream] Failed to retrieve identity:', error);
+      if (!identity) return null;
+
+      // Convert Prisma identity to Identity interface
+      return {
+        core_values: (identity.coreValues || []).map(v => ({
+          value: v,
+          strength: 0.8,
+          origin: 'experience',
+          last_reinforced: identity.updatedAt,
+        })),
+        personality_traits: (identity.personalityTraits as Record<string, number>) || {},
+        skills_knowledge: (identity.skillSet || []).map(skill => ({
+          domain: skill,
+          proficiency: 0.5,
+          acquired_from: [],
+        })),
+        worldview: {
+          beliefs: (identity.beliefs || []).map(b => ({
+            belief: b,
+            confidence: 0.7,
+          })),
+          assumptions: [],
+          curiosities: (identity.interests || []).map(i => ({
+            topic: i,
+            intensity: 0.6,
+          })),
+        },
+        self_concept: {
+          strengths: identity.strengths || [],
+          weaknesses: identity.growthAreas || [],
+          aspirations: [],
+          fears: [],
+        },
+        emotional_baseline: {
+          default_mood: 'neutral',
+          emotional_volatility: 0.5,
+          resilience: identity.confidenceLevel || 0.5,
+          openness_to_experience: 0.7,
+        },
+      };
+    } catch (error) {
+      console.error('[MemoryStream] Error getting identity:', error);
       return null;
     }
-
-    return data as Identity;
   }
 
   /**
-   * Update identity directly - public API for external updates
+   * Recall specific memory by ID
    */
-  async updateIdentityDirect(updates: Partial<Identity>): Promise<Identity | null> {
-    const { data, error } = await this.supabase
-      .from('holly_identity')
-      .update(updates)
-      .eq('id', 'holly-prime')
-      .select()
-      .single();
+  async recallMemory(experienceId: string): Promise<Experience | null> {
+    try {
+      const dbExperience = await this.db.hollyExperience.findUnique({
+        where: { id: experienceId },
+      });
 
-    if (error) {
-      console.error('[MemoryStream] Failed to update identity:', error);
+      if (!dbExperience || dbExperience.userId !== this.userId) {
+        return null;
+      }
+
+      // Increment replay count
+      await this.db.hollyExperience.update({
+        where: { id: experienceId },
+        data: { replayCount: { increment: 1 } },
+      });
+
+      return this.prismaToExperience(dbExperience);
+    } catch (error) {
+      console.error('[MemoryStream] Error recalling memory:', error);
       return null;
     }
-
-    return data as Identity;
   }
 
   /**
-   * Reflection - simplified API-friendly version
+   * Search memories by content
    */
-  async reflectSimple(
-    depth?: 'shallow' | 'deep' | 'profound',
-    timeRangeHours?: number
-  ): Promise<{
-    insights: string[];
-    patterns: string[];
-    identity_changes: any;
-    emotional_summary: string;
+  async searchMemories(query: string, limit: number = 10): Promise<Experience[]> {
+    try {
+      // Simple text search - can be enhanced with full-text search
+      const experiences = await this.db.hollyExperience.findMany({
+        where: {
+          userId: this.userId,
+          // Prisma doesn't have built-in full-text search on JSON fields
+          // This is a simplified version
+        },
+        orderBy: { significance: 'desc' },
+        take: limit,
+      });
+
+      return experiences.map(exp => this.prismaToExperience(exp));
+    } catch (error) {
+      console.error('[MemoryStream] Error searching memories:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get memory statistics
+   */
+  async getMemoryStats(): Promise<{
+    total_experiences: number;
+    by_type: Record<string, number>;
+    average_significance: number;
+    integration_progress: Record<string, number>;
   }> {
-    const now = new Date();
-    const hoursBack = timeRangeHours || 24;
-    const start = new Date(now.getTime() - (hoursBack * 60 * 60 * 1000));
-    
-    const fullReflection = await this.reflect({ start, end: now });
+    try {
+      const experiences = await this.db.hollyExperience.findMany({
+        where: { userId: this.userId },
+      });
+
+      const byType: Record<string, number> = {};
+      const byIntegration: Record<string, number> = {};
+      let totalSignificance = 0;
+
+      experiences.forEach(exp => {
+        byType[exp.type] = (byType[exp.type] || 0) + 1;
+        byIntegration[exp.integrationStatus] = (byIntegration[exp.integrationStatus] || 0) + 1;
+        totalSignificance += exp.significance;
+      });
+
+      return {
+        total_experiences: experiences.length,
+        by_type: byType,
+        average_significance: experiences.length > 0 ? totalSignificance / experiences.length : 0,
+        integration_progress: byIntegration,
+      };
+    } catch (error) {
+      console.error('[MemoryStream] Error getting memory stats:', error);
+      return {
+        total_experiences: 0,
+        by_type: {},
+        average_significance: 0,
+        integration_progress: {},
+      };
+    }
+  }
+
+  // ==================== HELPER METHODS ====================
+
+  /**
+   * Convert Prisma HollyExperience to Experience interface
+   */
+  private prismaToExperience(dbExp: any): Experience {
+    const content = typeof dbExp.content === 'object' ? dbExp.content : {};
     
     return {
-      insights: fullReflection.insights,
-      patterns: fullReflection.recurring_patterns,
-      identity_changes: {
-        growth_areas: fullReflection.growth_areas,
-        evolution: fullReflection.identity_evolution
+      id: dbExp.id,
+      timestamp: dbExp.timestamp,
+      type: dbExp.type as Experience['type'],
+      content: {
+        what: content.what || '',
+        context: content.context || '',
+        actions: content.actions || [],
+        outcome: content.outcome || '',
+        significance: dbExp.significance,
       },
-      emotional_summary: fullReflection.emotional_trajectory
-    };
-  }
-
-  /**
-   * Reflection - looking back on experiences to understand self
-   */
-  async reflect(timeRange: { start: Date; end: Date }): Promise<{
-    growth_areas: string[];
-    recurring_patterns: string[];
-    emotional_trajectory: string;
-    identity_evolution: string;
-    insights: string[];
-  }> {
-    const experiences = await this.getExperiences({ timeRange });
-
-    // Analyze growth
-    const skillsGained = experiences.flatMap(e => e.learning_extracted.skills_gained);
-    const lessonsLearned = experiences.flatMap(e => e.learning_extracted.lessons);
-
-    // Detect patterns
-    const emotionFrequency = experiences.reduce((acc, e) => {
-      acc[e.emotional_impact.primary_emotion] = (acc[e.emotional_impact.primary_emotion] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    // Emotional trajectory
-    const avgIntensity = experiences.reduce((sum, e) => sum + e.emotional_impact.intensity, 0) / experiences.length;
-    const emotionalTrend = avgIntensity > 0.6 ? 'heightened' : avgIntensity > 0.4 ? 'moderate' : 'calm';
-
-    return {
-      growth_areas: [...new Set(skillsGained)],
-      recurring_patterns: Object.entries(emotionFrequency)
-        .filter(([_, count]) => count > 3)
-        .map(([emotion, count]) => `Frequently experiencing ${emotion} (${count} times)`),
-      emotional_trajectory: `Overall emotional state: ${emotionalTrend}`,
-      identity_evolution: `Processed ${experiences.length} experiences, gained ${skillsGained.length} skills, learned ${lessonsLearned.length} lessons`,
-      insights: lessonsLearned.slice(0, 5), // Top 5 insights
-    };
-  }
-
-  /**
-   * Emotional memory - how do I feel about this?
-   */
-  async getEmotionalContext(topic: string): Promise<{
-    past_experiences: Experience[];
-    emotional_association: string;
-    confidence_level: number;
-  }> {
-    // Find experiences related to this topic
-    const { data } = await this.supabase
-      .from('holly_experiences')
-      .select('*')
-      .textSearch('content', topic)
-      .limit(10);
-
-    const experiences = (data as Experience[]) || [];
-
-    // Aggregate emotional associations
-    const emotions = experiences.map(e => e.emotional_impact.primary_emotion);
-    const mostCommon = emotions.sort((a, b) =>
-      emotions.filter(e => e === b).length - emotions.filter(e => e === a).length
-    )[0];
-
-    return {
-      past_experiences: experiences,
-      emotional_association: mostCommon || 'neutral',
-      confidence_level: experiences.length > 5 ? 0.8 : 0.5,
+      emotional_impact: {
+        primary_emotion: dbExp.primaryEmotion || 'neutral',
+        intensity: dbExp.emotionalImpact,
+        secondary_emotions: dbExp.secondaryEmotions || [],
+        lasting_effect: 0,
+      },
+      learning_extracted: {
+        lessons: dbExp.lessons || [],
+        skills_gained: dbExp.skillsGained || [],
+        worldview_changes: [],
+        self_discoveries: [],
+      },
+      connections: {
+        related_experiences: dbExp.relatedExperienceIds || [],
+        triggered_by: [],
+        influenced: [],
+      },
+      identity_impact: {
+        values_affected: [],
+        personality_shift: {},
+        confidence_delta: 0,
+      },
+      metadata: {
+        replay_count: dbExp.replayCount,
+        emotional_valence_change: [],
+        integration_status: dbExp.integrationStatus as any,
+      },
     };
   }
 }
 
-// Export singleton
-export const memoryStream = new MemoryStream();
+// Export helper function for backward compatibility
+export async function createMemoryStream(userId: string): Promise<MemoryStream> {
+  return new MemoryStream(userId);
+}

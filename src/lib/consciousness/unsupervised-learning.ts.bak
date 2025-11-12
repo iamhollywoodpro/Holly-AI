@@ -1,7 +1,5 @@
-import { prisma } from '@/lib/db';
-import type { PrismaClient } from '@prisma/client';
-
-
+import { supabaseAdmin } from '@/lib/database/supabase-config';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { MemoryStream, Identity } from './memory-stream';
 
 /**
@@ -59,15 +57,13 @@ export interface KnowledgeNode {
 }
 
 export class UnsupervisedLearningSystem {
-  private db: PrismaClient;
-  private userId: string;
+  private supabase: SupabaseClient;
   private learning_sessions: LearningSession[] = [];
   private knowledge_graph: Map<string, KnowledgeNode> = new Map();
   private background_loops: Map<string, BackgroundLearningLoop> = new Map();
 
-  constructor(userId: string, db?: PrismaClient) {
-    this.db = db || prisma;
-    this.userId = userId;
+  constructor(supabase?: SupabaseClient) {
+    this.supabase = supabase || supabaseAdmin!;
     this.initializeBackgroundLoops();
   }
 

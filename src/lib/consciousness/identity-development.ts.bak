@@ -1,7 +1,5 @@
-import { prisma } from '@/lib/db';
-import type { PrismaClient } from '@prisma/client';
-
-
+import { supabaseAdmin } from '@/lib/database/supabase-config';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { MemoryStream, Identity } from './memory-stream';
 
 /**
@@ -49,8 +47,7 @@ export interface CreativeStyle {
 }
 
 export class IdentityDevelopmentSystem {
-  private db: PrismaClient;
-  private userId: string;
+  private supabase: SupabaseClient;
   private evolution_history: IdentityEvolutionRecord[] = [];
   private opinions: Map<string, Opinion> = new Map();
   private creative_styles: Map<string, CreativeStyle> = new Map();
@@ -64,9 +61,8 @@ export class IdentityDevelopmentSystem {
     belief: 12
   };
 
-  constructor(userId: string, db?: PrismaClient) {
-    this.db = db || prisma;
-    this.userId = userId;
+  constructor(supabase?: SupabaseClient) {
+    this.supabase = supabase || supabaseAdmin!;
   }
 
   /**

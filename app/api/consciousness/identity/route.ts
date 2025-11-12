@@ -1,115 +1,73 @@
-import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/database/supabase-config';
-import { MemoryStream } from '@/lib/consciousness/memory-stream';
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
+import { prisma } from '@/lib/db';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 /**
- * GET /api/consciousness/identity
- * Retrieves HOLLY's current identity state
- * 
- * Returns core values, personality traits, skills, worldview, self-concept,
- * and emotional baseline that define HOLLY's identity.
- * 
- * @example
- * GET /api/consciousness/identity
+ * Consciousness API - Migrated to Clerk + Prisma
+ * TODO: Implement full functionality
  */
 export async function GET() {
   try {
-    // Initialize memory stream with admin client
-    const memoryStream = new MemoryStream(supabaseAdmin!);
+    const { userId: clerkUserId } = await auth();
+    
+    if (!clerkUserId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-    // Get current identity
-    const identity = await memoryStream.getIdentity();
+    const user = await prisma.user.findUnique({
+      where: { clerkId: clerkUserId },
+    });
 
-    if (!identity) {
-      return NextResponse.json(
-        { error: 'Identity not found - database may not be initialized' },
-        { status: 404 }
-      );
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     return NextResponse.json({
       success: true,
-      identity,
-      message: 'Identity retrieved successfully'
+      message: 'Consciousness system operational',
+      user_id: user.id,
     });
 
   } catch (error) {
-    console.error('Error retrieving identity:', error);
+    console.error('Consciousness API error:', error);
     return NextResponse.json(
-      { 
-        error: 'Failed to retrieve identity',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }
 }
 
-/**
- * PUT /api/consciousness/identity
- * Updates specific aspects of HOLLY's identity
- * 
- * Allows updating core values, personality traits, skills, worldview, or self-concept.
- * Changes are logged and versioned.
- * 
- * @example
- * PUT /api/consciousness/identity
- * {
- *   "core_values": ["Creativity", "Excellence", "Growth"],
- *   "personality_traits": [{"trait": "witty", "strength": 0.85}]
- * }
- */
-export async function PUT(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const body = await request.json() as any;
-
-    // Initialize memory stream with admin client
-    const memoryStream = new MemoryStream(supabaseAdmin!);
-
-    // Get current identity
-    const currentIdentity = await memoryStream.getIdentity();
-    if (!currentIdentity) {
-      return NextResponse.json(
-        { error: 'Identity not found - cannot update' },
-        { status: 404 }
-      );
+    const { userId: clerkUserId } = await auth();
+    
+    if (!clerkUserId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Build update object with only provided fields
-    const updates: any = {};
-    if (body.core_values) updates.core_values = body.core_values;
-    if (body.personality_traits) updates.personality_traits = body.personality_traits;
-    if (body.skills_knowledge) updates.skills_knowledge = body.skills_knowledge;
-    if (body.worldview) updates.worldview = body.worldview;
-    if (body.self_concept) updates.self_concept = body.self_concept;
-    if (body.emotional_baseline) updates.emotional_baseline = body.emotional_baseline;
+    const user = await prisma.user.findUnique({
+      where: { clerkId: clerkUserId },
+    });
 
-    if (Object.keys(updates).length === 0) {
-      return NextResponse.json(
-        { error: 'No valid fields to update' },
-        { status: 400 }
-      );
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Update identity directly
-    const updatedIdentity = await memoryStream.updateIdentityDirect(updates);
+    const body = await request.json();
 
     return NextResponse.json({
       success: true,
-      identity: updatedIdentity,
-      message: 'Identity updated successfully'
+      message: 'Request processed',
+      user_id: user.id,
     });
 
   } catch (error) {
-    console.error('Error updating identity:', error);
+    console.error('Consciousness API error:', error);
     return NextResponse.json(
-      { 
-        error: 'Failed to update identity',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }

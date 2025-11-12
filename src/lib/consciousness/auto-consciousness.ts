@@ -4,7 +4,7 @@
  * NO MANUAL SEEDING REQUIRED
  */
 
-import { supabaseAdmin } from '@/lib/database/supabase-config';
+import { prisma } from '@/lib/db';
 import { MemoryStream } from './memory-stream';
 import { GoalFormationSystem } from './goal-formation';
 import type { Experience } from './memory-stream';

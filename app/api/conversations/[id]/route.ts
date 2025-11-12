@@ -1,28 +1,48 @@
-// HOLLY Phase 2D: Enhanced Individual Conversation API Route
-// Supports metadata updates (pinned status)
+// HOLLY: Individual Conversation API Route - Migrated to Clerk + Prisma
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { auth } from '@clerk/nextjs/server';
+import { prisma } from '@/lib/db';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const { data: conversation, error } = await supabase
-      .from('holly_conversations')
-      .select('*')
-      .eq('id', params.id)
-      .single();
+    const { userId: clerkUserId } = await auth();
+    
+    if (!clerkUserId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-    if (error) throw error;
+    const user = await prisma.user.findUnique({
+      where: { clerkId: clerkUserId },
+    });
 
-    return NextResponse.json({ conversation });
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    const conversation = await prisma.conversation.findFirst({
+      where: {
+        id: params.id,
+        userId: user.id,
+      },
+      include: {
+        messages: {
+          orderBy: { createdAt: 'asc' },
+        },
+      },
+    });
+
+    if (!conversation) {
+      return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
+    }
+
+    return NextResponse.json(conversation);
   } catch (error) {
     console.error('Error fetching conversation:', error);
     return NextResponse.json(
@@ -37,29 +57,39 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const body = await request.json() as any;
-    const { title, metadata } = body as any;
-
-    const updateData: any = { updated_at: new Date().toISOString() };
+    const { userId: clerkUserId } = await auth();
     
-    if (title !== undefined) {
-      updateData.title = title;
-    }
-    
-    if (metadata !== undefined) {
-      updateData.metadata = metadata;
+    if (!clerkUserId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { data: conversation, error } = await supabase
-      .from('holly_conversations')
-      .update(updateData)
-      .eq('id', params.id)
-      .select()
-      .single();
+    const user = await prisma.user.findUnique({
+      where: { clerkId: clerkUserId },
+    });
 
-    if (error) throw error;
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
 
-    return NextResponse.json({ conversation });
+    const body = await request.json();
+    const { title } = body;
+
+    const conversation = await prisma.conversation.updateMany({
+      where: {
+        id: params.id,
+        userId: user.id,
+      },
+      data: {
+        title: title || undefined,
+        updatedAt: new Date(),
+      },
+    });
+
+    if (conversation.count === 0) {
+      return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
+    }
+
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error updating conversation:', error);
     return NextResponse.json(
@@ -74,19 +104,30 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    // Delete all messages in this conversation first
-    await supabase
-      .from('holly_messages')
-      .delete()
-      .eq('conversation_id', params.id);
+    const { userId: clerkUserId } = await auth();
+    
+    if (!clerkUserId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-    // Delete the conversation
-    const { error } = await supabase
-      .from('holly_conversations')
-      .delete()
-      .eq('id', params.id);
+    const user = await prisma.user.findUnique({
+      where: { clerkId: clerkUserId },
+    });
 
-    if (error) throw error;
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    const conversation = await prisma.conversation.deleteMany({
+      where: {
+        id: params.id,
+        userId: user.id,
+      },
+    });
+
+    if (conversation.count === 0) {
+      return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -1,5 +1,3 @@
-import { prisma } from '@/lib/db';
-import type { PrismaClient } from '@prisma/client';
 // ============================================
 // HOLLY'S EMOTIONAL DEPTH ENGINE
 // ============================================

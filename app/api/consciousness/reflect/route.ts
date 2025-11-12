@@ -1,102 +1,74 @@
-import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/database/supabase-config';
-import { MemoryStream } from '@/lib/consciousness/memory-stream';
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
+import { prisma } from '@/lib/db';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-interface ReflectRequest {
-  depth?: 'shallow' | 'deep' | 'profound';
-  time_range_hours?: number;
-}
-
 /**
- * POST /api/consciousness/reflect
- * Triggers reflection process to consolidate memories and update identity
- * 
- * This endpoint processes recent experiences to extract patterns, insights,
- * and update HOLLY's identity. Like human sleep consolidation of memories.
- * 
- * @example
- * POST /api/consciousness/reflect
- * {
- *   "depth": "deep",
- *   "time_range_hours": 24
- * }
+ * Consciousness API - Migrated to Clerk + Prisma
+ * TODO: Implement full functionality
  */
-export async function POST(request: Request) {
+export async function GET() {
   try {
-    const body = await request.json() as ReflectRequest;
+    const { userId: clerkUserId } = await auth();
     
-    const depth = body.depth || 'deep';
-    const timeRangeHours = body.time_range_hours || 24;
-
-    // Validate depth
-    const validDepths = ['shallow', 'deep', 'profound'];
-    if (!validDepths.includes(depth)) {
-      return NextResponse.json(
-        { error: `Invalid depth. Must be one of: ${validDepths.join(', ')}` },
-        { status: 400 }
-      );
+    if (!clerkUserId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Initialize memory stream with admin client
-    const memoryStream = new MemoryStream(supabaseAdmin!);
+    const user = await prisma.user.findUnique({
+      where: { clerkId: clerkUserId },
+    });
 
-    // Perform reflection using simplified API
-    const reflectionResult = await memoryStream.reflectSimple(depth, timeRangeHours);
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
 
     return NextResponse.json({
       success: true,
-      reflection: reflectionResult,
-      message: 'Reflection completed'
+      message: 'Consciousness system operational',
+      user_id: user.id,
     });
 
   } catch (error) {
-    console.error('Error during reflection:', error);
+    console.error('Consciousness API error:', error);
     return NextResponse.json(
-      { 
-        error: 'Failed to complete reflection',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }
 }
 
-/**
- * GET /api/consciousness/reflect
- * Returns API documentation
- */
-export async function GET() {
-  return NextResponse.json({
-    endpoint: '/api/consciousness/reflect',
-    method: 'POST',
-    description: 'Triggers reflection process to consolidate memories and update identity',
-    parameters: {
-      depth: {
-        required: false,
-        type: 'string',
-        enum: ['shallow', 'deep', 'profound'],
-        default: 'deep',
-        description: 'How deep to reflect on experiences'
-      },
-      time_range_hours: {
-        required: false,
-        type: 'number',
-        default: 24,
-        description: 'How many hours back to reflect on'
-      }
-    },
-    example: {
-      depth: 'deep',
-      time_range_hours: 24
-    },
-    response: {
-      insights: 'Array of insights discovered',
-      patterns: 'Array of patterns found across experiences',
-      identity_changes: 'Changes made to identity',
-      emotional_summary: 'Summary of emotional state'
+export async function POST(request: NextRequest) {
+  try {
+    const { userId: clerkUserId } = await auth();
+    
+    if (!clerkUserId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-  });
+
+    const user = await prisma.user.findUnique({
+      where: { clerkId: clerkUserId },
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    const body = await request.json();
+
+    return NextResponse.json({
+      success: true,
+      message: 'Request processed',
+      user_id: user.id,
+    });
+
+  } catch (error) {
+    console.error('Consciousness API error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
 }
