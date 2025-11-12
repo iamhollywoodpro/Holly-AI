@@ -444,14 +444,14 @@ function LibraryTab() {
 
   const fetchSongs = async () => {
     try {
-      const { data, error } = await supabase
-        .from('songs')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(100)
-
-      if (error) throw error
-      setSongs(data || [])
+      // TODO: Implement with Prisma
+      // const { data, error } = await supabase
+      //   .from('songs')
+      //   .select('*')
+      //   .order('created_at', { ascending: false })
+      //   .limit(100)
+      // if (error) throw error
+      setSongs([])
     } catch (error) {
       console.error('Failed to fetch songs:', error)
       toast({ title: 'Failed to load library', variant: 'destructive' })
@@ -759,13 +759,13 @@ function ArtistsTab() {
 
   const fetchArtists = async () => {
     try {
-      const { data, error } = await supabase
-        .from('artists')
-        .select('*, songs(count)')
-        .order('created_at', { ascending: false })
-
-      if (error) throw error
-      setArtists(data || [])
+      // TODO: Implement with Prisma
+      // const { data, error } = await supabase
+      //   .from('artists')
+      //   .select('*, songs(count)')
+      //   .order('created_at', { ascending: false })
+      // if (error) throw error
+      setArtists([])
     } catch (error) {
       console.error('Failed to fetch artists:', error)
       toast({ title: 'Failed to load artists', variant: 'destructive' })
@@ -954,13 +954,13 @@ function PlaylistsTab() {
 
   const fetchPlaylists = async () => {
     try {
-      const { data, error } = await supabase
-        .from('playlists')
-        .select('*, playlist_songs(count)')
-        .order('created_at', { ascending: false })
-
-      if (error) throw error
-      setPlaylists(data || [])
+      // TODO: Implement with Prisma
+      // const { data, error } = await supabase
+      //   .from('playlists')
+      //   .select('*, playlist_songs(count)')
+      //   .order('created_at', { ascending: false })
+      // if (error) throw error
+      setPlaylists([])
     } catch (error) {
       console.error('Failed to fetch playlists:', error)
       toast({ title: 'Failed to load playlists', variant: 'destructive' })
