@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-// import { createClient } from '@supabase/supabase-js'; // MIGRATED TO PRISMA
+import { auth } from '@clerk/nextjs/server';
 
-// const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+// Image generation API - Stub (TODO: Implement with Prisma storage)
 const HF_TOKEN = process.env.HUGGINGFACE_API_KEY;
 const HF_API = 'https://api-inference.huggingface.co/models';
 
@@ -11,68 +11,59 @@ const MODELS = [
   { id: 'sdxl', name: 'SDXL', endpoint: 'stabilityai/stable-diffusion-xl-base-1.0', bestFor: ['artistic'], quality: 'excellent' },
   { id: 'sdxl-turbo', name: 'SDXL Turbo', endpoint: 'stabilityai/sdxl-turbo', bestFor: ['fast'], quality: 'great' },
   { id: 'playground', name: 'Playground', endpoint: 'playgroundai/playground-v2.5-1024px-aesthetic', bestFor: ['anime'], quality: 'excellent' },
-  { id: 'animagine', name: 'Animagine XL', endpoint: 'cagliostrolab/animagine-xl-3.1', bestFor: ['anime'], quality: 'excellent' },
-  { id: 'realistic', name: 'Realistic Vision', endpoint: 'SG161222/Realistic_Vision_V6.0_B1_noVAE', bestFor: ['photorealism'], quality: 'excellent' },
-  { id: 'proteus', name: 'Proteus', endpoint: 'dataautogpt3/ProteusV0.4', bestFor: ['3d'], quality: 'great' }
 ];
 
-function selectModel(prompt: string) {
-  const p = prompt.toLowerCase();
-  if (p.includes('anime') || p.includes('manga')) return MODELS.find(m => m.id === 'animagine') || MODELS[0];
-  if (p.includes('realistic') || p.includes('photo')) return MODELS.find(m => m.id === 'realistic') || MODELS[0];
-  if (p.includes('3d') || p.includes('render')) return MODELS.find(m => m.id === 'proteus') || MODELS[0];
-  return MODELS[0];
-}
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
-async function generate(model: any, prompt: string) {
-  const res = await fetch(`${HF_API}/${model.endpoint}`, {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${HF_TOKEN}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ inputs: prompt })
-  });
-  if (!res.ok) throw new Error(await res.text());
-  return Buffer.from(await res.arrayBuffer());
-}
-
-export async function POST(req: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
-    const { prompt, userId, modelPreference } = await req.json();
-    if (!prompt) return NextResponse.json({ error: 'Prompt required' }, { status: 400 });
-    
-    if (!HF_TOKEN) {
-      return NextResponse.json({ 
-        error: 'Image generation unavailable',
-        details: 'HUGGINGFACE_API_KEY not configured'
-      }, { status: 503 });
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    
-    let model = modelPreference ? MODELS.find(m => m.id === modelPreference) || selectModel(prompt) : selectModel(prompt);
-    let buffer: Buffer;
-    
-    try {
-      buffer = await generate(model, prompt);
-    } catch (e) {
-      for (const m of MODELS) {
-        try { buffer = await generate(m, prompt); model = m; break; } catch {}
-      }
-      if (!buffer!) throw new Error('All models failed');
+
+    const body = await request.json();
+    const { prompt, model = 'flux-schnell' } = body;
+
+    if (!prompt) {
+      return NextResponse.json({ error: 'Prompt is required' }, { status: 400 });
     }
-    
-    const fileName = `${Date.now()}-${model.id}.png`;
-    await supabase.storage.from('holly-images').upload(fileName, buffer, { contentType: 'image/png' });
-    const { data: { publicUrl } } = supabase.storage.from('holly-images').getPublicUrl(fileName);
-    
-    if (userId) {
-      await supabase.from('holly_experiences').insert({
-        user_id: userId,
-        experience_type: 'image_generation',
-        content: prompt,
-        metadata: { model: model.name, url: publicUrl, cost: 0, provider: 'huggingface' }
-      });
+
+    const selectedModel = MODELS.find(m => m.id === model) || MODELS[0];
+
+    // Generate image using Hugging Face
+    const response = await fetch(`${HF_API}/${selectedModel.endpoint}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${HF_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ inputs: prompt }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HF API error: ${response.statusText}`);
     }
-    
-    return NextResponse.json({ success: true, url: publicUrl, model: model.name, cost: 0, provider: 'huggingface', allModels: MODELS.map(m => ({ id: m.id, name: m.name, bestFor: m.bestFor })) });
-  } catch (error: any) {
-    return NextResponse.json({ error: 'Generation failed', details: error.message }, { status: 500 });
+
+    const imageBlob = await response.blob();
+    const buffer = Buffer.from(await imageBlob.arrayBuffer());
+
+    // TODO: Save to Prisma database + file storage
+    // For now, return the image directly
+    return new NextResponse(buffer, {
+      headers: {
+        'Content-Type': 'image/png',
+        'Cache-Control': 'public, max-age=31536000',
+      },
+    });
+
+  } catch (error) {
+    console.error('Image generation error:', error);
+    return NextResponse.json(
+      { error: 'Image generation failed', details: error instanceof Error ? error.message : 'Unknown error' },
+      { status: 500 }
+    );
   }
 }

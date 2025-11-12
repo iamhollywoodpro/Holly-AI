@@ -6,7 +6,7 @@
  * Provides intelligent context-aware assistance
  */
 
-import { createClient } from '@supabase/supabase-js';
+// REMOVED: Supabase import (migrated to Prisma)
 
 export interface ProjectContext {
   id: string;

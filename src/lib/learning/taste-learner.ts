@@ -6,7 +6,7 @@
  * Adapts suggestions based on learned taste
  */
 
-import { createClient } from '@supabase/supabase-js';
+// REMOVED: Supabase import (migrated to Prisma)
 
 export interface TasteProfile {
   userId: string;

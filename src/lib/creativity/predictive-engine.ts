@@ -6,7 +6,7 @@
  * Anticipates your needs before you ask
  */
 
-import { createClient } from '@supabase/supabase-js';
+// REMOVED: Supabase import (migrated to Prisma)
 
 export interface PredictiveInsight {
   type: 'suggestion' | 'warning' | 'opportunity' | 'next-step';

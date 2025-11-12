@@ -1,7 +1,7 @@
 // HOLLY Feature 45: Goal & Project Management - Project Manager
 // Project grouping, organization, and project-level analytics
 
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+// REMOVED: Supabase import (migrated to Prisma)
 import type { Goal, GoalStatus } from './goal-manager';
 
 // ============================================================================

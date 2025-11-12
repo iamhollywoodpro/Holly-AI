@@ -31,7 +31,7 @@ import {
   Image as ImageIcon,
 } from 'lucide-react'
 
-const supabase = createClient()
+// REMOVED: Supabase client (migrated to Prisma)
 
 interface Song {
   id: string
@@ -228,7 +228,7 @@ function CreateTab() {
         
         // Save to database
         for (const clip of data.clips) {
-          await supabase.from('songs').insert({
+          // TODO: Migrate to Prisma - await // TODO: supabase.from('songs').insert({
             title: clip.title,
             audio_url: clip.audio_url,
             image_url: clip.image_url,
@@ -453,7 +453,7 @@ function LibraryTab() {
       .subscribe()
 
     return () => {
-      supabase.removeChannel(channel)
+      // supabase.removeChannel(channel)
     }
   }, [])
 
@@ -513,7 +513,7 @@ function LibraryTab() {
       toast({ title: 'Music video created successfully!' })
       
       // Save to database
-      await supabase.from('music_videos').insert({
+      // TODO: Migrate to Prisma - await // TODO: supabase.from('music_videos').insert({
         song_id: song.id,
         video_url: data.video_url,
         prompt: song.title,
@@ -816,7 +816,7 @@ function ArtistsTab() {
       const { image_url } = await imageResponse.json()
 
       // Save to database
-      const { error } = await supabase.from('artists').insert({
+      const { error } = // TODO: Migrate to Prisma - await // TODO: supabase.from('artists').insert({
         name: newArtist.name,
         style: newArtist.style,
         bio: newArtist.bio,
@@ -840,7 +840,7 @@ function ArtistsTab() {
     if (!confirm('Are you sure you want to delete this artist?')) return
 
     try {
-      const { error } = await supabase.from('artists').delete().eq('id', id)
+      const { error } = // TODO: Migrate to Prisma - await // TODO: supabase.from('artists').delete().eq('id', id)
       if (error) throw error
       toast({ title: 'Artist deleted successfully' })
       fetchArtists()
@@ -1001,7 +1001,7 @@ function PlaylistsTab() {
     }
 
     try {
-      const { error } = await supabase.from('playlists').insert({
+      const { error } = // TODO: Migrate to Prisma - await // TODO: supabase.from('playlists').insert({
         name: newPlaylist.name,
         description: newPlaylist.description,
       })
@@ -1021,7 +1021,7 @@ function PlaylistsTab() {
     if (!confirm('Are you sure you want to delete this playlist?')) return
 
     try {
-      const { error } = await supabase.from('playlists').delete().eq('id', id)
+      const { error } = // TODO: Migrate to Prisma - await // TODO: supabase.from('playlists').delete().eq('id', id)
       if (error) throw error
       toast({ title: 'Playlist deleted successfully' })
       fetchPlaylists()

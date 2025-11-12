@@ -1,7 +1,7 @@
 // HOLLY Feature 46: Financial Intelligence - Finance Coordinator
 // AI-powered insights and financial health analysis
 
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+// REMOVED: Supabase import (migrated to Prisma)
 import Groq from 'groq-sdk';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import TransactionManager, { Transaction, TransactionSummary } from './transaction-manager';

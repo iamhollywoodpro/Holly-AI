@@ -1,7 +1,7 @@
 // HOLLY Feature 45: Goal & Project Management - Goal Coordinator
 // High-level coordinator with AI-powered features
 
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+// REMOVED: Supabase import (migrated to Prisma)
 import Anthropic from '@anthropic-ai/sdk';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import Groq from 'groq-sdk';

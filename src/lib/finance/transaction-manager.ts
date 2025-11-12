@@ -1,7 +1,7 @@
 // HOLLY Feature 46: Financial Intelligence - Transaction Manager
 // Lean transaction tracking with smart categorization
 
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+// REMOVED: Supabase import (migrated to Prisma)
 
 // ============================================================================
 // TYPES

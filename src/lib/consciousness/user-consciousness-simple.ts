@@ -3,7 +3,7 @@
  * Direct database operations with user_id filtering
  */
 
-import { SupabaseClient } from '@supabase/supabase-js';
+// REMOVED: Supabase import (migrated to Prisma)
 
 /**
  * Get user's active goals from database

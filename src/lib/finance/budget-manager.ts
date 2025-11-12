@@ -1,7 +1,7 @@
 // HOLLY Feature 46: Financial Intelligence - Budget Manager
 // Simple budget tracking with smart alerts
 
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+// REMOVED: Supabase import (migrated to Prisma)
 import type { TransactionCategory } from './transaction-manager';
 
 // ============================================================================

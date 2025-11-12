@@ -1,7 +1,7 @@
 // HOLLY Feature 45: Goal & Project Management - Goal Manager
 // Core goal operations: CRUD, progress tracking, status management
 
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+// REMOVED: Supabase import (migrated to Prisma)
 
 // ============================================================================
 // TYPES

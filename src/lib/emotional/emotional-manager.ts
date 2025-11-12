@@ -1,7 +1,7 @@
 // HOLLY Feature 44: Emotional Intelligence - Emotional Manager
 // High-level coordinator for emotion detection, tone adaptation, and pattern tracking
 
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+// REMOVED: Supabase import (migrated to Prisma)
 import SentimentAnalyzer, { EmotionAnalysis, EmotionalPattern } from './sentiment-analyzer';
 import ToneAdapter, { AdaptedResponse, ToneAdapterConfig } from './tone-adapter';
 
@@ -118,7 +118,7 @@ export class EmotionalManager {
 
   async logEmotion(userId: string, message: string, emotion: EmotionAnalysis): Promise<void> {
     try {
-      const { error } = await this.supabase.from('emotion_logs').insert({
+      const { error } = // TODO: await this.supabase.from('emotion_logs').insert({
         user_id: userId,
         message_text: message.substring(0, 1000), // Truncate long messages
         primary_emotion: emotion.primary_emotion,

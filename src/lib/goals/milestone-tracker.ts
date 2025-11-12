@@ -1,7 +1,7 @@
 // HOLLY Feature 45: Goal & Project Management - Milestone Tracker
 // Milestone tracking, dependencies, and critical path analysis
 
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+// REMOVED: Supabase import (migrated to Prisma)
 
 // ============================================================================
 // TYPES

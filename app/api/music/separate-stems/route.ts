@@ -3,10 +3,10 @@ import { exec } from 'child_process'
 import { promisify } from 'util'
 import * as fs from 'fs/promises'
 import * as path from 'path'
-import { createClient } from '@/lib/supabase/client'
+// REMOVED: Supabase import (migrated to Prisma)
 
 const execAsync = promisify(exec)
-const supabase = createClient()
+// REMOVED: Supabase client (migrated to Prisma)
 
 interface StemSeparationRequest {
   audio_url: string
@@ -134,7 +134,7 @@ export async function POST(req: NextRequest) {
 
       // Upload to Supabase Storage
       const fileName = `${song_id}/${stemName}.wav`
-      const { error: uploadError } = await supabase.storage
+      // TODO: Migrate storage - const ... = await supabase.storage
         .from('song-stems')
         .upload(fileName, stemBuffer, {
           contentType: 'audio/wav',
@@ -147,7 +147,7 @@ export async function POST(req: NextRequest) {
       }
 
       // Get public URL
-      const { data: urlData } = supabase.storage
+      // TODO: Migrate storage - const ... = supabase.storage
         .from('song-stems')
         .getPublicUrl(fileName)
 

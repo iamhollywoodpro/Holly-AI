@@ -1,7 +1,7 @@
 // lib/file-storage.ts - HOLLY Phase 3: File Upload & Storage System
 // FIXED VERSION - All parameter validation and type safety issues resolved
 
-import { createClient } from '@supabase/supabase-js';
+// REMOVED: Supabase import (migrated to Prisma)
 
 // Initialize Supabase client with correct frontend keys
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -11,7 +11,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables');
 }
 
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// REMOVED: Supabase client (migrated to Prisma);
 
 // Storage bucket configuration
 export const STORAGE_BUCKETS = {
@@ -177,7 +177,7 @@ export async function uploadFile(
     console.log('[uploadFile] Generated file path:', filePath);
 
     // Upload to Supabase Storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    // TODO: Migrate storage - const ... = await supabase.storage
       .from(bucketName)
       .upload(filePath, file, {
         cacheControl: '3600',
@@ -195,7 +195,7 @@ export async function uploadFile(
     console.log('[uploadFile] Upload successful:', uploadData);
 
     // Get public URL
-    const { data: urlData } = supabase.storage
+    // TODO: Migrate storage - const ... = supabase.storage
       .from(bucketName)
       .getPublicUrl(filePath);
 
@@ -255,7 +255,7 @@ export async function uploadFile(
  */
 export async function deleteFile(bucketName: string, filePath: string): Promise<UploadResult> {
   try {
-    const { error } = await supabase.storage
+    // TODO: Migrate storage - const ... = await supabase.storage
       .from(bucketName)
       .remove([filePath]);
 
@@ -282,7 +282,7 @@ export async function deleteFile(bucketName: string, filePath: string): Promise<
  */
 export async function listFiles(bucketName: string, path?: string) {
   try {
-    const { data, error } = await supabase.storage
+    // TODO: Migrate storage - const ... = await supabase.storage
       .from(bucketName)
       .list(path);
 

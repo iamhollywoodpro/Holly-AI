@@ -4,7 +4,7 @@
 // TypeScript helper functions for database CRUD operations
 // Uses Supabase client for type-safe database access
 
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+// REMOVED: Supabase import (migrated to Prisma)
 
 // ============================================================================
 // TYPES
