@@ -5,7 +5,7 @@ import { MainLayout } from '@/components/layout/main-layout'
 import { ExtendSongModal } from '@/components/music/extend-song-modal'
 import { RemixSongModal } from '@/components/music/remix-song-modal'
 import { StemSeparationModal } from '@/components/music/stem-separation-modal'
-import { createClient } from '@/lib/supabase/client'
+// import { createClient } from '@/lib/supabase/client' // TODO: Migrate to Prisma
 import { useToast } from '@/components/ui/toast'
 import {
   Sparkles,

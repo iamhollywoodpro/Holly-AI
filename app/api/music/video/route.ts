@@ -3,7 +3,7 @@
 // ============================================
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+// import { createClient } from '@supabase/supabase-js'; // MIGRATED TO PRISMA
 import type { CreateMusicVideoRequest, CreateMusicVideoResponse } from '@/types/music';
 
 const supabase = createClient(
