@@ -1,38 +1,39 @@
-// Health check endpoint with API key validation
-// Returns which services are available based on configured API keys
+/**
+ * Health Check API
+ * Returns system status and configuration
+ */
 
 import { NextResponse } from 'next/server';
 
 export async function GET() {
   const health = {
-    status: 'ok',
+    status: 'healthy',
     timestamp: new Date().toISOString(),
     services: {
+      clerk: {
+        configured: !!(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY && process.env.CLERK_SECRET_KEY),
+        status: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ? 'configured' : 'missing_keys'
+      },
+      database: {
+        configured: !!process.env.DATABASE_URL,
+        status: process.env.DATABASE_URL ? 'configured' : 'missing_connection'
+      },
       ai: {
         groq: {
           available: !!process.env.GROQ_API_KEY,
-          models: ['deepseek-r1-distill-llama-70b', 'llama-3.3-70b-versatile'],
           status: process.env.GROQ_API_KEY ? 'configured' : 'missing_key'
-        }
-      },
-      generation: {
-        images: {
-          available: !!process.env.HUGGINGFACE_API_KEY,
-          models: 8,
-          provider: 'Hugging Face',
-          status: process.env.HUGGINGFACE_API_KEY ? 'configured' : 'missing_key'
         },
-        videos: {
-          available: !!process.env.HUGGINGFACE_API_KEY,
-          models: 5,
-          provider: 'Hugging Face',
-          status: process.env.HUGGINGFACE_API_KEY ? 'configured' : 'missing_key'
+        openai: {
+          available: !!process.env.OPENAI_API_KEY,
+          status: process.env.OPENAI_API_KEY ? 'configured' : 'missing_key'
         },
-        music: {
-          available: true, // Always available (has free alternatives)
-          primary: 'Suno AI',
-          alternatives: 4,
-          status: 'configured'
+        anthropic: {
+          available: !!process.env.ANTHROPIC_API_KEY,
+          status: process.env.ANTHROPIC_API_KEY ? 'configured' : 'missing_key'
+        },
+        google: {
+          available: !!process.env.GOOGLE_API_KEY,
+          status: process.env.GOOGLE_API_KEY ? 'configured' : 'missing_key'
         }
       },
       voice: {
@@ -42,79 +43,47 @@ export async function GET() {
           status: process.env.ELEVENLABS_API_KEY ? 'configured' : 'missing_key'
         }
       },
-      database: {
-        status: process.env.DATABASE_URL ? 'configured' : 'missing_keys'
-      }
+      storage: {
+        blob: {
+          available: !!process.env.BLOB_READ_WRITE_TOKEN,
+          status: process.env.BLOB_READ_WRITE_TOKEN ? 'configured' : 'missing_token'
+        }
       }
     },
     warnings: [] as string[],
     errors: [] as string[]
   };
 
-  // Check for missing critical keys
-  if (!process.env.GROQ_API_KEY) {
-    health.warnings.push('GROQ_API_KEY not configured - AI chat will not work');
+  // Check for critical missing services
+  if (!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || !process.env.CLERK_SECRET_KEY) {
+    health.errors.push('Clerk authentication not configured');
+    health.status = 'unhealthy';
   }
 
-  if (!process.env.HUGGINGFACE_API_KEY) {
-    health.warnings.push('HUGGINGFACE_API_KEY not configured - Image/video generation unavailable');
+  if (!process.env.DATABASE_URL) {
+    health.errors.push('Database connection not configured');
+    health.status = 'unhealthy';
+  }
+
+  // Check for warnings
+  if (!process.env.GROQ_API_KEY && !process.env.OPENAI_API_KEY && !process.env.ANTHROPIC_API_KEY) {
+    health.warnings.push('No AI provider configured - Chat will not work');
   }
 
   if (!process.env.ELEVENLABS_API_KEY) {
     health.warnings.push('ELEVENLABS_API_KEY not configured - Voice synthesis unavailable');
   }
 
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    health.warnings.push('BLOB_READ_WRITE_TOKEN not configured - File uploads unavailable');
   }
 
   // Set overall status
   if (health.errors.length > 0) {
-    health.status = 'error';
+    health.status = 'unhealthy';
   } else if (health.warnings.length > 0) {
-    health.status = 'warning';
+    health.status = 'degraded';
   }
 
-  return NextResponse.json(health, {
-    status: health.status === 'error' ? 500 : 200
-  });
-}
-
-// POST endpoint for testing specific service
-export async function POST(req: Request) {
-  try {
-    const { service } = await req.json();
-
-    switch (service) {
-      case 'groq':
-        if (!process.env.GROQ_API_KEY) {
-          return NextResponse.json({ 
-            error: 'GROQ_API_KEY not configured',
-            instructions: 'Add GROQ_API_KEY to Vercel environment variables'
-          }, { status: 400 });
-        }
-        return NextResponse.json({ status: 'ok', message: 'Groq API key configured' });
-
-      case 'huggingface':
-        if (!process.env.HUGGINGFACE_API_KEY) {
-          return NextResponse.json({ 
-            error: 'HUGGINGFACE_API_KEY not configured',
-            instructions: 'Add HUGGINGFACE_API_KEY to Vercel environment variables'
-          }, { status: 400 });
-        }
-        return NextResponse.json({ status: 'ok', message: 'Hugging Face API key configured' });
-
-      case 'elevenlabs':
-        if (!process.env.ELEVENLABS_API_KEY) {
-          return NextResponse.json({ 
-            error: 'ELEVENLABS_API_KEY not configured',
-            instructions: 'Add ELEVENLABS_API_KEY to Vercel environment variables'
-          }, { status: 400 });
-        }
-        return NextResponse.json({ status: 'ok', message: 'ElevenLabs API key configured' });
-
-      default:
-        return NextResponse.json({ error: 'Unknown service' }, { status: 400 });
-    }
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
+  return NextResponse.json(health);
 }
