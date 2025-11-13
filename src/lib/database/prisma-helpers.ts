@@ -1,5 +1,4 @@
 // Prisma Query Helpers
-// Provides Supabase-like query interface for Prisma
 
 import { prisma } from '@/lib/db';
 import { Prisma } from '@prisma/client';
@@ -32,7 +31,6 @@ type TableName =
   | 'song-stems'
   | 'music_videos';
 
-// Query builder that mimics Supabase API
 export class PrismaQueryBuilder<T = any> {
   private tableName: TableName;
   private selectFields?: string[];
@@ -204,7 +202,6 @@ export class PrismaQueryBuilder<T = any> {
   }
 }
 
-// Main Prisma client wrapper with Supabase-like API
 export const db = {
   from<T = any>(tableName: TableName) {
     return new PrismaQueryBuilder<T>(tableName);

@@ -3,10 +3,8 @@ import { exec } from 'child_process'
 import { promisify } from 'util'
 import * as fs from 'fs/promises'
 import * as path from 'path'
-// REMOVED: Supabase import (migrated to Prisma)
 
 const execAsync = promisify(exec)
-// REMOVED: Supabase client (migrated to Prisma)
 
 interface StemSeparationRequest {
   audio_url: string
@@ -120,7 +118,6 @@ export async function POST(req: NextRequest) {
       throw new Error('Stem separation processing failed')
     }
 
-    // Upload stems to Supabase Storage
     console.log('☁️ Uploading stems to storage...')
     const stemFiles = await fs.readdir(path.join(outputDir, 'htdemucs', 'input'))
     const uploadedStems: Record<string, string> = {}
@@ -138,7 +135,6 @@ export async function POST(req: NextRequest) {
       console.log(`Skipping upload for ${stemName} - storage not configured`)
 
       // Get public URL
-      // TODO: Migrate storage - supabase.storage.from('song-stems').getPublicUrl(fileName)
       // uploadedStems[stemName] = urlData.publicUrl
       uploadedStems[stemName] = `/temp/${fileName}` // Placeholder until storage migration
       console.log(`✅ Uploaded ${stemName} stem`)
@@ -197,7 +193,6 @@ export async function POST(req: NextRequest) {
  * 4. Verify installation:
  *    python3 -c "import demucs; print('Demucs installed!')"
  * 
- * 5. Create Supabase Storage bucket:
  *    - Bucket name: 'song-stems'
  *    - Public access: Yes
  *    - File size limit: 50MB per file

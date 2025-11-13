@@ -339,7 +339,6 @@ export class GoalFormationSystem {
    */
   private async saveGoal(goal: Goal): Promise<void> {
     // TODO: Implement with Prisma
-    // const { error } = await this.supabase
     //   .from('holly_goals')
     //   .insert(goal);
     // if (error) {
@@ -352,7 +351,6 @@ export class GoalFormationSystem {
    */
   async getActiveGoals(): Promise<Goal[]> {
     // TODO: Implement with Prisma
-    // const { data, error } = await this.supabase
     //   .from('holly_goals')
     //   .select('*')
     //   .in('progress.status', ['active', 'planned'])
@@ -384,7 +382,6 @@ export class GoalFormationSystem {
     }
   ): Promise<Goal | null> {
     // TODO: Implement with Prisma
-    // const { data: goal } = await this.supabase
     //   .from('holly_goals')
     //   .select('*')
     //   .eq('id', goalId)
@@ -421,7 +418,6 @@ export class GoalFormationSystem {
     }
 
     // TODO: Implement with Prisma
-    // const { data: updatedGoal } = await this.supabase
     //   .from('holly_goals')
     //   .update(goal)
     //   .eq('id', goalId)

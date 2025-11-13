@@ -5,7 +5,6 @@ import { MainLayout } from '@/components/layout/main-layout'
 import { ExtendSongModal } from '@/components/music/extend-song-modal'
 import { RemixSongModal } from '@/components/music/remix-song-modal'
 import { StemSeparationModal } from '@/components/music/stem-separation-modal'
-// import { createClient } from '@/lib/supabase/client' // TODO: Migrate to Prisma
 import { useToast } from '@/components/ui/toast'
 import {
   Sparkles,
@@ -31,7 +30,6 @@ import {
   Image as ImageIcon,
 } from 'lucide-react'
 
-// REMOVED: Supabase client (migrated to Prisma)
 
 interface Song {
   id: string
@@ -435,7 +433,6 @@ function LibraryTab() {
     fetchSongs()
     
     // TODO: Subscribe to real-time updates with Prisma/Pusher
-    // const channel = supabase.channel('songs_changes')
     
     return () => {
       // Cleanup
@@ -445,7 +442,6 @@ function LibraryTab() {
   const fetchSongs = async () => {
     try {
       // TODO: Implement with Prisma
-      // const { data, error } = await supabase
       //   .from('songs')
       //   .select('*')
       //   .order('created_at', { ascending: false })
@@ -760,7 +756,6 @@ function ArtistsTab() {
   const fetchArtists = async () => {
     try {
       // TODO: Implement with Prisma
-      // const { data, error } = await supabase
       //   .from('artists')
       //   .select('*, songs(count)')
       //   .order('created_at', { ascending: false })
@@ -955,7 +950,6 @@ function PlaylistsTab() {
   const fetchPlaylists = async () => {
     try {
       // TODO: Implement with Prisma
-      // const { data, error } = await supabase
       //   .from('playlists')
       //   .select('*, playlist_songs(count)')
       //   .order('created_at', { ascending: false })

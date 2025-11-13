@@ -10,7 +10,6 @@ export interface UploadResult {
 
 /**
  * Upload a file via server-side API route
- * This bypasses Supabase RLS by using service role key on the backend
  */
 export async function uploadFileViaAPI(
   file: File,

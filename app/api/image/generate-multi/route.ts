@@ -169,7 +169,6 @@ class ImageGenerator {
       }
 
       const blob = await response.blob();
-      // In production, upload to Supabase Storage and return URL
       // For now, return base64
       const base64 = await this.blobToBase64(blob);
 

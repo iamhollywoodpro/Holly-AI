@@ -43,9 +43,6 @@ export async function GET() {
         }
       },
       database: {
-        supabase: {
-          available: !!(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
-          status: (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) 
             ? 'configured' 
             : 'missing_keys'
         }
@@ -68,8 +65,6 @@ export async function GET() {
     health.warnings.push('ELEVENLABS_API_KEY not configured - Voice synthesis unavailable');
   }
 
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    health.errors.push('Supabase keys not configured - Database features will fail');
   }
 
   // Set overall status

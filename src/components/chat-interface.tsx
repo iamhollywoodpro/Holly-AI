@@ -1,5 +1,4 @@
 // HOLLY Chat Interface - SERVER-SIDE UPLOAD VERSION
-// Fixes: 1) Conversation state synchronization, 2) Supabase RLS by using server API
 
 'use client';
 

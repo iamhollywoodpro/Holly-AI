@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const NOT_IMPLEMENTED = {
-  error: 'Goals features temporarily disabled during Supabase → Prisma migration',
+  error: 'Goals features temporarily disabled during database migration',
   status: 'not_implemented'
 };
 

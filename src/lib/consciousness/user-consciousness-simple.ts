@@ -5,7 +5,6 @@
  * TODO: Migrate to Prisma - currently stubbed out
  */
 
-// REMOVED: Supabase imports (migrated to Prisma)
 
 /**
  * Get user's active goals from database
