@@ -43,9 +43,8 @@ export async function GET() {
         }
       },
       database: {
-            ? 'configured' 
-            : 'missing_keys'
-        }
+        status: process.env.DATABASE_URL ? 'configured' : 'missing_keys'
+      }
       }
     },
     warnings: [] as string[],
