@@ -40,10 +40,12 @@ export interface BudgetManagerConfig {
 // ============================================================================
 
 export class BudgetManager {
-  private supabase: SupabaseClient;
+  // TODO: Migrate to Prisma
+  private userId: string;
 
   constructor(config: BudgetManagerConfig) {
-    this.supabase = createClient(config.supabase_url, config.supabase_key);
+    this.userId = config.supabase_url; // Stub - will need userId later
+    console.warn('[BudgetManager] Using stub - needs Prisma migration');
   }
 
   // --------------------------------------------------------------------------
@@ -52,7 +54,7 @@ export class BudgetManager {
 
   async createBudget(budget: Omit<Budget, 'id' | 'created_at' | 'updated_at'>): Promise<Budget> {
     try {
-      const { data, error } = await this.supabase
+      // TODO: Migrate to Prisma - const { data, error } = await this.supabase
         .from('budgets')
         .insert({
           ...budget,
@@ -72,7 +74,7 @@ export class BudgetManager {
 
   async getBudget(budgetId: string, userId: string): Promise<Budget | null> {
     try {
-      const { data, error } = await this.supabase
+      // TODO: Migrate to Prisma - const { data, error } = await this.supabase
         .from('budgets')
         .select('*')
         .eq('id', budgetId)
@@ -89,16 +91,8 @@ export class BudgetManager {
 
   async updateBudget(budgetId: string, userId: string, updates: Partial<Budget>): Promise<Budget> {
     try {
-      const { data, error } = await this.supabase
-        .from('budgets')
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', budgetId)
-        .eq('user_id', userId)
-        .select()
-        .single();
+      // TODO: Migrate to Prisma  
+      throw new Error('BudgetManager.updateBudget not implemented - needs Prisma migration');
 
       if (error) throw error;
       return data;
@@ -110,7 +104,7 @@ export class BudgetManager {
 
   async deleteBudget(budgetId: string, userId: string): Promise<void> {
     try {
-      const { error } = await this.supabase
+      // TODO: Migrate to Prisma - const { error } = await this.supabase
         .from('budgets')
         .delete()
         .eq('id', budgetId)
@@ -163,15 +157,9 @@ export class BudgetManager {
       const budget = await this.getBudget(budgetId, userId);
       if (!budget) return null;
 
+      // TODO: Migrate to Prisma
       // Get spending for this category in period
-      const { data: transactions, error } = await this.supabase
-        .from('transactions')
-        .select('amount')
-        .eq('user_id', userId)
-        .eq('category', budget.category)
-        .eq('type', 'expense')
-        .gte('date', budget.period_start)
-        .lte('date', budget.period_end);
+      const transactions: any[] = [], error = null;
 
       if (error) throw error;
 
