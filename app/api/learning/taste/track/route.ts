@@ -1,27 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { TasteLearner } from '@/lib/learning/taste-learner';
+
+const NOT_IMPLEMENTED = {
+  error: 'Learning features temporarily disabled - rebuilding with Clerk + Prisma',
+  status: 'not_implemented'
+};
 
 export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json() as any;
-    const { userId, signal } = body as any;
+  return NextResponse.json(NOT_IMPLEMENTED, { status: 503 });
+}
 
-    if (!userId || !signal) {
-      return NextResponse.json(
-        { error: 'User ID and taste signal are required' },
-        { status: 400 }
-      );
-    }
-
-    const learner = new TasteLearner();
-    await learner.recordTasteSignal(userId, signal);
-
-    return NextResponse.json({ success: true, message: 'Preference tracked' });
-  } catch (error: any) {
-    console.error('Taste tracking API error:', error);
-    return NextResponse.json(
-      { error: error.message || 'Preference tracking failed' },
-      { status: 500 }
-    );
-  }
+export async function GET(req: NextRequest) {
+  return NextResponse.json(NOT_IMPLEMENTED, { status: 503 });
 }
