@@ -78,17 +78,21 @@ model Message {
 // ==================== FILE MANAGEMENT ====================
 
 model FileUpload {
-  id         String   @id @default(cuid())
-  userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  fileName   String
-  fileType   String
-  fileSize   Int
-  storageUrl String
-  bucketName String   @default("holly-uploads")
-  createdAt  DateTime @default(now())
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversationId String?
+  fileName       String
+  fileType       String
+  fileSize       Int
+  storagePath    String
+  publicUrl      String
+  mimeType       String?
+  metadata       Json?    @default("{}")  
+  createdAt      DateTime @default(now())
 
   @@index([userId])
+  @@index([conversationId])
   @@map("holly_file_uploads")
 }
 
