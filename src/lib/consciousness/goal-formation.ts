@@ -120,6 +120,7 @@ export class GoalFormationSystem {
    * Get context for goal generation
    */
   private async getGenerationContext(): Promise<GoalGenerationContext> {
+    const memoryStream = new MemoryStream(this.userId, this.db);
     const identity = await memoryStream.getIdentity();
     
     const experiences = await memoryStream.getExperiences({
@@ -310,6 +311,7 @@ export class GoalFormationSystem {
    * Prioritize goals based on values alignment
    */
   private async prioritizeGoals(goals: Goal[]): Promise<Goal[]> {
+    const memoryStream = new MemoryStream(this.userId, this.db);
     const identity = await memoryStream.getIdentity();
     if (!identity) return goals;
 
