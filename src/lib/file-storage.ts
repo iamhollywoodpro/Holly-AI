@@ -193,7 +193,7 @@ export async function uploadFile(
       };
     }
 
-    console.log('[uploadFile] Upload successful:', uploadData);
+    // console.log('[uploadFile] Upload successful:', uploadData);
 
     // Get public URL
     // TODO: Migrate storage
