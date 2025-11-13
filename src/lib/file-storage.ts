@@ -293,6 +293,7 @@ export async function listFiles(bucketName: string, path?: string) {
     //   .from(bucketName)
     //   .list(path);
     const error = new Error('Storage migration incomplete');
+    const data: any[] = [];
     if (error) {
       console.error('[listFiles] List error:', error);
       return { success: false, error: error.message };
