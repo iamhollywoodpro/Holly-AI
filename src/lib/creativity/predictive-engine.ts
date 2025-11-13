@@ -36,27 +36,27 @@ export interface CreativeConcept {
 }
 
 export class PredictiveEngine {
-  private supabase: any;
+  // TODO: Migrate to Prisma
+  private userId: string;
 
-  constructor() {
-    this.supabase = createClient(
-      process.env.SUPABASE_URL || '',
-      process.env.SUPABASE_ANON_KEY || ''
-    );
+  constructor(userId: string = 'default') {
+    this.userId = userId;
+    // Supabase constructor removed - migrate to Prisma
   }
 
   /**
    * Analyze patterns and predict next creative needs
    */
   async predictNextNeeds(userId: string): Promise<PredictiveInsight[]> {
+    // TODO: Migrate to Prisma
     // Get user's project history
-    const { data: projects } = await this.supabase
-      .from('project_contexts')
-      .select('*')
-      .eq('userId', userId)
-      .order('lastActivity', { ascending: false })
-      .limit(10);
-
+    // const { data: projects } = await this.supabase
+    //   .from('project_contexts')
+    //   .select('*')
+    //   .eq('userId', userId)
+    //   .order('lastActivity', { ascending: false })
+    //   .limit(10);
+    const projects: any[] = [];
     if (!projects || projects.length === 0) return [];
 
     const insights: PredictiveInsight[] = [];
@@ -128,13 +128,14 @@ export class PredictiveEngine {
    * Generate draft creative concepts proactively
    */
   async generateDraftConcepts(userId: string): Promise<CreativeConcept[]> {
+    // TODO: Migrate to Prisma
     // Analyze user's style and past successes
-    const { data: tasteProfile } = await this.supabase
-      .from('taste_profiles')
-      .select('*')
-      .eq('userId', userId)
-      .single();
-
+    // const { data: tasteProfile } = await this.supabase
+    //   .from('taste_profiles')
+    //   .select('*')
+    //   .eq('userId', userId)
+    //   .single();
+    const tasteProfile: any = null;
     if (!tasteProfile) return [];
 
     const concepts: CreativeConcept[] = [];
@@ -178,12 +179,13 @@ export class PredictiveEngine {
    * Anticipate creative blockers
    */
   async anticipateBlockers(userId: string): Promise<PredictiveInsight[]> {
-    const { data: projects } = await this.supabase
-      .from('project_contexts')
-      .select('*')
-      .eq('userId', userId)
-      .eq('status', 'active');
-
+    // TODO: Migrate to Prisma
+    // const { data: projects } = await this.supabase
+    //   .from('project_contexts')
+    //   .select('*')
+    //   .eq('userId', userId)
+    //   .eq('status', 'active');
+    const projects: any[] = [];
     const blockers: PredictiveInsight[] = [];
 
     projects?.forEach((project: any) => {
@@ -214,13 +216,14 @@ export class PredictiveEngine {
    */
   async suggestNextSteps(userId: string, projectId?: string): Promise<string[]> {
     if (projectId) {
+      // TODO: Migrate to Prisma
       // Project-specific suggestions
-      const { data: project } = await this.supabase
-        .from('project_contexts')
-        .select('*')
-        .eq('id', projectId)
-        .single();
-
+      // const { data: project } = await this.supabase
+      //   .from('project_contexts')
+      //   .select('*')
+      //   .eq('id', projectId)
+      //   .single();
+      const project: any = null;
       if (!project) return [];
 
       return this.generateProjectSteps(project);
@@ -244,12 +247,14 @@ export class PredictiveEngine {
     peakDays: string[];
     productivity: Record<string, number>;
   }> {
+    // TODO: Migrate to Prisma
     // Analyze activity timestamps
-    const { data: activities } = await this.supabase
-      .from('project_activities')
-      .select('*')
-      .order('timestamp', { ascending: false })
-      .limit(100);
+    // const { data: activities } = await this.supabase
+    //   .from('project_activities')
+    //   .select('*')
+    //   .order('timestamp', { ascending: false })
+    //   .limit(100);
+    const activities: any[] = [];
 
     // Simplified analysis
     return {
