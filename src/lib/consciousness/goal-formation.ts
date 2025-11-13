@@ -8,7 +8,7 @@ import type { PrismaClient } from '@prisma/client';
 
 
 
-import { memoryStream, Identity } from './memory-stream';
+import { MemoryStream, Identity } from './memory-stream';
 
 // ==================== GOAL TYPES ====================
 
