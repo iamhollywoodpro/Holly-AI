@@ -465,5 +465,7 @@ export class GoalFormationSystem {
   }
 }
 
-// Export singleton
-export const goalFormation = new GoalFormationSystem();
+// Factory function - requires userId
+export function getGoalFormation(userId: string, db?: PrismaClient): GoalFormationSystem {
+  return new GoalFormationSystem(userId, db);
+}
