@@ -69,9 +69,7 @@ export class TasteLearner {
 
   constructor() {
     // TODO: Migrate to Prisma
-      process.env.SUPABASE_URL || '',
-      process.env.SUPABASE_ANON_KEY || ''
-    );
+    console.warn('[TasteLearner] Using stub - needs Prisma migration');
   }
 
   /**
@@ -106,8 +104,8 @@ export class TasteLearner {
     };
 
     // TODO: Migrate - await this.supabase
-      .from('taste_profiles')
-      .insert(profile);
+      // .from('taste_profiles')
+      // .insert(profile);
 
     return profile;
   }
@@ -118,8 +116,8 @@ export class TasteLearner {
   async recordTasteSignal(userId: string, signal: TasteSignal): Promise<void> {
     // Store signal
     // TODO: Migrate - await this.supabase
-      .from('taste_signals')
-      .insert({
+      // .from('taste_signals')
+      // .insert({
         userId,
         ...signal
       });
@@ -186,10 +184,10 @@ export class TasteLearner {
     
     // Get current profile
     // TODO: Migrate - const { data: profile } = await this.supabase
-      .from('taste_profiles')
-      .select('*')
-      .eq('userId', userId)
-      .single();
+      // .from('taste_profiles')
+      // .select('*')
+      // .eq('userId', userId)
+      // .single();
 
     if (!profile) return;
 
@@ -204,9 +202,9 @@ export class TasteLearner {
     ];
 
     // TODO: Migrate - await this.supabase
-      .from('taste_profiles')
-      .update({ successfulPatterns })
-      .eq('userId', userId);
+      // .from('taste_profiles')
+      // .update({ successfulPatterns })
+      // .eq('userId', userId);
   }
 
   /**
@@ -222,10 +220,10 @@ export class TasteLearner {
     reasoning: string[];
   }> {
     // TODO: Migrate - const { data: profile } = await this.supabase
-      .from('taste_profiles')
-      .select('*')
-      .eq('userId', userId)
-      .single();
+      // .from('taste_profiles')
+      // .select('*')
+      // .eq('userId', userId)
+      // .single();
 
     if (!profile) {
       return {
@@ -290,10 +288,10 @@ export class TasteLearner {
     context: string
   ): Promise<string> {
     // TODO: Migrate - const { data: profile } = await this.supabase
-      .from('taste_profiles')
-      .select('*')
-      .eq('userId', userId)
-      .single();
+      // .from('taste_profiles')
+      // .select('*')
+      // .eq('userId', userId)
+      // .single();
 
     if (!profile) return baseSuggestion;
 
@@ -317,10 +315,10 @@ export class TasteLearner {
    */
   private async updateTasteProfile(userId: string, signal: TasteSignal): Promise<void> {
     // TODO: Migrate - const { data: profile } = await this.supabase
-      .from('taste_profiles')
-      .select('*')
-      .eq('userId', userId)
-      .single();
+      // .from('taste_profiles')
+      // .select('*')
+      // .eq('userId', userId)
+      // .single();
 
     if (!profile) return;
 
@@ -341,15 +339,15 @@ export class TasteLearner {
     );
 
     // TODO: Migrate - await this.supabase
-      .from('taste_profiles')
-      .update({
+      // .from('taste_profiles')
+      // .update({
         confidence: {
           ...profile.confidence,
           [signal.category]: newConfidence
         },
         lastUpdated: new Date()
       })
-      .eq('userId', userId);
+      // .eq('userId', userId);
   }
 
   /**
@@ -424,10 +422,10 @@ export class TasteLearner {
   ): Promise<void> {
     // Increase preference scores for these features
     // TODO: Migrate - const { data: profile } = await this.supabase
-      .from('taste_profiles')
-      .select('*')
-      .eq('userId', userId)
-      .single();
+      // .from('taste_profiles')
+      // .select('*')
+      // .eq('userId', userId)
+      // .single();
 
     if (!profile) return;
 

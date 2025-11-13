@@ -95,8 +95,8 @@ export class ContextualIntelligence {
     };
 
     // TODO: Migrate - await this.supabase
-      .from('project_contexts')
-      .insert(newProject);
+      // .from('project_contexts')
+      // .insert(newProject);
 
     return newProject;
   }
@@ -107,26 +107,26 @@ export class ContextualIntelligence {
   async trackActivity(projectId: string, activity: Activity): Promise<void> {
     // Get current project
     // TODO: Migrate - const { data: project } = await this.supabase
-      .from('project_contexts')
-      .select('*')
-      .eq('id', projectId)
-      .single();
+      // .from('project_contexts')
+      // .select('*')
+      // .eq('id', projectId)
+      // .single();
 
     if (!project) return;
 
     // Update last activity
     // TODO: Migrate - await this.supabase
-      .from('project_contexts')
-      .update({
+      // .from('project_contexts')
+      // .update({
         lastActivity: new Date(),
         sessions: project.sessions + 1
       })
-      .eq('id', projectId);
+      // .eq('id', projectId);
 
     // Store activity
     // TODO: Migrate - await this.supabase
-      .from('project_activities')
-      .insert({
+      // .from('project_activities')
+      // .insert({
         projectId,
         ...activity
       });
@@ -137,10 +137,10 @@ export class ContextualIntelligence {
    */
   async getProjectContext(projectId: string): Promise<ProjectContext | null> {
     // TODO: Migrate - const { data } = await this.supabase
-      .from('project_contexts')
-      .select('*')
-      .eq('id', projectId)
-      .single();
+      // .from('project_contexts')
+      // .select('*')
+      // .eq('id', projectId)
+      // .single();
 
     return data;
   }
@@ -150,11 +150,11 @@ export class ContextualIntelligence {
    */
   async getUserProjects(userId: string): Promise<ProjectContext[]> {
     // TODO: Migrate - const { data } = await this.supabase
-      .from('project_contexts')
-      .select('*')
-      .eq('userId', userId)
-      .eq('status', 'active')
-      .order('lastActivity', { ascending: false });
+      // .from('project_contexts')
+      // .select('*')
+      // .eq('userId', userId)
+      // .eq('status', 'active')
+      // .order('lastActivity', { ascending: false });
 
     return data || [];
   }
@@ -174,11 +174,11 @@ export class ContextualIntelligence {
 
     // Get recent activities
     // TODO: Migrate - const { data: activities } = await this.supabase
-      .from('project_activities')
-      .select('*')
-      .eq('projectId', activeProject?.id)
-      .order('timestamp', { ascending: false })
-      .limit(10);
+      // .from('project_activities')
+      // .select('*')
+      // .eq('projectId', activeProject?.id)
+      // .order('timestamp', { ascending: false })
+      // .limit(10);
 
     // Generate suggestions based on context
     const suggestedNextSteps = this.generateNextSteps(activeProject, activities || []);
@@ -199,22 +199,22 @@ export class ContextualIntelligence {
    */
   async recordSuccess(projectId: string, approach: string, outcome: string): Promise<void> {
     // TODO: Migrate - const { data: project } = await this.supabase
-      .from('project_contexts')
-      .select('*')
-      .eq('id', projectId)
-      .single();
+      // .from('project_contexts')
+      // .select('*')
+      // .eq('id', projectId)
+      // .single();
 
     if (!project) return;
 
     const successfulApproaches = [...(project.successfulApproaches || []), approach];
 
     // TODO: Migrate - await this.supabase
-      .from('project_contexts')
-      .update({
+      // .from('project_contexts')
+      // .update({
         successfulApproaches,
         feedback: [...(project.feedback || []), outcome]
       })
-      .eq('id', projectId);
+      // .eq('id', projectId);
   }
 
   /**
@@ -229,14 +229,14 @@ export class ContextualIntelligence {
   }> {
     // Analyze all user projects and activities
     // TODO: Migrate - const { data: activities } = await this.supabase
-      .from('project_activities')
-      .select(`
+      // .from('project_activities')
+      // .select(`
         *,
         project_contexts (
           userId
         )
       `)
-      .eq('project_contexts.userId', userId);
+      // .eq('project_contexts.userId', userId);
 
     // Detect patterns
     return {
