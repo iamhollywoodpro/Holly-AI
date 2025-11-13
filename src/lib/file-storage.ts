@@ -176,14 +176,15 @@ export async function uploadFile(
 
     console.log('[uploadFile] Generated file path:', filePath);
 
+    // TODO: Migrate storage to Vercel Blob or similar
     // Upload to Supabase Storage
-    // TODO: Migrate storage - const ... = await supabase.storage
-      .from(bucketName)
-      .upload(filePath, file, {
-        cacheControl: '3600',
-        upsert: false
-      });
-
+    // const { data, error: uploadError } = await supabase.storage
+    //   .from(bucketName)
+    //   .upload(filePath, file, {
+    //     cacheControl: '3600',
+    //     upsert: false
+    //   });
+    const uploadError = new Error('Storage migration incomplete');
     if (uploadError) {
       console.error('[uploadFile] Upload error:', uploadError);
       return { 
@@ -195,10 +196,11 @@ export async function uploadFile(
     console.log('[uploadFile] Upload successful:', uploadData);
 
     // Get public URL
-    // TODO: Migrate storage - const ... = supabase.storage
-      .from(bucketName)
-      .getPublicUrl(filePath);
-
+    // TODO: Migrate storage
+    // const { data: urlData } = supabase.storage
+    //   .from(bucketName)
+    //   .getPublicUrl(filePath);
+    const urlData: any = null;
     if (!urlData?.publicUrl) {
       console.error('[uploadFile] ERROR: Could not generate public URL');
       return { 
@@ -211,9 +213,12 @@ export async function uploadFile(
 
     // Save metadata to database
     try {
-      const { error: dbError } = await supabase
-        .from('holly_file_uploads')
-        .insert({
+      // TODO: Migrate to Prisma
+      // const { error: dbError } = await supabase
+      //   .from('holly_file_uploads')
+      //   .insert({
+      const dbError: any = null;
+      const insertData = {
           user_id: userId || null,
           conversation_id: conversationId || null,
           file_name: file.name,
@@ -221,9 +226,9 @@ export async function uploadFile(
           file_size: file.size,
           storage_path: filePath,
           bucket_name: bucketName,
-          public_url: urlData.publicUrl,
+          public_url: urlData?.publicUrl,
           mime_type: file.type
-        });
+        };
 
       if (dbError) {
         console.error('[uploadFile] Database error (non-fatal):', dbError);
@@ -255,10 +260,11 @@ export async function uploadFile(
  */
 export async function deleteFile(bucketName: string, filePath: string): Promise<UploadResult> {
   try {
-    // TODO: Migrate storage - const ... = await supabase.storage
-      .from(bucketName)
-      .remove([filePath]);
-
+    // TODO: Migrate storage
+    // const { data, error } = await supabase.storage
+    //   .from(bucketName)
+    //   .remove([filePath]);
+    const error = new Error('Storage migration incomplete');
     if (error) {
       console.error('[deleteFile] Delete error:', error);
       return { 
@@ -282,10 +288,11 @@ export async function deleteFile(bucketName: string, filePath: string): Promise<
  */
 export async function listFiles(bucketName: string, path?: string) {
   try {
-    // TODO: Migrate storage - const ... = await supabase.storage
-      .from(bucketName)
-      .list(path);
-
+    // TODO: Migrate storage
+    // const { data, error } = await supabase.storage
+    //   .from(bucketName)
+    //   .list(path);
+    const error = new Error('Storage migration incomplete');
     if (error) {
       console.error('[listFiles] List error:', error);
       return { success: false, error: error.message };
