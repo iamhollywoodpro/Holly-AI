@@ -1,28 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
+import { uploadFile } from '@/lib/file-storage';
 import { prisma } from '@/lib/db';
-// import { put } from '@vercel/blob'; // TODO: Install package or use alternative storage
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 /**
  * POST /api/upload
- * Upload a file to Vercel Blob storage
+ * Upload a file using Vercel Blob storage
  */
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = auth();
+    const { userId: clerkUserId } = auth();
     
-    if (!userId) {
+    if (!clerkUserId) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
       );
     }
 
+    // Get user from database
     const user = await prisma.user.findUnique({
-      where: { clerkId: userId },
+      where: { clerkId: clerkUserId },
     });
 
     if (!user) {
@@ -42,30 +43,36 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // TODO: Upload to storage (Vercel Blob or alternative)
-    // const blob = await put(file.name, file, { access: 'public' });
-    const placeholderUrl = `/uploads/${file.name}`;
+    // Determine bucket type based on file type
+    let bucketType: 'images' | 'audio' | 'video' | 'documents' | 'general' = 'general';
+    if (file.type.startsWith('image/')) bucketType = 'images';
+    else if (file.type.startsWith('audio/')) bucketType = 'audio';
+    else if (file.type.startsWith('video/')) bucketType = 'video';
+    else if (file.type.includes('pdf') || file.type.includes('document')) bucketType = 'documents';
 
-    // Record in database
-    const fileUpload = await prisma.fileUpload.create({
-      data: {
-        userId: user.id,
-        fileName: file.name,
-        fileType: file.type,
-        fileSize: file.size,
-        storageUrl: placeholderUrl,
-      },
+    // Upload using our file-storage helper
+    const result = await uploadFile(file, bucketType, {
+      userId: user.id,
+      metadata: {
+        uploadedAt: new Date().toISOString(),
+        originalName: file.name,
+      }
     });
 
-    console.log('[Upload] ✅ File uploaded:', fileUpload.id);
+    if (!result.success) {
+      return NextResponse.json(
+        { error: result.error || 'Upload failed' },
+        { status: 500 }
+      );
+    }
+
+    console.log('[Upload] ✅ File uploaded:', result.url);
     return NextResponse.json({
       success: true,
       file: {
-        id: fileUpload.id,
-        name: fileUpload.fileName,
-        url: fileUpload.storageUrl,
-        type: fileUpload.fileType,
-        size: fileUpload.fileSize,
+        name: result.fileName,
+        url: result.url,
+        size: result.fileSize,
       },
     });
   } catch (error) {
