@@ -65,10 +65,10 @@ export interface TasteSignal {
 }
 
 export class TasteLearner {
-  private supabase: any;
+  // TODO: Migrate to Prisma
 
   constructor() {
-    this.supabase = createClient(
+    // TODO: Migrate to Prisma
       process.env.SUPABASE_URL || '',
       process.env.SUPABASE_ANON_KEY || ''
     );
@@ -105,7 +105,7 @@ export class TasteLearner {
       lastUpdated: new Date()
     };
 
-    await this.supabase
+    // TODO: Migrate - await this.supabase
       .from('taste_profiles')
       .insert(profile);
 
@@ -117,7 +117,7 @@ export class TasteLearner {
    */
   async recordTasteSignal(userId: string, signal: TasteSignal): Promise<void> {
     // Store signal
-    await this.supabase
+    // TODO: Migrate - await this.supabase
       .from('taste_signals')
       .insert({
         userId,
@@ -185,7 +185,7 @@ export class TasteLearner {
     const patterns = this.detectSuccessPatterns(project);
     
     // Get current profile
-    const { data: profile } = await this.supabase
+    // TODO: Migrate - const { data: profile } = await this.supabase
       .from('taste_profiles')
       .select('*')
       .eq('userId', userId)
@@ -203,7 +203,7 @@ export class TasteLearner {
       }))
     ];
 
-    await this.supabase
+    // TODO: Migrate - await this.supabase
       .from('taste_profiles')
       .update({ successfulPatterns })
       .eq('userId', userId);
@@ -221,7 +221,7 @@ export class TasteLearner {
     confidence: number; // 0-100
     reasoning: string[];
   }> {
-    const { data: profile } = await this.supabase
+    // TODO: Migrate - const { data: profile } = await this.supabase
       .from('taste_profiles')
       .select('*')
       .eq('userId', userId)
@@ -289,7 +289,7 @@ export class TasteLearner {
     baseSuggestion: string,
     context: string
   ): Promise<string> {
-    const { data: profile } = await this.supabase
+    // TODO: Migrate - const { data: profile } = await this.supabase
       .from('taste_profiles')
       .select('*')
       .eq('userId', userId)
@@ -316,7 +316,7 @@ export class TasteLearner {
    * Update taste profile from signal
    */
   private async updateTasteProfile(userId: string, signal: TasteSignal): Promise<void> {
-    const { data: profile } = await this.supabase
+    // TODO: Migrate - const { data: profile } = await this.supabase
       .from('taste_profiles')
       .select('*')
       .eq('userId', userId)
@@ -340,7 +340,7 @@ export class TasteLearner {
       (profile.confidence[signal.category] || 0) + 1
     );
 
-    await this.supabase
+    // TODO: Migrate - await this.supabase
       .from('taste_profiles')
       .update({
         confidence: {
@@ -423,7 +423,7 @@ export class TasteLearner {
     category: string
   ): Promise<void> {
     // Increase preference scores for these features
-    const { data: profile } = await this.supabase
+    // TODO: Migrate - const { data: profile } = await this.supabase
       .from('taste_profiles')
       .select('*')
       .eq('userId', userId)

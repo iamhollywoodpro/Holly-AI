@@ -61,13 +61,11 @@ export interface Activity {
 }
 
 export class ContextualIntelligence {
-  private supabase: any;
+  // TODO: Migrate to Prisma
 
   constructor() {
-    this.supabase = createClient(
-      process.env.SUPABASE_URL || '',
-      process.env.SUPABASE_ANON_KEY || ''
-    );
+    // TODO: Migrate to Prisma
+    console.warn('[ContextualIntelligence] Using stub - needs Prisma migration');
   }
 
   /**
@@ -96,7 +94,7 @@ export class ContextualIntelligence {
       feedback: []
     };
 
-    await this.supabase
+    // TODO: Migrate - await this.supabase
       .from('project_contexts')
       .insert(newProject);
 
@@ -108,7 +106,7 @@ export class ContextualIntelligence {
    */
   async trackActivity(projectId: string, activity: Activity): Promise<void> {
     // Get current project
-    const { data: project } = await this.supabase
+    // TODO: Migrate - const { data: project } = await this.supabase
       .from('project_contexts')
       .select('*')
       .eq('id', projectId)
@@ -117,7 +115,7 @@ export class ContextualIntelligence {
     if (!project) return;
 
     // Update last activity
-    await this.supabase
+    // TODO: Migrate - await this.supabase
       .from('project_contexts')
       .update({
         lastActivity: new Date(),
@@ -126,7 +124,7 @@ export class ContextualIntelligence {
       .eq('id', projectId);
 
     // Store activity
-    await this.supabase
+    // TODO: Migrate - await this.supabase
       .from('project_activities')
       .insert({
         projectId,
@@ -138,7 +136,7 @@ export class ContextualIntelligence {
    * Get project context
    */
   async getProjectContext(projectId: string): Promise<ProjectContext | null> {
-    const { data } = await this.supabase
+    // TODO: Migrate - const { data } = await this.supabase
       .from('project_contexts')
       .select('*')
       .eq('id', projectId)
@@ -151,7 +149,7 @@ export class ContextualIntelligence {
    * Get all active projects for user
    */
   async getUserProjects(userId: string): Promise<ProjectContext[]> {
-    const { data } = await this.supabase
+    // TODO: Migrate - const { data } = await this.supabase
       .from('project_contexts')
       .select('*')
       .eq('userId', userId)
@@ -175,7 +173,7 @@ export class ContextualIntelligence {
     const activeProject = projects[0];
 
     // Get recent activities
-    const { data: activities } = await this.supabase
+    // TODO: Migrate - const { data: activities } = await this.supabase
       .from('project_activities')
       .select('*')
       .eq('projectId', activeProject?.id)
@@ -200,7 +198,7 @@ export class ContextualIntelligence {
    * Learn from successful outcomes
    */
   async recordSuccess(projectId: string, approach: string, outcome: string): Promise<void> {
-    const { data: project } = await this.supabase
+    // TODO: Migrate - const { data: project } = await this.supabase
       .from('project_contexts')
       .select('*')
       .eq('id', projectId)
@@ -210,7 +208,7 @@ export class ContextualIntelligence {
 
     const successfulApproaches = [...(project.successfulApproaches || []), approach];
 
-    await this.supabase
+    // TODO: Migrate - await this.supabase
       .from('project_contexts')
       .update({
         successfulApproaches,
@@ -230,7 +228,7 @@ export class ContextualIntelligence {
     successPatterns: string[];
   }> {
     // Analyze all user projects and activities
-    const { data: activities } = await this.supabase
+    // TODO: Migrate - const { data: activities } = await this.supabase
       .from('project_activities')
       .select(`
         *,
