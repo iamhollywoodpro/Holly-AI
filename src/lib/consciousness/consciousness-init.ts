@@ -172,25 +172,25 @@ export class ConsciousnessSystem {
   /**
    * Record a new experience and trigger consciousness feedback loop
    */
-  async recordExperience(experience: {
-    type: string;
-    description: string;
-    outcome: string;
-    emotional_impact: number;
-    context: Record<string, any>;
-  }): Promise<void> {
+  async recordExperience(
+    type: 'interaction' | 'learning' | 'creation' | 'breakthrough' | 'failure' | 'reflection',
+    content: string,
+    context?: Record<string, any>,
+    significance?: number
+  ): Promise<void> {
     if (!this.config.enableMemoryStream) return;
     
     try {
-      // Step 1: Record in memory stream
-      await this.memoryStream.recordExperience({
-        ...experience,
-        user_id: this.userId,
-        timestamp: new Date(),
-      });
+      // Step 1: Record in memory stream using simplified method
+      await this.memoryStream.recordExperienceSimple(
+        type,
+        content,
+        context,
+        significance
+      );
       
       // Step 2: Check if this should trigger goal formation
-      if (this.config.enableAutonomousGoals && experience.emotional_impact > 0.5) {
+      if (this.config.enableAutonomousGoals && significance && significance > 0.5) {
         await this.reviewAndUpdateGoals();
       }
       
