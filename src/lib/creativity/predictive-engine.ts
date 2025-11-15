@@ -47,29 +47,32 @@ export class PredictiveEngine {
    * Predict next creative needs
    */
   async predictNextNeeds(): Promise<PredictiveInsight[]> {
-    // Get recent project activity
-    const recentProjects = await this.db.projectContext.findMany({
+    // Get recent project activity - using correct Project model
+    const recentProjects = await this.db.project.findMany({
       where: { userId: this.userId },
-      orderBy: { lastActivity: 'desc' },
-      take: 10
+      orderBy: { updatedAt: 'desc' },
+      take: 10,
+      include: {
+        contexts: true
+      }
     });
 
     if (recentProjects.length === 0) return [];
 
     const insights: PredictiveInsight[] = [];
 
-    // Detect patterns
-    const projectTypes = recentProjects.map(p => p.projectType);
-    const mostCommonType = this.getMostCommon(projectTypes);
+    // Detect patterns from project tags (since projectType doesn't exist)
+    const projectTags = recentProjects.flatMap(p => p.tags);
+    const mostCommonTag = this.getMostCommon(projectTags);
 
-    if (mostCommonType) {
+    if (mostCommonTag) {
       insights.push({
         type: 'suggestion',
-        category: this.mapProjectTypeToCategory(mostCommonType),
-        title: `Continue ${mostCommonType} momentum`,
-        description: `You've been working on ${mostCommonType} projects. Consider starting a new one while you're in the flow.`,
+        category: this.mapTagToCategory(mostCommonTag),
+        title: `Continue ${mostCommonTag} momentum`,
+        description: `You've been working on ${mostCommonTag} projects. Consider starting a new one while you're in the flow.`,
         reasoning: [
-          `${projectTypes.filter(t => t === mostCommonType).length} recent ${mostCommonType} projects`,
+          `${projectTags.filter(t => t === mostCommonTag).length} recent ${mostCommonTag} projects`,
           'Momentum is high in this area'
         ],
         confidence: 75,
@@ -80,7 +83,7 @@ export class PredictiveEngine {
 
     // Check for gaps
     const allCategories = ['music', 'design', 'code', 'content'];
-    const activeCategories = new Set(projectTypes.map(t => this.mapProjectTypeToCategory(t)));
+    const activeCategories = new Set(projectTags.map(t => this.mapTagToCategory(t)));
     const missingCategories = allCategories.filter(c => !activeCategories.has(c as any));
 
     if (missingCategories.length > 0) {
@@ -142,7 +145,7 @@ export class PredictiveEngine {
    * Anticipate potential blockers
    */
   async anticipateBlockers(): Promise<PredictiveInsight[]> {
-    const activeProjects = await this.db.projectContext.findMany({
+    const activeProjects = await this.db.project.findMany({
       where: {
         userId: this.userId,
         status: 'active'
@@ -155,14 +158,15 @@ export class PredictiveEngine {
     const now = new Date();
     for (const project of activeProjects) {
       const daysSinceActivity = Math.floor(
-        (now.getTime() - project.lastActivity.getTime()) / (1000 * 60 * 60 * 24)
+        (now.getTime() - project.updatedAt.getTime()) / (1000 * 60 * 60 * 24)
       );
 
       if (daysSinceActivity > 7) {
+        const mainTag = project.tags[0] || 'general';
         blockers.push({
           type: 'warning',
-          category: this.mapProjectTypeToCategory(project.projectType),
-          title: `${project.projectName} is stalled`,
+          category: this.mapTagToCategory(mainTag),
+          title: `${project.name} is stalled`,
           description: `No activity for ${daysSinceActivity} days. Consider revisiting or archiving.`,
           reasoning: [
             'Long inactive periods often mean lost momentum',
@@ -183,7 +187,7 @@ export class PredictiveEngine {
    */
   async suggestNextSteps(projectId?: string): Promise<string[]> {
     if (projectId) {
-      const project = await this.db.projectContext.findUnique({
+      const project = await this.db.project.findUnique({
         where: { id: projectId }
       });
 
@@ -217,8 +221,8 @@ export class PredictiveEngine {
     return Array.from(counts.entries()).sort((a, b) => b[1] - a[1])[0][0];
   }
 
-  private mapProjectTypeToCategory(projectType: string): 'music' | 'design' | 'code' | 'content' {
-    const lower = projectType.toLowerCase();
+  private mapTagToCategory(tag: string): 'music' | 'design' | 'code' | 'content' {
+    const lower = tag.toLowerCase();
     if (lower.includes('music') || lower.includes('audio')) return 'music';
     if (lower.includes('design') || lower.includes('visual')) return 'design';
     if (lower.includes('code') || lower.includes('dev')) return 'code';
