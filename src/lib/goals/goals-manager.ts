@@ -1,7 +1,7 @@
 // Goals Manager - Clerk + Prisma Implementation
 // Manages goals, milestones, and project tracking
 
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 
 export interface Goal {
   id: string;

@@ -1,7 +1,7 @@
 // Finance Manager - Clerk + Prisma Implementation
 // Manages budgets, transactions, and financial tracking
 
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 
 export interface Transaction {
   id: string;
