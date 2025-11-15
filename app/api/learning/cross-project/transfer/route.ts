@@ -1,22 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@clerk/nextjs/server';
 
-export async function POST(req: NextRequest) {
-  const user = await currentUser();
-  const userId = user?.id;
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  
-  return NextResponse.json({ 
-    success: true,
-    message: 'Cross-project knowledge transfer - Coming in next update',
-    transfers: []
-  });
-}
-
 export async function GET(req: NextRequest) {
   const user = await currentUser();
   const userId = user?.id;
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!userId) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
   
-  return NextResponse.json({ success: true, transfers: [] });
+  return NextResponse.json({ 
+    success: true, 
+    message: 'Feature not yet implemented',
+    status: 'stub' 
+  });
+}
+
+export async function POST(req: NextRequest) {
+  const user = await currentUser();
+  const userId = user?.id;
+  if (!userId) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+  
+  return NextResponse.json({ 
+    success: true, 
+    message: 'Feature not yet implemented',
+    status: 'stub' 
+  });
 }

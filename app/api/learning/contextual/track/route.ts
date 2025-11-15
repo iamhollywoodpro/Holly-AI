@@ -1,6 +1,3 @@
-// Contextual Intelligence - Track Activity API
-// Tracks project activities and context for learning patterns
-
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@clerk/nextjs/server';
 import { ContextualIntelligence } from '@/lib/learning/contextual-intelligence';
@@ -8,68 +5,15 @@ import { ContextualIntelligence } from '@/lib/learning/contextual-intelligence';
 export async function POST(req: NextRequest) {
   try {
     const user = await currentUser();
-  const userId = user?.id;
-    
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'Unauthorized - Please sign in' },
-        { status: 401 }
-      );
-    }
+    const userId = user?.id;
+    if (!userId) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
 
-    const body = await req.json();
-    const { projectId, activity } = body;
-
-    if (!projectId || !activity) {
-      return NextResponse.json(
-        { error: 'Missing required fields: projectId, activity' },
-        { status: 400 }
-      );
-    }
-
+    const { projectName, projectType, technologies, metadata } = await req.json();
     const contextual = new ContextualIntelligence(userId);
-    await contextual.trackActivity(projectId, activity);
+    const project = await contextual.trackProject({ projectName, projectType, technologies, metadata });
 
-    return NextResponse.json({ 
-      success: true,
-      message: 'Activity tracked successfully'
-    });
-  } catch (error: any) {
-    console.error('Track activity error:', error);
-    return NextResponse.json(
-      { error: error.message || 'Failed to track activity' },
-      { status: 500 }
-    );
-  }
-}
-
-export async function GET(req: NextRequest) {
-  try {
-    const user = await currentUser();
-  const userId = user?.id;
-    
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'Unauthorized - Please sign in' },
-        { status: 401 }
-      );
-    }
-
-    const { searchParams } = new URL(req.url);
-    const projectId = searchParams.get('projectId');
-
-    const contextual = new ContextualIntelligence(userId);
-    const activities = await contextual.getActivities(projectId || undefined);
-
-    return NextResponse.json({ 
-      success: true,
-      activities
-    });
-  } catch (error: any) {
-    console.error('Get activities error:', error);
-    return NextResponse.json(
-      { error: error.message || 'Failed to get activities' },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: true, project });
+  } catch (error) {
+    return NextResponse.json({ success: false, error: error instanceof Error ? error.message : 'Error' }, { status: 500 });
   }
 }
