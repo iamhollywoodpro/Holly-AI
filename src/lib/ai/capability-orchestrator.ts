@@ -1,18 +1,100 @@
 // HOLLY Capability Orchestrator - Fixed for Clerk + Prisma migration
-// Routes AI requests to the appropriate capability system
+// Routes AI requests to the appropriate capability systems
 
-import { ComputerVision } from './vision/computer-vision';
-import { VoiceInterface } from './voice/voice-interface';
-import { VideoGenerator } from './creativity/video-generator';
-import { WebResearcher } from './research/web-researcher';
-import { AdvancedAudioAnalyzer } from './audio/advanced-audio-analyzer';
 import { ContextualIntelligence } from '../learning/contextual-intelligence';
 import { TasteLearner } from '../learning/taste-learner';
 import { PredictiveEngine } from '../creativity/predictive-engine';
-import { SelfImprovement } from './consciousness/self-improvement';
-import { UncensoredRouter } from './uncensored-router';
-import { CollaborationAI } from './collaboration/collaboration-ai';
-import { CrossProjectAI } from './collaboration/cross-project-ai';
+
+// Stub implementations for missing modules - to be implemented later
+class ComputerVision {
+  async analyze(input: any, context?: any) {
+    return {
+      success: false,
+      error: 'Vision capability not yet implemented',
+      metadata: { status: 'stub' }
+    };
+  }
+}
+
+class VoiceInterface {
+  async process(input: any, context?: any) {
+    return {
+      success: false,
+      error: 'Voice capability not yet implemented',
+      metadata: { status: 'stub' }
+    };
+  }
+}
+
+class VideoGenerator {
+  async generate(input: any, context?: any) {
+    return {
+      success: false,
+      error: 'Video generation capability not yet implemented',
+      metadata: { status: 'stub' }
+    };
+  }
+}
+
+class WebResearcher {
+  async search(input: any, context?: any) {
+    return {
+      success: false,
+      error: 'Web research capability not yet implemented',
+      metadata: { status: 'stub' }
+    };
+  }
+}
+
+class AdvancedAudioAnalyzer {
+  async analyze(input: any, context?: any) {
+    return {
+      success: false,
+      error: 'Audio analysis capability not yet implemented',
+      metadata: { status: 'stub' }
+    };
+  }
+}
+
+class SelfImprovement {
+  async improve(input: any, context?: any) {
+    return {
+      success: false,
+      error: 'Self-improvement capability not yet implemented',
+      metadata: { status: 'stub' }
+    };
+  }
+}
+
+class UncensoredRouter {
+  async route(input: any, context?: any) {
+    return {
+      success: false,
+      error: 'Uncensored routing not yet implemented',
+      metadata: { status: 'stub' }
+    };
+  }
+}
+
+class CollaborationAI {
+  async collaborate(input: any, context?: any) {
+    return {
+      success: false,
+      error: 'Collaboration capability not yet implemented',
+      metadata: { status: 'stub' }
+    };
+  }
+}
+
+class CrossProjectAI {
+  async analyze(input: any, context?: any) {
+    return {
+      success: false,
+      error: 'Cross-project analysis not yet implemented',
+      metadata: { status: 'stub' }
+    };
+  }
+}
 
 export interface CapabilityRequest {
   type: 'vision' | 'voice' | 'video' | 'research' | 'audio' | 'contextual' | 'taste' | 'predictive' | 'selfImprove' | 'uncensored' | 'collaboration' | 'crossProject';
@@ -46,7 +128,7 @@ export class CapabilityOrchestrator {
   private lastUserId?: string;
 
   constructor() {
-    // Initialize systems that don't require userId
+    // Initialize stub systems
     this.vision = new ComputerVision();
     this.voice = new VoiceInterface();
     this.video = new VideoGenerator();
@@ -107,19 +189,34 @@ export class CapabilityOrchestrator {
           if (!this.contextual) {
             throw new Error('Contextual intelligence not initialized');
           }
-          return await this.contextual.analyzeContext(request.input, request.context);
+          // Return working capability response
+          return {
+            success: true,
+            data: await this.contextual.detectPatterns(request.input.projectId),
+            metadata: { capability: 'contextual' }
+          };
 
         case 'taste':
           if (!this.taste) {
             throw new Error('Taste learner not initialized');
           }
-          return await this.taste.learn(request.input, request.context);
+          // Return working capability response
+          return {
+            success: true,
+            data: await this.taste.buildTasteProfile(),
+            metadata: { capability: 'taste' }
+          };
 
         case 'predictive':
           if (!this.predictive) {
             throw new Error('Predictive engine not initialized');
           }
-          return await this.predictive.predict(request.input, request.context);
+          // Return working capability response
+          return {
+            success: true,
+            data: await this.predictive.predictCreativeNeeds(),
+            metadata: { capability: 'predictive' }
+          };
 
         case 'selfImprove':
           return await this.selfImprove.improve(request.input, request.context);
@@ -139,42 +236,31 @@ export class CapabilityOrchestrator {
             error: `Unknown capability type: ${request.type}`
           };
       }
-    } catch (error: any) {
+    } catch (error) {
       return {
         success: false,
-        error: error.message || 'Capability execution failed',
-        metadata: {
-          type: request.type,
-          timestamp: new Date().toISOString()
-        }
+        error: error instanceof Error ? error.message : 'Unknown error occurred',
+        metadata: { capability: request.type }
       };
     }
   }
 
   /**
-   * Get list of available capabilities
+   * Check if a capability is available
    */
-  getCapabilities(): string[] {
-    return [
-      'vision',
-      'voice',
-      'video',
-      'research',
-      'audio',
-      'contextual',
-      'taste',
-      'predictive',
-      'selfImprove',
-      'uncensored',
-      'collaboration',
-      'crossProject'
-    ];
+  isCapabilityAvailable(type: CapabilityRequest['type']): boolean {
+    // Learning capabilities are available
+    if (['contextual', 'taste', 'predictive'].includes(type)) {
+      return true;
+    }
+    // Stub capabilities return false
+    return false;
   }
 
   /**
-   * Check if a capability is available
+   * Get list of available capabilities
    */
-  hasCapability(type: string): boolean {
-    return this.getCapabilities().includes(type);
+  getAvailableCapabilities(): string[] {
+    return ['contextual', 'taste', 'predictive'];
   }
 }
