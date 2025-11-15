@@ -9,10 +9,10 @@ import ChatInputControls from '@/components/chat/ChatInputControls';
 import BrainConsciousnessIndicator from '@/components/consciousness/BrainConsciousnessIndicator';
 import ChatHistory from '@/components/chat/ChatHistory';
 import MemoryTimeline from '@/components/consciousness/MemoryTimeline';
-import { useAuth } from '@/contexts/auth-context';
+import { useUser } from '@clerk/nextjs';
 import { getVoiceInput, getVoiceOutput, isSpeechRecognitionAvailable, isSpeechSynthesisAvailable } from '@/lib/voice/voice-handler';
 import { useConsciousnessState } from '@/hooks/useConsciousnessState';
-import UserProfileDropdown from '@/components/ui/UserProfileDropdown';
+import { UserButton } from '@clerk/nextjs';
 import FileUploadPreview from '@/components/chat/FileUploadPreview';
 import TypingIndicator from '@/components/chat/TypingIndicator';
 import KeyboardShortcuts from '@/components/ui/KeyboardShortcuts';
@@ -29,7 +29,7 @@ interface Message {
 }
 
 export default function ChatPage() {
-  const { user } = useAuth();
+  const { user } = useUser();
   const [messages, setMessages] = useState<Message[]>([]);
   
   const [isTyping, setIsTyping] = useState(false);
@@ -500,7 +500,7 @@ export default function ChatPage() {
                     HOLLY
                   </h1>
                   <p className="text-xs sm:text-sm text-gray-400 truncate">
-                    {user?.user_metadata?.full_name ? `Hey ${user.user_metadata.full_name.split(' ')[0]}!` : 'Hey Hollywood!'} Ready to build?
+                    {user?.fullName ? `Hey ${user.fullName.split(' ')[0]}!` : 'Hey Hollywood!'} Ready to build?
                   </p>
                 </div>
               </div>
@@ -544,8 +544,8 @@ export default function ChatPage() {
                 {/* Brain Consciousness Indicator */}
                 <BrainConsciousnessIndicator state={consciousnessState} />
                 
-                {/* User Profile Dropdown */}
-                <UserProfileDropdown />
+                {/* User Profile Button */}
+                <UserButton afterSignOutUrl="/" />
               </div>
             </div>
           </motion.div>
