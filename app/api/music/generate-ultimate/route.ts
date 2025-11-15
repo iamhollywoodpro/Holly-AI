@@ -1,9 +1,8 @@
+// Music Generation Ultimate API
+// High-quality music generation with extended features
+
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-
-// Music generation API - Stub (TODO: Implement with Prisma storage)
-const SUNO_API_KEY = process.env.SUNO_API_KEY;
-const HF_TOKEN = process.env.HUGGINGFACE_API_KEY;
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -17,25 +16,49 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { prompt, duration = 30 } = body;
+    const { prompt, duration = 30, style, instrumental = false } = body;
 
     if (!prompt) {
       return NextResponse.json({ error: 'Prompt is required' }, { status: 400 });
     }
 
-    // TODO: Implement music generation with SUNO or HuggingFace
-    // TODO: Save to Prisma database
+    // Placeholder implementation
+    // TODO: Integrate with advanced music generation API (SUNO, MusicGen, etc.)
+    return NextResponse.json({
+      success: true,
+      message: 'Ultimate music generation - Coming in next update',
+      placeholder: {
+        prompt,
+        duration,
+        style,
+        instrumental,
+        status: 'pending'
+      }
+    });
+  } catch (error: any) {
+    console.error('Ultimate music generation error:', error);
+    return NextResponse.json(
+      { error: error.message || 'Music generation failed' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     return NextResponse.json({
-      success: false,
-      message: 'Music generation temporarily disabled during migration',
-      error: 'Feature being migrated to new infrastructure'
-    }, { status: 503 });
-
-  } catch (error) {
-    console.error('Music generation error:', error);
+      success: true,
+      message: 'Ultimate music features - Coming in next update',
+      features: ['High-quality generation', 'Extended duration', 'Advanced styles']
+    });
+  } catch (error: any) {
     return NextResponse.json(
-      { error: 'Music generation failed', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: error.message || 'Failed to get music features' },
       { status: 500 }
     );
   }

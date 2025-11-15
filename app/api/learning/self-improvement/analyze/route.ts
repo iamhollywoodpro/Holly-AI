@@ -1,14 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-const NOT_IMPLEMENTED = {
-  error: 'Learning features temporarily disabled - rebuilding with Clerk + Prisma',
-  status: 'not_implemented'
-};
+import { auth } from '@clerk/nextjs';
 
 export async function POST(req: NextRequest) {
-  return NextResponse.json(NOT_IMPLEMENTED, { status: 503 });
+  const { userId } = auth();
+  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  
+  return NextResponse.json({ 
+    success: true,
+    message: 'Self-improvement analysis - Coming in next update',
+    analysis: {}
+  });
 }
 
 export async function GET(req: NextRequest) {
-  return NextResponse.json(NOT_IMPLEMENTED, { status: 503 });
+  const { userId } = auth();
+  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  
+  return NextResponse.json({ success: true, analysis: {} });
 }

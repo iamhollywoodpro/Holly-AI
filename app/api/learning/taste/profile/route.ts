@@ -1,14 +1,66 @@
-import { NextRequest, NextResponse } from 'next/server';
+// Taste Learning - Profile API
+// Gets user's taste profile and preferences
 
-const NOT_IMPLEMENTED = {
-  error: 'Learning features temporarily disabled - rebuilding with Clerk + Prisma',
-  status: 'not_implemented'
-};
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs';
+import { TasteLearner } from '@/lib/learning/taste-learner';
 
 export async function POST(req: NextRequest) {
-  return NextResponse.json(NOT_IMPLEMENTED, { status: 503 });
+  try {
+    const { userId } = auth();
+    
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'Unauthorized - Please sign in' },
+        { status: 401 }
+      );
+    }
+
+    const body = await req.json();
+    const { category } = body;
+
+    const taste = new TasteLearner(userId);
+    const profile = await taste.getTasteProfile(category);
+
+    return NextResponse.json({ 
+      success: true,
+      profile
+    });
+  } catch (error: any) {
+    console.error('Get taste profile error:', error);
+    return NextResponse.json(
+      { error: error.message || 'Failed to get taste profile' },
+      { status: 500 }
+    );
+  }
 }
 
 export async function GET(req: NextRequest) {
-  return NextResponse.json(NOT_IMPLEMENTED, { status: 503 });
+  try {
+    const { userId } = auth();
+    
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'Unauthorized - Please sign in' },
+        { status: 401 }
+      );
+    }
+
+    const { searchParams } = new URL(req.url);
+    const category = searchParams.get('category');
+
+    const taste = new TasteLearner(userId);
+    const profile = await taste.getTasteProfile(category || undefined);
+
+    return NextResponse.json({ 
+      success: true,
+      profile
+    });
+  } catch (error: any) {
+    console.error('Get taste profile error:', error);
+    return NextResponse.json(
+      { error: error.message || 'Failed to get taste profile' },
+      { status: 500 }
+    );
+  }
 }
