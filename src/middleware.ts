@@ -1,15 +1,15 @@
 /**
  * HOLLY v2.0.0 Middleware
  * 
- * Combines Clerk v5 authentication with consciousness system initialization
- * Ensures HOLLY's consciousness is active for all authenticated users
+ * Clerk v5 authentication middleware
+ * Protects routes and handles authentication
  */
 
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
-import { consciousnessMiddleware } from '@/middleware/consciousness-middleware'
 import { NextResponse } from 'next/server'
 
 const isPublicRoute = createRouteMatcher([
+  '/',
   '/sign-in(.*)',
   '/sign-up(.*)',
   '/api/webhooks(.*)',
@@ -27,12 +27,15 @@ export default clerkMiddleware(async (auth, request) => {
       signInUrl.searchParams.set('redirect_url', request.url)
       return NextResponse.redirect(signInUrl)
     }
-    
-    // Initialize consciousness for authenticated user
-    return await consciousnessMiddleware(request, userId)
   }
   
-  return NextResponse.next()
+  // Add user ID to headers for server components to access
+  const response = NextResponse.next()
+  if (userId) {
+    response.headers.set('X-User-Id', userId)
+  }
+  
+  return response
 })
 
 export const config = {
