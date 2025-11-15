@@ -2,12 +2,13 @@
 // Gets context-aware suggestions and project context
 
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs';
+import { currentUser } from '@clerk/nextjs/server';
 import { ContextualIntelligence } from '@/lib/learning/contextual-intelligence';
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId } = auth();
+    const user = await currentUser();
+  const userId = user?.id;
     
     if (!userId) {
       return NextResponse.json(
@@ -53,7 +54,8 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    const { userId } = auth();
+    const user = await currentUser();
+  const userId = user?.id;
     
     if (!userId) {
       return NextResponse.json(
