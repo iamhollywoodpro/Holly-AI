@@ -1,5 +1,7 @@
-// Contextual Intelligence - Context API
-// Gets context-aware suggestions and project context
+/**
+ * Contextual Context API
+ * Gets project context and AI-generated suggestions
+ */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@clerk/nextjs/server';
@@ -7,84 +9,64 @@ import { ContextualIntelligence } from '@/lib/learning/contextual-intelligence';
 
 export async function POST(req: NextRequest) {
   try {
+    // Check authentication
     const user = await currentUser();
-  const userId = user?.id;
-    
+    const userId = user?.id;
+
     if (!userId) {
       return NextResponse.json(
-        { error: 'Unauthorized - Please sign in' },
+        { success: false, error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
     const body = await req.json();
-    const { projectId, action } = body;
+    const { projectId } = body;
 
     if (!projectId) {
       return NextResponse.json(
-        { error: 'Missing required field: projectId' },
+        { success: false, error: 'Project ID is required' },
         { status: 400 }
       );
     }
 
     const contextual = new ContextualIntelligence(userId);
 
-    if (action === 'suggestions') {
-      const suggestions = await contextual.getSuggestions(projectId);
-      return NextResponse.json({ 
-        success: true,
-        suggestions
-      });
-    }
-
-    // Default: get full context
-    const context = await contextual.getContext(projectId);
-    return NextResponse.json({ 
-      success: true,
-      context
-    });
-  } catch (error: any) {
-    console.error('Get context error:', error);
-    return NextResponse.json(
-      { error: error.message || 'Failed to get context' },
-      { status: 500 }
-    );
-  }
-}
-
-export async function GET(req: NextRequest) {
-  try {
-    const user = await currentUser();
-  const userId = user?.id;
+    // Get project context
+    const context = await contextual.getProjectContext(projectId);
     
-    if (!userId) {
+    if (!context) {
       return NextResponse.json(
-        { error: 'Unauthorized - Please sign in' },
-        { status: 401 }
+        { success: false, error: 'Project not found' },
+        { status: 404 }
       );
     }
 
-    const { searchParams } = new URL(req.url);
-    const projectId = searchParams.get('projectId');
-
-    if (!projectId) {
-      return NextResponse.json(
-        { error: 'Missing required parameter: projectId' },
-        { status: 400 }
-      );
-    }
-
-    const contextual = new ContextualIntelligence(userId);
-    const context = await contextual.getContext(projectId);
-
-    return NextResponse.json({ 
-      success: true,
-      context
+    // Get patterns
+    const patterns = await contextual.detectPatterns();
+    
+    // Get suggestions with current context
+    const suggestions = await contextual.getSuggestions({
+      projectId,
+      currentTechnologies: context.technologies,
+      currentPhase: context.status
     });
-  } catch (error: any) {
-    console.error('Get context error:', error);
+
+    return NextResponse.json({
+      success: true,
+      context: {
+        ...context,
+        patterns: patterns.slice(0, 5), // Top 5 patterns
+        suggestions: suggestions.slice(0, 10) // Top 10 suggestions
+      }
+    });
+  } catch (error) {
+    console.error('Context API error:', error);
     return NextResponse.json(
-      { error: error.message || 'Failed to get context' },
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Internal server error'
+      },
       { status: 500 }
     );
   }
