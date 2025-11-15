@@ -266,4 +266,66 @@ export class CapabilityOrchestrator {
   getAvailableCapabilities(): string[] {
     return ['contextual', 'taste', 'predictive'];
   }
+
+  /**
+   * Detect which capability is needed based on message content
+   * Used by enhanced-ai-router for intelligent routing
+   */
+  detectCapabilityNeeded(message: string): CapabilityType | null {
+    const lowerMessage = message.toLowerCase();
+
+    // Vision detection
+    if (lowerMessage.includes('image') || lowerMessage.includes('picture') || 
+        lowerMessage.includes('photo') || lowerMessage.includes('visual') ||
+        lowerMessage.includes('look at') || lowerMessage.includes('see this')) {
+      return 'vision';
+    }
+
+    // Voice detection
+    if (lowerMessage.includes('say') || lowerMessage.includes('speak') ||
+        lowerMessage.includes('voice') || lowerMessage.includes('audio') ||
+        lowerMessage.includes('listen') || lowerMessage.includes('transcribe')) {
+      return 'voice';
+    }
+
+    // Video detection
+    if (lowerMessage.includes('video') || lowerMessage.includes('reel') ||
+        lowerMessage.includes('music video') || lowerMessage.includes('visualize')) {
+      return 'video';
+    }
+
+    // Research detection
+    if (lowerMessage.includes('research') || lowerMessage.includes('find out') ||
+        lowerMessage.includes('what are the trends') || lowerMessage.includes('competitor') ||
+        lowerMessage.includes('search for')) {
+      return 'research';
+    }
+
+    // Audio analysis detection
+    if (lowerMessage.includes('mix') || lowerMessage.includes('master') ||
+        lowerMessage.includes('hit factor') || lowerMessage.includes('analyze audio')) {
+      return 'audio';
+    }
+
+    // Contextual intelligence detection
+    if (lowerMessage.includes('pattern') || lowerMessage.includes('context') ||
+        lowerMessage.includes('my projects') || lowerMessage.includes('what have i been')) {
+      return 'contextual';
+    }
+
+    // Taste learning detection
+    if (lowerMessage.includes('prefer') || lowerMessage.includes('my style') ||
+        lowerMessage.includes('recommend') || lowerMessage.includes('what do i like')) {
+      return 'taste';
+    }
+
+    // Predictive engine detection
+    if (lowerMessage.includes('predict') || lowerMessage.includes('next steps') ||
+        lowerMessage.includes('what should i') || lowerMessage.includes('suggest')) {
+      return 'predictive';
+    }
+
+    // No specific capability detected
+    return null;
+  }
 }

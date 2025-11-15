@@ -40,19 +40,19 @@ export class EnhancedAIRouter {
       // Extract parameters from the message
       const parameters = this.extractParameters(message, capability);
 
-      // Execute the capability
+      // Execute the capability with correct API signature
       const result = await this.orchestrator.execute({
-        capability,
-        action: parameters.action,
-        parameters: parameters.params,
+        type: capability,
+        input: { message, action: parameters.action, ...parameters.params },
         context,
+        userId: context?.userId || 'default-user', // Use userId from context or default
       });
 
       if (result.success) {
         return {
-          message: this.formatCapabilityResponse(capability, result.result),
+          message: this.formatCapabilityResponse(capability, result.data),
           capabilityUsed: capability,
-          capabilityResult: result.result,
+          capabilityResult: result.data,
           suggestions: this.generateSuggestions(capability),
         };
       } else {
@@ -125,7 +125,7 @@ export class EnhancedAIRouter {
         params.depth = message.includes('quick') ? 'quick' : 'comprehensive';
         break;
 
-      case 'audio-analysis':
+      case 'audio':
         if (message.includes('mix')) {
           action = 'mix';
         } else if (message.includes('master')) {
@@ -163,7 +163,7 @@ export class EnhancedAIRouter {
       case 'research':
         return `Research complete! ${result.summary || 'Found relevant information.'}`;
       
-      case 'audio-analysis':
+      case 'audio':
         return `Audio analysis complete. Overall score: ${result.overall_score || 'N/A'}/10`;
       
       default:
@@ -196,7 +196,7 @@ export class EnhancedAIRouter {
         'Should I analyze the trends in this area?',
         'Would you like competitor analysis?',
       ],
-      'audio-analysis': [
+      audio: [
         'Want me to analyze the mix quality?',
         'Should I check the mastering?',
         'Would you like me to calculate a hit factor score?',
@@ -204,10 +204,10 @@ export class EnhancedAIRouter {
       contextual: [],
       taste: [],
       predictive: [],
-      'self-improve': [],
+      selfImprove: [],
       uncensored: [],
       collaboration: [],
-      'cross-project': [],
+      crossProject: [],
     };
 
     return suggestions[capability] || [];
