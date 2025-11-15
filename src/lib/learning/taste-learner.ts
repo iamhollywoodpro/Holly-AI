@@ -86,11 +86,21 @@ export class TasteLearner {
 
     if (!profile) return null;
 
+    // Build preferences from separate JSON fields
+    const musicPrefs = profile.musicPreferences as any;
+    const artPrefs = profile.artPreferences as any;
+    const stylePrefs = profile.stylePreferences as any;
+
     return {
       userId: profile.userId,
-      preferences: profile.preferences as any,
-      patterns: profile.patterns as any,
-      lastUpdated: profile.updatedAt
+      preferences: {
+        music: musicPrefs || [],
+        design: artPrefs || [],
+        code: stylePrefs || [],
+        general: []
+      },
+      patterns: {},
+      lastUpdated: profile.lastUpdated
     };
   }
 
@@ -101,7 +111,7 @@ export class TasteLearner {
     // Get recent signals
     const signals = await this.db.tasteSignal.findMany({
       where: { userId: this.userId },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { timestamp: 'desc' },
       take: 100
     });
 
@@ -135,18 +145,19 @@ export class TasteLearner {
       complexity: this.inferComplexityPreference(signals)
     };
 
-    // Upsert profile
+    // Upsert profile - using actual schema fields
     await this.db.tasteProfile.upsert({
       where: { userId: this.userId },
       create: {
         userId: this.userId,
-        preferences,
-        patterns,
+        musicPreferences: preferences.music || [],
+        artPreferences: preferences.design || [],
+        stylePreferences: preferences.code || [],
       },
       update: {
-        preferences,
-        patterns,
-        updatedAt: new Date()
+        musicPreferences: preferences.music || [],
+        artPreferences: preferences.design || [],
+        stylePreferences: preferences.code || [],
       }
     });
   }
