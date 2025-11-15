@@ -8,9 +8,9 @@ export async function POST(req: NextRequest) {
     const userId = user?.id;
     if (!userId) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
 
-    const { category, item, preference, context } = await req.json();
+    const { category, item, action, context } = await req.json();
     const taste = new TasteLearner(userId);
-    await taste.recordSignal({ category, item, preference, context });
+    await taste.recordSignal({ category, item, action, context });
 
     return NextResponse.json({ success: true, message: 'Taste signal recorded' });
   } catch (error) {
