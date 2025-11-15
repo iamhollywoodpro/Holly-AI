@@ -192,7 +192,7 @@ export class CapabilityOrchestrator {
           // Return working capability response
           return {
             success: true,
-            data: await this.contextual.detectPatterns(request.input.projectId),
+            data: await this.contextual.detectPatterns(),
             metadata: { capability: 'contextual' }
           };
 
