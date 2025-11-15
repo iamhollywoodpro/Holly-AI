@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/db';
+import { ensureUserExists } from '@/lib/auth/ensure-user';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -17,9 +18,8 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { clerkId: clerkUserId },
-    });
+    // Ensure user exists in database (fallback for webhook delays)
+    const user = await ensureUserExists();
 
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
@@ -48,9 +48,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { clerkId: clerkUserId },
-    });
+    // Ensure user exists in database (fallback for webhook delays)
+    const user = await ensureUserExists();
 
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
