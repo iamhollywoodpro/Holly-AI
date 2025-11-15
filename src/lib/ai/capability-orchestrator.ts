@@ -96,8 +96,11 @@ class CrossProjectAI {
   }
 }
 
+// Export CapabilityType for use in other modules
+export type CapabilityType = 'vision' | 'voice' | 'video' | 'research' | 'audio' | 'contextual' | 'taste' | 'predictive' | 'selfImprove' | 'uncensored' | 'collaboration' | 'crossProject';
+
 export interface CapabilityRequest {
-  type: 'vision' | 'voice' | 'video' | 'research' | 'audio' | 'contextual' | 'taste' | 'predictive' | 'selfImprove' | 'uncensored' | 'collaboration' | 'crossProject';
+  type: CapabilityType;
   input: any;
   context?: any;
   userId: string; // Required for learning systems
