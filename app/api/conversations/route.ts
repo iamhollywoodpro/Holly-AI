@@ -11,9 +11,13 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(request: NextRequest) {
   try {
+    console.log('[Conversations API] GET request started');
+    
     const { userId } = await auth();
+    console.log('[Conversations API] Clerk userId:', userId || 'NONE');
     
     if (!userId) {
+      console.error('[Conversations API] No Clerk userId - unauthorized');
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
@@ -21,6 +25,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get or create user in database
+    console.log('[Conversations API] Upserting user...');
     const user = await prisma.user.upsert({
       where: { clerkId: userId },
       update: {},
@@ -29,7 +34,9 @@ export async function GET(request: NextRequest) {
         email: '', // Will be updated by webhook
       },
     });
+    console.log('[Conversations API] User result:', `User ${user.id}`);
 
+    console.log('[Conversations API] Fetching conversations for user:', user.id);
     const conversations = await prisma.conversation.findMany({
       where: { userId: user.id },
       orderBy: { updatedAt: 'desc' },
@@ -43,11 +50,18 @@ export async function GET(request: NextRequest) {
       },
     });
 
+    console.log('[Conversations API] ✅ Found', conversations.length, 'conversations');
     return NextResponse.json({ conversations });
   } catch (error) {
-    console.error('Conversations API error:', error);
+    console.error('[Conversations API] ❌ CRITICAL ERROR:');
+    console.error('[Conversations API] Error name:', error instanceof Error ? error.name : 'Unknown');
+    console.error('[Conversations API] Error message:', error instanceof Error ? error.message : String(error));
+    console.error('[Conversations API] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { 
+        error: 'Internal server error',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      },
       { status: 500 }
     );
   }

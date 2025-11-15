@@ -11,26 +11,34 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(request: NextRequest) {
   try {
+    console.log('[Goals API] GET request started');
+    
     const { userId } = await auth();
+    console.log('[Goals API] Clerk userId:', userId || 'NONE');
     
     if (!userId) {
+      console.error('[Goals API] No Clerk userId - unauthorized');
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
       );
     }
 
+    console.log('[Goals API] Looking up user in database...');
     const user = await prisma.user.findUnique({
       where: { clerkId: userId },
     });
+    console.log('[Goals API] User lookup result:', user ? `Found user ${user.id}` : 'NOT FOUND');
 
     if (!user) {
+      console.error('[Goals API] User not found in database for clerkId:', userId);
       return NextResponse.json(
         { error: 'User not found' },
         { status: 404 }
       );
     }
 
+    console.log('[Goals API] Fetching goals for user:', user.id);
     const goals = await prisma.hollyGoal.findMany({
       where: {
         userId: user.id,
@@ -42,14 +50,17 @@ export async function GET(request: NextRequest) {
       ],
     });
 
-    console.log('[Goals] ✅ Retrieved goals:', goals.length);
+    console.log('[Goals API] ✅ Retrieved', goals.length, 'goals');
     return NextResponse.json({
       success: true,
       goals,
       message: `Found ${goals.length} active goals`,
     });
   } catch (error) {
-    console.error('Error retrieving goals:', error);
+    console.error('[Goals API] ❌ CRITICAL ERROR:');
+    console.error('[Goals API] Error name:', error instanceof Error ? error.name : 'Unknown');
+    console.error('[Goals API] Error message:', error instanceof Error ? error.message : String(error));
+    console.error('[Goals API] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
     return NextResponse.json(
       { 
         error: 'Failed to retrieve goals',

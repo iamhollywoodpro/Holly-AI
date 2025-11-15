@@ -7,16 +7,22 @@ import { currentUser } from '@clerk/nextjs/server';
  */
 export async function ensureUserExists() {
   try {
+    console.log('[ensureUserExists] Starting...');
+    
     const clerkUser = await currentUser();
+    console.log('[ensureUserExists] Clerk user:', clerkUser ? `ID: ${clerkUser.id}, Email: ${clerkUser.emailAddresses[0]?.emailAddress}` : 'NULL');
     
     if (!clerkUser) {
+      console.error('[ensureUserExists] No Clerk user found');
       return null;
     }
 
     // Check if user exists in database
+    console.log('[ensureUserExists] Checking database for clerkId:', clerkUser.id);
     let user = await prisma.user.findUnique({
       where: { clerkId: clerkUser.id },
     });
+    console.log('[ensureUserExists] Database lookup result:', user ? `Found user ${user.id}` : 'Not found');
 
     // If not, create them
     if (!user) {
@@ -25,6 +31,7 @@ export async function ensureUserExists() {
         ? `${clerkUser.firstName} ${clerkUser.lastName}` 
         : clerkUser.firstName || null;
 
+      console.log('[ensureUserExists] Creating new user with email:', email);
       user = await prisma.user.create({
         data: {
           clerkId: clerkUser.id,
@@ -37,9 +44,13 @@ export async function ensureUserExists() {
       console.log('[ensureUserExists] ✅ Created user:', user.id);
     }
 
+    console.log('[ensureUserExists] ✅ Returning user:', user.id);
     return user;
   } catch (error) {
-    console.error('[ensureUserExists] Error:', error);
+    console.error('[ensureUserExists] ❌ CRITICAL ERROR:');
+    console.error('[ensureUserExists] Error name:', error instanceof Error ? error.name : 'Unknown');
+    console.error('[ensureUserExists] Error message:', error instanceof Error ? error.message : String(error));
+    console.error('[ensureUserExists] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
     return null;
   }
 }
