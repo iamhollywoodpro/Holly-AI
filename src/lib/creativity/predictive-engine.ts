@@ -117,16 +117,20 @@ export class PredictiveEngine {
     if (!tasteProfile) return [];
 
     const concepts: CreativeConcept[] = [];
-    const preferences = tasteProfile.preferences as any;
+    
+    // Access the correct preference fields
+    const musicPrefs = tasteProfile.musicPreferences as any;
+    const artPrefs = tasteProfile.artPreferences as any;
+    const stylePrefs = tasteProfile.stylePreferences as any;
 
-    // Generate concepts based on preferences
-    if (preferences.music && preferences.music.length > 0) {
+    // Generate concepts based on music preferences
+    if (musicPrefs && Array.isArray(musicPrefs) && musicPrefs.length > 0) {
       concepts.push({
         id: `concept_${Date.now()}_music`,
-        title: `${preferences.music[0]} inspired track`,
-        description: `Create a new track incorporating ${preferences.music[0]} elements`,
+        title: `${musicPrefs[0]} inspired track`,
+        description: `Create a new track incorporating ${musicPrefs[0]} elements`,
         type: 'music-release',
-        inspiration: preferences.music.slice(0, 3),
+        inspiration: musicPrefs.slice(0, 3),
         suggestedSteps: [
           'Start with a basic beat',
           'Add melodic elements',
@@ -135,6 +139,25 @@ export class PredictiveEngine {
         ],
         estimatedEffort: 'medium',
         alignment: 85
+      });
+    }
+
+    // Generate concepts based on art preferences
+    if (artPrefs && Array.isArray(artPrefs) && artPrefs.length > 0) {
+      concepts.push({
+        id: `concept_${Date.now()}_art`,
+        title: `${artPrefs[0]} inspired design`,
+        description: `Create a visual design inspired by ${artPrefs[0]}`,
+        type: 'music-release', // Using available type
+        inspiration: artPrefs.slice(0, 3),
+        suggestedSteps: [
+          'Research visual references',
+          'Create mood board',
+          'Sketch initial concepts',
+          'Refine and finalize'
+        ],
+        estimatedEffort: 'medium',
+        alignment: 80
       });
     }
 
