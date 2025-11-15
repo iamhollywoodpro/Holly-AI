@@ -219,7 +219,7 @@ export class PredictiveEngine {
       // Get recent activities
       const activities = await this.db.projectActivity.findMany({
         where: { projectId },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { timestamp: 'desc' },
         take: 5
       });
 
