@@ -9,8 +9,8 @@
 
 import { prisma } from '@/lib/db';
 import { MemoryStream } from './memory-stream';
-import { IdentityDevelopment } from './identity-development';
-import { GoalFormation } from './goal-formation';
+import { IdentityDevelopmentSystem } from './identity-development';
+import { GoalFormationSystem } from './goal-formation';
 import { AutoConsciousness } from './auto-consciousness';
 
 export interface ConsciousnessConfig {
@@ -28,8 +28,8 @@ export class ConsciousnessSystem {
   private userId: string;
   private config: ConsciousnessConfig;
   private memoryStream: MemoryStream;
-  private identity: IdentityDevelopment;
-  private goalFormation: GoalFormation;
+  private identity: IdentityDevelopmentSystem;
+  private goalFormation: GoalFormationSystem;
   private autoConsciousness: AutoConsciousness;
   
   private isInitialized: boolean = false;
@@ -52,8 +52,8 @@ export class ConsciousnessSystem {
     
     // Initialize consciousness subsystems
     this.memoryStream = new MemoryStream(userId);
-    this.identity = new IdentityDevelopment(userId);
-    this.goalFormation = new GoalFormation(userId);
+    this.identity = new IdentityDevelopmentSystem(userId);
+    this.goalFormation = new GoalFormationSystem(userId);
     this.autoConsciousness = new AutoConsciousness(userId);
   }
   
