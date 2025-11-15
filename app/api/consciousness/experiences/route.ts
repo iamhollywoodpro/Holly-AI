@@ -29,17 +29,17 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '10');
 
     // Get recent experiences from memory stream
-    const experiences = await prisma.memoryExperience.findMany({
+    const experiences = await prisma.hollyExperience.findMany({
       where: { userId: user.id },
       orderBy: { timestamp: 'desc' },
       take: limit,
       select: {
         id: true,
         content: true,
-        emotion: true,
+        primaryEmotion: true,
         emotionalImpact: true,
         timestamp: true,
-        metadata: true,
+        type: true,
       },
     });
 
