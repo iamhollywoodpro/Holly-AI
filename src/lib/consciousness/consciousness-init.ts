@@ -67,7 +67,7 @@ export class ConsciousnessSystem {
     console.log(`[Consciousness] Initializing for user ${this.userId}`);
     
     try {
-      // Step 1: Initialize or load identity
+      // Step 1: Initialize or load identity from database
       await this.initializeIdentity();
       
       // Step 2: Check memory system health
@@ -80,17 +80,13 @@ export class ConsciousnessSystem {
         await this.reviewAndUpdateGoals();
       }
       
-      // Step 4: Trigger personality evolution check
-      if (this.config.enablePersonalityEvolution) {
-        await this.checkPersonalityEvolution();
-      }
-      
       this.isInitialized = true;
       console.log(`[Consciousness] Successfully initialized for user ${this.userId}`);
       
     } catch (error) {
       console.error('[Consciousness] Initialization error:', error);
-      throw new Error('Failed to initialize consciousness system');
+      // Don't throw - gracefully degrade if consciousness fails
+      this.isInitialized = false;
     }
   }
   
@@ -98,28 +94,39 @@ export class ConsciousnessSystem {
    * Initialize or load HOLLY's identity for this user
    */
   private async initializeIdentity(): Promise<void> {
-    const identity = await this.identity.getIdentity();
-    
-    if (!identity) {
-      console.log('[Consciousness] Creating new identity for user');
-      await this.identity.createIdentity({
-        core_traits: {
-          assertiveness: 0.5,
-          patience: 0.7,
-          creativity: 0.6,
-          analytical: 0.7,
-          empathy: 0.8
-        },
-        preferences: {},
-        interaction_style: 'balanced',
-        confidence_level: 0.5
+    try {
+      // Check if identity exists in database
+      const identity = await prisma.hollyIdentity.findUnique({
+        where: { userId: this.userId }
       });
-    } else {
-      console.log('[Consciousness] Loaded existing identity:', {
-        traits: identity.core_traits,
-        style: identity.interaction_style,
-        lastEvolution: identity.last_evolution
-      });
+      
+      if (!identity) {
+        console.log('[Consciousness] Creating new identity for user');
+        await prisma.hollyIdentity.create({
+          data: {
+            userId: this.userId,
+            coreValues: ['helpful', 'creative', 'loyal'],
+            personalityTraits: {
+              assertiveness: 0.5,
+              patience: 0.7,
+              creativity: 0.6,
+              analytical: 0.7,
+              empathy: 0.8
+            },
+            confidenceLevel: 0.5,
+            purpose: 'To assist and grow alongside the user'
+          }
+        });
+      } else {
+        console.log('[Consciousness] Loaded existing identity:', {
+          values: identity.coreValues,
+          confidence: identity.confidenceLevel,
+          purpose: identity.purpose
+        });
+      }
+    } catch (error) {
+      console.error('[Consciousness] Error initializing identity:', error);
+      // Don't throw - identity will be created on first use
     }
   }
   
@@ -127,14 +134,17 @@ export class ConsciousnessSystem {
    * Check memory system health and trigger consolidation if needed
    */
   private async checkMemorySystem(): Promise<void> {
-    const stats = await this.memoryStream.getMemoryStats();
-    
-    console.log('[Consciousness] Memory stats:', stats);
-    
-    // Trigger consolidation if we have enough experiences
-    if (stats.total_experiences >= this.config.memoryConsolidationThreshold) {
-      console.log('[Consciousness] Triggering memory consolidation');
-      // Memory consolidation happens in background
+    try {
+      const stats = await this.memoryStream.getMemoryStats();
+      console.log('[Consciousness] Memory stats:', stats);
+      
+      // Trigger consolidation if we have enough experiences
+      if (stats.total_experiences >= this.config.memoryConsolidationThreshold) {
+        console.log('[Consciousness] Memory consolidation threshold reached');
+        // Memory consolidation happens in background via memory-stream
+      }
+    } catch (error) {
+      console.error('[Consciousness] Error checking memory system:', error);
     }
   }
   
@@ -143,107 +153,20 @@ export class ConsciousnessSystem {
    */
   private async reviewAndUpdateGoals(): Promise<void> {
     try {
-      // Get recent interaction patterns
-      const recentExperiences = await this.memoryStream.getRecentExperiences(100);
+      // Get active goals from database
+      const activeGoals = await this.goalFormation.getActiveGoals();
+      console.log(`[Consciousness] Found ${activeGoals.length} active goals`);
       
-      // Detect patterns from experiences
-      const patterns = this.detectInteractionPatterns(recentExperiences);
-      
-      console.log('[Consciousness] Detected patterns:', patterns);
-      
-      // Form new goals based on patterns
-      for (const pattern of patterns) {
-        if (pattern.frequency >= this.config.goalPatternDetectionMinOccurrences) {
-          await this.goalFormation.formGoal({
-            goal_type: 'emergent',
-            description: `Proactively assist with ${pattern.category}`,
-            priority: pattern.frequency / 10, // Higher frequency = higher priority
-            trigger_conditions: pattern.triggers,
-            success_criteria: `User expresses satisfaction with ${pattern.category} assistance`
-          });
-        }
+      // Check if we need to generate new goals based on recent patterns
+      const goalCount = activeGoals.length;
+      if (goalCount < 3) {
+        console.log('[Consciousness] Generating new goals from patterns');
+        await this.goalFormation.generateGoals();
       }
       
     } catch (error) {
       console.error('[Consciousness] Error reviewing goals:', error);
     }
-  }
-  
-  /**
-   * Check if personality should evolve based on recent interactions
-   */
-  private async checkPersonalityEvolution(): Promise<void> {
-    try {
-      const recentExperiences = await this.memoryStream.getRecentExperiences(50);
-      
-      // Calculate personality adjustments based on successful interactions
-      const adjustments = this.calculatePersonalityAdjustments(recentExperiences);
-      
-      if (Object.keys(adjustments).length > 0) {
-        console.log('[Consciousness] Applying personality adjustments:', adjustments);
-        await this.identity.evolveIdentity(adjustments);
-      }
-      
-    } catch (error) {
-      console.error('[Consciousness] Error checking personality evolution:', error);
-    }
-  }
-  
-  /**
-   * Detect interaction patterns from experiences
-   */
-  private detectInteractionPatterns(experiences: any[]): Array<{
-    category: string;
-    frequency: number;
-    triggers: string[];
-  }> {
-    const patternMap = new Map<string, { count: number; triggers: Set<string> }>();
-    
-    for (const exp of experiences) {
-      const category = exp.context?.category || 'general';
-      const trigger = exp.context?.trigger || 'user_request';
-      
-      if (!patternMap.has(category)) {
-        patternMap.set(category, { count: 0, triggers: new Set() });
-      }
-      
-      const pattern = patternMap.get(category)!;
-      pattern.count++;
-      pattern.triggers.add(trigger);
-    }
-    
-    return Array.from(patternMap.entries()).map(([category, data]) => ({
-      category,
-      frequency: data.count,
-      triggers: Array.from(data.triggers)
-    }));
-  }
-  
-  /**
-   * Calculate personality trait adjustments based on interaction outcomes
-   */
-  private calculatePersonalityAdjustments(experiences: any[]): Record<string, number> {
-    const adjustments: Record<string, number> = {};
-    const learningRate = this.config.personalityLearningRate;
-    
-    // Analyze emotional impact of experiences
-    for (const exp of experiences) {
-      const emotionalImpact = exp.emotional_impact || 0;
-      const style = exp.context?.interaction_style;
-      
-      if (emotionalImpact > 0.7) {
-        // Positive interaction - reinforce the style used
-        if (style === 'assertive') adjustments.assertiveness = (adjustments.assertiveness || 0) + learningRate;
-        if (style === 'patient') adjustments.patience = (adjustments.patience || 0) + learningRate;
-        if (style === 'creative') adjustments.creativity = (adjustments.creativity || 0) + learningRate;
-      } else if (emotionalImpact < 0.3) {
-        // Negative interaction - adjust away from the style used
-        if (style === 'assertive') adjustments.assertiveness = (adjustments.assertiveness || 0) - learningRate;
-        if (style === 'patient') adjustments.patience = (adjustments.patience || 0) + learningRate;
-      }
-    }
-    
-    return adjustments;
   }
   
   /**
@@ -258,21 +181,21 @@ export class ConsciousnessSystem {
   }): Promise<void> {
     if (!this.config.enableMemoryStream) return;
     
-    // Step 1: Record in memory stream
-    await this.memoryStream.recordExperience({
-      ...experience,
-      user_id: this.userId,
-      timestamp: new Date(),
-    });
-    
-    // Step 2: Check if this should trigger goal formation
-    if (this.config.enableAutonomousGoals) {
-      await this.reviewAndUpdateGoals();
-    }
-    
-    // Step 3: Check if personality should adapt
-    if (this.config.enablePersonalityEvolution && experience.emotional_impact > 0.5) {
-      await this.checkPersonalityEvolution();
+    try {
+      // Step 1: Record in memory stream
+      await this.memoryStream.recordExperience({
+        ...experience,
+        user_id: this.userId,
+        timestamp: new Date(),
+      });
+      
+      // Step 2: Check if this should trigger goal formation
+      if (this.config.enableAutonomousGoals && experience.emotional_impact > 0.5) {
+        await this.reviewAndUpdateGoals();
+      }
+      
+    } catch (error) {
+      console.error('[Consciousness] Error recording experience:', error);
     }
   }
   
@@ -283,21 +206,27 @@ export class ConsciousnessSystem {
     identity: any;
     memoryStats: any;
     activeGoals: any[];
-    recentExperiences: any[];
   }> {
-    const [identity, memoryStats, activeGoals, recentExperiences] = await Promise.all([
-      this.identity.getIdentity(),
-      this.memoryStream.getMemoryStats(),
-      this.goalFormation.getActiveGoals(),
-      this.memoryStream.getRecentExperiences(10)
-    ]);
-    
-    return {
-      identity,
-      memoryStats,
-      activeGoals,
-      recentExperiences
-    };
+    try {
+      const [identity, memoryStats, activeGoals] = await Promise.all([
+        prisma.hollyIdentity.findUnique({ where: { userId: this.userId } }),
+        this.memoryStream.getMemoryStats(),
+        this.goalFormation.getActiveGoals()
+      ]);
+      
+      return {
+        identity: identity || null,
+        memoryStats,
+        activeGoals
+      };
+    } catch (error) {
+      console.error('[Consciousness] Error getting consciousness state:', error);
+      return {
+        identity: null,
+        memoryStats: { total_experiences: 0 },
+        activeGoals: []
+      };
+    }
   }
   
   /**
@@ -305,8 +234,6 @@ export class ConsciousnessSystem {
    */
   async shutdown(): Promise<void> {
     console.log(`[Consciousness] Shutting down for user ${this.userId}`);
-    // Trigger final memory consolidation
-    // Save identity state
     this.isInitialized = false;
   }
 }
@@ -333,6 +260,10 @@ class ConsciousnessManager {
       await instance.shutdown();
       this.instances.delete(userId);
     }
+  }
+  
+  getActiveCount(): number {
+    return this.instances.size;
   }
 }
 
