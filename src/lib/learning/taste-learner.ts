@@ -12,9 +12,9 @@ export interface TasteSignal {
   userId: string;
   category: string;
   item: string;
-  action: 'like' | 'dislike' | 'create' | 'use' | 'skip';
-  strength: number;
-  context?: string;
+  sentiment: string; // 'love', 'like', 'neutral', 'dislike', 'hate'
+  intensity: number;
+  context?: any;
   timestamp: Date;
 }
 
@@ -220,7 +220,7 @@ export class TasteLearner {
   /**
    * Infer complexity preference
    */
-  private inferComplexityPreference(signals: TasteSignal[]): 'simple' | 'moderate' | 'complex' {
+  private inferComplexityPreference(signals: any[]): 'simple' | 'moderate' | 'complex' {
     // Simple heuristic based on item names (could be more sophisticated)
     const complexItems = signals.filter(s => 
       s.item.toLowerCase().includes('advanced') || 
