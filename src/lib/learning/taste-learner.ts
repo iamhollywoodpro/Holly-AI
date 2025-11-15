@@ -44,7 +44,7 @@ export class TasteLearner {
   }
 
   /**
-   * Record a taste signal
+   * Record a taste signal - FIXED: Uses correct schema (sentiment/intensity)
    */
   async recordSignal(signal: {
     category: string;
@@ -52,23 +52,25 @@ export class TasteLearner {
     action: 'like' | 'dislike' | 'create' | 'use' | 'skip';
     context?: string;
   }): Promise<void> {
-    // Determine strength based on action
-    const strengthMap = {
-      like: 1.0,
-      create: 0.9,
-      use: 0.7,
-      skip: -0.3,
-      dislike: -1.0
+    // Map action to sentiment and intensity
+    const sentimentMap: Record<string, { sentiment: string; intensity: number }> = {
+      like: { sentiment: 'like', intensity: 1.0 },
+      create: { sentiment: 'love', intensity: 0.9 },
+      use: { sentiment: 'like', intensity: 0.7 },
+      skip: { sentiment: 'neutral', intensity: 0.3 },
+      dislike: { sentiment: 'dislike', intensity: 0.8 }
     };
+
+    const mapping = sentimentMap[signal.action];
 
     await this.db.tasteSignal.create({
       data: {
         userId: this.userId,
         category: signal.category,
         item: signal.item,
-        action: signal.action,
-        strength: strengthMap[signal.action],
-        context: signal.context || null,
+        sentiment: mapping.sentiment,
+        intensity: mapping.intensity,
+        context: signal.context ? { raw: signal.context } : null,
       }
     });
 
@@ -125,7 +127,9 @@ export class TasteLearner {
       }
       const itemMap = categoryMap.get(signal.category)!;
       const currentScore = itemMap.get(signal.item) || 0;
-      itemMap.set(signal.item, currentScore + signal.strength);
+      // Convert sentiment to score
+      const sentimentScore = signal.sentiment === 'love' ? 2 : signal.sentiment === 'like' ? 1 : signal.sentiment === 'dislike' ? -1 : 0;
+      itemMap.set(signal.item, currentScore + (sentimentScore * signal.intensity));
     }
 
     // Extract top preferences per category
@@ -189,22 +193,27 @@ export class TasteLearner {
 
     if (signals.length === 0) return 0.5; // Neutral
 
-    const totalStrength = signals.reduce((sum, s) => sum + s.strength, 0);
-    const avgStrength = totalStrength / signals.length;
+    // Convert sentiment to numeric score
+    const totalScore = signals.reduce((sum, s) => {
+      const sentimentScore = s.sentiment === 'love' ? 2 : s.sentiment === 'like' ? 1 : s.sentiment === 'dislike' ? -1 : 0;
+      return sum + (sentimentScore * s.intensity);
+    }, 0);
+    const avgScore = totalScore / signals.length;
 
     // Normalize to 0-1 range
-    return Math.max(0, Math.min(1, (avgStrength + 1) / 2));
+    return Math.max(0, Math.min(1, (avgScore + 2) / 4));
   }
 
   /**
    * Infer work style from signals
    */
-  private inferWorkStyle(signals: TasteSignal[]): string {
-    const createCount = signals.filter(s => s.action === 'create').length;
-    const useCount = signals.filter(s => s.action === 'use').length;
+  private inferWorkStyle(signals: any[]): string {
+    // Simplified - use sentiment intensity patterns
+    const highIntensity = signals.filter(s => s.intensity > 0.8).length;
+    const lowIntensity = signals.filter(s => s.intensity < 0.5).length;
 
-    if (createCount > useCount * 1.5) return 'creative';
-    if (useCount > createCount * 1.5) return 'practical';
+    if (highIntensity > lowIntensity * 1.5) return 'creative';
+    if (lowIntensity > highIntensity * 1.5) return 'practical';
     return 'balanced';
   }
 
