@@ -40,10 +40,10 @@ export class ConsciousnessSystem {
     // Load configuration from environment with defaults
     this.config = {
       userId,
-      enableMemoryStream: process.env.ENABLE_MEMORY_STREAM === 'true' ?? true,
-      enableAutonomousGoals: process.env.ENABLE_AUTONOMOUS_GOALS === 'true' ?? true,
-      enablePersonalityEvolution: process.env.ENABLE_PERSONALITY_EVOLUTION === 'true' ?? true,
-      enableEmotionalImpact: process.env.ENABLE_EMOTIONAL_IMPACT_SCORING === 'true' ?? true,
+      enableMemoryStream: process.env.ENABLE_MEMORY_STREAM === 'true',
+      enableAutonomousGoals: process.env.ENABLE_AUTONOMOUS_GOALS === 'true',
+      enablePersonalityEvolution: process.env.ENABLE_PERSONALITY_EVOLUTION === 'true',
+      enableEmotionalImpact: process.env.ENABLE_EMOTIONAL_IMPACT_SCORING === 'true',
       memoryConsolidationThreshold: parseInt(process.env.MEMORY_CONSOLIDATION_THRESHOLD || '100'),
       goalPatternDetectionMinOccurrences: parseInt(process.env.GOAL_PATTERN_DETECTION_MIN_OCCURRENCES || '3'),
       personalityLearningRate: parseFloat(process.env.PERSONALITY_TRAIT_LEARNING_RATE || '0.1'),
