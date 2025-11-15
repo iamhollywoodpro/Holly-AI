@@ -45,19 +45,18 @@ export async function POST(req: NextRequest) {
     // Get patterns
     const patterns = await contextual.detectPatterns();
     
-    // Get suggestions with current context
+    // Get suggestions with correct parameters
     const suggestions = await contextual.getSuggestions({
-      projectId,
-      currentTechnologies: context.technologies,
-      currentPhase: context.status
+      projectType: context.projectType,
+      technologies: context.technologies
     });
 
     return NextResponse.json({
       success: true,
       context: {
         ...context,
-        patterns: patterns.slice(0, 5), // Top 5 patterns
-        suggestions: suggestions.slice(0, 10) // Top 10 suggestions
+        patterns: patterns.slice(0, 5),
+        suggestions: suggestions.slice(0, 10)
       }
     });
   } catch (error) {
