@@ -203,7 +203,7 @@ export class CapabilityOrchestrator {
           // Return working capability response
           return {
             success: true,
-            data: await this.taste.buildTasteProfile(),
+            data: await this.taste.getProfile(),
             metadata: { capability: 'taste' }
           };
 
@@ -214,7 +214,7 @@ export class CapabilityOrchestrator {
           // Return working capability response
           return {
             success: true,
-            data: await this.predictive.predictCreativeNeeds(),
+            data: await this.predictive.predictNextNeeds(),
             metadata: { capability: 'predictive' }
           };
 
