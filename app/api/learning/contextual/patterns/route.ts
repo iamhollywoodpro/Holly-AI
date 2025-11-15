@@ -1,81 +1,32 @@
-// Contextual Intelligence - Patterns Analysis API
-// Analyzes patterns in project activities
-
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@clerk/nextjs/server';
 import { ContextualIntelligence } from '@/lib/learning/contextual-intelligence';
 
-export async function POST(req: NextRequest) {
-  try {
-    const user = await currentUser();
-  const userId = user?.id;
-    
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'Unauthorized - Please sign in' },
-        { status: 401 }
-      );
-    }
-
-    const body = await req.json();
-    const { projectId } = body;
-
-    if (!projectId) {
-      return NextResponse.json(
-        { error: 'Missing required field: projectId' },
-        { status: 400 }
-      );
-    }
-
-    const contextual = new ContextualIntelligence(userId);
-    const patterns = await contextual.analyzePatterns(projectId);
-
-    return NextResponse.json({ 
-      success: true,
-      patterns
-    });
-  } catch (error: any) {
-    console.error('Analyze patterns error:', error);
-    return NextResponse.json(
-      { error: error.message || 'Failed to analyze patterns' },
-      { status: 500 }
-    );
-  }
-}
-
 export async function GET(req: NextRequest) {
   try {
     const user = await currentUser();
-  const userId = user?.id;
-    
+    const userId = user?.id;
+
     if (!userId) {
       return NextResponse.json(
-        { error: 'Unauthorized - Please sign in' },
+        { success: false, error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    const { searchParams } = new URL(req.url);
-    const projectId = searchParams.get('projectId');
-
-    if (!projectId) {
-      return NextResponse.json(
-        { error: 'Missing required parameter: projectId' },
-        { status: 400 }
-      );
-    }
-
     const contextual = new ContextualIntelligence(userId);
-    const patterns = await contextual.analyzePatterns(projectId);
+    const patterns = await contextual.detectPatterns();
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       success: true,
-      patterns
+      patterns: patterns.slice(0, 20) // Top 20 patterns
     });
-  } catch (error: any) {
-    console.error('Get patterns error:', error);
+  } catch (error) {
     return NextResponse.json(
-      { error: error.message || 'Failed to get patterns' },
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Internal server error'
+      },
       { status: 500 }
     );
   }
