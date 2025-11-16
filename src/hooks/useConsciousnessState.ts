@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useUser } from '@clerk/nextjs';
 
 export interface ConsciousnessState {
   emotion: string;
@@ -19,9 +20,11 @@ interface UseConsciousnessStateOptions {
 /**
  * Hook to fetch and manage HOLLY's real-time consciousness state
  * Fetches data from consciousness APIs and updates periodically
+ * Only fetches when user is authenticated
  */
 export function useConsciousnessState(options: UseConsciousnessStateOptions = {}) {
   const { refreshInterval = 30000, enabled = true } = options; // Default: 30 seconds
+  const { isSignedIn, isLoaded } = useUser(); // Check authentication status
   
   const [state, setState] = useState<ConsciousnessState>({
     emotion: 'curious',
@@ -37,6 +40,12 @@ export function useConsciousnessState(options: UseConsciousnessStateOptions = {}
 
   // Fetch real consciousness state from APIs
   const fetchConsciousnessState = useCallback(async () => {
+    // Don't fetch if user is not signed in
+    if (!isSignedIn) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -95,22 +104,24 @@ export function useConsciousnessState(options: UseConsciousnessStateOptions = {}
       setError(err instanceof Error ? err.message : 'Unknown error');
       setLoading(false);
     }
-  }, []);
+  }, [isSignedIn]);
 
-  // Initial fetch
+  // Initial fetch - only when user is loaded and signed in
   useEffect(() => {
-    if (enabled) {
+    if (enabled && isLoaded && isSignedIn) {
       fetchConsciousnessState();
+    } else if (isLoaded && !isSignedIn) {
+      setLoading(false);
     }
-  }, [enabled, fetchConsciousnessState]);
+  }, [enabled, isLoaded, isSignedIn, fetchConsciousnessState]);
 
-  // Set up periodic refresh
+  // Set up periodic refresh - only if user is signed in
   useEffect(() => {
-    if (!enabled || !refreshInterval) return;
+    if (!enabled || !refreshInterval || !isSignedIn) return;
 
     const interval = setInterval(fetchConsciousnessState, refreshInterval);
     return () => clearInterval(interval);
-  }, [enabled, refreshInterval, fetchConsciousnessState]);
+  }, [enabled, refreshInterval, isSignedIn, fetchConsciousnessState]);
 
   return {
     state,

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageSquare, Plus, Trash2, Calendar, Clock } from 'lucide-react';
+import { useUser } from '@clerk/nextjs';
 
 interface Conversation {
   id: string;
@@ -24,16 +25,23 @@ export default function ChatHistory({
   onSelectConversation,
   onNewConversation
 }: ChatHistoryProps) {
+  const { isSignedIn, isLoaded } = useUser();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  // Load conversations on mount
+  // Load conversations only when user is authenticated
   useEffect(() => {
-    loadConversations();
-  }, []);
+    if (isLoaded && isSignedIn) {
+      loadConversations();
+    } else if (isLoaded && !isSignedIn) {
+      setLoading(false);
+    }
+  }, [isLoaded, isSignedIn]);
 
   const loadConversations = async () => {
+    if (!isSignedIn) return;
+    
     try {
       setLoading(true);
       const response = await fetch('/api/conversations');
