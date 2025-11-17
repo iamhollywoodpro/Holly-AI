@@ -41,6 +41,7 @@ export default function ChatPage() {
   const [showFilePreview, setShowFilePreview] = useState(false);
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
+  const [lastInputWasVoice, setLastInputWasVoice] = useState(false);
 
   // Fetch real consciousness state
   const { state: consciousnessState, refresh: refreshConsciousness } = useConsciousnessState({
@@ -140,8 +141,11 @@ export default function ChatPage() {
     }
   };
 
-  const handleSend = async (message: string) => {
+  const handleSend = async (message: string, fromVoice: boolean = false) => {
     if (!message.trim() || isTyping) return;
+    
+    // Track if this is from voice (will be reset after response)
+    const shouldAutoSpeak = fromVoice || lastInputWasVoice;
 
     // Ensure conversation exists before sending message
     let conversationId = currentConversationId;
@@ -257,6 +261,27 @@ export default function ChatPage() {
 
       // Refresh consciousness state after interaction
       refreshConsciousness();
+
+      // Auto-speak response if user used voice input
+      if (shouldAutoSpeak && accumulatedContent) {
+        const voiceOutput = voiceOutputRef.current;
+        setTimeout(() => {
+          voiceOutput.speak(accumulatedContent, {
+            provider: 'elevenlabs',
+            elevenLabsVoiceId: 'charlotte',
+            volume: 0.9,
+            onStart: () => setIsVoiceOutputActive(true),
+            onEnd: () => setIsVoiceOutputActive(false),
+            onError: (error) => {
+              console.error('Voice output error:', error);
+              setIsVoiceOutputActive(false);
+            }
+          });
+        }, 500);
+      }
+      
+      // Reset voice input flag
+      setLastInputWasVoice(false);
 
       setIsTyping(false);
     } catch (error) {
@@ -397,7 +422,7 @@ export default function ChatPage() {
       voiceInput.start(
         (transcript) => {
           // Voice recognized - send as message
-          handleSend(transcript);
+          handleSend(transcript, true); // Pass true to indicate voice input
           setIsVoiceInputActive(false);
         },
         (error) => {
