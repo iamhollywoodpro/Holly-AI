@@ -95,9 +95,9 @@ export async function generateHollyResponse(
       ...messages
     ];
 
-    // Use DeepSeek V3 - Best FREE model (90% of Claude quality)
+    // Use Llama 3.3 70B - High performance production model
     const completion = await groq.chat.completions.create({
-      model: 'deepseek-chat',
+      model: 'llama-3.3-70b-versatile',
       messages: messagesWithPersonality.map(m => ({ 
         role: m.role as 'system' | 'user' | 'assistant', 
         content: m.content 
@@ -121,7 +121,7 @@ export async function generateHollyResponse(
       
       // Follow-up response with personality
       const followUp = await groq.chat.completions.create({
-        model: 'deepseek-chat',
+        model: 'llama-3.3-70b-versatile',
         messages: [
           { role: 'system', content: hollySystemPrompt },
           ...messages,
@@ -134,13 +134,13 @@ export async function generateHollyResponse(
 
       return { 
         content: followUp.choices[0]?.message?.content || 'Done!',
-        model: 'deepseek-v3'
+        model: 'llama-3.3-70b'
       };
     }
 
     return { 
       content: message.content || 'Error generating response',
-      model: 'deepseek-v3'
+      model: 'llama-3.3-70b'
     };
   } catch (error: any) {
     console.error('DeepSeek error:', error);
