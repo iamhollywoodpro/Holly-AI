@@ -92,12 +92,18 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    const { title } = await request.json();
+    const { title, firstMessage } = await request.json();
+
+    // Generate title from first message if not provided
+    let conversationTitle = title || 'New Conversation';
+    if (!title && firstMessage) {
+      conversationTitle = generateTitleFromMessage(firstMessage);
+    }
 
     const conversation = await prisma.conversation.create({
       data: {
         userId: user.id,
-        title: title || 'New Conversation',
+        title: conversationTitle,
         messageCount: 0,
       },
     });
@@ -111,6 +117,27 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+/**
+ * Generate a conversation title from the first message
+ */
+function generateTitleFromMessage(message: string): string {
+  // Clean the message
+  let cleaned = message.trim();
+  
+  // Remove markdown
+  cleaned = cleaned.replace(/[*_`#]/g, '');
+  
+  // Take first 50 characters
+  if (cleaned.length > 50) {
+    cleaned = cleaned.substring(0, 47) + '...';
+  }
+  
+  // Capitalize first letter
+  cleaned = cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+  
+  return cleaned || 'New Conversation';
 }
 
 /**

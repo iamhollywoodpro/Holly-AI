@@ -138,9 +138,7 @@ export class EnhancedVoiceOutput {
         },
         body: JSON.stringify({
           text,
-          voiceId: options.elevenLabsVoiceId || 'EXAVITQu4vr4xnSDxMaL', // Default: Bella (feminine, warm)
-          stability: 0.5,
-          similarityBoost: 0.75,
+          voice: options.voice || 'charlotte', // Default: Charlotte (natural, conversational)
         }),
       });
 

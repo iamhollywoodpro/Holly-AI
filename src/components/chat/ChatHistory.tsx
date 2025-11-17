@@ -85,20 +85,36 @@ export default function ChatHistory({
 
   // Group conversations by date
   const groupedConversations = conversations.reduce((acc, conv) => {
-    const date = new Date(conv.updated_at);
-    const now = new Date();
-    const diffTime = Math.abs(now.getTime() - date.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    try {
+      const date = new Date(conv.updated_at);
+      
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        // Put invalid dates in "Older" group
+        if (!acc['Older']) acc['Older'] = [];
+        acc['Older'].push(conv);
+        return acc;
+      }
+      
+      const now = new Date();
+      const diffTime = Math.abs(now.getTime() - date.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-    let group = 'Older';
-    if (diffDays === 0) group = 'Today';
-    else if (diffDays === 1) group = 'Yesterday';
-    else if (diffDays <= 7) group = 'Last 7 Days';
-    else if (diffDays <= 30) group = 'Last 30 Days';
+      let group = 'Older';
+      if (diffDays === 0) group = 'Today';
+      else if (diffDays === 1) group = 'Yesterday';
+      else if (diffDays <= 7) group = 'Last 7 Days';
+      else if (diffDays <= 30) group = 'Last 30 Days';
 
-    if (!acc[group]) acc[group] = [];
-    acc[group].push(conv);
-    return acc;
+      if (!acc[group]) acc[group] = [];
+      acc[group].push(conv);
+      return acc;
+    } catch (error) {
+      // On error, put in "Older" group
+      if (!acc['Older']) acc['Older'] = [];
+      acc['Older'].push(conv);
+      return acc;
+    }
   }, {} as Record<string, Conversation[]>);
 
   const groupOrder = ['Today', 'Yesterday', 'Last 7 Days', 'Last 30 Days', 'Older'];
@@ -211,17 +227,27 @@ export default function ChatHistory({
 
 // Helper function to format time
 function formatTime(dateString: string): string {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diff = now.getTime() - date.getTime();
-  const minutes = Math.floor(diff / 60000);
-  const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
+  try {
+    const date = new Date(dateString);
+    
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      return 'Recently';
+    }
+    
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
 
-  if (minutes < 1) return 'Just now';
-  if (minutes < 60) return `${minutes}m ago`;
-  if (hours < 24) return `${hours}h ago`;
-  if (days < 7) return `${days}d ago`;
-  
-  return date.toLocaleDateString();
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes}m ago`;
+    if (hours < 24) return `${hours}h ago`;
+    if (days < 7) return `${days}d ago`;
+    
+    return date.toLocaleDateString();
+  } catch (error) {
+    return 'Recently';
+  }
 }

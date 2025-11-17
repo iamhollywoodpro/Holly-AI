@@ -9,13 +9,14 @@ const elevenlabs = new ElevenLabsClient({
 const HOLLY_VOICES = {
   rachel: 'EXAVITQu4vr4xnSDxMaL',  // Professional, warm (RECOMMENDED)
   bella: '21m00Tcm4TlvDq8ikWAM',   // Young, friendly
-  elli: 'MF3mGyEYCl7XYWbV9V6O',    // Energetic, engaging
+  elli: 'MF3mGyEYCl7XYWbV9V6O',    // Energetic, engaging  
   grace: 'oWAxZDx7w5VEj9dCyTzz',   // Calm, soothing
+  charlotte: 'XB0fDUnXU5powFXDhCwa', // Natural, conversational (NEW - BEST FOR HOLLY)
 };
 
 export async function POST(req: NextRequest) {
   try {
-    const { text, voice = 'rachel' } = await req.json();
+    const { text, voice = 'charlotte' } = await req.json();
 
     console.log('🎤 [TTS API] Request:', { textLength: text?.length, voice });
 
@@ -38,17 +39,17 @@ export async function POST(req: NextRequest) {
 
     console.log('✅ [TTS API] API key found, length:', process.env.ELEVENLABS_API_KEY.length);
 
-    // Get voice ID
-    const voiceId = HOLLY_VOICES[voice as keyof typeof HOLLY_VOICES] || HOLLY_VOICES.rachel;
+    // Get voice ID (default to Charlotte for most natural sound)
+    const voiceId = HOLLY_VOICES[voice as keyof typeof HOLLY_VOICES] || HOLLY_VOICES.charlotte;
 
     console.log(`🎤 [TTS API] Generating speech with ${voice} voice (ID: ${voiceId})`);
     console.log(`  → Text: "${text.substring(0, 100)}${text.length > 100 ? '...' : ''}"`);
 
-    // Generate audio
+    // Generate audio with enhanced settings for more human-like voice
     const audio = await elevenlabs.generate({
       voice: voiceId,
       text: text,
-      model_id: 'eleven_monolingual_v1', // Optimized for English
+      model_id: 'eleven_turbo_v2', // Latest model for more natural, human-like speech
     });
 
     console.log('✅ [TTS API] Audio stream received from ElevenLabs');
@@ -83,11 +84,12 @@ export async function POST(req: NextRequest) {
 export async function GET() {
   return NextResponse.json({
     voices: [
-      { id: 'rachel', name: 'Rachel', description: 'Professional, warm (RECOMMENDED)' },
+      { id: 'charlotte', name: 'Charlotte', description: 'Natural, conversational (RECOMMENDED)' },
+      { id: 'rachel', name: 'Rachel', description: 'Professional, warm' },
       { id: 'bella', name: 'Bella', description: 'Young, friendly' },
       { id: 'elli', name: 'Elli', description: 'Energetic, engaging' },
       { id: 'grace', name: 'Grace', description: 'Calm, soothing' },
     ],
-    default: 'rachel'
+    default: 'charlotte'
   });
 }
