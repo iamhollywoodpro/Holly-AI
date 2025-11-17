@@ -97,7 +97,7 @@ export async function generateHollyResponse(
 
     // Use DeepSeek V3 - Best FREE model (90% of Claude quality)
     const completion = await groq.chat.completions.create({
-      model: 'deepseek-r1-distill-llama-70b',
+      model: 'deepseek-chat',
       messages: messagesWithPersonality.map(m => ({ 
         role: m.role as 'system' | 'user' | 'assistant', 
         content: m.content 
@@ -121,7 +121,7 @@ export async function generateHollyResponse(
       
       // Follow-up response with personality
       const followUp = await groq.chat.completions.create({
-        model: 'deepseek-r1-distill-llama-70b',
+        model: 'deepseek-chat',
         messages: [
           { role: 'system', content: hollySystemPrompt },
           ...messages,
