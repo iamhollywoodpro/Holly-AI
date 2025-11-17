@@ -81,13 +81,16 @@ export default function ChatPage() {
   };
 
   // Create new conversation
-  const createNewConversation = async () => {
+  const createNewConversation = async (firstMessage?: string) => {
     try {
       console.log('[Chat] Creating new conversation for user:', user?.id || 'none');
       const response = await fetch('/api/conversations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: 'New Conversation' })
+        body: JSON.stringify({ 
+          title: firstMessage ? undefined : 'New Conversation',
+          firstMessage: firstMessage
+        })
       });
       
       const data = await response.json();
@@ -144,7 +147,7 @@ export default function ChatPage() {
     let conversationId = currentConversationId;
     if (!conversationId) {
       console.log('[Chat] No conversation found, creating one...');
-      conversationId = await createNewConversation();
+      conversationId = await createNewConversation(message);
       if (!conversationId) {
         console.error('[Chat] Failed to create conversation, cannot send message');
         return;
@@ -421,6 +424,9 @@ export default function ChatPage() {
       // Wait a bit for message to render, then speak
       setTimeout(() => {
         voiceOutput.speak(lastMessage.content, {
+          provider: 'elevenlabs',
+          elevenLabsVoiceId: 'charlotte',
+          volume: 0.9,
           onStart: () => setIsVoiceOutputActive(true),
           onEnd: () => setIsVoiceOutputActive(false),
           onError: (error) => {
