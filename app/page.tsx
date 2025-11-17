@@ -411,32 +411,8 @@ export default function ChatPage() {
     }
   };
 
-  // Auto-speak HOLLY's responses
-  useEffect(() => {
-    if (!isSpeechSynthesisAvailable()) return;
-
-    const lastMessage = messages[messages.length - 1];
-    
-    // Only speak HOLLY's messages (assistant role)
-    if (lastMessage && lastMessage.role === 'assistant' && lastMessage.content && !lastMessage.thinking) {
-      const voiceOutput = voiceOutputRef.current;
-      
-      // Wait a bit for message to render, then speak
-      setTimeout(() => {
-        voiceOutput.speak(lastMessage.content, {
-          provider: 'elevenlabs',
-          elevenLabsVoiceId: 'charlotte',
-          volume: 0.9,
-          onStart: () => setIsVoiceOutputActive(true),
-          onEnd: () => setIsVoiceOutputActive(false),
-          onError: (error) => {
-            console.error('Voice output error:', error);
-            setIsVoiceOutputActive(false);
-          }
-        });
-      }, 500);
-    }
-  }, [messages]);
+  // Voice output is now ONLY triggered by clicking speaker icon in MessageBubble
+  // No automatic speaking
 
   // Register keyboard shortcuts (after all functions are declared)
   useKeyboardShortcuts([
