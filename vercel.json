@@ -1,4 +1,5 @@
 {
   "buildCommand": "prisma generate && next build",
-  "installCommand": "npm install"
+  "installCommand": "rm -rf node_modules && rm -f package-lock.json && npm install",
+  "framework": "nextjs"
 }
