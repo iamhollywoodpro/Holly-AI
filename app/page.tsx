@@ -61,11 +61,25 @@ export default function ChatPage() {
     scrollToBottom();
   }, [messages]);
 
-  // Create initial conversation on mount
+  // Don't auto-create conversations - wait for user to send first message
+  // This prevents empty "New Conversation" entries from cluttering the sidebar
+  
+  // Clean up empty conversations on mount
   useEffect(() => {
-    if (user && !currentConversationId) {
-      createNewConversation();
-    }
+    const cleanupEmptyConversations = async () => {
+      if (!user) return;
+      
+      try {
+        // Call cleanup endpoint to remove empty conversations
+        await fetch('/api/conversations/cleanup', {
+          method: 'POST'
+        });
+      } catch (error) {
+        console.error('Failed to cleanup empty conversations:', error);
+      }
+    };
+    
+    cleanupEmptyConversations();
   }, [user]);
 
   // Save message to database
