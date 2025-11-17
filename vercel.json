@@ -1,5 +1,5 @@
 {
-  "buildCommand": "prisma generate && next build",
+  "buildCommand": "export PATH=$PATH:./node_modules/.bin && prisma generate && next build",
   "installCommand": "rm -rf node_modules && rm -f package-lock.json && npm install",
   "framework": "nextjs"
 }
