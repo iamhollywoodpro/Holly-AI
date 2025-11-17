@@ -460,6 +460,7 @@ export default function ChatPage() {
               className="hidden md:block w-80 border-r border-gray-800/50"
             >
               <ChatHistory
+                key={currentConversationId || 'no-conversation'}
                 currentConversationId={currentConversationId || undefined}
                 onSelectConversation={loadConversation}
                 onNewConversation={createNewConversation}
