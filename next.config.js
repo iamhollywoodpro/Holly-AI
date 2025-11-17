@@ -1,4 +1,5 @@
 /** @type {import('next').NextConfig} */
+// Force rebuild to clear cache
 const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ['@xenova/transformers', 'onnxruntime-node']
