@@ -16,6 +16,7 @@ export class EnhancedVoiceOutput {
   private synthesis: SpeechSynthesis | null = null;
   private currentUtterance: SpeechSynthesisUtterance | null = null;
   private elevenLabsApiKey: string | null = null;
+  private currentAudio: HTMLAudioElement | null = null;
 
   constructor() {
     if (typeof window !== 'undefined') {
@@ -154,14 +155,17 @@ export class EnhancedVoiceOutput {
       return new Promise((resolve, reject) => {
         const audio = new Audio(audioUrl);
         audio.volume = options.volume || 0.9;
+        this.currentAudio = audio; // Track current audio
         
         audio.onended = () => {
           URL.revokeObjectURL(audioUrl);
+          this.currentAudio = null;
           resolve();
         };
         
         audio.onerror = (error) => {
           URL.revokeObjectURL(audioUrl);
+          this.currentAudio = null;
           reject(error);
         };
 
@@ -225,20 +229,30 @@ export class EnhancedVoiceOutput {
   }
 
   /**
-   * Stop any ongoing speech
+   * Stop any ongoing speech (both browser and ElevenLabs)
    */
   stop(): void {
+    // Stop browser TTS
     if (this.synthesis) {
       this.synthesis.cancel();
     }
     this.currentUtterance = null;
+    
+    // Stop ElevenLabs audio
+    if (this.currentAudio) {
+      this.currentAudio.pause();
+      this.currentAudio.currentTime = 0;
+      this.currentAudio = null;
+    }
   }
 
   /**
-   * Check if currently speaking
+   * Check if currently speaking (browser or ElevenLabs)
    */
   isSpeaking(): boolean {
-    return this.synthesis?.speaking || false;
+    const browserSpeaking = this.synthesis?.speaking || false;
+    const elevenLabsSpeaking = this.currentAudio && !this.currentAudio.paused;
+    return browserSpeaking || !!elevenLabsSpeaking;
   }
 
   /**

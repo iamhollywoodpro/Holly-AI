@@ -37,11 +37,12 @@ interface VoiceSettingsStore extends VoiceSettings {
 const defaultSettings: VoiceSettings = {
   enabled: true,
   autoSpeak: false, // Default OFF - user controls per message
-  provider: 'browser',
-  quality: 'standard',
+  provider: 'elevenlabs', // USE ELEVENLABS FOR NATURAL VOICE
+  quality: 'premium',
   rate: 1.0,
   pitch: 1.1, // Slightly higher pitch for feminine voice
   volume: 0.9,
+  elevenLabsVoiceId: 'charlotte', // Natural, conversational voice
 };
 
 export const useVoiceSettings = create<VoiceSettingsStore>()(
