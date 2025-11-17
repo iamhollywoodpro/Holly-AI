@@ -31,7 +31,7 @@ export default function Page() {
               socialButtonsVariant: 'blockButton',
             }
           }}
-          redirectUrl="/"
+          fallbackRedirectUrl="/"
           signInUrl="/sign-in"
         />
       </div>
