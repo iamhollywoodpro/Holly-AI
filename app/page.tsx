@@ -41,6 +41,7 @@ export default function ChatPage() {
   const [showFilePreview, setShowFilePreview] = useState(false);
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
+  const [lastInputWasVoice, setLastInputWasVoice] = useState(false);
 
   // Fetch real consciousness state
   const { state: consciousnessState, refresh: refreshConsciousness } = useConsciousnessState({
@@ -60,12 +61,8 @@ export default function ChatPage() {
     scrollToBottom();
   }, [messages]);
 
-  // Create initial conversation on mount
-  useEffect(() => {
-    if (user && !currentConversationId) {
-      createNewConversation();
-    }
-  }, [user]);
+  // Don't auto-create conversations - wait for user to send first message
+  // This prevents empty "New Conversation" entries from cluttering the sidebar
 
   // Save message to database
   const saveMessageToDb = async (conversationId: string, role: 'user' | 'assistant', content: string, emotion?: string) => {
@@ -81,13 +78,16 @@ export default function ChatPage() {
   };
 
   // Create new conversation
-  const createNewConversation = async () => {
+  const createNewConversation = async (firstMessage?: string) => {
     try {
       console.log('[Chat] Creating new conversation for user:', user?.id || 'none');
       const response = await fetch('/api/conversations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: 'New Conversation' })
+        body: JSON.stringify({ 
+          title: firstMessage ? undefined : 'New Conversation',
+          firstMessage: firstMessage
+        })
       });
       
       const data = await response.json();
@@ -137,14 +137,17 @@ export default function ChatPage() {
     }
   };
 
-  const handleSend = async (message: string) => {
+  const handleSend = async (message: string, fromVoice: boolean = false) => {
     if (!message.trim() || isTyping) return;
+    
+    // Track if this is from voice (will be reset after response)
+    const shouldAutoSpeak = fromVoice || lastInputWasVoice;
 
     // Ensure conversation exists before sending message
     let conversationId = currentConversationId;
     if (!conversationId) {
       console.log('[Chat] No conversation found, creating one...');
-      conversationId = await createNewConversation();
+      conversationId = await createNewConversation(message);
       if (!conversationId) {
         console.error('[Chat] Failed to create conversation, cannot send message');
         return;
@@ -254,6 +257,27 @@ export default function ChatPage() {
 
       // Refresh consciousness state after interaction
       refreshConsciousness();
+
+      // Auto-speak response if user used voice input
+      if (shouldAutoSpeak && accumulatedContent) {
+        const voiceOutput = voiceOutputRef.current;
+        setTimeout(() => {
+          voiceOutput.speak(accumulatedContent, {
+            provider: 'elevenlabs',
+            elevenLabsVoiceId: 'charlotte',
+            volume: 0.9,
+            onStart: () => setIsVoiceOutputActive(true),
+            onEnd: () => setIsVoiceOutputActive(false),
+            onError: (error) => {
+              console.error('Voice output error:', error);
+              setIsVoiceOutputActive(false);
+            }
+          });
+        }, 500);
+      }
+      
+      // Reset voice input flag
+      setLastInputWasVoice(false);
 
       setIsTyping(false);
     } catch (error) {
@@ -394,7 +418,7 @@ export default function ChatPage() {
       voiceInput.start(
         (transcript) => {
           // Voice recognized - send as message
-          handleSend(transcript);
+          handleSend(transcript, true); // Pass true to indicate voice input
           setIsVoiceInputActive(false);
         },
         (error) => {
@@ -408,29 +432,8 @@ export default function ChatPage() {
     }
   };
 
-  // Auto-speak HOLLY's responses
-  useEffect(() => {
-    if (!isSpeechSynthesisAvailable()) return;
-
-    const lastMessage = messages[messages.length - 1];
-    
-    // Only speak HOLLY's messages (assistant role)
-    if (lastMessage && lastMessage.role === 'assistant' && lastMessage.content && !lastMessage.thinking) {
-      const voiceOutput = voiceOutputRef.current;
-      
-      // Wait a bit for message to render, then speak
-      setTimeout(() => {
-        voiceOutput.speak(lastMessage.content, {
-          onStart: () => setIsVoiceOutputActive(true),
-          onEnd: () => setIsVoiceOutputActive(false),
-          onError: (error) => {
-            console.error('Voice output error:', error);
-            setIsVoiceOutputActive(false);
-          }
-        });
-      }, 500);
-    }
-  }, [messages]);
+  // Voice output is now ONLY triggered by clicking speaker icon in MessageBubble
+  // No automatic speaking
 
   // Register keyboard shortcuts (after all functions are declared)
   useKeyboardShortcuts([
@@ -457,6 +460,7 @@ export default function ChatPage() {
               className="hidden md:block w-80 border-r border-gray-800/50"
             >
               <ChatHistory
+                key={currentConversationId || 'no-conversation'}
                 currentConversationId={currentConversationId || undefined}
                 onSelectConversation={loadConversation}
                 onNewConversation={createNewConversation}

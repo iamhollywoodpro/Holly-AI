@@ -3,6 +3,8 @@
  * Handles both voice input (Speech Recognition) and voice output (Speech Synthesis)
  */
 
+import { EnhancedVoiceOutput } from './enhanced-voice-output';
+
 // Check if Web Speech API is available
 export const isSpeechRecognitionAvailable = (): boolean => {
   return typeof window !== 'undefined' && 
@@ -251,7 +253,7 @@ export class VoiceOutput {
 
 // Singleton instances
 let voiceInputInstance: VoiceInput | null = null;
-let voiceOutputInstance: VoiceOutput | null = null;
+let voiceOutputInstance: EnhancedVoiceOutput | null = null;
 
 export const getVoiceInput = (): VoiceInput => {
   if (!voiceInputInstance) {
@@ -260,9 +262,9 @@ export const getVoiceInput = (): VoiceInput => {
   return voiceInputInstance;
 };
 
-export const getVoiceOutput = (): VoiceOutput => {
+export const getVoiceOutput = (): EnhancedVoiceOutput => {
   if (!voiceOutputInstance) {
-    voiceOutputInstance = new VoiceOutput();
+    voiceOutputInstance = new EnhancedVoiceOutput();
   }
   return voiceOutputInstance;
 };

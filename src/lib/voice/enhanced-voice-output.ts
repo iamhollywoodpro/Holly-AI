@@ -10,6 +10,10 @@ export interface VoiceOutputOptions {
   voice?: string;
   provider?: 'browser' | 'elevenlabs';
   elevenLabsVoiceId?: string;
+  // Callbacks
+  onStart?: () => void;
+  onEnd?: () => void;
+  onError?: (error: any) => void;
 }
 
 export class EnhancedVoiceOutput {
@@ -83,7 +87,9 @@ export class EnhancedVoiceOutput {
   ): Promise<void> {
     return new Promise((resolve, reject) => {
       if (!this.synthesis) {
-        reject(new Error('Speech synthesis not available'));
+        const error = new Error('Speech synthesis not available');
+        if (options.onError) options.onError(error);
+        reject(error);
         return;
       }
 
@@ -107,14 +113,20 @@ export class EnhancedVoiceOutput {
       // Enhanced settings for more natural speech
       utterance.lang = 'en-US';
 
+      utterance.onstart = () => {
+        if (options.onStart) options.onStart();
+      };
+
       utterance.onend = () => {
         this.currentUtterance = null;
+        if (options.onEnd) options.onEnd();
         resolve();
       };
 
       utterance.onerror = (event) => {
         this.currentUtterance = null;
         console.error('Speech synthesis error:', event);
+        if (options.onError) options.onError(event);
         reject(event);
       };
 
@@ -160,19 +172,24 @@ export class EnhancedVoiceOutput {
         audio.onended = () => {
           URL.revokeObjectURL(audioUrl);
           this.currentAudio = null;
+          if (options.onEnd) options.onEnd();
           resolve();
         };
         
         audio.onerror = (error) => {
           URL.revokeObjectURL(audioUrl);
           this.currentAudio = null;
+          if (options.onError) options.onError(error);
           reject(error);
         };
 
-        audio.play().catch(reject);
+        audio.play().then(() => {
+          if (options.onStart) options.onStart();
+        }).catch(reject);
       });
     } catch (error) {
       console.error('ElevenLabs error, falling back to browser TTS:', error);
+      if (options.onError) options.onError(error);
       // Fallback to browser TTS
       return this.speakWithBrowser(text, options);
     }
