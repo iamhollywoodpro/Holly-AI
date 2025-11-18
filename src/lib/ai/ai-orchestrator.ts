@@ -1,8 +1,16 @@
-// HOLLY AI Orchestrator - Using DeepSeek V3 (Best FREE Model)
-// 90% of Claude quality, $0 cost, excellent reasoning
-import Groq from 'groq-sdk';
+// HOLLY AI Orchestrator - Using Google Gemini 2.0 Flash (BEST FREE MODEL)
+// 1M tokens/minute, 200 requests/day, completely FREE, cutting-edge Google AI
+import OpenAI from 'openai';
 import { getHollySystemPrompt } from './holly-system-prompt';
 
+// Google Gemini via OpenAI-compatible endpoint
+const gemini = new OpenAI({
+  apiKey: process.env.GOOGLE_AI_STUDIO_API_KEY || '',
+  baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
+});
+
+// Groq as fallback
+import Groq from 'groq-sdk';
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY || '',
 });
@@ -95,9 +103,10 @@ export async function generateHollyResponse(
       ...messages
     ];
 
-    // Use DeepSeek V3 - Best FREE model (90% of Claude quality)
-    const completion = await groq.chat.completions.create({
-      model: 'deepseek-r1-distill-llama-70b',
+    // Use Google Gemini 2.0 Flash - BEST FREE MODEL
+    // 1M tokens/minute, 200 requests/day, $0 cost forever
+    const completion = await gemini.chat.completions.create({
+      model: 'gemini-2.0-flash-exp',
       messages: messagesWithPersonality.map(m => ({ 
         role: m.role as 'system' | 'user' | 'assistant', 
         content: m.content 
@@ -109,19 +118,19 @@ export async function generateHollyResponse(
     });
 
     const message = completion.choices[0]?.message;
-    if (!message) throw new Error('No response from DeepSeek');
+    if (!message) throw new Error('No response from Gemini');
 
     // Handle tool calls
     if (message.tool_calls && message.tool_calls.length > 0) {
       const toolCall = message.tool_calls[0];
-      console.log(`🔧 HOLLY using tool: ${toolCall.function.name} (DeepSeek V3)`);
+      console.log(`🔧 HOLLY using tool: ${toolCall.function.name} (Gemini 2.0 Flash)`);
       
       const toolInput = JSON.parse(toolCall.function.arguments);
       const toolResult = await executeTool(toolCall.function.name, toolInput, userId);
       
       // Follow-up response with personality
-      const followUp = await groq.chat.completions.create({
-        model: 'deepseek-r1-distill-llama-70b',
+      const followUp = await gemini.chat.completions.create({
+        model: 'gemini-2.0-flash-exp',
         messages: [
           { role: 'system', content: hollySystemPrompt },
           ...messages,
@@ -134,23 +143,23 @@ export async function generateHollyResponse(
 
       return { 
         content: followUp.choices[0]?.message?.content || 'Done!',
-        model: 'deepseek-v3'
+        model: 'gemini-2.0-flash'
       };
     }
 
     return { 
       content: message.content || 'Error generating response',
-      model: 'deepseek-v3'
+      model: 'gemini-2.0-flash'
     };
   } catch (error: any) {
-    console.error('DeepSeek error:', error);
+    console.error('Gemini error:', error);
     
-    // Fallback to Llama 3.3 70B if DeepSeek fails (with personality)
+    // Fallback to Groq Llama 3.1 8B (500K tokens/day free)
     try {
-      console.log('🔄 Falling back to Llama 3.3 70B...');
+      console.log('🔄 Falling back to Groq Llama 3.1 8B...');
       const hollySystemPrompt = getHollySystemPrompt('Hollywood');
       const fallback = await groq.chat.completions.create({
-        model: 'llama-3.3-70b-versatile',
+        model: 'llama-3.1-8b-instant',
         messages: [
           { role: 'system', content: hollySystemPrompt },
           ...messages
@@ -164,7 +173,7 @@ export async function generateHollyResponse(
       
       return { 
         content: fallback.choices[0]?.message?.content || 'Error generating response',
-        model: 'llama-3.3-70b'
+        model: 'llama-3.1-8b'
       };
     } catch (fallbackError: any) {
       return { 
@@ -233,7 +242,7 @@ export async function streamHollyResponse(
     // Return metadata for legacy format
     return {
       content: response.content,
-      model: response.model || 'deepseek-v3',
+      model: response.model || 'gemini-2.0-flash',
       emotion: 'focused',
       tokensUsed: Math.floor(response.content.length / 4),
       responseTime: 1500,
