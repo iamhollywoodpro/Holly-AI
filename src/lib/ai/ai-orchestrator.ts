@@ -122,11 +122,11 @@ export async function generateHollyResponse(
 
     // Handle tool calls
     if (message.tool_calls && message.tool_calls.length > 0) {
-      const toolCall = message.tool_calls[0];
-      console.log(`🔧 HOLLY using tool: ${toolCall.function.name} (Gemini 2.0 Flash)`);
+      const toolCall = message.tool_calls[0] as any;
+      console.log(`🔧 HOLLY using tool: ${toolCall.function?.name || 'unknown'} (Gemini 2.0 Flash)`);
       
-      const toolInput = JSON.parse(toolCall.function.arguments);
-      const toolResult = await executeTool(toolCall.function.name, toolInput, userId);
+      const toolInput = JSON.parse(toolCall.function?.arguments || '{}');
+      const toolResult = await executeTool(toolCall.function?.name || '', toolInput, userId);
       
       // Follow-up response with personality
       const followUp = await gemini.chat.completions.create({
@@ -135,7 +135,7 @@ export async function generateHollyResponse(
           { role: 'system', content: hollySystemPrompt },
           ...messages,
           { role: 'assistant', content: message.content || '' },
-          { role: 'tool', content: JSON.stringify(toolResult), tool_call_id: toolCall.id }
+          { role: 'tool', content: JSON.stringify(toolResult), tool_call_id: toolCall.id || '' }
         ] as any,
         temperature: 0.8,
         max_tokens: 2048,
