@@ -98,6 +98,50 @@ model FileUpload {
   @@map("holly_file_uploads")
 }
 
+model DownloadLink {
+  id              String    @id @default(cuid())
+  userId          String
+  conversationId  String?
+  linkId          String    @unique // Short, shareable ID (e.g., "abc123xyz")
+  fileName        String
+  fileType        String    // 'image', 'audio', 'video', 'document', 'code', 'other'
+  fileSize        Int       // In bytes
+  storagePath     String    // Internal path or URL to actual file
+  mimeType        String
+  
+  // Security & Access Control
+  password        String?   // Hashed password (optional)
+  expiresAt       DateTime? // null = never expires
+  maxDownloads    Int?      // null = unlimited
+  downloadCount   Int       @default(0)
+  isRevoked       Boolean   @default(false)
+  revokedAt       DateTime?
+  
+  // Metadata
+  title           String?   // User-friendly title
+  description     String?   @db.Text
+  tags            String[]  @default([])
+  metadata        Json?     @default("{}") // Flexible metadata (dimensions, duration, etc.)
+  
+  // Work Log Integration
+  generatedBy     String?   // AI model or tool that generated the file
+  generationTime  Int?      // Time taken to generate (ms)
+  
+  // Analytics
+  lastDownloadAt  DateTime?
+  downloadIps     String[]  @default([]) // Track unique IPs (privacy: hash them)
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([userId])
+  @@index([conversationId])
+  @@index([linkId])
+  @@index([expiresAt])
+  @@index([createdAt])
+  @@map("download_links")
+}
+
 // ==================== CONSCIOUSNESS SYSTEM ====================
 
 model HollyExperience {
