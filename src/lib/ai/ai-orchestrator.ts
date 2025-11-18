@@ -5,7 +5,7 @@ import { getHollySystemPrompt } from './holly-system-prompt';
 
 // Google Gemini via OpenAI-compatible endpoint
 const gemini = new OpenAI({
-  apiKey: process.env.GOOGLE_AI_STUDIO_API_KEY || '',
+  apiKey: process.env.GOOGLE_AI_API_KEY || '',
   baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
 });
 
