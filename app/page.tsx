@@ -6,6 +6,7 @@ import { Sparkles, Brain, Target, Menu } from 'lucide-react';
 import ParticleField from '@/components/ui/ParticleField';
 import MessageBubble from '@/components/chat/MessageBubble';
 import ChatInputControls from '@/components/chat/ChatInputControls';
+import { WorkLogFeed } from '@/components/work-log';
 import BrainConsciousnessIndicator from '@/components/consciousness/BrainConsciousnessIndicator';
 import ChatHistory from '@/components/chat/ChatHistory';
 import MemoryTimeline from '@/components/consciousness/MemoryTimeline';
@@ -580,6 +581,16 @@ export default function ChatPage() {
                 )
               ))
             )}
+            
+            {/* Work Log Feed - Real-time activity updates */}
+            {currentConversationId && (
+              <WorkLogFeed 
+                conversationId={currentConversationId}
+                enabled={true}
+                maxLogs={20}
+              />
+            )}
+            
             <div ref={messagesEndRef} />
           </div>
 

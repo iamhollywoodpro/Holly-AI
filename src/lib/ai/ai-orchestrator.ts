@@ -2,6 +2,7 @@
 // 1M tokens/minute, 200 requests/day, completely FREE, cutting-edge Google AI
 import OpenAI from 'openai';
 import { getHollySystemPrompt } from './holly-system-prompt';
+import { logWorking, logSuccess, logError, logInfo } from '@/lib/logging/work-log-service';
 
 // Google Gemini via OpenAI-compatible endpoint
 const gemini = new OpenAI({
@@ -74,7 +75,7 @@ const HOLLY_TOOLS = [
   }
 ];
 
-async function executeTool(toolName: string, toolInput: any, userId: string) {
+async function executeTool(toolName: string, toolInput: any, userId: string, conversationId?: string) {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
   const endpoints: Record<string, string> = {
     generate_music: '/api/music/generate-ultimate',
@@ -82,20 +83,69 @@ async function executeTool(toolName: string, toolInput: any, userId: string) {
     generate_video: '/api/video/generate-ultimate',
   };
 
-  const response = await fetch(`${baseUrl}${endpoints[toolName]}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ...toolInput, userId })
+  // Log tool execution start
+  const toolDisplayNames: Record<string, string> = {
+    generate_music: 'Music Generation',
+    generate_image: 'Image Generation',
+    generate_video: 'Video Generation',
+  };
+  
+  await logWorking(userId, `Starting ${toolDisplayNames[toolName]}`, {
+    conversationId,
+    metadata: { 
+      tool: toolName, 
+      prompt: toolInput.prompt?.substring(0, 100) || 'N/A',
+      model: toolInput.modelPreference || 'auto'
+    }
   });
 
-  return await response.json();
+  try {
+    const response = await fetch(`${baseUrl}${endpoints[toolName]}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...toolInput, userId })
+    });
+
+    const result = await response.json();
+    
+    // Log tool success
+    await logSuccess(userId, `${toolDisplayNames[toolName]} completed`, {
+      conversationId,
+      metadata: { 
+        tool: toolName,
+        status: result.success ? 'success' : 'failed',
+        model: result.modelUsed || toolInput.modelPreference
+      }
+    });
+    
+    return result;
+  } catch (error: any) {
+    // Log tool error
+    await logError(userId, `${toolDisplayNames[toolName]} failed: ${error.message}`, {
+      conversationId,
+      metadata: { tool: toolName, error: error.message }
+    });
+    throw error;
+  }
 }
 
 export async function generateHollyResponse(
   messages: Array<{ role: string; content: string }>,
-  userId: string
+  userId: string,
+  conversationId?: string
 ): Promise<{ content: string; model?: string }> {
+  const startTime = Date.now();
+  
   try {
+    // Log AI request start
+    await logWorking(userId, 'Generating AI response with Gemini 2.0 Flash', {
+      conversationId,
+      metadata: { 
+        model: 'gemini-2.0-flash-exp',
+        messageCount: messages.length
+      }
+    });
+    
     // Add HOLLY's consciousness system prompt as first message
     const hollySystemPrompt = getHollySystemPrompt('Hollywood');
     const messagesWithPersonality = [
@@ -126,7 +176,7 @@ export async function generateHollyResponse(
       console.log(`🔧 HOLLY using tool: ${toolCall.function?.name || 'unknown'} (Gemini 2.0 Flash)`);
       
       const toolInput = JSON.parse(toolCall.function?.arguments || '{}');
-      const toolResult = await executeTool(toolCall.function?.name || '', toolInput, userId);
+      const toolResult = await executeTool(toolCall.function?.name || '', toolInput, userId, conversationId);
       
       // Follow-up response with personality
       const followUp = await gemini.chat.completions.create({
@@ -141,22 +191,61 @@ export async function generateHollyResponse(
         max_tokens: 2048,
       });
 
+      const duration = Date.now() - startTime;
+      const responseContent = followUp.choices[0]?.message?.content || 'Done!';
+      
+      // Log successful tool response
+      await logSuccess(userId, `AI response with tool completed (${duration}ms)`, {
+        conversationId,
+        metadata: { 
+          model: 'gemini-2.0-flash',
+          duration,
+          tokens: Math.floor(responseContent.length / 4),
+          toolUsed: toolCall.function?.name
+        }
+      });
+      
       return { 
-        content: followUp.choices[0]?.message?.content || 'Done!',
+        content: responseContent,
         model: 'gemini-2.0-flash'
       };
     }
 
+    const duration = Date.now() - startTime;
+    const responseContent = message.content || 'Error generating response';
+    
+    // Log successful response
+    await logSuccess(userId, `AI response generated (${duration}ms)`, {
+      conversationId,
+      metadata: { 
+        model: 'gemini-2.0-flash',
+        duration,
+        tokens: Math.floor(responseContent.length / 4)
+      }
+    });
+    
     return { 
-      content: message.content || 'Error generating response',
+      content: responseContent,
       model: 'gemini-2.0-flash'
     };
   } catch (error: any) {
     console.error('Gemini error:', error);
     
+    // Log Gemini failure
+    await logError(userId, `Gemini error: ${error.message}`, {
+      conversationId,
+      metadata: { model: 'gemini-2.0-flash', error: error.message }
+    });
+    
     // Fallback to Groq Llama 3.1 8B (500K tokens/day free)
     try {
       console.log('🔄 Falling back to Groq Llama 3.1 8B...');
+      
+      await logInfo(userId, 'Switching to Groq Llama 3.1 8B fallback', {
+        conversationId,
+        metadata: { model: 'llama-3.1-8b-instant' }
+      });
+      
       const hollySystemPrompt = getHollySystemPrompt('Hollywood');
       const fallback = await groq.chat.completions.create({
         model: 'llama-3.1-8b-instant',
@@ -171,11 +260,28 @@ export async function generateHollyResponse(
         max_tokens: 2048,
       });
       
+      const duration = Date.now() - startTime;
+      const fallbackContent = fallback.choices[0]?.message?.content || 'Error generating response';
+      
+      await logSuccess(userId, `Fallback response generated (${duration}ms)`, {
+        conversationId,
+        metadata: { 
+          model: 'llama-3.1-8b',
+          duration,
+          tokens: Math.floor(fallbackContent.length / 4)
+        }
+      });
+      
       return { 
-        content: fallback.choices[0]?.message?.content || 'Error generating response',
+        content: fallbackContent,
         model: 'llama-3.1-8b'
       };
     } catch (fallbackError: any) {
+      await logError(userId, `All models failed: ${fallbackError.message}`, {
+        conversationId,
+        metadata: { error: fallbackError.message }
+      });
+      
       return { 
         content: `I encountered an error: ${error.message}. Please try again.`,
         model: 'error'
@@ -197,7 +303,7 @@ export async function getHollyResponse(
   ];
   
   // Call new function with dummy userId (old routes don't provide it)
-  return generateHollyResponse(messages, 'legacy');
+  return generateHollyResponse(messages, 'legacy', undefined);
 }
 
 // Streaming version with legacy signature support
@@ -226,7 +332,7 @@ export async function streamHollyResponse(
   }
   
   // Get the response
-  const response = await generateHollyResponse(messages, userId);
+  const response = await generateHollyResponse(messages, userId, undefined);
   
   // If callback provided (legacy streaming), call it with chunks
   if (onChunkCallback) {

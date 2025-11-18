@@ -33,6 +33,7 @@ model User {
   emotionLogs      EmotionLog[]
   tasteSignals     TasteSignal[]
   tasteProfile     TasteProfile?
+  workLogs         WorkLog[]
 
   @@index([clerkId])
   @@index([email])
@@ -52,6 +53,7 @@ model Conversation {
   updatedAt          DateTime @updatedAt
 
   messages Message[]
+  workLogs WorkLog[]
 
   @@index([userId])
   @@index([updatedAt])
@@ -88,7 +90,7 @@ model FileUpload {
   storagePath    String
   publicUrl      String
   mimeType       String?
-  metadata       Json?    @default("{}")  
+  metadata       Json?    @default("{}")
   createdAt      DateTime @default(now())
 
   @@index([userId])
@@ -551,4 +553,59 @@ model UserProfile {
 
   @@index([userId])
   @@map("user_profiles")
+}
+
+// ==================== WORK LOG SYSTEM ====================
+// Tracks HOLLY's activities and progress in real-time
+// Implements 90-day tiered retention: Hot (7d) → Warm (30d) → Cold (90d)
+
+model WorkLog {
+  id             String        @id @default(cuid())
+  userId         String
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversationId String? // Optional - links to specific conversation
+  conversation   Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+
+  // Core log data
+  logType  String // 'ai_response', 'tool_call', 'file_operation', 'error', 'deployment', 'info'
+  status   String // 'working', 'success', 'warning', 'error', 'info'
+  title    String // Brief description (e.g., "Generating image with FLUX")
+  details  String? @db.Text // Full details, stack traces, etc.
+  metadata Json? // Additional structured data (model used, tokens, duration, etc.)
+
+  // Tiered storage management
+  storageStatus    String  @default("hot") // 'hot', 'warm', 'cold', 'archived'
+  compressionLevel Int     @default(0) // 0=none, 1=warm, 2=cold
+  archiveUrl       String? // S3/Blob URL for cold storage
+
+  // Timing
+  timestamp  DateTime  @default(now())
+  expiresAt  DateTime? // For auto-cleanup
+  archivedAt DateTime? // When moved to cold storage
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([conversationId])
+  @@index([timestamp])
+  @@index([storageStatus])
+  @@index([expiresAt])
+  @@index([storageStatus, timestamp]) // Compound index for cleanup queries
+  @@map("work_logs")
+}
+
+// Stats for monitoring log system health
+model WorkLogStats {
+  id               String    @id @default(cuid())
+  totalLogsCreated Int       @default(0)
+  hotStorageCount  Int       @default(0)
+  warmStorageCount Int       @default(0)
+  coldStorageCount Int       @default(0)
+  totalSizeBytes   BigInt    @default(0)
+  lastCleanupRun   DateTime?
+  lastArchivalRun  DateTime?
+  updatedAt        DateTime  @updatedAt
+
+  @@map("work_log_stats")
 }
