@@ -344,7 +344,6 @@ export async function logSuccess(
 export async function logError(
   userId: string,
   title: string,
-  error: Error,
   options?: { conversationId?: string; metadata?: any }
 ) {
   return createWorkLog({
@@ -353,8 +352,59 @@ export async function logError(
     logType: 'error',
     status: 'error',
     title,
-    details: `${error.message}\n\nStack:\n${error.stack}`,
+    details: undefined,
     metadata: options?.metadata,
+  });
+}
+
+/**
+ * Helper: Create an "info" status log
+ */
+export async function logInfo(
+  userId: string,
+  title: string,
+  options?: { conversationId?: string; metadata?: any }
+) {
+  return createWorkLog({
+    userId,
+    conversationId: options?.conversationId,
+    logType: 'info',
+    status: 'info',
+    title,
+    details: undefined,
+    metadata: options?.metadata,
+  });
+}
+
+/**
+ * Update system-wide statistics
+ * Called after cleanup runs
+ */
+export async function updateSystemStats(): Promise<void> {
+  const now = new Date();
+  
+  // Count logs by storage tier
+  const hotCount = await prisma.workLog.count({ where: { storageStatus: 'hot' } });
+  const warmCount = await prisma.workLog.count({ where: { storageStatus: 'warm' } });
+  const coldCount = await prisma.workLog.count({ where: { storageStatus: 'cold' } });
+  
+  // Upsert global stats
+  await prisma.workLogStats.upsert({
+    where: { id: 'global_stats' },
+    create: {
+      id: 'global_stats',
+      totalLogsCreated: hotCount + warmCount + coldCount,
+      lastCleanupRun: now,
+      hotStorageCount: hotCount,
+      warmStorageCount: warmCount,
+      coldStorageCount: coldCount,
+    },
+    update: {
+      lastCleanupRun: now,
+      hotStorageCount: hotCount,
+      warmStorageCount: warmCount,
+      coldStorageCount: coldCount,
+    },
   });
 }
 
@@ -366,7 +416,9 @@ export default {
   getConversationLogs,
   cleanupExpiredLogs,
   getSystemStats,
+  updateSystemStats,
   logWorking,
   logSuccess,
   logError,
+  logInfo,
 };
