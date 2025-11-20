@@ -394,10 +394,17 @@ model Project {
   startDate     DateTime  @default(now())
   targetEndDate DateTime?
   actualEndDate DateTime?
-  progress      Float     @default(0.0)
-  tags          String[]  @default([])
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  progress         Float     @default(0.0)
+  tags             String[]  @default([])
+  category         String?   // 'web', 'mobile', 'ai', 'design', 'other'
+  technologies     String[]  @default([])
+  conversationIds  String[]  @default([])
+  fileUrls         String[]  @default([])
+  color            String    @default("#a855f7")
+  icon             String?
+  visibility       String    @default("private") // 'private', 'shared'
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   milestones       Milestone[]
   activities       ProjectActivity[]
@@ -406,6 +413,8 @@ model Project {
 
   @@index([userId])
   @@index([status])
+  @@index([startDate])
+  @@index([category])
   @@map("projects")
 }
 

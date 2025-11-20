@@ -18,7 +18,7 @@ import FileUploadPreview from '@/components/chat/FileUploadPreview';
 import TypingIndicator from '@/components/chat/TypingIndicator';
 import KeyboardShortcuts from '@/components/ui/KeyboardShortcuts';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
-import { HelpCircle } from 'lucide-react';
+import { HelpCircle, Calendar } from 'lucide-react';
 import GoogleDriveBanner from '@/components/banners/GoogleDriveBanner';
 import OnboardingCheck from '@/components/onboarding/OnboardingCheck';
 import DebugToggle from '@/components/debug/DebugToggle';
@@ -589,6 +589,15 @@ export default function ChatPage() {
 
                 {/* Brain Consciousness Indicator */}
                 <BrainConsciousnessIndicator state={consciousnessState} />
+                
+                {/* Timeline Link */}
+                <a
+                  href="/timeline"
+                  className="p-2 rounded-lg bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700 transition-all"
+                  title="Project Timeline"
+                >
+                  <Calendar className="w-5 h-5" />
+                </a>
                 
                 {/* Debug Toggle */}
                 <DebugToggle />
