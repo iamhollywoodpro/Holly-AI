@@ -12,7 +12,7 @@ import { auth } from '@clerk/nextjs/server';
 import { getRecentLogs } from '@/lib/logging/work-log-service';
 import { registerConnection, unregisterConnection } from '@/lib/logging/connection-manager';
 
-export const runtime = 'edge'; // Use Edge Runtime for better streaming
+export const runtime = 'nodejs'; // Use Edge Runtime for better streaming
 
 export async function GET(request: NextRequest) {
   try {
