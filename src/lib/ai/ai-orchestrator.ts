@@ -141,7 +141,7 @@ export async function generateHollyResponse(
     await logWorking(userId, 'Generating AI response with Gemini 2.0 Flash', {
       conversationId,
       metadata: { 
-        model: 'gemini-2.0-flash-exp',
+        model: 'gemini-2.5-flash',
         messageCount: messages.length
       }
     });
@@ -156,7 +156,7 @@ export async function generateHollyResponse(
     // Use Google Gemini 2.0 Flash - BEST FREE MODEL
     // 1M tokens/minute, 200 requests/day, $0 cost forever
     const completion = await gemini.chat.completions.create({
-      model: 'gemini-2.0-flash-exp',
+      model: 'gemini-2.5-flash',
       messages: messagesWithPersonality.map(m => ({ 
         role: m.role as 'system' | 'user' | 'assistant', 
         content: m.content 
@@ -180,7 +180,7 @@ export async function generateHollyResponse(
       
       // Follow-up response with personality
       const followUp = await gemini.chat.completions.create({
-        model: 'gemini-2.0-flash-exp',
+        model: 'gemini-2.5-flash',
         messages: [
           { role: 'system', content: hollySystemPrompt },
           ...messages,
@@ -198,7 +198,7 @@ export async function generateHollyResponse(
       await logSuccess(userId, `AI response with tool completed (${duration}ms)`, {
         conversationId,
         metadata: { 
-          model: 'gemini-2.0-flash',
+          model: 'gemini-2.5-flash',
           duration,
           tokens: Math.floor(responseContent.length / 4),
           toolUsed: toolCall.function?.name
@@ -207,7 +207,7 @@ export async function generateHollyResponse(
       
       return { 
         content: responseContent,
-        model: 'gemini-2.0-flash'
+        model: 'gemini-2.5-flash'
       };
     }
 
@@ -218,7 +218,7 @@ export async function generateHollyResponse(
     await logSuccess(userId, `AI response generated (${duration}ms)`, {
       conversationId,
       metadata: { 
-        model: 'gemini-2.0-flash',
+        model: 'gemini-2.5-flash',
         duration,
         tokens: Math.floor(responseContent.length / 4)
       }
@@ -226,7 +226,7 @@ export async function generateHollyResponse(
     
     return { 
       content: responseContent,
-      model: 'gemini-2.0-flash'
+      model: 'gemini-2.5-flash'
     };
   } catch (error: any) {
     console.error('Gemini error:', error);
@@ -234,7 +234,7 @@ export async function generateHollyResponse(
     // Log Gemini failure
     await logError(userId, `Gemini error: ${error.message}`, {
       conversationId,
-      metadata: { model: 'gemini-2.0-flash', error: error.message }
+      metadata: { model: 'gemini-2.5-flash', error: error.message }
     });
     
     // Fallback to Groq Llama 3.1 8B (500K tokens/day free)
@@ -348,7 +348,7 @@ export async function streamHollyResponse(
     // Return metadata for legacy format
     return {
       content: response.content,
-      model: response.model || 'gemini-2.0-flash',
+      model: response.model || 'gemini-2.5-flash',
       emotion: 'focused',
       tokensUsed: Math.floor(response.content.length / 4),
       responseTime: 1500,
