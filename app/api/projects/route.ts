@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
       where,
       include: {
         milestones: {
-          orderBy: { targetDate: 'asc' },
+          orderBy: { dueDate: 'asc' },
         },
         activities: {
           orderBy: { timestamp: 'desc' },
