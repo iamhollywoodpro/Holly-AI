@@ -1,4 +1,5 @@
 'use client';
+// HOLLY v2.0.1 - Enhanced Chat Interface
 
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
