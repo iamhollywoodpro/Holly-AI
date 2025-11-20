@@ -21,14 +21,14 @@ export default function OnboardingCheck() {
   }, [isLoaded, user]);
 
   const checkOnboardingStatus = async () => {
-    // Skip if not on home page or already on onboarding
-    if (pathname !== '/' || !pathname) {
+    // Skip if already on onboarding page
+    if (pathname === '/onboarding') {
       setIsChecking(false);
       return;
     }
     
-    // Skip if already on onboarding page
-    if (pathname === '/onboarding') {
+    // Skip if not on home page
+    if (pathname !== '/') {
       setIsChecking(false);
       return;
     }
