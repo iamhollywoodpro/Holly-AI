@@ -22,7 +22,13 @@ export default function OnboardingCheck() {
 
   const checkOnboardingStatus = async () => {
     // Skip if not on home page or already on onboarding
-    if (pathname !== '/' || pathname === '/onboarding') {
+    if (pathname !== '/' || !pathname) {
+      setIsChecking(false);
+      return;
+    }
+    
+    // Skip if already on onboarding page
+    if (pathname === '/onboarding') {
       setIsChecking(false);
       return;
     }
