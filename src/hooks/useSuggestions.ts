@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type { Suggestion } from '@/app/api/suggestions/generate/route';
+import type { Suggestion } from '@/types/suggestions';
 
 interface UseSuggestionsOptions {
   conversationId: string | null;

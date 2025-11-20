@@ -3,7 +3,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Sparkles } from 'lucide-react';
 import { SuggestionCard } from './SuggestionCard';
-import type { Suggestion } from '@/app/api/suggestions/generate/route';
+import type { Suggestion } from '@/types/suggestions';
 
 interface SuggestionsPanelProps {
   suggestions: Suggestion[];

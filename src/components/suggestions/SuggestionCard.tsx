@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import type { Suggestion } from '@/app/api/suggestions/generate/route';
+import type { Suggestion } from '@/types/suggestions';
 
 interface SuggestionCardProps {
   suggestion: Suggestion;

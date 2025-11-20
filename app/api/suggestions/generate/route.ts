@@ -2,18 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/db';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import type { Suggestion } from '@/types/suggestions';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
-
-export interface Suggestion {
-  id: string;
-  type: 'question' | 'action' | 'tool' | 'navigation';
-  text: string;
-  icon: string;
-  action: 'send_message' | 'execute_tool' | 'navigate';
-  payload?: any;
-  relevanceScore: number;
-}
 
 export async function POST(req: NextRequest) {
   try {

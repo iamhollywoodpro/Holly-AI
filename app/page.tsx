@@ -25,7 +25,7 @@ import DebugToggle from '@/components/debug/DebugToggle';
 import DebugPanel from '@/components/debug/DebugPanel';
 import { SuggestionsPanel } from '@/components/suggestions/SuggestionsPanel';
 import { useSuggestions } from '@/hooks/useSuggestions';
-import type { Suggestion } from '@/app/api/suggestions/generate/route';
+import type { Suggestion } from '@/types/suggestions';
 
 interface Message {
   id: string;
