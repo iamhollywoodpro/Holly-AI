@@ -1,7 +1,10 @@
-// Google OAuth2 Callback - Improved Error Handling
+// Google OAuth2 Callback - With User Check
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { auth, clerkClient } from '@clerk/nextjs/server';
+import { PrismaClient } from '@prisma/client';
 import { exchangeCodeForTokens, saveConnection } from '@/lib/google-drive/drive-service';
+
+const prisma = new PrismaClient();
 
 export const runtime = 'nodejs';
 
@@ -47,6 +50,42 @@ export async function GET(req: NextRequest) {
       console.error('[Google Callback] State mismatch:', { state, userId });
       return NextResponse.redirect(
         new URL('/settings/integrations?error=invalid_state', req.url)
+      );
+    }
+    
+    // ✅ ENSURE USER EXISTS IN DATABASE FIRST
+    console.log('[Google Callback] Checking if user exists in database...');
+    try {
+      let user = await prisma.user.findUnique({
+        where: { id: userId }
+      });
+      
+      if (!user) {
+        console.log('[Google Callback] User not found, creating from Clerk data...');
+        
+        // Get user data from Clerk
+        const client = await clerkClient();
+        const clerkUser = await client.users.getUser(userId);
+        
+        // Create user in our database
+        user = await prisma.user.create({
+          data: {
+            id: userId,
+            email: clerkUser.emailAddresses[0]?.emailAddress || '',
+            name: `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() || null,
+            clerkUserId: userId,
+            createdAt: new Date(clerkUser.createdAt),
+          }
+        });
+        
+        console.log('[Google Callback] User created successfully:', user.email);
+      } else {
+        console.log('[Google Callback] User found:', user.email);
+      }
+    } catch (userError: any) {
+      console.error('[Google Callback] User check/creation failed:', userError);
+      return NextResponse.redirect(
+        new URL(`/settings/integrations?error=user_setup_failed: ${encodeURIComponent(userError.message)}`, req.url)
       );
     }
     
@@ -96,5 +135,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(
       new URL(`/settings/integrations?error=unexpected: ${encodeURIComponent(error.message)}`, req.url)
     );
+  } finally {
+    await prisma.$disconnect();
   }
 }
