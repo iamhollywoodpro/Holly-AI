@@ -234,21 +234,66 @@ export function useConversations(userId?: string) {
     setIsLoading(true);
     setError(null);
     try {
+      console.log('[useConversations] Deleting conversation:', conversationId);
       const response = await fetch(`/api/conversations/${conversationId}`, {
         method: 'DELETE',
       });
-      if (!response.ok) throw new Error('Failed to delete conversation');
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('[useConversations] Delete failed:', response.status, errorData);
+        throw new Error(errorData.error || 'Failed to delete conversation');
+      }
+      
+      const data = await response.json();
+      console.log('[useConversations] ✅ Delete successful:', data);
+      
+      // Remove from local state
       setConversations(prev => prev.filter(conv => conv.id !== conversationId));
+      
+      // Clear current conversation if it was deleted
       if (currentConversation?.id === conversationId) {
         setCurrentConversation(null);
         setMessages([]);
       }
     } catch (err) {
+      console.error('[useConversations] Delete error:', err);
       setError(err instanceof Error ? err.message : 'Unknown error');
+      alert(`Failed to delete conversation: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
       setIsLoading(false);
     }
   }, [currentConversation]);
+
+  // Clean up all empty conversations
+  const cleanupEmptyConversations = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      console.log('[useConversations] Cleaning up empty conversations...');
+      const response = await fetch('/api/conversations/cleanup', {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to cleanup conversations');
+      }
+      
+      const data = await response.json();
+      console.log('[useConversations] ✅ Cleanup successful:', data.deleted, 'conversations removed');
+      
+      // Refresh conversations list
+      await fetchConversations();
+      
+      return data.deleted;
+    } catch (err) {
+      console.error('[useConversations] Cleanup error:', err);
+      setError(err instanceof Error ? err.message : 'Unknown error');
+      return 0;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [fetchConversations]);
 
   // Load conversations on mount
   useEffect(() => {
@@ -269,5 +314,6 @@ export function useConversations(userId?: string) {
     generateAndUpdateTitle,
     togglePin,
     deleteConversation,
+    cleanupEmptyConversations,
   };
 }

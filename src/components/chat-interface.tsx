@@ -71,6 +71,7 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
     updateConversationTitle,
     togglePin,
     deleteConversation,
+    cleanupEmptyConversations,
   } = useConversations(userId);
 
   const { statsData, isLoading: statsLoading, refetchStats } = useConversationStats(userId);
@@ -357,6 +358,7 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
         onDeleteConversation={deleteConversation}
         onTogglePin={togglePin}
         onOpenSearch={() => setShowSearch(true)}
+        onCleanupEmpty={cleanupEmptyConversations}
         isLoading={isLoading}
       />
 

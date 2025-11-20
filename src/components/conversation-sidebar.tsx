@@ -22,6 +22,7 @@ interface ConversationSidebarProps {
   onDeleteConversation: (id: string) => void;
   onTogglePin: (id: string) => void;
   onOpenSearch: () => void;
+  onCleanupEmpty?: () => Promise<number>; // Optional cleanup function
   isLoading?: boolean;
 }
 
@@ -33,6 +34,7 @@ export function ConversationSidebar({
   onDeleteConversation,
   onTogglePin,
   onOpenSearch,
+  onCleanupEmpty,
   isLoading = false,
 }: ConversationSidebarProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -207,7 +209,7 @@ export function ConversationSidebar({
       </div>
 
       {/* Search Trigger */}
-      <div className="px-3 py-2 border-b border-gray-200 dark:border-gray-800">
+      <div className="px-3 py-2 border-b border-gray-200 dark:border-gray-800 space-y-2">
         <button
           onClick={onOpenSearch}
           className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
@@ -218,6 +220,27 @@ export function ConversationSidebar({
             ⌘K
           </kbd>
         </button>
+        
+        {/* Cleanup Empty Conversations Button */}
+        {onCleanupEmpty && (
+          <button
+            onClick={async () => {
+              if (confirm('Delete all empty conversations? This cannot be undone.')) {
+                const deleted = await onCleanupEmpty();
+                if (deleted > 0) {
+                  alert(`Successfully deleted ${deleted} empty conversation${deleted > 1 ? 's' : ''}!`);
+                } else {
+                  alert('No empty conversations found.');
+                }
+              }
+            }}
+            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+            title="Delete all empty conversations"
+          >
+            <Trash2 className="w-4 h-4" />
+            <span>Clean Up Empty</span>
+          </button>
+        )}
       </div>
 
       {/* Conversations List */}
