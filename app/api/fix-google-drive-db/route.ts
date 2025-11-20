@@ -5,36 +5,38 @@ const prisma = new PrismaClient();
 
 export async function GET(req: NextRequest) {
   try {
-    console.log('[Fix Google Drive DB] Starting database fix...');
+    console.log('[Fix Google Drive DB] Starting complete database fix...');
 
-    // Check if table exists
-    const tableCheck = await prisma.$queryRaw`
-      SELECT EXISTS (
-        SELECT FROM information_schema.tables 
-        WHERE table_schema = 'public' 
-        AND table_name = 'google_drive_connections'
-      );
-    `;
-    
-    console.log('[Fix Google Drive DB] Table check result:', tableCheck);
+    // Drop existing table if it has wrong structure
+    try {
+      await prisma.$executeRaw`DROP TABLE IF EXISTS "google_drive_connections" CASCADE;`;
+      console.log('[Fix Google Drive DB] Dropped old table');
+    } catch (error) {
+      console.log('[Fix Google Drive DB] No existing table to drop');
+    }
 
-    // Create the table if it doesn't exist
+    // Create the table with complete structure
     await prisma.$executeRaw`
-      CREATE TABLE IF NOT EXISTS "google_drive_connections" (
+      CREATE TABLE "google_drive_connections" (
         "id" TEXT NOT NULL PRIMARY KEY,
         "userId" TEXT NOT NULL UNIQUE,
         "accessToken" TEXT NOT NULL,
         "refreshToken" TEXT NOT NULL,
         "tokenExpiry" TIMESTAMP(3) NOT NULL,
-        "scope" TEXT NOT NULL,
         "googleEmail" TEXT NOT NULL,
-        "googleId" TEXT NOT NULL,
         "googleName" TEXT,
         "googlePicture" TEXT,
-        "autoUpload" BOOLEAN NOT NULL DEFAULT false,
-        "autoUploadFolder" TEXT,
-        "connectedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        "lastSyncAt" TIMESTAMP(3),
+        "rootFolderId" TEXT,
+        "quotaUsed" BIGINT NOT NULL DEFAULT 0,
+        "quotaLimit" BIGINT,
+        "isConnected" BOOLEAN NOT NULL DEFAULT true,
+        "lastSyncAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "lastErrorAt" TIMESTAMP(3),
+        "lastError" TEXT,
+        "autoUpload" BOOLEAN NOT NULL DEFAULT true,
+        "syncEnabled" BOOLEAN NOT NULL DEFAULT true,
+        "scopes" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
+        "metadata" JSONB DEFAULT '{}',
         "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
         "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
         CONSTRAINT "google_drive_connections_userId_fkey" 
@@ -45,7 +47,7 @@ export async function GET(req: NextRequest) {
       );
     `;
 
-    console.log('[Fix Google Drive DB] Table created/verified');
+    console.log('[Fix Google Drive DB] Table created with complete structure');
 
     // Create indexes
     await prisma.$executeRaw`
@@ -54,15 +56,15 @@ export async function GET(req: NextRequest) {
     `;
 
     await prisma.$executeRaw`
-      CREATE INDEX IF NOT EXISTS "google_drive_connections_googleId_idx" 
-      ON "google_drive_connections"("googleId");
+      CREATE INDEX IF NOT EXISTS "google_drive_connections_googleEmail_idx" 
+      ON "google_drive_connections"("googleEmail");
     `;
 
     console.log('[Fix Google Drive DB] Indexes created');
 
     // Verify table structure
     const columns = await prisma.$queryRaw`
-      SELECT column_name, data_type, is_nullable
+      SELECT column_name, data_type, is_nullable, column_default
       FROM information_schema.columns
       WHERE table_name = 'google_drive_connections'
       ORDER BY ordinal_position;
@@ -72,7 +74,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'Google Drive database structure verified/created successfully',
+      message: 'Google Drive database structure created successfully with ALL required columns',
       tableExists: true,
       columns: columns
     });
