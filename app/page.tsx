@@ -21,6 +21,8 @@ import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { HelpCircle } from 'lucide-react';
 import GoogleDriveBanner from '@/components/banners/GoogleDriveBanner';
 import OnboardingCheck from '@/components/onboarding/OnboardingCheck';
+import DebugToggle from '@/components/debug/DebugToggle';
+import DebugPanel from '@/components/debug/DebugPanel';
 
 interface Message {
   id: string;
@@ -588,6 +590,9 @@ export default function ChatPage() {
                 {/* Brain Consciousness Indicator */}
                 <BrainConsciousnessIndicator state={consciousnessState} />
                 
+                {/* Debug Toggle */}
+                <DebugToggle />
+                
                 {/* User Profile Button */}
                 <UserButton afterSignOutUrl="/" />
               </div>
@@ -684,6 +689,9 @@ export default function ChatPage() {
           )}
         </AnimatePresence>
       </div>
+      
+      {/* Debug Panel - Bottom of screen */}
+      <DebugPanel />
     </div>
     </>
   );

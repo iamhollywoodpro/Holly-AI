@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { ClerkProvider } from '@clerk/nextjs';
+import { Providers } from '@/components/Providers';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -25,8 +26,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <ClerkProvider
-          appearance={{
+        <Providers>
+          <ClerkProvider
+            appearance={{
             baseTheme: undefined,
             variables: {
               colorPrimary: '#a855f7',
@@ -62,8 +64,9 @@ export default function RootLayout({
           signInFallbackRedirectUrl="/"
           signUpFallbackRedirectUrl="/"
         >
-          {children}
-        </ClerkProvider>
+            {children}
+          </ClerkProvider>
+        </Providers>
       </body>
     </html>
   );
