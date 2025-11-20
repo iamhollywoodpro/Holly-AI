@@ -55,6 +55,7 @@ model Conversation {
 
   messages Message[]
   workLogs WorkLog[]
+  summary  ConversationSummary?
 
   @@index([userId])
   @@index([updatedAt])
@@ -76,6 +77,34 @@ model Message {
   @@index([userId])
   @@index([createdAt])
   @@map("holly_messages")
+}
+
+model ConversationSummary {
+  id               String   @id @default(cuid())
+  conversationId   String   @unique
+  conversation     Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  
+  // Summary content
+  summary          String   @db.Text // Main 2-3 sentence summary
+  keyPoints        String[] @default([]) // Array of key points
+  topics           String[] @default([]) // Tags/topics discussed
+  outcome          String?  @db.Text // Resolution or outcome
+  
+  // Important moments for "jump to" functionality
+  importantMoments Json     @default("[]") // [{messageId, type, description, timestamp}]
+  
+  // Progress tracking (for project conversations)
+  progress         Float?   // 0.0-1.0 completion percentage
+  projectId        String?  // Link to project if applicable
+  
+  // Metadata
+  messageCount     Int      @default(0) // # messages when generated
+  generatedAt      DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  
+  @@index([conversationId])
+  @@index([generatedAt])
+  @@map("conversation_summaries")
 }
 
 // ==================== FILE MANAGEMENT ====================
