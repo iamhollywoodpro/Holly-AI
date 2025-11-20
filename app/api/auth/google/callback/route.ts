@@ -9,11 +9,13 @@ const prisma = new PrismaClient();
 export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest) {
+  let dbUserId: string;
+  
   try {
     console.log('[Google Callback] Starting OAuth callback...');
     
     const { userId } = await auth();
-    console.log('[Google Callback] User ID:', userId);
+    console.log('[Google Callback] Clerk User ID:', userId);
     
     if (!userId) {
       console.log('[Google Callback] No user ID, redirecting to sign-in');
@@ -56,8 +58,14 @@ export async function GET(req: NextRequest) {
     // ✅ ENSURE USER EXISTS IN DATABASE FIRST
     console.log('[Google Callback] Checking if user exists in database...');
     try {
-      let user = await prisma.user.findUnique({
-        where: { id: userId }
+      // Try to find by clerkId (most common) or by id
+      let user = await prisma.user.findFirst({
+        where: {
+          OR: [
+            { clerkId: userId },
+            { id: userId }
+          ]
+        }
       });
       
       if (!user) {
@@ -70,7 +78,6 @@ export async function GET(req: NextRequest) {
         // Create user in our database
         user = await prisma.user.create({
           data: {
-            id: userId,
             clerkId: userId,
             email: clerkUser.emailAddresses[0]?.emailAddress || '',
             name: `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() || null,
@@ -81,6 +88,11 @@ export async function GET(req: NextRequest) {
       } else {
         console.log('[Google Callback] User found:', user.email);
       }
+      
+      // Use the database user's ID for the connection
+      dbUserId = user.id;
+      console.log('[Google Callback] Database user ID:', dbUserId);
+      
     } catch (userError: any) {
       console.error('[Google Callback] User check/creation failed:', userError);
       return NextResponse.redirect(
@@ -108,9 +120,9 @@ export async function GET(req: NextRequest) {
     
     console.log('[Google Callback] Saving connection to database...');
     
-    // Save connection
+    // Save connection using the database user ID
     try {
-      await saveConnection(userId, tokens);
+      await saveConnection(dbUserId, tokens);
       console.log('[Google Callback] Connection saved successfully');
     } catch (dbError: any) {
       console.error('[Google Callback] Database save failed:', dbError);
