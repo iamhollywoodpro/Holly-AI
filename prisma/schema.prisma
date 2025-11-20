@@ -34,6 +34,7 @@ model User {
   tasteSignals     TasteSignal[]
   tasteProfile     TasteProfile?
   workLogs         WorkLog[]
+  googleDrive      GoogleDriveConnection?
 
   @@index([clerkId])
   @@index([email])
@@ -652,4 +653,46 @@ model WorkLogStats {
   updatedAt        DateTime  @updatedAt
 
   @@map("work_log_stats")
+}
+
+// ==================== GOOGLE DRIVE INTEGRATION ====================
+
+model GoogleDriveConnection {
+  id            String    @id @default(cuid())
+  userId        String    @unique
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // OAuth Tokens
+  accessToken   String
+  refreshToken  String
+  tokenExpiry   DateTime
+  
+  // Google Account Info
+  googleEmail   String
+  googleName    String?
+  googlePicture String?
+  
+  // Drive Info
+  rootFolderId  String?   // HOLLY folder ID
+  quotaUsed     BigInt    @default(0)
+  quotaLimit    BigInt?
+  
+  // Status
+  isConnected   Boolean   @default(true)
+  lastSyncAt    DateTime  @default(now())
+  lastErrorAt   DateTime?
+  lastError     String?
+  
+  // Settings
+  autoUpload    Boolean   @default(true)
+  syncEnabled   Boolean   @default(true)
+  scopes        String[]  @default([])
+  metadata      Json?     @default("{}")
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@index([userId])
+  @@index([googleEmail])
+  @@map("google_drive_connections")
 }
