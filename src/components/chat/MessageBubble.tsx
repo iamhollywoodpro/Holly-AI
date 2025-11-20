@@ -2,9 +2,9 @@
 
 import { motion } from 'framer-motion';
 import { User, Sparkles, Loader2, Volume2, VolumeX } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
+import { MarkdownRenderer } from './code/MarkdownRenderer';
 
 interface Message {
   id: string;
@@ -233,25 +233,7 @@ export default function MessageBubble({ message, index }: MessageBubbleProps) {
 
           {/* Message Text */}
           <div className={`text-base leading-relaxed ${isUser ? 'text-white' : 'text-gray-100'}`}>
-            <ReactMarkdown
-              components={{
-                p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-                strong: ({ children }) => <strong className="font-semibold text-white">{children}</strong>,
-                em: ({ children }) => <em className="italic text-purple-300">{children}</em>,
-                code: ({ children }) => (
-                  <code className="px-2 py-0.5 bg-black/30 rounded text-sm font-mono text-cyan-300">
-                    {children}
-                  </code>
-                ),
-                pre: ({ children }) => (
-                  <pre className="mt-2 p-4 bg-black/40 rounded-lg overflow-x-auto">
-                    <code className="text-sm font-mono text-cyan-300">{children}</code>
-                  </pre>
-                ),
-              }}
-            >
-              {message.content}
-            </ReactMarkdown>
+            <MarkdownRenderer content={message.content} />
           </div>
 
           {/* Footer with Timestamp and Voice Button */}
