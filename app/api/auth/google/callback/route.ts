@@ -71,10 +71,9 @@ export async function GET(req: NextRequest) {
         user = await prisma.user.create({
           data: {
             id: userId,
+            clerkId: userId,
             email: clerkUser.emailAddresses[0]?.emailAddress || '',
             name: `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() || null,
-            clerkUserId: userId,
-            createdAt: new Date(clerkUser.createdAt),
           }
         });
         
