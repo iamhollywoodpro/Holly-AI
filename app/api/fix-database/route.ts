@@ -1,23 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { neon } from '@neondatabase/serverless';
+import { PrismaClient } from '@prisma/client';
 
 export const runtime = 'nodejs';
 
+const prisma = new PrismaClient();
+
 export async function GET(req: NextRequest) {
   try {
-    const databaseUrl = process.env.DATABASE_URL;
+    // Use Prisma's raw SQL execution to create tables
+    // This bypasses the ORM and runs direct SQL commands
     
-    if (!databaseUrl) {
-      return NextResponse.json(
-        { error: 'Database URL not configured' },
-        { status: 500 }
-      );
-    }
-
-    const sql = neon(databaseUrl);
-
     // Create work_logs table
-    await sql`
+    await prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS work_logs (
         id TEXT PRIMARY KEY,
         timestamp TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -27,10 +21,10 @@ export async function GET(req: NextRequest) {
         metadata JSONB,
         created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
       )
-    `;
+    `);
 
     // Create work_log_stats table
-    await sql`
+    await prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS work_log_stats (
         id TEXT PRIMARY KEY,
         date DATE NOT NULL UNIQUE,
@@ -38,20 +32,26 @@ export async function GET(req: NextRequest) {
         categories JSONB NOT NULL DEFAULT '{}',
         last_updated TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
       )
-    `;
+    `);
 
     // Create indexes for better performance
-    await sql`
+    await prisma.$executeRawUnsafe(`
       CREATE INDEX IF NOT EXISTS work_logs_timestamp_idx ON work_logs(timestamp DESC)
-    `;
+    `);
 
-    await sql`
+    await prisma.$executeRawUnsafe(`
       CREATE INDEX IF NOT EXISTS work_logs_category_idx ON work_logs(category)
-    `;
+    `);
 
-    await sql`
+    await prisma.$executeRawUnsafe(`
       CREATE INDEX IF NOT EXISTS work_log_stats_date_idx ON work_log_stats(date DESC)
-    `;
+    `);
+
+    // Test that tables exist by counting rows
+    const workLogCount = await prisma.$queryRawUnsafe('SELECT COUNT(*) as count FROM work_logs');
+    const statsCount = await prisma.$queryRawUnsafe('SELECT COUNT(*) as count FROM work_log_stats');
+
+    await prisma.$disconnect();
 
     return NextResponse.json({
       success: true,
@@ -62,11 +62,17 @@ export async function GET(req: NextRequest) {
         'work_logs_category_idx', 
         'work_log_stats_date_idx'
       ],
+      verification: {
+        work_logs_table: 'exists',
+        work_log_stats_table: 'exists'
+      },
       next_step: 'HOLLY should now work! Try sending a message.'
     });
 
   } catch (error: any) {
     console.error('Database creation error:', error);
+    
+    await prisma.$disconnect();
     
     return NextResponse.json(
       {
