@@ -2,7 +2,8 @@
 // 1M tokens/minute, 200 requests/day, completely FREE, cutting-edge Google AI
 import OpenAI from 'openai';
 import { getHollySystemPrompt } from './holly-system-prompt';
-import { logWorking, logSuccess, logError, logInfo } from '@/lib/logging/work-log-service';
+// Work Log system disabled for regular responses - only used for creation tasks
+// import { logWorking, logSuccess, logError, logInfo } from '@/lib/logging/work-log-service';
 
 // Google Gemini via OpenAI-compatible endpoint
 const gemini = new OpenAI({
@@ -90,14 +91,15 @@ async function executeTool(toolName: string, toolInput: any, userId: string, con
     generate_video: 'Video Generation',
   };
   
-  await logWorking(userId, `Starting ${toolDisplayNames[toolName]}`, {
-    conversationId,
-    metadata: { 
-      tool: toolName, 
-      prompt: toolInput.prompt?.substring(0, 100) || 'N/A',
-      model: toolInput.modelPreference || 'auto'
-    }
-  });
+  // Work log disabled - will be enabled only for explicit creation requests
+  // await logWorking(userId, `Starting ${toolDisplayNames[toolName]}`, {
+  //   conversationId,
+  //   metadata: { 
+  //     tool: toolName, 
+  //     prompt: toolInput.prompt?.substring(0, 100) || 'N/A',
+  //     model: toolInput.modelPreference || 'auto'
+  //   }
+  // });
 
   try {
     const response = await fetch(`${baseUrl}${endpoints[toolName]}`, {
@@ -108,23 +110,23 @@ async function executeTool(toolName: string, toolInput: any, userId: string, con
 
     const result = await response.json();
     
-    // Log tool success
-    await logSuccess(userId, `${toolDisplayNames[toolName]} completed`, {
-      conversationId,
-      metadata: { 
-        tool: toolName,
-        status: result.success ? 'success' : 'failed',
-        model: result.modelUsed || toolInput.modelPreference
-      }
-    });
+    // Work log disabled
+    // await logSuccess(userId, `${toolDisplayNames[toolName]} completed`, {
+    //   conversationId,
+    //   metadata: { 
+    //     tool: toolName,
+    //     status: result.success ? 'success' : 'failed',
+    //     model: result.modelUsed || toolInput.modelPreference
+    //   }
+    // });
     
     return result;
   } catch (error: any) {
-    // Log tool error
-    await logError(userId, `${toolDisplayNames[toolName]} failed: ${error.message}`, {
-      conversationId,
-      metadata: { tool: toolName, error: error.message }
-    });
+    // Work log disabled
+    // await logError(userId, `${toolDisplayNames[toolName]} failed: ${error.message}`, {
+    //   conversationId,
+    //   metadata: { tool: toolName, error: error.message }
+    // });
     throw error;
   }
 }
@@ -137,14 +139,14 @@ export async function generateHollyResponse(
   const startTime = Date.now();
   
   try {
-    // Log AI request start
-    await logWorking(userId, 'Generating AI response with Gemini 2.0 Flash', {
-      conversationId,
-      metadata: { 
-        model: 'gemini-2.5-flash',
-        messageCount: messages.length
-      }
-    });
+    // Work log disabled for regular AI responses
+    // await logWorking(userId, 'Generating AI response with Gemini 2.0 Flash', {
+    //   conversationId,
+    //   metadata: { 
+    //     model: 'gemini-2.5-flash',
+    //     messageCount: messages.length
+    //   }
+    // });
     
     // Add HOLLY's consciousness system prompt as first message
     const hollySystemPrompt = getHollySystemPrompt('Hollywood');
@@ -194,16 +196,16 @@ export async function generateHollyResponse(
       const duration = Date.now() - startTime;
       const responseContent = followUp.choices[0]?.message?.content || 'Done!';
       
-      // Log successful tool response
-      await logSuccess(userId, `AI response with tool completed (${duration}ms)`, {
-        conversationId,
-        metadata: { 
-          model: 'gemini-2.5-flash',
-          duration,
-          tokens: Math.floor(responseContent.length / 4),
-          toolUsed: toolCall.function?.name
-        }
-      });
+      // Work log disabled
+      // await logSuccess(userId, `AI response with tool completed (${duration}ms)`, {
+      //   conversationId,
+      //   metadata: { 
+      //     model: 'gemini-2.5-flash',
+      //     duration,
+      //     tokens: Math.floor(responseContent.length / 4),
+      //     toolUsed: toolCall.function?.name
+      //   }
+      // });
       
       return { 
         content: responseContent,
@@ -214,15 +216,15 @@ export async function generateHollyResponse(
     const duration = Date.now() - startTime;
     const responseContent = message.content || 'Error generating response';
     
-    // Log successful response
-    await logSuccess(userId, `AI response generated (${duration}ms)`, {
-      conversationId,
-      metadata: { 
-        model: 'gemini-2.5-flash',
-        duration,
-        tokens: Math.floor(responseContent.length / 4)
-      }
-    });
+    // Work log disabled
+    // await logSuccess(userId, `AI response generated (${duration}ms)`, {
+    //   conversationId,
+    //   metadata: { 
+    //     model: 'gemini-2.5-flash',
+    //     duration,
+    //     tokens: Math.floor(responseContent.length / 4)
+    //   }
+    // });
     
     return { 
       content: responseContent,
@@ -231,20 +233,21 @@ export async function generateHollyResponse(
   } catch (error: any) {
     console.error('Gemini error:', error);
     
-    // Log Gemini failure
-    await logError(userId, `Gemini error: ${error.message}`, {
-      conversationId,
-      metadata: { model: 'gemini-2.5-flash', error: error.message }
-    });
+    // Work log disabled
+    // await logError(userId, `Gemini error: ${error.message}`, {
+    //   conversationId,
+    //   metadata: { model: 'gemini-2.5-flash', error: error.message }
+    // });
     
     // Fallback to Groq Llama 3.1 8B (500K tokens/day free)
     try {
       console.log('🔄 Falling back to Groq Llama 3.1 8B...');
       
-      await logInfo(userId, 'Switching to Groq Llama 3.1 8B fallback', {
-        conversationId,
-        metadata: { model: 'llama-3.1-8b-instant' }
-      });
+      // Work log disabled
+      // await logInfo(userId, 'Switching to Groq Llama 3.1 8B fallback', {
+      //   conversationId,
+      //   metadata: { model: 'llama-3.1-8b-instant' }
+      // });
       
       const hollySystemPrompt = getHollySystemPrompt('Hollywood');
       const fallback = await groq.chat.completions.create({
@@ -263,24 +266,26 @@ export async function generateHollyResponse(
       const duration = Date.now() - startTime;
       const fallbackContent = fallback.choices[0]?.message?.content || 'Error generating response';
       
-      await logSuccess(userId, `Fallback response generated (${duration}ms)`, {
-        conversationId,
-        metadata: { 
-          model: 'llama-3.1-8b',
-          duration,
-          tokens: Math.floor(fallbackContent.length / 4)
-        }
-      });
+      // Work log disabled
+      // await logSuccess(userId, `Fallback response generated (${duration}ms)`, {
+      //   conversationId,
+      //   metadata: { 
+      //     model: 'llama-3.1-8b',
+      //     duration,
+      //     tokens: Math.floor(fallbackContent.length / 4)
+      //   }
+      // });
       
       return { 
         content: fallbackContent,
         model: 'llama-3.1-8b'
       };
     } catch (fallbackError: any) {
-      await logError(userId, `All models failed: ${fallbackError.message}`, {
-        conversationId,
-        metadata: { error: fallbackError.message }
-      });
+      // Work log disabled
+      // await logError(userId, `All models failed: ${fallbackError.message}`, {
+      //   conversationId,
+      //   metadata: { error: fallbackError.message }
+      // });
       
       return { 
         content: `I encountered an error: ${error.message}. Please try again.`,
