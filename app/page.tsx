@@ -1,5 +1,4 @@
 'use client';
-// HOLLY v2.0.1 - Enhanced Chat Interface
 
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -277,7 +276,7 @@ export default function ChatPage() {
                 body: JSON.stringify({ title })
               });
               
-              // Trigger ChatHistory to refresh and show new title
+              // Notify ChatHistory to refresh
               window.dispatchEvent(new CustomEvent('conversation-title-updated', { 
                 detail: { conversationId, title } 
               }));
@@ -614,7 +613,14 @@ export default function ChatPage() {
               ))
             )}
             
-            {/* Work Log Feed removed - only for creation tasks */}
+            {/* Work Log Feed - Disabled for regular chat */}
+            {false && currentConversationId && (
+              <WorkLogFeed 
+                conversationId={currentConversationId}
+                enabled={true}
+                maxLogs={20}
+              />
+            )}
             
             <div ref={messagesEndRef} />
           </div>
