@@ -133,10 +133,21 @@ export async function GET(req: NextRequest) {
     
     console.log('[Google Callback] OAuth flow completed successfully!');
     
-    // Redirect to settings with success message
-    return NextResponse.redirect(
-      new URL('/settings/integrations?success=drive_connected', req.url)
-    );
+    // Check if this was from onboarding flow
+    const fromOnboarding = searchParams.get('from') === 'onboarding';
+    
+    // Redirect based on source
+    if (fromOnboarding) {
+      // Redirect to home (onboarding complete)
+      return NextResponse.redirect(
+        new URL('/?onboarding=complete', req.url)
+      );
+    } else {
+      // Redirect to settings with success message
+      return NextResponse.redirect(
+        new URL('/settings/integrations?success=drive_connected', req.url)
+      );
+    }
     
   } catch (error: any) {
     console.error('[Google Callback] Unexpected error:', error);

@@ -19,6 +19,8 @@ import TypingIndicator from '@/components/chat/TypingIndicator';
 import KeyboardShortcuts from '@/components/ui/KeyboardShortcuts';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { HelpCircle } from 'lucide-react';
+import GoogleDriveBanner from '@/components/banners/GoogleDriveBanner';
+import OnboardingCheck from '@/components/onboarding/OnboardingCheck';
 
 interface Message {
   id: string;
@@ -475,7 +477,11 @@ export default function ChatPage() {
   ], !showKeyboardShortcuts); // Disable when shortcuts modal is open
 
   return (
-    <div className="chat-container relative w-full h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black overflow-hidden" style={{ height: '100dvh' }}>
+    <>
+      {/* Onboarding Check - Redirects first-time users */}
+      <OnboardingCheck />
+      
+      <div className="chat-container relative w-full h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black overflow-hidden" style={{ height: '100dvh' }}>
       {/* Animated Particle Background */}
       <ParticleField />
 
@@ -503,6 +509,8 @@ export default function ChatPage() {
 
         {/* Main Chat Area */}
         <div className="flex-1 flex flex-col min-w-0">
+          {/* Google Drive Banner - Shows if not connected */}
+          <GoogleDriveBanner />
           {/* Header - MOBILE OPTIMIZED */}
           <motion.div 
             className="relative z-50 px-3 sm:px-6 md:px-8 py-3 sm:py-4 md:py-6 border-b border-gray-800/50 bg-gray-900/30 backdrop-blur-xl"
@@ -677,5 +685,6 @@ export default function ChatPage() {
         </AnimatePresence>
       </div>
     </div>
+    </>
   );
 }
