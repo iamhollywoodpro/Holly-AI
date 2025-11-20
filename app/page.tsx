@@ -254,6 +254,32 @@ export default function ChatPage() {
       // Save HOLLY's response to database (use conversationId variable from handleSend)
       if (conversationId && accumulatedContent) {
         saveMessageToDb(conversationId, 'assistant', accumulatedContent, 'curious');
+        
+        // Generate smart title after first message exchange
+        if (messages.length === 0) {
+          console.log('[Chat] First message - generating smart title...');
+          try {
+            const titleResponse = await fetch('/api/conversations/generate-title', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ firstMessage: message })
+            });
+            
+            if (titleResponse.ok) {
+              const { title } = await titleResponse.json();
+              console.log('[Chat] ✅ Generated title:', title);
+              
+              // Update conversation title
+              await fetch(`/api/conversations/${conversationId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title })
+              });
+            }
+          } catch (error) {
+            console.error('[Chat] Failed to generate title:', error);
+          }
+        }
       }
 
       // Refresh consciousness state after interaction

@@ -140,6 +140,27 @@ export function useConversations(userId?: string) {
     }
   }, [currentConversation]);
 
+  // Generate smart title from first message
+  const generateAndUpdateTitle = useCallback(async (conversationId: string, firstMessage: string) => {
+    try {
+      const response = await fetch('/api/conversations/generate-title', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ firstMessage }),
+      });
+      if (!response.ok) throw new Error('Failed to generate title');
+      const data = await response.json();
+      
+      // Update the conversation with the generated title
+      await updateConversationTitle(conversationId, data.title);
+      
+      return data.title;
+    } catch (err) {
+      console.error('Error generating title:', err);
+      return null;
+    }
+  }, []);
+
   // Update conversation title
   const updateConversationTitle = useCallback(async (conversationId: string, title: string) => {
     setIsLoading(true);
@@ -245,6 +266,7 @@ export function useConversations(userId?: string) {
     selectConversation,
     addMessage,
     updateConversationTitle,
+    generateAndUpdateTitle,
     togglePin,
     deleteConversation,
   };
