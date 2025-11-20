@@ -614,14 +614,7 @@ export default function ChatPage() {
               ))
             )}
             
-            {/* Work Log Feed - DISABLED (only for creation tasks, not regular chat) */}
-            {/* {currentConversationId && (
-              <WorkLogFeed 
-                conversationId={currentConversationId}
-                enabled={false}
-                maxLogs={20}
-              />
-            )} */
+            {/* Work Log Feed removed - only for creation tasks */}
             
             <div ref={messagesEndRef} />
           </div>
