@@ -29,7 +29,9 @@ export async function POST(
         return NextResponse.json({
           summary: {
             ...existingSummary,
-            importantMoments: existingSummary.importantMoments as ImportantMoment[],
+            importantMoments: existingSummary.importantMoments as any as ImportantMoment[],
+            generatedAt: existingSummary.generatedAt.toISOString(),
+            updatedAt: existingSummary.updatedAt.toISOString(),
           },
           cached: true,
         });
@@ -235,7 +237,7 @@ export async function GET(
 
     const responseData: ConversationSummary = {
       ...summary,
-      importantMoments: summary.importantMoments as ImportantMoment[],
+      importantMoments: summary.importantMoments as any as ImportantMoment[],
       generatedAt: summary.generatedAt.toISOString(),
       updatedAt: summary.updatedAt.toISOString(),
     };
