@@ -39,6 +39,20 @@ export default function ChatHistory({
     }
   }, [isLoaded, isSignedIn]);
 
+  // Listen for title updates and refresh conversation list
+  useEffect(() => {
+    const handleTitleUpdate = () => {
+      console.log('[ChatHistory] Title updated - refreshing list...');
+      loadConversations();
+    };
+    
+    window.addEventListener('conversation-title-updated', handleTitleUpdate);
+    
+    return () => {
+      window.removeEventListener('conversation-title-updated', handleTitleUpdate);
+    };
+  }, [isSignedIn]);
+
   const loadConversations = async () => {
     if (!isSignedIn) return;
     

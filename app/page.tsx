@@ -275,6 +275,11 @@ export default function ChatPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ title })
               });
+              
+              // Trigger ChatHistory to refresh and show new title
+              window.dispatchEvent(new CustomEvent('conversation-title-updated', { 
+                detail: { conversationId, title } 
+              }));
             }
           } catch (error) {
             console.error('[Chat] Failed to generate title:', error);
@@ -608,14 +613,14 @@ export default function ChatPage() {
               ))
             )}
             
-            {/* Work Log Feed - Real-time activity updates */}
-            {currentConversationId && (
+            {/* Work Log Feed - DISABLED (only for creation tasks, not regular chat) */}
+            {/* {currentConversationId && (
               <WorkLogFeed 
                 conversationId={currentConversationId}
-                enabled={true}
+                enabled={false}
                 maxLogs={20}
               />
-            )}
+            )} */
             
             <div ref={messagesEndRef} />
           </div>
