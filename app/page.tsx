@@ -23,6 +23,9 @@ import GoogleDriveBanner from '@/components/banners/GoogleDriveBanner';
 import OnboardingCheck from '@/components/onboarding/OnboardingCheck';
 import DebugToggle from '@/components/debug/DebugToggle';
 import DebugPanel from '@/components/debug/DebugPanel';
+import { SuggestionsPanel } from '@/components/suggestions/SuggestionsPanel';
+import { useSuggestions } from '@/hooks/useSuggestions';
+import type { Suggestion } from '@/app/api/suggestions/generate/route';
 
 interface Message {
   id: string;
@@ -57,6 +60,13 @@ export default function ChatPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const voiceInputRef = useRef(getVoiceInput());
   const voiceOutputRef = useRef(getVoiceOutput());
+
+  // AI Suggestions
+  const suggestions = useSuggestions({
+    conversationId: currentConversationId,
+    enabled: true,
+    autoHideDelay: 30000,
+  });
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -139,6 +149,41 @@ export default function ChatPage() {
       console.error('Failed to load conversation:', error);
     } finally {
       setIsLoadingConversation(false);
+    }
+  };
+
+  // Handle suggestion click
+  const handleSuggestionClick = async (suggestion: Suggestion) => {
+    // Track usage for learning
+    suggestions.trackUsage(suggestion);
+    
+    // Dismiss suggestions
+    suggestions.dismiss();
+    
+    // Handle different action types
+    switch (suggestion.action) {
+      case 'send_message':
+        // Send the suggestion as a message
+        if (suggestion.payload) {
+          await handleSend(suggestion.payload, false);
+        }
+        break;
+        
+      case 'navigate':
+        // Navigate to a different page
+        if (suggestion.payload) {
+          window.location.href = suggestion.payload;
+        }
+        break;
+        
+      case 'execute_tool':
+        // Execute a specific tool/action
+        // TODO: Implement tool execution logic
+        console.log('Execute tool:', suggestion.payload);
+        break;
+        
+      default:
+        console.warn('Unknown suggestion action:', suggestion.action);
     }
   };
 
@@ -293,6 +338,11 @@ export default function ChatPage() {
 
       // Refresh consciousness state after interaction
       refreshConsciousness();
+
+      // Refresh AI suggestions after response
+      setTimeout(() => {
+        suggestions.refresh();
+      }, 1000);
 
       // Auto-speak response if user used voice input
       if (shouldAutoSpeak && accumulatedContent) {
@@ -671,7 +721,15 @@ export default function ChatPage() {
             transition={{ delay: 0.3 }}
             style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}
           >
-            <div className="max-w-4xl mx-auto w-full">
+            <div className="max-w-4xl mx-auto w-full space-y-4">
+              {/* AI Suggestions Panel */}
+              <SuggestionsPanel
+                suggestions={suggestions.suggestions}
+                onSelectSuggestion={handleSuggestionClick}
+                onDismiss={suggestions.dismiss}
+                isVisible={suggestions.isVisible && !isTyping}
+              />
+              
               <ChatInputControls
                 onSend={handleSend}
                 onFileUpload={handleFilesSelected}
