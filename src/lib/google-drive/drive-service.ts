@@ -22,6 +22,22 @@ const prisma = new PrismaClient();
 const drive = google.drive('v3');
 
 /**
+ * Get database user ID from Clerk user ID
+ */
+async function getUserIdFromClerk(clerkUserId: string): Promise<string> {
+  const user = await prisma.user.findUnique({
+    where: { clerkId: clerkUserId },
+    select: { id: true },
+  });
+  
+  if (!user) {
+    throw new Error('User not found in database');
+  }
+  
+  return user.id;
+}
+
+/**
  * Create OAuth2 client
  */
 function createOAuth2Client(): OAuth2Client {
@@ -94,7 +110,7 @@ export async function exchangeCodeForTokens(
  * Save Google Drive connection to database
  */
 export async function saveConnection(
-  userId: string,
+  clerkUserId: string,
   tokens: {
     accessToken: string;
     refreshToken: string;
@@ -104,10 +120,32 @@ export async function saveConnection(
     picture?: string;
   }
 ): Promise<void> {
+  console.log('💾 saveConnection: Starting...', { clerkUserId, email: tokens.email });
+  
+  // Find or create user record
+  let user = await prisma.user.findUnique({
+    where: { clerkId: clerkUserId },
+  });
+  
+  if (!user) {
+    console.log('📝 saveConnection: User not found, creating...', clerkUserId);
+    user = await prisma.user.create({
+      data: {
+        clerkId: clerkUserId,
+        email: tokens.email,
+        name: tokens.name,
+        avatarUrl: tokens.picture,
+      },
+    });
+    console.log('✅ saveConnection: User created:', user.id);
+  }
+  
+  console.log('💾 saveConnection: Upserting Drive connection for user:', user.id);
+  
   await prisma.googleDriveConnection.upsert({
-    where: { userId },
+    where: { userId: user.id },
     create: {
-      userId,
+      userId: user.id,
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
       tokenExpiry: new Date(tokens.expiryDate),
@@ -135,6 +173,8 @@ export async function saveConnection(
       lastSyncAt: new Date(),
     },
   });
+  
+  console.log('✅ saveConnection: Connection saved successfully!');
 }
 
 /**

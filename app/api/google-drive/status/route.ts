@@ -9,17 +9,30 @@ export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest) {
   try {
-    const { userId } = await auth();
+    const { userId: clerkUserId } = await auth();
     
-    if (!userId) {
+    if (!clerkUserId) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
     
+    // Find user in database
+    const user = await prisma.user.findUnique({
+      where: { clerkId: clerkUserId },
+      select: { id: true },
+    });
+    
+    if (!user) {
+      return NextResponse.json({
+        success: true,
+        connected: false,
+      });
+    }
+    
     const connection = await prisma.googleDriveConnection.findUnique({
-      where: { userId },
+      where: { userId: user.id },
       select: {
         isConnected: true,
         googleEmail: true,
