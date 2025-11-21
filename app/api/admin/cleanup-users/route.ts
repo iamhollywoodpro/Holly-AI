@@ -204,7 +204,7 @@ export async function POST(req: NextRequest) {
           conversations: finalUser?.conversations,
         },
       },
-    }, null, 2);
+    });
 
   } catch (error: any) {
     console.error('🚨 [CLEANUP] ERROR:', error);
