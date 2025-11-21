@@ -28,6 +28,9 @@ import { useSuggestions } from '@/hooks/useSuggestions';
 import type { Suggestion } from '@/types/suggestions';
 import { SummaryPanel } from '@/components/summary/SummaryPanel';
 import { useSummary } from '@/hooks/useSummary';
+import { SuccessToast } from '@/components/notifications/SuccessToast';
+import { DriveIndicator } from '@/components/indicators/DriveIndicator';
+import { useSearchParams } from 'next/navigation';
 
 interface Message {
   id: string;
@@ -40,6 +43,7 @@ interface Message {
 
 export default function ChatPage() {
   const { user } = useUser();
+  const searchParams = useSearchParams();
   const [messages, setMessages] = useState<Message[]>([]);
   
   const [isTyping, setIsTyping] = useState(false);
@@ -52,6 +56,8 @@ export default function ChatPage() {
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   const [lastInputWasVoice, setLastInputWasVoice] = useState(false);
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
   // Fetch real consciousness state
   const { state: consciousnessState, refresh: refreshConsciousness } = useConsciousnessState({
@@ -84,6 +90,15 @@ export default function ChatPage() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Check for Google Drive connection success
+  useEffect(() => {
+    const success = searchParams.get('success');
+    if (success === 'drive_connected') {
+      setSuccessMessage('🎉 Google Drive connected successfully! Your files will be automatically saved.');
+      setShowSuccessToast(true);
+    }
+  }, [searchParams]);
 
   // Don't auto-create conversations - wait for user to send first message
   // This prevents empty "New Conversation" entries from cluttering the sidebar
@@ -700,6 +715,9 @@ export default function ChatPage() {
                   </motion.button>
                 )}
                 
+                {/* Drive Connection Indicator */}
+                <DriveIndicator />
+                
                 {/* Debug Toggle */}
                 <DebugToggle />
                 
@@ -819,6 +837,14 @@ export default function ChatPage() {
         onClose={summary.closeFullPanel}
         onJumpToMessage={handleJumpToMessage}
         onExport={summary.exportAsMarkdown}
+      />
+      
+      {/* Success Toast - Google Drive & other notifications */}
+      <SuccessToast
+        message={successMessage}
+        show={showSuccessToast}
+        onClose={() => setShowSuccessToast(false)}
+        duration={5000}
       />
     </div>
     </>

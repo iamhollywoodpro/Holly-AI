@@ -51,7 +51,7 @@ export default function OnboardingCheck() {
       return;
     }
 
-    // Check if onboarding was completed
+    // Check if onboarding was completed (localStorage)
     const onboardingCompleted = localStorage.getItem('holly_onboarding_completed');
     
     if (onboardingCompleted === 'true') {
@@ -65,8 +65,9 @@ export default function OnboardingCheck() {
       const data = await response.json();
       
       if (data.connected) {
-        // Already connected, mark onboarding as complete
+        // Already connected, mark onboarding as complete permanently
         localStorage.setItem('holly_onboarding_completed', 'true');
+        console.log('✅ Google Drive already connected - skipping onboarding');
         setIsChecking(false);
         return;
       }
