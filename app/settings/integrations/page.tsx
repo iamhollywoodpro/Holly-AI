@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Cloud, Check, AlertCircle, Loader2, HardDrive, Upload } from 'lucide-react';
 
 interface DriveStatus {
@@ -22,15 +23,38 @@ interface DriveStatus {
 }
 
 export default function IntegrationsPage() {
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
   const [driveStatus, setDriveStatus] = useState<DriveStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     fetchDriveStatus();
-  }, []);
+    
+    // Check for success/error parameters
+    const successParam = searchParams.get('success');
+    const errorParam = searchParams.get('error');
+    
+    if (successParam === 'drive_connected') {
+      setSuccess('🎉 Google Drive connected successfully!');
+      // Clear URL parameters
+      window.history.replaceState({}, '', '/settings/integrations');
+    }
+    
+    if (errorParam) {
+      const errorMessages: Record<string, string> = {
+        'oauth_denied': 'You denied access to Google Drive',
+        'no_code': 'No authorization code received from Google',
+        'connection_failed': 'Failed to connect to Google Drive',
+      };
+      setError(errorMessages[errorParam] || `Error: ${errorParam}`);
+      // Clear URL parameters
+      window.history.replaceState({}, '', '/settings/integrations');
+    }
+  }, [searchParams]);
 
   const fetchDriveStatus = async () => {
     try {
@@ -133,6 +157,19 @@ export default function IntegrationsPage() {
             Connect HOLLY to your favorite services
           </p>
         </div>
+
+        {/* Success Message */}
+        {success && (
+          <div className="mb-6 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <Check className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <h3 className="font-semibold text-green-900 dark:text-green-100">Success!</h3>
+                <p className="text-sm text-green-700 dark:text-green-300 mt-1">{success}</p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Error Message */}
         {error && (
