@@ -160,7 +160,7 @@ export async function GET(req: NextRequest) {
         totalConversations: allUsers.reduce((sum, u) => sum + u.conversations.length, 0),
         usersWithRealEmails: allUsers.filter(u => u.email.includes('@')).length,
       },
-    }, null, 2);
+    });
   } catch (error: any) {
     console.error('🚨 SECURITY AUDIT ERROR:', error);
     return NextResponse.json(
