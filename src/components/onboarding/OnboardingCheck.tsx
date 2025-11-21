@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useUser } from '@clerk/nextjs';
 
 /**
@@ -11,14 +11,26 @@ import { useUser } from '@clerk/nextjs';
 export default function OnboardingCheck() {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { user, isLoaded } = useUser();
   const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
     if (!isLoaded) return;
     
+    // Check if we're coming back from onboarding with Drive connected
+    const onboardingCompleted = searchParams.get('onboarding_completed');
+    const driveSuccess = searchParams.get('success');
+    
+    if (onboardingCompleted === 'true' || driveSuccess === 'drive_connected') {
+      localStorage.setItem('holly_onboarding_completed', 'true');
+      // Clean the URL
+      router.replace('/');
+      return;
+    }
+    
     checkOnboardingStatus();
-  }, [isLoaded, user]);
+  }, [isLoaded, user, searchParams]);
 
   const checkOnboardingStatus = async () => {
     // Skip if already on onboarding page

@@ -13,13 +13,18 @@ export default async function OnboardingPage() {
   }
   
   // Check if user already has Google Drive connected
-  const driveConnection = await prisma.googleDriveConnection.findUnique({
-    where: { userId }
+  const user = await prisma.user.findUnique({
+    where: { clerkId: userId },
+    include: {
+      googleDrive: true
+    }
   });
   
-  // If already connected, skip onboarding
-  if (driveConnection?.isConnected) {
-    redirect('/');
+  // If already connected, mark onboarding complete and redirect
+  if (user?.googleDrive?.isConnected) {
+    // Mark onboarding as completed in a way that persists
+    // We'll use a query parameter to signal completion
+    redirect('/?onboarding_completed=true');
   }
   
   return <OnboardingScreen />;
