@@ -85,9 +85,11 @@ export default function ChatHistory({
       if (response.ok) {
         setConversations(prev => prev.filter(c => c.id !== id));
         
-        // If deleting current conversation, trigger new conversation
+        // If deleting current conversation, DON'T auto-create new one
+        // Just clear the current conversation - user can create new one manually
         if (id === currentConversationId) {
-          onNewConversation();
+          // Redirect to home without creating new conversation
+          window.location.href = '/';
         }
       }
     } catch (error) {
