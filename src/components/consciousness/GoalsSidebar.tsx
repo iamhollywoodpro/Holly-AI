@@ -35,7 +35,7 @@ export default function GoalsSidebar() {
           }
         }
       } catch (error) {
-        console.error('Failed to fetch real goals:', error);
+        // Silently handle errors - goals API may not have data yet
       } finally {
         setLoading(false);
       }

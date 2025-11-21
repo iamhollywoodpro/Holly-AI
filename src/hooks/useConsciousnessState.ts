@@ -51,10 +51,17 @@ export function useConsciousnessState(options: UseConsciousnessStateOptions = {}
       setError(null);
 
       // Fetch goals, experiences, and identity in parallel
+      // Silently handle errors to avoid console spam for missing data
       const [goalsRes, experiencesRes, identityRes] = await Promise.all([
-        fetch('/api/consciousness/goals').then(r => r.ok ? r.json() : { goals: [] }),
-        fetch('/api/consciousness/experiences?limit=10').then(r => r.ok ? r.json() : { experiences: [] }),
-        fetch('/api/consciousness/identity').then(r => r.ok ? r.json() : { identity: null })
+        fetch('/api/consciousness/goals')
+          .then(r => r.ok ? r.json() : { goals: [] })
+          .catch(() => ({ goals: [] })),
+        fetch('/api/consciousness/experiences?limit=10')
+          .then(r => r.ok ? r.json() : { experiences: [] })
+          .catch(() => ({ experiences: [] })),
+        fetch('/api/consciousness/identity')
+          .then(r => r.ok ? r.json() : { identity: null })
+          .catch(() => ({ identity: null }))
       ]);
 
       const goals = goalsRes.goals || [];

@@ -42,7 +42,10 @@ export function useSummary({
       const data = await response.json();
       setSummary(data.summary);
     } catch (err) {
-      console.error('Fetch summary error:', err);
+      // Don't log 404s - they're expected for new conversations
+      if (err instanceof Error && !err.message.includes('404')) {
+        console.error('Fetch summary error:', err);
+      }
       setError(err instanceof Error ? err.message : 'Unknown error');
       setSummary(null);
     } finally {
@@ -72,7 +75,10 @@ export function useSummary({
       setSummary(data.summary);
       return data.summary;
     } catch (err) {
-      console.error('Generate summary error:', err);
+      // Only log unexpected errors
+      if (err instanceof Error && !err.message.includes('empty conversation')) {
+        console.error('Generate summary error:', err);
+      }
       setError(err instanceof Error ? err.message : 'Unknown error');
       setSummary(null);
     } finally {

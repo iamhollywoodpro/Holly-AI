@@ -37,7 +37,7 @@ export default function MemoryTimeline() {
           // Will populate once we have experiences in DB
         }
       } catch (error) {
-        console.error('Failed to fetch real experiences:', error);
+        // Silently handle errors - experiences API may not have data yet
       } finally {
         setLoading(false);
       }

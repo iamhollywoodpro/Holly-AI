@@ -53,7 +53,10 @@ export function useSuggestions({
         startAutoHideTimer();
       }
     } catch (err) {
-      console.error('Suggestion generation error:', err);
+      // Only log unexpected errors (500s are expected for empty conversations)
+      if (err instanceof Error && !err.message.includes('Failed to generate')) {
+        console.error('Suggestion generation error:', err);
+      }
       setError(err instanceof Error ? err.message : 'Unknown error');
       setSuggestions([]);
     } finally {
