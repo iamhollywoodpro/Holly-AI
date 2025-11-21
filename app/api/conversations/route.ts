@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/db';
+import { getOrCreateUser } from '@/lib/user-manager';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -24,17 +25,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get or create user in database
-    console.log('[Conversations API] Upserting user...');
-    const user = await prisma.user.upsert({
-      where: { clerkId: userId },
-      update: {},
-      create: {
-        clerkId: userId,
-        email: '', // Will be updated by webhook
-      },
-    });
-    console.log('[Conversations API] User result:', `User ${user.id}`);
+    // Get or create user with REAL email from Clerk
+    console.log('[Conversations API] Getting/creating user with real email...');
+    const user = await getOrCreateUser(userId);
+    console.log('[Conversations API] User result:', `User ${user.id} (${user.email})`);
 
     console.log('[Conversations API] Fetching conversations for user:', user.id);
     const conversations = await prisma.conversation.findMany({
@@ -82,15 +76,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get or create user in database
-    const user = await prisma.user.upsert({
-      where: { clerkId: userId },
-      update: {},
-      create: {
-        clerkId: userId,
-        email: '',
-      },
-    });
+    // Get or create user with REAL email from Clerk
+    const user = await getOrCreateUser(userId);
 
     const { title, firstMessage } = await request.json();
 
