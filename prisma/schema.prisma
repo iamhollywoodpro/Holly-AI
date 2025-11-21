@@ -35,6 +35,8 @@ model User {
   tasteProfile     TasteProfile?
   workLogs         WorkLog[]
   googleDrive      GoogleDriveConnection?
+  githubConnection GitHubConnection?
+  githubRepos      GitHubRepository[]
 
   @@index([clerkId])
   @@index([email])
@@ -733,4 +735,101 @@ model GoogleDriveConnection {
   @@index([userId])
   @@index([googleEmail])
   @@map("google_drive_connections")
+}
+
+// ==================== GITHUB INTEGRATION ====================
+
+model GitHubConnection {
+  id              String    @id @default(cuid())
+  userId          String    @unique
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // OAuth Tokens
+  accessToken     String
+  tokenExpiry     DateTime?
+  scopes          String[]  @default([])
+  
+  // GitHub Account Info
+  githubId        String    // GitHub user ID
+  githubUsername  String
+  githubEmail     String?
+  githubName      String?
+  githubAvatar    String?
+  githubBio       String?
+  
+  // Account Stats
+  publicRepos     Int       @default(0)
+  privateRepos    Int       @default(0)
+  followers       Int       @default(0)
+  following       Int       @default(0)
+  
+  // Status
+  isConnected     Boolean   @default(true)
+  lastSyncAt      DateTime  @default(now())
+  lastErrorAt     DateTime?
+  lastError       String?
+  
+  // Settings
+  autoSync        Boolean   @default(true)
+  syncInterval    Int       @default(3600) // seconds
+  metadata        Json?     @default("{}")
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([userId])
+  @@index([githubUsername])
+  @@map("github_connections")
+}
+
+model GitHubRepository {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // GitHub Repo Info
+  githubId        String    // GitHub repo ID
+  name            String    // Repo name
+  fullName        String    // owner/repo
+  owner           String    // Repository owner
+  
+  // Repo Details
+  description     String?
+  url             String
+  htmlUrl         String
+  cloneUrl        String?
+  sshUrl          String?
+  
+  // Repo Stats
+  language        String?
+  stars           Int       @default(0)
+  forks           Int       @default(0)
+  openIssues      Int       @default(0)
+  watchers        Int       @default(0)
+  size            Int       @default(0) // KB
+  
+  // Repo Status
+  isPrivate       Boolean   @default(false)
+  isFork          Boolean   @default(false)
+  isArchived      Boolean   @default(false)
+  defaultBranch   String    @default("main")
+  
+  // Timestamps
+  githubCreatedAt DateTime?
+  githubUpdatedAt DateTime?
+  githubPushedAt  DateTime?
+  lastSyncAt      DateTime  @default(now())
+  
+  // Metadata
+  topics          String[]  @default([])
+  metadata        Json?     @default("{}")
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@unique([userId, githubId])
+  @@index([userId])
+  @@index([fullName])
+  @@index([owner])
+  @@map("github_repositories")
 }

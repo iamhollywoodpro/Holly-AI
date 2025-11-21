@@ -30,6 +30,7 @@ import { SummaryPanel } from '@/components/summary/SummaryPanel';
 import { useSummary } from '@/hooks/useSummary';
 import { SuccessToast } from '@/components/notifications/SuccessToast';
 import { DriveIndicator } from '@/components/indicators/DriveIndicator';
+import { GitHubIndicator } from '@/components/indicators/GitHubIndicator';
 import { useSearchParams } from 'next/navigation';
 
 interface Message {
@@ -717,6 +718,9 @@ export default function ChatPage() {
                 
                 {/* Drive Connection Indicator */}
                 <DriveIndicator />
+                
+                {/* GitHub Connection Indicator */}
+                <GitHubIndicator />
                 
                 {/* Debug Toggle */}
                 <DebugToggle />
