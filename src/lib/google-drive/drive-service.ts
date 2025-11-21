@@ -122,22 +122,44 @@ export async function saveConnection(
 ): Promise<void> {
   console.log('💾 saveConnection: Starting...', { clerkUserId, email: tokens.email });
   
-  // Find or create user record
+  // Find user by Clerk ID first
   let user = await prisma.user.findUnique({
     where: { clerkId: clerkUserId },
   });
   
   if (!user) {
-    console.log('📝 saveConnection: User not found, creating...', clerkUserId);
-    user = await prisma.user.create({
-      data: {
-        clerkId: clerkUserId,
-        email: tokens.email,
-        name: tokens.name,
-        avatarUrl: tokens.picture,
-      },
+    console.log('📝 saveConnection: User not found by clerkId, checking email...', clerkUserId);
+    
+    // Check if user exists by email
+    user = await prisma.user.findUnique({
+      where: { email: tokens.email },
     });
-    console.log('✅ saveConnection: User created:', user.id);
+    
+    if (user) {
+      console.log('🔄 saveConnection: User exists with different clerkId, updating...', user.id);
+      // Update the clerkId for this user
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          clerkId: clerkUserId,
+          name: tokens.name || user.name,
+          avatarUrl: tokens.picture || user.avatarUrl,
+        },
+      });
+      console.log('✅ saveConnection: User clerkId updated:', user.id);
+    } else {
+      console.log('📝 saveConnection: Creating new user...', clerkUserId);
+      // Create new user
+      user = await prisma.user.create({
+        data: {
+          clerkId: clerkUserId,
+          email: tokens.email,
+          name: tokens.name,
+          avatarUrl: tokens.picture,
+        },
+      });
+      console.log('✅ saveConnection: User created:', user.id);
+    }
   }
   
   console.log('💾 saveConnection: Upserting Drive connection for user:', user.id);
