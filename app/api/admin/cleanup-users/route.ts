@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
     
     if (!hollywoodUser) {
       console.log('📝 [CLEANUP] Creating legitimate Hollywood account');
-      hollywoodUser = await prisma.user.create({
+      const newUser = await prisma.user.create({
         data: {
           clerkId: clerkUserId,
           email: primaryEmail,
@@ -55,14 +55,40 @@ export async function POST(req: NextRequest) {
           avatarUrl: clerkUser.imageUrl,
         },
       });
+      // Fetch with relations to match the type
+      hollywoodUser = await prisma.user.findUnique({
+        where: { id: newUser.id },
+        include: {
+          conversations: {
+            include: {
+              messages: true,
+            },
+          },
+          fileUploads: true,
+          googleDrive: true,
+        },
+      }) || newUser as any;
     } else {
       // Update email if wrong
       if (hollywoodUser.email !== primaryEmail) {
         console.log('🔄 [CLEANUP] Updating Hollywood email from', hollywoodUser.email, 'to', primaryEmail);
-        hollywoodUser = await prisma.user.update({
+        await prisma.user.update({
           where: { id: hollywoodUser.id },
           data: { email: primaryEmail },
         });
+        // Re-fetch with relations
+        hollywoodUser = await prisma.user.findUnique({
+          where: { id: hollywoodUser.id },
+          include: {
+            conversations: {
+              include: {
+                messages: true,
+              },
+            },
+            fileUploads: true,
+            googleDrive: true,
+          },
+        }) || hollywoodUser;
       }
     }
 
