@@ -15,6 +15,9 @@ import { useConversations } from '@/hooks/use-conversations';
 import { useConversationStats } from '@/hooks/use-conversation-stats';
 import { uploadFileViaAPI } from '@/lib/file-upload-client';
 import { analyzeAudioComplete, generateFeedbackSummary } from '@/lib/audio-analyzer';
+import { CommandHandler, useCommandHandler } from './chat/CommandHandler';
+import { parseCommand, getCommandHelp } from '@/lib/chat-commands';
+import { useActiveRepo } from '@/hooks/useActiveRepo';
 
 interface Message {
   id: string;
@@ -75,6 +78,8 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
   } = useConversations(userId);
 
   const { statsData, isLoading: statsLoading, refetchStats } = useConversationStats(userId);
+  const { executeCommand } = useCommandHandler();
+  const { activeRepo } = useActiveRepo();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -231,6 +236,29 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
     if (!input.trim() || isStreaming || isUploading) return;
 
     const userMessage = input.trim();
+    
+    // Check if it's a command
+    const commandResult = executeCommand(userMessage);
+    
+    if (commandResult === true) {
+      // Command executed successfully
+      setInput('');
+      return;
+    } else if (typeof commandResult === 'string') {
+      // Command returned text (help, error, etc.)
+      setInput('');
+      if (commandResult === 'CLEAR_CHAT') {
+        // Clear chat messages (handle this if needed)
+        return;
+      }
+      // Display command result as system message
+      if (currentConversation) {
+        await addMessage('assistant', commandResult, 'confident', 'system', currentConversation.id);
+      }
+      return;
+    }
+    
+    // Not a command, proceed with regular message
     setInput('');
     setIsStreaming(true);
     setStreamingMessage('');
@@ -372,6 +400,13 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
                     {currentConversation.title}
                   </h2>
                   <EmotionIndicator emotion={currentEmotion} />
+                  {activeRepo && (
+                    <div className="px-3 py-1 bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-full">
+                      <span className="text-xs font-medium text-purple-300">
+                        📂 {activeRepo.name}
+                      </span>
+                    </div>
+                  )}
                 </div>
                 <div className="mt-2">
                   <ConversationTags
@@ -479,7 +514,7 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Message HOLLY..."
+              placeholder="Message HOLLY... (type /help for commands)"
               disabled={isStreaming || isUploading}
               className="flex-1 px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
             />
@@ -522,6 +557,9 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
           onClose={() => setShowStats(false)}
         />
       )}
+      
+      {/* Command Handler - Provides dialogs and keyboard shortcuts */}
+      <CommandHandler onCommandExecuted={(cmd) => console.log('Command executed:', cmd)} />
     </div>
   );
 }
