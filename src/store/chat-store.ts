@@ -12,6 +12,7 @@ export interface Message {
   emotion?: EmotionType;
   isStreaming?: boolean;
   model?: 'claude-opus-4' | 'groq-llama' | 'fallback';
+  metadata?: Record<string, any>;
 }
 
 interface ChatState {
