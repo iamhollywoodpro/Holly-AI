@@ -11,6 +11,7 @@ export interface ActiveRepository {
   language?: string;
   description?: string;
   url: string;
+  private?: boolean; // Is the repository private
 }
 
 interface ActiveReposState {

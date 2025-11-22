@@ -88,6 +88,7 @@ export function RepoSelector() {
       language: repo.language || undefined,
       description: repo.description || undefined,
       url: repo.htmlUrl,
+      private: repo.private,
     };
     setActiveRepo(newRepo);
     // Fetch branches for the selected repo
