@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@clerk/nextjs/server';
+
 import { Octokit } from '@octokit/rest';
 
 /**
@@ -23,9 +23,9 @@ import { Octokit } from '@octokit/rest';
  */
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const { userId } = await auth();
     
-    if (!session?.accessToken) {
+    if (!userId) {
       return NextResponse.json(
         { error: 'Unauthorized - No GitHub token' },
         { status: 401 }
@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
     }
 
     const octokit = new Octokit({
-      auth: session.accessToken,
+      auth: process.env.GITHUB_TOKEN,
     });
 
     // Build request parameters
@@ -123,9 +123,9 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const { userId } = await auth();
     
-    if (!session?.accessToken) {
+    if (!userId) {
       return NextResponse.json(
         { error: 'Unauthorized - No GitHub token' },
         { status: 401 }
@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
     }
 
     const octokit = new Octokit({
-      auth: session.accessToken,
+      auth: process.env.GITHUB_TOKEN,
     });
 
     // Create issue

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@clerk/nextjs/server';
+
 import { Octokit } from '@octokit/rest';
 
 /**
@@ -16,9 +16,9 @@ export async function GET(
   { params }: { params: { issue_number: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const { userId } = await auth();
     
-    if (!session?.accessToken) {
+    if (!userId) {
       return NextResponse.json(
         { error: 'Unauthorized - No GitHub token' },
         { status: 401 }
@@ -38,7 +38,7 @@ export async function GET(
     }
 
     const octokit = new Octokit({
-      auth: session.accessToken,
+      auth: process.env.GITHUB_TOKEN,
     });
 
     // Fetch issue
@@ -93,9 +93,9 @@ export async function PATCH(
   { params }: { params: { issue_number: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const { userId } = await auth();
     
-    if (!session?.accessToken) {
+    if (!userId) {
       return NextResponse.json(
         { error: 'Unauthorized - No GitHub token' },
         { status: 401 }
@@ -125,7 +125,7 @@ export async function PATCH(
     }
 
     const octokit = new Octokit({
-      auth: session.accessToken,
+      auth: process.env.GITHUB_TOKEN,
     });
 
     // Build update parameters
@@ -178,9 +178,9 @@ export async function DELETE(
   { params }: { params: { issue_number: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const { userId } = await auth();
     
-    if (!session?.accessToken) {
+    if (!userId) {
       return NextResponse.json(
         { error: 'Unauthorized - No GitHub token' },
         { status: 401 }
@@ -199,7 +199,7 @@ export async function DELETE(
     }
 
     const octokit = new Octokit({
-      auth: session.accessToken,
+      auth: process.env.GITHUB_TOKEN,
     });
 
     // Close issue
