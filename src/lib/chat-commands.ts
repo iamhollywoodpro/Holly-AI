@@ -4,7 +4,7 @@
  */
 
 export interface ChatCommand {
-  type: 'repos' | 'deploy' | 'pr' | 'rollback' | 'clear' | 'help' | 'unknown';
+  type: 'repos' | 'deploy' | 'pr' | 'rollback' | 'workflows' | 'team' | 'issues' | 'clear' | 'help' | 'unknown';
   args: string[];
   rawCommand: string;
 }
@@ -38,6 +38,15 @@ export function parseCommand(message: string): ChatCommand | null {
     'rollback': 'rollback',
     'rb': 'rollback',
     'revert': 'rollback',
+    'workflows': 'workflows',
+    'workflow': 'workflows',
+    'actions': 'workflows',
+    'team': 'team',
+    'collab': 'team',
+    'collaboration': 'team',
+    'issues': 'issues',
+    'issue': 'issues',
+    'bugs': 'issues',
     'clear': 'clear',
     'c': 'clear',
     'help': 'help',
@@ -81,6 +90,27 @@ export function getCommandHelp(): string {
 - One-click rollback to previous version
 - Shows commit info and build time
 - Production safety with confirmation
+
+\`/workflows\` or \`/actions\` - GitHub Actions
+- Monitor CI/CD workflows
+- View workflow runs and status
+- Trigger workflows manually
+- Download workflow logs
+- Cancel or rerun workflows
+
+\`/team\` or \`/collab\` - Team Collaboration
+- View team members and permissions
+- Comment on PRs with @mentions
+- Request code reviews
+- Assign issues to teammates
+- Team activity feed
+
+\`/issues\` or \`/bugs\` - Issue Management
+- Create issues with templates
+- Search and filter issues
+- Add labels and milestones
+- Assign to team members
+- Quick close actions
 
 \`/clear\` or \`/c\` - Clear chat history
 - Clears all messages from current session

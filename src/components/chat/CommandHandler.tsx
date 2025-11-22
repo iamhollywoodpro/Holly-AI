@@ -6,8 +6,13 @@ import { RepoSelector } from './RepoSelector';
 import { DeployDialog } from './DeployDialog';
 import { PullRequestDialog } from './PullRequestDialog';
 import { RollbackDialog } from './RollbackDialog';
+import WorkflowsPanel from './WorkflowsPanel';
+import TeamCollaborationPanel from './TeamCollaborationPanel';
+import IssueManagementPanel from './IssueManagementPanel';
+import CreateIssueDialog from './CreateIssueDialog';
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
+import { useActiveRepo } from '@/hooks/useActiveRepo';
 
 interface CommandHandlerProps {
   onCommandExecuted?: (command: string) => void;
@@ -19,6 +24,12 @@ export function CommandHandler({ onCommandExecuted }: CommandHandlerProps) {
   const [showPRDialog, setShowPRDialog] = useState(false);
   const [prBranch, setPRBranch] = useState<string | undefined>();
   const [showRollbackDialog, setShowRollbackDialog] = useState(false);
+  const [showWorkflowsPanel, setShowWorkflowsPanel] = useState(false);
+  const [showTeamPanel, setShowTeamPanel] = useState(false);
+  const [showIssuesPanel, setShowIssuesPanel] = useState(false);
+  const [showCreateIssueDialog, setShowCreateIssueDialog] = useState(false);
+  
+  const activeRepo = useActiveRepo();
 
   // Handle keyboard shortcuts
   useEffect(() => {
@@ -136,6 +147,104 @@ export function CommandHandler({ onCommandExecuted }: CommandHandlerProps) {
         isOpen={showRollbackDialog}
         onClose={() => setShowRollbackDialog(false)}
       />
+
+      {/* Workflows Panel */}
+      {showWorkflowsPanel && activeRepo && (
+        <Dialog
+          open={showWorkflowsPanel}
+          onClose={() => setShowWorkflowsPanel(false)}
+          className="relative z-50"
+        >
+          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm" aria-hidden="true" />
+          <div className="fixed inset-0 flex items-center justify-center p-4">
+            <Dialog.Panel className="w-full max-w-5xl max-h-[85vh] overflow-auto bg-white rounded-2xl shadow-xl p-6">
+              <div className="flex items-center justify-between mb-4">
+                <Dialog.Title className="text-xl font-bold">GitHub Actions Workflows</Dialog.Title>
+                <button
+                  onClick={() => setShowWorkflowsPanel(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  ✕
+                </button>
+              </div>
+              <WorkflowsPanel
+                owner={activeRepo.owner}
+                repo={activeRepo.repo}
+              />
+            </Dialog.Panel>
+          </div>
+        </Dialog>
+      )}
+
+      {/* Team Collaboration Panel */}
+      {showTeamPanel && activeRepo && (
+        <Dialog
+          open={showTeamPanel}
+          onClose={() => setShowTeamPanel(false)}
+          className="relative z-50"
+        >
+          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm" aria-hidden="true" />
+          <div className="fixed inset-0 flex items-center justify-center p-4">
+            <Dialog.Panel className="w-full max-w-3xl max-h-[80vh] overflow-auto bg-white rounded-2xl shadow-xl p-6">
+              <div className="flex items-center justify-between mb-4">
+                <Dialog.Title className="text-xl font-bold">Team Collaboration</Dialog.Title>
+                <button
+                  onClick={() => setShowTeamPanel(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  ✕
+                </button>
+              </div>
+              <TeamCollaborationPanel
+                owner={activeRepo.owner}
+                repo={activeRepo.repo}
+              />
+            </Dialog.Panel>
+          </div>
+        </Dialog>
+      )}
+
+      {/* Issue Management Panel */}
+      {showIssuesPanel && activeRepo && (
+        <Dialog
+          open={showIssuesPanel}
+          onClose={() => setShowIssuesPanel(false)}
+          className="relative z-50"
+        >
+          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm" aria-hidden="true" />
+          <div className="fixed inset-0 flex items-center justify-center p-4">
+            <Dialog.Panel className="w-full max-w-5xl max-h-[85vh] overflow-auto bg-white rounded-2xl shadow-xl p-6">
+              <div className="flex items-center justify-between mb-4">
+                <Dialog.Title className="text-xl font-bold">Issue Management</Dialog.Title>
+                <button
+                  onClick={() => setShowIssuesPanel(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  ✕
+                </button>
+              </div>
+              <IssueManagementPanel
+                owner={activeRepo.owner}
+                repo={activeRepo.repo}
+                onCreateIssue={() => setShowCreateIssueDialog(true)}
+              />
+            </Dialog.Panel>
+          </div>
+        </Dialog>
+      )}
+
+      {/* Create Issue Dialog */}
+      {showCreateIssueDialog && activeRepo && (
+        <CreateIssueDialog
+          isOpen={showCreateIssueDialog}
+          onClose={() => {
+            setShowCreateIssueDialog(false);
+            // Refresh issues panel if it's open
+          }}
+          owner={activeRepo.owner}
+          repo={activeRepo.repo}
+        />
+      )}
     </>
   );
 }
@@ -179,6 +288,18 @@ export function useCommandHandler() {
         setShowRollbackDialog(true);
         return true;
       
+      case 'workflows':
+        setShowWorkflowsPanel(true);
+        return true;
+      
+      case 'team':
+        setShowTeamPanel(true);
+        return true;
+      
+      case 'issues':
+        setShowIssuesPanel(true);
+        return true;
+      
       case 'help':
         // Return help text to be displayed in chat
         return getCommandHelp();
@@ -204,6 +325,15 @@ export function useCommandHandler() {
     setShowPRDialog,
     showRollbackDialog,
     setShowRollbackDialog,
+    showWorkflowsPanel,
+    setShowWorkflowsPanel,
+    showTeamPanel,
+    setShowTeamPanel,
+    showIssuesPanel,
+    setShowIssuesPanel,
+    showCreateIssueDialog,
+    setShowCreateIssueDialog,
+    activeRepo,
     executeCommand,
   };
 }
