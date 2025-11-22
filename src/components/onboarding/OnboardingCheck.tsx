@@ -33,61 +33,15 @@ export default function OnboardingCheck() {
   }, [isLoaded, user, searchParams]);
 
   const checkOnboardingStatus = async () => {
-    // Skip if already on onboarding page
-    if (pathname === '/onboarding') {
-      setIsChecking(false);
-      return;
-    }
+    // DISABLED: Onboarding is now optional via chat interface
+    // Drive and GitHub connections are accessible through indicators in header
+    // Users can connect at their convenience without forced onboarding flow
     
-    // Skip if not on home page
-    if (pathname !== '/') {
-      setIsChecking(false);
-      return;
-    }
-
-    // Skip if not authenticated
-    if (!user) {
-      setIsChecking(false);
-      return;
-    }
-
-    // Check if onboarding was completed (localStorage)
-    const onboardingCompleted = localStorage.getItem('holly_onboarding_completed');
-    
-    if (onboardingCompleted === 'true') {
-      setIsChecking(false);
-      return;
-    }
-
-    // Check if user has Drive connected (skip onboarding)
-    try {
-      const response = await fetch('/api/google-drive/status');
-      const data = await response.json();
-      
-      if (data.connected) {
-        // Already connected, mark onboarding as complete permanently
-        localStorage.setItem('holly_onboarding_completed', 'true');
-        console.log('✅ Google Drive already connected - skipping onboarding');
-        setIsChecking(false);
-        return;
-      }
-    } catch (error) {
-      console.error('Failed to check Drive status:', error);
-    }
-
-    // Check user's account age (only show onboarding for new users)
-    const userCreatedAt = new Date(user.createdAt).getTime();
-    const now = Date.now();
-    const daysSinceCreation = (now - userCreatedAt) / (1000 * 60 * 60 * 24);
-
-    // Only redirect if user is less than 7 days old and hasn't completed onboarding
-    if (daysSinceCreation < 7) {
-      router.push('/onboarding');
-    } else {
-      // Old user, mark onboarding as complete
-      localStorage.setItem('holly_onboarding_completed', 'true');
-      setIsChecking(false);
-    }
+    // Always mark onboarding as complete (opt-in via chat instead of forced flow)
+    localStorage.setItem('holly_onboarding_completed', 'true');
+    console.log('✅ Onboarding disabled - Drive/GitHub connections available via header');
+    setIsChecking(false);
+    return;
   };
 
   // Don't render anything
