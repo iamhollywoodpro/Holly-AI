@@ -4,7 +4,7 @@
  */
 
 export interface ChatCommand {
-  type: 'repos' | 'deploy' | 'pr' | 'clear' | 'help' | 'unknown';
+  type: 'repos' | 'deploy' | 'pr' | 'rollback' | 'clear' | 'help' | 'unknown';
   args: string[];
   rawCommand: string;
 }
@@ -35,6 +35,9 @@ export function parseCommand(message: string): ChatCommand | null {
     'pr': 'pr',
     'pull': 'pr',
     'pullrequest': 'pr',
+    'rollback': 'rollback',
+    'rb': 'rollback',
+    'revert': 'rollback',
     'clear': 'clear',
     'c': 'clear',
     'help': 'help',
@@ -72,6 +75,12 @@ export function getCommandHelp(): string {
 - \`/pr [branch]\` - Create PR from specific branch
 - \`/pr review\` - Request review from team
 - Requires active repository selection
+
+\`/rollback\` or \`/rb\` - Deployment Rollback
+- View deployment history
+- One-click rollback to previous version
+- Shows commit info and build time
+- Production safety with confirmation
 
 \`/clear\` or \`/c\` - Clear chat history
 - Clears all messages from current session

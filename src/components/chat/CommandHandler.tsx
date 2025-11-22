@@ -5,6 +5,7 @@ import { parseCommand, getCommandHelp, matchesShortcut } from '@/lib/chat-comman
 import { RepoSelector } from './RepoSelector';
 import { DeployDialog } from './DeployDialog';
 import { PullRequestDialog } from './PullRequestDialog';
+import { RollbackDialog } from './RollbackDialog';
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
 
@@ -17,6 +18,7 @@ export function CommandHandler({ onCommandExecuted }: CommandHandlerProps) {
   const [showDeployDialog, setShowDeployDialog] = useState(false);
   const [showPRDialog, setShowPRDialog] = useState(false);
   const [prBranch, setPRBranch] = useState<string | undefined>();
+  const [showRollbackDialog, setShowRollbackDialog] = useState(false);
 
   // Handle keyboard shortcuts
   useEffect(() => {
@@ -128,6 +130,12 @@ export function CommandHandler({ onCommandExecuted }: CommandHandlerProps) {
         }}
         defaultBranch={prBranch}
       />
+
+      {/* Rollback Dialog */}
+      <RollbackDialog
+        isOpen={showRollbackDialog}
+        onClose={() => setShowRollbackDialog(false)}
+      />
     </>
   );
 }
@@ -140,6 +148,7 @@ export function useCommandHandler() {
   const [showDeployDialog, setShowDeployDialog] = useState(false);
   const [showPRDialog, setShowPRDialog] = useState(false);
   const [prBranch, setPRBranch] = useState<string | undefined>();
+  const [showRollbackDialog, setShowRollbackDialog] = useState(false);
 
   const executeCommand = (message: string) => {
     const command = parseCommand(message);
@@ -166,6 +175,10 @@ export function useCommandHandler() {
         setShowPRDialog(true);
         return true;
       
+      case 'rollback':
+        setShowRollbackDialog(true);
+        return true;
+      
       case 'help':
         // Return help text to be displayed in chat
         return getCommandHelp();
@@ -189,6 +202,8 @@ export function useCommandHandler() {
     setShowDeployDialog,
     showPRDialog,
     setShowPRDialog,
+    showRollbackDialog,
+    setShowRollbackDialog,
     executeCommand,
   };
 }
