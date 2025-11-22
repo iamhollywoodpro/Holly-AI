@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { parseCommand, getCommandHelp, matchesShortcut } from '@/lib/chat-commands';
 import { RepoSelector } from './RepoSelector';
 import { DeployDialog } from './DeployDialog';
+import { PullRequestDialog } from './PullRequestDialog';
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
 
@@ -14,6 +15,8 @@ interface CommandHandlerProps {
 export function CommandHandler({ onCommandExecuted }: CommandHandlerProps) {
   const [showRepoSelector, setShowRepoSelector] = useState(false);
   const [showDeployDialog, setShowDeployDialog] = useState(false);
+  const [showPRDialog, setShowPRDialog] = useState(false);
+  const [prBranch, setPRBranch] = useState<string | undefined>();
 
   // Handle keyboard shortcuts
   useEffect(() => {
@@ -37,6 +40,10 @@ export function CommandHandler({ onCommandExecuted }: CommandHandlerProps) {
         event.preventDefault();
         setShowDeployDialog(true);
         onCommandExecuted?.('/deploy');
+      } else if (matchesShortcut(event, 'pr')) {
+        event.preventDefault();
+        setShowPRDialog(true);
+        onCommandExecuted?.('/pr');
       }
     };
 
@@ -111,6 +118,16 @@ export function CommandHandler({ onCommandExecuted }: CommandHandlerProps) {
         isOpen={showDeployDialog}
         onClose={() => setShowDeployDialog(false)}
       />
+
+      {/* Pull Request Dialog */}
+      <PullRequestDialog
+        isOpen={showPRDialog}
+        onClose={() => {
+          setShowPRDialog(false);
+          setPRBranch(undefined);
+        }}
+        defaultBranch={prBranch}
+      />
     </>
   );
 }
@@ -121,6 +138,8 @@ export function CommandHandler({ onCommandExecuted }: CommandHandlerProps) {
 export function useCommandHandler() {
   const [showRepoSelector, setShowRepoSelector] = useState(false);
   const [showDeployDialog, setShowDeployDialog] = useState(false);
+  const [showPRDialog, setShowPRDialog] = useState(false);
+  const [prBranch, setPRBranch] = useState<string | undefined>();
 
   const executeCommand = (message: string) => {
     const command = parseCommand(message);
@@ -136,6 +155,15 @@ export function useCommandHandler() {
       
       case 'deploy':
         setShowDeployDialog(true);
+        return true;
+      
+      case 'pr':
+        // Extract branch from args if provided (/pr feature-branch)
+        const branch = command.args[0];
+        if (branch && branch !== 'review') {
+          setPRBranch(branch);
+        }
+        setShowPRDialog(true);
         return true;
       
       case 'help':
@@ -159,6 +187,8 @@ export function useCommandHandler() {
     setShowRepoSelector,
     showDeployDialog,
     setShowDeployDialog,
+    showPRDialog,
+    setShowPRDialog,
     executeCommand,
   };
 }

@@ -3,8 +3,10 @@
 import { useState, useEffect, Fragment } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon, CheckCircleIcon, ExclamationCircleIcon } from '@heroicons/react/24/outline';
-import { useActiveRepo } from '@/hooks/useActiveRepo';
+import { useActiveRepo } from '@/hooks/useActiveRepos';
 import type { GitHubFile } from '@/lib/github-api';
+import { CodeReviewPanel } from './CodeReviewPanel';
+import type { CodeReviewResult } from '@/lib/code-reviewer';
 
 interface CommitDialogProps {
   isOpen: boolean;
@@ -28,6 +30,8 @@ export function CommitDialog({ isOpen, onClose, files, suggestedMessage }: Commi
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [commitUrl, setCommitUrl] = useState('');
+  const [showReview, setShowReview] = useState(true);
+  const [reviewResult, setReviewResult] = useState<CodeReviewResult | null>(null);
   const [editableFiles, setEditableFiles] = useState<GitHubFile[]>([]);
 
   // Initialize editable files when dialog opens
@@ -348,6 +352,29 @@ export function CommitDialog({ isOpen, onClose, files, suggestedMessage }: Commi
                         </div>
                       </div>
 
+                      {/* Code Review Panel */}
+                      {showReview && files.length > 0 && (
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <label className="text-sm font-medium text-gray-300">
+                              🤖 AI Code Review
+                            </label>
+                            <button
+                              onClick={() => setShowReview(!showReview)}
+                              className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
+                            >
+                              {showReview ? 'Hide' : 'Show'}
+                            </button>
+                          </div>
+                          <div className="bg-gray-800/50 rounded-lg border border-gray-700 overflow-hidden">
+                            <CodeReviewPanel
+                              files={files}
+                              onReviewComplete={setReviewResult}
+                            />
+                          </div>
+                        </div>
+                      )}
+
                       {/* Error Message */}
                       {error && (
                         <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
@@ -366,9 +393,13 @@ export function CommitDialog({ isOpen, onClose, files, suggestedMessage }: Commi
                         <button
                           onClick={handleCommit}
                           disabled={loading || !commitMessage.trim()}
-                          className="flex-1 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          className={`flex-1 px-4 py-2 bg-gradient-to-r ${
+                            reviewResult && reviewResult.summary.errors > 0
+                              ? 'from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600'
+                              : 'from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600'
+                          } text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
                         >
-                          {loading ? 'Committing...' : 'Commit & Push ✅'}
+                          {loading ? 'Committing...' : reviewResult && reviewResult.summary.errors > 0 ? '⚠️ Commit Anyway' : 'Commit & Push ✅'}
                         </button>
                       </div>
                     </div>

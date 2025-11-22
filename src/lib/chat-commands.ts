@@ -4,7 +4,7 @@
  */
 
 export interface ChatCommand {
-  type: 'repos' | 'deploy' | 'clear' | 'help' | 'unknown';
+  type: 'repos' | 'deploy' | 'pr' | 'clear' | 'help' | 'unknown';
   args: string[];
   rawCommand: string;
 }
@@ -32,6 +32,9 @@ export function parseCommand(message: string): ChatCommand | null {
     'repositories': 'repos',
     'deploy': 'deploy',
     'd': 'deploy',
+    'pr': 'pr',
+    'pull': 'pr',
+    'pullrequest': 'pr',
     'clear': 'clear',
     'c': 'clear',
     'help': 'help',
@@ -63,6 +66,13 @@ export function getCommandHelp(): string {
 - Shows deployment status in real-time
 - Requires active repository selection
 
+\`/pr\` or \`/pull\` - Create Pull Request
+- Opens PR creation dialog
+- \`/pr\` - Create PR from current branch
+- \`/pr [branch]\` - Create PR from specific branch
+- \`/pr review\` - Request review from team
+- Requires active repository selection
+
 \`/clear\` or \`/c\` - Clear chat history
 - Clears all messages from current session
 - Does not affect repository selection
@@ -73,6 +83,7 @@ export function getCommandHelp(): string {
 **Keyboard Shortcuts:**
 - \`Ctrl+R\` / \`Cmd+R\` - Open repositories
 - \`Ctrl+D\` / \`Cmd+D\` - Deploy
+- \`Ctrl+P\` / \`Cmd+P\` - Create PR
 - \`Ctrl+Enter\` - Send message
 `.trim();
 }
@@ -82,7 +93,7 @@ export function getCommandHelp(): string {
  */
 export function matchesShortcut(
   event: KeyboardEvent,
-  command: 'repos' | 'deploy'
+  command: 'repos' | 'deploy' | 'pr'
 ): boolean {
   const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
   const modifierKey = isMac ? event.metaKey : event.ctrlKey;
@@ -94,6 +105,8 @@ export function matchesShortcut(
       return event.key.toLowerCase() === 'r';
     case 'deploy':
       return event.key.toLowerCase() === 'd';
+    case 'pr':
+      return event.key.toLowerCase() === 'p';
     default:
       return false;
   }

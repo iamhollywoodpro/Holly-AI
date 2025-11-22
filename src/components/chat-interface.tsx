@@ -17,7 +17,8 @@ import { uploadFileViaAPI } from '@/lib/file-upload-client';
 import { analyzeAudioComplete, generateFeedbackSummary } from '@/lib/audio-analyzer';
 import { CommandHandler, useCommandHandler } from './chat/CommandHandler';
 import { parseCommand, getCommandHelp } from '@/lib/chat-commands';
-import { useActiveRepo } from '@/hooks/useActiveRepo';
+import { useActiveRepo } from '@/hooks/useActiveRepos';
+import { RepoTabs } from './chat/RepoTabs';
 
 interface Message {
   id: string;
@@ -442,6 +443,9 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
             </div>
           </div>
         )}
+
+        {/* Multi-Repository Tabs */}
+        <RepoTabs />
 
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {displayMessages.length === 0 ? (

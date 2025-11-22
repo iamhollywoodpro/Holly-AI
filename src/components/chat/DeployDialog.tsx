@@ -9,7 +9,13 @@ import {
   ArrowPathIcon,
   RocketLaunchIcon 
 } from '@heroicons/react/24/outline';
-import { useActiveRepo } from '@/hooks/useActiveRepo';
+import { useActiveRepo } from '@/hooks/useActiveRepos';
+import { 
+  DeploymentEnvironment, 
+  getDeploymentTarget, 
+  DEPLOYMENT_TARGETS,
+  formatDeploymentState 
+} from '@/types/deployment';
 
 interface DeployDialogProps {
   isOpen: boolean;
@@ -31,6 +37,8 @@ export function DeployDialog({ isOpen, onClose }: DeployDialogProps) {
   const [error, setError] = useState('');
   const [deployment, setDeployment] = useState<DeploymentInfo | null>(null);
   const [logs, setLogs] = useState<string[]>([]);
+  const [selectedEnvironment, setSelectedEnvironment] = useState<DeploymentEnvironment>('preview');
+  const [showConfirmation, setShowConfirmation] = useState(false);
 
   const addLog = (message: string) => {
     const timestamp = new Date().toLocaleTimeString();
@@ -43,11 +51,21 @@ export function DeployDialog({ isOpen, onClose }: DeployDialogProps) {
       return;
     }
 
+    const target = getDeploymentTarget(selectedEnvironment);
+
+    // Require confirmation for production deployments
+    if (target.requiresConfirmation && !showConfirmation) {
+      setShowConfirmation(true);
+      return;
+    }
+
     try {
       setStatus('deploying');
       setError('');
       setLogs([]);
-      addLog('Starting deployment...');
+      setShowConfirmation(false);
+      addLog(`Starting ${target.name} deployment...`);
+      addLog(`Environment: ${target.environment}`);
 
       const response = await fetch('/api/vercel/deploy', {
         method: 'POST',
@@ -55,6 +73,8 @@ export function DeployDialog({ isOpen, onClose }: DeployDialogProps) {
         body: JSON.stringify({
           owner: activeRepo.owner,
           repo: activeRepo.repo,
+          environment: selectedEnvironment,
+          target: target.environment === 'production' ? 'production' : undefined,
         }),
       });
 
@@ -230,11 +250,16 @@ export function DeployDialog({ isOpen, onClose }: DeployDialogProps) {
                   <div className="text-center py-8">
                     <CheckCircleIcon className="w-16 h-16 text-green-500 mx-auto mb-4" />
                     <Dialog.Title className="text-2xl font-bold text-white mb-2">
-                      🎉 Deployed Successfully!
+                      {DEPLOYMENT_TARGETS[selectedEnvironment].icon} Deployed Successfully!
                     </Dialog.Title>
-                    <p className="text-gray-400 mb-4">
-                      Your changes are now live on Vercel
+                    <p className="text-gray-400 mb-2">
+                      Your changes are now live on <span className={DEPLOYMENT_TARGETS[selectedEnvironment].color}>{DEPLOYMENT_TARGETS[selectedEnvironment].name}</span>
                     </p>
+                    {DEPLOYMENT_TARGETS[selectedEnvironment].domain && (
+                      <p className="text-sm text-gray-500 mb-4">
+                        {DEPLOYMENT_TARGETS[selectedEnvironment].domain}
+                      </p>
+                    )}
                     {deployment?.url && (
                       <a
                         href={`https://${deployment.url}`}
@@ -271,6 +296,57 @@ export function DeployDialog({ isOpen, onClose }: DeployDialogProps) {
                     </div>
 
                     <div className="space-y-4">
+                      {/* Environment Selector */}
+                      <div className="space-y-2">
+                        <label className="text-sm font-semibold text-gray-400">Deploy Environment</label>
+                        <div className="grid grid-cols-3 gap-2">
+                          {(Object.keys(DEPLOYMENT_TARGETS) as DeploymentEnvironment[]).map((env) => {
+                            const target = DEPLOYMENT_TARGETS[env];
+                            const isSelected = selectedEnvironment === env;
+                            return (
+                              <button
+                                key={env}
+                                onClick={() => {
+                                  if (target.requiresConfirmation && !showConfirmation) {
+                                    setShowConfirmation(true);
+                                  }
+                                  setSelectedEnvironment(env);
+                                }}
+                                disabled={status === 'deploying'}
+                                className={`
+                                  p-3 rounded-lg border transition-all text-left
+                                  disabled:opacity-50 disabled:cursor-not-allowed
+                                  ${
+                                    isSelected
+                                      ? 'border-purple-500 bg-purple-500/10'
+                                      : 'border-gray-700 bg-gray-800/50 hover:border-gray-600'
+                                  }
+                                `}
+                              >
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-lg">{target.icon}</span>
+                                  <span className={`text-sm font-semibold ${
+                                    isSelected ? 'text-white' : 'text-gray-300'
+                                  }`}>
+                                    {target.name}
+                                  </span>
+                                </div>
+                                {target.domain && (
+                                  <div className="text-xs text-gray-500 truncate">
+                                    {target.domain}
+                                  </div>
+                                )}
+                                {target.requiresConfirmation && (
+                                  <div className="text-xs text-yellow-500 mt-1">
+                                    ⚠️ Requires confirmation
+                                  </div>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
                       {/* Repository Info */}
                       <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700">
                         <div className="text-sm text-gray-400">Repository</div>
@@ -300,6 +376,27 @@ export function DeployDialog({ isOpen, onClose }: DeployDialogProps) {
                         </div>
                       )}
 
+                      {/* Production Confirmation Warning */}
+                      {showConfirmation && selectedEnvironment === 'production' && (
+                        <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
+                          <div className="flex items-start gap-3">
+                            <ExclamationCircleIcon className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
+                            <div>
+                              <div className="text-sm font-semibold text-yellow-500 mb-1">
+                                Production Deployment Confirmation
+                              </div>
+                              <div className="text-sm text-gray-300 mb-2">
+                                You are about to deploy to <strong className="text-white">production</strong>.
+                                This will affect live users at <strong className="text-white">{DEPLOYMENT_TARGETS.production.domain}</strong>.
+                              </div>
+                              <div className="text-xs text-gray-400">
+                                Make sure you've tested your changes in preview first.
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
                       {/* Error Message */}
                       {error && (
                         <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
@@ -319,9 +416,16 @@ export function DeployDialog({ isOpen, onClose }: DeployDialogProps) {
                             </button>
                             <button
                               onClick={handleDeploy}
-                              className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white rounded-lg transition-colors"
+                              className={`flex-1 px-4 py-2 bg-gradient-to-r ${
+                                selectedEnvironment === 'production'
+                                  ? 'from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600'
+                                  : selectedEnvironment === 'development'
+                                  ? 'from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600'
+                                  : 'from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600'
+                              } text-white rounded-lg transition-colors font-semibold`}
                             >
-                              🚀 Deploy Now
+                              {DEPLOYMENT_TARGETS[selectedEnvironment].icon} Deploy to {DEPLOYMENT_TARGETS[selectedEnvironment].name}
+                              {showConfirmation && selectedEnvironment === 'production' && ' (Click to Confirm)'}
                             </button>
                           </>
                         ) : status === 'deploying' ? (

@@ -12,7 +12,7 @@ import { speakText, stopSpeaking, isSpeaking } from '@/lib/voice/enhanced-voice-
 import { useVoiceSettings } from '@/hooks/useVoiceSettings';
 import { CommitButton } from './chat/CommitButton';
 import { DeployButton } from './chat/DeployButton';
-import { useActiveRepo } from '@/hooks/useActiveRepo';
+import { useActiveRepo } from '@/hooks/useActiveRepos';
 import type { GitHubFile } from '@/lib/github-api';
 
 interface ChatMessageProps {

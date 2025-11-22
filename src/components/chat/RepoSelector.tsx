@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useActiveRepo } from '@/hooks/useActiveRepo';
+import { useActiveRepo } from '@/hooks/useActiveRepos';
 import { XMarkIcon, MagnifyingGlassIcon, ClockIcon } from '@heroicons/react/24/outline';
 
 interface Repository {
