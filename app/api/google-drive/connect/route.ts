@@ -10,19 +10,14 @@ export async function GET(req: NextRequest) {
     const { userId } = await auth();
     
     if (!userId) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.redirect(new URL('/sign-in', req.url));
     }
     
     // Get OAuth2 authorization URL
     const authUrl = getAuthUrl(userId);
     
-    return NextResponse.json({
-      success: true,
-      authUrl,
-    });
+    // Redirect browser to Google OAuth page (like GitHub does)
+    return NextResponse.redirect(authUrl);
     
   } catch (error: any) {
     console.error('Get auth URL error:', error);
