@@ -28,6 +28,22 @@ export function CommitDialog({ isOpen, onClose, files, suggestedMessage }: Commi
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [commitUrl, setCommitUrl] = useState('');
+  const [editableFiles, setEditableFiles] = useState<GitHubFile[]>([]);
+
+  // Initialize editable files when dialog opens
+  useEffect(() => {
+    if (isOpen && files.length > 0) {
+      setEditableFiles([...files]);
+    }
+  }, [isOpen, files]);
+
+  const updateFilePath = (index: number, newPath: string) => {
+    setEditableFiles(prev => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], path: newPath };
+      return updated;
+    });
+  };
 
   // Set suggested message when dialog opens
   useEffect(() => {
@@ -40,7 +56,8 @@ export function CommitDialog({ isOpen, onClose, files, suggestedMessage }: Commi
   useEffect(() => {
     if (isOpen && activeRepo) {
       fetchBranches();
-      setSelectedBranch(activeRepo.defaultBranch);
+      // Use the currently selected branch from the repo selector
+      setSelectedBranch(activeRepo.branch || activeRepo.defaultBranch);
     }
   }, [isOpen, activeRepo]);
 
@@ -95,7 +112,7 @@ export function CommitDialog({ isOpen, onClose, files, suggestedMessage }: Commi
           repo: activeRepo.repo,
           branch: selectedBranch,
           message: commitMessage,
-          files,
+          files: editableFiles,
         }),
       });
 
@@ -126,6 +143,7 @@ export function CommitDialog({ isOpen, onClose, files, suggestedMessage }: Commi
     setError('');
     setSuccess(false);
     setCommitUrl('');
+    setEditableFiles([]);
     onClose();
   };
 
@@ -298,22 +316,32 @@ export function CommitDialog({ isOpen, onClose, files, suggestedMessage }: Commi
                         />
                       </div>
 
-                      {/* Files List */}
+                      {/* Files List - Editable */}
                       <div>
                         <label className="block text-sm font-medium text-gray-300 mb-2">
-                          Files ({files.length})
+                          Files ({editableFiles.length})
+                          <span className="text-xs text-gray-500 ml-2">Click to edit paths</span>
                         </label>
-                        <div className="bg-gray-800/50 rounded-lg border border-gray-700 max-h-32 overflow-y-auto">
-                          {files.map((file, index) => (
+                        <div className="bg-gray-800/50 rounded-lg border border-gray-700 max-h-64 overflow-y-auto">
+                          {editableFiles.map((file, index) => (
                             <div
                               key={index}
-                              className="px-3 py-2 border-b border-gray-700 last:border-b-0"
+                              className="px-3 py-3 border-b border-gray-700 last:border-b-0"
                             >
-                              <div className="flex items-center gap-2">
-                                <span className="text-green-500">✓</span>
-                                <span className="text-sm text-white font-mono">
-                                  {file.path}
-                                </span>
+                              <div className="flex items-start gap-2">
+                                <span className="text-green-500 mt-2">✓</span>
+                                <div className="flex-1">
+                                  <input
+                                    type="text"
+                                    value={file.path}
+                                    onChange={(e) => updateFilePath(index, e.target.value)}
+                                    placeholder="path/to/file.tsx"
+                                    className="w-full px-3 py-1.5 bg-gray-900 border border-gray-600 rounded text-sm text-white font-mono focus:outline-none focus:border-purple-500"
+                                  />
+                                  <div className="text-xs text-gray-500 mt-1">
+                                    {file.content.split('\n').length} lines
+                                  </div>
+                                </div>
                               </div>
                             </div>
                           ))}

@@ -7,6 +7,7 @@ export interface ActiveRepository {
   name: string;
   fullName: string;
   defaultBranch: string;
+  branch: string; // Currently selected branch
   language?: string;
   description?: string;
   url: string;
@@ -15,6 +16,7 @@ export interface ActiveRepository {
 interface ActiveRepoState {
   activeRepo: ActiveRepository | null;
   setActiveRepo: (repo: ActiveRepository | null) => void;
+  setBranch: (branch: string) => void;
   clearActiveRepo: () => void;
 }
 
@@ -27,6 +29,15 @@ export const useActiveRepo = create<ActiveRepoState>()(
     (set) => ({
       activeRepo: null,
       setActiveRepo: (repo) => set({ activeRepo: repo }),
+      setBranch: (branch) => set((state) => {
+        if (!state.activeRepo) return state;
+        return {
+          activeRepo: {
+            ...state.activeRepo,
+            branch,
+          },
+        };
+      }),
       clearActiveRepo: () => set({ activeRepo: null }),
     }),
     {

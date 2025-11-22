@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { ArrowUpTrayIcon } from '@heroicons/react/24/outline';
 import { CommitDialog } from './CommitDialog';
 import type { GitHubFile } from '@/lib/github-api';
+import { generateCommitMessage, formatCommitMessage } from '@/lib/commit-message-generator';
 
 interface CommitButtonProps {
   files: GitHubFile[];
@@ -13,6 +14,12 @@ interface CommitButtonProps {
 
 export function CommitButton({ files, suggestedMessage, className = '' }: CommitButtonProps) {
   const [showDialog, setShowDialog] = useState(false);
+  
+  // Generate smart commit message if not provided
+  const commitMessage = suggestedMessage || (() => {
+    const result = generateCommitMessage(files);
+    return formatCommitMessage(result);
+  })();
 
   if (files.length === 0) {
     return null;
@@ -42,7 +49,7 @@ export function CommitButton({ files, suggestedMessage, className = '' }: Commit
         isOpen={showDialog}
         onClose={() => setShowDialog(false)}
         files={files}
-        suggestedMessage={suggestedMessage}
+        suggestedMessage={commitMessage}
       />
     </>
   );
