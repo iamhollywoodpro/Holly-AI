@@ -106,32 +106,40 @@ export const useActiveRepos = create<ActiveReposState>()(
 /**
  * Backward compatibility hook
  * Provides the same API as useActiveRepo but uses multi-repo store
+ * Fixed to properly subscribe to Zustand state changes
  */
 export function useActiveRepo() {
-  const store = useActiveRepos();
+  // Subscribe to actual state values (not functions)
+  const activeRepos = useActiveRepos(state => state.activeRepos);
+  const currentRepoId = useActiveRepos(state => state.currentRepoId);
+  const addRepo = useActiveRepos(state => state.addRepo);
+  const removeRepo = useActiveRepos(state => state.removeRepo);
+  const setBranchForRepo = useActiveRepos(state => state.setBranchForRepo);
+  
+  // Derive activeRepo from subscribed state (reactive)
+  const activeRepo = currentRepoId 
+    ? activeRepos.find(r => r.fullName === currentRepoId) || null
+    : null;
   
   return {
-    activeRepo: store.getCurrentRepo(),
+    activeRepo,
     setActiveRepo: (repo: ActiveRepository | null) => {
       if (repo) {
-        store.addRepo(repo);
+        addRepo(repo);
       } else {
-        const current = store.getCurrentRepo();
-        if (current) {
-          store.removeRepo(current.fullName);
+        if (activeRepo) {
+          removeRepo(activeRepo.fullName);
         }
       }
     },
     setBranch: (branch: string) => {
-      const current = store.getCurrentRepo();
-      if (current) {
-        store.setBranchForRepo(current.fullName, branch);
+      if (activeRepo) {
+        setBranchForRepo(activeRepo.fullName, branch);
       }
     },
     clearActiveRepo: () => {
-      const current = store.getCurrentRepo();
-      if (current) {
-        store.removeRepo(current.fullName);
+      if (activeRepo) {
+        removeRepo(activeRepo.fullName);
       }
     },
   };
