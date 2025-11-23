@@ -68,7 +68,7 @@ export function RepoSelector() {
         return;
       }
 
-      setRepos(data.repositories || []);
+      setRepos(data.repos || []);
     } catch (err: any) {
       setError(err.message || 'Failed to fetch repositories');
     } finally {
