@@ -32,6 +32,7 @@ import { SuccessToast } from '@/components/notifications/SuccessToast';
 import { DriveIndicator } from '@/components/indicators/DriveIndicator';
 import { GitHubIndicator } from '@/components/indicators/GitHubIndicator';
 import { useSearchParams } from 'next/navigation';
+import { CommandHandler, CommandHandlerRef } from '@/components/chat/CommandHandler';
 
 interface Message {
   id: string;
@@ -45,6 +46,7 @@ interface Message {
 export default function ChatPage() {
   const { user } = useUser();
   const searchParams = useSearchParams();
+  const commandHandlerRef = useRef<CommandHandlerRef>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   
   const [isTyping, setIsTyping] = useState(false);
@@ -233,6 +235,13 @@ export default function ChatPage() {
 
   const handleSend = async (message: string, fromVoice: boolean = false) => {
     if (!message.trim() || isTyping) return;
+    
+    // Check if it's a command FIRST
+    const commandResult = commandHandlerRef.current?.executeCommand(message.trim());
+    if (commandResult === true) {
+      // Command executed successfully - don't send to AI
+      return;
+    }
     
     // Track if this is from voice (will be reset after response)
     const shouldAutoSpeak = fromVoice || lastInputWasVoice;
@@ -850,6 +859,9 @@ export default function ChatPage() {
         onClose={() => setShowSuccessToast(false)}
         duration={5000}
       />
+      
+      {/* Command Handler for /workflows, /team, /issues commands */}
+      <CommandHandler ref={commandHandlerRef} />
     </div>
     </>
   );
