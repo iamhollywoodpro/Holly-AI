@@ -56,10 +56,11 @@ export function RepoSelector() {
     fetchRepos();
   }, []);
 
-  const fetchRepos = async () => {
+  const fetchRepos = async (sync: boolean = true) => {
     try {
       setLoading(true);
-      const response = await fetch('/api/github/repos');
+      const url = sync ? '/api/github/repos?sync=true' : '/api/github/repos';
+      const response = await fetch(url);
       const data = await response.json();
 
       if (data.error) {

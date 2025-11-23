@@ -120,6 +120,10 @@ export const CommandHandler = forwardRef<CommandHandlerRef, CommandHandlerProps>
 
       // Check for shortcuts
       if (matchesShortcut(event, 'repos')) {
+        // Don't intercept Ctrl+Shift+R (browser hard refresh)
+        if (event.shiftKey) {
+          return;
+        }
         event.preventDefault();
         setShowRepoSelector(true);
         onCommandExecuted?.('/repos');
