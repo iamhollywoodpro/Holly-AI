@@ -29,7 +29,7 @@ export function CommandHandler({ onCommandExecuted }: CommandHandlerProps) {
   const [showIssuesPanel, setShowIssuesPanel] = useState(false);
   const [showCreateIssueDialog, setShowCreateIssueDialog] = useState(false);
   
-  const activeRepo = useActiveRepo();
+  const { activeRepo } = useActiveRepo();
 
   // Handle keyboard shortcuts
   useEffect(() => {
