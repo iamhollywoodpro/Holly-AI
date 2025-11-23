@@ -15,7 +15,7 @@ import { useConversations } from '@/hooks/use-conversations';
 import { useConversationStats } from '@/hooks/use-conversation-stats';
 import { uploadFileViaAPI } from '@/lib/file-upload-client';
 import { analyzeAudioComplete, generateFeedbackSummary } from '@/lib/audio-analyzer';
-import CommandHandler, { useCommandHandler } from './chat/CommandHandler';
+import { CommandHandler, useCommandHandler } from './chat/CommandHandler';
 import { parseCommand, getCommandHelp } from '@/lib/chat-commands';
 import { useActiveRepo } from '@/hooks/useActiveRepos';
 import { RepoTabs } from './chat/RepoTabs';
