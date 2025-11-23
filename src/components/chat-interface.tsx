@@ -239,7 +239,7 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
     const userMessage = input.trim();
     
     // Check if it's a command
-    const commandResult = await executeCommand(userMessage);
+    const commandResult = executeCommand(userMessage);
     
     if (commandResult === true) {
       // Command executed successfully

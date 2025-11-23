@@ -1,239 +1,344 @@
 'use client';
 
-import React, { useState } from 'react';
-import { parseCommand } from '@/lib/chat-commands';
-import { useActiveRepo } from '@/hooks/useActiveRepo';
-import CompareDialog from './CompareDialog';
-import CommitDialog from './CommitDialog';
-import BranchDialog from './BranchDialog';
-import PullRequestDialog from './PullRequestDialog';
+import { useState, useEffect } from 'react';
+import { parseCommand, getCommandHelp, matchesShortcut } from '@/lib/chat-commands';
+import { RepoSelector } from './RepoSelector';
+import { DeployDialog } from './DeployDialog';
+import { PullRequestDialog } from './PullRequestDialog';
+import { RollbackDialog } from './RollbackDialog';
 import WorkflowsPanel from './WorkflowsPanel';
 import TeamCollaborationPanel from './TeamCollaborationPanel';
 import IssueManagementPanel from './IssueManagementPanel';
+import CreateIssueDialog from './CreateIssueDialog';
+import { Dialog, Transition } from '@headlessui/react';
+import { Fragment } from 'react';
+import { useActiveRepo } from '@/hooks/useActiveRepo';
 
-export default function CommandHandler() {
-  const [showCompare, setShowCompare] = useState(false);
-  const [showCommit, setShowCommit] = useState(false);
-  const [showBranch, setShowBranch] = useState(false);
-  const [showPR, setShowPR] = useState(false);
+interface CommandHandlerProps {
+  onCommandExecuted?: (command: string) => void;
+}
+
+export function CommandHandler({ onCommandExecuted }: CommandHandlerProps) {
+  const [showRepoSelector, setShowRepoSelector] = useState(false);
+  const [showDeployDialog, setShowDeployDialog] = useState(false);
+  const [showPRDialog, setShowPRDialog] = useState(false);
+  const [prBranch, setPRBranch] = useState<string | undefined>();
+  const [showRollbackDialog, setShowRollbackDialog] = useState(false);
   const [showWorkflowsPanel, setShowWorkflowsPanel] = useState(false);
   const [showTeamPanel, setShowTeamPanel] = useState(false);
   const [showIssuesPanel, setShowIssuesPanel] = useState(false);
+  const [showCreateIssueDialog, setShowCreateIssueDialog] = useState(false);
+  
+  const { activeRepo } = useActiveRepo();
 
-  const [compareData, setCompareData] = useState<{
-    base: string;
-    compare: string;
-  } | null>(null);
+  // Handle keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Ignore if user is typing in an input/textarea
+      const target = event.target as HTMLElement;
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable
+      ) {
+        return;
+      }
 
-  const [commitData, setCommitData] = useState<{
-    branch: string;
-    message?: string;
-  } | null>(null);
+      // Check for shortcuts
+      if (matchesShortcut(event, 'repos')) {
+        event.preventDefault();
+        setShowRepoSelector(true);
+        onCommandExecuted?.('/repos');
+      } else if (matchesShortcut(event, 'deploy')) {
+        event.preventDefault();
+        setShowDeployDialog(true);
+        onCommandExecuted?.('/deploy');
+      } else if (matchesShortcut(event, 'pr')) {
+        event.preventDefault();
+        setShowPRDialog(true);
+        onCommandExecuted?.('/pr');
+      }
+    };
 
-  const [branchData, setBranchData] = useState<{
-    action: 'create' | 'switch' | 'delete';
-    name?: string;
-    from?: string;
-  } | null>(null);
-
-  const [prData, setPRData] = useState<{
-    base: string;
-    head: string;
-    title?: string;
-  } | null>(null);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onCommandExecuted]);
 
   return (
     <>
-      {showCompare && compareData && (
-        <CompareDialog
-          isOpen={showCompare}
-          onClose={() => {
-            setShowCompare(false);
-            setCompareData(null);
-          }}
-          initialBase={compareData.base}
-          initialCompare={compareData.compare}
-        />
-      )}
+      {/* Repository Selector Dialog */}
+      <Transition appear show={showRepoSelector} as={Fragment}>
+        <Dialog
+          as="div"
+          className="relative z-50"
+          onClose={() => setShowRepoSelector(false)}
+        >
+          <Transition.Child
+            as={Fragment}
+            enter="ease-out duration-300"
+            enterFrom="opacity-0"
+            enterTo="opacity-100"
+            leave="ease-in duration-200"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+          >
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" />
+          </Transition.Child>
 
-      {showCommit && commitData && (
-        <CommitDialog
-          isOpen={showCommit}
-          onClose={() => {
-            setShowCommit(false);
-            setCommitData(null);
-          }}
-          initialBranch={commitData.branch}
-          initialMessage={commitData.message}
-        />
-      )}
+          <div className="fixed inset-0 overflow-y-auto">
+            <div className="flex min-h-full items-center justify-center p-4">
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0 scale-95"
+                enterTo="opacity-100 scale-100"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100 scale-100"
+                leaveTo="opacity-0 scale-95"
+              >
+                <Dialog.Panel className="w-full max-w-2xl transform overflow-hidden rounded-2xl bg-gray-900 border border-gray-800 shadow-xl transition-all">
+                  <Dialog.Title className="px-6 py-4 border-b border-gray-800">
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-xl font-bold text-white">
+                        📂 Select Repository
+                      </h2>
+                      <button
+                        onClick={() => setShowRepoSelector(false)}
+                        className="text-gray-400 hover:text-white transition-colors"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                    <p className="text-sm text-gray-400 mt-1">
+                      Choose a repository to work on with HOLLY
+                    </p>
+                  </Dialog.Title>
+                  <RepoSelector />
+                  <div className="px-6 py-3 border-t border-gray-800 bg-gray-900/50">
+                    <div className="text-xs text-gray-500">
+                      💡 Tip: Use <kbd className="px-2 py-1 bg-gray-800 rounded text-gray-400">Ctrl+R</kbd> to open this dialog anytime
+                    </div>
+                  </div>
+                </Dialog.Panel>
+              </Transition.Child>
+            </div>
+          </div>
+        </Dialog>
+      </Transition>
 
-      {showBranch && branchData && (
-        <BranchDialog
-          isOpen={showBranch}
-          onClose={() => {
-            setShowBranch(false);
-            setBranchData(null);
-          }}
-          initialAction={branchData.action}
-          initialName={branchData.name}
-          initialFrom={branchData.from}
-        />
-      )}
+      {/* Deploy Dialog */}
+      <DeployDialog
+        isOpen={showDeployDialog}
+        onClose={() => setShowDeployDialog(false)}
+      />
 
-      {showPR && prData && (
-        <PullRequestDialog
-          isOpen={showPR}
-          onClose={() => {
-            setShowPR(false);
-            setPRData(null);
-          }}
-          initialBase={prData.base}
-          initialHead={prData.head}
-          initialTitle={prData.title}
-        />
-      )}
+      {/* Pull Request Dialog */}
+      <PullRequestDialog
+        isOpen={showPRDialog}
+        onClose={() => {
+          setShowPRDialog(false);
+          setPRBranch(undefined);
+        }}
+        defaultBranch={prBranch}
+      />
 
-      {showWorkflowsPanel && (
-        <WorkflowsPanel
-          isOpen={showWorkflowsPanel}
+      {/* Rollback Dialog */}
+      <RollbackDialog
+        isOpen={showRollbackDialog}
+        onClose={() => setShowRollbackDialog(false)}
+      />
+
+      {/* Workflows Panel */}
+      {showWorkflowsPanel && activeRepo && (
+        <Dialog
+          open={showWorkflowsPanel}
           onClose={() => setShowWorkflowsPanel(false)}
-        />
+          className="relative z-50"
+        >
+          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm" aria-hidden="true" />
+          <div className="fixed inset-0 flex items-center justify-center p-4">
+            <Dialog.Panel className="w-full max-w-5xl max-h-[85vh] overflow-auto bg-white rounded-2xl shadow-xl p-6">
+              <div className="flex items-center justify-between mb-4">
+                <Dialog.Title className="text-xl font-bold">GitHub Actions Workflows</Dialog.Title>
+                <button
+                  onClick={() => setShowWorkflowsPanel(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  ✕
+                </button>
+              </div>
+              <WorkflowsPanel
+                owner={activeRepo.owner}
+                repo={activeRepo.repo}
+              />
+            </Dialog.Panel>
+          </div>
+        </Dialog>
       )}
 
-      {showTeamPanel && (
-        <TeamCollaborationPanel
-          isOpen={showTeamPanel}
+      {/* Team Collaboration Panel */}
+      {showTeamPanel && activeRepo && (
+        <Dialog
+          open={showTeamPanel}
           onClose={() => setShowTeamPanel(false)}
-        />
+          className="relative z-50"
+        >
+          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm" aria-hidden="true" />
+          <div className="fixed inset-0 flex items-center justify-center p-4">
+            <Dialog.Panel className="w-full max-w-3xl max-h-[80vh] overflow-auto bg-white rounded-2xl shadow-xl p-6">
+              <div className="flex items-center justify-between mb-4">
+                <Dialog.Title className="text-xl font-bold">Team Collaboration</Dialog.Title>
+                <button
+                  onClick={() => setShowTeamPanel(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  ✕
+                </button>
+              </div>
+              <TeamCollaborationPanel
+                owner={activeRepo.owner}
+                repo={activeRepo.repo}
+              />
+            </Dialog.Panel>
+          </div>
+        </Dialog>
       )}
 
-      {showIssuesPanel && (
-        <IssueManagementPanel
-          isOpen={showIssuesPanel}
+      {/* Issue Management Panel */}
+      {showIssuesPanel && activeRepo && (
+        <Dialog
+          open={showIssuesPanel}
           onClose={() => setShowIssuesPanel(false)}
+          className="relative z-50"
+        >
+          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm" aria-hidden="true" />
+          <div className="fixed inset-0 flex items-center justify-center p-4">
+            <Dialog.Panel className="w-full max-w-5xl max-h-[85vh] overflow-auto bg-white rounded-2xl shadow-xl p-6">
+              <div className="flex items-center justify-between mb-4">
+                <Dialog.Title className="text-xl font-bold">Issue Management</Dialog.Title>
+                <button
+                  onClick={() => setShowIssuesPanel(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  ✕
+                </button>
+              </div>
+              <IssueManagementPanel
+                owner={activeRepo.owner}
+                repo={activeRepo.repo}
+                onCreateIssue={() => setShowCreateIssueDialog(true)}
+              />
+            </Dialog.Panel>
+          </div>
+        </Dialog>
+      )}
+
+      {/* Create Issue Dialog */}
+      {showCreateIssueDialog && activeRepo && (
+        <CreateIssueDialog
+          isOpen={showCreateIssueDialog}
+          onClose={() => {
+            setShowCreateIssueDialog(false);
+            // Refresh issues panel if it's open
+          }}
+          owner={activeRepo.owner}
+          repo={activeRepo.repo}
         />
       )}
     </>
   );
 }
 
-// Hook for executing commands - accepts callbacks for state management
-interface CommandCallbacks {
-  onShowCompare: (data: { base: string; compare: string }) => void;
-  onShowCommit: (data: { branch: string; message?: string }) => void;
-  onShowBranch: (data: { action: 'create' | 'switch' | 'delete'; name?: string; from?: string }) => void;
-  onShowPR: (data: { base: string; head: string; title?: string }) => void;
-  onShowWorkflows: () => void;
-  onShowTeam: () => void;
-  onShowIssues: () => void;
-}
-
-export function useCommandHandler(callbacks?: CommandCallbacks) {
+/**
+ * Hook to expose command execution to parent components
+ */
+export function useCommandHandler() {
   const { activeRepo } = useActiveRepo();
+  const [showRepoSelector, setShowRepoSelector] = useState(false);
+  const [showDeployDialog, setShowDeployDialog] = useState(false);
+  const [showPRDialog, setShowPRDialog] = useState(false);
+  const [prBranch, setPRBranch] = useState<string | undefined>();
+  const [showRollbackDialog, setShowRollbackDialog] = useState(false);
+  const [showWorkflowsPanel, setShowWorkflowsPanel] = useState(false);
+  const [showTeamPanel, setShowTeamPanel] = useState(false);
+  const [showIssuesPanel, setShowIssuesPanel] = useState(false);
+  const [showCreateIssueDialog, setShowCreateIssueDialog] = useState(false);
 
-  const executeCommand = async (input: string): Promise<boolean> => {
-    const parsed = parseCommand(input);
-    if (!parsed) return false;
-
-    const { command, args } = parsed;
-
-    // Check if we have an active repo for commands that need it
-    const needsRepo = ['compare', 'commit', 'branch', 'pr', 'workflows', 'actions', 'team', 'collab', 'issues', 'bugs'];
-    if (needsRepo.includes(command) && !activeRepo) {
-      console.warn(`Command /${command} requires an active repository`);
-      return false;
+  const executeCommand = (message: string) => {
+    const command = parseCommand(message);
+    
+    if (!command) {
+      return false; // Not a command
     }
 
-    // Execute command based on type
-    switch (command) {
-      case 'compare':
-        if (args.length >= 2 && callbacks?.onShowCompare) {
-          callbacks.onShowCompare({
-            base: args[0],
-            compare: args[1]
-          });
-          return true;
-        }
-        break;
-
-      case 'commit':
-        if (args.length >= 1 && callbacks?.onShowCommit) {
-          callbacks.onShowCommit({
-            branch: args[0],
-            message: args.slice(1).join(' ') || undefined
-          });
-          return true;
-        }
-        break;
-
-      case 'branch':
-        if (args.length >= 1 && callbacks?.onShowBranch) {
-          const action = args[0] as 'create' | 'switch' | 'delete';
-          callbacks.onShowBranch({
-            action,
-            name: args[1],
-            from: args[2]
-          });
-          return true;
-        }
-        break;
-
-      case 'pr':
-        if (args.length >= 2 && callbacks?.onShowPR) {
-          callbacks.onShowPR({
-            base: args[0],
-            head: args[1],
-            title: args.slice(2).join(' ') || undefined
-          });
-          return true;
-        }
-        break;
-
-      case 'workflows':
-      case 'actions':
-        if (callbacks?.onShowWorkflows) {
-          callbacks.onShowWorkflows();
-          return true;
-        }
-        break;
-
-      case 'team':
-      case 'collab':
-        if (callbacks?.onShowTeam) {
-          callbacks.onShowTeam();
-          return true;
-        }
-        break;
-
-      case 'issues':
-      case 'bugs':
-        if (callbacks?.onShowIssues) {
-          callbacks.onShowIssues();
-          return true;
-        }
-        break;
-
-      case 'help':
-        // Return command list
-        console.log('Available commands:', [
-          '/compare <base> <compare>',
-          '/commit <branch> [message]',
-          '/branch <create|switch|delete> <name> [from]',
-          '/pr <base> <head> [title]',
-          '/workflows or /actions',
-          '/team or /collab',
-          '/issues or /bugs',
-          '/help'
-        ]);
+    switch (command.type) {
+      case 'repos':
+        setShowRepoSelector(true);
         return true;
-
+      
+      case 'deploy':
+        setShowDeployDialog(true);
+        return true;
+      
+      case 'pr':
+        // Extract branch from args if provided (/pr feature-branch)
+        const branch = command.args[0];
+        if (branch && branch !== 'review') {
+          setPRBranch(branch);
+        }
+        setShowPRDialog(true);
+        return true;
+      
+      case 'rollback':
+        setShowRollbackDialog(true);
+        return true;
+      
+      case 'workflows':
+        setShowWorkflowsPanel(true);
+        return true;
+      
+      case 'team':
+        setShowTeamPanel(true);
+        return true;
+      
+      case 'issues':
+        setShowIssuesPanel(true);
+        return true;
+      
+      case 'help':
+        // Return help text to be displayed in chat
+        return getCommandHelp();
+      
+      case 'clear':
+        // Signal to parent to clear chat
+        return 'CLEAR_CHAT';
+      
+      case 'unknown':
+        return `Unknown command: ${command.rawCommand}\n\nType \`/help\` to see available commands.`;
+      
       default:
         return false;
     }
-
-    return false;
   };
 
-  return { executeCommand };
+  return {
+    showRepoSelector,
+    setShowRepoSelector,
+    showDeployDialog,
+    setShowDeployDialog,
+    showPRDialog,
+    setShowPRDialog,
+    showRollbackDialog,
+    setShowRollbackDialog,
+    showWorkflowsPanel,
+    setShowWorkflowsPanel,
+    showTeamPanel,
+    setShowTeamPanel,
+    showIssuesPanel,
+    setShowIssuesPanel,
+    showCreateIssueDialog,
+    setShowCreateIssueDialog,
+    activeRepo,
+    executeCommand,
+  };
 }
