@@ -200,7 +200,7 @@ export function RepoSelector() {
       <div className="p-4">
         <div className="text-sm text-red-400">❌ {error}</div>
         <button
-          onClick={fetchRepos}
+          onClick={() => fetchRepos(true)}
           className="mt-2 text-sm text-purple-400 hover:text-purple-300"
         >
           Try Again
