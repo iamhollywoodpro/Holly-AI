@@ -71,21 +71,21 @@ export const CommandHandler = forwardRef<CommandHandlerRef, CommandHandlerProps>
           console.log('[CommandHandler] Opening workflows panel');
           console.log('[CommandHandler] activeRepo:', activeRepo);
           if (!activeRepo) {
-            return 'Please select a repository first. Click "GitHub Connected" in the header to choose a repo.';
+            return 'Please select a repository first. Type `/repos` to choose a repository.';
           }
           setShowWorkflowsPanel(true);
           return true;
         
         case 'team':
           if (!activeRepo) {
-            return 'Please select a repository first. Click "GitHub Connected" in the header to choose a repo.';
+            return 'Please select a repository first. Type `/repos` to choose a repository.';
           }
           setShowTeamPanel(true);
           return true;
         
         case 'issues':
           if (!activeRepo) {
-            return 'Please select a repository first. Click "GitHub Connected" in the header to choose a repo.';
+            return 'Please select a repository first. Type `/repos` to choose a repository.';
           }
           setShowIssuesPanel(true);
           return true;
