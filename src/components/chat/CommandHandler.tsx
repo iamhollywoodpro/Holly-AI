@@ -38,7 +38,9 @@ export const CommandHandler = forwardRef<CommandHandlerRef, CommandHandlerProps>
   // Expose executeCommand method via ref
   useImperativeHandle(ref, () => ({
     executeCommand: (message: string) => {
+      console.log('[CommandHandler] executeCommand called with:', message);
       const command = parseCommand(message);
+      console.log('[CommandHandler] Parsed command:', command);
       
       if (!command) {
         return false;
@@ -66,6 +68,7 @@ export const CommandHandler = forwardRef<CommandHandlerRef, CommandHandlerProps>
           return true;
         
         case 'workflows':
+          console.log('[CommandHandler] Opening workflows panel');
           setShowWorkflowsPanel(true);
           return true;
         

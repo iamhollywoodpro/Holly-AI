@@ -239,7 +239,10 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
     const userMessage = input.trim();
     
     // Check if it's a command
+    console.log('[chat-interface] Checking command:', userMessage);
+    console.log('[chat-interface] commandHandlerRef.current:', commandHandlerRef.current);
     const commandResult = commandHandlerRef.current?.executeCommand(userMessage) || false;
+    console.log('[chat-interface] Command result:', commandResult);
     
     if (commandResult === true) {
       // Command executed successfully
