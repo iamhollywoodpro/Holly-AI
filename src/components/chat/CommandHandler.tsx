@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { parseCommand, getCommandHelp, matchesShortcut } from '@/lib/chat-commands';
 import { RepoSelector } from './RepoSelector';
 import { DeployDialog } from './DeployDialog';
@@ -18,7 +18,11 @@ interface CommandHandlerProps {
   onCommandExecuted?: (command: string) => void;
 }
 
-export function CommandHandler({ onCommandExecuted }: CommandHandlerProps) {
+export interface CommandHandlerRef {
+  executeCommand: (message: string) => boolean | string;
+}
+
+export const CommandHandler = forwardRef<CommandHandlerRef, CommandHandlerProps>(function CommandHandler({ onCommandExecuted }, ref) {
   const [showRepoSelector, setShowRepoSelector] = useState(false);
   const [showDeployDialog, setShowDeployDialog] = useState(false);
   const [showPRDialog, setShowPRDialog] = useState(false);
@@ -30,6 +34,63 @@ export function CommandHandler({ onCommandExecuted }: CommandHandlerProps) {
   const [showCreateIssueDialog, setShowCreateIssueDialog] = useState(false);
   
   const { activeRepo } = useActiveRepo();
+
+  // Expose executeCommand method via ref
+  useImperativeHandle(ref, () => ({
+    executeCommand: (message: string) => {
+      const command = parseCommand(message);
+      
+      if (!command) {
+        return false;
+      }
+
+      switch (command.type) {
+        case 'repos':
+          setShowRepoSelector(true);
+          return true;
+        
+        case 'deploy':
+          setShowDeployDialog(true);
+          return true;
+        
+        case 'pr':
+          const branch = command.args[0];
+          if (branch && branch !== 'review') {
+            setPRBranch(branch);
+          }
+          setShowPRDialog(true);
+          return true;
+        
+        case 'rollback':
+          setShowRollbackDialog(true);
+          return true;
+        
+        case 'workflows':
+          setShowWorkflowsPanel(true);
+          return true;
+        
+        case 'team':
+          setShowTeamPanel(true);
+          return true;
+        
+        case 'issues':
+          setShowIssuesPanel(true);
+          return true;
+        
+        case 'help':
+          return getCommandHelp();
+        
+        case 'clear':
+          return 'CLEAR_CHAT';
+        
+        case 'unknown':
+          return `Unknown command: ${command.rawCommand}\n\nType \`/help\` to see available commands.`;
+        
+        default:
+          return false;
+      }
+    }
+  }));
 
   // Handle keyboard shortcuts
   useEffect(() => {
@@ -247,10 +308,11 @@ export function CommandHandler({ onCommandExecuted }: CommandHandlerProps) {
       )}
     </>
   );
-}
+});
 
 /**
  * Hook to expose command execution to parent components
+ * @deprecated Use CommandHandlerRef with forwardRef instead
  */
 export function useCommandHandler() {
   const { activeRepo } = useActiveRepo();

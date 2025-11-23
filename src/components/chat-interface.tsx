@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, createRef } from 'react';
 import { Send, Loader2, BarChart3, Paperclip } from 'lucide-react';
 import { ConversationSidebar } from './conversation-sidebar';
 import { ConversationSearch } from './conversation-search';
@@ -15,7 +15,7 @@ import { useConversations } from '@/hooks/use-conversations';
 import { useConversationStats } from '@/hooks/use-conversation-stats';
 import { uploadFileViaAPI } from '@/lib/file-upload-client';
 import { analyzeAudioComplete, generateFeedbackSummary } from '@/lib/audio-analyzer';
-import { CommandHandler, useCommandHandler } from './chat/CommandHandler';
+import { CommandHandler, CommandHandlerRef } from './chat/CommandHandler';
 import { parseCommand, getCommandHelp } from '@/lib/chat-commands';
 import { useActiveRepo } from '@/hooks/useActiveRepos';
 import { RepoTabs } from './chat/RepoTabs';
@@ -79,7 +79,7 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
   } = useConversations(userId);
 
   const { statsData, isLoading: statsLoading, refetchStats } = useConversationStats(userId);
-  const { executeCommand } = useCommandHandler();
+  const commandHandlerRef = useRef<CommandHandlerRef>(null);
   const { activeRepo } = useActiveRepo();
 
   const scrollToBottom = () => {
@@ -239,7 +239,7 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
     const userMessage = input.trim();
     
     // Check if it's a command
-    const commandResult = executeCommand(userMessage);
+    const commandResult = commandHandlerRef.current?.executeCommand(userMessage) || false;
     
     if (commandResult === true) {
       // Command executed successfully
@@ -563,7 +563,7 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
       )}
       
       {/* Command Handler - Provides dialogs and keyboard shortcuts */}
-      <CommandHandler />
+      <CommandHandler ref={commandHandlerRef} />
     </div>
   );
 }
