@@ -69,6 +69,7 @@ export const CommandHandler = forwardRef<CommandHandlerRef, CommandHandlerProps>
         
         case 'workflows':
           console.log('[CommandHandler] Opening workflows panel');
+          console.log('[CommandHandler] activeRepo:', activeRepo);
           setShowWorkflowsPanel(true);
           return true;
         
@@ -213,6 +214,7 @@ export const CommandHandler = forwardRef<CommandHandlerRef, CommandHandlerProps>
       />
 
       {/* Workflows Panel */}
+      {console.log('[CommandHandler] Render check - showWorkflowsPanel:', showWorkflowsPanel, 'activeRepo:', activeRepo)}
       {showWorkflowsPanel && activeRepo && (
         <Dialog
           open={showWorkflowsPanel}
