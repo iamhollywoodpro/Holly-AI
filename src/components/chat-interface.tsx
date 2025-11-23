@@ -563,7 +563,7 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
       )}
       
       {/* Command Handler - Provides dialogs and keyboard shortcuts */}
-      <CommandHandler onCommandExecuted={(cmd) => console.log('Command executed:', cmd)} />
+      <CommandHandler />
     </div>
   );
 }
