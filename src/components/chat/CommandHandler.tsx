@@ -70,14 +70,23 @@ export const CommandHandler = forwardRef<CommandHandlerRef, CommandHandlerProps>
         case 'workflows':
           console.log('[CommandHandler] Opening workflows panel');
           console.log('[CommandHandler] activeRepo:', activeRepo);
+          if (!activeRepo) {
+            return 'Please select a repository first. Click "GitHub Connected" in the header to choose a repo.';
+          }
           setShowWorkflowsPanel(true);
           return true;
         
         case 'team':
+          if (!activeRepo) {
+            return 'Please select a repository first. Click "GitHub Connected" in the header to choose a repo.';
+          }
           setShowTeamPanel(true);
           return true;
         
         case 'issues':
+          if (!activeRepo) {
+            return 'Please select a repository first. Click "GitHub Connected" in the header to choose a repo.';
+          }
           setShowIssuesPanel(true);
           return true;
         

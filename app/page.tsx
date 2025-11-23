@@ -241,6 +241,16 @@ export default function ChatPage() {
     if (commandResult === true) {
       // Command executed successfully - don't send to AI
       return;
+    } else if (typeof commandResult === 'string') {
+      // Command returned an error message - show it to user
+      const errorMessage: Message = {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: commandResult,
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
+      return;
     }
     
     // Track if this is from voice (will be reset after response)
