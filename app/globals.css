@@ -24,9 +24,10 @@
   color-scheme: light;
 }
 
-/* Pure white background, black text */
+/* Subtle gradient background (similar to dark mode aesthetic) */
 .light body {
-  @apply bg-white text-black;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 50%, #ffffff 100%);
+  @apply text-black;
 }
 
 /* All dark backgrounds become white */
@@ -89,9 +90,33 @@
   @apply bg-gray-400;
 }
 
-/* Gradient backgrounds */
-.light .bg-gradient-to-br {
-  background: white !important;
+/* Gradient backgrounds - maintain subtle light aesthetic */
+.light .bg-gradient-to-br.from-gray-950 {
+  background: linear-gradient(to bottom right, #f8f9fa, #ffffff) !important;
+}
+
+/* Particle field in light mode - very subtle */
+.light canvas {
+  opacity: 0.15 !important;
+}
+
+/* Cards and containers in light mode - subtle elevation */
+.light .bg-gray-900\/50.backdrop-blur-xl,
+.light .bg-gray-900\/30.backdrop-blur-xl {
+  @apply bg-white/80 backdrop-blur-xl;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+}
+
+/* Purple accents stay vibrant in light mode */
+.light .bg-purple-600,
+.light .bg-gradient-to-r.from-purple-600 {
+  /* Keep purple vibrant */
+}
+
+/* Message bubbles in light mode */
+.light .bg-gray-800.rounded-lg {
+  @apply bg-white border border-gray-200;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
 }
 
 /* ==================== DARK MODE THEME (DEFAULT) ==================== */
