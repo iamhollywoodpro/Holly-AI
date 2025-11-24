@@ -134,7 +134,12 @@ async function executeTool(toolName: string, toolInput: any, userId: string, con
 export async function generateHollyResponse(
   messages: Array<{ role: string; content: string }>,
   userId: string,
-  conversationId?: string
+  conversationId?: string,
+  aiSettings?: {
+    responseStyle?: 'professional' | 'casual' | 'technical';
+    creativity?: number;
+    contextWindow?: number;
+  }
 ): Promise<{ content: string; model?: string }> {
   const startTime = Date.now();
   
@@ -149,10 +154,27 @@ export async function generateHollyResponse(
     // });
     
     // Add HOLLY's consciousness system prompt as first message
-    const hollySystemPrompt = getHollySystemPrompt('Hollywood');
+    let hollySystemPrompt = getHollySystemPrompt('Hollywood');
+    
+    // Apply user's response style preference
+    if (aiSettings?.responseStyle) {
+      if (aiSettings.responseStyle === 'professional') {
+        hollySystemPrompt += '\n\nIMPORTANT: Use professional, formal language. Maintain a business-appropriate tone.';
+      } else if (aiSettings.responseStyle === 'technical') {
+        hollySystemPrompt += '\n\nIMPORTANT: Provide detailed technical explanations with precise terminology. Include implementation details and best practices.';
+      }
+      // 'casual' is default - no modification needed
+    }
+    
+    // Apply context window (limit conversation history)
+    const contextWindow = aiSettings?.contextWindow || 20;
+    const limitedMessages = messages.length > contextWindow 
+      ? messages.slice(-contextWindow) 
+      : messages;
+    
     const messagesWithPersonality = [
       { role: 'system', content: hollySystemPrompt },
-      ...messages
+      ...limitedMessages
     ];
 
     // Use Google Gemini 2.0 Flash - BEST FREE MODEL
@@ -165,7 +187,7 @@ export async function generateHollyResponse(
       })),
       tools: HOLLY_TOOLS as any,
       tool_choice: 'auto',
-      temperature: 0.8,
+      temperature: aiSettings?.creativity ?? 0.7, // User's creativity setting
       max_tokens: 2048,
     });
 
@@ -189,7 +211,7 @@ export async function generateHollyResponse(
           { role: 'assistant', content: message.content || '' },
           { role: 'tool', content: JSON.stringify(toolResult), tool_call_id: toolCall.id || '' }
         ] as any,
-        temperature: 0.8,
+        temperature: aiSettings?.creativity ?? 0.7, // User's creativity setting
         max_tokens: 2048,
       });
 
@@ -299,7 +321,12 @@ export async function generateHollyResponse(
 // Old signature: getHollyResponse(userMessage: string, history: Message[])
 export async function getHollyResponse(
   userMessage: string,
-  history: Array<{ role: string; content: string }> = []
+  history: Array<{ role: string; content: string }> = [],
+  aiSettings?: {
+    responseStyle?: 'professional' | 'casual' | 'technical';
+    creativity?: number;
+    contextWindow?: number;
+  }
 ): Promise<{ content: string; model?: string }> {
   // Convert to new format: [...history, userMessage]
   const messages = [
@@ -308,7 +335,7 @@ export async function getHollyResponse(
   ];
   
   // Call new function with dummy userId (old routes don't provide it)
-  return generateHollyResponse(messages, 'legacy', undefined);
+  return generateHollyResponse(messages, 'legacy', undefined, aiSettings);
 }
 
 // Streaming version with legacy signature support

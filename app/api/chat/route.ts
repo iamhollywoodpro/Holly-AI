@@ -5,6 +5,7 @@ import { NextRequest } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getHollyResponse } from '@/lib/ai/ai-orchestrator';
 import { prisma } from '@/lib/db';
+import { DEFAULT_SETTINGS } from '@/lib/settings/default-settings';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -188,10 +189,26 @@ export async function POST(request: NextRequest) {
       ? `${contextString}\n\n${lastMessage.content}`
       : lastMessage.content;
 
-    // Get HOLLY's response
+    // Load user settings for AI behavior
+    let userSettings = DEFAULT_SETTINGS;
+    if (userId && userId !== 'anonymous') {
+      const settingsRecord = await prisma.userSettings.findUnique({
+        where: { userId },
+      });
+      if (settingsRecord) {
+        userSettings = { ...DEFAULT_SETTINGS, ...settingsRecord.settings as any };
+      }
+    }
+
+    // Get HOLLY's response with user's AI preferences
     const hollyResponse = await getHollyResponse(
       messageWithContext,
-      messages.slice(0, -1)
+      messages.slice(0, -1),
+      {
+        responseStyle: userSettings.ai.responseStyle,
+        creativity: userSettings.ai.creativity,
+        contextWindow: userSettings.ai.contextWindow,
+      }
     );
 
     // Record conversation experience (non-blocking)

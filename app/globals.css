@@ -2,109 +2,184 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-  }
+/* ==================== THEME VARIABLES ==================== */
 
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-  }
+:root {
+  /* Default: Purple-Pink gradient */
+  --color-primary: 168 85 247; /* purple-500 */
+  --color-secondary: 236 72 153; /* pink-500 */
+  --color-accent: 59 130 246; /* blue-500 */
   
-  /* Base styles */
-  * {
-    -webkit-tap-highlight-color: transparent;
+  /* Font sizes - default medium */
+  --font-size-base: 1rem;
+  --font-size-sm: 0.875rem;
+  --font-size-xs: 0.75rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+}
+
+/* Color Schemes */
+[data-color-scheme="blue"] {
+  --color-primary: 59 130 246; /* blue-500 */
+  --color-secondary: 6 182 212; /* cyan-500 */
+  --color-accent: 139 92 246; /* violet-500 */
+}
+
+[data-color-scheme="green"] {
+  --color-primary: 16 185 129; /* green-500 */
+  --color-secondary: 52 211 153; /* green-400 */
+  --color-accent: 34 197 94; /* green-500 */
+}
+
+[data-color-scheme="red"] {
+  --color-primary: 239 68 68; /* red-500 */
+  --color-secondary: 248 113 113; /* red-400 */
+  --color-accent: 220 38 38; /* red-600 */
+}
+
+/* Font Sizes */
+[data-font-size="small"] {
+  --font-size-base: 0.875rem;
+  --font-size-sm: 0.75rem;
+  --font-size-xs: 0.625rem;
+  --font-size-lg: 1rem;
+  --font-size-xl: 1.125rem;
+}
+
+[data-font-size="large"] {
+  --font-size-base: 1.125rem;
+  --font-size-sm: 1rem;
+  --font-size-xs: 0.875rem;
+  --font-size-lg: 1.25rem;
+  --font-size-xl: 1.5rem;
+}
+
+/* Compact Mode */
+.compact-mode {
+  --spacing-unit: 0.75rem;
+}
+
+.compact-mode .space-y-6 > * + * {
+  margin-top: 1rem !important;
+}
+
+.compact-mode .space-y-4 > * + * {
+  margin-top: 0.75rem !important;
+}
+
+.compact-mode .p-6 {
+  padding: 1rem !important;
+}
+
+.compact-mode .p-4 {
+  padding: 0.75rem !important;
+}
+
+/* No Animations */
+.no-animations * {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* ==================== BASE STYLES ==================== */
+
+body {
+  @apply bg-gradient-to-br from-gray-950 via-gray-900 to-black text-white;
+  font-size: var(--font-size-base);
+}
+
+/* ==================== CUSTOM SCROLLBAR ==================== */
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-gray-900;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-700 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-600;
+}
+
+/* ==================== SAFE AREA (MOBILE) ==================== */
+
+.safe-bottom {
+  padding-bottom: max(12px, env(safe-area-inset-bottom));
+}
+
+/* ==================== GRADIENT TEXT ==================== */
+
+.gradient-text {
+  background: linear-gradient(
+    to right,
+    rgb(var(--color-primary)),
+    rgb(var(--color-secondary)),
+    rgb(var(--color-accent))
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ==================== CUSTOM BUTTON STYLES ==================== */
+
+.btn-primary {
+  background: linear-gradient(
+    to right,
+    rgb(var(--color-primary)),
+    rgb(var(--color-secondary))
+  );
+}
+
+.btn-primary:hover {
+  background: linear-gradient(
+    to right,
+    rgb(var(--color-primary) / 0.8),
+    rgb(var(--color-secondary) / 0.8)
+  );
+}
+
+/* ==================== CODE BLOCKS ==================== */
+
+pre {
+  @apply bg-gray-900 border border-gray-800 rounded-lg p-4 overflow-x-auto;
+}
+
+code {
+  @apply bg-gray-800 px-1.5 py-0.5 rounded text-sm;
+  font-family: 'Monaco', 'Courier New', monospace;
+}
+
+/* ==================== ANIMATIONS ==================== */
+
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 1;
   }
-  
-  html {
-    overflow: hidden;
-    height: 100%;
-    /* Mobile viewport height fix */
-    height: 100vh;
-    height: 100dvh; /* Dynamic viewport height for mobile browsers */
-    /* Prevent pull-to-refresh on mobile */
-    overscroll-behavior-y: none;
+  50% {
+    opacity: 0.5;
   }
-  
-  /* Mobile-specific fixes */
-  @supports (height: 100dvh) {
-    html {
-      height: 100dvh;
-    }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
   }
-  
-  /* Safe area for mobile devices (iPhone notch, etc) */
-  .safe-bottom {
-    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  50% {
+    transform: translateY(-10px);
   }
-  
-  .safe-top {
-    padding-top: env(safe-area-inset-top);
-  }
-  
-  body {
-    background-color: hsl(var(--background));
-    color: hsl(var(--foreground));
-    height: 100%;
-    height: 100vh;
-    height: 100dvh; /* Dynamic viewport height for mobile browsers */
-    overflow: hidden;
-    /* Fix for mobile browser chrome (address bar, bottom nav) */
-    position: fixed;
-    width: 100%;
-    /* Better font rendering on mobile */
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    /* Prevent text size adjustment on mobile */
-    -webkit-text-size-adjust: 100%;
-    /* Prevent text selection on touch */
-    -webkit-touch-callout: none;
-  }
-  
-  /* Better scrolling on mobile */
-  .overflow-y-auto {
-    -webkit-overflow-scrolling: touch;
-  }
-  
-  /* Fix input zoom on iOS */
-  input, textarea, select {
-    font-size: 16px;
-  }
-  
-  /* Better focus states for mobile */
-  button:focus-visible,
-  a:focus-visible {
-    outline: 2px solid rgba(147, 51, 234, 0.5);
-    outline-offset: 2px;
-  }
-  
-  /* Mobile keyboard fixes */
-  @supports (-webkit-touch-callout: none) {
-    /* iOS specific - fix for keyboard pushing content */
-    html {
-      height: -webkit-fill-available;
-    }
-    
-    body {
-      height: -webkit-fill-available;
-    }
-    
-    /* Ensure input stays visible above keyboard */
-    input:focus,
-    textarea:focus {
-      transform: translateY(0);
-      transition: transform 0.2s;
-    }
-  }
-  
-  /* Android keyboard fix */
-  @media screen and (max-width: 768px) {
-    /* Prevent viewport resize when keyboard opens */
-    .chat-container {
-      height: 100vh;
-      height: 100dvh;
-    }
-  }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
 }
