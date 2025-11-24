@@ -2,37 +2,37 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Cloud, Check, AlertCircle, Loader2, HardDrive, Upload } from 'lucide-react';
+import { Cloud, Check, AlertCircle, Loader2, CodeBracketIcon } from 'lucide-react';
+import { motion } from 'framer-motion';
 
-interface DriveStatus {
-  connected: boolean;
-  user?: {
-    email: string;
-    name?: string;
-    picture?: string;
+interface IntegrationService {
+  id: string;
+  name: string;
+  description: string;
+  icon: React.ReactNode;
+  color: string;
+  status: 'connected' | 'disconnected' | 'coming-soon';
+  onConnect?: () => void;
+  onDisconnect?: () => void;
+  details?: {
+    email?: string;
+    username?: string;
+    accountInfo?: string;
   };
-  settings?: {
-    autoUpload: boolean;
-    syncEnabled: boolean;
-  };
-  quota?: {
-    used: string;
-    limit?: string;
-  };
-  lastSyncAt?: string;
 }
 
 export default function IntegrationsPage() {
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
-  const [connecting, setConnecting] = useState(false);
-  const [disconnecting, setDisconnecting] = useState(false);
-  const [driveStatus, setDriveStatus] = useState<DriveStatus | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [driveConnected, setDriveConnected] = useState(false);
+  const [githubConnected, setGithubConnected] = useState(false);
+  const [driveEmail, setDriveEmail] = useState('');
+  const [githubUsername, setGithubUsername] = useState('');
   const [success, setSuccess] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchDriveStatus();
+    fetchIntegrationStatus();
     
     // Check for success/error parameters
     const successParam = searchParams.get('success');
@@ -40,306 +40,219 @@ export default function IntegrationsPage() {
     
     if (successParam === 'drive_connected') {
       setSuccess('🎉 Google Drive connected successfully!');
-      // Clear URL parameters
+      window.history.replaceState({}, '', '/settings/integrations');
+    }
+    
+    if (successParam === 'github_connected') {
+      setSuccess('🎉 GitHub connected successfully!');
       window.history.replaceState({}, '', '/settings/integrations');
     }
     
     if (errorParam) {
-      const errorMessages: Record<string, string> = {
-        'oauth_denied': 'You denied access to Google Drive',
-        'no_code': 'No authorization code received from Google',
-        'connection_failed': 'Failed to connect to Google Drive',
-      };
-      setError(errorMessages[errorParam] || `Error: ${errorParam}`);
-      // Clear URL parameters
+      setError(`Error: ${errorParam}`);
       window.history.replaceState({}, '', '/settings/integrations');
     }
   }, [searchParams]);
 
-  const fetchDriveStatus = async () => {
+  const fetchIntegrationStatus = async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/google-drive/status');
-      const data = await res.json();
       
-      if (data.success) {
-        setDriveStatus(data);
-      }
-    } catch (err: any) {
-      console.error('Failed to fetch Drive status:', err);
+      // Fetch Google Drive status
+      const driveRes = await fetch('/api/google-drive/status');
+      const driveData = await driveRes.json();
+      setDriveConnected(driveData.success && driveData.connected);
+      if (driveData.user?.email) setDriveEmail(driveData.user.email);
+      
+      // Fetch GitHub status
+      const githubRes = await fetch('/api/github/connection');
+      const githubData = await githubRes.json();
+      setGithubConnected(githubData.connected);
+      if (githubData.username) setGithubUsername(githubData.username);
+      
+    } catch (err) {
+      console.error('Failed to fetch integration status:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleConnect = async () => {
-    try {
-      setConnecting(true);
-      setError(null);
-      
-      const res = await fetch('/api/google-drive/connect');
-      const data = await res.json();
-      
-      if (data.success && data.authUrl) {
-        // Redirect to Google OAuth
-        window.location.href = data.authUrl;
-      } else {
-        setError('Failed to get authorization URL');
-      }
-    } catch (err: any) {
-      setError(err.message || 'Failed to connect to Google Drive');
-    } finally {
-      setConnecting(false);
-    }
-  };
-
-  const handleDisconnect = async () => {
-    if (!confirm('Are you sure you want to disconnect Google Drive?')) {
-      return;
-    }
-    
-    try {
-      setDisconnecting(true);
-      setError(null);
-      
-      const res = await fetch('/api/google-drive/disconnect', {
-        method: 'POST',
-      });
-      
-      const data = await res.json();
-      
-      if (data.success) {
-        await fetchDriveStatus();
-      } else {
-        setError('Failed to disconnect Google Drive');
-      }
-    } catch (err: any) {
-      setError(err.message || 'Failed to disconnect');
-    } finally {
-      setDisconnecting(false);
-    }
-  };
-
-  const formatBytes = (bytes: string): string => {
-    const num = parseInt(bytes);
-    if (num < 1024) return `${num} B`;
-    if (num < 1024 * 1024) return `${(num / 1024).toFixed(1)} KB`;
-    if (num < 1024 * 1024 * 1024) return `${(num / (1024 * 1024)).toFixed(1)} MB`;
-    return `${(num / (1024 * 1024 * 1024)).toFixed(2)} GB`;
-  };
-
-  const formatDate = (dateString: string): string => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 dark:from-gray-900 dark:to-gray-800 p-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const services: IntegrationService[] = [
+    {
+      id: 'google-drive',
+      name: 'Google Drive',
+      description: 'Automatically save generated files to your Google Drive',
+      icon: <Cloud className="w-6 h-6" />,
+      color: 'from-blue-600 to-cyan-600',
+      status: driveConnected ? 'connected' : 'disconnected',
+      onConnect: () => window.location.href = '/api/google-drive/connect',
+      details: driveConnected ? { email: driveEmail } : undefined,
+    },
+    {
+      id: 'github',
+      name: 'GitHub',
+      description: 'Access your repositories and create commits directly',
+      icon: (
+        <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+        </svg>
+      ),
+      color: 'from-gray-700 to-gray-900',
+      status: githubConnected ? 'connected' : 'disconnected',
+      onConnect: () => window.location.href = '/api/github/connect',
+      details: githubConnected ? { username: `@${githubUsername}` } : undefined,
+    },
+    {
+      id: 'dropbox',
+      name: 'Dropbox',
+      description: 'Sync files with your Dropbox account',
+      icon: <Cloud className="w-6 h-6" />,
+      color: 'from-blue-500 to-blue-700',
+      status: 'coming-soon',
+    },
+    {
+      id: 'onedrive',
+      name: 'OneDrive',
+      description: 'Connect to Microsoft OneDrive for file storage',
+      icon: <Cloud className="w-6 h-6" />,
+      color: 'from-blue-600 to-blue-800',
+      status: 'coming-soon',
+    },
+    {
+      id: 'notion',
+      name: 'Notion',
+      description: 'Sync HOLLY conversations with Notion pages',
+      icon: <Cloud className="w-6 h-6" />,
+      color: 'from-gray-800 to-black',
+      status: 'coming-soon',
+    },
+    {
+      id: 'slack',
+      name: 'Slack',
+      description: 'Get notifications and updates in Slack',
+      icon: <Cloud className="w-6 h-6" />,
+      color: 'from-purple-600 to-purple-800',
+      status: 'coming-soon',
+    },
+  ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 dark:from-gray-900 dark:to-gray-800 p-8">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            Integrations
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            Connect HOLLY to your favorite services
-          </p>
-        </div>
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-white mb-2">Integrations</h2>
+        <p className="text-gray-400">Connect HOLLY to your favorite services</p>
+      </div>
 
-        {/* Success Message */}
-        {success && (
-          <div className="mb-6 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-            <div className="flex items-start gap-3">
-              <Check className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
-              <div>
-                <h3 className="font-semibold text-green-900 dark:text-green-100">Success!</h3>
-                <p className="text-sm text-green-700 dark:text-green-300 mt-1">{success}</p>
-              </div>
-            </div>
-          </div>
-        )}
+      {/* Success/Error Messages */}
+      {success && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-4 bg-green-500/20 border border-green-500/30 rounded-lg flex items-center gap-3 text-green-300"
+        >
+          <Check className="w-5 h-5 flex-shrink-0" />
+          <span>{success}</span>
+        </motion.div>
+      )}
 
-        {/* Error Message */}
-        {error && (
-          <div className="mb-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
-              <div>
-                <h3 className="font-semibold text-red-900 dark:text-red-100">Error</h3>
-                <p className="text-sm text-red-700 dark:text-red-300 mt-1">{error}</p>
-              </div>
-            </div>
-          </div>
-        )}
+      {error && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-4 bg-red-500/20 border border-red-500/30 rounded-lg flex items-center gap-3 text-red-300"
+        >
+          <AlertCircle className="w-5 h-5 flex-shrink-0" />
+          <span>{error}</span>
+        </motion.div>
+      )}
 
-        {/* Google Drive Card */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-6">
-          <div className="flex items-start gap-4">
-            {/* Icon */}
-            <div className="flex-shrink-0">
-              <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-green-500 rounded-lg flex items-center justify-center">
-                <Cloud className="w-8 h-8 text-white" />
-              </div>
-            </div>
-
-            {/* Content */}
-            <div className="flex-1">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-                Google Drive
-              </h2>
-              <p className="text-gray-600 dark:text-gray-400 mb-4">
-                Automatically save generated files to your Google Drive
-              </p>
-
-              {/* Status */}
-              {driveStatus?.connected ? (
-                <div className="space-y-4">
-                  {/* Connected Status */}
-                  <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
-                    <Check className="w-5 h-5" />
-                    <span className="font-semibold">Connected</span>
-                  </div>
-
-                  {/* User Info */}
-                  {driveStatus.user && (
-                    <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                      {driveStatus.user.picture && (
-                        <img
-                          src={driveStatus.user.picture}
-                          alt={driveStatus.user.name || 'User'}
-                          className="w-10 h-10 rounded-full"
-                        />
-                      )}
-                      <div>
-                        <div className="font-medium text-gray-900 dark:text-white">
-                          {driveStatus.user.name || 'Google User'}
-                        </div>
-                        <div className="text-sm text-gray-600 dark:text-gray-400">
-                          {driveStatus.user.email}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Settings */}
-                  {driveStatus.settings && (
-                    <div className="grid grid-cols-2 gap-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                      <div>
-                        <div className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                          <Upload className="w-4 h-4" />
-                          Auto-Upload
-                        </div>
-                        <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                          {driveStatus.settings.autoUpload ? 'Enabled' : 'Disabled'}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                          <HardDrive className="w-4 h-4" />
-                          Storage Used
-                        </div>
-                        <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                          {driveStatus.quota ? formatBytes(driveStatus.quota.used) : 'Unknown'}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Last Sync */}
-                  {driveStatus.lastSyncAt && (
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
-                      Last synced: {formatDate(driveStatus.lastSyncAt)}
-                    </div>
-                  )}
-
-                  {/* Disconnect Button */}
-                  <button
-                    onClick={handleDisconnect}
-                    disabled={disconnecting}
-                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {disconnecting ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin inline mr-2" />
-                        Disconnecting...
-                      </>
-                    ) : (
-                      'Disconnect Drive'
-                    )}
-                  </button>
+      {/* Integration Services Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {services.map((service, index) => (
+          <motion.div
+            key={service.id}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.1 }}
+            className={`p-6 rounded-xl border transition-all ${
+              service.status === 'connected'
+                ? 'bg-gray-800/50 border-green-500/30'
+                : service.status === 'coming-soon'
+                ? 'bg-gray-800/20 border-gray-700/30 opacity-60'
+                : 'bg-gray-800/50 border-gray-700/50 hover:border-gray-600/50'
+            }`}
+          >
+            {/* Header */}
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className={`p-3 rounded-lg bg-gradient-to-br ${service.color}`}>
+                  {service.icon}
                 </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-white">{service.name}</h3>
+                  {service.status === 'connected' && service.details && (
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      {service.details.email || service.details.username || service.details.accountInfo}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Status Badge */}
+              {service.status === 'connected' ? (
+                <span className="flex items-center gap-1.5 px-2 py-1 bg-green-500/20 text-green-400 rounded-full text-xs font-medium">
+                  <Check className="w-3 h-3" />
+                  Connected
+                </span>
+              ) : service.status === 'coming-soon' ? (
+                <span className="px-2 py-1 bg-gray-700/50 text-gray-500 rounded-full text-xs font-medium">
+                  Coming Soon
+                </span>
               ) : (
-                <div className="space-y-4">
-                  {/* Not Connected */}
-                  <div className="text-gray-600 dark:text-gray-400">
-                    Not connected
-                  </div>
-
-                  {/* Features List */}
-                  <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
-                    <li className="flex items-start gap-2">
-                      <Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
-                      <span>Automatically save all generated files</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
-                      <span>Access files from any device</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
-                      <span>Organize files in folders</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
-                      <span>Secure and private - only HOLLY files</span>
-                    </li>
-                  </ul>
-
-                  {/* Connect Button */}
-                  <button
-                    onClick={handleConnect}
-                    disabled={connecting}
-                    className="px-6 py-3 bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 text-white font-semibold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {connecting ? (
-                      <>
-                        <Loader2 className="w-5 h-5 animate-spin inline mr-2" />
-                        Connecting...
-                      </>
-                    ) : (
-                      <>
-                        <Cloud className="w-5 h-5 inline mr-2" />
-                        Connect Google Drive
-                      </>
-                    )}
-                  </button>
-                </div>
+                <span className="px-2 py-1 bg-gray-700/50 text-gray-400 rounded-full text-xs font-medium">
+                  Not Connected
+                </span>
               )}
             </div>
-          </div>
-        </div>
 
-        {/* More Integrations Coming Soon */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 opacity-50">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-            More Integrations
-          </h3>
-          <p className="text-gray-600 dark:text-gray-400">
-            GitHub, Notion, Slack integrations coming soon...
-          </p>
-        </div>
+            {/* Description */}
+            <p className="text-sm text-gray-400 mb-4">{service.description}</p>
+
+            {/* Actions */}
+            {service.status === 'connected' ? (
+              <button
+                onClick={service.onDisconnect}
+                className="w-full px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm text-white transition-colors"
+              >
+                Disconnect
+              </button>
+            ) : service.status === 'disconnected' ? (
+              <button
+                onClick={service.onConnect}
+                className={`w-full px-4 py-2 bg-gradient-to-r ${service.color} hover:opacity-90 rounded-lg text-sm text-white font-medium transition-opacity`}
+              >
+                Connect {service.name}
+              </button>
+            ) : (
+              <button
+                disabled
+                className="w-full px-4 py-2 bg-gray-800/50 rounded-lg text-sm text-gray-500 cursor-not-allowed"
+              >
+                Coming Soon
+              </button>
+            )}
+          </motion.div>
+        ))}
+      </div>
+
+      {/* More Integrations Coming */}
+      <div className="p-6 bg-gray-800/30 border border-gray-700/50 rounded-xl text-center">
+        <p className="text-gray-400 text-sm">
+          Need another integration?{' '}
+          <a href="mailto:support@hollywoodpro.dev" className="text-purple-400 hover:text-purple-300 transition-colors">
+            Let us know
+          </a>
+        </p>
       </div>
     </div>
   );

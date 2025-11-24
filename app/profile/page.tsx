@@ -131,7 +131,27 @@ export default function ProfilePage() {
                   <UserCircleIcon className="w-32 h-32 text-gray-400" />
                 )}
                 
+                <input
+                  type="file"
+                  id="avatar-upload"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file || !user) return;
+                    
+                    try {
+                      await user.setProfileImage({ file });
+                      alert('Profile picture updated successfully!');
+                      window.location.reload();
+                    } catch (error) {
+                      console.error('Failed to update profile picture:', error);
+                      alert('Failed to update profile picture. Please try again.');
+                    }
+                  }}
+                />
                 <button
+                  onClick={() => document.getElementById('avatar-upload')?.click()}
                   className="mt-4 px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm text-gray-300 transition-colors"
                 >
                   <PhotoIcon className="w-4 h-4 inline mr-2" />

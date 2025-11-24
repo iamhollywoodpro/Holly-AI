@@ -33,14 +33,14 @@ import { DriveIndicator } from '@/components/indicators/DriveIndicator';
 import { GitHubIndicator } from '@/components/indicators/GitHubIndicator';
 import { useSearchParams } from 'next/navigation';
 import { CommandHandler, CommandHandlerRef } from '@/components/chat/CommandHandler';
-import { GitHubConnectionDropdown } from '@/components/header/GitHubConnectionDropdown';
+import { GitHubStatusIcon } from '@/components/header/GitHubStatusIcon';
 import { ProfileDropdown } from '@/components/header/ProfileDropdown';
 import { DriveConnectionDropdown } from '@/components/header/DriveConnectionDropdown';
 import { MobileMenu } from '@/components/header/MobileMenu';
 import { KeyboardShortcutsModal } from '@/components/modals/KeyboardShortcutsModal';
 import { CommandHintToast } from '@/components/notifications/CommandHintToast';
 import { Bars3Icon } from '@heroicons/react/24/outline';
-import ActiveRepoIndicator, { EmptyRepoIndicator } from '@/components/chat/ActiveRepoIndicator';
+
 import LoadingIndicator, { getLoadingMessage } from '@/components/chat/LoadingIndicator';
 import { useActiveRepos } from '@/hooks/useActiveRepos';
 import QuickActionsBar from '@/components/ui/QuickActionsBar';
@@ -80,7 +80,7 @@ export default function ChatPage() {
   const [allConversations, setAllConversations] = useState<any[]>([]);
 
   // Phase 2: Chat UX Polish state
-  const [showRepoIndicator, setShowRepoIndicator] = useState(true);
+
   const [loadingAction, setLoadingAction] = useState<string>('chat');
   const getCurrentRepo = useActiveRepos(state => state.getCurrentRepo);
   const activeRepo = getCurrentRepo(); // Get current active repo
@@ -806,16 +806,14 @@ export default function ChatPage() {
                 {/* Removed standalone Drive indicator - using dropdown */}
                 
                 {/* GitHub Status Icon - DESKTOP ONLY */}
-                <div className="hidden lg:flex items-center gap-2">
-                  {githubUsername ? (
-                    <span className="w-2 h-2 bg-green-500 rounded-full" title="GitHub Connected" />
-                  ) : (
-                    <span className="w-2 h-2 bg-gray-600 rounded-full" title="GitHub Not Connected" />
-                  )}
-                  <GitHubConnectionDropdown
+                <div className="hidden lg:block">
+                  <GitHubStatusIcon
+                    isConnected={!!githubUsername}
                     username={githubUsername}
                     repoCount={githubRepoCount}
-                    onOpenRepoSelector={() => commandHandlerRef.current?.executeCommand('/repos')}
+                    onConnect={() => window.location.href = '/api/github/connect'}
+                    onOpenRepos={() => commandHandlerRef.current?.executeCommand('/repos')}
+                    onOpenIssues={() => commandHandlerRef.current?.executeCommand('/issues')}
                   />
                 </div>
                 
@@ -910,22 +908,6 @@ export default function ChatPage() {
                 onDismiss={suggestions.dismiss}
                 isVisible={suggestions.isVisible && !isTyping}
               />
-              
-              {/* Phase 2: Active Repo Indicator */}
-              {showRepoIndicator && activeRepo && (
-                <ActiveRepoIndicator
-                  owner={activeRepo.owner}
-                  repo={activeRepo.name}
-                  branch={activeRepo.branch || 'main'}
-                  onChangeRepo={() => commandHandlerRef.current?.executeCommand('/repos')}
-                  onDismiss={() => setShowRepoIndicator(false)}
-                />
-              )}
-              {showRepoIndicator && !activeRepo && (
-                <EmptyRepoIndicator 
-                  onSelectRepo={() => commandHandlerRef.current?.executeCommand('/repos')} 
-                />
-              )}
               
               <ChatInputControls
                 onSend={handleSend}

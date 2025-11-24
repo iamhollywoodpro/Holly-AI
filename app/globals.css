@@ -18,6 +18,74 @@
   --font-size-xl: 1.25rem;
 }
 
+/* ==================== LIGHT MODE THEME ==================== */
+
+.light {
+  color-scheme: light;
+}
+
+.light body {
+  @apply bg-gradient-to-br from-gray-50 via-gray-100 to-white text-gray-900;
+}
+
+.light .bg-gray-900 {
+  @apply bg-white;
+}
+
+.light .bg-gray-800 {
+  @apply bg-gray-100;
+}
+
+.light .bg-gray-900\/50 {
+  @apply bg-white/50;
+}
+
+.light .bg-gray-800\/50 {
+  @apply bg-gray-100/50;
+}
+
+.light .text-white {
+  @apply text-gray-900;
+}
+
+.light .text-gray-300 {
+  @apply text-gray-700;
+}
+
+.light .text-gray-400 {
+  @apply text-gray-600;
+}
+
+.light .text-gray-500 {
+  @apply text-gray-500;
+}
+
+.light .border-gray-800 {
+  @apply border-gray-200;
+}
+
+.light .border-gray-700 {
+  @apply border-gray-300;
+}
+
+.light ::-webkit-scrollbar-track {
+  @apply bg-gray-100;
+}
+
+.light ::-webkit-scrollbar-thumb {
+  @apply bg-gray-300;
+}
+
+.light ::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-400;
+}
+
+/* ==================== DARK MODE THEME (DEFAULT) ==================== */
+
+.dark {
+  color-scheme: dark;
+}
+
 /* Color Schemes */
 [data-color-scheme="blue"] {
   --color-primary: 59 130 246; /* blue-500 */

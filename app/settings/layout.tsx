@@ -29,7 +29,7 @@ const settingsSections = [
   { name: 'AI Behavior', href: '/settings/ai-behavior', icon: CpuChipIcon },
   { name: 'Notifications', href: '/settings/notifications', icon: BellIcon },
   { name: 'Developer Tools', href: '/settings/developer', icon: CodeBracketIcon },
-  { name: 'Account & Billing', href: '/settings/account', icon: UserCircleIcon },
+  { name: 'Account & Billing', href: '/account', icon: UserCircleIcon },
   { name: 'Keyboard Shortcuts', href: '/settings/shortcuts', icon: CommandLineIcon },
 ];
 

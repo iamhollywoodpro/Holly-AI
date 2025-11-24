@@ -4,6 +4,7 @@ import './globals.css';
 import { ClerkProvider } from '@clerk/nextjs';
 import { Providers } from '@/components/Providers';
 import { SettingsProvider } from './providers';
+import { ThemeProvider } from '@/components/providers/ThemeProvider';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -28,8 +29,9 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <SettingsProvider>
-          <Providers>
-            <ClerkProvider
+          <ThemeProvider>
+            <Providers>
+              <ClerkProvider
             appearance={{
             baseTheme: undefined,
             variables: {
@@ -66,9 +68,10 @@ export default function RootLayout({
           signInForceRedirectUrl="/"
           signUpForceRedirectUrl="/"
         >
-            {children}
-          </ClerkProvider>
-          </Providers>
+                {children}
+              </ClerkProvider>
+            </Providers>
+          </ThemeProvider>
         </SettingsProvider>
       </body>
     </html>
