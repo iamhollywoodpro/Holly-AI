@@ -2,9 +2,7 @@
 const path = require('path');
 
 const nextConfig = {
-  turbopack: {
-    root: path.resolve(__dirname, '.'), // Explicitly set root directory
-  },
+  // Removed turbopack config - Next.js 14 doesn't support it
   webpack: (config, { isServer }) => {
     // Add path alias resolution
     config.resolve.alias = {

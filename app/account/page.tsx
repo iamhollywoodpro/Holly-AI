@@ -45,7 +45,7 @@ export default function AccountPage() {
     }
   };
 
-  const currentPlan = 'free'; // TODO: Get from database
+  const currentPlan: 'free' | 'pro' | 'enterprise' = 'free'; // TODO: Get from database
 
   const plans = [
     {

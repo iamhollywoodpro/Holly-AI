@@ -11,7 +11,7 @@ import {
   DocumentTextIcon,
   ChartBarIcon,
   ClockIcon,
-  MessageSquareTextIcon,
+  ChatBubbleLeftRightIcon,
   CodeBracketIcon,
   CloudIcon
 } from '@heroicons/react/24/outline';
@@ -167,7 +167,7 @@ export default function ProfilePage() {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 text-gray-400">
-                      <MessageSquareTextIcon className="w-4 h-4" />
+                      <ChatBubbleLeftRightIcon className="w-4 h-4" />
                       <span className="text-sm">Conversations</span>
                     </div>
                     <span className="text-white font-semibold">{stats.totalConversations}</span>
