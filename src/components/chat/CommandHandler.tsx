@@ -10,6 +10,7 @@ import WorkflowsPanel from './WorkflowsPanel';
 import TeamCollaborationPanel from './TeamCollaborationPanel';
 import IssueManagementPanel from './IssueManagementPanel';
 import CreateIssueDialog from './CreateIssueDialog';
+import BrowsePanel from '../github/BrowsePanel';
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
 import { useActiveRepo, useActiveRepos } from '@/hooks/useActiveRepos';
@@ -32,6 +33,8 @@ export const CommandHandler = forwardRef<CommandHandlerRef, CommandHandlerProps>
   const [showTeamPanel, setShowTeamPanel] = useState(false);
   const [showIssuesPanel, setShowIssuesPanel] = useState(false);
   const [showCreateIssueDialog, setShowCreateIssueDialog] = useState(false);
+  const [showBrowsePanel, setShowBrowsePanel] = useState(false);
+  const [browseRepo, setBrowseRepo] = useState<{ owner: string; repo: string } | null>(null);
   
   const { activeRepo } = useActiveRepo();
   const activeRepoStore = useActiveRepos(); // Get store instance for executeCommand
@@ -91,6 +94,29 @@ export const CommandHandler = forwardRef<CommandHandlerRef, CommandHandlerProps>
             return 'Please select a repository first. Type `/repos` to choose a repository.';
           }
           setShowIssuesPanel(true);
+          return true;
+        
+        case 'browse':
+          // Parse owner/repo from args (e.g., /browse owner/repo)
+          if (command.args.length > 0 && command.args[0].includes('/')) {
+            const [owner, repo] = command.args[0].split('/');
+            if (owner && repo) {
+              setBrowseRepo({ owner, repo });
+              setShowBrowsePanel(true);
+              return true;
+            }
+            return 'Invalid repository format. Use: `/browse owner/repo`';
+          }
+          // No args - use active repository
+          const currentRepoForBrowse = activeRepoStore.getCurrentRepo();
+          if (!currentRepoForBrowse) {
+            return 'Please select a repository first or specify one: `/browse owner/repo`';
+          }
+          setBrowseRepo({
+            owner: currentRepoForBrowse.owner,
+            repo: currentRepoForBrowse.repo,
+          });
+          setShowBrowsePanel(true);
           return true;
         
         case 'help':
@@ -326,6 +352,32 @@ export const CommandHandler = forwardRef<CommandHandlerRef, CommandHandlerProps>
           owner={activeRepo.owner}
           repo={activeRepo.repo}
         />
+      )}
+
+      {/* Browse Panel */}
+      {showBrowsePanel && browseRepo && (
+        <Dialog
+          open={showBrowsePanel}
+          onClose={() => {
+            setShowBrowsePanel(false);
+            setBrowseRepo(null);
+          }}
+          className="relative z-50"
+        >
+          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm" aria-hidden="true" />
+          <div className="fixed inset-0 flex items-center justify-center p-4">
+            <Dialog.Panel className="w-full max-w-6xl h-[85vh] bg-white dark:bg-gray-900 rounded-2xl shadow-xl overflow-hidden">
+              <BrowsePanel
+                owner={browseRepo.owner}
+                repo={browseRepo.repo}
+                onClose={() => {
+                  setShowBrowsePanel(false);
+                  setBrowseRepo(null);
+                }}
+              />
+            </Dialog.Panel>
+          </div>
+        </Dialog>
       )}
     </>
   );

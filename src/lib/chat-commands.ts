@@ -112,6 +112,14 @@ export function getCommandHelp(): string {
 - Assign to team members
 - Quick close actions
 
+\`/browse\` or \`/b\` - File Browser & Viewer
+- Browse repository files and folders
+- Interactive file tree with search
+- View file contents with syntax highlighting
+- \`/browse owner/repo\` - Browse specific repository
+- \`/browse\` - Browse current active repository
+- Download files or open in GitHub
+
 \`/clear\` or \`/c\` - Clear chat history
 - Clears all messages from current session
 - Does not affect repository selection
