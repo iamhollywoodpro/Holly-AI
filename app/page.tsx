@@ -78,8 +78,8 @@ export default function ChatPage() {
   // Phase 2: Chat UX Polish state
   const [showRepoIndicator, setShowRepoIndicator] = useState(true);
   const [loadingAction, setLoadingAction] = useState<string>('chat');
-  const activeRepos = useActiveRepos();
-  const activeRepo = activeRepos.repos[0]; // Get first active repo
+  const getCurrentRepo = useActiveRepos(state => state.getCurrentRepo);
+  const activeRepo = getCurrentRepo(); // Get current active repo
 
   // Fetch real consciousness state
   const { state: consciousnessState, refresh: refreshConsciousness } = useConsciousnessState({
