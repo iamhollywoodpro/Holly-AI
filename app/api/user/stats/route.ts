@@ -24,7 +24,7 @@ export async function GET() {
     const [conversationsCount, messagesCount, githubConnection, driveConnection] = await Promise.all([
       prisma.conversation.count({ where: { userId: user.id } }),
       prisma.message.count({ where: { conversation: { userId: user.id } } }),
-      prisma.gitHubConnection.findUnique({ where: { userId: user.id }, select: { repoCount: true } }),
+      prisma.gitHubConnection.findUnique({ where: { userId: user.id }, select: { publicRepos: true, privateRepos: true } }),
       prisma.googleDriveConnection.findUnique({ where: { userId: user.id }, select: { id: true } }),
     ]);
 
@@ -38,7 +38,7 @@ export async function GET() {
     const stats = {
       totalConversations: conversationsCount,
       totalMessages: messagesCount,
-      activeRepos: githubConnection?.repoCount || 0,
+      activeRepos: (githubConnection?.publicRepos || 0) + (githubConnection?.privateRepos || 0),
       driveFilesCount: driveConnection ? 0 : 0, // TODO: Implement Drive file counting
       lastActiveAt: lastConversation?.updatedAt.toISOString() || new Date().toISOString(),
     };
