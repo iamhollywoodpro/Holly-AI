@@ -291,7 +291,7 @@ export default function FileBrowser({
           )}
 
           {/* Name */}
-          <span className="flex-1 text-sm truncate dark:text-gray-200">
+          <span className="flex-1 text-sm truncate text-gray-900 dark:text-gray-200">
             {node.item.name}
           </span>
 
@@ -435,7 +435,7 @@ export default function FileBrowser({
                   onClick={() => handleFileClick(file)}
                 >
                   <span className="text-lg">{getFileIcon(file.name)}</span>
-                  <span className="flex-1 text-sm truncate dark:text-gray-200">
+                  <span className="flex-1 text-sm truncate text-gray-900 dark:text-gray-200">
                     {file.path}
                   </span>
                   <span className="text-xs text-gray-500 dark:text-gray-400">
