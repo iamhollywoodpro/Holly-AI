@@ -36,7 +36,6 @@ import sql from 'react-syntax-highlighter/dist/esm/languages/hljs/sql';
 import yaml from 'react-syntax-highlighter/dist/esm/languages/hljs/yaml';
 import rust from 'react-syntax-highlighter/dist/esm/languages/hljs/rust';
 import go from 'react-syntax-highlighter/dist/esm/languages/hljs/go';
-import { useEffect, useState } from 'react';
 
 // Register languages
 SyntaxHighlighter.registerLanguage('javascript', javascript);
