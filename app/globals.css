@@ -18,54 +18,67 @@
   --font-size-xl: 1.25rem;
 }
 
-/* ==================== LIGHT MODE THEME ==================== */
+/* ==================== LIGHT MODE THEME (SIMPLE) ==================== */
 
 .light {
   color-scheme: light;
 }
 
+/* Pure white background, black text */
 .light body {
-  @apply bg-gradient-to-br from-gray-50 via-gray-100 to-white text-gray-900;
+  @apply bg-white text-black;
 }
 
-.light .bg-gray-900 {
+/* All dark backgrounds become white */
+.light .bg-gray-900,
+.light .bg-gray-950,
+.light .bg-black {
   @apply bg-white;
 }
 
 .light .bg-gray-800 {
+  @apply bg-gray-50;
+}
+
+.light .bg-gray-900\/50,
+.light .bg-gray-900\/30 {
+  @apply bg-gray-50;
+}
+
+.light .bg-gray-800\/50,
+.light .bg-gray-800\/30 {
   @apply bg-gray-100;
 }
 
-.light .bg-gray-900\/50 {
-  @apply bg-white/50;
+.light .bg-gray-700\/50 {
+  @apply bg-gray-200;
 }
 
-.light .bg-gray-800\/50 {
-  @apply bg-gray-100/50;
-}
-
+/* All white/light text becomes black */
 .light .text-white {
-  @apply text-gray-900;
+  @apply text-black;
 }
 
-.light .text-gray-300 {
-  @apply text-gray-700;
-}
-
-.light .text-gray-400 {
+.light .text-gray-300,
+.light .text-gray-400,
+.light .text-gray-500 {
   @apply text-gray-600;
 }
 
-.light .border-gray-800 {
+/* Borders become light grey */
+.light .border-gray-800,
+.light .border-gray-700 {
   @apply border-gray-200;
 }
 
-.light .border-gray-700 {
-  @apply border-gray-300;
+.light .border-gray-800\/50,
+.light .border-gray-700\/50 {
+  @apply border-gray-100;
 }
 
+/* Scrollbar */
 .light ::-webkit-scrollbar-track {
-  @apply bg-gray-100;
+  @apply bg-gray-50;
 }
 
 .light ::-webkit-scrollbar-thumb {
@@ -74,6 +87,11 @@
 
 .light ::-webkit-scrollbar-thumb:hover {
   @apply bg-gray-400;
+}
+
+/* Gradient backgrounds */
+.light .bg-gradient-to-br {
+  background: white !important;
 }
 
 /* ==================== DARK MODE THEME (DEFAULT) ==================== */
