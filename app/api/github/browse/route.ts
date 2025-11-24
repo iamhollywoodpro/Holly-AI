@@ -122,10 +122,10 @@ export async function GET(request: NextRequest) {
         contents,
         repoInfo: {
           description: repoInfo.description,
-          defaultBranch: repoInfo.default_branch,
+          defaultBranch: repoInfo.defaultBranch,
           language: repoInfo.language,
-          stars: repoInfo.stargazers_count,
-          lastUpdated: repoInfo.updated_at,
+          stars: repoInfo.stars,
+          lastUpdated: repoInfo.updatedAt,
         },
       });
 
