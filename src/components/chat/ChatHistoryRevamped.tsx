@@ -345,7 +345,7 @@ export default function ChatHistoryRevamped({
                         className={`relative group p-3 rounded-lg transition-all cursor-pointer ${
                           conv.id === currentConversationId
                             ? 'bg-purple-600/20 border border-purple-500/50'
-                            : 'bg-gray-800/30 hover:bg-gray-800/50 border border-transparent'
+                            : 'bg-gray-800/50 hover:bg-gray-700/50 border border-gray-700/30 hover:border-gray-600/50'
                         } ${
                           conv.colorTag ? `border-l-4 ${conv.colorTag === 'red' ? 'border-l-red-500' : conv.colorTag === 'blue' ? 'border-l-blue-500' : conv.colorTag === 'green' ? 'border-l-green-500' : conv.colorTag === 'purple' ? 'border-l-purple-500' : conv.colorTag === 'pink' ? 'border-l-pink-500' : conv.colorTag === 'orange' ? 'border-l-orange-500' : 'border-l-yellow-500'}` : ''
                         }`}
