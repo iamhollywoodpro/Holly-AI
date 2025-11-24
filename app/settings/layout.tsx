@@ -16,6 +16,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { ReactNode } from 'react';
 import { SettingsToast } from '@/components/notifications/SettingsToast';
+import { useSettings } from '@/lib/settings/settings-store';
 
 interface SettingsLayoutProps {
   children: ReactNode;
