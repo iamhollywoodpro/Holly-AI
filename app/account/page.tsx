@@ -47,7 +47,17 @@ export default function AccountPage() {
 
   const currentPlan: 'free' | 'pro' | 'enterprise' = 'free'; // TODO: Get from database
 
-  const plans = [
+  const plans: Array<{
+    id: string;
+    name: string;
+    price: { monthly: number; annually: number };
+    features: string[];
+    color: string;
+    icon: any;
+    popular?: boolean;
+    cta: string;
+    disabled: boolean;
+  }> = [
     {
       id: 'free',
       name: 'Free Tier',
