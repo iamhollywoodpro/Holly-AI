@@ -1,420 +1,942 @@
-// app/page.tsx - PHASE 2: Chat UX Polish Integration
-// This file integrates: ActiveRepoIndicator, CommandAutocomplete, LoadingIndicator, Multi-line Input
-
 'use client';
 
-import { useState, useRef, useEffect, KeyboardEvent } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Sparkles, Brain, Target, Menu } from 'lucide-react';
+import ParticleField from '@/components/ui/ParticleField';
+import MessageBubble from '@/components/chat/MessageBubble';
+import ChatInputControls from '@/components/chat/ChatInputControls';
+import { WorkLogFeed } from '@/components/work-log';
+import BrainConsciousnessIndicator from '@/components/consciousness/BrainConsciousnessIndicator';
+import ChatHistory from '@/components/chat/ChatHistory';
+import MemoryTimeline from '@/components/consciousness/MemoryTimeline';
 import { useUser } from '@clerk/nextjs';
-import { PaperAirplaneIcon, Bars3Icon } from '@heroicons/react/24/solid';
-import Sidebar from '@/components/Sidebar';
-import CommandHandler from '@/components/CommandHandler';
-import GitHubConnectionDropdown from '@/components/header/GitHubConnectionDropdown';
-import ProfileDropdown from '@/components/header/ProfileDropdown';
-import MobileMenu from '@/components/header/MobileMenu';
-import KeyboardShortcutsModal from '@/components/modals/KeyboardShortcutsModal';
-import ActiveRepoIndicator, { EmptyRepoIndicator } from '@/components/chat/ActiveRepoIndicator';
-import CommandAutocomplete from '@/components/chat/CommandAutocomplete';
-import LoadingIndicator, { getLoadingMessage } from '@/components/chat/LoadingIndicator';
-import { useActiveRepo } from '@/lib/stores/active-repo-store';
+import { getVoiceInput, getVoiceOutput, isSpeechRecognitionAvailable, isSpeechSynthesisAvailable } from '@/lib/voice/voice-handler';
+import { useConsciousnessState } from '@/hooks/useConsciousnessState';
+import { UserButton } from '@clerk/nextjs';
+import FileUploadPreview from '@/components/chat/FileUploadPreview';
+import TypingIndicator from '@/components/chat/TypingIndicator';
+import KeyboardShortcuts from '@/components/ui/KeyboardShortcuts';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { HelpCircle, Calendar, FileText } from 'lucide-react';
+import GoogleDriveBanner from '@/components/banners/GoogleDriveBanner';
+import OnboardingCheck from '@/components/onboarding/OnboardingCheck';
+import DebugToggle from '@/components/debug/DebugToggle';
+import DebugPanel from '@/components/debug/DebugPanel';
+import { SuggestionsPanel } from '@/components/suggestions/SuggestionsPanel';
+import { useSuggestions } from '@/hooks/useSuggestions';
+import type { Suggestion } from '@/types/suggestions';
+import { SummaryPanel } from '@/components/summary/SummaryPanel';
+import { useSummary } from '@/hooks/useSummary';
+import { SuccessToast } from '@/components/notifications/SuccessToast';
+import { DriveIndicator } from '@/components/indicators/DriveIndicator';
+import { GitHubIndicator } from '@/components/indicators/GitHubIndicator';
+import { useSearchParams } from 'next/navigation';
+import { CommandHandler, CommandHandlerRef } from '@/components/chat/CommandHandler';
+import { GitHubConnectionDropdown } from '@/components/header/GitHubConnectionDropdown';
+import { ProfileDropdown } from '@/components/header/ProfileDropdown';
+import { MobileMenu } from '@/components/header/MobileMenu';
+import { KeyboardShortcutsModal } from '@/components/modals/KeyboardShortcutsModal';
+import { Bars3Icon } from '@heroicons/react/24/outline';
 
 interface Message {
+  id: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+  emotion?: string;
+  thinking?: boolean;
 }
 
-export default function Home() {
+export default function ChatPage() {
   const { user } = useUser();
+  const searchParams = useSearchParams();
+  const commandHandlerRef = useRef<CommandHandlerRef>(null);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [loadingAction, setLoadingAction] = useState<string>('chat');
   
-  // Phase 1 state
-  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+  const [showChatHistory, setShowChatHistory] = useState(true); // Chat history instead of goals
+  const [showMemory, setShowMemory] = useState(false);
+  const [isVoiceInputActive, setIsVoiceInputActive] = useState(false);
+  const [isVoiceOutputActive, setIsVoiceOutputActive] = useState(false);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [showFilePreview, setShowFilePreview] = useState(false);
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [debugMode, setDebugMode] = useState(false);
-  const [githubUsername, setGithubUsername] = useState<string | null>(null);
-  const [githubRepoCount, setGithubRepoCount] = useState<number>(0);
-  
-  // Phase 2 state
-  const [showCommandAutocomplete, setShowCommandAutocomplete] = useState(false);
-  const [commandQuery, setCommandQuery] = useState('');
-  const [showRepoIndicator, setShowRepoIndicator] = useState(true);
-  const [textareaHeight, setTextareaHeight] = useState('auto');
-  
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const commandHandlerRef = useRef<any>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const activeRepo = useActiveRepo();
+  const [githubUsername, setGithubUsername] = useState('');
+  const [githubRepoCount, setGithubRepoCount] = useState(0);
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
+  const [lastInputWasVoice, setLastInputWasVoice] = useState(false);
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
-  // Scroll to bottom when messages change
-  useEffect(() => {
+  // Fetch real consciousness state
+  const { state: consciousnessState, refresh: refreshConsciousness } = useConsciousnessState({
+    refreshInterval: 30000, // Update every 30 seconds
+    enabled: true
+  });
+  const [isLoadingConversation, setIsLoadingConversation] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const voiceInputRef = useRef(getVoiceInput());
+  const voiceOutputRef = useRef(getVoiceOutput());
+
+  // AI Suggestions
+  const suggestions = useSuggestions({
+    conversationId: currentConversationId,
+    enabled: true,
+    autoHideDelay: 30000,
+  });
+
+  // Chat History Summarization
+  const summary = useSummary({
+    conversationId: currentConversationId,
+    autoGenerate: true,
+    autoGenerateDelay: 600000, // 10 minutes
+  });
+
+  const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
   }, [messages]);
 
-  // Fetch GitHub connection info on mount
+  // Check for Google Drive connection success
   useEffect(() => {
-    if (user) {
-      fetch('/api/github/connection')
-        .then((res) => res.json())
-        .then((data) => {
+    const success = searchParams.get('success');
+    if (success === 'drive_connected') {
+      setSuccessMessage('🎉 Google Drive connected successfully! Your files will be automatically saved.');
+      setShowSuccessToast(true);
+    }
+  }, [searchParams]);
+  
+  // Fetch GitHub connection info
+  useEffect(() => {
+    const fetchGitHubInfo = async () => {
+      try {
+        const response = await fetch('/api/github/connection');
+        if (response.ok) {
+          const data = await response.json();
           if (data.connected) {
-            setGithubUsername(data.username);
-            setGithubRepoCount(data.repoCount);
+            setGithubUsername(data.username || '');
+            setGithubRepoCount(data.repoCount || 0);
           }
-        })
-        .catch((err) => console.error('Failed to fetch GitHub connection:', err));
-    }
-  }, [user]);
-
-  // Auto-resize textarea based on content
-  useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      const scrollHeight = textareaRef.current.scrollHeight;
-      const lineHeight = 24; // 1.5rem
-      const maxLines = 5;
-      const maxHeight = lineHeight * maxLines;
-      
-      if (scrollHeight > maxHeight) {
-        textareaRef.current.style.height = `${maxHeight}px`;
-        textareaRef.current.style.overflowY = 'auto';
-      } else {
-        textareaRef.current.style.height = `${scrollHeight}px`;
-        textareaRef.current.style.overflowY = 'hidden';
+        }
+      } catch (error) {
+        console.error('Failed to fetch GitHub info:', error);
       }
-    }
-  }, [input]);
+    };
+    fetchGitHubInfo();
+  }, []);
 
-  // Handle keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: globalThis.KeyboardEvent) => {
-      // Cmd+K / Ctrl+K - Clear input
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        setInput('');
-        if (textareaRef.current) {
-          textareaRef.current.focus();
+  // Don't auto-create conversations - wait for user to send first message
+  // This prevents empty "New Conversation" entries from cluttering the sidebar
+
+  // Save message to database
+  const saveMessageToDb = async (conversationId: string, role: 'user' | 'assistant', content: string, emotion?: string) => {
+    try {
+      await fetch(`/api/conversations/${conversationId}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role, content, emotion })
+      });
+    } catch (error) {
+      console.error('Failed to save message:', error);
+    }
+  };
+
+  // Create new conversation
+  const createNewConversation = async (firstMessage?: string) => {
+    try {
+      console.log('[Chat] Creating new conversation for user:', user?.id || 'none');
+      const response = await fetch('/api/conversations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          title: firstMessage ? undefined : 'New Conversation',
+          firstMessage: firstMessage
+        })
+      });
+      
+      const data = await response.json();
+      console.log('[Chat] Create conversation response:', data);
+      
+      if (response.ok && data.conversation) {
+        setCurrentConversationId(data.conversation.id);
+        setMessages([]); // Clear messages for new conversation
+        console.log('[Chat] ✅ New conversation created:', data.conversation.id);
+        return data.conversation.id;
+      } else {
+        console.error('[Chat] ❌ Failed to create conversation:', data.error || 'Unknown error');
+        return null;
+      }
+    } catch (error) {
+      console.error('[Chat] ❌ Failed to create conversation (exception):', error);
+      return null;
+    }
+  };
+
+  // Load conversation from history
+  const loadConversation = async (conversationId: string) => {
+    try {
+      setIsLoadingConversation(true);
+      
+      const response = await fetch(`/api/conversations/${conversationId}/messages`);
+      const data = await response.json();
+      
+      if (response.ok && data.messages) {
+        // Convert database messages to UI format
+        const loadedMessages: Message[] = data.messages.map((msg: any) => ({
+          id: msg.id,
+          role: msg.role,
+          content: msg.content,
+          timestamp: new Date(msg.created_at),
+          emotion: msg.emotion || 'curious'
+        }));
+        
+        setMessages(loadedMessages);
+        setCurrentConversationId(conversationId);
+        console.log('[Chat] Loaded conversation:', conversationId, loadedMessages.length, 'messages');
+      }
+    } catch (error) {
+      console.error('Failed to load conversation:', error);
+    } finally {
+      setIsLoadingConversation(false);
+    }
+  };
+
+  // Handle suggestion click
+  const handleSuggestionClick = async (suggestion: Suggestion) => {
+    // Track usage for learning
+    suggestions.trackUsage(suggestion);
+    
+    // Dismiss suggestions
+    suggestions.dismiss();
+    
+    // Handle different action types
+    switch (suggestion.action) {
+      case 'send_message':
+        // Send the suggestion as a message
+        if (suggestion.payload) {
+          await handleSend(suggestion.payload, false);
+        }
+        break;
+        
+      case 'navigate':
+        // Navigate to a different page
+        if (suggestion.payload) {
+          window.location.href = suggestion.payload;
+        }
+        break;
+        
+      case 'execute_tool':
+        // Execute a specific tool/action
+        // TODO: Implement tool execution logic
+        console.log('Execute tool:', suggestion.payload);
+        break;
+        
+      default:
+        console.warn('Unknown suggestion action:', suggestion.action);
+    }
+  };
+
+  // Handle jump to message from summary
+  const handleJumpToMessage = (messageId: string) => {
+    // Find the message element
+    const messageElement = document.getElementById(`message-${messageId}`);
+    if (messageElement) {
+      // Scroll to the message
+      messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      
+      // Highlight the message briefly
+      messageElement.classList.add('ring-2', 'ring-purple-500', 'ring-offset-2', 'ring-offset-gray-900');
+      setTimeout(() => {
+        messageElement.classList.remove('ring-2', 'ring-purple-500', 'ring-offset-2', 'ring-offset-gray-900');
+      }, 2000);
+      
+      // Close the summary panel
+      summary.closeFullPanel();
+    }
+  };
+
+  const handleSend = async (message: string, fromVoice: boolean = false) => {
+    if (!message.trim() || isTyping) return;
+    
+    // Check if it's a command FIRST
+    const commandResult = commandHandlerRef.current?.executeCommand(message.trim());
+    if (commandResult === true) {
+      // Command executed successfully - don't send to AI
+      return;
+    } else if (typeof commandResult === 'string') {
+      // Command returned an error message - show it to user
+      const errorMessage: Message = {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: commandResult,
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
+      return;
+    }
+    
+    // Track if this is from voice (will be reset after response)
+    const shouldAutoSpeak = fromVoice || lastInputWasVoice;
+
+    // Ensure conversation exists before sending message
+    let conversationId = currentConversationId;
+    if (!conversationId) {
+      console.log('[Chat] No conversation found, creating one...');
+      conversationId = await createNewConversation(message);
+      if (!conversationId) {
+        console.error('[Chat] Failed to create conversation, cannot send message');
+        return;
+      }
+      // Update state
+      setCurrentConversationId(conversationId);
+    }
+
+    console.log('[Chat] Sending message with conversation ID:', conversationId);
+
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: message,
+      timestamp: new Date()
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setIsTyping(true);
+
+    // Save user message to database (use local conversationId, not state)
+    saveMessageToDb(conversationId, 'user', message);
+
+    // Add thinking indicator
+    const thinkingMessage: Message = {
+      id: (Date.now() + 1).toString(),
+      role: 'assistant',
+      content: '',
+      timestamp: new Date(),
+      thinking: true
+    };
+    setMessages(prev => [...prev, thinkingMessage]);
+
+    try {
+      // Call real HOLLY chat API with user context
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: [...messages, userMessage].map(m => ({
+            role: m.role,
+            content: m.content
+          })),
+          userId: user?.id || 'anonymous',
+          conversationId: conversationId || `chat-${Date.now()}`
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
+      // Remove thinking indicator
+      setMessages(prev => prev.filter(m => !m.thinking));
+
+      // Handle streaming response
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let accumulatedContent = '';
+      
+      const hollyMessage: Message = {
+        id: (Date.now() + 2).toString(),
+        role: 'assistant',
+        content: '',
+        timestamp: new Date(),
+        emotion: 'curious'
+      };
+      setMessages(prev => [...prev, hollyMessage]);
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value);
+          const lines = chunk.split('\n').filter(line => line.trim());
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6);
+              if (data === '[DONE]') break;
+              
+              try {
+                const parsed = JSON.parse(data);
+                if (parsed.content) {
+                  accumulatedContent = parsed.content;
+                  setMessages(prev => prev.map(m => 
+                    m.id === hollyMessage.id 
+                      ? { ...m, content: accumulatedContent }
+                      : m
+                  ));
+                }
+              } catch (e) {
+                console.error('Parse error:', e);
+              }
+            }
+          }
         }
       }
 
-      // Cmd+Shift+K / Ctrl+Shift+K - Show keyboard shortcuts
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'K') {
-        e.preventDefault();
-        setShowKeyboardShortcuts(true);
-      }
-
-      // Cmd+R / Ctrl+R - Open repo selector
-      if ((e.metaKey || e.ctrlKey) && e.key === 'r') {
-        e.preventDefault();
-        // Trigger repo selector (will be handled by GitHubConnectionDropdown)
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
-  // Detect command autocomplete trigger
-  useEffect(() => {
-    const lastChar = input.slice(-1);
-    const words = input.trim().split(/\s+/);
-    const lastWord = words[words.length - 1];
-
-    if (lastWord.startsWith('/')) {
-      setCommandQuery(lastWord);
-      setShowCommandAutocomplete(true);
-    } else {
-      setShowCommandAutocomplete(false);
-      setCommandQuery('');
-    }
-  }, [input]);
-
-  const handleSend = async () => {
-    if (!input.trim()) return;
-
-    const userMessage: Message = {
-      role: 'user',
-      content: input,
-      timestamp: new Date(),
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
-    setInput('');
-    setIsLoading(true);
-
-    // Check if it's a command
-    if (input.trim().startsWith('/')) {
-      setLoadingAction(getCommandAction(input.trim()));
-      try {
-        const response = await commandHandlerRef.current?.executeCommand(input.trim());
+      // Save HOLLY's response to database (use conversationId variable from handleSend)
+      if (conversationId && accumulatedContent) {
+        saveMessageToDb(conversationId, 'assistant', accumulatedContent, 'curious');
         
-        const assistantMessage: Message = {
-          role: 'assistant',
-          content: response || 'Command executed successfully!',
-          timestamp: new Date(),
-        };
-        setMessages((prev) => [...prev, assistantMessage]);
-      } catch (error) {
-        const errorMessage: Message = {
-          role: 'assistant',
-          content: `Error executing command: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          timestamp: new Date(),
-        };
-        setMessages((prev) => [...prev, errorMessage]);
+        // Generate smart title after first message exchange
+        if (messages.length === 0) {
+          console.log('[Chat] First message - generating smart title...');
+          try {
+            const titleResponse = await fetch('/api/conversations/generate-title', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ firstMessage: message })
+            });
+            
+            if (titleResponse.ok) {
+              const { title } = await titleResponse.json();
+              console.log('[Chat] ✅ Generated title:', title);
+              
+              // Update conversation title
+              await fetch(`/api/conversations/${conversationId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title })
+              });
+              
+              // Notify ChatHistory to refresh
+              window.dispatchEvent(new CustomEvent('conversation-title-updated', { 
+                detail: { conversationId, title } 
+              }));
+            }
+          } catch (error) {
+            console.error('[Chat] Failed to generate title:', error);
+          }
+        }
       }
-      setIsLoading(false);
+
+      // Refresh consciousness state after interaction
+      refreshConsciousness();
+
+      // Refresh AI suggestions after response
+      setTimeout(() => {
+        suggestions.refresh();
+      }, 1000);
+
+      // Auto-speak response if user used voice input
+      if (shouldAutoSpeak && accumulatedContent) {
+        const voiceOutput = voiceOutputRef.current;
+        setTimeout(() => {
+          voiceOutput.speak(accumulatedContent, {
+            provider: 'elevenlabs',
+            elevenLabsVoiceId: 'charlotte',
+            volume: 0.9,
+            onStart: () => setIsVoiceOutputActive(true),
+            onEnd: () => setIsVoiceOutputActive(false),
+            onError: (error) => {
+              console.error('Voice output error:', error);
+              setIsVoiceOutputActive(false);
+            }
+          });
+        }, 500);
+      }
+      
+      // Reset voice input flag
+      setLastInputWasVoice(false);
+
+      setIsTyping(false);
+    } catch (error) {
+      console.error('Chat error:', error);
+      
+      // Remove thinking indicator
+      setMessages(prev => prev.filter(m => !m.thinking));
+      
+      // Show error message
+      const errorMessage: Message = {
+        id: (Date.now() + 2).toString(),
+        role: 'assistant',
+        content: "Oops! Something went wrong. Hollywood, I'm having trouble connecting to my brain right now. Can you try again?",
+        timestamp: new Date(),
+        emotion: 'confused'
+      };
+      
+      setMessages(prev => [...prev, errorMessage]);
+      setIsTyping(false);
+    }
+  };
+
+  // Show file preview before uploading
+  const handleFilesSelected = (files: File[]) => {
+    if (!files || files.length === 0) return;
+    setPendingFiles(Array.from(files));
+    setShowFilePreview(true);
+  };
+
+  // Remove file from preview
+  const handleRemoveFile = (index: number) => {
+    setPendingFiles(prev => prev.filter((_, i) => i !== index));
+    if (pendingFiles.length <= 1) {
+      setShowFilePreview(false);
+    }
+  };
+
+  // Cancel upload
+  const handleCancelUpload = () => {
+    setPendingFiles([]);
+    setShowFilePreview(false);
+  };
+
+  // Confirm and upload files
+  const handleConfirmUpload = async () => {
+    setShowFilePreview(false);
+    const files = pendingFiles;
+    setPendingFiles([]);
+    
+    if (!files || files.length === 0) return;
+
+    try {
+      // Show uploading message
+      const uploadingMessage: Message = {
+        id: `upload-${Date.now()}`,
+        role: 'assistant',
+        content: `📤 Uploading ${files.length} file(s)...`,
+        timestamp: new Date(),
+        thinking: true
+      };
+      setMessages(prev => [...prev, uploadingMessage]);
+
+      // Upload files in parallel
+      const uploadPromises = files.map(async (file) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('conversationId', currentConversationId || '');
+
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Upload failed');
+        }
+
+        return await response.json();
+      });
+
+      const results = await Promise.all(uploadPromises);
+
+      // Remove uploading message
+      setMessages(prev => prev.filter(m => m.id !== uploadingMessage.id));
+
+      // Add success message with file links
+      const fileLinks = results.map(r => 
+        `- [${r.fileName}](${r.url}) (${(r.fileSize / 1024).toFixed(1)} KB)`
+      ).join('\n');
+
+      const successMessage: Message = {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: `✅ **Files uploaded successfully!**\n\n${fileLinks}\n\nHow would you like me to help with these files?`,
+        timestamp: new Date(),
+        emotion: 'confident'
+      };
+      setMessages(prev => [...prev, successMessage]);
+
+      // Save to database
+      if (currentConversationId) {
+        saveMessageToDb(currentConversationId, 'assistant', successMessage.content, 'confident');
+      }
+
+    } catch (error) {
+      console.error('File upload error:', error);
+      
+      // Remove uploading message
+      setMessages(prev => prev.filter(m => m.thinking));
+      
+      // Show error message
+      const errorMessage: Message = {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: `❌ **Upload failed**: ${error instanceof Error ? error.message : 'Unknown error'}\n\nPlease try again or check your file size (max 50MB).`,
+        timestamp: new Date(),
+        emotion: 'concerned'
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    }
+  };
+
+  const handleVoiceInput = () => {
+    if (!isSpeechRecognitionAvailable()) {
+      alert('Voice input is not supported in your browser. Please try Chrome, Edge, or Safari.');
       return;
     }
 
-    // Regular chat
-    setLoadingAction('chat');
-    try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: input, history: messages }),
-      });
+    const voiceInput = voiceInputRef.current;
 
-      const data = await response.json();
-      
-      const assistantMessage: Message = {
-        role: 'assistant',
-        content: data.response,
-        timestamp: new Date(),
-      };
-
-      setMessages((prev) => [...prev, assistantMessage]);
-    } catch (error) {
-      console.error('Chat error:', error);
-    }
-
-    setIsLoading(false);
-  };
-
-  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    // Shift+Enter = new line
-    if (e.key === 'Enter' && e.shiftKey) {
-      return; // Allow default behavior (new line)
-    }
-    
-    // Enter alone = send message
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
+    if (isVoiceInputActive) {
+      // Stop listening
+      voiceInput.stop();
+      setIsVoiceInputActive(false);
+    } else {
+      // Start listening
+      voiceInput.start(
+        (transcript) => {
+          // Voice recognized - send as message
+          handleSend(transcript, true); // Pass true to indicate voice input
+          setIsVoiceInputActive(false);
+        },
+        (error) => {
+          // Error occurred
+          console.error('Voice input error:', error);
+          alert(error);
+          setIsVoiceInputActive(false);
+        }
+      );
+      setIsVoiceInputActive(true);
     }
   };
 
-  const handleCommandSelect = (command: string) => {
-    // Replace the last word (command query) with the selected command
-    const words = input.trim().split(/\s+/);
-    words[words.length - 1] = command;
-    setInput(words.join(' ') + ' ');
-    setShowCommandAutocomplete(false);
-    
-    // Focus back on textarea
-    if (textareaRef.current) {
-      textareaRef.current.focus();
-    }
-  };
+  // Voice output is now ONLY triggered by clicking speaker icon in MessageBubble
+  // No automatic speaking
 
-  const handleRepoSelect = () => {
-    // This will be handled by CommandHandler's repo selector
-    commandHandlerRef.current?.openRepoSelector?.();
-  };
-
-  // Helper function to determine loading action from command
-  const getCommandAction = (command: string): string => {
-    if (command.startsWith('/workflows')) return 'fetch_workflows';
-    if (command.startsWith('/actions')) return 'analyze_runs';
-    if (command.startsWith('/issues')) return 'search_issues';
-    if (command.startsWith('/team')) return 'fetch_team';
-    if (command.startsWith('/collab')) return 'fetch_comments';
-    if (command.startsWith('/repos')) return 'fetch_repos';
-    return 'processing';
-  };
+  // Register keyboard shortcuts (after all functions are declared)
+  useKeyboardShortcuts([
+    { key: '?', handler: () => setShowKeyboardShortcuts(true), description: 'Show shortcuts' },
+    { key: 'n', ctrl: true, handler: createNewConversation, description: 'New chat' },
+    { key: '/', ctrl: true, handler: () => setShowChatHistory(!showChatHistory), description: 'Toggle history' },
+  ], !showKeyboardShortcuts); // Disable when shortcuts modal is open
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Sidebar */}
-      <Sidebar />
+    <>
+      {/* Onboarding Check - Redirects first-time users */}
+      <OnboardingCheck />
+      
+      <div className="chat-container relative w-full h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black overflow-hidden" style={{ height: '100dvh' }}>
+      {/* Animated Particle Background */}
+      <ParticleField />
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              {/* Mobile Menu Button */}
-              <button
-                onClick={() => setShowMobileMenu(true)}
-                className="lg:hidden p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
-              >
-                <Bars3Icon className="h-6 w-6" />
-              </button>
+      {/* Main Container */}
+      <div className="relative z-10 flex h-full" style={{ height: '100%' }}>
+        {/* Chat History Sidebar - Left - REPLACES GOALS */}
+        <AnimatePresence>
+          {showChatHistory && (
+            <motion.div
+              initial={{ x: -300, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: -300, opacity: 0 }}
+              transition={{ type: 'spring', damping: 25 }}
+              className="hidden md:block w-80 border-r border-gray-800/50"
+            >
+              <ChatHistory
+                key={currentConversationId || 'no-conversation'}
+                currentConversationId={currentConversationId || undefined}
+                onSelectConversation={loadConversation}
+                onNewConversation={createNewConversation}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-              <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-                HOLLY AI Assistant
-              </h1>
-            </div>
+        {/* Main Chat Area */}
+        <div className="flex-1 flex flex-col min-w-0">
+          {/* Google Drive Banner - Shows if not connected */}
+          <GoogleDriveBanner />
+          {/* Header - MOBILE OPTIMIZED */}
+          <motion.div 
+            className="relative z-50 px-3 sm:px-6 md:px-8 py-3 sm:py-4 md:py-6 border-b border-gray-800/50 bg-gray-900/30 backdrop-blur-xl"
+            initial={{ y: -50, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.2 }}
+          >
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 sm:gap-3 md:gap-4 min-w-0">
+                {/* HOLLY Logo - SMALLER ON MOBILE */}
+                <motion.div
+                  className="relative w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 flex-shrink-0"
+                  animate={{
+                    scale: [1, 1.05, 1],
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: 'easeInOut'
+                  }}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-purple-500 via-pink-500 to-blue-500 rounded-xl sm:rounded-2xl blur-lg sm:blur-xl opacity-50" />
+                  <div className="relative w-full h-full bg-gradient-to-br from-purple-600 via-pink-600 to-blue-600 rounded-xl sm:rounded-2xl flex items-center justify-center border border-white/20">
+                    <Brain className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-white" />
+                  </div>
+                </motion.div>
 
-            <div className="flex items-center gap-3">
-              {/* GitHub Connection Dropdown */}
-              {githubUsername && (
+                {/* Title - RESPONSIVE WITH STATUS */}
+                <div className="min-w-0 flex-1">
+                  <h1 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent truncate">
+                    HOLLY
+                  </h1>
+                  <p className="text-xs sm:text-sm text-gray-400 truncate">
+                    {user?.fullName ? `Hey ${user.fullName.split(' ')[0]}!` : 'Hey Hollywood!'} Ready to build?
+                  </p>
+                </div>
+              </div>
+
+              {/* Right Side: Action Buttons + Consciousness */}
+              <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 flex-shrink-0">
+                {/* Mobile Hamburger Menu - ONLY ON MOBILE */}
+                <button
+                  onClick={() => setShowMobileMenu(true)}
+                  className="lg:hidden p-2 rounded-lg bg-gray-800/50 hover:bg-gray-700/50 border border-gray-700/50 text-gray-400 hover:text-white transition-colors"
+                  aria-label="Open menu"
+                >
+                  <Bars3Icon className="w-5 h-5" />
+                </button>
+                {/* Toggle Buttons - HIDDEN ON MOBILE */}
+                <motion.button
+                  onClick={() => setShowChatHistory(!showChatHistory)}
+                  className="hidden md:flex px-3 sm:px-4 py-1.5 sm:py-2 bg-gray-800/50 hover:bg-gray-700/50 rounded-lg border border-gray-700/50 text-xs sm:text-sm text-gray-300 items-center gap-2 transition-colors"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  aria-label="Toggle chat history"
+                >
+                  <Target className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">History</span>
+                </motion.button>
+                <motion.button
+                  onClick={() => setShowMemory(!showMemory)}
+                  className="hidden md:flex px-3 sm:px-4 py-1.5 sm:py-2 bg-gray-800/50 hover:bg-gray-700/50 rounded-lg border border-gray-700/50 text-xs sm:text-sm text-gray-300 items-center gap-2 transition-colors"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  aria-label="Toggle memory"
+                >
+                  <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">Memory</span>
+                </motion.button>
+
+
+
+                {/* Brain Consciousness Indicator */}
+                <BrainConsciousnessIndicator state={consciousnessState} />
+                
+                {/* Timeline Link */}
+                <a
+                  href="/timeline"
+                  className="p-2 rounded-lg bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700 transition-all"
+                  title="Project Timeline"
+                >
+                  <Calendar className="w-5 h-5" />
+                </a>
+                
+                {/* View Summary Button */}
+                {currentConversationId && (
+                  <motion.button
+                    onClick={() => {
+                      if (!summary.summary) {
+                        summary.generateSummary();
+                      }
+                      summary.openFullPanel();
+                    }}
+                    disabled={summary.isLoading}
+                    className="p-2 rounded-lg bg-gradient-to-r from-purple-600/20 to-pink-600/20 text-purple-400 hover:text-purple-300 hover:from-purple-600/30 hover:to-pink-600/30 border border-purple-500/30 transition-all disabled:opacity-50"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    title="View Conversation Summary"
+                  >
+                    {summary.isLoading ? (
+                      <div className="w-5 h-5 animate-spin rounded-full border-2 border-purple-400 border-t-transparent" />
+                    ) : (
+                      <FileText className="w-5 h-5" />
+                    )}
+                  </motion.button>
+                )}
+                
+                {/* Drive Connection Indicator */}
+                <DriveIndicator />
+                
+                {/* GitHub Connection Dropdown - REPLACES INDICATOR */}
                 <GitHubConnectionDropdown
                   username={githubUsername}
                   repoCount={githubRepoCount}
-                  onSync={() => {
-                    // Refresh GitHub data
-                    fetch('/api/github/connection')
-                      .then((res) => res.json())
-                      .then((data) => {
-                        if (data.connected) {
-                          setGithubUsername(data.username);
-                          setGithubRepoCount(data.repoCount);
-                        }
-                      });
-                  }}
+                  onOpenRepoSelector={() => commandHandlerRef.current?.executeCommand('/repos')}
                 />
-              )}
-
-              {/* Profile Dropdown */}
-              <ProfileDropdown
-                user={user}
-                debugMode={debugMode}
-                onToggleDebug={() => setDebugMode(!debugMode)}
-                onShowKeyboardShortcuts={() => setShowKeyboardShortcuts(true)}
-              />
+                
+                {/* Profile Dropdown - REPLACES UserButton + Debug + Settings */}
+                <ProfileDropdown
+                  onOpenMemory={() => setShowMemory(true)}
+                  onOpenSettings={() => setShowSettings(true)}
+                  onOpenKeyboardShortcuts={() => setShowKeyboardShortcuts(true)}
+                  onToggleDebug={() => setDebugMode(!debugMode)}
+                  debugMode={debugMode}
+                />
+              </div>
             </div>
-          </div>
-        </header>
+          </motion.div>
 
-        {/* Chat Area */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Messages */}
-          <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
-            {messages.map((message, index) => (
-              <div
-                key={index}
-                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
-                <div
-                  className={`max-w-3xl px-4 py-3 rounded-lg ${
-                    message.role === 'user'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700'
-                  }`}
-                >
-                  <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                  <span className="text-xs opacity-70 mt-1 block">
-                    {message.timestamp.toLocaleTimeString()}
-                  </span>
+          {/* Messages Area - MOBILE OPTIMIZED */}
+          <div className="flex-1 overflow-y-auto px-3 sm:px-6 md:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6">
+            {isLoadingConversation ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4" />
+                  <p className="text-gray-400">Loading conversation...</p>
                 </div>
               </div>
-            ))}
-
-            {/* Loading Indicator */}
-            {isLoading && (
-              <div className="flex justify-start">
-                <div className="max-w-3xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
-                  <div className="px-2 py-1">
-                    <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">HOLLY</span>
+            ) : messages.length === 0 ? (
+              <div className="flex items-center justify-center h-full">
+                <p className="text-gray-500 text-sm">Start a conversation...</p>
+              </div>
+            ) : (
+              messages.map((message, index) => (
+                message.thinking ? (
+                  <TypingIndicator key={message.id} status="thinking" />
+                ) : (
+                  <div key={message.id} id={`message-${message.id}`} className="transition-all duration-300">
+                    <MessageBubble
+                      message={message}
+                      index={index}
+                    />
                   </div>
-                  <LoadingIndicator {...getLoadingMessage(loadingAction)} />
-                </div>
-              </div>
+                )
+              ))
             )}
-
+            
+            {/* Work Log Feed - Disabled for regular chat */}
+            {false && currentConversationId && (
+              <WorkLogFeed 
+                conversationId={currentConversationId}
+                enabled={true}
+                maxLogs={20}
+              />
+            )}
+            
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Active Repo Indicator */}
-          {showRepoIndicator && activeRepo ? (
-            <ActiveRepoIndicator
-              owner={activeRepo.owner}
-              repo={activeRepo.name}
-              branch={activeRepo.branch || 'main'}
-              onChangeRepo={handleRepoSelect}
-              onDismiss={() => setShowRepoIndicator(false)}
+          {/* File Upload Preview - Floating */}
+          {showFilePreview && (
+            <FileUploadPreview
+              files={pendingFiles}
+              onRemove={handleRemoveFile}
+              onConfirm={handleConfirmUpload}
+              onCancel={handleCancelUpload}
             />
-          ) : !activeRepo && showRepoIndicator ? (
-            <EmptyRepoIndicator onSelectRepo={handleRepoSelect} />
-          ) : null}
+          )}
 
-          {/* Input Area */}
-          <div className="relative border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
-            {/* Command Autocomplete */}
-            {showCommandAutocomplete && (
-              <CommandAutocomplete
-                query={commandQuery}
-                onSelect={handleCommandSelect}
-                onClose={() => setShowCommandAutocomplete(false)}
-                position={{ bottom: 80 }}
+          {/* Keyboard Shortcuts Modal */}
+          <KeyboardShortcuts
+            isOpen={showKeyboardShortcuts}
+            onClose={() => setShowKeyboardShortcuts(false)}
+          />
+
+          {/* Input Area with New Controls - MOBILE OPTIMIZED */}
+          <motion.div 
+            className="px-3 sm:px-6 md:px-8 py-3 sm:py-4 md:py-6 border-t border-gray-800/50 bg-gray-900/30 backdrop-blur-xl safe-bottom"
+            initial={{ y: 50, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}
+          >
+            <div className="max-w-4xl mx-auto w-full space-y-4">
+              {/* AI Suggestions Panel */}
+              <SuggestionsPanel
+                suggestions={suggestions.suggestions}
+                onSelectSuggestion={handleSuggestionClick}
+                onDismiss={suggestions.dismiss}
+                isVisible={suggestions.isVisible && !isTyping}
               />
-            )}
-
-            <div className="max-w-4xl mx-auto flex gap-3">
-              <div className="flex-1 relative">
-                <textarea
-                  ref={textareaRef}
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder="Type a message or / for commands..."
-                  className="w-full px-4 py-3 pr-12 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-gray-900 dark:text-white resize-none"
-                  rows={1}
-                  style={{ minHeight: '48px', maxHeight: '120px' }}
-                />
-                
-                {/* Input hint */}
-                {input.length === 0 && (
-                  <div className="absolute bottom-2 right-3 text-xs text-gray-400 dark:text-gray-500 pointer-events-none">
-                    Shift+Enter for new line
-                  </div>
-                )}
-              </div>
-
-              <button
-                onClick={handleSend}
-                disabled={!input.trim() || isLoading}
-                className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white rounded-lg transition-colors disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                <PaperAirplaneIcon className="h-5 w-5" />
-                <span className="hidden sm:inline">Send</span>
-              </button>
+              
+              <ChatInputControls
+                onSend={handleSend}
+                onFileUpload={handleFilesSelected}
+                onVoiceInput={handleVoiceInput}
+                disabled={isTyping || isLoadingConversation}
+                isVoiceActive={isVoiceInputActive}
+              />
             </div>
-
-            {/* Character count (optional) */}
-            {input.length > 500 && (
-              <div className="max-w-4xl mx-auto mt-2 text-xs text-gray-500 dark:text-gray-400 text-right">
-                {input.length} characters
-              </div>
-            )}
-          </div>
+          </motion.div>
         </div>
-      </div>
 
-      {/* Mobile Menu */}
+        {/* Memory Timeline - Right - HIDDEN ON MOBILE */}
+        <AnimatePresence>
+          {showMemory && (
+            <motion.div
+              initial={{ x: 300, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: 300, opacity: 0 }}
+              transition={{ type: 'spring', damping: 25 }}
+              className="hidden lg:block w-80 border-l border-gray-800/50"
+            >
+              <MemoryTimeline />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+      
+      {/* Debug Panel - Bottom of screen */}
+      <DebugPanel />
+      
+      {/* Summary Panel - Full-screen modal */}
+      <SummaryPanel
+        summary={summary.summary}
+        isOpen={summary.showFullPanel}
+        onClose={summary.closeFullPanel}
+        onJumpToMessage={handleJumpToMessage}
+        onExport={summary.exportAsMarkdown}
+      />
+      
+      {/* Success Toast - Google Drive & other notifications */}
+      <SuccessToast
+        message={successMessage}
+        show={showSuccessToast}
+        onClose={() => setShowSuccessToast(false)}
+        duration={5000}
+      />
+      
+      {/* Command Handler for /workflows, /team, /issues commands */}
+      <CommandHandler ref={commandHandlerRef} />
+      
+      {/* Mobile Menu - Hamburger navigation */}
       <MobileMenu
         isOpen={showMobileMenu}
         onClose={() => setShowMobileMenu(false)}
-        conversations={[]}
-        onSelectConversation={() => {}}
+        conversations={[]} // TODO: Pass actual conversations
+        currentConversationId={currentConversationId}
+        onSelectConversation={(id) => {
+          loadConversation(id);
+          setShowMobileMenu(false);
+        }}
         onNewChat={() => {
-          setMessages([]);
+          createNewConversation('');
+          setShowMobileMenu(false);
+        }}
+        onOpenMemory={() => {
+          setShowMemory(true);
+          setShowMobileMenu(false);
+        }}
+        onOpenSettings={() => {
+          setShowSettings(true);
           setShowMobileMenu(false);
         }}
       />
-
+      
       {/* Keyboard Shortcuts Modal */}
       <KeyboardShortcutsModal
         isOpen={showKeyboardShortcuts}
         onClose={() => setShowKeyboardShortcuts(false)}
       />
-
-      {/* Command Handler (hidden) */}
-      <CommandHandler ref={commandHandlerRef} />
     </div>
+    </>
   );
 }
