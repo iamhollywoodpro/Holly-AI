@@ -36,7 +36,7 @@ import sql from 'react-syntax-highlighter/dist/esm/languages/hljs/sql';
 import yaml from 'react-syntax-highlighter/dist/esm/languages/hljs/yaml';
 import rust from 'react-syntax-highlighter/dist/esm/languages/hljs/rust';
 import go from 'react-syntax-highlighter/dist/esm/languages/hljs/go';
-import { useTheme } from 'next-themes';
+import { useEffect, useState } from 'react';
 
 // Register languages
 SyntaxHighlighter.registerLanguage('javascript', javascript);
@@ -87,11 +87,25 @@ export default function FileViewer({
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState<boolean>(false);
-  const { theme, resolvedTheme } = useTheme();
+  const [isDark, setIsDark] = useState<boolean>(false);
   
-  // Determine actual theme (handle 'system')
-  const currentTheme = theme === 'system' ? resolvedTheme : theme;
-  const isDark = currentTheme === 'dark';
+  // Detect theme from DOM
+  useEffect(() => {
+    const checkTheme = () => {
+      setIsDark(document.documentElement.classList.contains('dark'));
+    };
+    
+    checkTheme();
+    
+    // Watch for theme changes
+    const observer = new MutationObserver(checkTheme);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+    
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     loadFileContent();
