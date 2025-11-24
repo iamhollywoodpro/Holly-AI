@@ -37,6 +37,7 @@ model User {
   googleDrive      GoogleDriveConnection?
   githubConnection GitHubConnection?
   githubRepos      GitHubRepository[]
+  userSettings     UserSettings?
 
   @@index([clerkId])
   @@index([email])
@@ -832,4 +833,18 @@ model GitHubRepository {
   @@index([fullName])
   @@index([owner])
   @@map("github_repositories")
+}
+
+// ==================== USER SETTINGS ====================
+
+model UserSettings {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  settings  Json     // Flexible JSON for all settings (appearance, chat, ai, notifications, developer)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@map("user_settings")
 }
