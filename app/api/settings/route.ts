@@ -2,19 +2,23 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
 import { DEFAULT_SETTINGS } from '@/lib/settings/default-settings';
+import { getOrCreateUser } from '@/lib/user-manager';
 
 // GET /api/settings - Load user settings
 export async function GET() {
   try {
-    const { userId } = await auth();
+    const { userId: clerkUserId } = await auth();
 
-    if (!userId) {
+    if (!clerkUserId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Get database user ID from Clerk ID
+    const user = await getOrCreateUser(clerkUserId);
+
     // Find user settings
     const userSettings = await prisma.userSettings.findUnique({
-      where: { userId },
+      where: { userId: user.id },
     });
 
     if (!userSettings) {
@@ -32,9 +36,9 @@ export async function GET() {
 // POST /api/settings - Save user settings
 export async function POST(req: NextRequest) {
   try {
-    const { userId } = await auth();
+    const { userId: clerkUserId } = await auth();
 
-    if (!userId) {
+    if (!clerkUserId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -44,11 +48,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Settings required' }, { status: 400 });
     }
 
+    // Get database user ID from Clerk ID
+    const user = await getOrCreateUser(clerkUserId);
+
     // Upsert user settings
     const updated = await prisma.userSettings.upsert({
-      where: { userId },
+      where: { userId: user.id },
       create: {
-        userId,
+        userId: user.id,
         settings,
       },
       update: {

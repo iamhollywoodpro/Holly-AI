@@ -10,16 +10,29 @@ export default function AppearancePage() {
     loadSettings();
   }, []);
 
-  const handleThemeChange = (theme: 'dark' | 'light' | 'auto') => {
-    updateSettings({ appearance: { ...settings.appearance, theme } });
+  const handleThemeChange = async (theme: 'dark' | 'light' | 'auto') => {
+    await updateSettings({ appearance: { ...settings.appearance, theme } });
+    // Show success toast
+    const event = new CustomEvent('show-toast', {
+      detail: { message: '✅ Theme updated', type: 'success' }
+    });
+    window.dispatchEvent(event);
   };
 
-  const handleColorSchemeChange = (colorScheme: any) => {
-    updateSettings({ appearance: { ...settings.appearance, colorScheme } });
+  const handleColorSchemeChange = async (colorScheme: any) => {
+    await updateSettings({ appearance: { ...settings.appearance, colorScheme } });
+    const event = new CustomEvent('show-toast', {
+      detail: { message: '✅ Color scheme updated', type: 'success' }
+    });
+    window.dispatchEvent(event);
   };
 
-  const handleFontSizeChange = (fontSize: 'small' | 'medium' | 'large') => {
-    updateSettings({ appearance: { ...settings.appearance, fontSize } });
+  const handleFontSizeChange = async (fontSize: 'small' | 'medium' | 'large') => {
+    await updateSettings({ appearance: { ...settings.appearance, fontSize } });
+    const event = new CustomEvent('show-toast', {
+      detail: { message: '✅ Font size updated', type: 'success' }
+    });
+    window.dispatchEvent(event);
   };
 
   return (
