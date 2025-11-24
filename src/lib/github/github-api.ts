@@ -194,6 +194,155 @@ export class GitHubAPIService {
       throw new Error(`Failed to search: ${error.message}`);
     }
   }
+
+  /**
+   * Compare commits to get diff/changes
+   * This compares the current HEAD with the working tree
+   */
+  async getRepoComparison(
+    owner: string,
+    repo: string,
+    base: string,
+    head: string
+  ) {
+    try {
+      const response = await this.octokit.rest.repos.compareCommits({
+        owner,
+        repo,
+        base,
+        head,
+      });
+
+      return {
+        ahead_by: response.data.ahead_by,
+        behind_by: response.data.behind_by,
+        status: response.data.status,
+        total_commits: response.data.total_commits,
+        files: response.data.files?.map(file => ({
+          filename: file.filename,
+          status: file.status,
+          additions: file.additions,
+          deletions: file.deletions,
+          changes: file.changes,
+          patch: file.patch,
+        })) || [],
+      };
+    } catch (error: any) {
+      console.error('Failed to get repo comparison:', error);
+      throw new Error(`Failed to get diff: ${error.message}`);
+    }
+  }
+
+  /**
+   * Create a commit on a branch
+   */
+  async createCommit(
+    owner: string,
+    repo: string,
+    branch: string,
+    message: string,
+    tree: string,
+    parents: string[]
+  ) {
+    try {
+      const response = await this.octokit.rest.git.createCommit({
+        owner,
+        repo,
+        message,
+        tree,
+        parents,
+      });
+
+      return {
+        sha: response.data.sha,
+        message: response.data.message,
+        author: response.data.author,
+        committer: response.data.committer,
+        url: response.data.html_url,
+      };
+    } catch (error: any) {
+      console.error('Failed to create commit:', error);
+      throw new Error(`Failed to create commit: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get commit history for a repository
+   */
+  async getCommitHistory(
+    owner: string,
+    repo: string,
+    branch?: string,
+    limit: number = 10
+  ) {
+    try {
+      const response = await this.octokit.rest.repos.listCommits({
+        owner,
+        repo,
+        sha: branch,
+        per_page: limit,
+      });
+
+      return response.data.map(commit => ({
+        sha: commit.sha,
+        shortSha: commit.sha.substring(0, 7),
+        message: commit.commit.message,
+        author: {
+          name: commit.commit.author?.name || 'Unknown',
+          email: commit.commit.author?.email || '',
+          date: commit.commit.author?.date || new Date().toISOString(),
+        },
+        committer: {
+          name: commit.commit.committer?.name || 'Unknown',
+          email: commit.commit.committer?.email || '',
+          date: commit.commit.committer?.date || new Date().toISOString(),
+        },
+        url: commit.html_url,
+        stats: {
+          additions: commit.stats?.additions || 0,
+          deletions: commit.stats?.deletions || 0,
+          total: commit.stats?.total || 0,
+        },
+      }));
+    } catch (error: any) {
+      console.error('Failed to get commit history:', error);
+      throw new Error(`Failed to fetch commits: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get a single commit details
+   */
+  async getCommit(owner: string, repo: string, sha: string) {
+    try {
+      const response = await this.octokit.rest.repos.getCommit({
+        owner,
+        repo,
+        ref: sha,
+      });
+
+      return {
+        sha: response.data.sha,
+        shortSha: response.data.sha.substring(0, 7),
+        message: response.data.commit.message,
+        author: response.data.commit.author,
+        committer: response.data.commit.committer,
+        files: response.data.files?.map(file => ({
+          filename: file.filename,
+          status: file.status,
+          additions: file.additions,
+          deletions: file.deletions,
+          changes: file.changes,
+          patch: file.patch,
+        })) || [],
+        stats: response.data.stats,
+        url: response.data.html_url,
+      };
+    } catch (error: any) {
+      console.error('Failed to get commit:', error);
+      throw new Error(`Failed to fetch commit: ${error.message}`);
+    }
+  }
 }
 
 /**
