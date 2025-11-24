@@ -12,7 +12,7 @@ import IssueManagementPanel from './IssueManagementPanel';
 import CreateIssueDialog from './CreateIssueDialog';
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
-import { useActiveRepo } from '@/hooks/useActiveRepo';
+import { useActiveRepo, useActiveRepos } from '@/hooks/useActiveRepos';
 
 interface CommandHandlerProps {
   onCommandExecuted?: (command: string) => void;
@@ -34,6 +34,7 @@ export const CommandHandler = forwardRef<CommandHandlerRef, CommandHandlerProps>
   const [showCreateIssueDialog, setShowCreateIssueDialog] = useState(false);
   
   const { activeRepo } = useActiveRepo();
+  const activeRepoStore = useActiveRepos(); // Get store instance for executeCommand
 
   // Expose executeCommand method via ref
   useImperativeHandle(ref, () => ({
@@ -69,22 +70,24 @@ export const CommandHandler = forwardRef<CommandHandlerRef, CommandHandlerProps>
         
         case 'workflows':
           console.log('[CommandHandler] Opening workflows panel');
-          console.log('[CommandHandler] activeRepo:', activeRepo);
-          if (!activeRepo) {
+          // Get fresh activeRepo from store, not from closure
+          const currentRepo = activeRepoStore.getCurrentRepo();
+          console.log('[CommandHandler] currentRepo from store:', currentRepo);
+          if (!currentRepo) {
             return 'Please select a repository first. Type `/repos` to choose a repository.';
           }
           setShowWorkflowsPanel(true);
           return true;
         
         case 'team':
-          if (!activeRepo) {
+          if (!activeRepoStore.getCurrentRepo()) {
             return 'Please select a repository first. Type `/repos` to choose a repository.';
           }
           setShowTeamPanel(true);
           return true;
         
         case 'issues':
-          if (!activeRepo) {
+          if (!activeRepoStore.getCurrentRepo()) {
             return 'Please select a repository first. Type `/repos` to choose a repository.';
           }
           setShowIssuesPanel(true);
