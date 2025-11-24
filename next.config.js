@@ -2,6 +2,9 @@
 const path = require('path');
 
 const nextConfig = {
+  turbopack: {
+    root: path.resolve(__dirname, '.'), // Explicitly set root directory
+  },
   webpack: (config, { isServer }) => {
     // Add path alias resolution
     config.resolve.alias = {

@@ -94,6 +94,15 @@ export function RepoSelector() {
     setActiveRepo(newRepo);
     // Fetch branches for the selected repo
     await fetchBranches(newRepo.owner, newRepo.repo);
+    
+    // Show success toast notification
+    const event = new CustomEvent('show-toast', {
+      detail: {
+        message: `✅ Repository set to ${repo.fullName}`,
+        type: 'success'
+      }
+    });
+    window.dispatchEvent(event);
   };
 
   const fetchBranches = async (owner: string, repo: string) => {

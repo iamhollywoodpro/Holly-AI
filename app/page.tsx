@@ -692,8 +692,7 @@ export default function ChatPage() {
 
         {/* Main Chat Area */}
         <div className="flex-1 flex flex-col min-w-0">
-          {/* Google Drive Banner - Shows if not connected */}
-          <GoogleDriveBanner />
+          {/* Removed Drive banner - duplicated with dropdown */}
           {/* Header - MOBILE OPTIMIZED */}
           <motion.div 
             className="relative z-50 px-3 sm:px-6 md:px-8 py-3 sm:py-4 md:py-6 border-b border-gray-800/50 bg-gray-900/30 backdrop-blur-xl"
@@ -803,13 +802,15 @@ export default function ChatPage() {
                   </motion.button>
                 )}
                 
-                {/* Drive Connection Indicator - DESKTOP ONLY */}
-                <div className="hidden lg:block">
-                  <DriveIndicator />
-                </div>
+                {/* Removed standalone Drive indicator - using dropdown */}
                 
-                {/* GitHub Connection Dropdown - DESKTOP ONLY */}
-                <div className="hidden lg:block">
+                {/* GitHub Status Icon - DESKTOP ONLY */}
+                <div className="hidden lg:flex items-center gap-2">
+                  {githubUsername ? (
+                    <span className="w-2 h-2 bg-green-500 rounded-full" title="GitHub Connected" />
+                  ) : (
+                    <span className="w-2 h-2 bg-gray-600 rounded-full" title="GitHub Not Connected" />
+                  )}
                   <GitHubConnectionDropdown
                     username={githubUsername}
                     repoCount={githubRepoCount}

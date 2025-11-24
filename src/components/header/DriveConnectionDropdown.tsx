@@ -59,13 +59,8 @@ export function DriveConnectionDropdown() {
 
   const handleConnect = async () => {
     try {
-      const response = await fetch('/api/google-drive/connect');
-      if (response.ok) {
-        const data = await response.json();
-        if (data.authUrl) {
-          window.location.href = data.authUrl;
-        }
-      }
+      // Direct redirect to OAuth endpoint (like GitHub does)
+      window.location.href = '/api/google-drive/connect';
     } catch (error) {
       console.error('Failed to initiate Drive connection:', error);
     }

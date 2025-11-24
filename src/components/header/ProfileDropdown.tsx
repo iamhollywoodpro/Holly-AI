@@ -136,20 +136,7 @@ export function ProfileDropdown({
 
               {/* Features Section */}
               <div className="border-t border-gray-800 p-2">
-                <Menu.Item>
-                  {({ active }) => (
-                    <button
-                      onClick={onOpenMemory}
-                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-                        active ? 'bg-gray-800' : ''
-                      }`}
-                    >
-                      <CpuChipIcon className="w-5 h-5 text-purple-400" />
-                      <span className="text-gray-300">Memory</span>
-                      <span className="ml-auto text-xs text-gray-500">AI Context</span>
-                    </button>
-                  )}
-                </Menu.Item>
+                {/* Removed Memory toggle from dropdown - user can use header button */}
 
                 <Menu.Item>
                   {({ active }) => (
