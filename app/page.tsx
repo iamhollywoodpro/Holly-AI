@@ -38,6 +38,9 @@ import { ProfileDropdown } from '@/components/header/ProfileDropdown';
 import { MobileMenu } from '@/components/header/MobileMenu';
 import { KeyboardShortcutsModal } from '@/components/modals/KeyboardShortcutsModal';
 import { Bars3Icon } from '@heroicons/react/24/outline';
+import ActiveRepoIndicator, { EmptyRepoIndicator } from '@/components/chat/ActiveRepoIndicator';
+import LoadingIndicator, { getLoadingMessage } from '@/components/chat/LoadingIndicator';
+import { useActiveRepos } from '@/hooks/useActiveRepos';
 
 interface Message {
   id: string;
@@ -71,6 +74,12 @@ export default function ChatPage() {
   const [lastInputWasVoice, setLastInputWasVoice] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+
+  // Phase 2: Chat UX Polish state
+  const [showRepoIndicator, setShowRepoIndicator] = useState(true);
+  const [loadingAction, setLoadingAction] = useState<string>('chat');
+  const activeRepos = useActiveRepos();
+  const activeRepo = activeRepos.repos[0]; // Get first active repo
 
   // Fetch real consciousness state
   const { state: consciousnessState, refresh: refreshConsciousness } = useConsciousnessState({
@@ -800,7 +809,7 @@ export default function ChatPage() {
             ) : (
               messages.map((message, index) => (
                 message.thinking ? (
-                  <TypingIndicator key={message.id} status="thinking" />
+                  <LoadingIndicator key={message.id} {...getLoadingMessage(loadingAction)} />
                 ) : (
                   <div key={message.id} id={`message-${message.id}`} className="transition-all duration-300">
                     <MessageBubble
@@ -856,6 +865,22 @@ export default function ChatPage() {
                 onDismiss={suggestions.dismiss}
                 isVisible={suggestions.isVisible && !isTyping}
               />
+              
+              {/* Phase 2: Active Repo Indicator */}
+              {showRepoIndicator && activeRepo && (
+                <ActiveRepoIndicator
+                  owner={activeRepo.owner}
+                  repo={activeRepo.name}
+                  branch={activeRepo.branch || 'main'}
+                  onChangeRepo={() => commandHandlerRef.current?.openRepoSelector?.()}
+                  onDismiss={() => setShowRepoIndicator(false)}
+                />
+              )}
+              {showRepoIndicator && !activeRepo && (
+                <EmptyRepoIndicator 
+                  onSelectRepo={() => commandHandlerRef.current?.openRepoSelector?.()} 
+                />
+              )}
               
               <ChatInputControls
                 onSend={handleSend}
