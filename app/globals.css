@@ -56,10 +56,6 @@
   @apply text-gray-600;
 }
 
-.light .text-gray-500 {
-  @apply text-gray-500;
-}
-
 .light .border-gray-800 {
   @apply border-gray-200;
 }
