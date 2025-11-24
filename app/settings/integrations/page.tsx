@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Cloud, Check, AlertCircle, Loader2, CodeBracketIcon } from 'lucide-react';
+import { Cloud, Check, AlertCircle, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface IntegrationService {
