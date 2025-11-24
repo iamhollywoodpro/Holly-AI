@@ -4,7 +4,7 @@
  */
 
 export interface ChatCommand {
-  type: 'repos' | 'deploy' | 'pr' | 'rollback' | 'workflows' | 'team' | 'issues' | 'browse' | 'clear' | 'help' | 'unknown';
+  type: 'repos' | 'deploy' | 'pr' | 'rollback' | 'workflows' | 'team' | 'issues' | 'browse' | 'commit' | 'clear' | 'help' | 'unknown';
   args: string[];
   rawCommand: string;
 }
@@ -50,6 +50,9 @@ export function parseCommand(message: string): ChatCommand | null {
     'browse': 'browse',
     'b': 'browse',
     'files': 'browse',
+    'commit': 'commit',
+    'commits': 'commit',
+    'history': 'commit',
     'clear': 'clear',
     'c': 'clear',
     'help': 'help',
@@ -122,6 +125,14 @@ export function getCommandHelp(): string {
 - \`/browse owner/repo\` - Browse specific repository
 - \`/browse\` - Browse current active repository
 - Download files or open in GitHub
+
+\`/commit\` or \`/commits\` - Commit History
+- View commit history for your repository
+- See detailed commit information
+- View file changes and statistics
+- Open commits in GitHub
+- \`/commit\` - View commits for active repository
+- Smart commit type indicators (feat, fix, docs, etc.)
 
 \`/clear\` or \`/c\` - Clear chat history
 - Clears all messages from current session

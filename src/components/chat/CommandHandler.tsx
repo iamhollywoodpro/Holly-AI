@@ -11,6 +11,7 @@ import TeamCollaborationPanel from './TeamCollaborationPanel';
 import IssueManagementPanel from './IssueManagementPanel';
 import CreateIssueDialog from './CreateIssueDialog';
 import BrowsePanel from '../github/BrowsePanel';
+import CommitPanel from '../github/CommitPanel';
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
 import { useActiveRepo, useActiveRepos } from '@/hooks/useActiveRepos';
@@ -35,6 +36,8 @@ export const CommandHandler = forwardRef<CommandHandlerRef, CommandHandlerProps>
   const [showCreateIssueDialog, setShowCreateIssueDialog] = useState(false);
   const [showBrowsePanel, setShowBrowsePanel] = useState(false);
   const [browseRepo, setBrowseRepo] = useState<{ owner: string; repo: string } | null>(null);
+  const [showCommitPanel, setShowCommitPanel] = useState(false);
+  const [commitRepo, setCommitRepo] = useState<{ owner: string; repo: string } | null>(null);
   
   const { activeRepo } = useActiveRepo();
   const activeRepoStore = useActiveRepos(); // Get store instance for executeCommand
@@ -117,6 +120,19 @@ export const CommandHandler = forwardRef<CommandHandlerRef, CommandHandlerProps>
             repo: currentRepoForBrowse.repo,
           });
           setShowBrowsePanel(true);
+          return true;
+        
+        case 'commit':
+          // Use active repository
+          const currentRepoForCommit = activeRepoStore.getCurrentRepo();
+          if (!currentRepoForCommit) {
+            return 'Please select a repository first. Type `/repos` to choose a repository.';
+          }
+          setCommitRepo({
+            owner: currentRepoForCommit.owner,
+            repo: currentRepoForCommit.repo,
+          });
+          setShowCommitPanel(true);
           return true;
         
         case 'help':
@@ -373,6 +389,32 @@ export const CommandHandler = forwardRef<CommandHandlerRef, CommandHandlerProps>
                 onClose={() => {
                   setShowBrowsePanel(false);
                   setBrowseRepo(null);
+                }}
+              />
+            </Dialog.Panel>
+          </div>
+        </Dialog>
+      )}
+
+      {/* Commit Panel */}
+      {showCommitPanel && commitRepo && (
+        <Dialog
+          open={showCommitPanel}
+          onClose={() => {
+            setShowCommitPanel(false);
+            setCommitRepo(null);
+          }}
+          className="relative z-50"
+        >
+          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm" aria-hidden="true" />
+          <div className="fixed inset-0 flex items-center justify-center p-4">
+            <Dialog.Panel className="w-full max-w-6xl h-[85vh] bg-white dark:bg-gray-900 rounded-2xl shadow-xl overflow-hidden">
+              <CommitPanel
+                owner={commitRepo.owner}
+                repo={commitRepo.repo}
+                onClose={() => {
+                  setShowCommitPanel(false);
+                  setCommitRepo(null);
                 }}
               />
             </Dialog.Panel>
