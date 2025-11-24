@@ -43,23 +43,31 @@ export const useActiveRepos = create<ActiveReposState>()(
       currentRepoId: null,
 
       addRepo: (repo) => set((state) => {
+        console.log('[Zustand addRepo] Called with repo:', repo);
+        console.log('[Zustand addRepo] Current state:', { activeRepos: state.activeRepos, currentRepoId: state.currentRepoId });
         // Check if repo already exists
         const exists = state.activeRepos.find(r => r.fullName === repo.fullName);
         if (exists) {
+          console.log('[Zustand addRepo] Repo exists, updating');
           // Update existing repo and set as current
-          return {
+          const newState = {
             activeRepos: state.activeRepos.map(r => 
               r.fullName === repo.fullName ? repo : r
             ),
             currentRepoId: repo.fullName,
           };
+          console.log('[Zustand addRepo] New state after update:', newState);
+          return newState;
         }
         
+        console.log('[Zustand addRepo] Repo does not exist, adding new');
         // Add new repo and set as current
-        return {
+        const newState = {
           activeRepos: [...state.activeRepos, repo],
           currentRepoId: repo.fullName,
         };
+        console.log('[Zustand addRepo] New state after add:', newState);
+        return newState;
       }),
 
       removeRepo: (fullName) => set((state) => {
@@ -112,6 +120,7 @@ export function useActiveRepo() {
   // Subscribe to actual state values (not functions)
   const activeRepos = useActiveRepos(state => state.activeRepos);
   const currentRepoId = useActiveRepos(state => state.currentRepoId);
+  console.log('[useActiveRepo] activeRepos:', activeRepos, 'currentRepoId:', currentRepoId);
   const addRepo = useActiveRepos(state => state.addRepo);
   const removeRepo = useActiveRepos(state => state.removeRepo);
   const setBranchForRepo = useActiveRepos(state => state.setBranchForRepo);
@@ -120,11 +129,14 @@ export function useActiveRepo() {
   const activeRepo = currentRepoId 
     ? activeRepos.find(r => r.fullName === currentRepoId) || null
     : null;
+  console.log('[useActiveRepo] Computed activeRepo:', activeRepo);
   
   return {
     activeRepo,
     setActiveRepo: (repo: ActiveRepository | null) => {
+      console.log('[useActiveRepo] setActiveRepo called with:', repo);
       if (repo) {
+        console.log('[useActiveRepo] Calling addRepo');
         addRepo(repo);
       } else {
         if (activeRepo) {
