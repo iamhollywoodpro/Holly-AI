@@ -38,10 +38,6 @@ import { ProfileDropdown } from '@/components/header/ProfileDropdown';
 import { MobileMenu } from '@/components/header/MobileMenu';
 import { KeyboardShortcutsModal } from '@/components/modals/KeyboardShortcutsModal';
 import { Bars3Icon } from '@heroicons/react/24/outline';
-import ActiveRepoIndicator, { EmptyRepoIndicator } from '@/components/chat/ActiveRepoIndicator';
-import LoadingIndicator, { getLoadingMessage } from '@/components/chat/LoadingIndicator';
-import { useActiveRepos } from '@/hooks/useActiveRepos';
-import QuickActionsBar from '@/components/ui/QuickActionsBar';
 
 interface Message {
   id: string;
@@ -75,12 +71,6 @@ export default function ChatPage() {
   const [lastInputWasVoice, setLastInputWasVoice] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
-
-  // Phase 2: Chat UX Polish state
-  const [showRepoIndicator, setShowRepoIndicator] = useState(true);
-  const [loadingAction, setLoadingAction] = useState<string>('chat');
-  const getCurrentRepo = useActiveRepos(state => state.getCurrentRepo);
-  const activeRepo = getCurrentRepo(); // Get current active repo
 
   // Fetch real consciousness state
   const { state: consciousnessState, refresh: refreshConsciousness } = useConsciousnessState({
@@ -737,21 +727,19 @@ export default function ChatPage() {
 
 
 
-                {/* Brain Consciousness Indicator - DESKTOP ONLY */}
-                <div className="hidden lg:block">
-                  <BrainConsciousnessIndicator state={consciousnessState} />
-                </div>
+                {/* Brain Consciousness Indicator */}
+                <BrainConsciousnessIndicator state={consciousnessState} />
                 
-                {/* Timeline Link - DESKTOP ONLY */}
+                {/* Timeline Link */}
                 <a
                   href="/timeline"
-                  className="hidden lg:block p-2 rounded-lg bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700 transition-all"
+                  className="p-2 rounded-lg bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700 transition-all"
                   title="Project Timeline"
                 >
                   <Calendar className="w-5 h-5" />
                 </a>
                 
-                {/* View Summary Button - DESKTOP ONLY */}
+                {/* View Summary Button */}
                 {currentConversationId && (
                   <motion.button
                     onClick={() => {
@@ -761,7 +749,7 @@ export default function ChatPage() {
                       summary.openFullPanel();
                     }}
                     disabled={summary.isLoading}
-                    className="hidden lg:flex p-2 rounded-lg bg-gradient-to-r from-purple-600/20 to-pink-600/20 text-purple-400 hover:text-purple-300 hover:from-purple-600/30 hover:to-pink-600/30 border border-purple-500/30 transition-all disabled:opacity-50"
+                    className="p-2 rounded-lg bg-gradient-to-r from-purple-600/20 to-pink-600/20 text-purple-400 hover:text-purple-300 hover:from-purple-600/30 hover:to-pink-600/30 border border-purple-500/30 transition-all disabled:opacity-50"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     title="View Conversation Summary"
@@ -774,30 +762,24 @@ export default function ChatPage() {
                   </motion.button>
                 )}
                 
-                {/* Drive Connection Indicator - DESKTOP ONLY */}
-                <div className="hidden lg:block">
-                  <DriveIndicator />
-                </div>
+                {/* Drive Connection Indicator */}
+                <DriveIndicator />
                 
-                {/* GitHub Connection Dropdown - DESKTOP ONLY */}
-                <div className="hidden lg:block">
-                  <GitHubConnectionDropdown
-                    username={githubUsername}
-                    repoCount={githubRepoCount}
-                    onOpenRepoSelector={() => commandHandlerRef.current?.executeCommand('/repos')}
-                  />
-                </div>
+                {/* GitHub Connection Dropdown - REPLACES INDICATOR */}
+                <GitHubConnectionDropdown
+                  username={githubUsername}
+                  repoCount={githubRepoCount}
+                  onOpenRepoSelector={() => commandHandlerRef.current?.executeCommand('/repos')}
+                />
                 
-                {/* Profile Dropdown - DESKTOP ONLY */}
-                <div className="hidden lg:block">
-                  <ProfileDropdown
-                    onOpenMemory={() => setShowMemory(true)}
-                    onOpenSettings={() => window.location.href = '/settings/integrations'}
-                    onOpenKeyboardShortcuts={() => setShowKeyboardShortcuts(true)}
-                    onToggleDebug={() => setDebugMode(!debugMode)}
-                    debugMode={debugMode}
-                  />
-                </div>
+                {/* Profile Dropdown - REPLACES UserButton + Debug + Settings */}
+                <ProfileDropdown
+                  onOpenMemory={() => setShowMemory(true)}
+                  onOpenSettings={() => setShowSettings(true)}
+                  onOpenKeyboardShortcuts={() => setShowKeyboardShortcuts(true)}
+                  onToggleDebug={() => setDebugMode(!debugMode)}
+                  debugMode={debugMode}
+                />
               </div>
             </div>
           </motion.div>
@@ -818,7 +800,7 @@ export default function ChatPage() {
             ) : (
               messages.map((message, index) => (
                 message.thinking ? (
-                  <LoadingIndicator key={message.id} {...getLoadingMessage(loadingAction)} />
+                  <TypingIndicator key={message.id} status="thinking" />
                 ) : (
                   <div key={message.id} id={`message-${message.id}`} className="transition-all duration-300">
                     <MessageBubble
@@ -874,22 +856,6 @@ export default function ChatPage() {
                 onDismiss={suggestions.dismiss}
                 isVisible={suggestions.isVisible && !isTyping}
               />
-              
-              {/* Phase 2: Active Repo Indicator */}
-              {showRepoIndicator && activeRepo && (
-                <ActiveRepoIndicator
-                  owner={activeRepo.owner}
-                  repo={activeRepo.name}
-                  branch={activeRepo.branch || 'main'}
-                  onChangeRepo={() => commandHandlerRef.current?.executeCommand('/repos')}
-                  onDismiss={() => setShowRepoIndicator(false)}
-                />
-              )}
-              {showRepoIndicator && !activeRepo && (
-                <EmptyRepoIndicator 
-                  onSelectRepo={() => commandHandlerRef.current?.executeCommand('/repos')} 
-                />
-              )}
               
               <ChatInputControls
                 onSend={handleSend}
@@ -960,32 +926,15 @@ export default function ChatPage() {
           setShowMobileMenu(false);
         }}
         onOpenSettings={() => {
-          window.location.href = '/settings/integrations';
-        }}
-        onOpenKeyboardShortcuts={() => {
-          setShowKeyboardShortcuts(true);
+          setShowSettings(true);
           setShowMobileMenu(false);
         }}
-        onToggleDebug={() => setDebugMode(!debugMode)}
-        debugMode={debugMode}
-        githubUsername={githubUsername}
-        githubRepoCount={githubRepoCount}
-        onOpenRepoSelector={() => commandHandlerRef.current?.executeCommand('/repos')}
-        driveConnected={false} // TODO: Get actual drive status
       />
       
       {/* Keyboard Shortcuts Modal */}
       <KeyboardShortcutsModal
         isOpen={showKeyboardShortcuts}
         onClose={() => setShowKeyboardShortcuts(false)}
-      />
-
-      {/* Quick Actions Bar - Floating */}
-      <QuickActionsBar
-        onNewChat={() => createNewConversation('')}
-        onOpenRepos={() => commandHandlerRef.current?.executeCommand('/repos')}
-        onOpenIssues={() => commandHandlerRef.current?.executeCommand('/issues')}
-        onToggleDebug={() => setDebugMode(!debugMode)}
       />
     </div>
     </>

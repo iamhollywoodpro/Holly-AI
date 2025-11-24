@@ -59,7 +59,7 @@ export default function QuickActionsBar({
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="fixed bottom-20 right-4 sm:right-8 z-40 flex flex-col gap-2"
+      className="hidden lg:flex fixed bottom-20 right-4 sm:right-8 z-40 flex-col gap-2"
     >
       {actions.map((action, index) => {
         const Icon = action.icon;
