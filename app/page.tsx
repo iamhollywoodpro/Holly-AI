@@ -33,6 +33,11 @@ import { DriveIndicator } from '@/components/indicators/DriveIndicator';
 import { GitHubIndicator } from '@/components/indicators/GitHubIndicator';
 import { useSearchParams } from 'next/navigation';
 import { CommandHandler, CommandHandlerRef } from '@/components/chat/CommandHandler';
+import { GitHubConnectionDropdown } from '@/components/header/GitHubConnectionDropdown';
+import { ProfileDropdown } from '@/components/header/ProfileDropdown';
+import { MobileMenu } from '@/components/header/MobileMenu';
+import { KeyboardShortcutsModal } from '@/components/modals/KeyboardShortcutsModal';
+import { Bars3Icon } from '@heroicons/react/24/outline';
 
 interface Message {
   id: string;
@@ -57,6 +62,11 @@ export default function ChatPage() {
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [showFilePreview, setShowFilePreview] = useState(false);
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [debugMode, setDebugMode] = useState(false);
+  const [githubUsername, setGithubUsername] = useState('');
+  const [githubRepoCount, setGithubRepoCount] = useState(0);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   const [lastInputWasVoice, setLastInputWasVoice] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
@@ -102,6 +112,25 @@ export default function ChatPage() {
       setShowSuccessToast(true);
     }
   }, [searchParams]);
+  
+  // Fetch GitHub connection info
+  useEffect(() => {
+    const fetchGitHubInfo = async () => {
+      try {
+        const response = await fetch('/api/github/connection');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.connected) {
+            setGithubUsername(data.username || '');
+            setGithubRepoCount(data.repoCount || 0);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch GitHub info:', error);
+      }
+    };
+    fetchGitHubInfo();
+  }, []);
 
   // Don't auto-create conversations - wait for user to send first message
   // This prevents empty "New Conversation" entries from cluttering the sidebar
@@ -666,6 +695,14 @@ export default function ChatPage() {
 
               {/* Right Side: Action Buttons + Consciousness */}
               <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 flex-shrink-0">
+                {/* Mobile Hamburger Menu - ONLY ON MOBILE */}
+                <button
+                  onClick={() => setShowMobileMenu(true)}
+                  className="lg:hidden p-2 rounded-lg bg-gray-800/50 hover:bg-gray-700/50 border border-gray-700/50 text-gray-400 hover:text-white transition-colors"
+                  aria-label="Open menu"
+                >
+                  <Bars3Icon className="w-5 h-5" />
+                </button>
                 {/* Toggle Buttons - HIDDEN ON MOBILE */}
                 <motion.button
                   onClick={() => setShowChatHistory(!showChatHistory)}
@@ -688,17 +725,7 @@ export default function ChatPage() {
                   <span className="hidden sm:inline">Memory</span>
                 </motion.button>
 
-                {/* Keyboard Shortcuts Button */}
-                <motion.button
-                  onClick={() => setShowKeyboardShortcuts(true)}
-                  className="hidden sm:flex w-9 h-9 items-center justify-center rounded-lg bg-gray-800/50 hover:bg-gray-700/50 border border-gray-700/50 text-gray-400 hover:text-white transition-colors"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  aria-label="Keyboard shortcuts"
-                  title="Keyboard shortcuts (?)"
-                >
-                  <HelpCircle className="w-5 h-5" />
-                </motion.button>
+
 
                 {/* Brain Consciousness Indicator */}
                 <BrainConsciousnessIndicator state={consciousnessState} />
@@ -738,14 +765,21 @@ export default function ChatPage() {
                 {/* Drive Connection Indicator */}
                 <DriveIndicator />
                 
-                {/* GitHub Connection Indicator */}
-                <GitHubIndicator />
+                {/* GitHub Connection Dropdown - REPLACES INDICATOR */}
+                <GitHubConnectionDropdown
+                  username={githubUsername}
+                  repoCount={githubRepoCount}
+                  onOpenRepoSelector={() => commandHandlerRef.current?.executeCommand('/repos')}
+                />
                 
-                {/* Debug Toggle */}
-                <DebugToggle />
-                
-                {/* User Profile Button */}
-                <UserButton afterSignOutUrl="/" />
+                {/* Profile Dropdown - REPLACES UserButton + Debug + Settings */}
+                <ProfileDropdown
+                  onOpenMemory={() => setShowMemory(true)}
+                  onOpenSettings={() => setShowSettings(true)}
+                  onOpenKeyboardShortcuts={() => setShowKeyboardShortcuts(true)}
+                  onToggleDebug={() => setDebugMode(!debugMode)}
+                  debugMode={debugMode}
+                />
               </div>
             </div>
           </motion.div>
@@ -872,6 +906,36 @@ export default function ChatPage() {
       
       {/* Command Handler for /workflows, /team, /issues commands */}
       <CommandHandler ref={commandHandlerRef} />
+      
+      {/* Mobile Menu - Hamburger navigation */}
+      <MobileMenu
+        isOpen={showMobileMenu}
+        onClose={() => setShowMobileMenu(false)}
+        conversations={[]} // TODO: Pass actual conversations
+        currentConversationId={currentConversationId}
+        onSelectConversation={(id) => {
+          loadConversation(id);
+          setShowMobileMenu(false);
+        }}
+        onNewChat={() => {
+          createNewConversation('');
+          setShowMobileMenu(false);
+        }}
+        onOpenMemory={() => {
+          setShowMemory(true);
+          setShowMobileMenu(false);
+        }}
+        onOpenSettings={() => {
+          setShowSettings(true);
+          setShowMobileMenu(false);
+        }}
+      />
+      
+      {/* Keyboard Shortcuts Modal */}
+      <KeyboardShortcutsModal
+        isOpen={showKeyboardShortcuts}
+        onClose={() => setShowKeyboardShortcuts(false)}
+      />
     </div>
     </>
   );
