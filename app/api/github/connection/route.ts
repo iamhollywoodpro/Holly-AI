@@ -28,7 +28,7 @@ export async function GET() {
       where: { userId: user.id },
       select: {
         isConnected: true,
-        username: true,
+        githubUsername: true,
       },
     });
     
@@ -43,7 +43,7 @@ export async function GET() {
     
     return NextResponse.json({
       connected: true,
-      username: connection.username,
+      username: connection.githubUsername,
       repoCount,
     });
     
