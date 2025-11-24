@@ -45,21 +45,11 @@ export default function AccountPage() {
     }
   };
 
-  const currentPlan: 'free' | 'pro' | 'enterprise' = 'free'; // TODO: Get from database
+  const currentPlan = 'free' as const; // TODO: Get from database
 
-  const plans: Array<{
-    id: string;
-    name: string;
-    price: { monthly: number; annually: number };
-    features: string[];
-    color: string;
-    icon: any;
-    popular?: boolean;
-    cta: string;
-    disabled: boolean;
-  }> = [
+  const plansData = [
     {
-      id: 'free',
+      id: 'free' as const,
       name: 'Free Tier',
       price: { monthly: 0, annually: 0 },
       features: [
@@ -71,13 +61,12 @@ export default function AccountPage() {
       ],
       color: 'from-gray-600 to-gray-700',
       icon: SparklesIcon,
-      cta: currentPlan === 'free' ? 'Current Plan' : 'Downgrade',
-      disabled: currentPlan === 'free'
+      popular: false
     },
     {
-      id: 'pro',
+      id: 'pro' as const,
       name: 'Pro',
-      price: { monthly: 20, annually: 192 }, // $16/mo annually
+      price: { monthly: 20, annually: 192 },
       features: [
         '5,000 AI messages per month',
         '50 GB storage',
@@ -89,14 +78,12 @@ export default function AccountPage() {
       ],
       color: 'from-purple-600 to-pink-600',
       icon: BoltIcon,
-      popular: true,
-      cta: currentPlan === 'pro' ? 'Current Plan' : 'Upgrade to Pro',
-      disabled: currentPlan === 'pro'
+      popular: true
     },
     {
-      id: 'enterprise',
+      id: 'enterprise' as const,
       name: 'Enterprise',
-      price: { monthly: 99, annually: 948 }, // $79/mo annually
+      price: { monthly: 99, annually: 948 },
       features: [
         'Unlimited AI messages',
         'Unlimited storage',
@@ -111,10 +98,17 @@ export default function AccountPage() {
       ],
       color: 'from-blue-600 to-cyan-600',
       icon: BuildingOffice2Icon,
-      cta: currentPlan === 'enterprise' ? 'Current Plan' : 'Contact Sales',
-      disabled: currentPlan === 'enterprise'
+      popular: false
     }
   ];
+
+  const plans = plansData.map(plan => ({
+    ...plan,
+    cta: currentPlan === plan.id ? 'Current Plan' : 
+         plan.id === 'free' ? 'Downgrade' :
+         plan.id === 'pro' ? 'Upgrade to Pro' : 'Contact Sales',
+    disabled: currentPlan === plan.id
+  }));
 
   if (!isLoaded) {
     return (
