@@ -872,13 +872,13 @@ export default function ChatPage() {
                   owner={activeRepo.owner}
                   repo={activeRepo.name}
                   branch={activeRepo.branch || 'main'}
-                  onChangeRepo={() => commandHandlerRef.current?.openRepoSelector?.()}
+                  onChangeRepo={() => commandHandlerRef.current?.executeCommand('/repos')}
                   onDismiss={() => setShowRepoIndicator(false)}
                 />
               )}
               {showRepoIndicator && !activeRepo && (
                 <EmptyRepoIndicator 
-                  onSelectRepo={() => commandHandlerRef.current?.openRepoSelector?.()} 
+                  onSelectRepo={() => commandHandlerRef.current?.executeCommand('/repos')} 
                 />
               )}
               
