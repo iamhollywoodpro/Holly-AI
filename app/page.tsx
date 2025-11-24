@@ -41,6 +41,7 @@ import { Bars3Icon } from '@heroicons/react/24/outline';
 import ActiveRepoIndicator, { EmptyRepoIndicator } from '@/components/chat/ActiveRepoIndicator';
 import LoadingIndicator, { getLoadingMessage } from '@/components/chat/LoadingIndicator';
 import { useActiveRepos } from '@/hooks/useActiveRepos';
+import QuickActionsBar from '@/components/ui/QuickActionsBar';
 
 interface Message {
   id: string;
@@ -978,6 +979,14 @@ export default function ChatPage() {
       <KeyboardShortcutsModal
         isOpen={showKeyboardShortcuts}
         onClose={() => setShowKeyboardShortcuts(false)}
+      />
+
+      {/* Quick Actions Bar - Floating */}
+      <QuickActionsBar
+        onNewChat={() => createNewConversation('')}
+        onOpenRepos={() => commandHandlerRef.current?.executeCommand('/repos')}
+        onOpenIssues={() => commandHandlerRef.current?.executeCommand('/issues')}
+        onToggleDebug={() => setDebugMode(!debugMode)}
       />
     </div>
     </>
