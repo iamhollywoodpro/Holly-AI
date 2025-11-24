@@ -49,7 +49,7 @@ export default function AccountPage() {
 
   const plansData = [
     {
-      id: 'free' as const,
+      id: 'free',
       name: 'Free Tier',
       price: { monthly: 0, annually: 0 },
       features: [
@@ -64,7 +64,7 @@ export default function AccountPage() {
       popular: false
     },
     {
-      id: 'pro' as const,
+      id: 'pro',
       name: 'Pro',
       price: { monthly: 20, annually: 192 },
       features: [
@@ -81,7 +81,7 @@ export default function AccountPage() {
       popular: true
     },
     {
-      id: 'enterprise' as const,
+      id: 'enterprise',
       name: 'Enterprise',
       price: { monthly: 99, annually: 948 },
       features: [
