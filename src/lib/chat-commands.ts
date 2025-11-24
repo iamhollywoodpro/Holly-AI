@@ -4,7 +4,7 @@
  */
 
 export interface ChatCommand {
-  type: 'repos' | 'deploy' | 'pr' | 'rollback' | 'workflows' | 'team' | 'issues' | 'clear' | 'help' | 'unknown';
+  type: 'repos' | 'deploy' | 'pr' | 'rollback' | 'workflows' | 'team' | 'issues' | 'browse' | 'clear' | 'help' | 'unknown';
   args: string[];
   rawCommand: string;
 }
@@ -47,6 +47,9 @@ export function parseCommand(message: string): ChatCommand | null {
     'issues': 'issues',
     'issue': 'issues',
     'bugs': 'issues',
+    'browse': 'browse',
+    'b': 'browse',
+    'files': 'browse',
     'clear': 'clear',
     'c': 'clear',
     'help': 'help',
