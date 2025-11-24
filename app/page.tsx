@@ -8,7 +8,7 @@ import MessageBubble from '@/components/chat/MessageBubble';
 import ChatInputControls from '@/components/chat/ChatInputControls';
 import { WorkLogFeed } from '@/components/work-log';
 import BrainConsciousnessIndicator from '@/components/consciousness/BrainConsciousnessIndicator';
-import ChatHistory from '@/components/chat/ChatHistory';
+import ChatHistoryRevamped from '@/components/chat/ChatHistoryRevamped';
 import MemoryTimeline from '@/components/consciousness/MemoryTimeline';
 import { useUser } from '@clerk/nextjs';
 import { getVoiceInput, getVoiceOutput, isSpeechRecognitionAvailable, isSpeechSynthesisAvailable } from '@/lib/voice/voice-handler';
@@ -38,6 +38,7 @@ import { ProfileDropdown } from '@/components/header/ProfileDropdown';
 import { DriveConnectionDropdown } from '@/components/header/DriveConnectionDropdown';
 import { MobileMenu } from '@/components/header/MobileMenu';
 import { KeyboardShortcutsModal } from '@/components/modals/KeyboardShortcutsModal';
+import { CommandHintToast } from '@/components/notifications/CommandHintToast';
 import { Bars3Icon } from '@heroicons/react/24/outline';
 import ActiveRepoIndicator, { EmptyRepoIndicator } from '@/components/chat/ActiveRepoIndicator';
 import LoadingIndicator, { getLoadingMessage } from '@/components/chat/LoadingIndicator';
@@ -680,7 +681,7 @@ export default function ChatPage() {
               transition={{ type: 'spring', damping: 25 }}
               className="hidden md:block w-80 border-r border-gray-800/50"
             >
-              <ChatHistory
+              <ChatHistoryRevamped
                 key={currentConversationId || 'no-conversation'}
                 currentConversationId={currentConversationId || undefined}
                 onSelectConversation={loadConversation}
@@ -1014,6 +1015,9 @@ export default function ChatPage() {
         isOpen={showKeyboardShortcuts}
         onClose={() => setShowKeyboardShortcuts(false)}
       />
+      
+      {/* Command Hint Toast - Shows once */}
+      <CommandHintToast />
 
       {/* Quick Actions Bar - Floating */}
       <QuickActionsBar

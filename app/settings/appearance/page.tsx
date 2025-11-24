@@ -2,13 +2,18 @@
 
 import { useSettings } from '@/lib/settings/settings-store';
 import { useEffect } from 'react';
+import { SettingsSkeletonLoader } from '@/components/ui/SkeletonLoader';
 
 export default function AppearancePage() {
-  const { settings, updateSettings, loadSettings, isSaving } = useSettings();
+  const { settings, updateSettings, loadSettings, isSaving, isLoading } = useSettings();
 
   useEffect(() => {
     loadSettings();
   }, []);
+
+  if (isLoading) {
+    return <SettingsSkeletonLoader />;
+  }
 
   const handleThemeChange = async (theme: 'dark' | 'light' | 'auto') => {
     await updateSettings({ appearance: { ...settings.appearance, theme } });
