@@ -9,7 +9,13 @@ import {
   BookOpenIcon,
   QuestionMarkCircleIcon,
   Cog6ToothIcon,
-  ClockIcon
+  ClockIcon,
+  CodeBracketIcon,
+  ArrowRightOnRectangleIcon,
+  CommandLineIcon,
+  BugAntIcon,
+  CalendarIcon,
+  CloudIcon
 } from '@heroicons/react/24/outline';
 
 interface Conversation {
@@ -28,6 +34,13 @@ interface MobileMenuProps {
   onNewChat: () => void;
   onOpenMemory?: () => void;
   onOpenSettings?: () => void;
+  onOpenKeyboardShortcuts?: () => void;
+  onToggleDebug?: () => void;
+  debugMode?: boolean;
+  githubUsername?: string;
+  githubRepoCount?: number;
+  onOpenRepoSelector?: () => void;
+  driveConnected?: boolean;
 }
 
 export function MobileMenu({
@@ -38,7 +51,14 @@ export function MobileMenu({
   onSelectConversation,
   onNewChat,
   onOpenMemory,
-  onOpenSettings
+  onOpenSettings,
+  onOpenKeyboardShortcuts,
+  onToggleDebug,
+  debugMode = false,
+  githubUsername,
+  githubRepoCount = 0,
+  onOpenRepoSelector,
+  driveConnected = false
 }: MobileMenuProps) {
   
   // Group conversations by time
@@ -272,6 +292,41 @@ export function MobileMenu({
                   )}
                 </div>
 
+                {/* GitHub Connection - Mobile */}
+                {githubUsername && (
+                  <div className="border-t border-gray-800 p-3 space-y-2">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                      <CodeBracketIcon className="w-4 h-4" />
+                      GitHub
+                    </div>
+                    <div className="bg-gray-800/50 rounded-lg p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm text-gray-300">{githubUsername}</span>
+                        <span className="text-xs text-gray-500">{githubRepoCount} repos</span>
+                      </div>
+                      <button
+                        onClick={() => {
+                          onOpenRepoSelector?.();
+                          onClose();
+                        }}
+                        className="w-full px-3 py-2 bg-gray-700/50 hover:bg-gray-700 rounded-md text-xs text-gray-300 transition-colors"
+                      >
+                        Select Repository
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Drive Connection Status - Mobile */}
+                {driveConnected && (
+                  <div className="border-t border-gray-800 p-3">
+                    <div className="flex items-center gap-2 px-3 py-2 bg-green-900/20 border border-green-800/30 rounded-lg">
+                      <CloudIcon className="w-4 h-4 text-green-400" />
+                      <span className="text-xs text-green-300">Google Drive Connected</span>
+                    </div>
+                  </div>
+                )}
+
                 {/* Quick Actions */}
                 <div className="border-t border-gray-800 p-3 space-y-1">
                   <button
@@ -305,6 +360,39 @@ export function MobileMenu({
                     <span className="text-sm text-gray-300">Help & Support</span>
                   </a>
 
+                  <a
+                    href="/timeline"
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-800 transition-colors"
+                  >
+                    <CalendarIcon className="w-5 h-5 text-gray-400" />
+                    <span className="text-sm text-gray-300">Timeline</span>
+                  </a>
+
+                  <button
+                    onClick={() => {
+                      onOpenKeyboardShortcuts?.();
+                      onClose();
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-800 transition-colors"
+                  >
+                    <CommandLineIcon className="w-5 h-5 text-gray-400" />
+                    <span className="text-sm text-gray-300">Keyboard Shortcuts</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      onToggleDebug?.();
+                      onClose();
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-800 transition-colors"
+                  >
+                    <BugAntIcon className={`w-5 h-5 ${debugMode ? 'text-green-400' : 'text-gray-400'}`} />
+                    <span className="text-sm text-gray-300">Debug Mode</span>
+                    {debugMode && (
+                      <span className="ml-auto text-xs text-green-400">ON</span>
+                    )}
+                  </button>
+
                   <button
                     onClick={() => {
                       onOpenSettings?.();
@@ -314,6 +402,16 @@ export function MobileMenu({
                   >
                     <Cog6ToothIcon className="w-5 h-5 text-gray-400" />
                     <span className="text-sm text-gray-300">Settings</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      window.location.href = '/api/auth/signout';
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-red-900/20 text-red-400 transition-colors"
+                  >
+                    <ArrowRightOnRectangleIcon className="w-5 h-5" />
+                    <span className="text-sm">Sign Out</span>
                   </button>
                 </div>
               </div>

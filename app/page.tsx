@@ -962,6 +962,16 @@ export default function ChatPage() {
           setShowSettings(true);
           setShowMobileMenu(false);
         }}
+        onOpenKeyboardShortcuts={() => {
+          setShowKeyboardShortcuts(true);
+          setShowMobileMenu(false);
+        }}
+        onToggleDebug={() => setDebugMode(!debugMode)}
+        debugMode={debugMode}
+        githubUsername={githubUsername}
+        githubRepoCount={githubRepoCount}
+        onOpenRepoSelector={() => commandHandlerRef.current?.executeCommand('/repos')}
+        driveConnected={false} // TODO: Get actual drive status
       />
       
       {/* Keyboard Shortcuts Modal */}
