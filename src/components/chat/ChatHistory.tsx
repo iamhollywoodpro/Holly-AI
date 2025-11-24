@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquare, Plus, Trash2, Calendar, Clock } from 'lucide-react';
+import { MessageSquare, Plus, Trash2, Calendar, Clock, Search } from 'lucide-react';
 import { useUser } from '@clerk/nextjs';
 
 interface Conversation {
@@ -29,6 +29,7 @@ export default function ChatHistory({
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Load conversations only when user is authenticated
   useEffect(() => {
@@ -99,8 +100,18 @@ export default function ChatHistory({
     }
   };
 
+  // Filter conversations by search query
+  const filteredConversations = conversations.filter(conv => {
+    if (!searchQuery.trim()) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      conv.title?.toLowerCase().includes(query) ||
+      conv.last_message_preview?.toLowerCase().includes(query)
+    );
+  });
+
   // Group conversations by date
-  const groupedConversations = conversations.reduce((acc, conv) => {
+  const groupedConversations = filteredConversations.reduce((acc, conv) => {
     try {
       const date = new Date(conv.updated_at);
       
@@ -138,7 +149,7 @@ export default function ChatHistory({
   return (
     <div className="h-full flex flex-col bg-gray-900/50 backdrop-blur-xl border-r border-gray-800/50">
       {/* Header with New Chat button */}
-      <div className="p-4 border-b border-gray-800/50">
+      <div className="p-4 border-b border-gray-800/50 space-y-3">
         <motion.button
           onClick={onNewConversation}
           whileHover={{ scale: 1.02 }}
@@ -148,6 +159,18 @@ export default function ChatHistory({
           <Plus className="w-5 h-5" />
           New Chat
         </motion.button>
+
+        {/* Search Bar */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+          <input
+            type="text"
+            placeholder="Search conversations..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 bg-gray-800/50 border border-gray-700/50 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all"
+          />
+        </div>
       </div>
 
       {/* Conversations List */}
