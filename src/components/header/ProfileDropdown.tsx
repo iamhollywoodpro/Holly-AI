@@ -2,7 +2,7 @@
 
 import { Fragment } from 'react';
 import { Menu, Transition } from '@headlessui/react';
-import { useUser } from '@clerk/nextjs';
+import { useUser, useClerk } from '@clerk/nextjs';
 import {
   UserCircleIcon,
   Cog6ToothIcon,
@@ -32,9 +32,11 @@ export function ProfileDropdown({
   debugMode = false
 }: ProfileDropdownProps) {
   const { user } = useUser();
+  const { signOut } = useClerk();
 
-  const handleSignOut = () => {
-    window.location.href = '/api/auth/signout';
+  const handleSignOut = async () => {
+    await signOut();
+    window.location.href = '/';
   };
 
   return (

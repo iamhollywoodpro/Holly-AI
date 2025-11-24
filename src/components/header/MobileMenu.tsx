@@ -17,6 +17,7 @@ import {
   CalendarIcon,
   CloudIcon
 } from '@heroicons/react/24/outline';
+import { useClerk } from '@clerk/nextjs';
 
 interface Conversation {
   id: string;
@@ -60,6 +61,7 @@ export function MobileMenu({
   onOpenRepoSelector,
   driveConnected = false
 }: MobileMenuProps) {
+  const { signOut } = useClerk();
   
   // Group conversations by time
   const groupConversations = () => {
@@ -405,8 +407,9 @@ export function MobileMenu({
                   </button>
 
                   <button
-                    onClick={() => {
-                      window.location.href = '/api/auth/signout';
+                    onClick={async () => {
+                      await signOut();
+                      window.location.href = '/';
                     }}
                     className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-red-900/20 text-red-400 transition-colors"
                   >

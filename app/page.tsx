@@ -75,6 +75,7 @@ export default function ChatPage() {
   const [lastInputWasVoice, setLastInputWasVoice] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [allConversations, setAllConversations] = useState<any[]>([]);
 
   // Phase 2: Chat UX Polish state
   const [showRepoIndicator, setShowRepoIndicator] = useState(true);
@@ -123,7 +124,7 @@ export default function ChatPage() {
     }
   }, [searchParams]);
   
-  // Fetch GitHub connection info
+  // Fetch GitHub connection info and conversations
   useEffect(() => {
     const fetchGitHubInfo = async () => {
       try {
@@ -139,7 +140,34 @@ export default function ChatPage() {
         console.error('Failed to fetch GitHub info:', error);
       }
     };
+    
+    const fetchConversations = async () => {
+      try {
+        const response = await fetch('/api/conversations');
+        if (response.ok) {
+          const data = await response.json();
+          setAllConversations(data.conversations || []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch conversations:', error);
+      }
+    };
+    
     fetchGitHubInfo();
+    fetchConversations();
+  }, []);
+  
+  // Refresh conversations when title changes or new conversation created
+  useEffect(() => {
+    const handleRefresh = () => {
+      fetch('/api/conversations')
+        .then(res => res.json())
+        .then(data => setAllConversations(data.conversations || []))
+        .catch(err => console.error('Failed to refresh conversations:', err));
+    };
+    
+    window.addEventListener('conversation-title-updated', handleRefresh);
+    return () => window.removeEventListener('conversation-title-updated', handleRefresh);
   }, []);
 
   // Don't auto-create conversations - wait for user to send first message
@@ -945,7 +973,7 @@ export default function ChatPage() {
       <MobileMenu
         isOpen={showMobileMenu}
         onClose={() => setShowMobileMenu(false)}
-        conversations={[]} // TODO: Pass actual conversations
+        conversations={allConversations}
         currentConversationId={currentConversationId}
         onSelectConversation={(id) => {
           loadConversation(id);
