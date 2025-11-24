@@ -8,7 +8,7 @@ import {
   Cog6ToothIcon,
   CreditCardIcon,
   CpuChipIcon,
-  KeyboardIcon,
+  CommandLineIcon,
   BugAntIcon,
   BookOpenIcon,
   QuestionMarkCircleIcon,
@@ -157,7 +157,7 @@ export function ProfileDropdown({
                         active ? 'bg-gray-800' : ''
                       }`}
                     >
-                      <KeyboardIcon className="w-5 h-5 text-blue-400" />
+                      <CommandLineIcon className="w-5 h-5 text-blue-400" />
                       <span className="text-gray-300">Keyboard Shortcuts</span>
                       <span className="ml-auto text-xs text-gray-500">⌘K</span>
                     </button>
