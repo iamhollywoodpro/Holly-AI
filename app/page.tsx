@@ -35,6 +35,7 @@ import { useSearchParams } from 'next/navigation';
 import { CommandHandler, CommandHandlerRef } from '@/components/chat/CommandHandler';
 import { GitHubConnectionDropdown } from '@/components/header/GitHubConnectionDropdown';
 import { ProfileDropdown } from '@/components/header/ProfileDropdown';
+import { DriveConnectionDropdown } from '@/components/header/DriveConnectionDropdown';
 import { MobileMenu } from '@/components/header/MobileMenu';
 import { KeyboardShortcutsModal } from '@/components/modals/KeyboardShortcutsModal';
 import { Bars3Icon } from '@heroicons/react/24/outline';
@@ -814,6 +815,11 @@ export default function ChatPage() {
                     repoCount={githubRepoCount}
                     onOpenRepoSelector={() => commandHandlerRef.current?.executeCommand('/repos')}
                   />
+                </div>
+                
+                {/* Drive Connection Dropdown - DESKTOP ONLY */}
+                <div className="hidden lg:block">
+                  <DriveConnectionDropdown />
                 </div>
                 
                 {/* Profile Dropdown - DESKTOP ONLY */}
