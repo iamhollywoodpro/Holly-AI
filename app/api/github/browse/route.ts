@@ -94,7 +94,7 @@ export async function GET(request: NextRequest) {
 
       // Get specific file content
       if (file) {
-        const content = await githubService.getFileContent(owner, repo, file, branch);
+        const content = await githubService.getFileContent(owner, repo, file);
         return NextResponse.json({
           success: true,
           operation: 'file',
@@ -107,7 +107,7 @@ export async function GET(request: NextRequest) {
       }
 
       // List directory contents (default operation)
-      const contents = await githubService.getRepoContents(owner, repo, path, branch);
+      const contents = await githubService.getRepoContents(owner, repo, path);
       
       // Get repository info for context
       const repoInfo = await githubService.getRepoInfo(owner, repo);
@@ -246,9 +246,9 @@ export async function POST(request: NextRequest) {
         const { type, path } = op;
 
         if (type === 'file') {
-          return await githubService.getFileContent(owner, repo, path, branch);
+          return await githubService.getFileContent(owner, repo, path);
         } else if (type === 'directory') {
-          return await githubService.getRepoContents(owner, repo, path, branch);
+          return await githubService.getRepoContents(owner, repo, path);
         } else {
           throw new Error(`Unknown operation type: ${type}`);
         }
