@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Paperclip, Mic, Volume2 } from 'lucide-react';
+import CommandAutocomplete from './CommandAutocomplete';
 
 interface ChatInputControlsProps {
   onSend: (message: string) => void;
@@ -20,13 +21,18 @@ export default function ChatInputControls({
   isVoiceActive = false
 }: ChatInputControlsProps) {
   const [message, setMessage] = useState('');
+  const [showCommandAutocomplete, setShowCommandAutocomplete] = useState(false);
+  const [commandQuery, setCommandQuery] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const handleSend = () => {
     if (message.trim() && !disabled) {
       onSend(message);
       setMessage('');
+      setShowCommandAutocomplete(false);
+      setCommandQuery('');
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto';
       }
@@ -34,9 +40,20 @@ export default function ChatInputControls({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Don't interfere with autocomplete navigation
+    if (showCommandAutocomplete && (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'Enter' || e.key === 'Tab')) {
+      return; // Let CommandAutocomplete handle these
+    }
+
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
+    }
+
+    // Close autocomplete on Escape
+    if (e.key === 'Escape' && showCommandAutocomplete) {
+      setShowCommandAutocomplete(false);
+      setCommandQuery('');
     }
   };
 
@@ -57,14 +74,68 @@ export default function ChatInputControls({
   };
 
   const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setMessage(e.target.value);
+    const value = e.target.value;
+    setMessage(value);
+    
     // Auto-resize textarea
     e.target.style.height = 'auto';
     e.target.style.height = `${Math.min(e.target.scrollHeight, 150)}px`;
+
+    // Detect command trigger
+    const words = value.trim().split(/\s+/);
+    const lastWord = words[words.length - 1];
+
+    if (lastWord.startsWith('/')) {
+      setCommandQuery(lastWord);
+      setShowCommandAutocomplete(true);
+    } else {
+      setShowCommandAutocomplete(false);
+      setCommandQuery('');
+    }
+  };
+
+  const handleCommandSelect = (command: string) => {
+    // Replace the last word (command query) with the selected command
+    const words = message.trim().split(/\s+/);
+    words[words.length - 1] = command;
+    const newMessage = words.join(' ') + ' ';
+    
+    setMessage(newMessage);
+    setShowCommandAutocomplete(false);
+    setCommandQuery('');
+    
+    // Focus back on textarea
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  };
+
+  const handleCommandClose = () => {
+    setShowCommandAutocomplete(false);
+    setCommandQuery('');
   };
 
   return (
-    <div className="relative w-full">
+    <div ref={containerRef} className="relative w-full">
+      {/* Command Autocomplete */}
+      <AnimatePresence>
+        {showCommandAutocomplete && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            transition={{ duration: 0.15 }}
+            className="absolute bottom-full left-0 right-0 mb-2 z-50"
+          >
+            <CommandAutocomplete
+              query={commandQuery}
+              onSelect={handleCommandSelect}
+              onClose={handleCommandClose}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Glow effect */}
       <div className="absolute -inset-1 bg-gradient-to-r from-purple-500/20 via-pink-500/20 to-blue-500/20 rounded-2xl blur-lg" />
 
@@ -120,7 +191,7 @@ export default function ChatInputControls({
             onChange={handleInput}
             onKeyDown={handleKeyDown}
             disabled={disabled}
-            placeholder="Message HOLLY..."
+            placeholder="Message HOLLY... (type / for commands)"
             rows={1}
             className="flex-1 min-w-0 bg-transparent border-none outline-none text-white placeholder-gray-500 resize-none py-2 sm:py-2.5 px-2 text-sm sm:text-base max-h-[120px] sm:max-h-[150px] disabled:opacity-50"
             aria-label="Message input"
