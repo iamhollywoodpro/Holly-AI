@@ -20,13 +20,19 @@ export async function GET() {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Fetch stats
-    const [conversationsCount, messagesCount, githubConnection, driveConnection] = await Promise.all([
+    // Fetch stats with graceful error handling
+    const results = await Promise.allSettled([
       prisma.conversation.count({ where: { userId: user.id } }),
       prisma.message.count({ where: { conversation: { userId: user.id } } }),
       prisma.gitHubConnection.findUnique({ where: { userId: user.id }, select: { publicRepos: true, privateRepos: true } }),
       prisma.googleDriveConnection.findUnique({ where: { userId: user.id }, select: { id: true } }),
     ]);
+
+    // Extract values with fallbacks
+    const conversationsCount = results[0].status === 'fulfilled' ? results[0].value : 0;
+    const messagesCount = results[1].status === 'fulfilled' ? results[1].value : 0;
+    const githubConnection = results[2].status === 'fulfilled' ? results[2].value : null;
+    const driveConnection = results[3].status === 'fulfilled' ? results[3].value : null;
 
     // Get last active conversation
     const lastConversation = await prisma.conversation.findFirst({

@@ -142,7 +142,7 @@ export default function ProfilePage() {
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-gray-400">Member since</span>
                     <span className="text-white">
-                      {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
+                      {user?.createdAt?.toLocaleDateString() ?? 'N/A'}
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
