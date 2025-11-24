@@ -46,15 +46,13 @@ export async function GET(request: NextRequest) {
     }
 
     // Get user's GitHub access token from database
-    const githubIntegration = await prisma.integration.findFirst({
+    const githubConnection = await prisma.gitHubConnection.findUnique({
       where: {
         userId,
-        provider: 'github',
-        isActive: true,
       },
     });
 
-    if (!githubIntegration?.accessToken) {
+    if (!githubConnection?.accessToken || !githubConnection.isConnected) {
       return NextResponse.json(
         { 
           error: 'GitHub not connected',
@@ -65,7 +63,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Initialize GitHub API service
-    const githubService = new GitHubAPIService(githubIntegration.accessToken);
+    const githubService = new GitHubAPIService(githubConnection.accessToken);
 
     // Handle different operation types
     try {
@@ -226,15 +224,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user's GitHub token
-    const githubIntegration = await prisma.integration.findFirst({
+    const githubConnection = await prisma.gitHubConnection.findUnique({
       where: {
         userId,
-        provider: 'github',
-        isActive: true,
       },
     });
 
-    if (!githubIntegration?.accessToken) {
+    if (!githubConnection?.accessToken || !githubConnection.isConnected) {
       return NextResponse.json(
         { error: 'GitHub not connected' },
         { status: 403 }
@@ -242,7 +238,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Initialize service
-    const githubService = new GitHubAPIService(githubIntegration.accessToken);
+    const githubService = new GitHubAPIService(githubConnection.accessToken);
 
     // Process batch operations
     const results = await Promise.allSettled(
