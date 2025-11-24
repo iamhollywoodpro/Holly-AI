@@ -102,13 +102,19 @@ export default function AccountPage() {
     }
   ];
 
-  const plans = plansData.map(plan => ({
-    ...plan,
-    cta: currentPlan === plan.id ? 'Current Plan' : 
-         plan.id === 'free' ? 'Downgrade' :
-         plan.id === 'pro' ? 'Upgrade to Pro' : 'Contact Sales',
-    disabled: currentPlan === plan.id
-  }));
+  const plans = plansData.map(plan => {
+    let cta = 'Current Plan';
+    if (currentPlan !== plan.id) {
+      if (plan.id === 'free') cta = 'Downgrade';
+      else if (plan.id === 'pro') cta = 'Upgrade to Pro';
+      else cta = 'Contact Sales';
+    }
+    return {
+      ...plan,
+      cta,
+      disabled: currentPlan === plan.id
+    };
+  });
 
   if (!isLoaded) {
     return (
