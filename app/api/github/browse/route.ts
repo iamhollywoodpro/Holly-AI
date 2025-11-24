@@ -16,11 +16,24 @@ import { GitHubAPIService } from '@/lib/github/github-api';
 export async function GET(request: NextRequest) {
   try {
     // Authenticate user
-    const { userId } = auth();
-    if (!userId) {
+    const { userId: clerkUserId } = auth();
+    if (!clerkUserId) {
       return NextResponse.json(
         { error: 'Unauthorized - Please sign in' },
         { status: 401 }
+      );
+    }
+
+    // Find user in database by Clerk ID
+    const user = await prisma.user.findUnique({
+      where: { clerkId: clerkUserId },
+      select: { id: true },
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
       );
     }
 
@@ -48,7 +61,7 @@ export async function GET(request: NextRequest) {
     // Get user's GitHub access token from database
     const githubConnection = await prisma.gitHubConnection.findUnique({
       where: {
-        userId,
+        userId: user.id,
       },
     });
 
@@ -200,11 +213,24 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // Authenticate user
-    const { userId } = auth();
-    if (!userId) {
+    const { userId: clerkUserId } = auth();
+    if (!clerkUserId) {
       return NextResponse.json(
         { error: 'Unauthorized - Please sign in' },
         { status: 401 }
+      );
+    }
+
+    // Find user in database by Clerk ID
+    const user = await prisma.user.findUnique({
+      where: { clerkId: clerkUserId },
+      select: { id: true },
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
       );
     }
 
@@ -226,7 +252,7 @@ export async function POST(request: NextRequest) {
     // Get user's GitHub token
     const githubConnection = await prisma.gitHubConnection.findUnique({
       where: {
-        userId,
+        userId: user.id,
       },
     });
 
