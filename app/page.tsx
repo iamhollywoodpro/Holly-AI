@@ -736,19 +736,21 @@ export default function ChatPage() {
 
 
 
-                {/* Brain Consciousness Indicator */}
-                <BrainConsciousnessIndicator state={consciousnessState} />
+                {/* Brain Consciousness Indicator - DESKTOP ONLY */}
+                <div className="hidden lg:block">
+                  <BrainConsciousnessIndicator state={consciousnessState} />
+                </div>
                 
-                {/* Timeline Link */}
+                {/* Timeline Link - DESKTOP ONLY */}
                 <a
                   href="/timeline"
-                  className="p-2 rounded-lg bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700 transition-all"
+                  className="hidden lg:block p-2 rounded-lg bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700 transition-all"
                   title="Project Timeline"
                 >
                   <Calendar className="w-5 h-5" />
                 </a>
                 
-                {/* View Summary Button */}
+                {/* View Summary Button - DESKTOP ONLY */}
                 {currentConversationId && (
                   <motion.button
                     onClick={() => {
@@ -758,7 +760,7 @@ export default function ChatPage() {
                       summary.openFullPanel();
                     }}
                     disabled={summary.isLoading}
-                    className="p-2 rounded-lg bg-gradient-to-r from-purple-600/20 to-pink-600/20 text-purple-400 hover:text-purple-300 hover:from-purple-600/30 hover:to-pink-600/30 border border-purple-500/30 transition-all disabled:opacity-50"
+                    className="hidden lg:flex p-2 rounded-lg bg-gradient-to-r from-purple-600/20 to-pink-600/20 text-purple-400 hover:text-purple-300 hover:from-purple-600/30 hover:to-pink-600/30 border border-purple-500/30 transition-all disabled:opacity-50"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     title="View Conversation Summary"
@@ -771,24 +773,30 @@ export default function ChatPage() {
                   </motion.button>
                 )}
                 
-                {/* Drive Connection Indicator */}
-                <DriveIndicator />
+                {/* Drive Connection Indicator - DESKTOP ONLY */}
+                <div className="hidden lg:block">
+                  <DriveIndicator />
+                </div>
                 
-                {/* GitHub Connection Dropdown - REPLACES INDICATOR */}
-                <GitHubConnectionDropdown
-                  username={githubUsername}
-                  repoCount={githubRepoCount}
-                  onOpenRepoSelector={() => commandHandlerRef.current?.executeCommand('/repos')}
-                />
+                {/* GitHub Connection Dropdown - DESKTOP ONLY */}
+                <div className="hidden lg:block">
+                  <GitHubConnectionDropdown
+                    username={githubUsername}
+                    repoCount={githubRepoCount}
+                    onOpenRepoSelector={() => commandHandlerRef.current?.executeCommand('/repos')}
+                  />
+                </div>
                 
-                {/* Profile Dropdown - REPLACES UserButton + Debug + Settings */}
-                <ProfileDropdown
-                  onOpenMemory={() => setShowMemory(true)}
-                  onOpenSettings={() => setShowSettings(true)}
-                  onOpenKeyboardShortcuts={() => setShowKeyboardShortcuts(true)}
-                  onToggleDebug={() => setDebugMode(!debugMode)}
-                  debugMode={debugMode}
-                />
+                {/* Profile Dropdown - DESKTOP ONLY */}
+                <div className="hidden lg:block">
+                  <ProfileDropdown
+                    onOpenMemory={() => setShowMemory(true)}
+                    onOpenSettings={() => setShowSettings(true)}
+                    onOpenKeyboardShortcuts={() => setShowKeyboardShortcuts(true)}
+                    onToggleDebug={() => setDebugMode(!debugMode)}
+                    debugMode={debugMode}
+                  />
+                </div>
               </div>
             </div>
           </motion.div>
