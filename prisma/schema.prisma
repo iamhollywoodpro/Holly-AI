@@ -472,15 +472,29 @@ model ConversationSummary {
 // ===========================================
 
 model GitHubConnection {
-  id          String   @id @default(cuid())
-  userId      String   @unique
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  accessToken String
-  username    String
-  email       String?
-  avatarUrl   String?
-  isConnected Boolean  @default(true)
-  connectedAt DateTime @default(now())
+  id             String    @id @default(cuid())
+  userId         String    @unique
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken    String
+  scopes         String[]  @default([])
+  githubId       String?
+  githubUsername String?
+  githubEmail    String?
+  githubName     String?
+  githubAvatar   String?
+  githubBio      String?
+  publicRepos    Int       @default(0)
+  privateRepos   Int       @default(0)
+  followers      Int       @default(0)
+  following      Int       @default(0)
+  isConnected    Boolean   @default(true)
+  lastSyncAt     DateTime?
+  connectedAt    DateTime  @default(now())
+  
+  // Legacy fields for backwards compatibility
+  username       String?
+  email          String?
+  avatarUrl      String?
 
   @@map("github_connections")
 }
