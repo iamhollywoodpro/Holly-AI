@@ -503,13 +503,27 @@ model GitHubRepository {
   id          String   @id @default(cuid())
   userId      String
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  githubId    String   // GitHub's repository ID
   name        String
   fullName    String
+  owner       String   // Repository owner username
   description String?
-  private     Boolean
-  htmlUrl     String
+  url         String   // API URL
+  htmlUrl     String   // Web URL
+  cloneUrl    String   // HTTPS clone URL
+  sshUrl      String   // SSH clone URL
+  language    String?  // Primary programming language
+  stars       Int      @default(0)
+  forks       Int      @default(0)
+  openIssues  Int      @default(0)
+  watchers    Int      @default(0)
+  size        Int      @default(0)
+  isPrivate   Boolean  @default(false)
+  private     Boolean  @default(false) // Legacy field
   createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
+  @@unique([userId, githubId])
   @@index([userId])
   @@map("github_repositories")
 }
