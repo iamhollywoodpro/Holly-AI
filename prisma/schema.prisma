@@ -86,17 +86,23 @@ model Message {
 }
 
 model FileUpload {
-  id          String   @id @default(cuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  fileName    String
-  fileSize    Int
-  fileType    String
-  blobUrl     String
-  uploadedAt  DateTime @default(now())
-  description String?
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversationId String?
+  fileName       String
+  fileSize       Int
+  fileType       String
+  blobUrl        String
+  storagePath    String
+  publicUrl      String
+  mimeType       String
+  metadata       Json?    @default("{}")
+  uploadedAt     DateTime @default(now())
+  description    String?
 
   @@index([userId])
+  @@index([conversationId])
   @@map("file_uploads")
 }
 
@@ -224,19 +230,23 @@ model GoogleDriveIntegration {
 }
 
 model WorkLog {
-  id          String   @id @default(cuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  taskName    String
-  description String?  @db.Text
-  duration    Int // in minutes
-  category    String?
-  tags        String[]
-  startedAt   DateTime
-  completedAt DateTime
-  createdAt   DateTime @default(now())
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversationId String?
+  taskName       String
+  description    String?  @db.Text
+  details        Json?    @default("{}")
+  duration       Int      // in minutes
+  category       String?
+  tags           String[]
+  metadata       Json?    @default("{}")
+  startedAt      DateTime
+  completedAt    DateTime
+  createdAt      DateTime @default(now())
 
   @@index([userId])
+  @@index([conversationId])
   @@index([startedAt])
   @@map("work_logs")
 }

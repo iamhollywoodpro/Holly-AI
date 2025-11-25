@@ -234,75 +234,130 @@ class ComprehensiveScanner {
 
   checkPrismaCreate(content, filePath, fullContent) {
     // Match: prisma.model.create({ data: { ... } })
-    const createRegex = /prisma\.(\w+)\.(create|createMany|upsert)\s*\(\s*{[^}]*data:\s*{([^}]+)}/gs;
+    // Use more sophisticated regex to capture data block
+    const createRegex = /prisma\.(\w+)\.(create|createMany|upsert)\s*\([^)]*data:\s*{/gs;
     let match;
     
     while ((match = createRegex.exec(content)) !== null) {
       const modelName = match[1];
       const operation = match[2];
-      const dataFields = match[3];
       
       if (!this.prismaModels.has(modelName)) continue;
       
       const model = this.prismaModels.get(modelName);
       
-      // Extract field names from data object
-      const fieldRegex = /(\w+)\s*:/g;
-      let fieldMatch;
+      // Find the data block and extract only top-level fields
+      const startIndex = match.index + match[0].length - 1; // Position of opening {
+      const dataBlock = this.extractBlock(content, startIndex);
       
-      while ((fieldMatch = fieldRegex.exec(dataFields)) !== null) {
-        const fieldName = fieldMatch[1];
+      if (!dataBlock) continue;
+      
+      // Extract only top-level fields (not nested)
+      const lines = dataBlock.split('\n');
+      let depth = 0;
+      
+      for (const line of lines) {
+        // Track brace depth
+        const openBraces = (line.match(/{/g) || []).length;
+        const closeBraces = (line.match(/}/g) || []).length;
         
-        // Skip if it's a nested object key
-        if (fieldName === 'data' || fieldName === 'create' || fieldName === 'connect') continue;
-        
-        // Check if field exists in model
-        if (!model.fields.has(fieldName)) {
-          this.errors.push({
-            file: filePath,
-            line: this.getLineNumber(fullContent, match.index + fieldMatch.index),
-            message: `Field '${fieldName}' does not exist in model '${model.pascalName}'`,
-            code: this.getCodeSnippet(fullContent, match.index),
-            hint: `Available fields: ${Array.from(model.fields.keys()).join(', ')}`,
-          });
+        // Check if this line has a field at depth 0
+        if (depth === 0) {
+          const fieldMatch = line.match(/^\s*(\w+)\s*:/);
+          if (fieldMatch) {
+            const fieldName = fieldMatch[1];
+            
+            // Skip special Prisma keys
+            if (fieldName === 'data' || fieldName === 'create' || fieldName === 'connect' || fieldName === 'set') {
+              continue;
+            }
+            
+            // Check if field exists in model
+            if (!model.fields.has(fieldName)) {
+              this.errors.push({
+                file: filePath,
+                line: this.getLineNumber(fullContent, match.index),
+                message: `Field '${fieldName}' does not exist in model '${model.pascalName}'`,
+                code: this.getCodeSnippet(fullContent, match.index),
+                hint: `Available fields: ${Array.from(model.fields.keys()).join(', ')}`,
+              });
+            }
+          }
         }
+        
+        depth += openBraces - closeBraces;
       }
     }
+  }
+  
+  // Extract a balanced {} block starting from a given position
+  extractBlock(content, startIndex) {
+    let depth = 0;
+    let result = '';
+    
+    for (let i = startIndex; i < content.length; i++) {
+      const char = content[i];
+      result += char;
+      
+      if (char === '{') depth++;
+      if (char === '}') depth--;
+      
+      if (depth === 0) break;
+    }
+    
+    return depth === 0 ? result : null;
   }
 
   checkPrismaUpdate(content, filePath, fullContent) {
     // Match: prisma.model.update({ data: { ... } })
-    const updateRegex = /prisma\.(\w+)\.(update|updateMany)\s*\(\s*{[^}]*data:\s*{([^}]+)}/gs;
+    const updateRegex = /prisma\.(\w+)\.(update|updateMany)\s*\([^)]*data:\s*{/gs;
     let match;
     
     while ((match = updateRegex.exec(content)) !== null) {
       const modelName = match[1];
-      const dataFields = match[3];
       
       if (!this.prismaModels.has(modelName)) continue;
       
       const model = this.prismaModels.get(modelName);
       
-      // Extract field names from data object
-      const fieldRegex = /(\w+)\s*:/g;
-      let fieldMatch;
+      // Find the data block and extract only top-level fields
+      const startIndex = match.index + match[0].length - 1;
+      const dataBlock = this.extractBlock(content, startIndex);
       
-      while ((fieldMatch = fieldRegex.exec(dataFields)) !== null) {
-        const fieldName = fieldMatch[1];
+      if (!dataBlock) continue;
+      
+      // Extract only top-level fields
+      const lines = dataBlock.split('\n');
+      let depth = 0;
+      
+      for (const line of lines) {
+        const openBraces = (line.match(/{/g) || []).length;
+        const closeBraces = (line.match(/}/g) || []).length;
         
-        // Skip nested keys
-        if (fieldName === 'data' || fieldName === 'set' || fieldName === 'increment') continue;
-        
-        // Check if field exists in model
-        if (!model.fields.has(fieldName)) {
-          this.errors.push({
-            file: filePath,
-            line: this.getLineNumber(fullContent, match.index + fieldMatch.index),
-            message: `Field '${fieldName}' does not exist in model '${model.pascalName}'`,
-            code: this.getCodeSnippet(fullContent, match.index),
-            hint: `Available fields: ${Array.from(model.fields.keys()).join(', ')}`,
-          });
+        if (depth === 0) {
+          const fieldMatch = line.match(/^\s*(\w+)\s*:/);
+          if (fieldMatch) {
+            const fieldName = fieldMatch[1];
+            
+            // Skip special Prisma update keys
+            if (['data', 'set', 'increment', 'decrement', 'push', 'multiply', 'divide'].includes(fieldName)) {
+              continue;
+            }
+            
+            // Check if field exists in model
+            if (!model.fields.has(fieldName)) {
+              this.errors.push({
+                file: filePath,
+                line: this.getLineNumber(fullContent, match.index),
+                message: `Field '${fieldName}' does not exist in model '${model.pascalName}'`,
+                code: this.getCodeSnippet(fullContent, match.index),
+                hint: `Available fields: ${Array.from(model.fields.keys()).join(', ')}`,
+              });
+            }
+          }
         }
+        
+        depth += openBraces - closeBraces;
       }
     }
   }

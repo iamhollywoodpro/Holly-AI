@@ -283,7 +283,7 @@ export async function recordDownload(
     data: {
       downloadCount: { increment: 1 },
       lastDownloadAt: new Date(),
-      downloadIps: {
+      downloadIPs: {
         push: hashedIp,
       },
     },
