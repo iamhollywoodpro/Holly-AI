@@ -350,7 +350,7 @@ export class MemoryStream {
       }
 
       // Merge new learning into existing identity
-      const currentSkills = identity.skillSet || [];
+      const currentSkills = Array.isArray(identity.skillSet) ? identity.skillSet : (identity.skillSet as any) || [];
       const newSkills = partialIdentity.skills_knowledge?.map(s => s.domain) || [];
       const updatedSkills = [...new Set([...currentSkills, ...newSkills])];
 
