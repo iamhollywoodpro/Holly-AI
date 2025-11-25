@@ -8,11 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { 
-  createWorkLog, 
-  type WorkLogType, 
-  type WorkLogStatus 
-} from '@/lib/logging/work-log-service';
+import { createWorkLog } from '@/lib/logging/work-log-service';
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,17 +22,21 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const {
       conversationId,
-      logType,
-      status,
-      title,
+      taskName,
+      description,
       details,
+      duration = 0,
+      category,
+      tags,
       metadata,
+      startedAt,
+      completedAt,
     } = body;
 
     // Validate required fields
-    if (!logType || !status || !title) {
+    if (!taskName) {
       return NextResponse.json(
-        { error: 'Missing required fields: logType, status, title' },
+        { error: 'Missing required field: taskName' },
         { status: 400 }
       );
     }
@@ -45,11 +45,15 @@ export async function POST(request: NextRequest) {
     const log = await createWorkLog({
       userId: clerkUserId,
       conversationId,
-      logType: logType as WorkLogType,
-      status: status as WorkLogStatus,
-      title,
+      taskName,
+      description,
       details,
+      duration,
+      category,
+      tags,
       metadata,
+      startedAt: startedAt ? new Date(startedAt) : new Date(),
+      completedAt: completedAt ? new Date(completedAt) : new Date(),
     });
 
     return NextResponse.json({

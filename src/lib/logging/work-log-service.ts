@@ -217,6 +217,9 @@ async function updateStats(userId: string, hoursToAdd: number): Promise<void> {
 // HELPER FUNCTIONS FOR COMMON LOG TYPES
 // ============================================================================
 
+// BACKWARDS COMPATIBLE HELPER FUNCTIONS
+// These maintain the old API signature that existing code uses
+
 export async function logWorking(
   userId: string,
   conversationId: string,
@@ -229,7 +232,7 @@ export async function logWorking(
     taskName,
     description: 'Working',
     details,
-    duration: 0, // Will be updated when completed
+    duration: 0,
     category: 'ai_response',
     tags: ['working'],
     startedAt: new Date(),
@@ -237,64 +240,77 @@ export async function logWorking(
   });
 }
 
+/**
+ * Log a successful operation (backwards compatible)
+ * @param userId - User ID
+ * @param message - Log message (used as taskName)
+ * @param options - Optional conversationId and metadata
+ */
 export async function logSuccess(
   userId: string,
-  conversationId: string,
-  taskName: string,
-  duration: number,
-  details?: Record<string, any>
+  message: string,
+  options?: { conversationId?: string; metadata?: Record<string, any> }
 ): Promise<WorkLogEntry> {
   return createWorkLog({
     userId,
-    conversationId,
-    taskName,
+    conversationId: options?.conversationId || '',
+    taskName: message,
     description: 'Success',
-    details,
-    duration,
-    category: 'ai_response',
+    details: options?.metadata || {},
+    duration: 0,
+    category: 'success',
     tags: ['success'],
+    startedAt: new Date(),
     completedAt: new Date(),
   });
 }
 
+/**
+ * Log an error (backwards compatible)
+ * @param userId - User ID
+ * @param message - Error message (used as taskName)
+ * @param options - Optional metadata
+ */
 export async function logError(
   userId: string,
-  conversationId: string,
-  taskName: string,
-  error: any,
-  details?: Record<string, any>
+  message: string,
+  options?: { metadata?: Record<string, any> }
 ): Promise<WorkLogEntry> {
   return createWorkLog({
     userId,
-    conversationId,
-    taskName,
+    conversationId: '',
+    taskName: message,
     description: 'Error',
-    details: {
-      ...details,
-      error: error?.message || String(error),
-    },
+    details: options?.metadata || {},
     duration: 0,
     category: 'error',
     tags: ['error'],
+    startedAt: new Date(),
     completedAt: new Date(),
   });
 }
 
+/**
+ * Log informational message (backwards compatible)
+ * @param userId - User ID  
+ * @param message - Info message (used as taskName)
+ * @param options - Optional conversationId and metadata
+ */
 export async function logInfo(
   userId: string,
-  conversationId: string,
-  taskName: string,
-  details?: Record<string, any>
+  message: string,
+  options?: { conversationId?: string; metadata?: Record<string, any> }
 ): Promise<WorkLogEntry> {
   return createWorkLog({
     userId,
-    conversationId,
-    taskName,
+    conversationId: options?.conversationId || '',
+    taskName: message,
     description: 'Info',
-    details,
+    details: options?.metadata || {},
     duration: 0,
     category: 'info',
     tags: ['info'],
+    startedAt: new Date(),
     completedAt: new Date(),
   });
 }
