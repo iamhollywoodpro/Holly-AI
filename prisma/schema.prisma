@@ -488,6 +488,7 @@ model GitHubConnection {
   followers      Int       @default(0)
   following      Int       @default(0)
   isConnected    Boolean   @default(true)
+  autoSync       Boolean   @default(false)
   lastSyncAt     DateTime?
   connectedAt    DateTime  @default(now())
   
