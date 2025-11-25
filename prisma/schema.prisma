@@ -583,15 +583,43 @@ model GoogleDriveConnection {
 // ===========================================
 
 model DownloadLink {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  fileName  String
-  fileUrl   String
-  expiresAt DateTime
-  createdAt DateTime @default(now())
+  id              String    @id @default(cuid())
+  linkId          String    @unique // Short, shareable link ID
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversationId  String?   // Optional conversation context
+  
+  // File information
+  fileName        String
+  fileType        String    // 'image', 'audio', 'video', 'document', 'code', 'other'
+  fileSize        Int       // Size in bytes
+  storagePath     String    // Path in storage system (e.g., S3, local)
+  mimeType        String    // MIME type (e.g., 'image/png')
+  
+  // Security
+  password        String?   // Hashed password for protected links
+  expiresAt       DateTime?
+  maxDownloads    Int?      // Maximum number of downloads allowed
+  downloadCount   Int       @default(0)
+  lastDownloadAt  DateTime?
+  
+  // Metadata
+  title           String?
+  description     String?
+  tags            Json?     // Array of tags
+  metadata        Json?     // Additional metadata
+  
+  // Analytics
+  downloadIPs     Json?     // Array of IPs that downloaded
+  
+  // Timestamps
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  revokedAt       DateTime? // When link was manually revoked
 
   @@index([userId])
+  @@index([linkId])
+  @@index([expiresAt])
   @@map("download_links")
 }
 
