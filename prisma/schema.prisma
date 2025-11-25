@@ -612,6 +612,10 @@ model DownloadLink {
   // Analytics
   downloadIPs     Json?     // Array of IPs that downloaded
   
+  // Work Log integration
+  generatedBy     String?   // What generated this (e.g., 'AI', 'User', 'System')
+  generationTime  Int?      // Time taken to generate in milliseconds
+  
   // Timestamps
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
