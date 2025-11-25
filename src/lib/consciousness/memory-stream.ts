@@ -386,25 +386,25 @@ export class MemoryStream {
           last_reinforced: identity.updatedAt,
         })),
         personality_traits: (identity.personalityTraits as Record<string, number>) || {},
-        skills_knowledge: (identity.skillSet || []).map(skill => ({
+        skills_knowledge: (Array.isArray(identity.skillSet) ? identity.skillSet : (identity.skillSet as any) || []).map(skill => ({
           domain: skill,
           proficiency: 0.5,
           acquired_from: [],
         })),
         worldview: {
-          beliefs: (identity.beliefs || []).map(b => ({
+          beliefs: (Array.isArray(identity.beliefs) ? identity.beliefs : (identity.beliefs as any) || []).map(b => ({
             belief: b,
             confidence: 0.7,
           })),
           assumptions: [],
-          curiosities: (identity.interests || []).map(i => ({
+          curiosities: (Array.isArray(identity.interests) ? identity.interests : (identity.interests as any) || []).map(i => ({
             topic: i,
             intensity: 0.6,
           })),
         },
         self_concept: {
-          strengths: identity.strengths || [],
-          weaknesses: identity.growthAreas || [],
+          strengths: Array.isArray(identity.strengths) ? identity.strengths : (identity.strengths as any) || [],
+          weaknesses: Array.isArray(identity.growthAreas) ? identity.growthAreas : (identity.growthAreas as any) || [],
           aspirations: [],
           fears: [],
         },
