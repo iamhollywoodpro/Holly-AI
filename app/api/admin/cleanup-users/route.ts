@@ -182,7 +182,6 @@ export async function POST(req: NextRequest) {
           select: {
             id: true,
             title: true,
-            messageCount: true,
           },
         },
       },
