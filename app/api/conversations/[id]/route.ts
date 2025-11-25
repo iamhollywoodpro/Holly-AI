@@ -19,7 +19,7 @@ export async function GET(
     }
 
     const user = await prisma.user.findUnique({
-      where: { clerkId: clerkUserId },
+      where: { clerkUserId: clerkUserId },
     });
 
     if (!user) {
@@ -64,7 +64,7 @@ export async function PATCH(
     }
 
     const user = await prisma.user.findUnique({
-      where: { clerkId: clerkUserId },
+      where: { clerkUserId: clerkUserId },
     });
 
     if (!user) {
@@ -111,7 +111,7 @@ export async function DELETE(
     }
 
     const user = await prisma.user.findUnique({
-      where: { clerkId: clerkUserId },
+      where: { clerkUserId: clerkUserId },
     });
 
     if (!user) {

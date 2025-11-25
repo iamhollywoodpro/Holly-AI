@@ -57,10 +57,10 @@ export async function POST(req: Request) {
     // Create user in database
     await prisma.user.create({
       data: {
-        clerkId: id,
+        clerkUserId: id,
         email,
         name: first_name && last_name ? `${first_name} ${last_name}` : null,
-        avatarUrl: image_url || null,
+        imageUrl: image_url || null,
       },
     })
 
@@ -74,11 +74,11 @@ export async function POST(req: Request) {
 
     // Update user in database
     await prisma.user.update({
-      where: { clerkId: id },
+      where: { clerkUserId: id },
       data: {
         email,
         name: first_name && last_name ? `${first_name} ${last_name}` : null,
-        avatarUrl: image_url || null,
+        imageUrl: image_url || null,
       },
     })
 
@@ -90,7 +90,7 @@ export async function POST(req: Request) {
 
     // Delete user from database
     await prisma.user.delete({
-      where: { clerkId: id! },
+      where: { clerkUserId: id! },
     })
 
     console.log('[Webhook] ✅ User deleted:', id)

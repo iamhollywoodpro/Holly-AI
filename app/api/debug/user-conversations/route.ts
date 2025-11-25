@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
 
     // Find all users with this clerkId or email
     const userByClerkId = await prisma.user.findUnique({
-      where: { clerkId: clerkUserId },
+      where: { clerkUserId: clerkUserId },
       include: {
         conversations: {
           select: {
@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
     const allUsers = await prisma.user.findMany({
       select: {
         id: true,
-        clerkId: true,
+        clerkUserId: true,
         email: true,
         createdAt: true,
         _count: {
@@ -49,7 +49,7 @@ export async function GET(req: NextRequest) {
       currentClerkId: clerkUserId,
       userByClerkId: userByClerkId ? {
         id: userByClerkId.id,
-        clerkId: userByClerkId.clerkId,
+        clerkUserId: userByClerkId.clerkUserId,
         email: userByClerkId.email,
         conversationCount: userByClerkId.conversations.length,
         conversations: userByClerkId.conversations,

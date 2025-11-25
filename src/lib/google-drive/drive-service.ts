@@ -27,7 +27,7 @@ const drive = google.drive('v3');
  */
 async function getUserIdFromClerk(clerkUserId: string): Promise<string> {
   const user = await prisma.user.findUnique({
-    where: { clerkId: clerkUserId },
+    where: { clerkUserId: clerkUserId },
     select: { id: true },
   });
   

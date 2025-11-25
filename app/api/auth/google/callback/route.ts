@@ -62,7 +62,7 @@ export async function GET(req: NextRequest) {
       let user = await prisma.user.findFirst({
         where: {
           OR: [
-            { clerkId: userId },
+            { clerkUserId: userId },
             { id: userId }
           ]
         }
@@ -78,7 +78,7 @@ export async function GET(req: NextRequest) {
         // Create user in our database
         user = await prisma.user.create({
           data: {
-            clerkId: userId,
+            clerkUserId: userId,
             email: clerkUser.emailAddresses[0]?.emailAddress || '',
             name: `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() || null,
           }

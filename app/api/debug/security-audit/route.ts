@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
 
     // Find user by Clerk ID
     const userByClerkId = await prisma.user.findUnique({
-      where: { clerkId: clerkUserId },
+      where: { clerkUserId: clerkUserId },
       include: {
         conversations: {
           include: {
@@ -105,7 +105,7 @@ export async function GET(req: NextRequest) {
       },
       YOUR_DATABASE_USER: userByClerkId ? {
         id: userByClerkId.id,
-        clerkId: userByClerkId.clerkId,
+        clerkUserId: userByClerkId.clerkUserId,
         email: userByClerkId.email,
         createdAt: userByClerkId.createdAt,
         conversationCount: userByClerkId.conversations.length,
@@ -119,7 +119,7 @@ export async function GET(req: NextRequest) {
       } : 'NO USER FOUND WITH YOUR CLERK ID',
       REAL_EMAIL_USER: userByRealEmail ? {
         id: userByRealEmail.id,
-        clerkId: userByRealEmail.clerkId,
+        clerkUserId: userByRealEmail.clerkUserId,
         email: userByRealEmail.email,
         createdAt: userByRealEmail.createdAt,
         conversationCount: userByRealEmail.conversations.length,
@@ -133,7 +133,7 @@ export async function GET(req: NextRequest) {
       } : 'NO USER FOUND WITH iamhollywoodpro@gmail.com',
       ALL_USERS_IN_DATABASE: allUsers.map(user => ({
         id: user.id,
-        clerkId: user.clerkId,
+        clerkUserId: user.clerkUserId,
         email: user.email,
         createdAt: user.createdAt,
         conversationCount: user.conversations.length,
@@ -146,7 +146,7 @@ export async function GET(req: NextRequest) {
       })),
       SUSPICIOUS_ACCOUNTS: suspiciousUsers.map(user => ({
         id: user.id,
-        clerkId: user.clerkId,
+        clerkUserId: user.clerkUserId,
         email: user.email,
         createdAt: user.createdAt,
         conversationCount: user.conversations.length,

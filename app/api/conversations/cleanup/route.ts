@@ -20,7 +20,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     const user = await prisma.user.findUnique({
-      where: { clerkId: userId },
+      where: { clerkUserId: userId },
     });
 
     if (!user) {

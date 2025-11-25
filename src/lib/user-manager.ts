@@ -7,7 +7,7 @@ import { prisma } from '@/lib/db';
 import { currentUser } from '@clerk/nextjs/server';
 
 interface UserInfo {
-  clerkId: string;
+  clerkUserId: string;
   email: string;
   name?: string;
   avatarUrl?: string;
@@ -17,7 +17,7 @@ interface UserInfo {
  * Get or create user - SINGLE SOURCE OF TRUTH
  * Always call this instead of creating users directly
  */
-export async function getOrCreateUser(clerkUserId: string): Promise<{ id: string; clerkId: string; email: string }> {
+export async function getOrCreateUser(clerkUserId: string): Promise<{ id: string; clerkUserId: string; email: string }> {
   console.log('👤 [UserManager] Getting/creating user for Clerk ID:', clerkUserId);
   
   // CRITICAL: Get REAL email from Clerk
@@ -42,7 +42,7 @@ export async function getOrCreateUser(clerkUserId: string): Promise<{ id: string
   
   // Try to find existing user by Clerk ID
   let user = await prisma.user.findUnique({
-    where: { clerkId: clerkUserId },
+    where: { clerkUserId: clerkUserId },
   });
   
   if (user) {
@@ -56,7 +56,7 @@ export async function getOrCreateUser(clerkUserId: string): Promise<{ id: string
         data: { 
           email: primaryEmail,
           name: clerkUser.fullName || user.name,
-          avatarUrl: clerkUser.imageUrl || user.avatarUrl,
+          imageUrl: clerkUser.imageUrl || user.imageUrl,
         },
       });
     }
@@ -76,9 +76,9 @@ export async function getOrCreateUser(clerkUserId: string): Promise<{ id: string
     user = await prisma.user.update({
       where: { id: user.id },
       data: { 
-        clerkId: clerkUserId,
+        clerkUserId: clerkUserId,
         name: clerkUser.fullName || user.name,
-        avatarUrl: clerkUser.imageUrl || user.avatarUrl,
+        imageUrl: clerkUser.imageUrl || user.imageUrl,
       },
     });
     return user;
@@ -88,10 +88,10 @@ export async function getOrCreateUser(clerkUserId: string): Promise<{ id: string
   console.log('📝 [UserManager] Creating new user with email:', primaryEmail);
   user = await prisma.user.create({
     data: {
-      clerkId: clerkUserId,
+      clerkUserId: clerkUserId,
       email: primaryEmail,
       name: clerkUser.fullName,
-      avatarUrl: clerkUser.imageUrl,
+      imageUrl: clerkUser.imageUrl,
     },
   });
   
@@ -112,7 +112,7 @@ function isValidEmail(email: string): boolean {
  */
 export async function findUserByClerkId(clerkUserId: string) {
   return await prisma.user.findUnique({
-    where: { clerkId: clerkUserId },
+    where: { clerkUserId: clerkUserId },
   });
 }
 

@@ -24,7 +24,7 @@ export async function GET(
     }
 
     const user = await prisma.user.findUnique({
-      where: { clerkId: userId },
+      where: { clerkUserId: userId },
     });
 
     if (!user) {
@@ -93,7 +93,7 @@ export async function POST(
     }
 
     const user = await prisma.user.findUnique({
-      where: { clerkId: userId },
+      where: { clerkUserId: userId },
     });
 
     if (!user) {

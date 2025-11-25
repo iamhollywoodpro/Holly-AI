@@ -18,9 +18,9 @@ export async function ensureUserExists() {
     }
 
     // Check if user exists in database
-    console.log('[ensureUserExists] Checking database for clerkId:', clerkUser.id);
+    console.log('[ensureUserExists] Checking database for clerkUserId:', clerkUser.id);
     let user = await prisma.user.findUnique({
-      where: { clerkId: clerkUser.id },
+      where: { clerkUserId: clerkUser.id },
     });
     console.log('[ensureUserExists] Database lookup result:', user ? `Found user ${user.id}` : 'Not found');
 
@@ -34,10 +34,10 @@ export async function ensureUserExists() {
       console.log('[ensureUserExists] Creating new user with email:', email);
       user = await prisma.user.create({
         data: {
-          clerkId: clerkUser.id,
+          clerkUserId: clerkUser.id,
           email,
           name,
-          avatarUrl: clerkUser.imageUrl || null,
+          imageUrl: clerkUser.imageUrl || null,
         },
       });
 

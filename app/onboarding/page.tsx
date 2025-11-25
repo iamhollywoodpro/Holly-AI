@@ -14,7 +14,7 @@ export default async function OnboardingPage() {
   
   // Check if user already has Google Drive connected
   const user = await prisma.user.findUnique({
-    where: { clerkId: userId },
+    where: { clerkUserId: userId },
     include: {
       googleDrive: true
     }

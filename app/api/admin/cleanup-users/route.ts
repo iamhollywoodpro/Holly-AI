@@ -36,23 +36,23 @@ export async function POST(req: NextRequest) {
           },
         },
         fileUploads: true,
-        googleDrive: true,
+        googleDriveIntegrations: true,
       },
     });
 
     console.log('📊 [CLEANUP] Found', allUsers.length, 'total users');
 
     // Find or create Hollywood's legitimate account
-    let hollywoodUser = allUsers.find(u => u.clerkId === clerkUserId);
+    let hollywoodUser = allUsers.find(u => u.clerkUserId === clerkUserId);
     
     if (!hollywoodUser) {
       console.log('📝 [CLEANUP] Creating legitimate Hollywood account');
       const newUser = await prisma.user.create({
         data: {
-          clerkId: clerkUserId,
+          clerkUserId: clerkUserId,
           email: primaryEmail,
           name: clerkUser.fullName,
-          avatarUrl: clerkUser.imageUrl,
+          imageUrl: clerkUser.imageUrl,
         },
       });
       // Fetch with relations to match the type
@@ -168,7 +168,7 @@ export async function POST(req: NextRequest) {
       results.corruptedUsers.push({
         id: corruptUser.id,
         email: corruptUser.email,
-        clerkId: corruptUser.clerkId,
+        clerkUserId: corruptUser.clerkUserId,
         conversationCount: convCount,
         fileCount: fileCount,
       });

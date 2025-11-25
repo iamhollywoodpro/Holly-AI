@@ -26,12 +26,12 @@ export async function GET(request: NextRequest) {
 
     console.log('[Goals API] Looking up user in database...');
     const user = await prisma.user.findUnique({
-      where: { clerkId: userId },
+      where: { clerkUserId: userId },
     });
     console.log('[Goals API] User lookup result:', user ? `Found user ${user.id}` : 'NOT FOUND');
 
     if (!user) {
-      console.error('[Goals API] User not found in database for clerkId:', userId);
+      console.error('[Goals API] User not found in database for clerkUserId:', userId);
       return NextResponse.json(
         { error: 'User not found' },
         { status: 404 }
@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
     }
 
     const user = await prisma.user.findUnique({
-      where: { clerkId: userId },
+      where: { clerkUserId: userId },
     });
 
     if (!user) {
@@ -152,7 +152,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const user = await prisma.user.findUnique({
-      where: { clerkId: userId },
+      where: { clerkUserId: userId },
     });
 
     if (!user) {
