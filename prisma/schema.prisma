@@ -101,23 +101,27 @@ model FileUpload {
 }
 
 model Project {
-  id           String            @id @default(cuid())
-  userId       String
-  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name         String
-  description  String?           @db.Text
-  category     String?
-  technologies String[]          @default([])
-  color        String            @default("#a855f7")
-  icon         String?
-  status       String            @default("active") // active, completed, archived
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
-  activities   ProjectActivity[]
-  deployments  Deployment[]
-  milestones   Milestone[]
+  id            String            @id @default(cuid())
+  userId        String
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name          String
+  description   String?           @db.Text
+  category      String?
+  technologies  String[]          @default([])
+  color         String            @default("#a855f7")
+  icon          String?
+  status        String            @default("active") // active, completed, archived
+  progress      Float             @default(0)
+  startDate     DateTime          @default(now())
+  targetEndDate DateTime?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  activities    ProjectActivity[]
+  deployments   Deployment[]
+  milestones    Milestone[]
 
   @@index([userId])
+  @@index([startDate])
   @@map("projects")
 }
 
