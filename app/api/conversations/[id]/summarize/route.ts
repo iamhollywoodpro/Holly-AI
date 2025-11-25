@@ -172,6 +172,7 @@ Generate the summary:`;
     const savedSummary = await prisma.conversationSummary.upsert({
       where: { conversationId },
       create: {
+        userId,
         conversationId,
         summary: summaryData.summary || 'No summary generated',
         keyPoints: summaryData.keyPoints || [],
