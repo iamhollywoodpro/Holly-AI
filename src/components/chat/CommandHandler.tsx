@@ -12,6 +12,7 @@ import IssueManagementPanel from './IssueManagementPanel';
 import CreateIssueDialog from './CreateIssueDialog';
 import BrowsePanel from '../github/BrowsePanel';
 import CommitPanel from '../github/CommitPanel';
+import { PRListPanel } from '../github/PRListPanel';
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
 import { useActiveRepo, useActiveRepos } from '@/hooks/useActiveRepos';
@@ -28,6 +29,7 @@ export const CommandHandler = forwardRef<CommandHandlerRef, CommandHandlerProps>
   const [showRepoSelector, setShowRepoSelector] = useState(false);
   const [showDeployDialog, setShowDeployDialog] = useState(false);
   const [showPRDialog, setShowPRDialog] = useState(false);
+  const [showPRListPanel, setShowPRListPanel] = useState(false);
   const [prBranch, setPRBranch] = useState<string | undefined>();
   const [showRollbackDialog, setShowRollbackDialog] = useState(false);
   const [showWorkflowsPanel, setShowWorkflowsPanel] = useState(false);
@@ -63,11 +65,18 @@ export const CommandHandler = forwardRef<CommandHandlerRef, CommandHandlerProps>
           return true;
         
         case 'pr':
-          const branch = command.args[0];
-          if (branch && branch !== 'review') {
-            setPRBranch(branch);
+          const subCommand = command.args[0];
+          if (subCommand === 'list') {
+            // Show PR list panel
+            setShowPRListPanel(true);
+          } else {
+            // Show PR creation dialog
+            const branch = subCommand;
+            if (branch && branch !== 'create' && branch !== 'review') {
+              setPRBranch(branch);
+            }
+            setShowPRDialog(true);
           }
-          setShowPRDialog(true);
           return true;
         
         case 'rollback':
@@ -421,6 +430,12 @@ export const CommandHandler = forwardRef<CommandHandlerRef, CommandHandlerProps>
           </div>
         </Dialog>
       )}
+
+      {/* PR List Panel */}
+      <PRListPanel
+        isOpen={showPRListPanel}
+        onClose={() => setShowPRListPanel(false)}
+      />
     </>
   );
 });

@@ -84,11 +84,11 @@ export function getCommandHelp(): string {
 - Shows deployment status in real-time
 - Requires active repository selection
 
-\`/pr\` or \`/pull\` - Create Pull Request
-- Opens PR creation dialog
-- \`/pr\` - Create PR from current branch
+\`/pr\` or \`/pull\` - Pull Request Management
+- \`/pr\` or \`/pr create\` - Create new PR from current branch
+- \`/pr list\` - View all pull requests (open, closed, merged)
 - \`/pr [branch]\` - Create PR from specific branch
-- \`/pr review\` - Request review from team
+- Auto-fill PR titles and descriptions from commits
 - Requires active repository selection
 
 \`/rollback\` or \`/rb\` - Deployment Rollback
