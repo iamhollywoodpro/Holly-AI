@@ -434,10 +434,19 @@ model HollyIdentity {
   id                 String   @id @default(cuid())
   userId             String   @unique
   user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  coreBeliefs        Json
-  values             Json
-  personality        Json
-  communicationStyle Json
+  
+  // Active fields used by consciousness system
+  coreValues         Json     @default("[]")
+  personalityTraits  Json     @default("{}")
+  confidenceLevel    Float    @default(0.5)
+  purpose            String   @default("To assist and grow alongside the user")
+  
+  // Legacy fields (keep for backwards compatibility)
+  coreBeliefs        Json     @default("{}")
+  values             Json     @default("{}")
+  personality        Json     @default("{}")
+  communicationStyle Json     @default("{}")
+  
   lastEvolved        DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
