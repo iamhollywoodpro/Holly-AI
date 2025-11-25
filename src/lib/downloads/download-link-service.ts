@@ -177,11 +177,11 @@ export async function createDownloadLink(
     mimeType: link.mimeType,
     title: link.title || undefined,
     description: link.description || undefined,
-    tags: link.tags,
+    tags: (link.tags as string[]) || [],
     expiresAt: link.expiresAt || undefined,
     maxDownloads: link.maxDownloads || undefined,
     downloadCount: link.downloadCount,
-    isRevoked: link.isRevoked,
+    isRevoked: !!link.revokedAt,
     hasPassword: !!link.password,
     createdAt: link.createdAt,
     shareUrl,
@@ -212,11 +212,11 @@ export async function getDownloadLink(
     mimeType: link.mimeType,
     title: link.title || undefined,
     description: link.description || undefined,
-    tags: link.tags,
+    tags: (link.tags as string[]) || [],
     expiresAt: link.expiresAt || undefined,
     maxDownloads: link.maxDownloads || undefined,
     downloadCount: link.downloadCount,
-    isRevoked: link.isRevoked,
+    isRevoked: !!link.revokedAt,
     hasPassword: !!link.password,
     createdAt: link.createdAt,
     shareUrl,
@@ -240,7 +240,7 @@ export async function verifyDownloadAccess(
   }
   
   // Check if revoked
-  if (link.isRevoked) {
+  if (!!link.revokedAt) {
     return { allowed: false, reason: 'Link has been revoked' };
   }
   
@@ -308,7 +308,6 @@ export async function revokeDownloadLink(
   await prisma.downloadLink.update({
     where: { linkId },
     data: {
-      isRevoked: true,
       revokedAt: new Date(),
     },
   });
@@ -340,11 +339,11 @@ export async function getUserDownloadLinks(
     mimeType: link.mimeType,
     title: link.title || undefined,
     description: link.description || undefined,
-    tags: link.tags,
+    tags: (link.tags as string[]) || [],
     expiresAt: link.expiresAt || undefined,
     maxDownloads: link.maxDownloads || undefined,
     downloadCount: link.downloadCount,
-    isRevoked: link.isRevoked,
+    isRevoked: !!link.revokedAt,
     hasPassword: !!link.password,
     createdAt: link.createdAt,
     shareUrl: `${baseUrl}/download/${link.linkId}`,
@@ -363,7 +362,7 @@ export async function cleanupExpiredLinks(): Promise<{
     where: {
       OR: [
         { expiresAt: { lt: now } },
-        { isRevoked: true, revokedAt: { lt: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000) } }, // Delete revoked links after 7 days
+        { revokedAt: { not: null, lt: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000) } }, // Delete revoked links after 7 days
       ],
     },
   });
