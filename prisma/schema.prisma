@@ -399,8 +399,10 @@ model HollyGoal {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   title       String
   description String?  @db.Text
+  category    String   @default("general")
   status      String   @default("active")
   priority    Int      @default(5)
+  targetDate  DateTime?
   createdAt   DateTime @default(now())
   completedAt DateTime?
   
@@ -428,16 +430,19 @@ model HollyIdentity {
 // ===========================================
 
 model ConversationSummary {
-  id             String       @id @default(cuid())
-  conversationId String       @unique
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  userId         String
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  summary        String       @db.Text
-  keyTopics      String[]
-  actionItems    String[]
-  messageCount   Int
-  generatedAt    DateTime     @default(now())
+  id               String       @id @default(cuid())
+  conversationId   String       @unique
+  conversation     Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId           String
+  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  summary          String       @db.Text
+  keyTopics        String[]
+  actionItems      String[]
+  importantMoments String[]     @default([])
+  messageCount     Int
+  cached           Boolean      @default(false)
+  generatedAt      DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
   
   @@index([userId])
   @@map("conversation_summaries")
