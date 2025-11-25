@@ -21,7 +21,7 @@ export default async function OnboardingPage() {
   });
   
   // If already connected, mark onboarding complete and redirect
-  if (user?.googleDrive?.isConnected) {
+  if (user?.googleDriveIntegrations?.[0]?.isConnected) {
     // Mark onboarding as completed in a way that persists
     // We'll use a query parameter to signal completion
     redirect('/?onboarding_completed=true');
