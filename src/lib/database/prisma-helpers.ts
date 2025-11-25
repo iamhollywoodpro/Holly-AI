@@ -180,8 +180,8 @@ export class PrismaQueryBuilder<T = any> {
       'users': prisma.user,
       'emotion_logs': prisma.emotionLog,
       'emotional_baselines': prisma.emotionalBaseline,
-      'taste_signals': prisma.tasteSignal,
-      'taste_profiles': prisma.tasteProfile,
+      // 'taste_signals': prisma.tasteSignal, // Model doesn't exist
+      // 'taste_profiles': prisma.tasteProfile, // Model doesn't exist
       'projects': prisma.project,
       'milestones': prisma.milestone,
       'transactions': prisma.transaction,
@@ -190,12 +190,12 @@ export class PrismaQueryBuilder<T = any> {
       'audit_logs': prisma.auditLog,
       'user_stats': prisma.userStats,
       'recent_activity': prisma.recentActivity,
-      'holly-images': prisma.hollyImage,
-      'holly-audio': prisma.hollyAudio,
-      'holly-video': prisma.hollyVideo,
-      'songs': prisma.song,
-      'song-stems': prisma.songStem,
-      'music_videos': prisma.musicVideo,
+// 'holly-images': prisma.hollyImage, // Model doesn't exist
+// 'holly-audio': prisma.hollyAudio, // Model doesn't exist
+// 'holly-video': prisma.hollyVideo, // Model doesn't exist
+// 'songs': prisma.song, // Model doesn't exist
+// 'song-stems': prisma.songStem, // Model doesn't exist
+// 'music_videos': prisma.musicVideo, // Model doesn't exist
     };
 
     return modelMap[this.tableName];
@@ -258,8 +258,8 @@ export const db = {
       'users': prisma.user,
       'emotion_logs': prisma.emotionLog,
       'emotional_baselines': prisma.emotionalBaseline,
-      'taste_signals': prisma.tasteSignal,
-      'taste_profiles': prisma.tasteProfile,
+      // 'taste_signals': prisma.tasteSignal, // Model doesn't exist
+      // 'taste_profiles': prisma.tasteProfile, // Model doesn't exist
       'projects': prisma.project,
       'milestones': prisma.milestone,
       'transactions': prisma.transaction,
@@ -268,12 +268,12 @@ export const db = {
       'audit_logs': prisma.auditLog,
       'user_stats': prisma.userStats,
       'recent_activity': prisma.recentActivity,
-      'holly-images': prisma.hollyImage,
-      'holly-audio': prisma.hollyAudio,
-      'holly-video': prisma.hollyVideo,
-      'songs': prisma.song,
-      'song-stems': prisma.songStem,
-      'music_videos': prisma.musicVideo,
+// 'holly-images': prisma.hollyImage, // Model doesn't exist
+// 'holly-audio': prisma.hollyAudio, // Model doesn't exist
+// 'holly-video': prisma.hollyVideo, // Model doesn't exist
+// 'songs': prisma.song, // Model doesn't exist
+// 'song-stems': prisma.songStem, // Model doesn't exist
+// 'music_videos': prisma.musicVideo, // Model doesn't exist
     };
 
     return modelMap[tableName];
