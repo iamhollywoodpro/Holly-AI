@@ -13,6 +13,7 @@ import CreateIssueDialog from './CreateIssueDialog';
 import BrowsePanel from '../github/BrowsePanel';
 import CommitPanel from '../github/CommitPanel';
 import { PRListPanel } from '../github/PRListPanel';
+import { IssuePanel } from '../github/IssuePanel';
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
 import { useActiveRepo, useActiveRepos } from '@/hooks/useActiveRepos';
@@ -35,6 +36,7 @@ export const CommandHandler = forwardRef<CommandHandlerRef, CommandHandlerProps>
   const [showWorkflowsPanel, setShowWorkflowsPanel] = useState(false);
   const [showTeamPanel, setShowTeamPanel] = useState(false);
   const [showIssuesPanel, setShowIssuesPanel] = useState(false);
+  const [showIssuePanelPro, setShowIssuePanelPro] = useState(false);
   const [showCreateIssueDialog, setShowCreateIssueDialog] = useState(false);
   const [showBrowsePanel, setShowBrowsePanel] = useState(false);
   const [browseRepo, setBrowseRepo] = useState<{ owner: string; repo: string } | null>(null);
@@ -105,7 +107,14 @@ export const CommandHandler = forwardRef<CommandHandlerRef, CommandHandlerProps>
           if (!activeRepoStore.getCurrentRepo()) {
             return 'Please select a repository first. Type `/repos` to choose a repository.';
           }
-          setShowIssuesPanel(true);
+          // Check for subcommands
+          const issueSubCommand = command.args[0];
+          if (issueSubCommand === 'create' || issueSubCommand === 'new') {
+            setShowCreateIssueDialog(true);
+          } else {
+            // Show pro issue panel
+            setShowIssuePanelPro(true);
+          }
           return true;
         
         case 'browse':
@@ -435,6 +444,16 @@ export const CommandHandler = forwardRef<CommandHandlerRef, CommandHandlerProps>
       <PRListPanel
         isOpen={showPRListPanel}
         onClose={() => setShowPRListPanel(false)}
+      />
+
+      {/* Issue Panel Pro */}
+      <IssuePanel
+        isOpen={showIssuePanelPro}
+        onClose={() => setShowIssuePanelPro(false)}
+        onCreateIssue={() => {
+          setShowIssuePanelPro(false);
+          setShowCreateIssueDialog(true);
+        }}
       />
     </>
   );

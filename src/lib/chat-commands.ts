@@ -111,12 +111,13 @@ export function getCommandHelp(): string {
 - Assign issues to teammates
 - Team activity feed
 
-\`/issues\` or \`/bugs\` - Issue Management
-- Create issues with templates
-- Search and filter issues
-- Add labels and milestones
-- Assign to team members
-- Quick close actions
+\`/issues\` or \`/bugs\` - Issue Management Pro
+- \`/issues\` - View and manage all issues with advanced filtering
+- \`/issues create\` - Create new issue with templates
+- Bulk operations: close, reopen, label, assign multiple issues
+- Sort by created, updated, or comments
+- Filter by state, labels, assignees
+- Real-time statistics and insights
 
 \`/browse\` or \`/b\` - File Browser & Viewer
 - Browse repository files and folders
