@@ -160,7 +160,7 @@ export async function getUserFiles(userId: string, bucketType?: BucketType) {
         userId,
         ...(bucketType && { fileType: bucketType })
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { uploadedAt: 'desc' },
       take: 100
     });
 
