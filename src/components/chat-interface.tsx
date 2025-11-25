@@ -3,7 +3,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback, createRef } from 'react';
-import { Send, Loader2, BarChart3, Paperclip } from 'lucide-react';
+import { Send, Loader2, BarChart3, Paperclip, Mic, MicOff } from 'lucide-react';
 import { ConversationSidebar } from './conversation-sidebar';
 import { ConversationSearch } from './conversation-search';
 import { ConversationTags } from './conversation-tags';
@@ -19,6 +19,7 @@ import { CommandHandler, CommandHandlerRef } from './chat/CommandHandler';
 import { parseCommand, getCommandHelp } from '@/lib/chat-commands';
 import { useActiveRepo } from '@/hooks/useActiveRepos';
 import { RepoTabs } from './chat/RepoTabs';
+import { voiceService, speakText } from '@/lib/voice/voice-service';
 
 interface Message {
   id: string;
@@ -53,6 +54,8 @@ interface UploadedFile {
 
 export function ChatInterface({ userId }: ChatInterfaceProps) {
   const [input, setInput] = useState('');
+  const [isListening, setIsListening] = useState(false);
+  const [voiceEnabled, setVoiceEnabled] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamingMessage, setStreamingMessage] = useState('');
   const [showSearch, setShowSearch] = useState(false);
@@ -367,6 +370,41 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
     }
   };
 
+  // Voice handlers
+  const handleVoiceToggle = async () => {
+    if (isListening) {
+      voiceService.stopListening();
+      setIsListening(false);
+    } else {
+      const started = await voiceService.startListening((text, isFinal) => {
+        if (isFinal) {
+          setInput(prev => (prev + ' ' + text).trim());
+          voiceService.setInputMethod('voice');
+        }
+      });
+      setIsListening(started);
+    }
+  };
+
+  // Subscribe to voice state
+  useEffect(() => {
+    const unsubscribe = voiceService.subscribe(state => {
+      setIsListening(state.isListening);
+      setVoiceEnabled(state.settings.outputEnabled);
+    });
+    return unsubscribe;
+  }, []);
+
+  // Speak assistant responses when using voice
+  useEffect(() => {
+    if (messages.length > 0) {
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage.role === 'assistant' && lastMessage.content) {
+        speakText(lastMessage.content);
+      }
+    }
+  }, [messages]);
+
   const displayMessages = [
     ...messages,
     ...(streamingMessage
@@ -533,6 +571,15 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
               title="Attach files"
             >
               <Paperclip className="w-5 h-5" />
+            </button>
+            <button
+              type="button"
+              onClick={handleVoiceToggle}
+              disabled={isStreaming || isUploading}
+              className={`px-4 py-3 ${isListening ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300'} disabled:bg-gray-300 dark:disabled:bg-gray-800 rounded-lg transition-colors flex items-center gap-2`}
+              title={isListening ? 'Stop voice input' : 'Start voice input'}
+            >
+              {isListening ? <MicOff className="w-5 h-5 animate-pulse" /> : <Mic className="w-5 h-5" />}
             </button>
             <button
               type="submit"
