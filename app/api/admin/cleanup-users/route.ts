@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
             },
           },
           fileUploads: true,
-          googleDrive: true,
+          googleDriveIntegrations: true,
         },
       }) || newUser as any;
     } else {
@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
               },
             },
             fileUploads: true,
-            googleDrive: true,
+            googleDriveIntegrations: true,
           },
         }) || hollywoodUser;
       }

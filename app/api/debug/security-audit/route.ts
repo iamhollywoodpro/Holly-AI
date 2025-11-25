@@ -77,7 +77,7 @@ export async function GET(req: NextRequest) {
           },
           orderBy: { updatedAt: 'desc' },
         },
-        googleDrive: {
+        googleDriveIntegrations: {
           select: {
             googleEmail: true,
             isConnected: true,
@@ -142,7 +142,7 @@ export async function GET(req: NextRequest) {
           title: c.title,
           messageCount: c.messageCount,
         })),
-        googleDrive: user.googleDrive,
+        googleDriveIntegrations: user.googleDriveIntegrations,
       })),
       SUSPICIOUS_ACCOUNTS: suspiciousUsers.map(user => ({
         id: user.id,
