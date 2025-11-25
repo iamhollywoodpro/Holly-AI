@@ -255,6 +255,7 @@ class ComprehensiveScanner {
       // Extract only top-level fields (not nested)
       const lines = dataBlock.split('\n');
       let depth = 0;
+      const providedFields = new Set();
       
       for (const line of lines) {
         // Track brace depth
@@ -269,8 +270,11 @@ class ComprehensiveScanner {
             
             // Skip special Prisma keys
             if (fieldName === 'data' || fieldName === 'create' || fieldName === 'connect' || fieldName === 'set') {
+              depth += openBraces - closeBraces;
               continue;
             }
+            
+            providedFields.add(fieldName);
             
             // Check if field exists in model
             if (!model.fields.has(fieldName)) {
@@ -286,6 +290,49 @@ class ComprehensiveScanner {
         }
         
         depth += openBraces - closeBraces;
+      }
+      
+      // Check for missing required fields (ONLY for scalar types that have no default)
+      const missingRequired = [];
+      for (const [fieldName, fieldInfo] of model.fields.entries()) {
+        // Skip if field is optional
+        if (fieldInfo.isOptional) {
+          continue;
+        }
+        
+        // Skip auto-generated fields
+        if (fieldName === 'id' || fieldName === 'createdAt' || fieldName === 'updatedAt') {
+          continue;
+        }
+        
+        // Skip arrays (they can default to [])
+        if (fieldInfo.isArray) {
+          continue;
+        }
+        
+        // Skip relation fields (start with lowercase for scalars, uppercase for relations)
+        // Relation fields are typically: user, conversation, projects, fileUploads, etc.
+        // Scalar relation IDs end with 'Id'
+        const fieldType = fieldInfo.type;
+        if (fieldType && fieldType[0] === fieldType[0].toUpperCase() && !['String', 'Int', 'Float', 'Boolean', 'DateTime', 'Json'].includes(fieldType)) {
+          // This is a relation field (User, Conversation, etc.)
+          continue;
+        }
+        
+        // Check if field was provided
+        if (!providedFields.has(fieldName)) {
+          missingRequired.push(fieldName);
+        }
+      }
+      
+      if (missingRequired.length > 0) {
+        this.warnings.push({
+          file: filePath,
+          line: this.getLineNumber(fullContent, match.index),
+          message: `Missing required field(s) in ${model.pascalName}.create(): ${missingRequired.join(', ')}`,
+          code: this.getCodeSnippet(fullContent, match.index),
+          hint: `These fields have no default value in schema and may cause runtime errors`,
+        });
       }
     }
   }
