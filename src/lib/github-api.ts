@@ -29,6 +29,29 @@ export interface GitHubBranch {
   protected: boolean;
 }
 
+export interface PRCommit {
+  sha: string;
+  message: string;
+  author: string;
+  date: string;
+}
+
+export interface PRFile {
+  filename: string;
+  status: 'added' | 'modified' | 'removed' | 'renamed';
+  additions: number;
+  deletions: number;
+  changes: number;
+}
+
+export interface BranchComparison {
+  commits: PRCommit[];
+  files: PRFile[];
+  totalCommits: number;
+  aheadBy: number;
+  behindBy: number;
+}
+
 /**
  * Create a new commit with multiple file changes
  */
@@ -199,6 +222,87 @@ export async function getRepository(owner: string, repo: string, token: string) 
   } catch (error: any) {
     console.error('GitHub repository error:', error);
     throw new Error(error.message || 'Failed to fetch repository');
+  }
+}
+
+/**
+ * Compare two branches to get commits and file changes
+ */
+export async function compareBranches(
+  owner: string,
+  repo: string,
+  base: string,
+  head: string,
+  token: string
+): Promise<BranchComparison> {
+  const octokit = new Octokit({ auth: token });
+
+  try {
+    const { data } = await octokit.repos.compareCommitsWithBasehead({
+      owner,
+      repo,
+      basehead: `${base}...${head}`,
+    });
+
+    // Transform commits
+    const commits: PRCommit[] = data.commits.map(commit => ({
+      sha: commit.sha,
+      message: commit.commit.message,
+      author: commit.commit.author?.name || commit.author?.login || 'Unknown',
+      date: commit.commit.author?.date || new Date().toISOString(),
+    }));
+
+    // Transform files
+    const files: PRFile[] = (data.files || []).map(file => ({
+      filename: file.filename,
+      status: file.status as PRFile['status'],
+      additions: file.additions,
+      deletions: file.deletions,
+      changes: file.changes,
+    }));
+
+    return {
+      commits,
+      files,
+      totalCommits: data.total_commits || commits.length,
+      aheadBy: data.ahead_by || 0,
+      behindBy: data.behind_by || 0,
+    };
+  } catch (error: any) {
+    console.error('GitHub branch comparison error:', error);
+    throw new Error(error.message || 'Failed to compare branches');
+  }
+}
+
+/**
+ * Get commits for a specific branch
+ */
+export async function getCommits(
+  owner: string,
+  repo: string,
+  branch: string,
+  token: string,
+  limit: number = 10
+): Promise<PRCommit[]> {
+  const octokit = new Octokit({ auth: token });
+
+  try {
+    const { data } = await octokit.repos.listCommits({
+      owner,
+      repo,
+      sha: branch,
+      per_page: limit,
+    });
+
+    return data.map(commit => ({
+      sha: commit.sha,
+      message: commit.commit.message,
+      author: commit.commit.author?.name || commit.author?.login || 'Unknown',
+      date: commit.commit.author?.date || new Date().toISOString(),
+    }));
+  } catch (error: any) {
+    console.error('GitHub commits error:', error);
+    throw new Error(error.message || 'Failed to fetch commits');
   }
 }
 

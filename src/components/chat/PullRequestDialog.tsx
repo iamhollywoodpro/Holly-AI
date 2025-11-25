@@ -6,9 +6,12 @@ import {
   XMarkIcon, 
   CheckCircleIcon, 
   ExclamationCircleIcon,
-  CodeBracketIcon 
+  CodeBracketIcon,
+  SparklesIcon
 } from '@heroicons/react/24/outline';
 import { useActiveRepo } from '@/hooks/useActiveRepos';
+import { generatePRTemplate } from '@/lib/github/pr-template-generator';
+import type { PRCommit, PRFile } from '@/lib/github/pr-template-generator';
 
 interface PullRequestDialogProps {
   isOpen: boolean;
@@ -32,6 +35,7 @@ export function PullRequestDialog({ isOpen, onClose, defaultBranch }: PullReques
   const [pullRequest, setPullRequest] = useState<any>(null);
   const [branches, setBranches] = useState<string[]>([]);
   const [loadingBranches, setLoadingBranches] = useState(false);
+  const [generatingTemplate, setGeneratingTemplate] = useState(false);
   
   const [formData, setFormData] = useState<PRFormData>({
     title: '',
@@ -75,6 +79,56 @@ export function PullRequestDialog({ isOpen, onClose, defaultBranch }: PullReques
       console.error('Failed to fetch branches:', err);
     } finally {
       setLoadingBranches(false);
+    }
+  };
+
+  const handleAutoFill = async () => {
+    if (!activeRepo || !formData.head || !formData.base) {
+      setError('Please select both head and base branches first');
+      return;
+    }
+
+    if (formData.head === formData.base) {
+      setError('Head and base branches must be different');
+      return;
+    }
+
+    try {
+      setGeneratingTemplate(true);
+      setError('');
+
+      // Fetch comparison data
+      const response = await fetch(
+        `/api/github/compare?owner=${activeRepo.owner}&repo=${activeRepo.repo}&base=${formData.base}&head=${formData.head}`
+      );
+      const data = await response.json();
+
+      if (!response.ok || data.error) {
+        setError(data.error || 'Failed to compare branches');
+        return;
+      }
+
+      const { comparison } = data;
+
+      // Generate PR template
+      const template = generatePRTemplate(
+        comparison.commits as PRCommit[],
+        comparison.files as PRFile[],
+        formData.head,
+        formData.base
+      );
+
+      // Update form with generated template
+      setFormData(prev => ({
+        ...prev,
+        title: template.title,
+        body: template.body,
+      }));
+    } catch (err: any) {
+      console.error('Failed to generate PR template:', err);
+      setError('Failed to generate PR template');
+    } finally {
+      setGeneratingTemplate(false);
     }
   };
 
@@ -279,6 +333,29 @@ export function PullRequestDialog({ isOpen, onClose, defaultBranch }: PullReques
                           </select>
                         </div>
                       </div>
+
+                      {/* Auto-fill Button */}
+                      {formData.head && formData.base && formData.head !== formData.base && (
+                        <div className="flex justify-center">
+                          <button
+                            onClick={handleAutoFill}
+                            disabled={status === 'creating' || generatingTemplate}
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500/20 to-pink-500/20 hover:from-purple-500/30 hover:to-pink-500/30 border border-purple-500/30 text-purple-300 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {generatingTemplate ? (
+                              <>
+                                <div className="w-4 h-4 border-2 border-purple-300 border-t-transparent rounded-full animate-spin" />
+                                Generating...
+                              </>
+                            ) : (
+                              <>
+                                <SparklesIcon className="w-4 h-4" />
+                                ✨ Auto-fill from commits
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      )}
 
                       {/* Title */}
                       <div>
