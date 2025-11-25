@@ -403,6 +403,8 @@ model HollyExperience {
   skillsGained         String[] @default([])
   futureImplications   String[]
   relatedExperienceIds String[] @default([])
+  replayCount          Int      @default(0)
+  integrationStatus    String   @default("pending")
   timestamp            DateTime @default(now())
   createdAt            DateTime @default(now())
 
@@ -431,24 +433,24 @@ model HollyGoal {
 }
 
 model HollyIdentity {
-  id                 String   @id @default(cuid())
-  userId             String   @unique
-  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   // Active fields used by consciousness system
-  coreValues         Json     @default("[]")
-  personalityTraits  Json     @default("{}")
-  confidenceLevel    Float    @default(0.5)
-  purpose            String   @default("To assist and grow alongside the user")
-  
+  coreValues        Json   @default("[]")
+  personalityTraits Json   @default("{}")
+  confidenceLevel   Float  @default(0.5)
+  purpose           String @default("To assist and grow alongside the user")
+
   // Legacy fields (keep for backwards compatibility)
-  coreBeliefs        Json     @default("{}")
-  values             Json     @default("{}")
-  personality        Json     @default("{}")
-  communicationStyle Json     @default("{}")
-  
-  lastEvolved        DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  coreBeliefs        Json @default("{}")
+  values             Json @default("{}")
+  personality        Json @default("{}")
+  communicationStyle Json @default("{}")
+
+  lastEvolved DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@map("holly_identities")
 }
@@ -504,46 +506,46 @@ model GitHubConnection {
   autoSync       Boolean   @default(false)
   lastSyncAt     DateTime?
   connectedAt    DateTime  @default(now())
-  
+
   // Legacy fields for backwards compatibility
-  username       String?
-  email          String?
-  avatarUrl      String?
+  username  String?
+  email     String?
+  avatarUrl String?
 
   @@map("github_connections")
 }
 
 model GitHubRepository {
-  id               String    @id @default(cuid())
-  userId           String
-  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  githubId         String    // GitHub's repository ID
-  name             String
-  fullName         String
-  owner            String    // Repository owner username
-  description      String?
-  url              String    // API URL
-  htmlUrl          String    // Web URL
-  cloneUrl         String    // HTTPS clone URL
-  sshUrl           String    // SSH clone URL
-  language         String?   // Primary programming language
-  stars            Int       @default(0)
-  forks            Int       @default(0)
-  openIssues       Int       @default(0)
-  watchers         Int       @default(0)
-  size             Int       @default(0)
-  isPrivate        Boolean   @default(false)
-  isFork           Boolean   @default(false)
-  isArchived       Boolean   @default(false)
-  defaultBranch    String    @default("main")
-  topics           String[]  @default([])
-  githubCreatedAt  DateTime?
-  githubUpdatedAt  DateTime?
-  githubPushedAt   DateTime?
-  lastSyncAt       DateTime?
-  private          Boolean   @default(false) // Legacy field
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  githubId        String // GitHub's repository ID
+  name            String
+  fullName        String
+  owner           String // Repository owner username
+  description     String?
+  url             String // API URL
+  htmlUrl         String // Web URL
+  cloneUrl        String // HTTPS clone URL
+  sshUrl          String // SSH clone URL
+  language        String? // Primary programming language
+  stars           Int       @default(0)
+  forks           Int       @default(0)
+  openIssues      Int       @default(0)
+  watchers        Int       @default(0)
+  size            Int       @default(0)
+  isPrivate       Boolean   @default(false)
+  isFork          Boolean   @default(false)
+  isArchived      Boolean   @default(false)
+  defaultBranch   String    @default("main")
+  topics          String[]  @default([])
+  githubCreatedAt DateTime?
+  githubUpdatedAt DateTime?
+  githubPushedAt  DateTime?
+  lastSyncAt      DateTime?
+  private         Boolean   @default(false) // Legacy field
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   @@unique([userId, githubId])
   @@index([userId])
