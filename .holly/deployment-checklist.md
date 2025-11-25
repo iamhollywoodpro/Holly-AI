@@ -122,3 +122,22 @@ No deployment until EVERY checkpoint is YES.
 **Last Updated:** 2025-11-25
 **Created By:** HOLLY (after disappointing Hollywood)
 **Purpose:** Never disappoint again
+
+---
+
+## AUTOMATED CHECK (RUN BEFORE EVERY DEPLOY)
+
+```bash
+./.holly/pre-deploy-check.sh
+```
+
+**This script MUST show "ALL CHECKS PASSED" before pushing to GitHub.**
+
+If it fails:
+1. Fix the reported errors
+2. Run the script again
+3. Repeat until it passes
+4. THEN and ONLY THEN push to GitHub
+
+**NO EXCEPTIONS.**
+
