@@ -63,11 +63,11 @@ export class ContextualIntelligence {
       id: project.id,
       userId: project.userId,
       projectName: project.name,
-      projectType: project.tags[0] || 'general',
+      projectType: project.technologies[0] || 'general',
       startDate: project.startDate,
       lastActivity: project.updatedAt,
       status: project.status,
-      technologies: project.tags,
+      technologies: project.technologies,
       patterns: [],
       preferences: {},
       feedback: [],
@@ -119,11 +119,11 @@ export class ContextualIntelligence {
       id: project.id,
       userId: project.userId,
       projectName: project.name,
-      projectType: project.tags[0] || 'general',
+      projectType: project.technologies[0] || 'general',
       startDate: project.startDate,
       lastActivity: project.updatedAt,
       status: project.status,
-      technologies: project.tags,
+      technologies: project.technologies,
       patterns: [],
       preferences: {},
       feedback: [],
@@ -144,11 +144,11 @@ export class ContextualIntelligence {
       id: project.id,
       userId: project.userId,
       projectName: project.name,
-      projectType: project.tags[0] || 'general',
+      projectType: project.technologies[0] || 'general',
       startDate: project.startDate,
       lastActivity: project.updatedAt,
       status: project.status,
-      technologies: project.tags,
+      technologies: project.technologies,
       patterns: [],
       preferences: {},
       feedback: [],
@@ -169,7 +169,7 @@ export class ContextualIntelligence {
     // Simple pattern detection based on tags
     const tagCounts = new Map<string, number>();
     projects.forEach(project => {
-      project.tags.forEach(tag => {
+      project.technologies.forEach(tag => {
         tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1);
       });
     });

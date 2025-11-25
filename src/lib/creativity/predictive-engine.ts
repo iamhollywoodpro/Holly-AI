@@ -58,8 +58,8 @@ export class PredictiveEngine {
 
     const insights: PredictiveInsight[] = [];
 
-    // Detect patterns from project tags (since projectType doesn't exist)
-    const projectTags = recentProjects.flatMap(p => p.tags);
+    // Detect patterns from project technologies (since projectType doesn't exist)
+    const projectTags = recentProjects.flatMap(p => p.technologies || []);
     const mostCommonTag = this.getMostCommon(projectTags);
 
     if (mostCommonTag) {
@@ -182,7 +182,7 @@ export class PredictiveEngine {
       );
 
       if (daysSinceActivity > 7) {
-        const mainTag = project.tags[0] || 'general';
+        const mainTag = project.technologies[0] || 'general';
         blockers.push({
           type: 'warning',
           category: this.mapTagToCategory(mainTag),
