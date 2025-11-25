@@ -375,14 +375,18 @@ model TrendReport {
 // ===========================================
 
 model HollyExperience {
-  id              String   @id @default(cuid())
-  userId          String
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type            String
-  content         Json
-  significance    Float
-  emotionalImpact Float?
-  timestamp       DateTime @default(now())
+  id                  String   @id @default(cuid())
+  userId              String
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type                String
+  content             Json
+  significance        Float
+  emotionalImpact     Float?
+  primaryEmotion      String?
+  relatedConcepts     String[]
+  lessons             String[]
+  futureImplications  String[]
+  timestamp           DateTime @default(now())
   
   @@index([userId])
   @@index([timestamp])
