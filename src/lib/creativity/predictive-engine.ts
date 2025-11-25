@@ -51,10 +51,7 @@ export class PredictiveEngine {
     const recentProjects = await this.db.project.findMany({
       where: { userId: this.userId },
       orderBy: { updatedAt: 'desc' },
-      take: 10,
-      include: {
-        contexts: true
-      }
+      take: 10
     });
 
     if (recentProjects.length === 0) return [];
