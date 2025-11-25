@@ -9,7 +9,7 @@ import {
   CheckCircleIcon,
   ClockIcon,
   XCircleIcon,
-  GitMergeIcon,
+  ArrowsRightLeftIcon,
   ChatBubbleBottomCenterTextIcon,
   EyeIcon,
 } from '@heroicons/react/24/outline';
@@ -94,7 +94,7 @@ export function PRListPanel({ isOpen, onClose }: PRListPanelProps) {
   const getStateIcon = (pr: PullRequest) => {
     if (pr.draft) return <ClockIcon className="w-5 h-5" />;
     if (pr.state === 'closed') {
-      return pr.mergedAt ? <GitMergeIcon className="w-5 h-5" /> : <XCircleIcon className="w-5 h-5" />;
+      return pr.mergedAt ? <ArrowsRightLeftIcon className="w-5 h-5" /> : <XCircleIcon className="w-5 h-5" />;
     }
     return <CheckCircleIcon className="w-5 h-5" />;
   };
@@ -141,7 +141,7 @@ export function PRListPanel({ isOpen, onClose }: PRListPanelProps) {
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-800">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-lg">
-              <GitMergeIcon className="w-6 h-6 text-purple-400" />
+              <ArrowsRightLeftIcon className="w-6 h-6 text-purple-400" />
             </div>
             <div>
               <h2 className="text-xl font-bold">Pull Requests</h2>
@@ -213,7 +213,7 @@ export function PRListPanel({ isOpen, onClose }: PRListPanelProps) {
           ) : pullRequests.length === 0 ? (
             <div className="flex items-center justify-center h-64">
               <div className="text-center">
-                <GitMergeIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <ArrowsRightLeftIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <p className="text-gray-500 dark:text-gray-400">No {filter !== 'all' ? filter : ''} pull requests found</p>
               </div>
             </div>
