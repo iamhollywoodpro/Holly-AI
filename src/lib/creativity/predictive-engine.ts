@@ -13,6 +13,55 @@ export interface PredictiveConcept {
 }
 
 /**
+ * PredictiveEngine Class - DISABLED (models don't exist in schema)
+ * 
+ * This class is a stub that returns empty results until TasteProfile
+ * and TasteSignal models are added to the Prisma schema.
+ */
+export class PredictiveEngine {
+  private userId: string;
+
+  constructor(userId: string) {
+    this.userId = userId;
+  }
+
+  /**
+   * Generate draft concepts - DISABLED
+   */
+  async generateDraftConcepts(): Promise<PredictiveConcept[]> {
+    // TODO: Implement when TasteProfile model exists
+    console.log('PredictiveEngine.generateDraftConcepts() - Feature disabled (models not in schema)');
+    return [];
+  }
+
+  /**
+   * Anticipate blockers - DISABLED
+   */
+  async anticipateBlockers(): Promise<any[]> {
+    // TODO: Implement when TasteProfile model exists
+    console.log('PredictiveEngine.anticipateBlockers() - Feature disabled (models not in schema)');
+    return [];
+  }
+
+  /**
+   * Predict user needs - DISABLED
+   */
+  async predictNeeds(): Promise<any[]> {
+    // TODO: Implement when TasteProfile model exists
+    console.log('PredictiveEngine.predictNeeds() - Feature disabled (models not in schema)');
+    return [];
+  }
+
+  /**
+   * Get suggestions - DISABLED
+   */
+  async getSuggestions(): Promise<PredictiveConcept[]> {
+    // TODO: Implement when TasteProfile model exists
+    return [];
+  }
+}
+
+/**
  * Get predictive suggestions based on user's taste profile and patterns
  */
 export async function getPredictiveSuggestions(
