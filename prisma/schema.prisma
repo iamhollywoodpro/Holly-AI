@@ -11,58 +11,58 @@ datasource db {
 }
 
 model User {
-  id                     String                  @id @default(cuid())
-  clerkUserId            String?                 @unique
-  email                  String                  @unique
-  name                   String?
-  imageUrl               String?
-  createdAt              DateTime                @default(now())
-  updatedAt              DateTime                @updatedAt
-  conversations          Conversation[]
-  fileUploads            FileUpload[]
-  projects               Project[]
-  emotions               Emotion[]
-  emotionAggregates      EmotionAggregate[]
-  emotionTrends          EmotionTrend[]
-  emotionInsights        EmotionInsight[]
-  githubIntegrations     GitHubIntegration[]
+  id                      String                   @id @default(cuid())
+  clerkUserId             String?                  @unique
+  email                   String                   @unique
+  name                    String?
+  imageUrl                String?
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  conversations           Conversation[]
+  fileUploads             FileUpload[]
+  projects                Project[]
+  emotions                Emotion[]
+  emotionAggregates       EmotionAggregate[]
+  emotionTrends           EmotionTrend[]
+  emotionInsights         EmotionInsight[]
+  githubIntegrations      GitHubIntegration[]
   googleDriveIntegrations GoogleDriveIntegration[]
-  workLogs               WorkLog[]
-  settings               UserSettings?
-  musicTracks            MusicTrack[]
-  musicAnalyses          MusicAnalysis[]
-  trendReports           TrendReport[]
-  hollyExperiences       HollyExperience[]
-  hollyGoals             HollyGoal[]
-  hollyIdentity          HollyIdentity?
-  conversationSummaries  ConversationSummary[]
-  githubConnection       GitHubConnection?
-  githubRepositories     GitHubRepository[]
+  workLogs                WorkLog[]
+  settings                UserSettings?
+  musicTracks             MusicTrack[]
+  musicAnalyses           MusicAnalysis[]
+  trendReports            TrendReport[]
+  hollyExperiences        HollyExperience[]
+  hollyGoals              HollyGoal[]
+  hollyIdentity           HollyIdentity?
+  conversationSummaries   ConversationSummary[]
+  githubConnection        GitHubConnection?
+  githubRepositories      GitHubRepository[]
   googleDriveConnection   GoogleDriveConnection?
   downloadLinks           DownloadLink[]
-  auditLogs              AuditLog[]
-  userStats              UserStats?
-  deployments            Deployment[]
-  projectActivities      ProjectActivity[]
-  budgets                Budget[]
-  transactions           Transaction[]
-  recentActivities       RecentActivity[]
-  workLogStats           WorkLogStats?
-  emotionLogs            EmotionLog[]
-  emotionalBaseline      EmotionalBaseline?
+  auditLogs               AuditLog[]
+  userStats               UserStats?
+  deployments             Deployment[]
+  projectActivities       ProjectActivity[]
+  budgets                 Budget[]
+  transactions            Transaction[]
+  recentActivities        RecentActivity[]
+  workLogStats            WorkLogStats?
+  emotionLogs             EmotionLog[]
+  emotionalBaseline       EmotionalBaseline?
 
   @@map("users")
 }
 
 model Conversation {
-  id                 String    @id @default(cuid())
+  id                 String               @id @default(cuid())
   userId             String
-  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user               User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   title              String?
-  messageCount       Int       @default(0)
+  messageCount       Int                  @default(0)
   lastMessagePreview String?
-  createdAt          DateTime              @default(now())
-  updatedAt          DateTime              @updatedAt
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
   messages           Message[]
   summary            ConversationSummary?
 
@@ -74,10 +74,10 @@ model Message {
   id             String       @id @default(cuid())
   conversationId String
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  userId         String       // User who sent the message
-  role           String       // 'user' or 'assistant'
+  userId         String // User who sent the message
+  role           String // 'user' or 'assistant'
   content        String       @db.Text
-  emotion        String?      // Optional emotion detected in message
+  emotion        String? // Optional emotion detected in message
   createdAt      DateTime     @default(now())
 
   @@index([conversationId])
@@ -106,10 +106,10 @@ model Project {
   user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   name         String
   description  String?           @db.Text
-  category     String?          
+  category     String?
   technologies String[]          @default([])
   color        String            @default("#a855f7")
-  icon         String?          
+  icon         String?
   status       String            @default("active") // active, completed, archived
   createdAt    DateTime          @default(now())
   updatedAt    DateTime          @updatedAt
@@ -181,18 +181,18 @@ model EmotionInsight {
 }
 
 model GitHubIntegration {
-  id                 String   @id @default(cuid())
-  userId             String
-  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  accessToken        String
-  refreshToken       String?
-  tokenExpiresAt     DateTime?
-  githubUserId       String
-  githubUsername     String
-  githubEmail        String?
-  avatarUrl          String?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  id             String    @id @default(cuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken    String
+  refreshToken   String?
+  tokenExpiresAt DateTime?
+  githubUserId   String
+  githubUsername String
+  githubEmail    String?
+  avatarUrl      String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   @@unique([userId])
   @@index([githubUserId])
@@ -200,17 +200,17 @@ model GitHubIntegration {
 }
 
 model GoogleDriveIntegration {
-  id                 String   @id @default(cuid())
-  userId             String
-  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  accessToken        String
-  refreshToken       String?
-  tokenExpiresAt     DateTime?
-  googleUserId       String
-  googleEmail        String
-  avatarUrl          String?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  id             String    @id @default(cuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken    String
+  refreshToken   String?
+  tokenExpiresAt DateTime?
+  googleUserId   String
+  googleEmail    String
+  avatarUrl      String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   @@unique([userId])
   @@index([googleUserId])
@@ -239,7 +239,7 @@ model UserSettings {
   id        String   @id @default(cuid())
   userId    String   @unique
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  settings  Json     // Flexible JSON for all settings (appearance, chat, ai, notifications, developer)
+  settings  Json // Flexible JSON for all settings (appearance, chat, ai, notifications, developer)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -252,29 +252,29 @@ model UserSettings {
 // ===========================================
 
 model MusicTrack {
-  id          String          @id @default(cuid())
-  userId      String
-  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   // Basic Info
-  artistName  String
-  trackTitle  String
-  fileName    String
-  fileSize    Int
-  fileType    String          // mp3, wav, m4a, flac
-  blobUrl     String
-  duration    Float?          // in seconds
-  
+  artistName String
+  trackTitle String
+  fileName   String
+  fileSize   Int
+  fileType   String // mp3, wav, m4a, flac
+  blobUrl    String
+  duration   Float? // in seconds
+
   // Status
-  status      String          @default("uploaded") // uploaded, analyzing, analyzed, failed
-  
+  status String @default("uploaded") // uploaded, analyzing, analyzed, failed
+
   // Timestamps
-  uploadedAt  DateTime        @default(now())
-  analyzedAt  DateTime?
-  
+  uploadedAt DateTime  @default(now())
+  analyzedAt DateTime?
+
   // Relations
-  analyses    MusicAnalysis[]
-  
+  analyses MusicAnalysis[]
+
   @@index([userId])
   @@index([status])
   @@index([uploadedAt])
@@ -282,60 +282,60 @@ model MusicTrack {
 }
 
 model MusicAnalysis {
-  id          String      @id @default(cuid())
-  trackId     String
-  track       MusicTrack  @relation(fields: [trackId], references: [id], onDelete: Cascade)
-  userId      String
-  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  id      String     @id @default(cuid())
+  trackId String
+  track   MusicTrack @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  userId  String
+  user    User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   // Audio Features
-  bpm         Float?
-  key         String?     // C, C#, D, etc.
-  mode        String?     // Major, Minor
-  energy      Float?      // 0.0 to 1.0
-  danceability Float?     // 0.0 to 1.0
-  valence     Float?      // 0.0 to 1.0 (musical positivity)
-  loudness    Float?      // in dB
-  acousticness Float?     // 0.0 to 1.0
+  bpm              Float?
+  key              String? // C, C#, D, etc.
+  mode             String? // Major, Minor
+  energy           Float? // 0.0 to 1.0
+  danceability     Float? // 0.0 to 1.0
+  valence          Float? // 0.0 to 1.0 (musical positivity)
+  loudness         Float? // in dB
+  acousticness     Float? // 0.0 to 1.0
   instrumentalness Float? // 0.0 to 1.0
-  speechiness Float?      // 0.0 to 1.0
-  
+  speechiness      Float? // 0.0 to 1.0
+
   // Genre & Style
-  primaryGenre   String?
-  subGenres      String[]
+  primaryGenre     String?
+  subGenres        String[]
   styleDescriptors String[] // upbeat, melancholic, aggressive, etc.
-  
+
   // Vocal Analysis
-  hasVocals      Boolean   @default(true)
-  vocalQuality   Float?    // 0.0 to 1.0
-  vocalRange     String?   // low, medium, high
+  hasVocals        Boolean @default(true)
+  vocalQuality     Float? // 0.0 to 1.0
+  vocalRange       String? // low, medium, high
   lyricsTranscript String? @db.Text
-  
+
   // Production Quality
-  productionScore Float?   // 0.0 to 10.0
-  mixQuality      Float?   // 0.0 to 10.0
-  masteringQuality Float?  // 0.0 to 10.0
-  
+  productionScore  Float? // 0.0 to 10.0
+  mixQuality       Float? // 0.0 to 10.0
+  masteringQuality Float? // 0.0 to 10.0
+
   // Hit Prediction
-  hitScore        Float?   // 0.0 to 10.0
-  marketPotential String?  // low, medium, high, very-high
+  hitScore        Float? // 0.0 to 10.0
+  marketPotential String? // low, medium, high, very-high
   targetAudience  String[] // demographics, genres, etc.
-  
+
   // Comparisons
-  similarArtists  String[] // Artists with similar sound
-  marketPosition  String?  // where it fits in current market
-  
+  similarArtists String[] // Artists with similar sound
+  marketPosition String? // where it fits in current market
+
   // Strengths & Weaknesses
   strengths       String[] @db.Text
   weaknesses      String[] @db.Text
   recommendations String[] @db.Text
-  
+
   // AI Analysis
-  analysisModel   String   @default("holly-v1")
-  confidence      Float?   // 0.0 to 1.0
-  
-  createdAt       DateTime @default(now())
-  
+  analysisModel String @default("holly-v1")
+  confidence    Float? // 0.0 to 1.0
+
+  createdAt DateTime @default(now())
+
   @@index([trackId])
   @@index([userId])
   @@index([hitScore])
@@ -344,33 +344,33 @@ model MusicAnalysis {
 }
 
 model TrendReport {
-  id          String   @id @default(cuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   // Trend Data
-  genre       String?  // specific genre or "overall"
-  period      String   // daily, weekly, monthly
-  reportDate  DateTime
-  
+  genre      String? // specific genre or "overall"
+  period     String // daily, weekly, monthly
+  reportDate DateTime
+
   // Top Trends
   trendingGenres    String[]
   trendingSounds    String[] // production styles
   trendingArtists   String[]
   emergingSubgenres String[]
-  
+
   // Market Insights
-  marketInsights    String[] @db.Text
-  opportunityAreas  String[] @db.Text
-  predictions       String[] @db.Text
-  
+  marketInsights   String[] @db.Text
+  opportunityAreas String[] @db.Text
+  predictions      String[] @db.Text
+
   // Data Sources
-  spotifyData       Json?
-  billboardData     Json?
-  socialMediaData   Json?
-  
-  createdAt         DateTime @default(now())
-  
+  spotifyData     Json?
+  billboardData   Json?
+  socialMediaData Json?
+
+  createdAt DateTime @default(now())
+
   @@index([userId])
   @@index([genre])
   @@index([reportDate])
@@ -382,20 +382,24 @@ model TrendReport {
 // ===========================================
 
 model HollyExperience {
-  id                  String   @id @default(cuid())
-  userId              String
-  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type                String
-  content             Json
-  significance        Float
-  emotionalImpact     Float?
-  primaryEmotion      String?
-  relatedConcepts     String[]
-  lessons             String[]
-  futureImplications  String[]
-  timestamp           DateTime @default(now())
-  createdAt           DateTime @default(now())
-  
+  id                   String   @id @default(cuid())
+  userId               String
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type                 String
+  content              Json
+  significance         Float
+  emotionalImpact      Float?
+  emotionalValence     Float?   @default(0)
+  primaryEmotion       String?
+  secondaryEmotions    String[] @default([])
+  relatedConcepts      String[]
+  lessons              String[]
+  skillsGained         String[] @default([])
+  futureImplications   String[]
+  relatedExperienceIds String[] @default([])
+  timestamp            DateTime @default(now())
+  createdAt            DateTime @default(now())
+
   @@index([userId])
   @@index([timestamp])
   @@index([createdAt])
@@ -403,18 +407,18 @@ model HollyExperience {
 }
 
 model HollyGoal {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   title       String
-  description String?  @db.Text
-  category    String   @default("general")
-  status      String   @default("active")
-  priority    Int      @default(5)
+  description String?   @db.Text
+  category    String    @default("general")
+  status      String    @default("active")
+  priority    Int       @default(5)
   targetDate  DateTime?
-  createdAt   DateTime @default(now())
+  createdAt   DateTime  @default(now())
   completedAt DateTime?
-  
+
   @@index([userId])
   @@index([status])
   @@map("holly_goals")
@@ -430,7 +434,7 @@ model HollyIdentity {
   communicationStyle Json
   lastEvolved        DateTime @default(now())
   updatedAt          DateTime @updatedAt
-  
+
   @@map("holly_identities")
 }
 
@@ -445,14 +449,18 @@ model ConversationSummary {
   userId           String
   user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   summary          String       @db.Text
-  keyTopics        String[]
-  actionItems      String[]
+  keyPoints        String[]     @default([])
+  keyTopics        String[]     @default([])
+  topics           String[]     @default([])
+  outcome          String?
+  actionItems      String[]     @default([])
   importantMoments String[]     @default([])
+  progress         Float?
   messageCount     Int
   cached           Boolean      @default(false)
   generatedAt      DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
-  
+
   @@index([userId])
   @@map("conversation_summaries")
 }
@@ -469,8 +477,9 @@ model GitHubConnection {
   username    String
   email       String?
   avatarUrl   String?
+  isConnected Boolean  @default(true)
   connectedAt DateTime @default(now())
-  
+
   @@map("github_connections")
 }
 
@@ -484,20 +493,29 @@ model GitHubRepository {
   private     Boolean
   htmlUrl     String
   createdAt   DateTime @default(now())
-  
+
   @@index([userId])
   @@map("github_repositories")
 }
 
 model GoogleDriveConnection {
-  id           String   @id @default(cuid())
-  userId       String   @unique
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  accessToken  String
-  refreshToken String
-  email        String
-  connectedAt  DateTime @default(now())
-  
+  id            String    @id @default(cuid())
+  userId        String    @unique
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken   String
+  refreshToken  String
+  email         String
+  isConnected   Boolean   @default(true)
+  googleEmail   String?
+  googleName    String?
+  googlePicture String?
+  autoUpload    Boolean   @default(false)
+  syncEnabled   Boolean   @default(false)
+  quotaUsed     BigInt    @default(0)
+  quotaLimit    BigInt?
+  lastSyncAt    DateTime?
+  connectedAt   DateTime  @default(now())
+
   @@map("google_drive_connections")
 }
 
@@ -513,7 +531,7 @@ model DownloadLink {
   fileUrl   String
   expiresAt DateTime
   createdAt DateTime @default(now())
-  
+
   @@index([userId])
   @@map("download_links")
 }
@@ -526,23 +544,23 @@ model AuditLog {
   details   Json?
   ipAddress String?
   timestamp DateTime @default(now())
-  
+
   @@index([userId])
   @@index([timestamp])
   @@map("audit_logs")
 }
 
 model UserStats {
-  id                  String   @id @default(cuid())
-  userId              String   @unique
-  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  totalConversations  Int      @default(0)
-  totalMessages       Int      @default(0)
-  totalFileUploads    Int      @default(0)
-  totalProjects       Int      @default(0)
-  lastActiveAt        DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-  
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  totalConversations Int      @default(0)
+  totalMessages      Int      @default(0)
+  totalFileUploads   Int      @default(0)
+  totalProjects      Int      @default(0)
+  lastActiveAt       DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
   @@map("user_stats")
 }
 
@@ -551,18 +569,18 @@ model UserStats {
 // ===========================================
 
 model Deployment {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   projectId   String?
-  project     Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  project     Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
   status      String
   platform    String
   url         String?
   logUrl      String?
-  createdAt   DateTime @default(now())
+  createdAt   DateTime  @default(now())
   completedAt DateTime?
-  
+
   @@index([userId])
   @@index([projectId])
   @@index([status])
@@ -576,26 +594,26 @@ model ProjectActivity {
   userId       String?
   user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   type         String?
-  activityType String?  // Alternative field name used in code
+  activityType String? // Alternative field name used in code
   description  String   @db.Text
   timestamp    DateTime @default(now())
   createdAt    DateTime @default(now())
-  
+
   @@index([projectId])
   @@index([userId])
   @@map("project_activities")
 }
 
 model Milestone {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   projectId   String
-  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
   title       String
-  description String?  @db.Text
+  description String?   @db.Text
   dueDate     DateTime?
-  completed   Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  
+  completed   Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+
   @@index([projectId])
   @@map("milestones")
 }
@@ -615,7 +633,7 @@ model Budget {
   period       String
   createdAt    DateTime      @default(now())
   transactions Transaction[]
-  
+
   @@index([userId])
   @@map("budgets")
 }
@@ -630,7 +648,7 @@ model Transaction {
   description String
   category    String
   createdAt   DateTime @default(now())
-  
+
   @@index([userId])
   @@index([budgetId])
   @@map("transactions")
@@ -648,22 +666,22 @@ model RecentActivity {
   description String   @db.Text
   metadata    Json?
   createdAt   DateTime @default(now())
-  
+
   @@index([userId])
   @@index([createdAt])
   @@map("recent_activities")
 }
 
 model WorkLogStats {
-  id             String   @id @default(cuid())
-  userId         String   @unique
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  totalHours     Float    @default(0)
-  totalTasks     Int      @default(0)
-  avgHoursPerDay Float    @default(0)
+  id             String    @id @default(cuid())
+  userId         String    @unique
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  totalHours     Float     @default(0)
+  totalTasks     Int       @default(0)
+  avgHoursPerDay Float     @default(0)
   lastLoggedAt   DateTime?
-  updatedAt      DateTime @updatedAt
-  
+  updatedAt      DateTime  @updatedAt
+
   @@map("work_log_stats")
 }
 
@@ -680,7 +698,7 @@ model EmotionLog {
   trigger   String?
   notes     String?  @db.Text
   timestamp DateTime @default(now())
-  
+
   @@index([userId])
   @@index([timestamp])
   @@map("emotion_logs")
@@ -694,6 +712,6 @@ model EmotionalBaseline {
   emotionalRange   Float
   stabilityScore   Float
   lastCalculated   DateTime @default(now())
-  
+
   @@map("emotional_baselines")
 }
