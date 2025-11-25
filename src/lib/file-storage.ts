@@ -79,6 +79,7 @@ export async function uploadFile(
             fileName: file.name,
             fileType: bucketType,
             fileSize: file.size,
+            blobUrl: blob.url,
             storagePath: fileName,
             publicUrl: blob.url,
             mimeType: file.type,
