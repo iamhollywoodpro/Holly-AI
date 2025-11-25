@@ -44,11 +44,11 @@ export class PredictiveEngine {
   }
 
   /**
-   * Predict user needs - DISABLED
+   * Predict next needs - DISABLED
    */
-  async predictNeeds(): Promise<any[]> {
+  async predictNextNeeds(): Promise<any[]> {
     // TODO: Implement when TasteProfile model exists
-    console.log('PredictiveEngine.predictNeeds() - Feature disabled (models not in schema)');
+    console.log('PredictiveEngine.predictNextNeeds() - Feature disabled (models not in schema)');
     return [];
   }
 
