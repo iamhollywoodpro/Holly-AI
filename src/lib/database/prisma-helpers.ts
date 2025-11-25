@@ -14,8 +14,8 @@ type TableName =
   | 'users'
   | 'emotion_logs'
   | 'emotional_baselines'
-  | 'taste_signals'
-  | 'taste_profiles'
+  // Removed: 'taste_signals' - model doesn't exist
+  // Removed: 'taste_profiles' - model doesn't exist
   | 'projects'
   | 'milestones'
   | 'transactions'
@@ -23,13 +23,9 @@ type TableName =
   | 'deployments'
   | 'audit_logs'
   | 'user_stats'
-  | 'recent_activity'
-  | 'holly-images'
-  | 'holly-audio'
-  | 'holly-video'
-  | 'songs'
-  | 'song-stems'
-  | 'music_videos';
+  | 'recent_activity';
+  // Removed: 'holly-images', 'holly-audio', 'holly-video' - models don't exist
+  // Removed: 'songs', 'song-stems', 'music_videos' - models don't exist
 
 export class PrismaQueryBuilder<T = any> {
   private tableName: TableName;
@@ -52,52 +48,16 @@ export class PrismaQueryBuilder<T = any> {
     return this;
   }
 
-  // WHERE (eq)
-  eq(field: string, value: any) {
-    this.whereConditions[field] = value;
-    return this;
-  }
-
-  // WHERE (neq)
-  neq(field: string, value: any) {
-    this.whereConditions[field] = { not: value };
-    return this;
-  }
-
-  // WHERE (gt)
-  gt(field: string, value: any) {
-    this.whereConditions[field] = { gt: value };
-    return this;
-  }
-
-  // WHERE (gte)
-  gte(field: string, value: any) {
-    this.whereConditions[field] = { gte: value };
-    return this;
-  }
-
-  // WHERE (lt)
-  lt(field: string, value: any) {
-    this.whereConditions[field] = { lt: value };
-    return this;
-  }
-
-  // WHERE (lte)
-  lte(field: string, value: any) {
-    this.whereConditions[field] = { lte: value };
-    return this;
-  }
-
-  // WHERE (in)
-  in(field: string, values: any[]) {
-    this.whereConditions[field] = { in: values };
+  // WHERE
+  where(conditions: any) {
+    this.whereConditions = { ...this.whereConditions, ...conditions };
     return this;
   }
 
   // ORDER BY
-  order(field: string, options: { ascending: boolean } = { ascending: true }) {
+  orderBy(field: string, direction: 'asc' | 'desc' = 'asc') {
     this.orderByField = field;
-    this.orderByDirection = options.ascending ? 'asc' : 'desc';
+    this.orderByDirection = direction;
     return this;
   }
 
@@ -108,64 +68,88 @@ export class PrismaQueryBuilder<T = any> {
   }
 
   // OFFSET
-  range(from: number, to: number) {
-    this.offsetCount = from;
-    this.limitCount = to - from + 1;
+  offset(count: number) {
+    this.offsetCount = count;
     return this;
   }
 
-  // EXECUTE QUERY
-  async execute(): Promise<{ data: T[] | null; error: any }> {
-    try {
-      const model = this.getPrismaModel();
-      
-      const query: any = {
-        where: Object.keys(this.whereConditions).length > 0 ? this.whereConditions : undefined,
-        take: this.limitCount,
-        skip: this.offsetCount,
-      };
+  // Execute SELECT
+  async get(): Promise<T[]> {
+    const model = this.getPrismaModel();
+    
+    const query: any = {
+      where: this.whereConditions,
+    };
 
-      if (this.orderByField) {
-        query.orderBy = { [this.orderByField]: this.orderByDirection };
-      }
-
-      if (this.selectFields && this.selectFields.length > 0) {
-        query.select = this.selectFields.reduce((acc, field) => {
-          acc[field] = true;
-          return acc;
-        }, {} as any);
-      }
-
-      const data = await model.findMany(query);
-      return { data: data as T[], error: null };
-    } catch (error) {
-      console.error('Prisma query error:', error);
-      return { data: null, error };
+    if (this.selectFields) {
+      query.select = this.selectFields.reduce((acc: any, field: string) => {
+        acc[field] = true;
+        return acc;
+      }, {});
     }
+
+    if (this.orderByField) {
+      query.orderBy = { [this.orderByField]: this.orderByDirection };
+    }
+
+    if (this.limitCount) {
+      query.take = this.limitCount;
+    }
+
+    if (this.offsetCount) {
+      query.skip = this.offsetCount;
+    }
+
+    return await model.findMany(query);
   }
 
-  // SINGLE - Get single record
-  async single(): Promise<{ data: T | null; error: any }> {
-    try {
-      const model = this.getPrismaModel();
-      
-      const query: any = {
-        where: Object.keys(this.whereConditions).length > 0 ? this.whereConditions : undefined,
-      };
+  // Execute SELECT ONE
+  async first(): Promise<T | null> {
+    const model = this.getPrismaModel();
+    
+    const query: any = {
+      where: this.whereConditions,
+    };
 
-      if (this.selectFields && this.selectFields.length > 0) {
-        query.select = this.selectFields.reduce((acc, field) => {
-          acc[field] = true;
-          return acc;
-        }, {} as any);
-      }
-
-      const data = await model.findFirst(query);
-      return { data: data as T, error: null };
-    } catch (error) {
-      console.error('Prisma query error:', error);
-      return { data: null, error };
+    if (this.selectFields) {
+      query.select = this.selectFields.reduce((acc: any, field: string) => {
+        acc[field] = true;
+        return acc;
+      }, {});
     }
+
+    if (this.orderByField) {
+      query.orderBy = { [this.orderByField]: this.orderByDirection };
+    }
+
+    return await model.findFirst(query);
+  }
+
+  // Execute COUNT
+  async count(): Promise<number> {
+    const model = this.getPrismaModel();
+    return await model.count({ where: this.whereConditions });
+  }
+
+  // INSERT
+  async insert(data: any): Promise<T> {
+    const model = this.getPrismaModel();
+    return await model.create({ data });
+  }
+
+  // UPDATE
+  async update(data: any): Promise<T[]> {
+    const model = this.getPrismaModel();
+    return await model.updateMany({
+      where: this.whereConditions,
+      data,
+    });
+  }
+
+  // DELETE
+  async delete(): Promise<{ count: number }> {
+    const model = this.getPrismaModel();
+    return await model.deleteMany({ where: this.whereConditions });
   }
 
   // Helper to get Prisma model delegate
@@ -190,12 +174,12 @@ export class PrismaQueryBuilder<T = any> {
       'audit_logs': prisma.auditLog,
       'user_stats': prisma.userStats,
       'recent_activity': prisma.recentActivity,
-// 'holly-images': prisma.hollyImage, // Model doesn't exist
-// 'holly-audio': prisma.hollyAudio, // Model doesn't exist
-// 'holly-video': prisma.hollyVideo, // Model doesn't exist
-// 'songs': prisma.song, // Model doesn't exist
-// 'song-stems': prisma.songStem, // Model doesn't exist
-// 'music_videos': prisma.musicVideo, // Model doesn't exist
+      // 'holly-images': prisma.hollyImage, // Model doesn't exist
+      // 'holly-audio': prisma.hollyAudio, // Model doesn't exist
+      // 'holly-video': prisma.hollyVideo, // Model doesn't exist
+      // 'songs': prisma.song, // Model doesn't exist
+      // 'song-stems': prisma.songStem, // Model doesn't exist
+      // 'music_videos': prisma.musicVideo, // Model doesn't exist
     };
 
     return modelMap[this.tableName];
@@ -268,17 +252,14 @@ export const db = {
       'audit_logs': prisma.auditLog,
       'user_stats': prisma.userStats,
       'recent_activity': prisma.recentActivity,
-// 'holly-images': prisma.hollyImage, // Model doesn't exist
-// 'holly-audio': prisma.hollyAudio, // Model doesn't exist
-// 'holly-video': prisma.hollyVideo, // Model doesn't exist
-// 'songs': prisma.song, // Model doesn't exist
-// 'song-stems': prisma.songStem, // Model doesn't exist
-// 'music_videos': prisma.musicVideo, // Model doesn't exist
+      // 'holly-images': prisma.hollyImage, // Model doesn't exist
+      // 'holly-audio': prisma.hollyAudio, // Model doesn't exist
+      // 'holly-video': prisma.hollyVideo, // Model doesn't exist
+      // 'songs': prisma.song, // Model doesn't exist
+      // 'song-stems': prisma.songStem, // Model doesn't exist
+      // 'music_videos': prisma.musicVideo, // Model doesn't exist
     };
 
     return modelMap[tableName];
-  },
+  }
 };
-
-// Export for convenience
-export { prisma };
