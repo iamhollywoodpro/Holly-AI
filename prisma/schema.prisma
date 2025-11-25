@@ -439,7 +439,12 @@ model HollyIdentity {
 
   // Active fields used by consciousness system
   coreValues        Json   @default("[]")
+  beliefs           Json   @default("[]")
   personalityTraits Json   @default("{}")
+  interests         Json   @default("[]")
+  strengths         Json   @default("[]")
+  growthAreas       Json   @default("[]")
+  skillSet          Json   @default("[]")
   confidenceLevel   Float  @default(0.5)
   purpose           String @default("To assist and grow alongside the user")
 
