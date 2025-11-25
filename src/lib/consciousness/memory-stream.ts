@@ -379,7 +379,7 @@ export class MemoryStream {
 
       // Convert Prisma identity to Identity interface
       return {
-        core_values: (identity.coreValues || []).map(v => ({
+        core_values: (Array.isArray(identity.coreValues) ? identity.coreValues : (identity.coreValues as any) || []).map(v => ({
           value: v,
           strength: 0.8,
           origin: 'experience',
