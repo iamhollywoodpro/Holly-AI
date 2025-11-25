@@ -1,61 +1,42 @@
 /**
- * HOLLY Work Log Service
+ * HOLLY Work Log Service - Simplified
  * 
- * Manages activity logging with 90-day tiered retention:
- * - Hot Storage (7 days): Full detail, instant access
- * - Warm Storage (30 days): Compressed, queryable
- * - Cold Archive (90 days): S3/Blob, minimal metadata
- * - Deleted (90+ days): GDPR compliance
+ * Manages activity logging matching Prisma schema
  * 
  * @author HOLLY AI System
  */
 
 import { PrismaClient } from '@prisma/client';
-import { canCreateLog } from './rate-limiter';
 
 const prisma = new PrismaClient();
-
-// Log types - what kind of activity
-export type WorkLogType =
-  | 'ai_response'      // AI model generating response
-  | 'tool_call'        // Function/tool execution (image, music, video)
-  | 'file_operation'   // Upload/download operations
-  | 'deployment'       // Build/deploy activities
-  | 'error'            // Errors and exceptions
-  | 'info';            // General information
-
-// Status indicators
-export type WorkLogStatus =
-  | 'working'   // 🔧 In progress
-  | 'success'   // ✅ Completed successfully
-  | 'warning'   // ⚠️  Warning or fallback used
-  | 'error'     // ❌ Failed
-  | 'info';     // 📊 Informational
-
-// Storage tiers
-export type StorageStatus = 'hot' | 'warm' | 'cold' | 'archived';
 
 export interface CreateLogOptions {
   userId: string;
   conversationId?: string;
-  logType: WorkLogType;
-  status: WorkLogStatus;
-  title: string;
-  details?: string;
+  taskName: string;
+  description?: string;
+  details?: Record<string, any>;
+  duration: number; // in minutes
+  category?: string;
+  tags?: string[];
   metadata?: Record<string, any>;
+  startedAt?: Date;
+  completedAt?: Date;
 }
 
 export interface WorkLogEntry {
   id: string;
   userId: string;
   conversationId: string | null;
-  logType: string;
-  status: string;
-  title: string;
-  details: string | null;
+  taskName: string;
+  description: string | null;
+  details: any;
+  duration: number;
+  category: string | null;
+  tags: string[];
   metadata: any;
-  storageStatus: string;
-  timestamp: Date;
+  startedAt: Date;
+  completedAt: Date;
   createdAt: Date;
 }
 
@@ -66,56 +47,36 @@ export async function createWorkLog(options: CreateLogOptions): Promise<WorkLogE
   const {
     userId,
     conversationId,
-    logType,
-    status,
-    title,
+    taskName,
+    description,
     details,
-    metadata
+    duration,
+    category,
+    tags,
+    metadata,
+    startedAt,
+    completedAt
   } = options;
-
-  // Rate limiting check
-  const rateLimitCheck = canCreateLog(userId, title);
-  if (!rateLimitCheck.allowed) {
-    console.warn(`[WorkLogService] Rate limit: ${rateLimitCheck.reason}`);
-    // Return a mock entry instead of throwing (graceful degradation)
-    return {
-      id: 'rate-limited',
-      userId,
-      conversationId: conversationId || null,
-      logType,
-      status,
-      title,
-      details: details || null,
-      metadata: metadata || {},
-      storageStatus: 'hot',
-      timestamp: new Date(),
-      createdAt: new Date(),
-    } as WorkLogEntry;
-  }
-
-  // Calculate expiration based on storage tier
-  const now = new Date();
-  const expiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
   try {
     const log = await prisma.workLog.create({
       data: {
         userId,
         conversationId: conversationId || null,
-        logType,
-        status,
-        title,
-        details: details || null,
+        taskName,
+        description: description || null,
+        details: details || {},
+        duration,
+        category: category || null,
+        tags: tags || [],
         metadata: metadata || {},
-        storageStatus: 'hot',
-        compressionLevel: 0,
-        timestamp: now,
-        expiresAt,
+        startedAt: startedAt || new Date(),
+        completedAt: completedAt || new Date(),
       },
     });
 
     // Update stats
-    await updateStats('created');
+    await updateStats(userId, duration / 60); // Convert minutes to hours
 
     return log as WorkLogEntry;
   } catch (error) {
@@ -132,22 +93,18 @@ export async function getRecentLogs(
   options?: {
     conversationId?: string;
     limit?: number;
-    logTypes?: WorkLogType[];
   }
 ): Promise<WorkLogEntry[]> {
-  const { conversationId, limit = 50, logTypes } = options || {};
-
   try {
     const logs = await prisma.workLog.findMany({
       where: {
         userId,
-        ...(conversationId ? { conversationId } : {}),
-        ...(logTypes ? { logType: { in: logTypes } } : {}),
+        ...(options?.conversationId && { conversationId: options.conversationId }),
       },
       orderBy: {
-        timestamp: 'desc',
+        createdAt: 'desc',
       },
-      take: limit,
+      take: options?.limit || 50,
     });
 
     return logs as WorkLogEntry[];
@@ -162,7 +119,7 @@ export async function getRecentLogs(
  */
 export async function getConversationLogs(
   conversationId: string,
-  limit = 100
+  limit: number = 50
 ): Promise<WorkLogEntry[]> {
   try {
     const logs = await prisma.workLog.findMany({
@@ -170,7 +127,7 @@ export async function getConversationLogs(
         conversationId,
       },
       orderBy: {
-        timestamp: 'asc', // Chronological for conversation view
+        createdAt: 'asc',
       },
       take: limit,
     });
@@ -184,7 +141,6 @@ export async function getConversationLogs(
 
 /**
  * Delete old logs (cleanup cron job)
- * Hot → Warm → Cold → Delete
  */
 export async function cleanupExpiredLogs(): Promise<{
   deleted: number;
@@ -197,58 +153,16 @@ export async function cleanupExpiredLogs(): Promise<{
     // Delete logs older than 90 days
     const deleted = await prisma.workLog.deleteMany({
       where: {
-        timestamp: {
+        createdAt: {
           lt: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000),
         },
       },
     });
 
-    // Move hot → warm (7+ days old)
-    const movedToWarm = await prisma.workLog.updateMany({
-      where: {
-        storageStatus: 'hot',
-        timestamp: {
-          lt: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
-        },
-      },
-      data: {
-        storageStatus: 'warm',
-        compressionLevel: 1,
-        // In production: compress details field here
-      },
-    });
-
-    // Move warm → cold (30+ days old)
-    const movedToCold = await prisma.workLog.updateMany({
-      where: {
-        storageStatus: 'warm',
-        timestamp: {
-          lt: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000),
-        },
-      },
-      data: {
-        storageStatus: 'cold',
-        compressionLevel: 2,
-        archivedAt: now,
-        // In production: move to S3/Blob storage here
-      },
-    });
-
-    // Update stats
-    await prisma.workLogStats.update({
-      where: { id: 'global_stats' },
-      data: {
-        lastCleanupRun: now,
-        hotStorageCount: await prisma.workLog.count({ where: { storageStatus: 'hot' } }),
-        warmStorageCount: await prisma.workLog.count({ where: { storageStatus: 'warm' } }),
-        coldStorageCount: await prisma.workLog.count({ where: { storageStatus: 'cold' } }),
-      },
-    });
-
     return {
       deleted: deleted.count,
-      movedToWarm: movedToWarm.count,
-      movedToCold: movedToCold.count,
+      movedToWarm: 0, // Not implemented yet
+      movedToCold: 0, // Not implemented yet
     };
   } catch (error) {
     console.error('[WorkLogService] Cleanup failed:', error);
@@ -257,42 +171,14 @@ export async function cleanupExpiredLogs(): Promise<{
 }
 
 /**
- * Update system stats (atomic operations)
- */
-async function updateStats(operation: 'created' | 'deleted'): Promise<void> {
-  try {
-    if (operation === 'created') {
-      await prisma.workLogStats.upsert({
-        where: { id: 'global_stats' },
-        create: {
-          id: 'global_stats',
-          totalLogsCreated: 1,
-          hotStorageCount: 1,
-          warmStorageCount: 0,
-          coldStorageCount: 0,
-          totalSizeBytes: 0,
-          updatedAt: new Date(),
-        },
-        update: {
-          totalLogsCreated: { increment: 1 },
-          hotStorageCount: { increment: 1 },
-          updatedAt: new Date(),
-        },
-      });
-    }
-  } catch (error) {
-    // Stats are non-critical, don't throw
-    console.warn('[WorkLogService] Stats update failed:', error);
-  }
-}
-
-/**
  * Get system stats
  */
 export async function getSystemStats() {
   try {
-    return await prisma.workLogStats.findUnique({
-      where: { id: 'global_stats' },
+    return await prisma.workLogStats.findFirst({
+      orderBy: {
+        updatedAt: 'desc',
+      },
     });
   } catch (error) {
     console.error('[WorkLogService] Failed to fetch stats:', error);
@@ -301,114 +187,125 @@ export async function getSystemStats() {
 }
 
 /**
- * Helper: Create a "working" status log
+ * Update system stats (atomic operations)
  */
+async function updateStats(userId: string, hoursToAdd: number): Promise<void> {
+  try {
+    await prisma.workLogStats.upsert({
+      where: { userId },
+      create: {
+        userId,
+        totalHours: hoursToAdd,
+        totalTasks: 1,
+        avgHoursPerDay: hoursToAdd,
+        lastLoggedAt: new Date(),
+      },
+      update: {
+        totalHours: { increment: hoursToAdd },
+        totalTasks: { increment: 1 },
+        lastLoggedAt: new Date(),
+        // avgHoursPerDay calculated separately if needed
+      },
+    });
+  } catch (error) {
+    console.error('[WorkLogService] Failed to update stats:', error);
+    // Don't throw - stats update failure shouldn't block log creation
+  }
+}
+
+// ============================================================================
+// HELPER FUNCTIONS FOR COMMON LOG TYPES
+// ============================================================================
+
 export async function logWorking(
   userId: string,
-  title: string,
-  options?: { conversationId?: string; details?: string; metadata?: any }
-) {
+  conversationId: string,
+  taskName: string,
+  details?: Record<string, any>
+): Promise<WorkLogEntry> {
   return createWorkLog({
     userId,
-    conversationId: options?.conversationId,
-    logType: 'info',
-    status: 'working',
-    title,
-    details: options?.details,
-    metadata: options?.metadata,
+    conversationId,
+    taskName,
+    description: 'Working',
+    details,
+    duration: 0, // Will be updated when completed
+    category: 'ai_response',
+    tags: ['working'],
+    startedAt: new Date(),
+    completedAt: new Date(),
   });
 }
 
-/**
- * Helper: Create a "success" status log
- */
 export async function logSuccess(
   userId: string,
-  title: string,
-  options?: { conversationId?: string; details?: string; metadata?: any }
-) {
+  conversationId: string,
+  taskName: string,
+  duration: number,
+  details?: Record<string, any>
+): Promise<WorkLogEntry> {
   return createWorkLog({
     userId,
-    conversationId: options?.conversationId,
-    logType: 'info',
-    status: 'success',
-    title,
-    details: options?.details,
-    metadata: options?.metadata,
+    conversationId,
+    taskName,
+    description: 'Success',
+    details,
+    duration,
+    category: 'ai_response',
+    tags: ['success'],
+    completedAt: new Date(),
   });
 }
 
-/**
- * Helper: Create an "error" status log
- */
 export async function logError(
   userId: string,
-  title: string,
-  options?: { conversationId?: string; metadata?: any }
-) {
+  conversationId: string,
+  taskName: string,
+  error: any,
+  details?: Record<string, any>
+): Promise<WorkLogEntry> {
   return createWorkLog({
     userId,
-    conversationId: options?.conversationId,
-    logType: 'error',
-    status: 'error',
-    title,
-    details: undefined,
-    metadata: options?.metadata,
+    conversationId,
+    taskName,
+    description: 'Error',
+    details: {
+      ...details,
+      error: error?.message || String(error),
+    },
+    duration: 0,
+    category: 'error',
+    tags: ['error'],
+    completedAt: new Date(),
   });
 }
 
-/**
- * Helper: Create an "info" status log
- */
 export async function logInfo(
   userId: string,
-  title: string,
-  options?: { conversationId?: string; metadata?: any }
-) {
+  conversationId: string,
+  taskName: string,
+  details?: Record<string, any>
+): Promise<WorkLogEntry> {
   return createWorkLog({
     userId,
-    conversationId: options?.conversationId,
-    logType: 'info',
-    status: 'info',
-    title,
-    details: undefined,
-    metadata: options?.metadata,
+    conversationId,
+    taskName,
+    description: 'Info',
+    details,
+    duration: 0,
+    category: 'info',
+    tags: ['info'],
+    completedAt: new Date(),
   });
 }
 
 /**
- * Update system-wide statistics
- * Called after cleanup runs
+ * Update system stats manually (for cron jobs)
  */
 export async function updateSystemStats(): Promise<void> {
-  const now = new Date();
-  
-  // Count logs by storage tier
-  const hotCount = await prisma.workLog.count({ where: { storageStatus: 'hot' } });
-  const warmCount = await prisma.workLog.count({ where: { storageStatus: 'warm' } });
-  const coldCount = await prisma.workLog.count({ where: { storageStatus: 'cold' } });
-  
-  // Upsert global stats
-  await prisma.workLogStats.upsert({
-    where: { id: 'global_stats' },
-    create: {
-      id: 'global_stats',
-      totalLogsCreated: hotCount + warmCount + coldCount,
-      lastCleanupRun: now,
-      hotStorageCount: hotCount,
-      warmStorageCount: warmCount,
-      coldStorageCount: coldCount,
-    },
-    update: {
-      lastCleanupRun: now,
-      hotStorageCount: hotCount,
-      warmStorageCount: warmCount,
-      coldStorageCount: coldCount,
-    },
-  });
+  // This is a no-op now - stats are updated per-user automatically
+  console.log('[WorkLogService] updateSystemStats called - using per-user stats now');
 }
-
-// Export types for external use (already exported above as interfaces/types)
 
 export default {
   createWorkLog,
@@ -416,9 +313,9 @@ export default {
   getConversationLogs,
   cleanupExpiredLogs,
   getSystemStats,
-  updateSystemStats,
   logWorking,
   logSuccess,
   logError,
   logInfo,
+  updateSystemStats,
 };

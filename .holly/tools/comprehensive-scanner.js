@@ -262,9 +262,11 @@ class ComprehensiveScanner {
         const openBraces = (line.match(/{/g) || []).length;
         const closeBraces = (line.match(/}/g) || []).length;
         
-        // Check if this line has a field at depth 0
-        if (depth === 0) {
-          const fieldMatch = line.match(/^\s*(\w+)\s*:/);
+        // Check if this line has a field at depth 1 (inside the data object)
+        // We start at depth 0, first { makes it depth 1, that's where fields are
+        if (depth === 1) {
+          // Match both "fieldName: value" and "fieldName," (shorthand)
+          const fieldMatch = line.match(/^\s*(\w+)\s*[,:]/);
           if (fieldMatch) {
             const fieldName = fieldMatch[1];
             
@@ -381,8 +383,10 @@ class ComprehensiveScanner {
         const openBraces = (line.match(/{/g) || []).length;
         const closeBraces = (line.match(/}/g) || []).length;
         
-        if (depth === 0) {
-          const fieldMatch = line.match(/^\s*(\w+)\s*:/);
+        // Check if this line has a field at depth 1 (inside the data object)
+        if (depth === 1) {
+          // Match both "fieldName: value" and "fieldName," (shorthand)
+          const fieldMatch = line.match(/^\s*(\w+)\s*[,:]/);
           if (fieldMatch) {
             const fieldName = fieldMatch[1];
             

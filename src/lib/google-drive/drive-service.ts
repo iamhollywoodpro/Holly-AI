@@ -135,16 +135,10 @@ export async function saveConnection(
       userId: user.id,
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
-      tokenExpiry: new Date(tokens.expiryDate),
+      email: tokens.email,
       googleEmail: tokens.email,
       googleName: tokens.name || null,
       googlePicture: tokens.picture || null,
-      scopes: [
-        'https://www.googleapis.com/auth/drive.file',
-        'https://www.googleapis.com/auth/drive.appdata',
-        'https://www.googleapis.com/auth/userinfo.email',
-        'https://www.googleapis.com/auth/userinfo.profile',
-      ],
       isConnected: true,
       autoUpload: true,
       syncEnabled: true,
@@ -152,7 +146,6 @@ export async function saveConnection(
     update: {
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
-      tokenExpiry: new Date(tokens.expiryDate),
       googleEmail: tokens.email,
       googleName: tokens.name || null,
       googlePicture: tokens.picture || null,
@@ -180,11 +173,11 @@ async function getAuthenticatedClient(userId: string): Promise<OAuth2Client> {
   oauth2Client.setCredentials({
     access_token: connection.accessToken,
     refresh_token: connection.refreshToken,
-    expiry_date: connection.tokenExpiry.getTime(),
   });
   
-  // Auto-refresh if expired
-  if (Date.now() >= connection.tokenExpiry.getTime() - 60000) {
+  // Auto-refresh tokens (OAuth2Client handles this automatically)
+  // We'll update our database with new tokens on the next successful API call
+  try {
     const { credentials } = await oauth2Client.refreshAccessToken();
     
     if (credentials.access_token) {
@@ -192,12 +185,15 @@ async function getAuthenticatedClient(userId: string): Promise<OAuth2Client> {
         where: { userId },
         data: {
           accessToken: credentials.access_token,
-          tokenExpiry: new Date(credentials.expiry_date || Date.now() + 3600 * 1000),
+          lastSyncAt: new Date(),
         },
       });
       
       oauth2Client.setCredentials(credentials);
     }
+  } catch (error) {
+    // Token refresh failed - tokens might still be valid, let API calls fail naturally
+    console.warn('[GoogleDrive] Token refresh warning:', error);
   }
   
   return oauth2Client;
