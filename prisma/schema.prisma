@@ -74,12 +74,14 @@ model Message {
   id             String       @id @default(cuid())
   conversationId String
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  role           String // 'user' or 'assistant'
+  userId         String       // User who sent the message
+  role           String       // 'user' or 'assistant'
   content        String       @db.Text
   emotion        String?      // Optional emotion detected in message
   createdAt      DateTime     @default(now())
 
   @@index([conversationId])
+  @@index([userId])
   @@map("messages")
 }
 
@@ -99,17 +101,21 @@ model FileUpload {
 }
 
 model Project {
-  id          String   @id @default(cuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name        String
-  description String?  @db.Text
-  status      String            @default("active") // active, completed, archived
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
-  activities  ProjectActivity[]
-  deployments Deployment[]
-  milestones  Milestone[]
+  id           String            @id @default(cuid())
+  userId       String
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String
+  description  String?           @db.Text
+  category     String?          
+  technologies String[]          @default([])
+  color        String            @default("#a855f7")
+  icon         String?          
+  status       String            @default("active") // active, completed, archived
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  activities   ProjectActivity[]
+  deployments  Deployment[]
+  milestones   Milestone[]
 
   @@index([userId])
   @@map("projects")
@@ -564,14 +570,16 @@ model Deployment {
 }
 
 model ProjectActivity {
-  id          String   @id @default(cuid())
-  projectId   String
-  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type        String
-  description String   @db.Text
-  createdAt   DateTime @default(now())
+  id           String   @id @default(cuid())
+  projectId    String
+  project      Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  type         String?
+  activityType String?  // Alternative field name used in code
+  description  String   @db.Text
+  timestamp    DateTime @default(now())
+  createdAt    DateTime @default(now())
   
   @@index([projectId])
   @@index([userId])
