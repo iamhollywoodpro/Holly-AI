@@ -14,6 +14,7 @@ import BrowsePanel from '../github/BrowsePanel';
 import CommitPanel from '../github/CommitPanel';
 import { PRListPanel } from '../github/PRListPanel';
 import { IssuePanel } from '../github/IssuePanel';
+import { ReviewPanel } from '../github/ReviewPanel';
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
 import { useActiveRepo, useActiveRepos } from '@/hooks/useActiveRepos';
@@ -38,6 +39,8 @@ export const CommandHandler = forwardRef<CommandHandlerRef, CommandHandlerProps>
   const [showIssuesPanel, setShowIssuesPanel] = useState(false);
   const [showIssuePanelPro, setShowIssuePanelPro] = useState(false);
   const [showCreateIssueDialog, setShowCreateIssueDialog] = useState(false);
+  const [showReviewPanel, setShowReviewPanel] = useState(false);
+  const [reviewPRNumber, setReviewPRNumber] = useState<number | undefined>();
   const [showBrowsePanel, setShowBrowsePanel] = useState(false);
   const [browseRepo, setBrowseRepo] = useState<{ owner: string; repo: string } | null>(null);
   const [showCommitPanel, setShowCommitPanel] = useState(false);
@@ -151,6 +154,23 @@ export const CommandHandler = forwardRef<CommandHandlerRef, CommandHandlerProps>
             repo: currentRepoForCommit.repo,
           });
           setShowCommitPanel(true);
+          return true;
+        
+        case 'review':
+          // Extract PR number from args (e.g., /review #123 or /review 123)
+          const prArg = command.args[0];
+          if (!prArg) {
+            return 'Please specify a PR number. Usage: `/review #123` or `/review 123`';
+          }
+          const prNum = parseInt(prArg.replace('#', ''));
+          if (isNaN(prNum)) {
+            return 'Invalid PR number. Usage: `/review #123` or `/review 123`';
+          }
+          if (!activeRepoStore.getCurrentRepo()) {
+            return 'Please select a repository first. Type `/repos` to choose a repository.';
+          }
+          setReviewPRNumber(prNum);
+          setShowReviewPanel(true);
           return true;
         
         case 'help':
@@ -454,6 +474,16 @@ export const CommandHandler = forwardRef<CommandHandlerRef, CommandHandlerProps>
           setShowIssuePanelPro(false);
           setShowCreateIssueDialog(true);
         }}
+      />
+
+      {/* Review Panel */}
+      <ReviewPanel
+        isOpen={showReviewPanel}
+        onClose={() => {
+          setShowReviewPanel(false);
+          setReviewPRNumber(undefined);
+        }}
+        prNumber={reviewPRNumber}
       />
     </>
   );

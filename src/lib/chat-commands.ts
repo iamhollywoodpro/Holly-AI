@@ -4,7 +4,7 @@
  */
 
 export interface ChatCommand {
-  type: 'repos' | 'deploy' | 'pr' | 'rollback' | 'workflows' | 'team' | 'issues' | 'browse' | 'commit' | 'clear' | 'help' | 'unknown';
+  type: 'repos' | 'deploy' | 'pr' | 'rollback' | 'workflows' | 'team' | 'issues' | 'browse' | 'commit' | 'review' | 'clear' | 'help' | 'unknown';
   args: string[];
   rawCommand: string;
 }
@@ -53,6 +53,9 @@ export function parseCommand(message: string): ChatCommand | null {
     'commit': 'commit',
     'commits': 'commit',
     'history': 'commit',
+    'review': 'review',
+    'r': 'review',
+    'check': 'review',
     'clear': 'clear',
     'c': 'clear',
     'help': 'help',
@@ -134,6 +137,15 @@ export function getCommandHelp(): string {
 - Open commits in GitHub
 - \`/commit\` - View commits for active repository
 - Smart commit type indicators (feat, fix, docs, etc.)
+
+\`/review\` or \`/r\` - AI Code Review Assistant
+- \`/review #123\` - Review specific PR with AI analysis
+- AI-powered code quality analysis
+- Security vulnerability detection
+- Performance optimization suggestions
+- Best practice recommendations
+- Submit review comments to GitHub PR
+- Quality score (0-100) with detailed feedback
 
 \`/clear\` or \`/c\` - Clear chat history
 - Clears all messages from current session
