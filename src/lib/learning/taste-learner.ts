@@ -93,6 +93,47 @@ export class TasteLearner {
   }
 
   /**
+   * Get recommendations based on category - DISABLED: TasteSignal model doesn't exist
+   */
+  async getRecommendations(category: string, count: number = 5): Promise<any[]> {
+    // TODO: TasteSignal/TasteProfile models not implemented in schema
+    console.log(`TasteLearner.getRecommendations(${category}, ${count}) - Feature disabled (models not in schema)`);
+    return [];
+    
+    /* DISABLED: TasteSignal model doesn't exist
+    // Get user's signals for this category
+    const signals = await this.db.tasteSignal.findMany({
+      where: {
+        userId: this.userId,
+        category,
+        sentiment: { in: ['like', 'love'] }
+      },
+      orderBy: { timestamp: 'desc' },
+      take: count * 2 // Get more to filter
+    });
+
+    // Get unique items with highest scores
+    const itemScores = new Map<string, number>();
+    for (const signal of signals) {
+      const current = itemScores.get(signal.item) || 0;
+      itemScores.set(signal.item, current + signal.intensity);
+    }
+
+    // Sort by score and return top N
+    const recommendations = Array.from(itemScores.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, count)
+      .map(([item, score]) => ({
+        item,
+        score,
+        confidence: Math.min(score / 2, 1.0)
+      }));
+
+    return recommendations;
+    */
+  }
+
+  /**
    * Update taste profile based on signals - DISABLED
    */
   private async updateProfile(): Promise<void> {
