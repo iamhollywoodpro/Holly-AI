@@ -201,20 +201,26 @@ async function getAuthenticatedClient(userId: string): Promise<OAuth2Client> {
 
 /**
  * Get or create HOLLY root folder in user's Drive
+ * Searches for existing folder first, creates if not found
  */
 export async function getOrCreateRootFolder(userId: string): Promise<string> {
-  const connection = await prisma.googleDriveConnection.findUnique({
-    where: { userId },
-  });
-  
-  if (connection?.rootFolderId) {
-    return connection.rootFolderId;
-  }
-  
   const auth = await getAuthenticatedClient(userId);
   
-  // Create HOLLY folder
-  const response = await drive.files.create({
+  // Search for existing HOLLY folder
+  const searchResponse = await drive.files.list({
+    auth,
+    q: "name='HOLLY AI' and mimeType='application/vnd.google-apps.folder' and trashed=false",
+    fields: 'files(id)',
+    spaces: 'drive',
+  });
+  
+  // Return existing folder if found
+  if (searchResponse.data.files && searchResponse.data.files.length > 0) {
+    return searchResponse.data.files[0].id!;
+  }
+  
+  // Create HOLLY folder if not found
+  const createResponse = await drive.files.create({
     auth,
     requestBody: {
       name: 'HOLLY AI',
@@ -224,15 +230,7 @@ export async function getOrCreateRootFolder(userId: string): Promise<string> {
     fields: 'id',
   });
   
-  const folderId = response.data.id!;
-  
-  // Save folder ID
-  await prisma.googleDriveConnection.update({
-    where: { userId },
-    data: { rootFolderId: folderId },
-  });
-  
-  return folderId;
+  return createResponse.data.id!;
 }
 
 /**
