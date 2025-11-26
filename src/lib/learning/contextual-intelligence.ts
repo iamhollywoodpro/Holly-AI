@@ -87,7 +87,6 @@ export class ContextualIntelligence {
         projectId,
         activityType: activity.type,
         description: activity.description,
-        metadata: activity.metadata || {},
       }
     });
 
