@@ -1,70 +1,112 @@
-/**
- * HOLLY TTS API - Generate Speech
- * Kokoro-82M with af_heart voice
- */
+// app/api/tts/generate/route.ts
+// HOLLY TTS API Route - Proxy to Self-Hosted Service
+// Created for Steve "Hollywood" Dorego
 
 import { NextRequest, NextResponse } from 'next/server';
-import { generateHollySpeech } from '@/lib/tts/tts-service';
 
-export const runtime = 'nodejs';
+export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
 interface TTSRequest {
   text: string;
   voice?: string;
-  speed?: number;
-  lang?: string;
 }
 
 export async function POST(request: NextRequest) {
   try {
+    // Get TTS service URL from environment
+    const ttsApiUrl = process.env.TTS_API_URL || process.env.NEXT_PUBLIC_TTS_API_URL;
+    
+    if (!ttsApiUrl) {
+      console.error('[TTS API] TTS_API_URL not configured');
+      return NextResponse.json(
+        { 
+          error: 'TTS service not configured',
+          details: 'Please set TTS_API_URL environment variable'
+        },
+        { status: 503 }
+      );
+    }
+
+    // Parse request body
     const body: TTSRequest = await request.json();
     
-    // Validation
-    if (!body.text || typeof body.text !== 'string') {
+    if (!body.text || body.text.trim().length === 0) {
       return NextResponse.json(
-        { error: 'Missing or invalid "text" parameter' },
+        { error: 'Text cannot be empty' },
         { status: 400 }
       );
     }
-    
-    if (body.text.length > 5000) {
-      return NextResponse.json(
-        { error: 'Text too long. Maximum 5000 characters.' },
-        { status: 400 }
-      );
-    }
-    
-    // Generate speech
-    const result = await generateHollySpeech(body.text, {
+
+    console.log('[TTS API] Proxying request to self-hosted service:', {
+      textLength: body.text.length,
       voice: body.voice || 'af_heart',
-      speed: body.speed || 1.0,
-      lang: body.lang || 'en-us'
+      serviceUrl: ttsApiUrl
     });
+
+    // Forward request to self-hosted TTS service
+    const ttsResponse = await fetch(`${ttsApiUrl}/tts/generate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        text: body.text,
+        voice: body.voice || 'af_heart'
+      })
+    });
+
+    if (!ttsResponse.ok) {
+      const errorText = await ttsResponse.text();
+      console.error('[TTS API] Service error:', {
+        status: ttsResponse.status,
+        statusText: ttsResponse.statusText,
+        error: errorText
+      });
+      
+      return NextResponse.json(
+        { 
+          error: 'TTS generation failed',
+          details: `Service returned ${ttsResponse.status}: ${errorText}`
+        },
+        { status: ttsResponse.status }
+      );
+    }
+
+    // Get audio blob from service
+    const audioBlob = await ttsResponse.blob();
     
-    // Convert blob to buffer
-    const buffer = Buffer.from(await result.audio.arrayBuffer());
-    
-    // Return audio with metadata headers
-    return new NextResponse(buffer, {
+    if (audioBlob.size === 0) {
+      console.error('[TTS API] Received empty audio response');
+      return NextResponse.json(
+        { error: 'Empty audio response from service' },
+        { status: 500 }
+      );
+    }
+
+    console.log('[TTS API] ✅ Successfully generated audio:', {
+      size: `${(audioBlob.size / 1024).toFixed(2)} KB`,
+      type: audioBlob.type
+    });
+
+    // Return audio with proper headers
+    return new NextResponse(audioBlob, {
       status: 200,
       headers: {
         'Content-Type': 'audio/wav',
-        'Content-Disposition': 'inline; filename="holly-voice.wav"',
-        'X-TTS-Provider': result.provider,
-        'X-TTS-Duration': result.duration.toString(),
-        'X-TTS-Voice': result.voice,
-        'X-TTS-Fallback': result.wasFallback ? 'true' : 'false',
-        'Cache-Control': 'public, max-age=3600'
+        'Content-Length': audioBlob.size.toString(),
+        'Cache-Control': 'public, max-age=31536000, immutable',
+        'Content-Disposition': 'attachment; filename="holly_speech.wav"'
       }
     });
-    
+
   } catch (error) {
     console.error('[TTS API] Error:', error);
+    
     return NextResponse.json(
-      {
-        error: 'Voice generation failed',
-        message: error instanceof Error ? error.message : 'Unknown error'
+      { 
+        error: 'Internal server error',
+        details: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
     );
