@@ -54,7 +54,9 @@ const STATUS_CONFIG = {
 export function WorkLogMessage({ log, showDetails = false }: WorkLogMessageProps) {
   const [isExpanded, setIsExpanded] = useState(showDetails);
   
-  const config = STATUS_CONFIG[log.status as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.info;
+  // Use category or description to determine status config
+  const statusKey = log.category || log.description?.toLowerCase() || 'info';
+  const config = STATUS_CONFIG[statusKey as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.info;
   const hasDetails = log.details || Object.keys(log.metadata || {}).length > 0;
 
   // Format timestamp
@@ -104,10 +106,10 @@ export function WorkLogMessage({ log, showDetails = false }: WorkLogMessageProps
           {/* Title & Timestamp */}
           <div className="flex items-baseline gap-2 flex-wrap">
             <span className={`font-medium ${config.color}`}>
-              {log.title}
+              {log.taskName}
             </span>
             <span className="text-xs text-gray-500 dark:text-gray-400 font-mono">
-              {formatTime(log.timestamp)}
+              {formatTime(log.createdAt)}
             </span>
           </div>
 

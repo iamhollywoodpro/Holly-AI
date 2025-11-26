@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
           }, 30000); // Every 30 seconds
 
           // Smart polling: 3s normally, 1s during active conversation
-          let lastTimestamp = logs[0]?.timestamp || new Date();
+          let lastTimestamp = logs[0]?.createdAt || new Date();
           let pollDelay = conversationId ? 1000 : 3000; // Faster polling for active conversations
           let consecutiveEmptyPolls = 0;
           
@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
 
               // Send only logs newer than last timestamp
               const freshLogs = newLogs.filter(
-                (log) => new Date(log.timestamp) > lastTimestamp
+                (log) => new Date(log.createdAt) > lastTimestamp
               );
 
               if (freshLogs.length > 0) {
@@ -81,7 +81,7 @@ export async function GET(request: NextRequest) {
                 for (const log of freshLogs) {
                   const data = `data: ${JSON.stringify(log)}\n\n`;
                   controller.enqueue(encoder.encode(data));
-                  lastTimestamp = new Date(log.timestamp);
+                  lastTimestamp = new Date(log.createdAt);
                 }
               } else {
                 consecutiveEmptyPolls++;
