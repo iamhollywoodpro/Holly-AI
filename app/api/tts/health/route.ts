@@ -12,8 +12,14 @@ export async function GET() {
   try {
     const health = getTTSHealth();
     
-    const status = {
-      status: 'operational' as const,
+    const status: {
+      status: 'operational' | 'degraded';
+      providers: any;
+      primaryProvider: string;
+      voice: string;
+      timestamp: string;
+    } = {
+      status: 'operational',
       providers: {
         api: {
           enabled: health.apiEnabled,
