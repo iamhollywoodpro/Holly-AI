@@ -53,8 +53,7 @@ export class ContextualIntelligence {
         name: projectData.projectName,
         description: projectData.metadata?.description || null,
         status: 'active',
-        priority: 5,
-        tags: projectData.technologies || [],
+        technologies: projectData.technologies || [],
       }
     });
 
