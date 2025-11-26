@@ -1,0 +1,10 @@
+# Ignore everything from parent directories
+../../*
+
+# Only include current directory
+!.
+!Dockerfile
+!main.py
+!requirements.txt
+!railway.toml
+!railway.json
