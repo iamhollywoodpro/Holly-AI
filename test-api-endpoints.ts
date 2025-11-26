@@ -33,7 +33,7 @@ async function testUserCreation() {
     
     const user = await prisma.user.create({
       data: {
-        clerkId: testClerkId,
+        clerkUserId: testClerkId,
         email: testEmail,
         name: 'Test User',
       },
