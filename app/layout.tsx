@@ -11,6 +11,9 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata: Metadata = {
   title: 'HOLLY - AI Development Partner',
   description: 'Your autonomous AI developer, designer, and creative strategist',
+  icons: {
+    icon: '/favicon.svg',
+  },
 };
 
 export const viewport: Viewport = {
@@ -65,8 +68,8 @@ export default function RootLayout({
           }}
           signInUrl="/sign-in"
           signUpUrl="/sign-up"
-          signInForceRedirectUrl="/"
-          signUpForceRedirectUrl="/"
+          signInFallbackRedirectUrl="/"
+          signUpFallbackRedirectUrl="/"
         >
                 {children}
               </ClerkProvider>
