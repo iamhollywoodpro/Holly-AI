@@ -135,7 +135,6 @@ export async function saveConnection(
       userId: user.id,
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
-      email: tokens.email,
       googleEmail: tokens.email,
       googleName: tokens.name || null,
       googlePicture: tokens.picture || null,

@@ -573,7 +573,6 @@ model GoogleDriveConnection {
   user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   accessToken   String
   refreshToken  String
-  email         String
   isConnected   Boolean   @default(true)
   googleEmail   String?
   googleName    String?
