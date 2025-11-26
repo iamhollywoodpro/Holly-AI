@@ -5,6 +5,7 @@ import { User, Sparkles, Loader2, Volume2, VolumeX } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { MarkdownRenderer } from './code/MarkdownRenderer';
+import HollyVoicePlayer from '@/components/ui/HollyVoicePlayer';
 
 interface Message {
   id: string;
@@ -41,36 +42,13 @@ export default function MessageBubble({ message, index }: MessageBubbleProps) {
   const media = detectMedia(message.content);
   const hasMedia = media.images.length > 0 || media.videos.length > 0 || media.audios.length > 0;
 
-  // Play HOLLY's voice using new voice service
-  const playVoice = async () => {
-    if (isPlayingVoice) {
-      // Stop if already playing
-      const { voiceService } = await import('@/lib/voice/voice-service');
-      voiceService.stopSpeaking();
-      setIsPlayingVoice(false);
-      return;
-    }
+  // HOLLY's voice with Kokoro TTS (af_heart)
+  const handleVoicePlayStart = (data: { provider: string; duration: string }) => {
+    console.log(`[HOLLY Voice] Playing via ${data.provider} (${data.duration}ms)`);
+  };
 
-    try {
-      setIsPlayingVoice(true);
-      const { voiceService } = await import('@/lib/voice/voice-service');
-      const success = await voiceService.speak(message.content, true); // Force play
-      
-      if (!success) {
-        setIsPlayingVoice(false);
-      }
-      
-      // Listen for when speaking ends
-      const unsubscribe = voiceService.subscribe((state) => {
-        if (!state.isSpeaking && isPlayingVoice) {
-          setIsPlayingVoice(false);
-          unsubscribe();
-        }
-      });
-    } catch (error) {
-      console.error('Voice playback error:', error);
-      setIsPlayingVoice(false);
-    }
+  const handleVoicePlayEnd = () => {
+    console.log('[HOLLY Voice] Playback completed');
   };
 
   const getEmotionColor = (emotion?: string) => {
@@ -242,22 +220,15 @@ export default function MessageBubble({ message, index }: MessageBubbleProps) {
               {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </div>
             
-            {/* Voice Playback Button (HOLLY messages only) */}
+            {/* HOLLY Voice Player with Kokoro TTS (af_heart) */}
             {!isUser && (
-              <motion.button
-                onClick={playVoice}
-                disabled={false}
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.95 }}
-                className="p-2 rounded-full bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/30 transition-colors"
-                title={isPlayingVoice ? "Stop voice" : "Play voice"}
-              >
-                {isPlayingVoice ? (
-                  <VolumeX className="w-4 h-4 text-purple-400" />
-                ) : (
-                  <Volume2 className="w-4 h-4 text-purple-400" />
-                )}
-              </motion.button>
+              <HollyVoicePlayer
+                text={message.content}
+                autoPlay={false}
+                showControls={true}
+                onPlayStart={handleVoicePlayStart}
+                onPlayEnd={handleVoicePlayEnd}
+              />
             )}
           </div>
 
