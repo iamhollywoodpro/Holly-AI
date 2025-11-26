@@ -231,7 +231,6 @@ export class ContextualIntelligence {
         projectId,
         activityType: 'feedback',
         description: feedback,
-        metadata: { type: 'user_feedback' }
       }
     });
   }
