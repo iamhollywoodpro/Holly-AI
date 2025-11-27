@@ -1,7 +1,9 @@
 /**
  * HOLLY TTS Service - Maya1 Integration
- * Self-hosted Maya1 TTS microservice client
+ * Self-hosted Maya1 TTS microservice client with contextual emotion support
  */
+
+import { addNaturalEmotions } from './emotion-context-analyzer';
 
 export interface MayaTTSConfig {
   apiUrl: string;
@@ -15,6 +17,12 @@ export interface TTSGenerateRequest {
   description?: string;
   temperature?: number;
   top_p?: number;
+  autoEmotions?: boolean; // Enable automatic contextual emotions
+  context?: {
+    isSuccess?: boolean;
+    isError?: boolean;
+    userMessage?: string;
+  };
 }
 
 export interface VoiceInfo {
@@ -64,11 +72,31 @@ export class MayaTTSService {
   }
 
   /**
-   * Generate speech from text
+   * Generate speech from text with optional contextual emotions
    */
-  async generateSpeech(text: string): Promise<AudioBuffer> {
+  async generateSpeech(
+    text: string,
+    options?: {
+      autoEmotions?: boolean;
+      context?: {
+        isSuccess?: boolean;
+        isError?: boolean;
+        userMessage?: string;
+      };
+    }
+  ): Promise<AudioBuffer> {
     try {
-      console.log('[Maya TTS] Generating speech:', text.substring(0, 100));
+      // Apply automatic contextual emotions if enabled (default: true)
+      const autoEmotions = options?.autoEmotions ?? true;
+      const processedText = autoEmotions 
+        ? addNaturalEmotions(text, options?.context)
+        : text;
+      
+      console.log('[Maya TTS] Generating speech:', {
+        original: text.substring(0, 100),
+        processed: processedText.substring(0, 100),
+        autoEmotions,
+      });
 
       const response = await fetch(`${this.config.apiUrl}/generate`, {
         method: 'POST',
@@ -76,7 +104,7 @@ export class MayaTTSService {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          text,
+          text: processedText, // Use processed text with emotions
           description: this.config.voiceDescription,
           temperature: this.config.temperature,
           top_p: this.config.topP,
@@ -128,11 +156,51 @@ export class MayaTTSService {
   }
 
   /**
-   * Generate and play speech in one call
+   * Generate and play speech in one call with contextual emotions
    */
-  async speak(text: string): Promise<void> {
-    const audioBuffer = await this.generateSpeech(text);
+  async speak(
+    text: string,
+    options?: {
+      autoEmotions?: boolean;
+      context?: {
+        isSuccess?: boolean;
+        isError?: boolean;
+        userMessage?: string;
+      };
+    }
+  ): Promise<void> {
+    const audioBuffer = await this.generateSpeech(text, options);
     await this.playSpeech(audioBuffer);
+  }
+  
+  /**
+   * Convenience method: Speak with success context
+   */
+  async speakSuccess(text: string, userMessage?: string): Promise<void> {
+    return this.speak(text, {
+      autoEmotions: true,
+      context: { isSuccess: true, userMessage },
+    });
+  }
+  
+  /**
+   * Convenience method: Speak with error context (calm, no negative emotions)
+   */
+  async speakError(text: string, userMessage?: string): Promise<void> {
+    return this.speak(text, {
+      autoEmotions: true,
+      context: { isError: true, userMessage },
+    });
+  }
+  
+  /**
+   * Convenience method: Speak with greeting context
+   */
+  async speakGreeting(text: string): Promise<void> {
+    return this.speak(text, {
+      autoEmotions: true,
+      context: {},
+    });
   }
 
   /**
