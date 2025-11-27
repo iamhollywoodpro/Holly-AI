@@ -118,8 +118,12 @@ export class MayaTTSService {
 
     return new Promise((resolve, reject) => {
       source.onended = () => resolve();
-      source.onerror = (error) => reject(error);
-      source.start(0);
+      // AudioBufferSourceNode doesn't have onerror - handle via try/catch
+      try {
+        source.start(0);
+      } catch (error) {
+        reject(error);
+      }
     });
   }
 
