@@ -1,5 +1,5 @@
 // HOLLY Voice Service - Centralized voice input/output management
-// Uses ElevenLabs for output, Web Speech API for input
+// Uses Maya1 TTS for output, Web Speech API for input
 
 export type VoiceModel = 'rachel' | 'bella' | 'elli' | 'grace';
 export type InputMethod = 'typing' | 'voice';
@@ -213,8 +213,8 @@ class VoiceService {
       this.state.isSpeaking = true;
       this.notifyListeners();
 
-      // Call ElevenLabs API
-      const response = await fetch('/api/voice/speak', {
+      // Call Maya1 TTS API
+      const response = await fetch('/api/tts/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -261,7 +261,7 @@ class VoiceService {
       console.log('[VoiceService] Starting audio playback...');
       await audio.play();
 
-      console.log('[VoiceService] ✅ Speaking with ElevenLabs voice:', this.state.settings.voiceModel);
+      console.log('[VoiceService] ✅ Speaking with Maya1 TTS - HOLLY voice');
       return true;
 
     } catch (error) {
