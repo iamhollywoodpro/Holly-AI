@@ -44,15 +44,17 @@ export async function POST(request: NextRequest) {
       serviceUrl: ttsApiUrl
     });
 
-    // Forward request to self-hosted TTS service
-    const ttsResponse = await fetch(`${ttsApiUrl}/tts/generate`, {
+    // Forward request to Maya1 TTS service
+    const ttsResponse = await fetch(`${ttsApiUrl}/generate`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         text: body.text,
-        voice: body.voice || 'af_heart'
+        description: "Female voice in her 30s with an American accent. Confident, intelligent, warm tone with clear diction. Professional yet friendly, conversational pacing.",
+        temperature: 0.4,
+        top_p: 0.9
       })
     });
 
