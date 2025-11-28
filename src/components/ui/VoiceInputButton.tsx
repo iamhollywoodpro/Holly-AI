@@ -222,10 +222,10 @@ export default function VoiceInputButton({
       </motion.button>
 
       {/* Status indicator */}
-      {voiceState.settings.autoPlay && (
+      {voiceState.settings.outputEnabled && (
         <div className="flex items-center gap-1 text-xs text-purple-400">
           <div className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-pulse" />
-          <span>Smart voice</span>
+          <span>Voice enabled</span>
         </div>
       )}
     </div>
