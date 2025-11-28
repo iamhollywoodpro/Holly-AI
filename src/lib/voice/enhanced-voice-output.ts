@@ -136,27 +136,27 @@ export class EnhancedVoiceOutput {
   }
 
   /**
-   * Speak text using ElevenLabs (premium quality)
+   * Speak text using Fish-Speech (HOLLY voice)
    */
   private async speakWithElevenLabs(
     text: string,
     options: VoiceOutputOptions = {}
   ): Promise<void> {
     try {
-      // Call our API route which handles ElevenLabs
-      const response = await fetch('/api/voice/speak', {
+      // Call our Fish-Speech TTS API
+      const response = await fetch('/api/tts/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           text,
-          voice: options.voice || 'charlotte', // Default: Charlotte (natural, conversational)
+          voice: 'holly', // HOLLY Fish-Speech voice
         }),
       });
 
       if (!response.ok) {
-        throw new Error('ElevenLabs API failed');
+        throw new Error('Fish-Speech TTS failed');
       }
 
       // Get audio blob
@@ -188,7 +188,7 @@ export class EnhancedVoiceOutput {
         }).catch(reject);
       });
     } catch (error) {
-      console.error('ElevenLabs error, falling back to browser TTS:', error);
+      console.error('Fish-Speech error, falling back to browser TTS:', error);
       if (options.onError) options.onError(error);
       // Fallback to browser TTS
       return this.speakWithBrowser(text, options);
@@ -204,7 +204,7 @@ export class EnhancedVoiceOutput {
     // Clean text for better speech
     const cleanedText = this.preprocessText(text);
 
-    const provider = options.provider || 'browser';
+    const provider = options.provider || 'elevenlabs'; // Default to Fish-Speech now
 
     if (provider === 'elevenlabs') {
       return this.speakWithElevenLabs(cleanedText, options);

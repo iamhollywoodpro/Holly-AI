@@ -52,9 +52,7 @@ export default function HollyVoicePlayer({
         },
         body: JSON.stringify({
           text: text,
-          voice: 'af_heart',
-          speed: 1.0,
-          lang: 'en-us'
+          voice: 'holly'
         })
       });
       
