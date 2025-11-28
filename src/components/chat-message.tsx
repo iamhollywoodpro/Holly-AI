@@ -83,17 +83,38 @@ export function ChatMessage({ message }: ChatMessageProps) {
       return;
     }
 
+    // Check if voice is enabled
+    if (!voiceSettings.enabled) {
+      console.warn('[HOLLY Voice] Voice output is disabled in settings');
+      alert('Voice output is disabled. Enable it in settings.');
+      return;
+    }
+
     try {
       setIsLoading(true);
       setIsSpeakingThis(true);
       
+      console.log('[HOLLY Voice] Starting TTS for message:', message.content.substring(0, 50));
+      
       await speakText(message.content, {
         volume: voiceSettings.volume,
+        onStart: () => {
+          console.log('[HOLLY Voice] Audio started playing');
+        },
+        onEnd: () => {
+          console.log('[HOLLY Voice] Audio finished playing');
+          setIsSpeakingThis(false);
+        },
+        onError: (error) => {
+          console.error('[HOLLY Voice] Playback error:', error);
+          alert(`Voice playback failed: ${error}`);
+          setIsSpeakingThis(false);
+        }
       });
       
-      setIsSpeakingThis(false);
     } catch (error) {
-      console.error('Failed to speak:', error);
+      console.error('[HOLLY Voice] Failed to speak:', error);
+      alert(`Failed to generate voice: ${error instanceof Error ? error.message : 'Unknown error'}`);
       setIsSpeakingThis(false);
     } finally {
       setIsLoading(false);
