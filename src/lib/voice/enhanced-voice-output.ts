@@ -55,7 +55,13 @@ export class EnhancedVoiceOutput {
 
       // Get audio blob
       const audioBlob = await response.blob();
+      console.log('[Fish-Speech] Received blob:', {
+        size: audioBlob.size,
+        type: audioBlob.type
+      });
+      
       const audioUrl = URL.createObjectURL(audioBlob);
+      console.log('[Fish-Speech] Created blob URL:', audioUrl);
 
       // Play audio
       return new Promise((resolve, reject) => {
@@ -63,7 +69,21 @@ export class EnhancedVoiceOutput {
         audio.volume = options.volume || 0.9;
         this.currentAudio = audio;
         
+        console.log('[Fish-Speech] Audio object created:', {
+          volume: audio.volume,
+          src: audio.src,
+          readyState: audio.readyState
+        });
+        
+        audio.onloadeddata = () => {
+          console.log('[Fish-Speech] Audio data loaded:', {
+            duration: audio.duration,
+            readyState: audio.readyState
+          });
+        };
+        
         audio.onended = () => {
+          console.log('[Fish-Speech] Audio playback ended');
           URL.revokeObjectURL(audioUrl);
           this.currentAudio = null;
           if (options.onEnd) options.onEnd();
@@ -71,15 +91,29 @@ export class EnhancedVoiceOutput {
         };
         
         audio.onerror = (error) => {
+          console.error('[Fish-Speech] Audio error:', error);
           URL.revokeObjectURL(audioUrl);
           this.currentAudio = null;
           if (options.onError) options.onError(error);
           reject(error);
         };
+        
+        audio.onplay = () => {
+          console.log('[Fish-Speech] Audio started playing - you should hear sound now!');
+        };
+        
+        audio.onpause = () => {
+          console.log('[Fish-Speech] Audio paused');
+        };
 
+        console.log('[Fish-Speech] Attempting to play audio...');
         audio.play().then(() => {
+          console.log('[Fish-Speech] Play promise resolved');
           if (options.onStart) options.onStart();
-        }).catch(reject);
+        }).catch((error) => {
+          console.error('[Fish-Speech] Play promise rejected:', error);
+          reject(error);
+        });
       });
     } catch (error) {
       console.error('Fish-Speech error:', error);
