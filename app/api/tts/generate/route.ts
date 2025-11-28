@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
       serviceUrl: ttsApiUrl
     });
 
-    // Forward request to Maya1 TTS service
+    // Forward request to Fish-Speech TTS service
     const ttsResponse = await fetch(`${ttsApiUrl}/generate`, {
       method: 'POST',
       headers: {
@@ -52,9 +52,7 @@ export async function POST(request: NextRequest) {
       },
       body: JSON.stringify({
         text: body.text,
-        description: "Female voice in her 30s with an American accent. Confident, intelligent, warm tone with clear diction. Professional yet friendly, conversational pacing.",
-        temperature: 0.4,
-        top_p: 0.9
+        voice: body.voice || 'holly'
       })
     });
 
