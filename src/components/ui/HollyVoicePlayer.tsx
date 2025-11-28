@@ -1,6 +1,6 @@
 /**
  * HOLLY Voice Player Component
- * React component for playing HOLLY's af_heart voice
+ * Uses Fish-Speech-1.5 TTS backend ONLY
  */
 
 'use client';
@@ -12,7 +12,7 @@ interface HollyVoicePlayerProps {
   text: string;
   autoPlay?: boolean;
   showControls?: boolean;
-  onPlayStart?: (data: { provider: string; duration: string }) => void;
+  onPlayStart?: () => void;
   onPlayEnd?: () => void;
   onError?: (error: Error) => void;
 }
@@ -29,12 +29,10 @@ export default function HollyVoicePlayer({
   const [isPlaying, setIsPlaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [provider, setProvider] = useState<string | null>(null);
-  const [duration, setDuration] = useState<number>(0);
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
   
-  // Generate and play audio
+  // Generate and play audio using Fish-Speech
   const generateAndPlay = async () => {
     if (!text || text.trim().length === 0) {
       setError('No text to speak');
@@ -60,18 +58,6 @@ export default function HollyVoicePlayer({
         throw new Error(`TTS generation failed: ${response.status}`);
       }
       
-      // Get metadata from headers
-      const ttsProvider = response.headers.get('X-TTS-Provider') || 'unknown';
-      const ttsDuration = response.headers.get('X-TTS-Duration') || '0';
-      const wasFallback = response.headers.get('X-TTS-Fallback');
-      
-      setProvider(ttsProvider);
-      setDuration(parseInt(ttsDuration) || 0);
-      
-      if (wasFallback === 'true') {
-        console.log('[HOLLY] Used fallback provider');
-      }
-      
       // Create audio blob
       const audioBlob = await response.blob();
       const url = URL.createObjectURL(audioBlob);
@@ -84,7 +70,7 @@ export default function HollyVoicePlayer({
         setIsPlaying(true);
         
         if (onPlayStart) {
-          onPlayStart({ provider: ttsProvider, duration: ttsDuration });
+          onPlayStart();
         }
       }
       
@@ -185,15 +171,10 @@ export default function HollyVoicePlayer({
       </button>
       
       {/* Status/Error text */}
-      {(isLoading || error || (provider && !isPlaying)) && (
+      {(isLoading || error) && (
         <span className="text-xs text-gray-500">
           {isLoading && 'Generating...'}
           {error && <span className="text-red-500">{error}</span>}
-          {provider && !isLoading && !isPlaying && !error && (
-            <span className="text-gray-400">
-              {provider} • {duration}ms
-            </span>
-          )}
         </span>
       )}
     </div>

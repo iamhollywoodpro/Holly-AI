@@ -1,15 +1,12 @@
 /**
- * Enhanced Voice Output System
- * Supports both browser TTS and premium ElevenLabs
+ * HOLLY Voice Output System
+ * Uses Fish-Speech-1.5 TTS backend ONLY
  */
 
 export interface VoiceOutputOptions {
   rate?: number;
   pitch?: number;
   volume?: number;
-  voice?: string;
-  provider?: 'browser' | 'elevenlabs';
-  elevenLabsVoiceId?: string;
   // Callbacks
   onStart?: () => void;
   onEnd?: () => void;
@@ -17,131 +14,28 @@ export interface VoiceOutputOptions {
 }
 
 export class EnhancedVoiceOutput {
-  private synthesis: SpeechSynthesis | null = null;
-  private currentUtterance: SpeechSynthesisUtterance | null = null;
-  private elevenLabsApiKey: string | null = null;
   private currentAudio: HTMLAudioElement | null = null;
 
   constructor() {
-    if (typeof window !== 'undefined') {
-      this.synthesis = window.speechSynthesis;
-      // Try to get ElevenLabs key from environment (only in browser)
-      this.elevenLabsApiKey = null; // Will be set via API route
-    }
+    // Fish-Speech TTS only - no browser TTS
   }
 
   /**
    * Check if voice output is available
    */
   isAvailable(): boolean {
-    return this.synthesis !== null;
-  }
-
-  /**
-   * Get available voices (browser TTS only)
-   */
-  getAvailableVoices(): SpeechSynthesisVoice[] {
-    if (!this.synthesis) return [];
-    return this.synthesis.getVoices();
-  }
-
-  /**
-   * Find best female voice for browser TTS
-   */
-  private getBestFemaleVoice(): SpeechSynthesisVoice | null {
-    const voices = this.getAvailableVoices();
-    
-    // Priority order for female voices
-    const femaleVoicePatterns = [
-      // High quality voices
-      /Samantha/i,
-      /Victoria/i,
-      /Fiona/i,
-      /Karen/i,
-      /Moira/i,
-      // Generic female patterns
-      /Female/i,
-      /Woman/i,
-      /Lady/i,
-      // Language-specific
-      /en.*female/i,
-      /us.*female/i,
-      /uk.*female/i,
-    ];
-
-    for (const pattern of femaleVoicePatterns) {
-      const voice = voices.find(v => pattern.test(v.name));
-      if (voice) return voice;
-    }
-
-    // Fallback: any voice with "female" in name
-    return voices.find(v => v.name.toLowerCase().includes('female')) || null;
-  }
-
-  /**
-   * Speak text using browser TTS
-   */
-  private speakWithBrowser(
-    text: string,
-    options: VoiceOutputOptions = {}
-  ): Promise<void> {
-    return new Promise((resolve, reject) => {
-      if (!this.synthesis) {
-        const error = new Error('Speech synthesis not available');
-        if (options.onError) options.onError(error);
-        reject(error);
-        return;
-      }
-
-      // Cancel any ongoing speech
-      this.synthesis.cancel();
-
-      const utterance = new SpeechSynthesisUtterance(text);
-      
-      // Apply settings
-      utterance.rate = options.rate || 0.95; // Slightly slower for clarity
-      utterance.pitch = options.pitch || 1.15; // Higher pitch for feminine voice
-      utterance.volume = options.volume || 0.9;
-
-      // Use best available female voice
-      const femaleVoice = this.getBestFemaleVoice();
-      if (femaleVoice) {
-        utterance.voice = femaleVoice;
-        console.log(`🎤 Using voice: ${femaleVoice.name}`);
-      }
-
-      // Enhanced settings for more natural speech
-      utterance.lang = 'en-US';
-
-      utterance.onstart = () => {
-        if (options.onStart) options.onStart();
-      };
-
-      utterance.onend = () => {
-        this.currentUtterance = null;
-        if (options.onEnd) options.onEnd();
-        resolve();
-      };
-
-      utterance.onerror = (event) => {
-        this.currentUtterance = null;
-        console.error('Speech synthesis error:', event);
-        if (options.onError) options.onError(event);
-        reject(event);
-      };
-
-      this.currentUtterance = utterance;
-      this.synthesis.speak(utterance);
-    });
+    return true; // Fish-Speech is always available
   }
 
   /**
    * Speak text using Fish-Speech (HOLLY voice)
    */
-  private async speakWithElevenLabs(
-    text: string,
-    options: VoiceOutputOptions = {}
-  ): Promise<void> {
+  async speak(text: string, options: VoiceOutputOptions = {}): Promise<void> {
+    if (!text || text.trim().length === 0) return;
+
+    // Clean text for better speech
+    const cleanedText = this.preprocessText(text);
+
     try {
       // Call our Fish-Speech TTS API
       const response = await fetch('/api/tts/generate', {
@@ -150,13 +44,13 @@ export class EnhancedVoiceOutput {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          text,
-          voice: 'holly', // HOLLY Fish-Speech voice
+          text: cleanedText,
+          voice: 'holly',
         }),
       });
 
       if (!response.ok) {
-        throw new Error('Fish-Speech TTS failed');
+        throw new Error(`Fish-Speech TTS failed: ${response.status}`);
       }
 
       // Get audio blob
@@ -167,7 +61,7 @@ export class EnhancedVoiceOutput {
       return new Promise((resolve, reject) => {
         const audio = new Audio(audioUrl);
         audio.volume = options.volume || 0.9;
-        this.currentAudio = audio; // Track current audio
+        this.currentAudio = audio;
         
         audio.onended = () => {
           URL.revokeObjectURL(audioUrl);
@@ -188,28 +82,9 @@ export class EnhancedVoiceOutput {
         }).catch(reject);
       });
     } catch (error) {
-      console.error('Fish-Speech error, falling back to browser TTS:', error);
+      console.error('Fish-Speech error:', error);
       if (options.onError) options.onError(error);
-      // Fallback to browser TTS
-      return this.speakWithBrowser(text, options);
-    }
-  }
-
-  /**
-   * Main speak method - routes to appropriate provider
-   */
-  async speak(text: string, options: VoiceOutputOptions = {}): Promise<void> {
-    if (!text || text.trim().length === 0) return;
-
-    // Clean text for better speech
-    const cleanedText = this.preprocessText(text);
-
-    const provider = options.provider || 'elevenlabs'; // Default to Fish-Speech now
-
-    if (provider === 'elevenlabs') {
-      return this.speakWithElevenLabs(cleanedText, options);
-    } else {
-      return this.speakWithBrowser(cleanedText, options);
+      throw error;
     }
   }
 
@@ -246,16 +121,9 @@ export class EnhancedVoiceOutput {
   }
 
   /**
-   * Stop any ongoing speech (both browser and ElevenLabs)
+   * Stop any ongoing speech
    */
   stop(): void {
-    // Stop browser TTS
-    if (this.synthesis) {
-      this.synthesis.cancel();
-    }
-    this.currentUtterance = null;
-    
-    // Stop ElevenLabs audio
     if (this.currentAudio) {
       this.currentAudio.pause();
       this.currentAudio.currentTime = 0;
@@ -264,30 +132,10 @@ export class EnhancedVoiceOutput {
   }
 
   /**
-   * Check if currently speaking (browser or ElevenLabs)
+   * Check if currently speaking
    */
   isSpeaking(): boolean {
-    const browserSpeaking = this.synthesis?.speaking || false;
-    const elevenLabsSpeaking = this.currentAudio && !this.currentAudio.paused;
-    return browserSpeaking || !!elevenLabsSpeaking;
-  }
-
-  /**
-   * Pause speech (browser TTS only)
-   */
-  pause(): void {
-    if (this.synthesis && this.synthesis.speaking) {
-      this.synthesis.pause();
-    }
-  }
-
-  /**
-   * Resume paused speech (browser TTS only)
-   */
-  resume(): void {
-    if (this.synthesis && this.synthesis.paused) {
-      this.synthesis.resume();
-    }
+    return this.currentAudio && !this.currentAudio.paused;
   }
 }
 

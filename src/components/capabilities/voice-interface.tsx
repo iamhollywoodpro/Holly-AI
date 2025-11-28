@@ -46,14 +46,14 @@ export function VoiceInterface() {
 
     setLoading(true);
     try {
-      const response = await fetch('/api/voice/speak', {
+      // Use Fish-Speech TTS
+      const response = await fetch('/api/tts/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, voice, speed: 1.0 }),
+        body: JSON.stringify({ text, voice: 'holly' }),
       });
 
-      const data = await response.json();
-      const audioBlob = base64ToBlob(data.audio, 'audio/mpeg');
+      const audioBlob = await response.blob();
       const url = URL.createObjectURL(audioBlob);
       setAudioUrl(url);
     } catch (error) {
@@ -63,14 +63,7 @@ export function VoiceInterface() {
     }
   };
 
-  const base64ToBlob = (base64: string, type: string) => {
-    const binary = atob(base64);
-    const array = [];
-    for (let i = 0; i < binary.length; i++) {
-      array.push(binary.charCodeAt(i));
-    }
-    return new Blob([new Uint8Array(array)], { type });
-  };
+
 
   const startRecording = async () => {
     try {
