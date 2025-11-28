@@ -180,8 +180,8 @@ export default function VoiceInputButton({
           )}
         </AnimatePresence>
 
-        {/* Speaking indicator */}
-        {voiceState.isSpeaking && (
+        {/* Speaking indicator - removed (TTS is handled separately) */}
+        {false && voiceState.isListening && (
           <>
             <motion.div
               className="absolute inset-0 rounded-full border-2 border-purple-400"
