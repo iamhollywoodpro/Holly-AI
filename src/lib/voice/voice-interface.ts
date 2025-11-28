@@ -25,7 +25,9 @@ class VoiceInterface {
 
       // Create form data with audio file
       const formData = new FormData();
-      const audioBlob = new Blob([audioBuffer], { type: 'audio/wav' });
+      // Convert Buffer to Uint8Array for Blob compatibility
+      const uint8Array = new Uint8Array(audioBuffer);
+      const audioBlob = new Blob([uint8Array], { type: 'audio/wav' });
       formData.append('file', audioBlob, 'audio.wav');
       formData.append('model', 'whisper-1');
       formData.append('language', 'en');
