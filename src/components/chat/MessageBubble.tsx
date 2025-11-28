@@ -42,9 +42,9 @@ export default function MessageBubble({ message, index }: MessageBubbleProps) {
   const media = detectMedia(message.content);
   const hasMedia = media.images.length > 0 || media.videos.length > 0 || media.audios.length > 0;
 
-  // HOLLY's voice with Kokoro TTS (af_heart)
-  const handleVoicePlayStart = (data: { provider: string; duration: string }) => {
-    console.log(`[HOLLY Voice] Playing via ${data.provider} (${data.duration}ms)`);
+  // HOLLY's voice with Fish-Speech
+  const handleVoicePlayStart = () => {
+    console.log('[HOLLY Voice] Playing via Fish-Speech');
   };
 
   const handleVoicePlayEnd = () => {
