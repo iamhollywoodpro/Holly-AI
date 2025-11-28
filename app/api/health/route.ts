@@ -37,10 +37,10 @@ export async function GET() {
         }
       },
       voice: {
-        elevenlabs: {
-          available: !!process.env.ELEVENLABS_API_KEY,
-          voices: ['rachel', 'bella', 'elli', 'grace'],
-          status: process.env.ELEVENLABS_API_KEY ? 'configured' : 'missing_key'
+        'fish-speech': {
+          available: !!process.env.TTS_API_URL,
+          voice: 'holly',
+          status: process.env.TTS_API_URL ? 'configured' : 'missing_url'
         }
       },
       storage: {

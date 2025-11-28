@@ -38,9 +38,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('[TTS API] Proxying request to self-hosted service:', {
+    console.log('[TTS API] Proxying request to Fish-Speech service:', {
       textLength: body.text.length,
-      voice: body.voice || 'af_heart',
+      voice: body.voice || 'holly',
       serviceUrl: ttsApiUrl
     });
 

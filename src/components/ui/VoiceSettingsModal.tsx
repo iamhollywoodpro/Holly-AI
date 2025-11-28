@@ -1,12 +1,12 @@
 /**
  * Voice Settings Modal
- * Control HOLLY's voice output preferences
+ * Control HOLLY's voice output preferences (Fish-Speech only)
  */
 
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Volume2, Settings, Sparkles } from 'lucide-react';
+import { X, Volume2, Sparkles } from 'lucide-react';
 import { useVoiceSettings } from '@/hooks/useVoiceSettings';
 
 interface VoiceSettingsModalProps {
@@ -18,15 +18,9 @@ export function VoiceSettingsModal({ isOpen, onClose }: VoiceSettingsModalProps)
   const {
     enabled,
     autoSpeak,
-    provider,
-    rate,
-    pitch,
     volume,
     toggleEnabled,
     toggleAutoSpeak,
-    setProvider,
-    setRate,
-    setPitch,
     setVolume,
     resetToDefaults,
   } = useVoiceSettings();
@@ -61,7 +55,7 @@ export function VoiceSettingsModal({ isOpen, onClose }: VoiceSettingsModalProps)
                 </div>
                 <div>
                   <h2 className="text-xl font-bold text-white">Voice Settings</h2>
-                  <p className="text-sm text-gray-400">Customize HOLLY's voice</p>
+                  <p className="text-sm text-gray-400">HOLLY's Fish-Speech voice</p>
                 </div>
               </div>
               <motion.button
@@ -99,11 +93,11 @@ export function VoiceSettingsModal({ isOpen, onClose }: VoiceSettingsModalProps)
 
               {enabled && (
                 <>
-                  {/* Auto-Speak Toggle */}
+                  {/* Auto-Speak */}
                   <div className="flex items-center justify-between">
                     <div>
-                      <label className="text-sm font-medium text-white">Auto-Speak</label>
-                      <p className="text-xs text-gray-400">Automatically speak all messages</p>
+                      <label className="text-sm font-medium text-white">Auto-Speak Messages</label>
+                      <p className="text-xs text-gray-400">Automatically read all responses</p>
                     </div>
                     <motion.button
                       onClick={toggleAutoSpeak}
@@ -120,84 +114,7 @@ export function VoiceSettingsModal({ isOpen, onClose }: VoiceSettingsModalProps)
                     </motion.button>
                   </div>
 
-                  {/* Provider Selection */}
-                  <div>
-                    <label className="text-sm font-medium text-white mb-2 block">Voice Provider</label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <motion.button
-                        onClick={() => setProvider('browser')}
-                        className={`p-3 rounded-lg border-2 transition-all ${
-                          provider === 'browser'
-                            ? 'border-purple-500 bg-purple-500/20'
-                            : 'border-gray-600 bg-gray-800/50 hover:border-gray-500'
-                        }`}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                      >
-                        <Settings className="w-5 h-5 mx-auto mb-1 text-gray-300" />
-                        <p className="text-xs font-medium text-white">Browser</p>
-                        <p className="text-[10px] text-gray-400">Free</p>
-                      </motion.button>
-                      <motion.button
-                        onClick={() => setProvider('elevenlabs')}
-                        className={`p-3 rounded-lg border-2 transition-all ${
-                          provider === 'elevenlabs'
-                            ? 'border-purple-500 bg-purple-500/20'
-                            : 'border-gray-600 bg-gray-800/50 hover:border-gray-500'
-                        }`}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                      >
-                        <Sparkles className="w-5 h-5 mx-auto mb-1 text-purple-400" />
-                        <p className="text-xs font-medium text-white">ElevenLabs</p>
-                        <p className="text-[10px] text-gray-400">Premium</p>
-                      </motion.button>
-                    </div>
-                  </div>
-
-                  {/* Speech Rate */}
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="text-sm font-medium text-white">Speech Rate</label>
-                      <span className="text-xs text-gray-400">{rate.toFixed(2)}x</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="0.5"
-                      max="2.0"
-                      step="0.1"
-                      value={rate}
-                      onChange={(e) => setRate(parseFloat(e.target.value))}
-                      className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-purple-500"
-                    />
-                    <div className="flex justify-between text-xs text-gray-500 mt-1">
-                      <span>Slower</span>
-                      <span>Faster</span>
-                    </div>
-                  </div>
-
-                  {/* Pitch */}
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="text-sm font-medium text-white">Pitch</label>
-                      <span className="text-xs text-gray-400">{pitch.toFixed(2)}</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="0.5"
-                      max="2.0"
-                      step="0.1"
-                      value={pitch}
-                      onChange={(e) => setPitch(parseFloat(e.target.value))}
-                      className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-purple-500"
-                    />
-                    <div className="flex justify-between text-xs text-gray-500 mt-1">
-                      <span>Lower</span>
-                      <span>Higher</span>
-                    </div>
-                  </div>
-
-                  {/* Volume */}
+                  {/* Volume Control */}
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <label className="text-sm font-medium text-white">Volume</label>
@@ -205,40 +122,49 @@ export function VoiceSettingsModal({ isOpen, onClose }: VoiceSettingsModalProps)
                     </div>
                     <input
                       type="range"
-                      min="0.0"
-                      max="1.0"
+                      min="0"
+                      max="1"
                       step="0.1"
                       value={volume}
                       onChange={(e) => setVolume(parseFloat(e.target.value))}
-                      className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                      className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-purple-500"
                     />
-                    <div className="flex justify-between text-xs text-gray-500 mt-1">
-                      <span>Quieter</span>
-                      <span>Louder</span>
+                  </div>
+
+                  {/* Voice Info */}
+                  <div className="glass-card rounded-lg p-4 border border-purple-500/20">
+                    <div className="flex items-start gap-3">
+                      <Sparkles className="w-5 h-5 text-purple-400 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-white mb-1">Fish-Speech TTS</p>
+                        <p className="text-xs text-gray-400">
+                          Self-hosted, high-quality neural voice synthesis with HOLLY's custom voice profile.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </>
               )}
+            </div>
 
-              {/* Reset Button */}
+            {/* Footer Actions */}
+            <div className="flex gap-3 mt-6 pt-6 border-t border-white/10">
               <motion.button
                 onClick={resetToDefaults}
-                className="w-full py-2 px-4 rounded-lg border border-gray-600 hover:border-gray-500 text-sm text-gray-300 hover:text-white transition-colors"
+                className="flex-1 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-sm font-medium text-white transition-colors"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >
                 Reset to Defaults
               </motion.button>
-
-              {/* Info */}
-              {provider === 'elevenlabs' && (
-                <div className="p-3 rounded-lg bg-purple-500/10 border border-purple-500/20">
-                  <p className="text-xs text-purple-300">
-                    <strong>ElevenLabs</strong> requires an API key in your <code className="text-xs bg-black/30 px-1 py-0.5 rounded">.env.local</code> file. 
-                    Falls back to browser TTS if not configured.
-                  </p>
-                </div>
-              )}
+              <motion.button
+                onClick={onClose}
+                className="flex-1 px-4 py-2 rounded-lg bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-sm font-medium text-white transition-all"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                Done
+              </motion.button>
             </div>
           </motion.div>
         </>

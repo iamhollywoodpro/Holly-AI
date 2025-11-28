@@ -220,7 +220,7 @@ export default function MessageBubble({ message, index }: MessageBubbleProps) {
               {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </div>
             
-            {/* HOLLY Voice Player with Kokoro TTS (af_heart) */}
+            {/* HOLLY Voice Player with Fish-Speech */}
             {!isUser && (
               <HollyVoicePlayer
                 text={message.content}
