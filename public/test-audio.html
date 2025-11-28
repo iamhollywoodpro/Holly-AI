@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HOLLY Audio Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+        }
+        h1 {
+            margin-bottom: 30px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s;
+        }
+        button:hover {
+            background: #45a049;
+            transform: scale(1.05);
+        }
+        button:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+        #status {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            min-height: 50px;
+        }
+        .log {
+            background: #000;
+            color: #0f0;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .log div {
+            margin: 5px 0;
+            padding: 5px;
+            border-left: 3px solid #0f0;
+            padding-left: 10px;
+        }
+        .error {
+            border-left-color: #f00 !important;
+            color: #f00 !important;
+        }
+        .success {
+            border-left-color: #0f0 !important;
+            color: #0f0 !important;
+        }
+        .info {
+            border-left-color: #00f !important;
+            color: #00bfff !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎙️ HOLLY Voice Test</h1>
+        
+        <button id="testBtn" onclick="testAudio()">🔊 Test HOLLY Voice</button>
+        <button id="directBtn" onclick="testDirect()">🎵 Direct Audio Test</button>
+        <button onclick="clearLog()">🗑️ Clear Log</button>
+        
+        <div id="status">Click "Test HOLLY Voice" to begin...</div>
+        
+        <div class="log" id="log"></div>
+    </div>
+
+    <script>
+        let logDiv = document.getElementById('log');
+        let statusDiv = document.getElementById('status');
+
+        function log(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = type;
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logDiv.appendChild(div);
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+
+        function clearLog() {
+            logDiv.innerHTML = '';
+            statusDiv.textContent = 'Log cleared.';
+        }
+
+        async function testAudio() {
+            const btn = document.getElementById('testBtn');
+            btn.disabled = true;
+            statusDiv.textContent = '⏳ Generating audio...';
+            log('=== HOLLY Voice Test Started ===', 'info');
+
+            try {
+                // Test 1: Check AudioContext
+                log('Testing AudioContext availability...', 'info');
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                const audioContext = new AudioContext();
+                log(`✅ AudioContext created, state: ${audioContext.state}`, 'success');
+
+                if (audioContext.state === 'suspended') {
+                    log('⚠️ AudioContext is suspended, attempting to resume...', 'info');
+                    await audioContext.resume();
+                    log(`✅ AudioContext resumed, new state: ${audioContext.state}`, 'success');
+                }
+
+                // Test 2: Call TTS API
+                log('Calling Fish-Speech TTS API...', 'info');
+                const response = await fetch('/api/tts/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        text: 'Hello Hollywood, this is HOLLY speaking. If you can hear me, the audio system is working perfectly!',
+                        voice: 'holly',
+                    }),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`TTS API failed: ${response.status} ${response.statusText}`);
+                }
+
+                log(`✅ TTS API response: ${response.status}`, 'success');
+                log(`Content-Type: ${response.headers.get('content-type')}`, 'info');
+
+                // Test 3: Get audio blob
+                const audioBlob = await response.blob();
+                log(`✅ Audio blob received: ${(audioBlob.size / 1024).toFixed(2)} KB`, 'success');
+                log(`Blob type: ${audioBlob.type}`, 'info');
+
+                // Test 4: Create audio URL
+                const audioUrl = URL.createObjectURL(audioBlob);
+                log(`✅ Blob URL created: ${audioUrl.substring(0, 50)}...`, 'success');
+
+                // Test 5: Create Audio element
+                const audio = new Audio(audioUrl);
+                audio.volume = 0.9;
+                log(`✅ Audio element created, volume: ${audio.volume}`, 'success');
+
+                // Test 6: Add event listeners
+                audio.onloadeddata = () => {
+                    log(`✅ Audio data loaded, duration: ${audio.duration.toFixed(2)}s`, 'success');
+                };
+
+                audio.onplay = () => {
+                    log('🔊 Audio playback STARTED - You should hear sound now!', 'success');
+                    statusDiv.textContent = '🔊 Playing HOLLY voice...';
+                };
+
+                audio.onended = () => {
+                    log('✅ Audio playback ENDED', 'success');
+                    statusDiv.textContent = '✅ Test complete!';
+                    URL.revokeObjectURL(audioUrl);
+                    btn.disabled = false;
+                };
+
+                audio.onerror = (error) => {
+                    log(`❌ Audio error: ${error}`, 'error');
+                    statusDiv.textContent = '❌ Audio playback failed!';
+                    URL.revokeObjectURL(audioUrl);
+                    btn.disabled = false;
+                };
+
+                // Test 7: Play audio
+                log('Attempting to play audio...', 'info');
+                const playPromise = audio.play();
+
+                if (playPromise !== undefined) {
+                    playPromise.then(() => {
+                        log('✅ Play promise RESOLVED - Audio is playing!', 'success');
+                    }).catch((error) => {
+                        log(`❌ Play promise REJECTED: ${error.name} - ${error.message}`, 'error');
+                        if (error.name === 'NotAllowedError') {
+                            log('🚫 Browser blocked audio playback - user interaction required!', 'error');
+                            statusDiv.textContent = '⚠️ Browser blocked audio. Try clicking the button again.';
+                        } else {
+                            statusDiv.textContent = `❌ Playback error: ${error.message}`;
+                        }
+                        btn.disabled = false;
+                    });
+                }
+
+            } catch (error) {
+                log(`❌ Fatal error: ${error.message}`, 'error');
+                statusDiv.textContent = `❌ Error: ${error.message}`;
+                btn.disabled = false;
+            }
+        }
+
+        async function testDirect() {
+            const btn = document.getElementById('directBtn');
+            btn.disabled = true;
+            log('=== Direct Audio Test ===', 'info');
+            
+            try {
+                // Create a simple beep sound
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                log(`AudioContext state: ${audioContext.state}`, 'info');
+                
+                if (audioContext.state === 'suspended') {
+                    await audioContext.resume();
+                    log(`AudioContext resumed: ${audioContext.state}`, 'success');
+                }
+                
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.value = 440; // A4 note
+                gainNode.gain.value = 0.3;
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.5);
+                
+                log('✅ Direct beep sound played', 'success');
+                statusDiv.textContent = '✅ Direct audio test complete!';
+                
+                setTimeout(() => btn.disabled = false, 600);
+            } catch (error) {
+                log(`❌ Direct audio test failed: ${error.message}`, 'error');
+                statusDiv.textContent = `❌ Direct audio failed: ${error.message}`;
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
