@@ -15,9 +15,14 @@ export interface VoiceOutputOptions {
 
 export class EnhancedVoiceOutput {
   private currentAudio: HTMLAudioElement | null = null;
+  private audioContext: AudioContext | null = null;
 
   constructor() {
     // Fish-Speech TTS only - no browser TTS
+    // Initialize AudioContext for better browser compatibility
+    if (typeof window !== 'undefined') {
+      this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    }
   }
 
   /**
@@ -63,6 +68,13 @@ export class EnhancedVoiceOutput {
       const audioUrl = URL.createObjectURL(audioBlob);
       console.log('[Fish-Speech] Created blob URL:', audioUrl);
 
+      // Resume AudioContext if suspended (browser autoplay policy)
+      if (this.audioContext && this.audioContext.state === 'suspended') {
+        console.log('[Fish-Speech] Resuming AudioContext...');
+        await this.audioContext.resume();
+        console.log('[Fish-Speech] AudioContext resumed:', this.audioContext.state);
+      }
+
       // Play audio
       return new Promise((resolve, reject) => {
         const audio = new Audio(audioUrl);
@@ -107,13 +119,34 @@ export class EnhancedVoiceOutput {
         };
 
         console.log('[Fish-Speech] Attempting to play audio...');
-        audio.play().then(() => {
-          console.log('[Fish-Speech] Play promise resolved');
-          if (options.onStart) options.onStart();
-        }).catch((error) => {
-          console.error('[Fish-Speech] Play promise rejected:', error);
-          reject(error);
-        });
+        const playPromise = audio.play();
+        
+        if (playPromise !== undefined) {
+          playPromise.then(() => {
+            console.log('[Fish-Speech] ✅ Play promise RESOLVED - Audio is playing!');
+            console.log('[Fish-Speech] Volume:', audio.volume, 'Muted:', audio.muted, 'Duration:', audio.duration);
+            if (options.onStart) options.onStart();
+          }).catch((error) => {
+            console.error('[Fish-Speech] ❌ Play promise REJECTED:', error);
+            console.error('[Fish-Speech] Error details:', {
+              name: error.name,
+              message: error.message,
+              audioState: {
+                volume: audio.volume,
+                muted: audio.muted,
+                readyState: audio.readyState,
+                paused: audio.paused
+              },
+              audioContextState: this.audioContext?.state
+            });
+            
+            // Try to provide helpful error message
+            if (error.name === 'NotAllowedError') {
+              console.error('[Fish-Speech] 🚫 Browser blocked audio playback - user interaction required first!');
+            }
+            reject(error);
+          });
+        }
       });
     } catch (error) {
       console.error('Fish-Speech error:', error);
