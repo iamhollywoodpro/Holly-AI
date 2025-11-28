@@ -88,11 +88,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
       setIsSpeakingThis(true);
       
       await speakText(message.content, {
-        rate: voiceSettings.rate,
-        pitch: voiceSettings.pitch,
         volume: voiceSettings.volume,
-        provider: voiceSettings.provider,
-        elevenLabsVoiceId: voiceSettings.elevenLabsVoiceId,
       });
       
       setIsSpeakingThis(false);

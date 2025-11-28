@@ -481,8 +481,6 @@ export default function ChatPage() {
         const voiceOutput = voiceOutputRef.current;
         setTimeout(() => {
           voiceOutput.speak(accumulatedContent, {
-            provider: 'elevenlabs',
-            elevenLabsVoiceId: 'charlotte',
             volume: 0.9,
             onStart: () => setIsVoiceOutputActive(true),
             onEnd: () => setIsVoiceOutputActive(false),
