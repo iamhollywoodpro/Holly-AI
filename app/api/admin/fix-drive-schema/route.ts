@@ -31,10 +31,26 @@ export async function POST() {
     
     // Check if connectedAt column exists
     try {
+      // Try both naming conventions (PascalCase and snake_case)
+      let tableName = 'GoogleDriveConnection';
+      
+      // First check which table name exists
+      const tableCheck = await prisma.$queryRawUnsafe(`
+        SELECT table_name 
+        FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND (table_name = 'GoogleDriveConnection' OR table_name = 'google_drive_connection')
+      `);
+      
+      if (Array.isArray(tableCheck) && tableCheck.length > 0) {
+        tableName = (tableCheck[0] as any).table_name;
+        console.log('[Schema Fix] Found table:', tableName);
+      }
+      
       const columnCheck = await prisma.$queryRawUnsafe(`
         SELECT column_name 
         FROM information_schema.columns 
-        WHERE table_name = 'GoogleDriveConnection' 
+        WHERE table_name = '${tableName}' 
         AND column_name = 'connectedAt'
       `);
       
@@ -45,7 +61,7 @@ export async function POST() {
         
         // Add the connectedAt column with DEFAULT now()
         await prisma.$executeRawUnsafe(`
-          ALTER TABLE "GoogleDriveConnection" 
+          ALTER TABLE "${tableName}" 
           ADD COLUMN IF NOT EXISTS "connectedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
         `);
         
