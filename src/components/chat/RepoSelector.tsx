@@ -56,20 +56,34 @@ export function RepoSelector() {
     fetchRepos();
   }, []);
 
-  const fetchRepos = async (sync: boolean = true) => {
+  const fetchRepos = async (sync: boolean = false) => {
     try {
       setLoading(true);
+      setError(''); // Clear previous errors
       const url = sync ? '/api/github/repos?sync=true' : '/api/github/repos';
       const response = await fetch(url);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('[RepoSelector] API Error:', errorData);
+        setError(errorData.details || errorData.error || 'Failed to fetch repositories');
+        return;
+      }
+      
       const data = await response.json();
 
       if (data.error) {
-        setError(data.error);
+        console.error('[RepoSelector] Data Error:', data);
+        setError(data.details || data.error);
         return;
       }
 
       setRepos(data.repos || []);
+      if (data.repos && data.repos.length > 0) {
+        setError(''); // Clear errors on success
+      }
     } catch (err: any) {
+      console.error('[RepoSelector] Fetch Error:', err);
       setError(err.message || 'Failed to fetch repositories');
     } finally {
       setLoading(false);

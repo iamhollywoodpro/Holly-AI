@@ -144,9 +144,17 @@ export async function GET(req: NextRequest) {
     });
     
   } catch (error: any) {
-    console.error('List GitHub repos error:', error);
+    console.error('[GitHub Repos] Error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
     return NextResponse.json(
-      { error: 'Failed to list repositories' },
+      { 
+        error: 'Failed to list repositories',
+        details: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      },
       { status: 500 }
     );
   }
