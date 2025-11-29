@@ -161,7 +161,7 @@ async function fetchGitHubRepos(
   direction: string
 ): Promise<any[]> {
   const response = await fetch(
-    `https://api.github.com/user/repos?type=all&visibility=all&page=${page}&per_page=${perPage}&sort=${sort}&direction=${direction}`,
+    `https://api.github.com/user/repos?visibility=all&affiliation=owner,collaborator,organization_member&page=${page}&per_page=${perPage}&sort=${sort}&direction=${direction}`,
     {
       headers: {
         Authorization: `Bearer ${accessToken}`,
