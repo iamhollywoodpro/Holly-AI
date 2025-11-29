@@ -26,9 +26,22 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Get user from database
+    const user = await prisma.user.findUnique({
+      where: { clerkUserId: userId },
+      select: { id: true }
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      );
+    }
+
     // Get user's GitHub connection
     const connection = await prisma.gitHubConnection.findUnique({
-      where: { userId },
+      where: { userId: user.id },
     });
 
     if (!connection || !connection.accessToken) {
