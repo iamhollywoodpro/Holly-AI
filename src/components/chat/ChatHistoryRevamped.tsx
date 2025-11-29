@@ -22,10 +22,10 @@ import { Menu } from '@headlessui/react';
 interface Conversation {
   id: string;
   title: string;
-  created_at: string;
-  updated_at: string;
-  message_count: number;
-  last_message_preview: string;
+  createdAt: string; // Match API camelCase
+  updatedAt: string; // Match API camelCase
+  messageCount: number; // Match API camelCase
+  lastMessagePreview: string; // Match API camelCase
   isPinned?: boolean;
   colorTag?: string;
   thumbnail?: string;
@@ -174,7 +174,7 @@ export default function ChatHistoryRevamped({
       const query = searchQuery.toLowerCase();
       return (
         conv.title?.toLowerCase().includes(query) ||
-        conv.last_message_preview?.toLowerCase().includes(query)
+        conv.lastMessagePreview?.toLowerCase().includes(query)
       );
     })
     .sort((a, b) => {
@@ -187,17 +187,17 @@ export default function ChatHistoryRevamped({
         case 'name':
           return (a.title || '').localeCompare(b.title || '');
         case 'messages':
-          return b.message_count - a.message_count;
+          return b.messageCount - a.messageCount;
         case 'date':
         default:
-          return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+          return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
       }
     });
 
   // Group by date
   const groupedConversations = filteredConversations.reduce((acc, conv) => {
     try {
-      const date = new Date(conv.updated_at);
+      const date = new Date(conv.updatedAt);
       if (isNaN(date.getTime())) {
         if (!acc['Older']) acc['Older'] = [];
         acc['Older'].push(conv);
@@ -434,18 +434,18 @@ export default function ChatHistoryRevamped({
 
                           {/* Preview */}
                           <p className="text-xs text-gray-400 truncate mb-2">
-                            {conv.last_message_preview || 'No messages yet'}
+                            {conv.lastMessagePreview || 'No messages yet'}
                           </p>
 
                           {/* Metadata */}
                           <div className="flex items-center gap-3 text-xs text-gray-500">
                             <div className="flex items-center gap-1">
                               <MessageSquare className="w-3 h-3" />
-                              <span>{conv.message_count}</span>
+                              <span>{conv.messageCount}</span>
                             </div>
                             <div className="flex items-center gap-1">
                               <Clock className="w-3 h-3" />
-                              <span>{formatTime(conv.updated_at)}</span>
+                              <span>{formatTime(conv.updatedAt)}</span>
                             </div>
                           </div>
                         </div>
@@ -453,8 +453,8 @@ export default function ChatHistoryRevamped({
                         {/* Hover Preview Tooltip */}
                         <div className="absolute left-full ml-2 top-0 w-64 p-3 bg-gray-900 border border-gray-800 rounded-lg shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-20 hidden lg:block">
                           <div className="text-xs text-white font-semibold mb-1">{conv.title}</div>
-                          <div className="text-xs text-gray-400">{conv.last_message_preview}</div>
-                          <div className="text-xs text-gray-500 mt-2">{conv.message_count} messages</div>
+                          <div className="text-xs text-gray-400">{conv.lastMessagePreview}</div>
+                          <div className="text-xs text-gray-500 mt-2">{conv.messageCount} messages</div>
                         </div>
                       </motion.div>
                     ))}
