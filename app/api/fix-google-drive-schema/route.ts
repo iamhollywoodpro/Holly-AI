@@ -6,7 +6,7 @@ import { prisma } from '@/lib/db';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-export async function POST() {
+async function checkSchema(userId: string) {
   try {
     const { userId } = await auth();
     
@@ -75,6 +75,40 @@ export async function POST() {
       error: 'Fix failed',
       message: error.message,
       stack: error.stack
+    }, { status: 500 });
+  }
+}
+
+export async function GET() {
+  try {
+    const { userId } = await auth();
+    
+    if (!userId) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+    
+    return checkSchema(userId);
+  } catch (error: any) {
+    return NextResponse.json({
+      error: 'Check failed',
+      message: error.message
+    }, { status: 500 });
+  }
+}
+
+export async function POST() {
+  try {
+    const { userId } = await auth();
+    
+    if (!userId) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+    
+    return checkSchema(userId);
+  } catch (error: any) {
+    return NextResponse.json({
+      error: 'Check failed',
+      message: error.message
     }, { status: 500 });
   }
 }
