@@ -8,10 +8,10 @@ import { useUser } from '@clerk/nextjs';
 interface Conversation {
   id: string;
   title: string;
-  created_at: string;
-  updated_at: string;
-  message_count: number;
-  last_message_preview: string;
+  createdAt: string; // Match API camelCase
+  updatedAt: string; // Match API camelCase
+  messageCount: number; // Match API camelCase
+  lastMessagePreview: string; // Match API camelCase
 }
 
 interface ChatHistoryProps {
@@ -106,14 +106,14 @@ export default function ChatHistory({
     const query = searchQuery.toLowerCase();
     return (
       conv.title?.toLowerCase().includes(query) ||
-      conv.last_message_preview?.toLowerCase().includes(query)
+      conv.lastMessagePreview?.toLowerCase().includes(query)
     );
   });
 
   // Group conversations by date
   const groupedConversations = filteredConversations.reduce((acc, conv) => {
     try {
-      const date = new Date(conv.updated_at);
+      const date = new Date(conv.updatedAt);
       
       // Check if date is valid
       if (isNaN(date.getTime())) {
@@ -237,18 +237,18 @@ export default function ChatHistory({
 
                         {/* Last message preview */}
                         <p className="text-xs text-gray-400 truncate mb-2">
-                          {conv.last_message_preview || 'No messages yet'}
+                          {conv.lastMessagePreview || 'No messages yet'}
                         </p>
 
                         {/* Metadata */}
                         <div className="flex items-center gap-3 text-xs text-gray-500">
                           <div className="flex items-center gap-1">
                             <MessageSquare className="w-3 h-3" />
-                            <span>{conv.message_count}</span>
+                            <span>{conv.messageCount}</span>
                           </div>
                           <div className="flex items-center gap-1">
                             <Clock className="w-3 h-3" />
-                            <span>{formatTime(conv.updated_at)}</span>
+                            <span>{formatTime(conv.updatedAt)}</span>
                           </div>
                         </div>
                       </motion.button>
