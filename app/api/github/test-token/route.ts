@@ -94,7 +94,7 @@ export async function GET() {
     // Test 2: Check repos endpoint
     try {
       const reposResponse = await fetch(
-        'https://api.github.com/user/repos?type=all&visibility=all&per_page=5',
+        'https://api.github.com/user/repos?visibility=all&affiliation=owner,collaborator,organization_member&per_page=5',
         {
           headers: {
             Authorization: `Bearer ${connection.accessToken}`,

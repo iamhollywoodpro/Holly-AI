@@ -130,8 +130,9 @@ export async function GET(req: NextRequest) {
       console.log('[GitHub] Auto-syncing repositories for user:', user.id);
       
       // Fetch repos from GitHub API
+      // Note: Cannot use 'type' and 'visibility' together. Using visibility + affiliation instead.
       const reposResponse = await fetch(
-        'https://api.github.com/user/repos?type=all&visibility=all&per_page=100&sort=updated&direction=desc',
+        'https://api.github.com/user/repos?visibility=all&affiliation=owner,collaborator,organization_member&per_page=100&sort=updated&direction=desc',
         {
           headers: {
             Authorization: `Bearer ${access_token}`,
