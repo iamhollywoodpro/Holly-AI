@@ -58,13 +58,23 @@ export function GitHubConnectionDropdown({
   const syncRepos = async () => {
     setSyncing(true);
     try {
-      const response = await fetch('/api/github/repos?sync=true');
+      // Use new manual sync endpoint
+      const response = await fetch('/api/github/sync-now', {
+        method: 'POST'
+      });
       const data = await response.json();
-      if (data.repos) {
-        setRepos(data.repos);
+      
+      if (data.success) {
+        console.log(`✅ Synced ${data.synced} repositories`);
+        // Refresh repo list
+        fetchRepos();
+      } else {
+        console.error('❌ Sync failed:', data.error);
+        alert(`Sync failed: ${data.error || data.message}`);
       }
     } catch (error) {
       console.error('Failed to sync repos:', error);
+      alert('Failed to sync repositories. Check console for details.');
     } finally {
       setSyncing(false);
     }
