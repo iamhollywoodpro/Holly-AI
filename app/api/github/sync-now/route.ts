@@ -57,11 +57,24 @@ export async function POST() {
       const errorText = await reposResponse.text();
       console.error('[GitHub Sync] API Error:', reposResponse.status, errorText);
       
+      let parsedError;
+      try {
+        parsedError = JSON.parse(errorText);
+      } catch {
+        parsedError = { raw: errorText };
+      }
+      
       return NextResponse.json({
         error: 'GitHub API error',
-        status: reposResponse.status,
-        message: errorText
-      }, { status: reposResponse.status });
+        githubStatus: reposResponse.status,
+        githubMessage: parsedError.message || errorText,
+        details: parsedError,
+        recommendation: reposResponse.status === 401 
+          ? '❌ Token is invalid or expired - Please reconnect GitHub'
+          : reposResponse.status === 403
+          ? '⚠️ Rate limit exceeded or insufficient permissions - Check token scopes'
+          : '❌ GitHub API returned an error - Check console logs'
+      }, { status: 422 });
     }
     
     const githubRepos = await reposResponse.json();
