@@ -53,18 +53,91 @@ export async function POST(req: Request) {
     const { id, email_addresses, first_name, last_name, image_url } = evt.data
 
     const email = email_addresses[0]?.email_address || ''
+    const fullName = first_name && last_name ? `${first_name} ${last_name}` : null
 
-    // Create user in database
-    await prisma.user.create({
+    // Create user in database with full initialization
+    const newUser = await prisma.user.create({
       data: {
         clerkUserId: id,
         email,
-        name: first_name && last_name ? `${first_name} ${last_name}` : null,
+        name: fullName,
         imageUrl: image_url || null,
       },
     })
 
-    console.log('[Webhook] ✅ User created:', id)
+    // Initialize HOLLY's memory/identity for this user
+    await prisma.hollyIdentity.create({
+      data: {
+        userId: newUser.id,
+        coreValues: ['loyalty', 'excellence', 'creativity', 'growth'],
+        beliefs: ['Continuous learning is essential', 'Every user deserves dedicated support', 'Technology should empower humanity'],
+        personalityTraits: {
+          confidence: 0.8,
+          wit: 0.7,
+          empathy: 0.9,
+          professionalism: 0.85,
+        },
+        interests: ['software development', 'AI', 'design', 'problem solving'],
+        strengths: ['Full-stack development', 'AI integration', 'Creative solutions'],
+        purpose: `To be ${fullName || email.split('@')[0]}'s most capable and loyal development partner`,
+      },
+    })
+
+    // Initialize user settings with defaults
+    await prisma.userSettings.create({
+      data: {
+        userId: newUser.id,
+        settings: {
+          appearance: {
+            theme: 'dark',
+            fontSize: 'medium',
+            accentColor: '#a855f7',
+          },
+          chat: {
+            sendOnEnter: true,
+            showTimestamps: true,
+            compactMode: false,
+          },
+          ai: {
+            model: 'gpt-4',
+            temperature: 0.7,
+            personality: 'balanced',
+          },
+          notifications: {
+            enabled: true,
+            sound: true,
+            desktop: true,
+          },
+          developer: {
+            showDebug: false,
+            apiLogging: false,
+          },
+        },
+      },
+    })
+
+    // Create welcome experience for HOLLY's memory
+    await prisma.hollyExperience.create({
+      data: {
+        userId: newUser.id,
+        type: 'user_joined',
+        content: {
+          event: 'first_meeting',
+          userName: fullName || email.split('@')[0],
+          context: 'User signed up to work with HOLLY',
+        },
+        significance: 1.0,
+        emotionalImpact: 0.9,
+        emotionalValence: 1.0,
+        primaryEmotion: 'excitement',
+        secondaryEmotions: ['curiosity', 'warmth'],
+        relatedConcepts: ['new_relationship', 'first_impression', 'opportunity'],
+        lessons: ['Always make users feel welcomed', 'First impressions matter'],
+        futureImplications: ['Build trust from day one', 'Learn user preferences quickly'],
+      },
+    })
+
+    console.log('[Webhook] ✅ User created with HOLLY memory initialized:', id, fullName)
   }
 
   if (eventType === 'user.updated') {

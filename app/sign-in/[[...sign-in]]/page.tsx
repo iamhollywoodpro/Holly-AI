@@ -1,10 +1,44 @@
 'use client'
 
 import { SignIn } from '@clerk/nextjs'
+import { useSearchParams } from 'next/navigation'
+import { Suspense } from 'react'
 
-export default function Page() {
+function SignInContent() {
+  const searchParams = useSearchParams()
+  const error = searchParams?.get('error')
+  
+  // Friendly error messages
+  const errorMessages: Record<string, string> = {
+    'oauth_access_denied': 'Access was denied. Please try signing in again.',
+    'oauth_callback_error': 'There was an error connecting your account. Please try again.',
+    'verification_failed': 'Email verification failed. Please check your email and try again.',
+    'session_exists': 'You already have an active session. Please sign out first.',
+  }
+  
+  const errorMessage = error ? (errorMessages[error] || 'An error occurred during sign in. Please try again.') : null
+
   return (
     <div className="min-h-screen bg-black flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Error Banner */}
+      {errorMessage && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 max-w-md w-full mx-4">
+          <div className="bg-red-500/10 border border-red-500/30 backdrop-blur-xl rounded-2xl p-4 shadow-2xl shadow-red-500/20">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 w-6 h-6 bg-red-500/20 rounded-full flex items-center justify-center">
+                <svg className="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-red-300 font-semibold text-sm mb-1">Sign In Error</h3>
+                <p className="text-red-200/80 text-sm">{errorMessage}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* Animated background gradient */}
       <div className="absolute inset-0 bg-gradient-to-br from-purple-900/30 via-black to-pink-900/30 animate-gradient-xy" />
       
@@ -157,5 +191,17 @@ export default function Page() {
         }
       `}</style>
     </div>
+  )
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+      </div>
+    }>
+      <SignInContent />
+    </Suspense>
   )
 }
