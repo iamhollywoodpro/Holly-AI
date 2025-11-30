@@ -135,6 +135,7 @@ export async function saveConnection(
       userId: user.id,
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
+      tokenExpiry: new Date(tokens.expiryDate),
       googleEmail: tokens.email,
       googleName: tokens.name || null,
       googlePicture: tokens.picture || null,
@@ -145,6 +146,7 @@ export async function saveConnection(
     update: {
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
+      tokenExpiry: new Date(tokens.expiryDate),
       googleEmail: tokens.email,
       googleName: tokens.name || null,
       googlePicture: tokens.picture || null,

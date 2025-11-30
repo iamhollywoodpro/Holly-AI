@@ -573,16 +573,26 @@ model GoogleDriveConnection {
   user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   accessToken   String
   refreshToken  String
-  isConnected   Boolean   @default(true)
-  googleEmail   String?
+  tokenExpiry   DateTime
+  googleEmail   String
   googleName    String?
   googlePicture String?
-  autoUpload    Boolean   @default(false)
-  syncEnabled   Boolean   @default(false)
+  rootFolderId  String?
   quotaUsed     BigInt    @default(0)
   quotaLimit    BigInt?
-  lastSyncAt    DateTime?
+  isConnected   Boolean   @default(true)
+  lastSyncAt    DateTime  @default(now())
+  lastErrorAt   DateTime?
+  lastError     String?
+  autoUpload    Boolean   @default(true)
+  syncEnabled   Boolean   @default(true)
+  scopes        String[]  @default([])
+  metadata      Json      @default("{}")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
+  @@index([userId])
+  @@index([googleEmail])
   @@map("google_drive_connections")
 }
 
