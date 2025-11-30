@@ -81,6 +81,7 @@ export default function ChatPage() {
   const [successMessage, setSuccessMessage] = useState('');
   const [driveConnected, setDriveConnected] = useState(false);
   const [allConversations, setAllConversations] = useState<any[]>([]);
+  const [recentUploadedFiles, setRecentUploadedFiles] = useState<any[]>([]); // 👁️  Store files with vision data
 
   // Phase 2: Chat UX Polish state
 
@@ -395,7 +396,9 @@ export default function ChatPage() {
         body: JSON.stringify({
           messages: [...messages, userMessage].map(m => ({
             role: m.role,
-            content: m.content
+            content: m.content,
+            // 👁️  Include file attachments with vision data for last message
+            fileAttachments: m.id === userMessage.id ? recentUploadedFiles : undefined
           })),
           userId: user?.id || 'anonymous',
           conversationId: conversationId || `chat-${Date.now()}`
@@ -516,6 +519,9 @@ export default function ChatPage() {
       
       // Reset voice input flag
       setLastInputWasVoice(false);
+      
+      // 👁️  Clear uploaded files after message sent
+      setRecentUploadedFiles([]);
 
       setIsTyping(false);
     } catch (error) {
@@ -602,10 +608,28 @@ export default function ChatPage() {
       // Remove uploading message
       setMessages(prev => prev.filter(m => m.id !== uploadingMessage.id));
 
-      // Add success message with file links
-      const fileLinks = results.map(r => 
-        `- [${r.fileName}](${r.url}) (${(r.fileSize / 1024).toFixed(1)} KB)`
-      ).join('\n');
+      // Build file links with vision descriptions for images
+      const fileLinks = results.map((r, idx) => {
+        let link = `- [${r.file.name}](${r.file.url}) (${(r.file.size / 1024).toFixed(1)} KB)`;
+        
+        // 👁️  If vision analysis available, add it!
+        if (r.vision && r.vision.summary) {
+          link += `\n  👁️  *HOLLY sees: ${r.vision.summary}*`;
+        }
+        
+        return link;
+      }).join('\n');
+
+      // Store uploaded files with vision data for next message
+      const uploadedFiles = results.map((r, idx) => ({
+        name: r.file.name,
+        url: r.file.url,
+        type: files[idx].type,
+        vision: r.vision // Includes description, summary, keyElements
+      }));
+      
+      // Store in state for next message (you'll need to add this state)
+      setRecentUploadedFiles(uploadedFiles);
 
       const successMessage: Message = {
         id: Date.now().toString(),

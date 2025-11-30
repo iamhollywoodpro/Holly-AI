@@ -15,6 +15,17 @@ export const maxDuration = 60;
 interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
+  fileAttachments?: {
+    name: string;
+    url: string;
+    type: string;
+    vision?: {
+      description: string;
+      summary: string;
+      keyElements: string[];
+      model: string;
+    };
+  }[];
 }
 
 interface ChatRequest {
@@ -186,6 +197,25 @@ export async function POST(request: NextRequest) {
       goals.forEach((g: any) => {
         contextString += `- ${g.description || g.title} (${Math.round((g.progress || 0) * 100)}% complete)\n`;
       });
+    }
+
+    // 👁️  VISION CONTEXT - Add image descriptions if attachments exist
+    if (lastMessage.fileAttachments && lastMessage.fileAttachments.length > 0) {
+      const imageAttachments = lastMessage.fileAttachments.filter(f => 
+        f.type.startsWith('image/') && f.vision
+      );
+      
+      if (imageAttachments.length > 0) {
+        contextString += '\n[Attached Images - What HOLLY Sees]:\n';
+        imageAttachments.forEach((img, idx) => {
+          contextString += `\nImage ${idx + 1} (${img.name}):\n`;
+          contextString += `  Summary: ${img.vision!.summary}\n`;
+          if (img.vision!.keyElements.length > 0) {
+            contextString += `  Key Elements: ${img.vision!.keyElements.join(', ')}\n`;
+          }
+          contextString += `  Full Description: ${img.vision!.description}\n`;
+        });
+      }
     }
 
     // Add context to user's message

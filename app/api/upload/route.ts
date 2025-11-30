@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { uploadFile } from '@/lib/file-storage';
 import { prisma } from '@/lib/db';
+import { MultiModelVision } from '@/lib/vision/multi-model-vision';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -67,6 +68,35 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('[Upload] ✅ File uploaded:', result.url);
+
+    // 🔹 AUTO-VISION PROCESSING - Give HOLLY eyes!
+    let visionAnalysis = null;
+    if (file.type.startsWith('image/')) {
+      try {
+        console.log('[Upload] 👁️  Processing image with vision...');
+        const vision = new MultiModelVision();
+        
+        // Use fast BLIP for initial caption, optionally add GPT-4 for detailed analysis
+        const analysis = await vision.analyzeImage(result.url, {
+          taskType: 'general',
+          useMultipleModels: false // Set to true for more detailed analysis
+        });
+        
+        visionAnalysis = {
+          description: analysis.combined,
+          summary: analysis.structured.summary,
+          keyElements: analysis.structured.keyElements,
+          model: analysis.primary.model,
+          processingTime: analysis.primary.processingTime
+        };
+        
+        console.log('[Upload] ✅ Vision analysis complete:', visionAnalysis.summary);
+      } catch (visionError) {
+        console.error('[Upload] ⚠️  Vision processing failed:', visionError);
+        // Continue without vision - don't fail the upload
+      }
+    }
+
     return NextResponse.json({
       success: true,
       file: {
@@ -74,6 +104,7 @@ export async function POST(request: NextRequest) {
         url: result.url,
         size: result.fileSize,
       },
+      vision: visionAnalysis // Include vision analysis if available
     });
   } catch (error) {
     console.error('Upload error:', error);
