@@ -1,6 +1,6 @@
 'use client';
 
-import { useUserContext } from '@/hooks/useUserContext';
+import { useUser } from '@clerk/nextjs';
 import { motion } from 'framer-motion';
 
 /**
@@ -12,7 +12,7 @@ import { motion } from 'framer-motion';
  * - User's first name
  */
 export function DynamicLogoGreeting() {
-  const { context, loading } = useUserContext();
+  const { user, isLoaded } = useUser();
 
   // Get current time and date for dynamic greeting
   const now = new Date();
@@ -81,7 +81,8 @@ export function DynamicLogoGreeting() {
 
   // Build final greeting
   const buildGreeting = () => {
-    const firstName = context?.firstName || 'Hollywood';
+    // Get first name from Clerk user
+    const firstName = user?.firstName || user?.fullName?.split(' ')[0] || 'Hollywood';
     const holidayGreeting = getHolidayGreeting();
     
     if (holidayGreeting) {
@@ -92,7 +93,7 @@ export function DynamicLogoGreeting() {
     return `${timeGreeting}, ${firstName}!`;
   };
 
-  if (loading) {
+  if (!isLoaded) {
     return (
       <motion.div
         initial={{ opacity: 0 }}
