@@ -31,15 +31,15 @@ export async function POST() {
     
     // Check if connectedAt column exists
     try {
-      // Try both naming conventions (PascalCase and snake_case)
-      let tableName = 'GoogleDriveConnection';
+      // Prisma maps GoogleDriveConnection to google_drive_connections
+      const tableName = 'google_drive_connections';
       
-      // First check which table name exists
+      // First check if table exists
       const tableCheck = await prisma.$queryRawUnsafe(`
         SELECT table_name 
         FROM information_schema.tables 
         WHERE table_schema = 'public' 
-        AND (table_name = 'GoogleDriveConnection' OR table_name = 'google_drive_connection')
+        AND table_name = 'google_drive_connections'
       `);
       
       if (Array.isArray(tableCheck) && tableCheck.length === 0) {
@@ -57,8 +57,8 @@ export async function POST() {
       const columnCheck = await prisma.$queryRawUnsafe(`
         SELECT column_name 
         FROM information_schema.columns 
-        WHERE table_name = '${tableName}' 
-        AND (column_name = 'connectedAt' OR column_name = 'connected_at')
+        WHERE table_name = 'google_drive_connections' 
+        AND column_name = 'connectedAt'
       `);
       
       console.log('[Schema Fix] Column check result:', columnCheck);
@@ -67,12 +67,10 @@ export async function POST() {
         console.log('[Schema Fix] connectedAt column missing, adding it...');
         
         // Add the connectedAt column with DEFAULT now()
-        // Use snake_case for column name if table is snake_case
-        const columnName = tableName === 'google_drive_connection' ? 'connected_at' : 'connectedAt';
-        
+        // Add connectedAt column (Prisma uses camelCase for columns)
         await prisma.$executeRawUnsafe(`
-          ALTER TABLE "${tableName}" 
-          ADD COLUMN IF NOT EXISTS "${columnName}" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+          ALTER TABLE "google_drive_connections" 
+          ADD COLUMN IF NOT EXISTS "connectedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
         `);
         
         console.log('[Schema Fix] ✅ Column added successfully!');
