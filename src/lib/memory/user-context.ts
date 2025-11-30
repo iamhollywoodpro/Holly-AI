@@ -128,7 +128,10 @@ export async function getUserContext(clerkUserId?: string): Promise<UserContext 
   }));
   
   const primaryEmotion = recentEmotions[0]?.emotion || 'neutral';
-  const averageValence = user.emotionalBaseline?.averageValence || 0;
+  // Calculate simple valence from stability score (0-1 range)
+  const averageValence = user.emotionalBaseline?.stabilityScore 
+    ? (user.emotionalBaseline.stabilityScore - 0.5) * 2 // Convert 0-1 to -1 to 1
+    : 0;
   
   // Parse user's first name
   const firstName = user.name?.split(' ')[0] || 'there';
