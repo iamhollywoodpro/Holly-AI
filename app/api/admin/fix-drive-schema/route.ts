@@ -42,10 +42,17 @@ export async function POST() {
         AND (table_name = 'GoogleDriveConnection' OR table_name = 'google_drive_connection')
       `);
       
-      if (Array.isArray(tableCheck) && tableCheck.length > 0) {
-        tableName = (tableCheck[0] as any).table_name;
-        console.log('[Schema Fix] Found table:', tableName);
+      if (Array.isArray(tableCheck) && tableCheck.length === 0) {
+        console.log('[Schema Fix] ❌ Table does not exist!');
+        return NextResponse.json({
+          error: 'Table missing',
+          message: 'GoogleDriveConnection table does not exist. Run /api/admin/create-drive-table first.',
+          action: 'table_missing'
+        }, { status: 404 });
       }
+      
+      tableName = (tableCheck[0] as any).table_name;
+      console.log('[Schema Fix] Found table:', tableName);
       
       const columnCheck = await prisma.$queryRawUnsafe(`
         SELECT column_name 
