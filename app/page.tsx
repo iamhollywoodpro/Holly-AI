@@ -79,6 +79,7 @@ export default function ChatPage() {
   const [lastInputWasVoice, setLastInputWasVoice] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [driveConnected, setDriveConnected] = useState(false);
   const [allConversations, setAllConversations] = useState<any[]>([]);
 
   // Phase 2: Chat UX Polish state
@@ -132,7 +133,10 @@ export default function ChatPage() {
   useEffect(() => {
     const fetchGitHubInfo = async () => {
       try {
-        const response = await fetch('/api/github/connection');
+        const response = await fetch('/api/github/connection', {
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache' }
+        });
         if (response.ok) {
           const data = await response.json();
           if (data.connected) {
@@ -142,6 +146,21 @@ export default function ChatPage() {
         }
       } catch (error) {
         console.error('Failed to fetch GitHub info:', error);
+      }
+    };
+    
+    const fetchDriveStatus = async () => {
+      try {
+        const response = await fetch('/api/google-drive/status', {
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache' }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setDriveConnected(data.success && data.connected);
+        }
+      } catch (error) {
+        console.error('Failed to fetch Drive status:', error);
       }
     };
     
@@ -158,6 +177,7 @@ export default function ChatPage() {
     };
     
     fetchGitHubInfo();
+    fetchDriveStatus();
     fetchConversations();
   }, []);
   
@@ -998,7 +1018,7 @@ export default function ChatPage() {
         githubUsername={githubUsername}
         githubRepoCount={githubRepoCount}
         onOpenRepoSelector={() => commandHandlerRef.current?.executeCommand('/repos')}
-        driveConnected={false} // TODO: Get actual drive status
+        driveConnected={driveConnected}
       />
       
       {/* Keyboard Shortcuts Modal */}

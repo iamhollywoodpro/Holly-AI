@@ -58,14 +58,20 @@ export default function IntegrationsPage() {
     try {
       setLoading(true);
       
-      // Fetch Google Drive status
-      const driveRes = await fetch('/api/google-drive/status');
+      // Fetch Google Drive status (with cache busting)
+      const driveRes = await fetch('/api/google-drive/status', {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' }
+      });
       const driveData = await driveRes.json();
       setDriveConnected(driveData.success && driveData.connected);
       if (driveData.user?.email) setDriveEmail(driveData.user.email);
       
-      // Fetch GitHub status
-      const githubRes = await fetch('/api/github/connection');
+      // Fetch GitHub status (with cache busting)
+      const githubRes = await fetch('/api/github/connection', {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' }
+      });
       const githubData = await githubRes.json();
       setGithubConnected(githubData.connected);
       if (githubData.username) setGithubUsername(githubData.username);
