@@ -51,7 +51,7 @@ export async function POST() {
         }, { status: 404 });
       }
       
-      tableName = (tableCheck[0] as any).table_name;
+      // Table exists, confirm it's the right name
       console.log('[Schema Fix] Found table:', tableName);
       
       const columnCheck = await prisma.$queryRawUnsafe(`
