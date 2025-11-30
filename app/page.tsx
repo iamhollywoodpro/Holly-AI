@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Brain, Target, Menu } from 'lucide-react';
+import { DynamicLogoGreeting } from '@/components/header/DynamicLogoGreeting';
 import ParticleField from '@/components/ui/ParticleField';
 import MessageBubble from '@/components/chat/MessageBubble';
 import ChatInputControls from '@/components/chat/ChatInputControls';
@@ -725,9 +726,9 @@ export default function ChatPage() {
                   <h1 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent truncate">
                     HOLLY
                   </h1>
-                  <p className="text-xs sm:text-sm text-gray-400 truncate">
-                    {user?.fullName ? `Hey ${user.fullName.split(' ')[0]}!` : 'Hey Hollywood!'} Ready to build?
-                  </p>
+                  <div className="text-xs sm:text-sm text-gray-400 truncate">
+                    <DynamicLogoGreeting />
+                  </div>
                 </div>
               </div>
 
