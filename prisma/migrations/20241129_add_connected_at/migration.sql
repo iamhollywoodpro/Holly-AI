@@ -1,7 +1,7 @@
 -- AlterTable: Sync google_drive_connections with current schema
 
--- Add missing column
-ALTER TABLE "google_drive_connections" ADD COLUMN IF NOT EXISTS "connectedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
+-- Add missing column (nullable to match schema: connectedAt DateTime? @default(now()))
+ALTER TABLE "google_drive_connections" ADD COLUMN IF NOT EXISTS "connectedAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP;
 
 -- Remove columns that are no longer in the schema
 ALTER TABLE "google_drive_connections" DROP COLUMN IF EXISTS "tokenExpiry";

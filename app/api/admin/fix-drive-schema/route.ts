@@ -54,11 +54,12 @@ export async function POST() {
       // Table exists, confirm it's the right name
       console.log('[Schema Fix] Found table:', tableName);
       
+      // Check for both snake_case (connected_at) and camelCase (connectedAt)
       const columnCheck = await prisma.$queryRawUnsafe(`
         SELECT column_name 
         FROM information_schema.columns 
         WHERE table_name = 'google_drive_connections' 
-        AND column_name = 'connectedAt'
+        AND (column_name = 'connected_at' OR column_name = 'connectedAt')
       `);
       
       console.log('[Schema Fix] Column check result:', columnCheck);
@@ -66,27 +67,28 @@ export async function POST() {
       if (Array.isArray(columnCheck) && columnCheck.length === 0) {
         console.log('[Schema Fix] connectedAt column missing, adding it...');
         
-        // Add the connectedAt column with DEFAULT now()
-        // Add connectedAt column (Prisma uses camelCase for columns)
+        // Use camelCase (same as other columns: isConnected, googleEmail, etc)
+        // Match the naming convention in the original migration
         await prisma.$executeRawUnsafe(`
           ALTER TABLE "google_drive_connections" 
-          ADD COLUMN IF NOT EXISTS "connectedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+          ADD COLUMN IF NOT EXISTS "connectedAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP
         `);
         
-        console.log('[Schema Fix] ✅ Column added successfully!');
+        console.log('[Schema Fix] ✅ Column "connectedAt" added successfully!');
         
         return NextResponse.json({
           success: true,
-          message: 'connectedAt column added to GoogleDriveConnection table',
-          action: 'added_column'
+          message: 'connectedAt column added to google_drive_connections table',
+          action: 'added_column',
+          columnName: 'connectedAt'
         });
       }
       
-      console.log('[Schema Fix] ✅ Column already exists');
+      console.log('[Schema Fix] ✅ Column already exists:', columnCheck);
       
       return NextResponse.json({
         success: true,
-        message: 'connectedAt column already exists',
+        message: 'connected_at column already exists',
         action: 'no_change_needed',
         column: columnCheck
       });

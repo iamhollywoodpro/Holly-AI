@@ -40,7 +40,7 @@ import { MobileMenu } from '@/components/header/MobileMenu';
 import { KeyboardShortcutsModal } from '@/components/modals/KeyboardShortcutsModal';
 import { CommandHintToast } from '@/components/notifications/CommandHintToast';
 import { Bars3Icon } from '@heroicons/react/24/outline';
-import { PersonalizedGreeting } from '@/components/header/PersonalizedGreeting';
+// PersonalizedGreeting removed - now using DynamicLogoGreeting in sidebar
 
 import LoadingIndicator, { getLoadingMessage } from '@/components/chat/LoadingIndicator';
 import { useActiveRepos } from '@/hooks/useActiveRepos';
@@ -855,8 +855,7 @@ export default function ChatPage() {
               </div>
             ) : messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full p-6 max-w-3xl mx-auto">
-                <PersonalizedGreeting />
-                <p className="text-gray-500 text-sm mt-4">Ready to build something amazing together? 🚀</p>
+                <p className="text-gray-400 text-base text-center">Start a conversation to build something amazing 💬</p>
               </div>
             ) : (
               messages.map((message, index) => (

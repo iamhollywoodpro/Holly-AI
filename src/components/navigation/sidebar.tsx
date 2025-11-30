@@ -16,6 +16,7 @@ import {
   X,
   Sparkles,
 } from 'lucide-react';
+import { DynamicLogoGreeting } from '@/components/header/DynamicLogoGreeting';
 
 interface NavItem {
   id: string;
@@ -64,7 +65,7 @@ export function Sidebar() {
               </div>
               <div>
                 <h1 className="text-lg font-bold text-gradient tracking-tight">HOLLY</h1>
-                <p className="text-xs text-text-tertiary">AI Dev Partner</p>
+                <DynamicLogoGreeting />
               </div>
             </div>
           )}
