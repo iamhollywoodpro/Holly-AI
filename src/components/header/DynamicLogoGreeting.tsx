@@ -73,39 +73,10 @@ export function DynamicLogoGreeting() {
       }
     }
     
-    // Check if it's user's birthday (if available in context)
-    if (context?.profile?.birthday) {
-      const birthday = new Date(context.profile.birthday);
-      const birthdayMonth = birthday.getMonth() + 1;
-      const birthdayDay = birthday.getDate();
-      
-      if (month === birthdayMonth && day === birthdayDay) {
-        return '🎂 Happy Birthday';
-      }
-      
-      // Week before birthday
-      const daysUntilBirthday = getDaysUntil(birthdayMonth, birthdayDay);
-      if (daysUntilBirthday >= 1 && daysUntilBirthday <= 7) {
-        return `🎉 Your birthday is in ${daysUntilBirthday} day${daysUntilBirthday > 1 ? 's' : ''}`;
-      }
-    }
+    // Future: Birthday detection can be added when profile.birthday is implemented
+    // For now, just return null if no holiday matches
     
     return null; // No holiday
-  };
-
-  // Helper: Calculate days until a specific date
-  const getDaysUntil = (targetMonth: number, targetDay: number) => {
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const target = new Date(now.getFullYear(), targetMonth - 1, targetDay);
-    
-    if (target < today) {
-      target.setFullYear(target.getFullYear() + 1);
-    }
-    
-    const diffTime = target.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    return diffDays;
   };
 
   // Build final greeting
@@ -146,11 +117,4 @@ export function DynamicLogoGreeting() {
       {greeting}
     </motion.div>
   );
-}
-
-// Helper function to add birthday to user profile (admin-only)
-export function addBirthdayToProfile(birthdayISO: string) {
-  // This would be called via an admin endpoint
-  // Example: POST /api/admin/set-birthday { birthday: "1990-05-15" }
-  console.log('Set birthday:', birthdayISO);
 }
