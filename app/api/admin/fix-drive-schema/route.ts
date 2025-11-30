@@ -51,7 +51,7 @@ export async function POST() {
         SELECT column_name 
         FROM information_schema.columns 
         WHERE table_name = '${tableName}' 
-        AND column_name = 'connectedAt'
+        AND (column_name = 'connectedAt' OR column_name = 'connected_at')
       `);
       
       console.log('[Schema Fix] Column check result:', columnCheck);
@@ -60,9 +60,12 @@ export async function POST() {
         console.log('[Schema Fix] connectedAt column missing, adding it...');
         
         // Add the connectedAt column with DEFAULT now()
+        // Use snake_case for column name if table is snake_case
+        const columnName = tableName === 'google_drive_connection' ? 'connected_at' : 'connectedAt';
+        
         await prisma.$executeRawUnsafe(`
           ALTER TABLE "${tableName}" 
-          ADD COLUMN IF NOT EXISTS "connectedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+          ADD COLUMN IF NOT EXISTS "${columnName}" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
         `);
         
         console.log('[Schema Fix] ✅ Column added successfully!');
