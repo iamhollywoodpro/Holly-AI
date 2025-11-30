@@ -123,7 +123,7 @@ export async function getUserContext(clerkUserId?: string): Promise<UserContext 
   
   // Get recent emotional state
   const recentEmotions = user.emotionLogs.slice(0, 5).map(log => ({
-    emotion: log.emotionType,
+    emotion: log.emotion,
     timestamp: log.timestamp,
   }));
   
