@@ -582,7 +582,7 @@ model GoogleDriveConnection {
   quotaUsed     BigInt    @default(0)
   quotaLimit    BigInt?
   lastSyncAt    DateTime?
-  connectedAt   DateTime  @default(now())
+  connectedAt   DateTime?  @default(now())
 
   @@map("google_drive_connections")
 }

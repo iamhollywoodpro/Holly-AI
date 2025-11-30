@@ -141,7 +141,6 @@ export async function saveConnection(
       isConnected: true,
       autoUpload: true,
       syncEnabled: true,
-      connectedAt: new Date(),
     },
     update: {
       accessToken: tokens.accessToken,
