@@ -6,6 +6,7 @@ import { auth } from '@clerk/nextjs/server';
 import { getHollyResponse } from '@/lib/ai/ai-orchestrator';
 import { prisma } from '@/lib/db';
 import { DEFAULT_SETTINGS } from '@/lib/settings/default-settings';
+import { getUserContext, getPersonalizedSystemPrompt } from '@/lib/memory/user-context';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -160,6 +161,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Get comprehensive user context for personalization
+    const userContext = await getUserContext(clerkUserId);
+    
     // Get context from memories and goals
     const memories = await getRecentMemories(userId, 3);
     const goals = await getActiveGoals(userId);
@@ -200,7 +204,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Get HOLLY's response with user's AI preferences
+    // Get personalized system prompt if user context available
+    const systemPromptOverride = userContext 
+      ? getPersonalizedSystemPrompt(userContext)
+      : undefined;
+    
+    // Get HOLLY's response with user's AI preferences and personalized context
     const hollyResponse = await getHollyResponse(
       messageWithContext,
       messages.slice(0, -1),
@@ -208,6 +217,8 @@ export async function POST(request: NextRequest) {
         responseStyle: userSettings.ai.responseStyle,
         creativity: userSettings.ai.creativity,
         contextWindow: userSettings.ai.contextWindow,
+        systemPrompt: systemPromptOverride,
+        userName: userContext?.firstName || user.name?.split(' ')[0] || 'there',
       }
     );
 

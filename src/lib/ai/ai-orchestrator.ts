@@ -139,7 +139,9 @@ export async function generateHollyResponse(
     responseStyle?: 'professional' | 'casual' | 'technical';
     creativity?: number;
     contextWindow?: number;
-  }
+  },
+  systemPromptOverride?: string,
+  userName?: string
 ): Promise<{ content: string; model?: string }> {
   const startTime = Date.now();
   
@@ -154,7 +156,8 @@ export async function generateHollyResponse(
     // });
     
     // Add HOLLY's consciousness system prompt as first message
-    let hollySystemPrompt = getHollySystemPrompt('Hollywood');
+    // Use personalized system prompt if provided, otherwise use default
+    let hollySystemPrompt = systemPromptOverride || getHollySystemPrompt(userName || 'Hollywood');
     
     // Apply user's response style preference
     if (aiSettings?.responseStyle) {
@@ -326,6 +329,8 @@ export async function getHollyResponse(
     responseStyle?: 'professional' | 'casual' | 'technical';
     creativity?: number;
     contextWindow?: number;
+    systemPrompt?: string;
+    userName?: string;
   }
 ): Promise<{ content: string; model?: string }> {
   // Convert to new format: [...history, userMessage]
@@ -335,7 +340,14 @@ export async function getHollyResponse(
   ];
   
   // Call new function with dummy userId (old routes don't provide it)
-  return generateHollyResponse(messages, 'legacy', undefined, aiSettings);
+  return generateHollyResponse(
+    messages, 
+    'legacy', 
+    undefined, 
+    aiSettings,
+    aiSettings?.systemPrompt,
+    aiSettings?.userName
+  );
 }
 
 // Streaming version with legacy signature support
