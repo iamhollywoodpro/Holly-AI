@@ -1231,3 +1231,59 @@ model SystemLog {
   @@index([timestamp])
   @@map("system_logs")
 }
+
+// ============================================================================
+// PHASE 2: COGNITIVE MAP - Codebase Understanding
+// ============================================================================
+
+model CodebaseKnowledge {
+  id             String   @id @default(cuid())
+  filePath       String
+  fileName       String
+  layer          String   // 'api', 'services', 'database', 'ui', 'lib'
+  functionCount  Int      @default(0)
+  classCount     Int      @default(0)
+  interfaceCount Int      @default(0)
+  lineCount      Int      @default(0)
+  complexity     Int      @default(0)
+  imports        String[] // Array of imported files
+  exports        String[] // Array of exported items
+  lastAnalyzed   DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([layer])
+  @@index([lastAnalyzed])
+}
+
+model ArchitectureSnapshot {
+  id                  String   @id @default(cuid())
+  totalFiles          Int
+  totalFunctions      Int
+  totalClasses        Int
+  totalInterfaces     Int
+  apiEndpoints        Int
+  featureModules      Json     // Array of feature module data
+  layers              Json     // Architecture layers data
+  techStack           Json     // Technology stack data
+  integrationPoints   Json     // External integration points
+  timestamp           DateTime @default(now())
+
+  @@index([timestamp])
+}
+
+model DependencyGraph {
+  id                    String   @id @default(cuid())
+  filePath              String   @unique
+  directDependencies    String[] // Files this file directly imports
+  directDependents      String[] // Files that directly import this file
+  totalImpact           Int      @default(0) // Total files affected by changes
+  isCritical            Boolean  @default(false)
+  circularDependencies  String[] // Files involved in circular dependencies
+  lastAnalyzed          DateTime @default(now())
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([isCritical])
+  @@index([lastAnalyzed])
+}
