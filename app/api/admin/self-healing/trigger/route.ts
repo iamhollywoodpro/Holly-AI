@@ -191,12 +191,12 @@ export async function POST(req: NextRequest) {
     for (const action of actions) {
       if (!action) continue;
 
-      console.log(`[Self-Healing] Processing action: ${action.actionType}`);
+      console.log(`[Self-Healing] Processing action: ${action.healingType}`);
 
       let result;
       
       // Execute appropriate fix based on action type
-      switch (action.actionType) {
+      switch (action.healingType) {
         case 'typescript_fix':
           result = await fixTypeScriptErrors(action.changeId);
           break;
@@ -224,7 +224,7 @@ export async function POST(req: NextRequest) {
 
       results.push({
         actionId: action.id,
-        actionType: action.actionType,
+        actionType: action.healingType,
         status: updatedAction.status,
         result: result.details
       });
