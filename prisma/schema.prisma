@@ -51,6 +51,9 @@ model User {
   emotionLogs             EmotionLog[]
   emotionalBaseline       EmotionalBaseline?
   
+  // Phase 1: Metamorphosis - Self-Awareness
+  userFeedbacks           UserFeedback[]
+  
   // Phase 2C: Learning & Adaptation
   userPreferences         UserPreference[]
   conversationPatterns    ConversationPattern[]
@@ -1167,3 +1170,64 @@ model CreativeInsight {
   @@map("creative_insights")
 }
 
+
+// ============================================================================
+// PHASE 1: METAMORPHOSIS - SELF-AWARENESS & MONITORING
+// ============================================================================
+
+// User feedback tracking - explicit and implicit feedback
+model UserFeedback {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversationId  String?
+  messageId       String?
+  feedbackType    String   // thumbs_up, thumbs_down, rating, regenerate, etc.
+  sentiment       String   // very_positive, positive, neutral, negative, frustrated
+  rating          Int?     // 1-5 for rating type
+  suggestion      String?  @db.Text // For explicit suggestions
+  context         Json     // What HOLLY said, what feature was used, etc.
+  createdAt       DateTime @default(now())
+
+  @@index([userId])
+  @@index([feedbackType])
+  @@index([sentiment])
+  @@index([createdAt])
+  @@map("user_feedback")
+}
+
+// Performance snapshots - periodic system health checks
+model PerformanceSnapshot {
+  id                  String   @id @default(cuid())
+  avgResponseTime     Float    // milliseconds
+  avgAIInferenceTime  Float    // milliseconds
+  avgDbQueryTime      Float    // milliseconds
+  errorRate           Float    // percentage
+  requestCount        Int      // requests in time window
+  memoryUsageMB       Float    // memory usage in MB
+  cpuUsagePercent     Float    // CPU usage percentage
+  health              String   // healthy, degraded, critical
+  issues              Json     // list of detected issues
+  metrics             Json     // detailed breakdown of all metrics
+  timestamp           DateTime @default(now())
+
+  @@index([health])
+  @@index([timestamp])
+  @@map("performance_snapshots")
+}
+
+// System logs - important system events persisted to database
+model SystemLog {
+  id          String   @id @default(cuid())
+  level       String   // DEBUG, INFO, WARN, ERROR, CRITICAL
+  category    String   // api_call, database_query, ai_inference, etc.
+  message     String   @db.Text
+  context     Json     // userId, conversationId, endpoint, etc.
+  metadata    Json?    // stackTrace, errorCode, performance metrics
+  timestamp   DateTime @default(now())
+
+  @@index([level])
+  @@index([category])
+  @@index([timestamp])
+  @@map("system_logs")
+}
