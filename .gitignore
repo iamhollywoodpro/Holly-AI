@@ -12,3 +12,4 @@ node_modules/
 out/
 .DS_Store
 *.log
+.env.credentials
