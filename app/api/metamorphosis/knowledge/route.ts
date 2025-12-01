@@ -216,7 +216,7 @@ async function handleCodeSearch(query: string | null, traceId: string) {
   
   // Search for files/functions matching the query
   // This is a simple implementation - could be enhanced with semantic search
-  const allFiles = await parser.parseAllFiles();
+  const allFiles = await parser.parseDirectory(PROJECT_ROOT, true);
   
   const results = allFiles.filter(file => {
     const queryLower = query.toLowerCase();
