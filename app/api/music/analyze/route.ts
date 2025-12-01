@@ -198,7 +198,7 @@ export async function GET(req: NextRequest) {
             mode: true,
             energy: true,
             hitScore: true,
-            billboardPotential: true,
+            marketPotential: true,
             productionScore: true,
           },
           orderBy: { createdAt: "desc" },
