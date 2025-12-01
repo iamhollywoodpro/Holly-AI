@@ -82,17 +82,21 @@ async function analyzeCodeChange(files: string[]): Promise<{
  */
 async function createSelfHealingAction(
   changeId: string,
-  actionType: string,
+  healingType: string,
   description: string,
-  status: string = 'pending'
+  affectedFiles: string[] = []
 ) {
   return await prisma.selfHealingAction.create({
     data: {
-      changeId,
-      actionType,
+      codeChangeId: changeId,
+      issueType: 'auto_detected',
+      severity: 'medium',
       description,
-      status,
-      attemptCount: 0
+      affectedFiles,
+      healingType,
+      actionTaken: 'Pending analysis',
+      changes: {},
+      status: 'pending'
     }
   });
 }
@@ -142,12 +146,14 @@ export async function POST(req: NextRequest) {
         data: {
           commitSha: id,
           commitMessage: message,
-          commitAuthor: author.username || author.name,
-          timestamp: new Date(timestamp),
+          authorName: author.username || author.name || 'Unknown',
+          authorEmail: author.email || 'unknown@github.com',
+          committedAt: new Date(timestamp),
           filesChanged: changedFiles.length,
           additions: commit.added?.length || 0,
           deletions: commit.removed?.length || 0,
-          filesList: changedFiles,
+          changedFiles: changedFiles,
+          changeType: 'commit',
           branch: ref.split('/').pop() || 'main'
         }
       });
