@@ -1287,3 +1287,150 @@ model DependencyGraph {
   @@index([isCritical])
   @@index([lastAnalyzed])
 }
+
+// ============================================================================
+// PHASE 3: ENHANCED SELF-AWARENESS & LEARNING
+// ============================================================================
+
+model CodeChange {
+  id              String   @id @default(cuid())
+  commitSha       String
+  commitMessage   String   @db.Text
+  authorName      String
+  authorEmail     String
+  branch          String   @default("main")
+  filesChanged    Int      @default(0)
+  additions       Int      @default(0)
+  deletions       Int      @default(0)
+  changedFiles    Json
+  changeType      String
+  impactScore     Float    @default(0)
+  riskLevel       String   @default("low")
+  affectedModules String[] @default([])
+  committedAt     DateTime
+  detectedAt      DateTime @default(now())
+  analyzedAt      DateTime?
+  healingActions  SelfHealingAction[]
+
+  @@index([commitSha])
+  @@index([branch])
+  @@index([committedAt])
+  @@index([riskLevel])
+  @@map("code_changes")
+}
+
+model SelfHealingAction {
+  id              String      @id @default(cuid())
+  codeChangeId    String?
+  codeChange      CodeChange? @relation(fields: [codeChangeId], references: [id], onDelete: SetNull)
+  issueType       String
+  severity        String
+  description     String      @db.Text
+  affectedFiles   String[]    @default([])
+  healingType     String
+  actionTaken     String      @db.Text
+  changes         Json
+  status          String      @default("pending")
+  success         Boolean     @default(false)
+  errorMessage    String?     @db.Text
+  prUrl           String?
+  prNumber        Int?
+  prMerged        Boolean     @default(false)
+  detectedAt      DateTime    @default(now())
+  attemptedAt     DateTime?
+  completedAt     DateTime?
+
+  @@index([issueType])
+  @@index([status])
+  @@index([severity])
+  @@index([detectedAt])
+  @@map("self_healing_actions")
+}
+
+model PerformanceIssue {
+  id              String   @id @default(cuid())
+  endpoint        String
+  issueType       String
+  severity        String
+  avgResponseTime Float
+  p95ResponseTime Float?
+  p99ResponseTime Float?
+  requestCount    Int      @default(0)
+  errorRate       Float?
+  description     String   @db.Text
+  stackTrace      String?  @db.Text
+  query           String?  @db.Text
+  recommendation  String   @db.Text
+  status          String   @default("open")
+  priority        Int      @default(5)
+  resolved        Boolean  @default(false)
+  firstDetected   DateTime @default(now())
+  lastOccurred    DateTime @default(now())
+  resolvedAt      DateTime?
+
+  @@index([endpoint])
+  @@index([issueType])
+  @@index([severity])
+  @@index([status])
+  @@index([firstDetected])
+  @@map("performance_issues")
+}
+
+model RefactoringRecommendation {
+  id                  String   @id @default(cuid())
+  filePath            String
+  fileName            String
+  codeSection         String?  @db.Text
+  lineNumbers         Int[]    @default([])
+  recommendationType  String
+  severity            String
+  priority            Int      @default(5)
+  currentComplexity   Float?
+  targetComplexity    Float?
+  estimatedEffort     String
+  benefits            String[] @default([])
+  description         String   @db.Text
+  reasoning           String   @db.Text
+  suggestedApproach   String   @db.Text
+  codeExample         String?  @db.Text
+  status              String   @default("pending")
+  implemented         Boolean  @default(false)
+  effectiveness       Float?
+  detectedAt          DateTime @default(now())
+  acceptedAt          DateTime?
+  completedAt         DateTime?
+
+  @@index([filePath])
+  @@index([recommendationType])
+  @@index([status])
+  @@index([priority])
+  @@index([detectedAt])
+  @@map("refactoring_recommendations")
+}
+
+model LearningInsight {
+  id              String   @id @default(cuid())
+  category        String
+  insightType     String
+  title           String
+  description     String   @db.Text
+  evidence        Json
+  confidence      Float    @default(0.5)
+  actionable      Boolean  @default(false)
+  applied         Boolean  @default(false)
+  priority        Int      @default(5)
+  impact          String?
+  relatedFiles    String[] @default([])
+  relatedPatterns String[] @default([])
+  tags            String[] @default([])
+  learnedAt       DateTime @default(now())
+  appliedAt       DateTime?
+  validatedAt     DateTime?
+
+  @@index([category])
+  @@index([insightType])
+  @@index([actionable])
+  @@index([applied])
+  @@index([learnedAt])
+  @@map("learning_insights")
+}
