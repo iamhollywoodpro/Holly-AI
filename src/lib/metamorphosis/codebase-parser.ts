@@ -12,6 +12,10 @@ import * as ts from 'typescript';
 import * as fs from 'fs';
 import * as path from 'path';
 import { logger } from './logging-system';
+import { 
+  calculateFileComplexity, 
+  calculateFunctionComplexity 
+} from './complexity-calculator';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -24,6 +28,7 @@ export interface ParsedFile {
   purpose?: string; // Extracted from comments
   size: number;
   linesOfCode: number;
+  complexity: number; // Cyclomatic complexity score
   exports: ParsedExport[];
   imports: ParsedImport[];
   functions: ParsedFunction[];
@@ -56,6 +61,7 @@ export interface ParsedFunction {
   isExported: boolean;
   description?: string;
   lineNumber: number;
+  complexity?: number; // Cyclomatic complexity score
 }
 
 export interface ParsedParameter {
@@ -159,6 +165,7 @@ export class CodebaseParser {
         fileType,
         size: fileSize,
         linesOfCode,
+        complexity: 0, // Will be calculated after parsing
         exports: [],
         imports: [],
         functions: [],
@@ -171,6 +178,9 @@ export class CodebaseParser {
 
       // Visit each node in the AST
       this.visitNode(sourceFile, parsedFile, sourceFile);
+
+      // Calculate file complexity
+      parsedFile.complexity = calculateFileComplexity(sourceFile);
 
       // Extract purpose from top comments
       parsedFile.purpose = this.extractFilePurpose(parsedFile.comments);
@@ -326,6 +336,9 @@ export class CodebaseParser {
     // Get line number
     const lineNumber = sourceFile.getLineAndCharacterOfPosition(node.getStart()).line + 1;
 
+    // Calculate complexity
+    const complexity = calculateFunctionComplexity(node);
+
     parsedFile.functions.push({
       name,
       parameters,
@@ -333,6 +346,7 @@ export class CodebaseParser {
       isAsync,
       isExported,
       lineNumber,
+      complexity,
     });
   }
 
@@ -372,6 +386,9 @@ export class CodebaseParser {
 
         const returnType = member.type ? member.type.getText(sourceFile) : undefined;
         const methodLine = sourceFile.getLineAndCharacterOfPosition(member.getStart()).line + 1;
+        
+        // Calculate method complexity
+        const complexity = calculateFunctionComplexity(member);
 
         methods.push({
           name: methodName,
@@ -380,6 +397,7 @@ export class CodebaseParser {
           isAsync,
           isExported: false,
           lineNumber: methodLine,
+          complexity,
         });
       }
 
