@@ -14,6 +14,15 @@ interface Message {
   timestamp: Date;
   emotion?: string;
   thinking?: boolean;
+  attachments?: {
+    type: 'image' | 'audio' | 'video' | 'document' | 'file';
+    name: string;
+    url: string;
+    size?: number;
+    mimeType?: string;
+    vision?: any;
+    music?: any;
+  }[];
 }
 
 interface MessageBubbleProps {

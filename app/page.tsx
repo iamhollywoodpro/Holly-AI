@@ -54,6 +54,16 @@ interface Message {
   timestamp: Date;
   emotion?: string;
   thinking?: boolean;
+  attachments?: {
+    type: 'image' | 'audio' | 'video' | 'document' | 'file';
+    name: string;
+    url: string;
+    size?: number;
+    mimeType?: string;
+    // Analysis data
+    vision?: any;
+    music?: any;
+  }[];
 }
 
 export default function ChatPage() {
@@ -644,12 +654,32 @@ export default function ChatPage() {
       // Store in state for next message (you'll need to add this state)
       setRecentUploadedFiles(uploadedFiles);
 
+      // Create attachments array with all file data
+      const attachments = results.map((r, idx) => {
+        let fileType: 'image' | 'audio' | 'video' | 'document' | 'file' = 'file';
+        if (files[idx].type.startsWith('image/')) fileType = 'image';
+        else if (files[idx].type.startsWith('audio/')) fileType = 'audio';
+        else if (files[idx].type.startsWith('video/')) fileType = 'video';
+        else if (files[idx].type.includes('pdf') || files[idx].type.includes('document')) fileType = 'document';
+        
+        return {
+          type: fileType,
+          name: r.file.name,
+          url: r.file.url,
+          size: r.file.size,
+          mimeType: files[idx].type,
+          vision: r.vision,
+          music: r.music
+        };
+      });
+
       const successMessage: Message = {
         id: Date.now().toString(),
         role: 'assistant',
         content: `✅ **Files uploaded successfully!**\n\n${fileLinks}\n\nHow would you like me to help with these files?`,
         timestamp: new Date(),
-        emotion: 'confident'
+        emotion: 'confident',
+        attachments // Include visual attachments
       };
       setMessages(prev => [...prev, successMessage]);
 

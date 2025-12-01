@@ -27,10 +27,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Get the track
+    // Get the track with blobUrl
     const track = await prisma.musicTrack.findUnique({
       where: { id: trackId },
       include: { analyses: true },
+      select: {
+        id: true,
+        userId: true,
+        artistName: true,
+        trackTitle: true,
+        fileName: true,
+        fileSize: true,
+        fileType: true,
+        blobUrl: true,
+        duration: true,
+        status: true,
+        uploadedAt: true,
+        analyzedAt: true,
+        analyses: true,
+      },
     });
 
     if (!track) {
@@ -50,12 +65,12 @@ export async function POST(req: NextRequest) {
     // 🎵 HOLLY'S EARS - Professional Music Analysis
     console.log('[Music Analysis] 🎵 Starting HOLLY\'s A&R analysis...');
     
-    if (!track.fileUrl) {
+    if (!track.blobUrl) {
       throw new Error('Track has no audio file URL');
     }
 
     const analysisEngine = new MusicAnalysisEngine();
-    const result = await analysisEngine.analyzeTrack(track.fileUrl);
+    const result = await analysisEngine.analyzeTrack(track.blobUrl);
 
     console.log('[Music Analysis] ✅ Analysis complete:', {
       hitScore: result.hitAnalysis.hitScore,
@@ -162,8 +177,31 @@ export async function GET(req: NextRequest) {
 
     const track = await prisma.musicTrack.findUnique({
       where: { id: trackId },
-      include: {
+      select: {
+        id: true,
+        userId: true,
+        artistName: true,
+        trackTitle: true,
+        fileName: true,
+        fileSize: true,
+        fileType: true,
+        blobUrl: true,
+        duration: true,
+        status: true,
+        uploadedAt: true,
+        analyzedAt: true,
         analyses: {
+          select: {
+            id: true,
+            createdAt: true,
+            bpm: true,
+            key: true,
+            mode: true,
+            energy: true,
+            hitScore: true,
+            billboardPotential: true,
+            productionScore: true,
+          },
           orderBy: { createdAt: "desc" },
           take: 1,
         },
