@@ -8,9 +8,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/db';
-import { CodebaseParser } from '@/src/lib/metamorphosis/codebase-parser';
-import { ArchitectureMapper } from '@/src/lib/metamorphosis/architecture-mapper';
-import { DependencyGraphGenerator } from '@/src/lib/metamorphosis/dependency-graph';
+import { CodebaseParser } from '@/lib/metamorphosis/codebase-parser';
+import { ArchitectureMapper } from '@/lib/metamorphosis/architecture-mapper';
+import { DependencyGraphGenerator } from '@/lib/metamorphosis/dependency-graph';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
