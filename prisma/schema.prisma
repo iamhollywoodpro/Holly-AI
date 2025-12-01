@@ -56,6 +56,13 @@ model User {
   conversationPatterns    ConversationPattern[]
   responseFeedback        ResponseFeedback[]
   adaptationStrategies    AdaptationStrategy[]
+  
+  // Phase 2E: Emotional Intelligence
+  emotionalStates         EmotionalState[]
+  emotionalTriggers       EmotionalTrigger[]
+  empathyInteractions     EmpathyInteraction[]
+  emotionalJourneys       EmotionalJourney[]
+  supportStrategies       SupportStrategy[]
 
   @@map("users")
 }
@@ -921,5 +928,116 @@ model AdaptationStrategy {
   @@index([active])
   @@index([successRate])
   @@map("adaptation_strategies")
+}
+
+
+// ===========================================
+// PHASE 2E: DEEPER EMOTIONAL INTELLIGENCE
+// ===========================================
+
+// Enhanced emotional state tracking with context
+model EmotionalState {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  primaryEmotion    String   // joy, sadness, anxiety, excitement, frustration, etc.
+  intensity         Float    // 0.0 to 1.0
+  valence           Float    // -1.0 (negative) to 1.0 (positive)
+  arousal           Float    // 0.0 (calm) to 1.0 (energized)
+  secondaryEmotions Json     // { emotion: string, intensity: number }[]
+  context           Json     // what's happening, conversation topic, etc.
+  triggers          String[] @default([]) // what caused this emotion
+  cues              String[] @default([]) // detected emotional cues (language, patterns)
+  conversationId    String?
+  timestamp         DateTime @default(now())
+
+  @@index([userId])
+  @@index([timestamp])
+  @@index([primaryEmotion])
+  @@map("emotional_states")
+}
+
+// Emotional triggers and patterns
+model EmotionalTrigger {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  triggerType String   // success, failure, frustration, pressure, praise, criticism
+  description String   @db.Text
+  emotion     String   // emotion it typically triggers
+  intensity   Float    // typical intensity
+  frequency   Int      @default(1)
+  lastSeen    DateTime @default(now())
+  firstSeen   DateTime @default(now())
+  context     Json     // when/where this trigger appears
+
+  @@index([userId])
+  @@index([triggerType])
+  @@map("emotional_triggers")
+}
+
+// Empathy interactions and responses
+model EmpathyInteraction {
+  id                 String   @id @default(cuid())
+  userId             String
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversationId     String?
+  detectedEmotion    String   // emotion HOLLY detected
+  emotionIntensity   Float
+  empathyType        String   // celebration, comfort, encouragement, validation, understanding
+  hollyResponse      String   @db.Text // what HOLLY said
+  userReaction       String?  @db.Text // how user reacted
+  effectiveness      Float?   // 0.0 to 1.0 (how well it worked)
+  context            Json     // situation context
+  timestamp          DateTime @default(now())
+
+  @@index([userId])
+  @@index([empathyType])
+  @@index([timestamp])
+  @@map("empathy_interactions")
+}
+
+// Emotional journey tracking
+model EmotionalJourney {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversationId  String?
+  startEmotion    String
+  endEmotion      String
+  emotionalArc    Json     // array of emotional states throughout conversation
+  keyMoments      Json     // significant emotional shifts
+  supportProvided String[] @default([]) // types of support HOLLY provided
+  outcome         String?  // resolved, ongoing, needs_followup
+  duration        Int?     // in seconds
+  startTime       DateTime @default(now())
+  endTime         DateTime?
+
+  @@index([userId])
+  @@index([conversationId])
+  @@index([startTime])
+  @@map("emotional_journeys")
+}
+
+// Emotional support strategies
+model SupportStrategy {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  strategyName    String   // celebrate_wins, comfort_setbacks, validate_feelings, etc.
+  emotionContext  String   // when to use (joy, sadness, frustration, etc.)
+  description     String   @db.Text
+  effectivenessScore Float @default(0.5)
+  timesUsed       Int      @default(0)
+  timesEffective  Int      @default(0)
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  lastUsed        DateTime?
+
+  @@unique([userId, strategyName])
+  @@index([userId])
+  @@index([active])
+  @@index([effectivenessScore])
+  @@map("support_strategies")
 }
 

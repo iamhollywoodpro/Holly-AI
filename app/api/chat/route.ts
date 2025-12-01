@@ -10,6 +10,9 @@ import { getUserContext, getPersonalizedSystemPrompt } from '@/lib/memory/user-c
 // Phase 2C: Real-time Learning & Adaptation
 import { PatternRecognition } from '@/lib/learning/pattern-recognition';
 import { AdaptiveResponseSystem } from '@/lib/learning/adaptive-responses';
+// Phase 2E: Deeper Emotional Intelligence
+import { EmotionalIntelligence } from '@/lib/emotion/emotional-intelligence';
+import { EmpathyEngine } from '@/lib/emotion/empathy-engine';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -237,6 +240,44 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // 💖 PHASE 2E: Emotional Intelligence
+    let emotionalContext = null;
+    let empathyResponse = null;
+    if (userId && userId !== 'anonymous') {
+      try {
+        // Detect user's emotional state
+        const emotionalIntelligence = new EmotionalIntelligence(userId);
+        const detectedEmotion = await emotionalIntelligence.detectEmotion(
+          lastMessage.content,
+          { conversationHistory: messages }
+        );
+        
+        // Save emotional state (non-blocking)
+        emotionalIntelligence.saveEmotionalState(detectedEmotion, {
+          conversationId: conversationId
+        }).catch(err => console.error('[Emotion] State save failed:', err));
+        
+        // Generate empathy response
+        const empathyEngine = new EmpathyEngine(userId);
+        empathyResponse = await empathyEngine.generateEmpathyResponse(
+          detectedEmotion,
+          {
+            messageContent: lastMessage.content,
+            conversationHistory: messages
+          }
+        );
+        
+        console.log('[Emotion] Detected:', {
+          emotion: detectedEmotion.primaryEmotion,
+          intensity: detectedEmotion.intensity,
+          empathyType: empathyResponse.type,
+          confidence: detectedEmotion.confidence
+        });
+      } catch (error) {
+        console.error('[Emotion] Detection error:', error);
+      }
+    }
+    
     // 🧠 PHASE 2C: Real-time Learning & Adaptation
     let adaptiveContext = null;
     if (userId && userId !== 'anonymous') {
@@ -271,6 +312,20 @@ export async function POST(request: NextRequest) {
     let systemPromptOverride = userContext 
       ? getPersonalizedSystemPrompt(userContext)
       : undefined;
+    
+    // Enhance system prompt with empathy context
+    if (empathyResponse) {
+      const empathyInstructions = [
+        `[Emotional Context]:`,
+        empathyResponse.promptAddition,
+        `Tone Guidelines: ${empathyResponse.toneGuidelines.join(', ')}`,
+        `Include: ${empathyResponse.responseElements.join(', ')}`
+      ].join('\n');
+      
+      systemPromptOverride = systemPromptOverride
+        ? `${systemPromptOverride}\n\n${empathyInstructions}`
+        : empathyInstructions;
+    }
     
     // Enhance system prompt with adaptive context
     if (adaptiveContext && adaptiveContext.systemPromptAdditions.length > 0) {
