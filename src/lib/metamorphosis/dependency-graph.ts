@@ -70,7 +70,7 @@ export class DependencyGraphGenerator {
    */
   async generateDependencyGraph(): Promise<DependencyGraph> {
     const traceId = `trace_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    logger.info('Generating dependency graph...', 'self_improvement', { traceId });
+    logger.info('self_improvement', 'Generating dependency graph...', { traceId });
 
     // Parse all source files
     const files = await this.discoverSourceFiles();
@@ -95,7 +95,7 @@ export class DependencyGraphGenerator {
     // Build impact analysis
     const impactAnalysis = this.buildImpactAnalysis(nodes);
 
-    logger.info('Dependency graph generated', 'self_improvement', {
+    logger.info('self_improvement', 'Dependency graph generated', {
       traceId,
       totalNodes: nodes.length,
       totalEdges: edges.length,
@@ -149,7 +149,7 @@ export class DependencyGraphGenerator {
     const relativePath = path.relative(this.projectRoot, filePath);
 
     const traceId = `trace_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    logger.info(`Analyzing dependencies: ${relativePath}`, 'self_improvement', { traceId });
+    logger.info('self_improvement', `Analyzing dependencies: ${relativePath}`, { traceId });
 
     // Read file content
     const content = fs.readFileSync(filePath, 'utf-8');
