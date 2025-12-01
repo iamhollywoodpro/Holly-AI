@@ -101,7 +101,7 @@ export async function GET(request: NextRequest) {
 
     // Get latest architecture snapshot
     const snapshot = await prisma.architectureSnapshot.findFirst({
-      orderBy: { generatedAt: 'desc' },
+      orderBy: { timestamp: 'desc' },
     });
 
     if (!snapshot) {
