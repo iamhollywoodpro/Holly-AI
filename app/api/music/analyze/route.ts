@@ -27,10 +27,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Get the track with blobUrl
+    // Get the track with blobUrl (using select only)
     const track = await prisma.musicTrack.findUnique({
       where: { id: trackId },
-      include: { analyses: true },
       select: {
         id: true,
         userId: true,
