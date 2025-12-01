@@ -75,7 +75,7 @@ export default function MessageBubble({ message, index, conversationId }: Messag
         body: JSON.stringify({
           type,
           messageId: message.id,
-          conversationId: conversationId || 'current'
+          conversationId: conversationId || 'current',
           context: {
             hollyResponse: message.content,
             timestamp: message.timestamp,
