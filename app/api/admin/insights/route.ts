@@ -2,11 +2,7 @@
  * PHASE 3: ENHANCED SELF-AWARENESS & LEARNING
  * Insights API - Performance & Learning Intelligence
  * 
- * This endpoint provides comprehensive insights about:
- * - Performance issues and optimizations
- * - Refactoring recommendations
- * - Learning insights from code patterns
- * - System health and trends
+ * SIMPLIFIED VERSION: Works with existing schema
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -41,20 +37,19 @@ export async function GET(req: NextRequest) {
 
     const insights: any = {};
 
-    // Get performance issues
+    // Get performance issues (using existing schema)
     if (insightType === 'performance' || insightType === 'all') {
       const performanceIssues = await prisma.performanceIssue.findMany({
-        include: { codeChange: true },
-        orderBy: { identifiedAt: 'desc' },
+        orderBy: { firstDetected: 'desc' },
         take: limit
       });
 
       const perfStats = {
         total: performanceIssues.length,
-        identified: performanceIssues.filter(i => i.status === 'identified').length,
-        investigating: performanceIssues.filter(i => i.status === 'investigating').length,
-        resolved: performanceIssues.filter(i => i.status === 'resolved').length,
-        ignored: performanceIssues.filter(i => i.status === 'ignored').length,
+        identified: performanceIssues.filter(i => i.status === 'open' && !i.resolved).length,
+        investigating: performanceIssues.filter(i => i.status === 'investigating' || i.status === 'in_progress').length,
+        resolved: performanceIssues.filter(i => i.resolved).length,
+        ignored: performanceIssues.filter(i => i.status === 'ignored' || i.status === 'closed').length,
         bySeverity: {
           critical: performanceIssues.filter(i => i.severity === 'critical').length,
           high: performanceIssues.filter(i => i.severity === 'high').length,
@@ -62,10 +57,10 @@ export async function GET(req: NextRequest) {
           low: performanceIssues.filter(i => i.severity === 'low').length
         },
         byType: {
-          n_plus_one: performanceIssues.filter(i => i.issueType === 'n_plus_one').length,
-          slow_query: performanceIssues.filter(i => i.issueType === 'slow_query').length,
-          memory_leak: performanceIssues.filter(i => i.issueType === 'memory_leak').length,
-          cache_miss: performanceIssues.filter(i => i.issueType === 'cache_miss').length
+          n_plus_one: performanceIssues.filter(i => i.issueType === 'n_plus_one' || i.issueType.includes('n+1')).length,
+          slow_query: performanceIssues.filter(i => i.issueType === 'slow_query' || i.issueType.includes('slow')).length,
+          memory_leak: performanceIssues.filter(i => i.issueType === 'memory_leak' || i.issueType.includes('memory')).length,
+          cache_miss: performanceIssues.filter(i => i.issueType === 'cache_miss' || i.issueType.includes('cache')).length
         }
       };
 
@@ -75,32 +70,31 @@ export async function GET(req: NextRequest) {
       };
     }
 
-    // Get refactoring recommendations
+    // Get refactoring recommendations (using existing schema)
     if (insightType === 'refactoring' || insightType === 'all') {
       const refactoringRecs = await prisma.refactoringRecommendation.findMany({
-        include: { codeChange: true },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { detectedAt: 'desc' },
         take: limit
       });
 
       const refactorStats = {
         total: refactoringRecs.length,
-        suggested: refactoringRecs.filter(r => r.status === 'suggested').length,
-        inProgress: refactoringRecs.filter(r => r.status === 'in_progress').length,
-        completed: refactoringRecs.filter(r => r.status === 'completed').length,
+        suggested: refactoringRecs.filter(r => r.status === 'pending' || r.status === 'suggested').length,
+        inProgress: refactoringRecs.filter(r => r.status === 'in_progress' || r.status === 'accepted').length,
+        completed: refactoringRecs.filter(r => r.implemented || r.status === 'completed').length,
         rejected: refactoringRecs.filter(r => r.status === 'rejected').length,
         byPriority: {
-          critical: refactoringRecs.filter(r => r.priority === 'critical').length,
-          high: refactoringRecs.filter(r => r.priority === 'high').length,
-          medium: refactoringRecs.filter(r => r.priority === 'medium').length,
-          low: refactoringRecs.filter(r => r.priority === 'low').length
+          critical: refactoringRecs.filter(r => r.priority >= 9).length,
+          high: refactoringRecs.filter(r => r.priority >= 7 && r.priority < 9).length,
+          medium: refactoringRecs.filter(r => r.priority >= 5 && r.priority < 7).length,
+          low: refactoringRecs.filter(r => r.priority < 5).length
         },
         byType: {
-          code_smell: refactoringRecs.filter(r => r.recommendationType === 'code_smell').length,
-          duplication: refactoringRecs.filter(r => r.recommendationType === 'duplication').length,
-          complexity: refactoringRecs.filter(r => r.recommendationType === 'complexity').length,
-          design_pattern: refactoringRecs.filter(r => r.recommendationType === 'design_pattern').length,
-          type_safety: refactoringRecs.filter(r => r.recommendationType === 'type_safety').length
+          code_smell: refactoringRecs.filter(r => r.recommendationType === 'code_smell' || r.recommendationType.includes('smell')).length,
+          duplication: refactoringRecs.filter(r => r.recommendationType === 'duplication' || r.recommendationType.includes('duplicate')).length,
+          complexity: refactoringRecs.filter(r => r.recommendationType === 'complexity' || r.recommendationType.includes('complex')).length,
+          design_pattern: refactoringRecs.filter(r => r.recommendationType === 'design_pattern' || r.recommendationType.includes('pattern')).length,
+          type_safety: refactoringRecs.filter(r => r.recommendationType === 'type_safety' || r.recommendationType.includes('type')).length
         }
       };
 
@@ -110,7 +104,7 @@ export async function GET(req: NextRequest) {
       };
     }
 
-    // Get learning insights
+    // Get learning insights (Phase 3 model)
     if (insightType === 'learning' || insightType === 'all') {
       const learningInsights = await prisma.learningInsight.findMany({
         orderBy: { discoveredAt: 'desc' },
@@ -129,7 +123,9 @@ export async function GET(req: NextRequest) {
           error_pattern: learningInsights.filter(i => i.insightType === 'error_pattern').length,
           self_healing: learningInsights.filter(i => i.insightType === 'self_healing').length
         },
-        averageConfidence: learningInsights.reduce((sum, i) => sum + i.confidence, 0) / learningInsights.length || 0
+        averageConfidence: learningInsights.length > 0
+          ? learningInsights.reduce((sum, i) => sum + i.confidence, 0) / learningInsights.length
+          : 0
       };
 
       insights.learning = {
@@ -138,7 +134,7 @@ export async function GET(req: NextRequest) {
       };
     }
 
-    // Get code change trends
+    // Get code change trends (Phase 3 model)
     if (insightType === 'all') {
       const codeChanges = await prisma.codeChange.findMany({
         orderBy: { timestamp: 'desc' },
@@ -170,7 +166,7 @@ export async function GET(req: NextRequest) {
       };
     }
 
-    // Get self-healing stats
+    // Get self-healing stats (Phase 3 model)
     if (insightType === 'all') {
       const healingActions = await prisma.selfHealingAction.findMany({
         orderBy: { createdAt: 'desc' },
@@ -245,7 +241,8 @@ export async function POST(req: NextRequest) {
         result = await prisma.performanceIssue.update({
           where: { id },
           data: { 
-            status: action === 'resolve' ? 'resolved' : 'ignored',
+            status: action === 'resolve' ? 'closed' : 'ignored',
+            resolved: action === 'resolve',
             resolvedAt: action === 'resolve' ? new Date() : null
           }
         });
@@ -256,6 +253,7 @@ export async function POST(req: NextRequest) {
           where: { id },
           data: { 
             status: action === 'apply' ? 'completed' : action === 'reject' ? 'rejected' : 'in_progress',
+            implemented: action === 'apply',
             completedAt: action === 'apply' ? new Date() : null
           }
         });
