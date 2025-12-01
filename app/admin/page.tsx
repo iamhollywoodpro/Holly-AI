@@ -6,7 +6,7 @@
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import { Activity, Zap, BarChart3, GitBranch } from 'lucide-react';
-import { ArchitectureGenerationPanel } from '@/components/admin/ArchitectureGenerationPanel';
+import ArchitectureGenerationPanel from '@/components/admin/ArchitectureGenerationPanel';
 import { SelfHealingPanel } from '@/components/admin/SelfHealingPanel';
 import { InsightsPanel } from '@/components/admin/InsightsPanel';
 
