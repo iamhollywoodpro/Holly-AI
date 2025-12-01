@@ -204,8 +204,8 @@ async function generateArchitecture() {
                   functionCount: file.functions.length,
                   classCount: file.classes.length,
                   interfaceCount: file.interfaces.length,
-                  lineCount: file.lineCount,
-                  complexity: file.complexity,
+                  lineCount: file.linesOfCode,
+                  complexity: 0, // TODO: Calculate complexity metric
                   imports: node?.imports || [],
                   exports: node?.exports || [],
                 },
@@ -251,8 +251,8 @@ async function generateArchitecture() {
                   functionCount: file.functions.length,
                   classCount: file.classes.length,
                   interfaceCount: file.interfaces.length,
-                  lineCount: file.lineCount,
-                  complexity: file.complexity,
+                  lineCount: file.linesOfCode,
+                  complexity: 0, // TODO: Calculate complexity metric
                   imports: node?.imports || [],
                   exports: node?.exports || [],
                 },
