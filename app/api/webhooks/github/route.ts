@@ -81,14 +81,14 @@ async function analyzeCodeChange(files: string[]): Promise<{
  * Create self-healing action for detected issues
  */
 async function createSelfHealingAction(
-  changeId: string,
+  codeChangeId: string,
   healingType: string,
   description: string,
   affectedFiles: string[] = []
 ) {
   return await prisma.selfHealingAction.create({
     data: {
-      codeChangeId: changeId,
+      codeChangeId,
       issueType: 'auto_detected',
       severity: 'medium',
       description,
@@ -184,7 +184,7 @@ export async function POST(req: NextRequest) {
       for (const issue of analysis.performanceIssues) {
         await prisma.performanceIssue.create({
           data: {
-            changeId: codeChange.id,
+            codeChangeId: codeChange.id,
             issueType: 'n_plus_one',
             severity: 'medium',
             description: issue,
@@ -198,7 +198,7 @@ export async function POST(req: NextRequest) {
       for (const recommendation of analysis.refactoringNeeded) {
         await prisma.refactoringRecommendation.create({
           data: {
-            changeId: codeChange.id,
+            codeChangeId: codeChange.id,
             recommendationType: 'type_safety',
             priority: 'medium',
             description: recommendation,
