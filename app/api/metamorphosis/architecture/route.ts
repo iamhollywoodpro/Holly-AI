@@ -161,17 +161,41 @@ export async function GET(request: NextRequest) {
     // Get dependency graph
     let dependencyGraphData = undefined;
     if (includeGraph) {
+      // ✅ FIXED: Changed from 'generatedAt' to 'lastAnalyzed' (field that exists in schema)
       const dependencyGraph = await prisma.dependencyGraph.findFirst({
-        orderBy: { generatedAt: 'desc' },
+        orderBy: { lastAnalyzed: 'desc' },
       });
 
       if (dependencyGraph) {
-        const graphData = dependencyGraph.graph as any;
+        // Count total nodes and edges from all dependency records
+        const allDependencies = await prisma.dependencyGraph.findMany({
+          select: {
+            filePath: true,
+            directDependencies: true,
+            circularDependencies: true,
+            isCritical: true,
+          },
+        });
+
+        const totalEdges = allDependencies.reduce(
+          (sum, dep) => sum + dep.directDependencies.length, 
+          0
+        );
+
+        const circularDeps = allDependencies.filter(
+          dep => dep.circularDependencies.length > 0
+        ).length;
+
+        const criticalFiles = allDependencies
+          .filter(dep => dep.isCritical)
+          .map(dep => dep.filePath)
+          .slice(0, 10); // Top 10
+
         dependencyGraphData = {
-          nodes: graphData.nodes?.length || 0,
-          edges: graphData.edges?.length || 0,
-          circularDependencies: graphData.circularDependencies?.length || 0,
-          criticalFiles: (graphData.criticalFiles || []).slice(0, 10), // Top 10
+          nodes: allDependencies.length,
+          edges: totalEdges,
+          circularDependencies: circularDeps,
+          criticalFiles,
         };
       }
     }
@@ -194,7 +218,8 @@ export async function GET(request: NextRequest) {
       timestamp: new Date(),
       snapshot: {
         id: snapshot.id,
-        generatedAt: snapshot.generatedAt,
+        // ✅ FIXED: Changed from 'snapshot.generatedAt' to 'snapshot.timestamp' (field that exists)
+        generatedAt: snapshot.timestamp,
         totalFiles: snapshot.totalFiles,
         totalFunctions: snapshot.totalFunctions,
         totalClasses: snapshot.totalClasses,
