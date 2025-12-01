@@ -608,13 +608,26 @@ export default function ChatPage() {
       // Remove uploading message
       setMessages(prev => prev.filter(m => m.id !== uploadingMessage.id));
 
-      // Build file links with vision descriptions for images
+      // Build file links with vision/music descriptions
       const fileLinks = results.map((r, idx) => {
         let link = `- [${r.file.name}](${r.file.url}) (${(r.file.size / 1024).toFixed(1)} KB)`;
         
         // 👁️  If vision analysis available, add it!
         if (r.vision && r.vision.summary) {
           link += `\n  👁️  *HOLLY sees: ${r.vision.summary}*`;
+        }
+        
+        // 🎵 If music analysis available, add A&R notes!
+        if (r.music) {
+          link += `\n  🎵 **HOLLY's A&R Analysis:**`;
+          link += `\n    • **Hit Score:** ${r.music.hitScore}/10 (⭐️ ${r.music.hitScore >= 8 ? 'Strong hit potential!' : r.music.hitScore >= 6.5 ? 'Solid commercial track' : 'Needs refinement'})`;
+          link += `\n    • **BPM:** ${Math.round(r.music.bpm)} | **Key:** ${r.music.key} | **Tempo:** ${r.music.tempo}`;
+          link += `\n    • **Production:** ${r.music.productionScore}/10`;
+          link += `\n    • **Billboard:** ${r.music.chartPotential} (Predicted Peak: #${r.music.predictedPeak})`;
+          if (r.music.strengths && r.music.strengths.length > 0) {
+            link += `\n    • **Strengths:** ${r.music.strengths.join(', ')}`;
+          }
+          link += `\n    📝 *${r.music.overallAssessment}*`;
         }
         
         return link;

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import prisma from "@/lib/prisma";
+import { MusicAnalysisEngine } from "@/lib/music/music-analysis-engine";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300; // 5 minutes for analysis
@@ -46,60 +47,73 @@ export async function POST(req: NextRequest) {
       data: { status: "analyzing" },
     });
 
-    // TODO: Implement actual audio analysis
-    // For now, we'll create a placeholder analysis
-    // In Phase 2, we'll integrate:
-    // - Web Audio API for feature extraction
-    // - ML models for genre classification
-    // - Lyrics transcription (Whisper API)
-    // - Hit prediction algorithm
+    // 🎵 HOLLY'S EARS - Professional Music Analysis
+    console.log('[Music Analysis] 🎵 Starting HOLLY\'s A&R analysis...');
+    
+    if (!track.fileUrl) {
+      throw new Error('Track has no audio file URL');
+    }
 
+    const analysisEngine = new MusicAnalysisEngine();
+    const result = await analysisEngine.analyzeTrack(track.fileUrl);
+
+    console.log('[Music Analysis] ✅ Analysis complete:', {
+      hitScore: result.hitAnalysis.hitScore,
+      bpm: result.technical.bpm,
+      key: `${result.technical.key} ${result.technical.mode}`,
+      hasLyrics: result.lyrics.hasLyrics
+    });
+
+    // Save comprehensive analysis to database
     const analysis = await prisma.musicAnalysis.create({
       data: {
         trackId: track.id,
         userId: userId,
-        // Placeholder values - will be replaced with real analysis
-        bpm: 120.0,
-        key: "C",
-        mode: "Major",
-        energy: 0.75,
-        danceability: 0.8,
-        valence: 0.7,
-        loudness: -5.0,
-        acousticness: 0.2,
-        instrumentalness: 0.0,
-        speechiness: 0.05,
-        primaryGenre: "Pop",
-        subGenres: ["Contemporary Pop", "Dance Pop"],
-        styleDescriptors: ["Upbeat", "Energetic", "Radio-friendly"],
-        hasVocals: true,
-        vocalQuality: 0.85,
-        vocalRange: "medium",
-        productionScore: 8.5,
-        mixQuality: 8.0,
-        masteringQuality: 8.5,
-        hitScore: 7.5,
-        marketPotential: "high",
-        targetAudience: ["18-35", "Pop enthusiasts", "Radio listeners"],
-        similarArtists: ["Artist A", "Artist B"],
-        marketPosition: "Commercial mainstream appeal",
-        strengths: [
-          "Strong melodic hooks",
-          "Professional production quality",
-          "Clear vocal delivery",
-          "Radio-friendly structure",
-        ],
-        weaknesses: [
-          "Could benefit from more dynamic variation",
-          "Lyrics could be more distinctive",
-        ],
-        recommendations: [
-          "Consider adding a bridge with instrumental break",
-          "Enhance the pre-chorus build-up",
-          "Add subtle ad-libs in final chorus",
-        ],
-        analysisModel: "holly-v1-placeholder",
-        confidence: 0.85,
+        
+        // Technical Analysis
+        bpm: result.technical.bpm,
+        key: result.technical.key,
+        mode: result.technical.mode,
+        energy: result.technical.energy,
+        danceability: result.technical.danceability,
+        valence: result.technical.valence,
+        loudness: result.technical.loudness,
+        acousticness: result.technical.acousticness,
+        instrumentalness: result.technical.instrumentalness,
+        speechiness: result.technical.speechiness,
+        
+        // Genre & Style
+        primaryGenre: result.genre.primaryGenre,
+        subGenres: result.genre.subGenres,
+        styleDescriptors: result.genre.styleDescriptors,
+        
+        // Vocal Analysis
+        hasVocals: result.vocals.hasVocals,
+        vocalQuality: result.vocals.vocalQuality / 10, // Convert to 0-1
+        vocalRange: result.vocals.vocalRange,
+        
+        // Production Quality
+        productionScore: result.production.productionScore,
+        mixQuality: result.production.mixQuality,
+        masteringQuality: result.production.masteringQuality,
+        
+        // Hit Analysis
+        hitScore: result.hitAnalysis.hitScore,
+        marketPotential: result.billboard.chartPotential.toLowerCase(),
+        
+        // Billboard Potential
+        targetAudience: result.billboard.targetDemographic,
+        similarArtists: result.arNotes.comparableArtists,
+        marketPosition: result.billboard.marketFit,
+        
+        // A&R Notes
+        strengths: result.arNotes.strengths,
+        weaknesses: result.arNotes.weaknesses,
+        recommendations: result.arNotes.recommendations,
+        
+        // Metadata
+        analysisModel: result.metadata.analysisModel,
+        confidence: result.metadata.confidence,
       },
     });
 

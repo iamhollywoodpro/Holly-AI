@@ -3,6 +3,7 @@ import { auth } from '@clerk/nextjs/server';
 import { uploadFile } from '@/lib/file-storage';
 import { prisma } from '@/lib/db';
 import { MultiModelVision } from '@/lib/vision/multi-model-vision';
+import { MusicAnalysisEngine } from '@/lib/music/music-analysis-engine';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -69,8 +70,11 @@ export async function POST(request: NextRequest) {
 
     console.log('[Upload] ✅ File uploaded:', result.url);
 
-    // 🔹 AUTO-VISION PROCESSING - Give HOLLY eyes!
+    // 👁️  AUTO-VISION PROCESSING - Give HOLLY eyes!
     let visionAnalysis = null;
+    
+    // 🎵 AUTO-MUSIC ANALYSIS - Give HOLLY ears!
+    let musicAnalysis = null;
     if (file.type.startsWith('image/')) {
       try {
         console.log('[Upload] 👁️  Processing image with vision...');
@@ -97,6 +101,33 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // 🎵 Process audio files with HOLLY's Ears
+    if (file.type.startsWith('audio/')) {
+      try {
+        console.log('[Upload] 🎵 Analyzing music with HOLLY\'s Ears...');
+        const musicEngine = new MusicAnalysisEngine();
+        
+        const analysis = await musicEngine.analyzeTrack(result.url);
+        
+        musicAnalysis = {
+          bpm: analysis.technical.bpm,
+          key: `${analysis.technical.key} ${analysis.technical.mode}`,
+          tempo: analysis.technical.tempo,
+          hitScore: analysis.hitAnalysis.hitScore,
+          chartPotential: analysis.billboard.chartPotential,
+          predictedPeak: analysis.billboard.predictedPeakPosition,
+          hasLyrics: analysis.lyrics.hasLyrics,
+          productionScore: analysis.production.productionScore,
+          strengths: analysis.arNotes.strengths.slice(0, 3),
+          overallAssessment: analysis.arNotes.overallAssessment.slice(0, 150) + '...'
+        };
+        
+        console.log('[Upload] ✅ Music analysis complete - Hit Score:', musicAnalysis.hitScore);
+      } catch (musicError) {
+        console.error('[Upload] ⚠️  Music analysis failed:', musicError);
+      }
+    }
+
     return NextResponse.json({
       success: true,
       file: {
@@ -104,7 +135,8 @@ export async function POST(request: NextRequest) {
         url: result.url,
         size: result.fileSize,
       },
-      vision: visionAnalysis // Include vision analysis if available
+      vision: visionAnalysis, // Include vision analysis if available
+      music: musicAnalysis // Include music analysis if available
     });
   } catch (error) {
     console.error('Upload error:', error);
