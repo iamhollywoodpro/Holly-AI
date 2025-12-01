@@ -198,13 +198,13 @@ export async function POST(req: NextRequest) {
       // Execute appropriate fix based on action type
       switch (action.healingType) {
         case 'typescript_fix':
-          result = await fixTypeScriptErrors(action.changeId);
+          result = await fixTypeScriptErrors(action.codeChangeId || '');
           break;
         case 'prisma_migration':
-          result = await fixPrismaSchema(action.changeId);
+          result = await fixPrismaSchema(action.codeChangeId || '');
           break;
         case 'dependency_update':
-          result = await fixDependencies(action.changeId);
+          result = await fixDependencies(action.codeChangeId || '');
           break;
         default:
           result = { success: false, details: 'Unknown action type' };
