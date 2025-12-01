@@ -2,20 +2,15 @@
  * PHASE 3: ENHANCED SELF-AWARENESS & LEARNING
  * Insights API - Performance & Learning Intelligence
  * 
- * SIMPLIFIED VERSION: Works with existing schema
+ * CORRECTED VERSION: Matches actual Prisma schema
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
 
-/**
- * GET /api/admin/insights?type=performance|refactoring|learning|all
- * Get comprehensive system insights
- */
 export async function GET(req: NextRequest) {
   try {
-    // Check admin authentication
     const { userId } = auth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -37,107 +32,101 @@ export async function GET(req: NextRequest) {
 
     const insights: any = {};
 
-    // Get performance issues (using existing schema)
+    // Performance Issues (existing schema)
     if (insightType === 'performance' || insightType === 'all') {
       const performanceIssues = await prisma.performanceIssue.findMany({
         orderBy: { firstDetected: 'desc' },
         take: limit
       });
 
-      const perfStats = {
-        total: performanceIssues.length,
-        identified: performanceIssues.filter(i => i.status === 'open' && !i.resolved).length,
-        investigating: performanceIssues.filter(i => i.status === 'investigating' || i.status === 'in_progress').length,
-        resolved: performanceIssues.filter(i => i.resolved).length,
-        ignored: performanceIssues.filter(i => i.status === 'ignored' || i.status === 'closed').length,
-        bySeverity: {
-          critical: performanceIssues.filter(i => i.severity === 'critical').length,
-          high: performanceIssues.filter(i => i.severity === 'high').length,
-          medium: performanceIssues.filter(i => i.severity === 'medium').length,
-          low: performanceIssues.filter(i => i.severity === 'low').length
-        },
-        byType: {
-          n_plus_one: performanceIssues.filter(i => i.issueType === 'n_plus_one' || i.issueType.includes('n+1')).length,
-          slow_query: performanceIssues.filter(i => i.issueType === 'slow_query' || i.issueType.includes('slow')).length,
-          memory_leak: performanceIssues.filter(i => i.issueType === 'memory_leak' || i.issueType.includes('memory')).length,
-          cache_miss: performanceIssues.filter(i => i.issueType === 'cache_miss' || i.issueType.includes('cache')).length
-        }
-      };
-
       insights.performance = {
-        stats: perfStats,
+        stats: {
+          total: performanceIssues.length,
+          identified: performanceIssues.filter(i => i.status === 'open' && !i.resolved).length,
+          investigating: performanceIssues.filter(i => i.status === 'investigating').length,
+          resolved: performanceIssues.filter(i => i.resolved).length,
+          ignored: performanceIssues.filter(i => i.status === 'ignored').length,
+          bySeverity: {
+            critical: performanceIssues.filter(i => i.severity === 'critical').length,
+            high: performanceIssues.filter(i => i.severity === 'high').length,
+            medium: performanceIssues.filter(i => i.severity === 'medium').length,
+            low: performanceIssues.filter(i => i.severity === 'low').length
+          },
+          byType: {
+            n_plus_one: performanceIssues.filter(i => i.issueType.includes('n_plus_one') || i.issueType.includes('n+1')).length,
+            slow_query: performanceIssues.filter(i => i.issueType.includes('slow')).length,
+            memory_leak: performanceIssues.filter(i => i.issueType.includes('memory')).length,
+            cache_miss: performanceIssues.filter(i => i.issueType.includes('cache')).length
+          }
+        },
         issues: performanceIssues
       };
     }
 
-    // Get refactoring recommendations (using existing schema)
+    // Refactoring Recommendations (existing schema)
     if (insightType === 'refactoring' || insightType === 'all') {
       const refactoringRecs = await prisma.refactoringRecommendation.findMany({
         orderBy: { detectedAt: 'desc' },
         take: limit
       });
 
-      const refactorStats = {
-        total: refactoringRecs.length,
-        suggested: refactoringRecs.filter(r => r.status === 'pending' || r.status === 'suggested').length,
-        inProgress: refactoringRecs.filter(r => r.status === 'in_progress' || r.status === 'accepted').length,
-        completed: refactoringRecs.filter(r => r.implemented || r.status === 'completed').length,
-        rejected: refactoringRecs.filter(r => r.status === 'rejected').length,
-        byPriority: {
-          critical: refactoringRecs.filter(r => r.priority >= 9).length,
-          high: refactoringRecs.filter(r => r.priority >= 7 && r.priority < 9).length,
-          medium: refactoringRecs.filter(r => r.priority >= 5 && r.priority < 7).length,
-          low: refactoringRecs.filter(r => r.priority < 5).length
-        },
-        byType: {
-          code_smell: refactoringRecs.filter(r => r.recommendationType === 'code_smell' || r.recommendationType.includes('smell')).length,
-          duplication: refactoringRecs.filter(r => r.recommendationType === 'duplication' || r.recommendationType.includes('duplicate')).length,
-          complexity: refactoringRecs.filter(r => r.recommendationType === 'complexity' || r.recommendationType.includes('complex')).length,
-          design_pattern: refactoringRecs.filter(r => r.recommendationType === 'design_pattern' || r.recommendationType.includes('pattern')).length,
-          type_safety: refactoringRecs.filter(r => r.recommendationType === 'type_safety' || r.recommendationType.includes('type')).length
-        }
-      };
-
       insights.refactoring = {
-        stats: refactorStats,
+        stats: {
+          total: refactoringRecs.length,
+          suggested: refactoringRecs.filter(r => r.status === 'pending').length,
+          inProgress: refactoringRecs.filter(r => r.status === 'in_progress').length,
+          completed: refactoringRecs.filter(r => r.implemented).length,
+          rejected: refactoringRecs.filter(r => r.status === 'rejected').length,
+          byPriority: {
+            critical: refactoringRecs.filter(r => r.priority >= 9).length,
+            high: refactoringRecs.filter(r => r.priority >= 7 && r.priority < 9).length,
+            medium: refactoringRecs.filter(r => r.priority >= 5 && r.priority < 7).length,
+            low: refactoringRecs.filter(r => r.priority < 5).length
+          },
+          byType: {
+            code_smell: refactoringRecs.filter(r => r.recommendationType.includes('smell')).length,
+            duplication: refactoringRecs.filter(r => r.recommendationType.includes('duplicate')).length,
+            complexity: refactoringRecs.filter(r => r.recommendationType.includes('complex')).length,
+            design_pattern: refactoringRecs.filter(r => r.recommendationType.includes('pattern')).length,
+            type_safety: refactoringRecs.filter(r => r.recommendationType.includes('type')).length
+          }
+        },
         recommendations: refactoringRecs
       };
     }
 
-    // Get learning insights (Phase 3 model)
+    // Learning Insights (existing schema - correct fields)
     if (insightType === 'learning' || insightType === 'all') {
       const learningInsights = await prisma.learningInsight.findMany({
-        orderBy: { discoveredAt: 'desc' },
+        orderBy: { learnedAt: 'desc' },  // ✅ Correct field name
         take: limit
       });
 
-      const learningStats = {
-        total: learningInsights.length,
-        actionable: learningInsights.filter(i => i.actionable).length,
-        applied: learningInsights.filter(i => i.appliedAt !== null).length,
-        pending: learningInsights.filter(i => i.actionable && !i.appliedAt).length,
-        byType: {
-          code_pattern: learningInsights.filter(i => i.insightType === 'code_pattern').length,
-          user_behavior: learningInsights.filter(i => i.insightType === 'user_behavior').length,
-          performance: learningInsights.filter(i => i.insightType === 'performance').length,
-          error_pattern: learningInsights.filter(i => i.insightType === 'error_pattern').length,
-          self_healing: learningInsights.filter(i => i.insightType === 'self_healing').length
-        },
-        averageConfidence: learningInsights.length > 0
-          ? learningInsights.reduce((sum, i) => sum + i.confidence, 0) / learningInsights.length
-          : 0
-      };
-
       insights.learning = {
-        stats: learningStats,
+        stats: {
+          total: learningInsights.length,
+          actionable: learningInsights.filter(i => i.actionable).length,
+          applied: learningInsights.filter(i => i.applied).length,  // ✅ Boolean field
+          pending: learningInsights.filter(i => i.actionable && !i.applied).length,
+          byType: {
+            code_pattern: learningInsights.filter(i => i.insightType === 'code_pattern').length,
+            user_behavior: learningInsights.filter(i => i.insightType === 'user_behavior').length,
+            performance: learningInsights.filter(i => i.insightType === 'performance').length,
+            error_pattern: learningInsights.filter(i => i.insightType === 'error_pattern').length,
+            self_healing: learningInsights.filter(i => i.insightType === 'self_healing').length
+          },
+          averageConfidence: learningInsights.length > 0
+            ? learningInsights.reduce((sum, i) => sum + i.confidence, 0) / learningInsights.length
+            : 0
+        },
         insights: learningInsights
       };
     }
 
-    // Get code change trends (Phase 3 model)
+    // Code Changes (existing schema - correct fields)
     if (insightType === 'all') {
       const codeChanges = await prisma.codeChange.findMany({
-        orderBy: { timestamp: 'desc' },
+        orderBy: { committedAt: 'desc' },  // ✅ Correct field name
         take: limit
       });
 
@@ -146,51 +135,47 @@ export async function GET(req: NextRequest) {
       const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
       const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-      const changeStats = {
-        total: codeChanges.length,
-        last24Hours: codeChanges.filter(c => c.timestamp >= oneDayAgo).length,
-        lastWeek: codeChanges.filter(c => c.timestamp >= oneWeekAgo).length,
-        lastMonth: codeChanges.filter(c => c.timestamp >= oneMonthAgo).length,
-        totalFiles: codeChanges.reduce((sum, c) => sum + c.filesChanged, 0),
-        totalAdditions: codeChanges.reduce((sum, c) => sum + c.additions, 0),
-        totalDeletions: codeChanges.reduce((sum, c) => sum + c.deletions, 0),
-        byAuthor: codeChanges.reduce((acc, c) => {
-          acc[c.commitAuthor] = (acc[c.commitAuthor] || 0) + 1;
-          return acc;
-        }, {} as Record<string, number>)
-      };
-
       insights.codeChanges = {
-        stats: changeStats,
+        stats: {
+          total: codeChanges.length,
+          last24Hours: codeChanges.filter(c => c.committedAt >= oneDayAgo).length,
+          lastWeek: codeChanges.filter(c => c.committedAt >= oneWeekAgo).length,
+          lastMonth: codeChanges.filter(c => c.committedAt >= oneMonthAgo).length,
+          totalFiles: codeChanges.reduce((sum, c) => sum + c.filesChanged, 0),
+          totalAdditions: codeChanges.reduce((sum, c) => sum + c.additions, 0),
+          totalDeletions: codeChanges.reduce((sum, c) => sum + c.deletions, 0),
+          byAuthor: codeChanges.reduce((acc, c) => {
+            acc[c.authorName] = (acc[c.authorName] || 0) + 1;  // ✅ Correct field name
+            return acc;
+          }, {} as Record<string, number>)
+        },
         recent: codeChanges.slice(0, 10)
       };
     }
 
-    // Get self-healing stats (Phase 3 model)
+    // Self-Healing Actions (existing schema - correct fields)
     if (insightType === 'all') {
       const healingActions = await prisma.selfHealingAction.findMany({
-        orderBy: { createdAt: 'desc' },
+        orderBy: { detectedAt: 'desc' },  // ✅ Correct field name
         take: limit
       });
 
-      const healingStats = {
-        total: healingActions.length,
-        pending: healingActions.filter(a => a.status === 'pending').length,
-        completed: healingActions.filter(a => a.status === 'completed').length,
-        failed: healingActions.filter(a => a.status === 'failed').length,
-        successRate: healingActions.length > 0 
-          ? (healingActions.filter(a => a.status === 'completed').length / healingActions.length * 100).toFixed(1) 
-          : '0',
-        byType: {
-          typescript_fix: healingActions.filter(a => a.actionType === 'typescript_fix').length,
-          prisma_migration: healingActions.filter(a => a.actionType === 'prisma_migration').length,
-          dependency_update: healingActions.filter(a => a.actionType === 'dependency_update').length,
-          api_fix: healingActions.filter(a => a.actionType === 'api_fix').length
-        }
-      };
-
       insights.selfHealing = {
-        stats: healingStats,
+        stats: {
+          total: healingActions.length,
+          pending: healingActions.filter(a => a.status === 'pending').length,
+          completed: healingActions.filter(a => a.success).length,  // ✅ Boolean field
+          failed: healingActions.filter(a => a.status === 'failed' || (a.status === 'completed' && !a.success)).length,
+          successRate: healingActions.length > 0 
+            ? (healingActions.filter(a => a.success).length / healingActions.length * 100).toFixed(1) 
+            : '0',
+          byType: {
+            typescript_fix: healingActions.filter(a => a.healingType.includes('typescript')).length,
+            prisma_migration: healingActions.filter(a => a.healingType.includes('prisma')).length,
+            dependency_update: healingActions.filter(a => a.healingType.includes('dependency')).length,
+            api_fix: healingActions.filter(a => a.healingType.includes('api')).length
+          }
+        },
         recent: healingActions.slice(0, 10)
       };
     }
@@ -210,13 +195,8 @@ export async function GET(req: NextRequest) {
   }
 }
 
-/**
- * POST /api/admin/insights/action
- * Take action on an insight (mark as applied, ignored, etc.)
- */
 export async function POST(req: NextRequest) {
   try {
-    // Check admin authentication
     const { userId } = auth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -263,7 +243,7 @@ export async function POST(req: NextRequest) {
         result = await prisma.learningInsight.update({
           where: { id },
           data: { 
-            appliedAt: action === 'apply' ? new Date() : null,
+            applied: action === 'apply',  // ✅ Boolean field
             impact: impact || null
           }
         });
