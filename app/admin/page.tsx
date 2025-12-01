@@ -1,145 +1,181 @@
 /**
- * HOLLY ADMIN DASHBOARD
- * 
- * Centralized admin panel for system management
+ * ADMIN DASHBOARD - PHASE 3 ENHANCED
+ * Main admin page with architecture generation, self-healing, and insights panels
  */
 
-import { currentUser } from '@clerk/nextjs/server';
+import { auth, currentUser } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
-import ArchitectureGenerationPanel from '@/components/admin/ArchitectureGenerationPanel';
-
-export const metadata = {
-  title: 'Admin Dashboard - HOLLY',
-  description: 'System administration and management',
-};
+import { Activity, Zap, BarChart3, GitBranch } from 'lucide-react';
+import { ArchitectureGenerationPanel } from '@/components/admin/ArchitectureGenerationPanel';
+import { SelfHealingPanel } from '@/components/admin/SelfHealingPanel';
+import { InsightsPanel } from '@/components/admin/InsightsPanel';
 
 export default async function AdminPage() {
-  // Check authentication
-  const user = await currentUser();
+  const { userId } = auth();
   
-  if (!user) {
+  if (!userId) {
     redirect('/sign-in');
   }
 
-  // Check if user is admin
-  const isAdmin = 
-    user.emailAddresses?.some(e => 
-      e.emailAddress === 'steve@nexamusicgroup.com' || 
-      e.emailAddress.endsWith('@nexamusicgroup.com')
-    );
+  const user = await currentUser();
+  const isAdmin = user?.emailAddresses[0]?.emailAddress?.endsWith('@nexamusicgroup.com');
 
   if (!isAdmin) {
-    redirect('/');
-  }
-
-  return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Header */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        <div className="container mx-auto px-6 py-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                🔧 Admin Dashboard
-              </h1>
-              <p className="text-gray-600 dark:text-gray-400 mt-2">
-                System management and monitoring
-              </p>
-            </div>
-            <div className="text-sm text-gray-500 dark:text-gray-400">
-              Logged in as: <span className="font-medium text-gray-900 dark:text-white">{user.emailAddresses[0]?.emailAddress}</span>
-            </div>
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-8 shadow-2xl max-w-md">
+          <div className="text-center">
+            <div className="mb-4 text-6xl">🚫</div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+              Access Denied
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400">
+              This page is only accessible to NEXA Music Group administrators.
+            </p>
           </div>
         </div>
       </div>
+    );
+  }
 
-      {/* Main Content */}
-      <div className="container mx-auto px-6 py-8 space-y-8">
-        {/* System Status */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
-                <span className="text-2xl">✅</span>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">System Status</p>
-                <p className="text-xl font-bold text-gray-900 dark:text-white">Online</p>
-              </div>
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center space-x-3 mb-2">
+            <div className="p-3 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg shadow-lg">
+              <Activity className="w-8 h-8 text-white" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                HOLLY Admin Dashboard
+              </h1>
+              <p className="text-gray-600 dark:text-gray-400">
+                Phase 3: Enhanced Self-Awareness & Learning
+              </p>
             </div>
           </div>
-
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                <span className="text-2xl">🔌</span>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">API Routes</p>
-                <p className="text-xl font-bold text-gray-900 dark:text-white">76 Active</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
-                <span className="text-2xl">🧠</span>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">HOLLY Status</p>
-                <p className="text-xl font-bold text-gray-900 dark:text-white">Self-Aware</p>
-              </div>
-            </div>
+          <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
+            <span>👤 {user?.firstName || 'Admin'}</span>
+            <span>•</span>
+            <span>📧 {user?.emailAddresses[0]?.emailAddress}</span>
           </div>
         </div>
 
-        {/* Architecture Generation Panel */}
-        <ArchitectureGenerationPanel />
+        {/* System Status Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-6 text-white shadow-lg">
+            <div className="flex items-center justify-between mb-2">
+              <GitBranch className="w-8 h-8" />
+              <span className="text-2xl font-bold">✅</span>
+            </div>
+            <h3 className="font-semibold mb-1">Architecture Map</h3>
+            <p className="text-sm text-blue-100">Phase 2 Complete</p>
+          </div>
+
+          <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-6 text-white shadow-lg">
+            <div className="flex items-center justify-between mb-2">
+              <Zap className="w-8 h-8" />
+              <span className="text-2xl font-bold">🚀</span>
+            </div>
+            <h3 className="font-semibold mb-1">Self-Healing</h3>
+            <p className="text-sm text-purple-100">Auto Code Repair</p>
+          </div>
+
+          <div className="bg-gradient-to-br from-pink-500 to-pink-600 rounded-lg p-6 text-white shadow-lg">
+            <div className="flex items-center justify-between mb-2">
+              <BarChart3 className="w-8 h-8" />
+              <span className="text-2xl font-bold">📊</span>
+            </div>
+            <h3 className="font-semibold mb-1">Insights</h3>
+            <p className="text-sm text-pink-100">Performance Analysis</p>
+          </div>
+
+          <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-6 text-white shadow-lg">
+            <div className="flex items-center justify-between mb-2">
+              <Activity className="w-8 h-8" />
+              <span className="text-2xl font-bold">🧠</span>
+            </div>
+            <h3 className="font-semibold mb-1">Learning</h3>
+            <p className="text-sm text-green-100">Adaptive AI</p>
+          </div>
+        </div>
+
+        {/* Phase 2: Architecture Generation */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 flex items-center space-x-2">
+            <GitBranch className="w-6 h-6" />
+            <span>Phase 2: Architecture Generation</span>
+          </h2>
+          <ArchitectureGenerationPanel />
+        </div>
+
+        {/* Phase 3: Self-Healing System */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 flex items-center space-x-2">
+            <Zap className="w-6 h-6" />
+            <span>Phase 3: Self-Healing System</span>
+          </h2>
+          <SelfHealingPanel />
+        </div>
+
+        {/* Phase 3: System Insights */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 flex items-center space-x-2">
+            <BarChart3 className="w-6 h-6" />
+            <span>Phase 3: System Insights</span>
+          </h2>
+          <InsightsPanel />
+        </div>
 
         {/* Quick Links */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-            Quick Links
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <a
-              href="https://vercel.com/iamhollywoodpros-projects/holly-ai-agent"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors"
-            >
-              <p className="font-medium text-gray-900 dark:text-white">Vercel Dashboard</p>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Deployments & logs</p>
-            </a>
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg">
+          <h3 className="font-bold text-gray-900 dark:text-white mb-4">Quick Links</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <a
               href="https://github.com/iamhollywoodpro/Holly-AI"
               target="_blank"
               rel="noopener noreferrer"
-              className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors"
+              className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg hover:shadow-md transition-shadow text-center"
             >
-              <p className="font-medium text-gray-900 dark:text-white">GitHub Repo</p>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Source code</p>
+              <div className="text-2xl mb-2">🐙</div>
+              <div className="font-medium text-sm text-gray-900 dark:text-white">GitHub</div>
             </a>
             <a
-              href="https://dashboard.clerk.com"
+              href="https://vercel.com/iamhollywoodpros-projects/holly-ai-agent"
               target="_blank"
               rel="noopener noreferrer"
-              className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors"
+              className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg hover:shadow-md transition-shadow text-center"
             >
-              <p className="font-medium text-gray-900 dark:text-white">Clerk Dashboard</p>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">User management</p>
+              <div className="text-2xl mb-2">▲</div>
+              <div className="font-medium text-sm text-gray-900 dark:text-white">Vercel</div>
             </a>
             <a
-              href="https://console.neon.tech"
+              href="https://holly.nexamusicgroup.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors"
+              className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg hover:shadow-md transition-shadow text-center"
             >
-              <p className="font-medium text-gray-900 dark:text-white">Neon Database</p>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Database console</p>
+              <div className="text-2xl mb-2">🌐</div>
+              <div className="font-medium text-sm text-gray-900 dark:text-white">Live Site</div>
+            </a>
+            <a
+              href="https://clerk.com/dashboard"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg hover:shadow-md transition-shadow text-center"
+            >
+              <div className="text-2xl mb-2">🔐</div>
+              <div className="font-medium text-sm text-gray-900 dark:text-white">Clerk</div>
             </a>
           </div>
+        </div>
+
+        {/* Footer */}
+        <div className="mt-8 text-center text-sm text-gray-500 dark:text-gray-400">
+          <p>HOLLY - Hyper-Optimized Logic & Learning Yield</p>
+          <p>© 2025 NEXA Music Group. All rights reserved.</p>
         </div>
       </div>
     </div>
