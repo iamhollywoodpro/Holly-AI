@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db';
 import { MultiModelVision } from '@/lib/vision/multi-model-vision';
 import { MusicAnalysisEngine } from '@/lib/music/music-analysis-engine';
 // Phase 1: Metamorphosis - Self-Awareness
+import '@/lib/metamorphosis/init'; // Initialize Phase 1 systems
 import { logger } from '@/lib/metamorphosis/logging-system';
 import { metrics, startPerformanceTimer } from '@/lib/metamorphosis/performance-metrics';
 

@@ -954,6 +954,7 @@ export default function ChatPage() {
                     <MessageBubble
                       message={message}
                       index={index}
+                      conversationId={currentConversationId}
                     />
                   </div>
                 )

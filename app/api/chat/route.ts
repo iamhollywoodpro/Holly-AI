@@ -14,6 +14,7 @@ import { AdaptiveResponseSystem } from '@/lib/learning/adaptive-responses';
 import { EmotionalIntelligence } from '@/lib/emotion/emotional-intelligence';
 import { EmpathyEngine } from '@/lib/emotion/empathy-engine';
 // Phase 1: Metamorphosis - Self-Awareness
+import '@/lib/metamorphosis/init'; // Initialize Phase 1 systems
 import { logger } from '@/lib/metamorphosis/logging-system';
 import { metrics, startPerformanceTimer } from '@/lib/metamorphosis/performance-metrics';
 import { feedback } from '@/lib/metamorphosis/feedback-system';

@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { User, Sparkles, Loader2, Volume2, VolumeX } from 'lucide-react';
+import { User, Sparkles, Loader2, Volume2, VolumeX, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { MarkdownRenderer } from './code/MarkdownRenderer';
@@ -28,12 +28,15 @@ interface Message {
 interface MessageBubbleProps {
   message: Message;
   index: number;
+  conversationId?: string; // For feedback tracking
 }
 
-export default function MessageBubble({ message, index }: MessageBubbleProps) {
+export default function MessageBubble({ message, index, conversationId }: MessageBubbleProps) {
   const isUser = message.role === 'user';
   const isThinking = message.thinking;
   const [isPlayingVoice, setIsPlayingVoice] = useState(false);
+  const [feedbackGiven, setFeedbackGiven] = useState<'up' | 'down' | null>(null);
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
 
   // Detect media URLs in message content
   const detectMedia = (content: string) => {
@@ -58,6 +61,37 @@ export default function MessageBubble({ message, index }: MessageBubbleProps) {
 
   const handleVoicePlayEnd = () => {
     console.log('[HOLLY Voice] Playback completed');
+  };
+  
+  // Phase 1: User Feedback
+  const handleFeedback = async (type: 'thumbs_up' | 'thumbs_down') => {
+    if (feedbackGiven || feedbackLoading) return;
+    
+    setFeedbackLoading(true);
+    try {
+      const response = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type,
+          messageId: message.id,
+          conversationId: conversationId || 'current'
+          context: {
+            hollyResponse: message.content,
+            timestamp: message.timestamp,
+          }
+        })
+      });
+      
+      if (response.ok) {
+        setFeedbackGiven(type === 'thumbs_up' ? 'up' : 'down');
+        console.log(`[Feedback] ${type} recorded for message ${message.id}`);
+      }
+    } catch (error) {
+      console.error('[Feedback] Failed to record:', error);
+    } finally {
+      setFeedbackLoading(false);
+    }
   };
 
   const getEmotionColor = (emotion?: string) => {
@@ -223,10 +257,45 @@ export default function MessageBubble({ message, index }: MessageBubbleProps) {
             <MarkdownRenderer content={message.content} />
           </div>
 
-          {/* Footer with Timestamp and Voice Button */}
-          <div className="mt-2 flex items-center justify-between">
-            <div className="text-xs text-gray-400">
-              {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          {/* Footer with Timestamp, Feedback, and Voice Button */}
+          <div className="mt-3 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="text-xs text-gray-400">
+                {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </div>
+              
+              {/* Phase 1: Feedback Buttons (HOLLY messages only) */}
+              {!isUser && !feedbackGiven && (
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => handleFeedback('thumbs_up')}
+                    disabled={feedbackLoading}
+                    className="p-1.5 rounded-lg hover:bg-white/5 transition-colors group/btn disabled:opacity-50"
+                    title="This was helpful"
+                  >
+                    <ThumbsUp className="w-4 h-4 text-gray-400 group-hover/btn:text-green-400 transition-colors" />
+                  </button>
+                  <button
+                    onClick={() => handleFeedback('thumbs_down')}
+                    disabled={feedbackLoading}
+                    className="p-1.5 rounded-lg hover:bg-white/5 transition-colors group/btn disabled:opacity-50"
+                    title="This wasn't helpful"
+                  >
+                    <ThumbsDown className="w-4 h-4 text-gray-400 group-hover/btn:text-red-400 transition-colors" />
+                  </button>
+                </div>
+              )}
+              
+              {/* Feedback Confirmation */}
+              {feedbackGiven && (
+                <div className="flex items-center gap-1.5 text-xs text-gray-400">
+                  {feedbackGiven === 'up' ? (
+                    <><ThumbsUp className="w-3.5 h-3.5 text-green-400" /> <span>Thanks!</span></>
+                  ) : (
+                    <><ThumbsDown className="w-3.5 h-3.5 text-red-400" /> <span>Noted</span></>
+                  )}
+                </div>
+              )}
             </div>
             
             {/* HOLLY Voice Player with Fish-Speech */}
