@@ -164,7 +164,7 @@ export async function POST(req: NextRequest) {
 
     // Get user to check admin status
     const user = await prisma.user.findUnique({
-      where: { clerkId: userId },
+      where: { clerkUserId: userId },
       select: { email: true }
     });
 
@@ -272,7 +272,7 @@ export async function GET(req: NextRequest) {
     }
 
     const user = await prisma.user.findUnique({
-      where: { clerkId: userId },
+      where: { clerkUserId: userId },
       select: { email: true }
     });
 
