@@ -17,6 +17,7 @@ import { DependencyGraphGenerator } from '@/lib/metamorphosis/dependency-graph';
 import { logger } from '@/lib/metamorphosis/logging-system';
 import { getAuth } from '@clerk/nextjs/server';
 import type { NextRequest } from 'next/server';
+import { prisma } from '@/lib/db';
 
 // ============================================================================
 // KNOWLEDGE API ENDPOINT
@@ -90,10 +91,57 @@ export async function GET(req: NextRequest) {
  * Get architecture overview
  */
 async function handleArchitectureQuery(traceId: string) {
+  // Try to get from database first (production)
+  const snapshot = await prisma.architectureSnapshot.findFirst({
+    orderBy: { timestamp: 'desc' },
+  });
+
+  if (snapshot) {
+    // Use pre-generated architecture from database
+    logger.info('self_improvement', 'Architecture query completed (from database)', {
+      traceId,
+      totalFiles: snapshot.totalFiles,
+      timestamp: snapshot.timestamp,
+    });
+
+    const architecture = {
+      summary: {
+        totalFiles: snapshot.totalFiles,
+        totalFunctions: snapshot.totalFunctions,
+        totalClasses: snapshot.totalClasses,
+        totalInterfaces: snapshot.totalInterfaces,
+        apiEndpoints: snapshot.apiEndpoints,
+        featureModules: (snapshot.featureModules as any[]).length,
+      },
+      features: snapshot.featureModules as any[],
+      layers: snapshot.layers,
+      techStack: snapshot.techStack,
+      integrationPoints: snapshot.integrationPoints,
+    };
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        layers: architecture.layers,
+        features: architecture.features.map((f: any) => ({
+          name: f.name,
+          files: f.files?.length || 0,
+          description: f.description,
+        })),
+        techStack: architecture.techStack,
+        integrations: architecture.integrationPoints,
+        summary: architecture.summary,
+        generatedAt: snapshot.timestamp,
+      },
+      explanation: generateArchitectureExplanation(architecture),
+    });
+  }
+
+  // Fallback: Generate live (development only)
   const mapper = new ArchitectureMapper(PROJECT_ROOT);
   const architecture = await mapper.generateArchitectureMap();
 
-  logger.info('self_improvement', 'Architecture query completed', {
+  logger.info('self_improvement', 'Architecture query completed (live generation)', {
     traceId,
     totalFiles: architecture.summary.totalFiles,
     features: architecture.features.length,
@@ -126,6 +174,53 @@ async function handleDependencyQuery(file: string | null, traceId: string) {
     }, { status: 400 });
   }
 
+  // Try to get from database first
+  const depNode = await prisma.dependencyGraph.findFirst({
+    where: {
+      OR: [
+        { filePath: file },
+        { filePath: { endsWith: file } },
+      ],
+    },
+  });
+
+  if (depNode) {
+    logger.info('self_improvement', 'Dependency query completed (from database)', {
+      traceId,
+      file: depNode.filePath,
+      imports: depNode.directDependencies.length,
+      usedBy: depNode.directDependents.length,
+    });
+
+    // Get layer from codebase knowledge
+    const knowledge = await prisma.codebaseKnowledge.findFirst({
+      where: { filePath: depNode.filePath },
+    });
+
+    const node = {
+      file: depNode.filePath,
+      layer: knowledge?.layer || 'unknown',
+      critical: depNode.isCritical,
+      imports: depNode.directDependencies,
+      usedBy: depNode.directDependents,
+      exports: knowledge?.exports || [],
+    };
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        file: node.file,
+        layer: node.layer,
+        critical: node.critical,
+        imports: node.imports,
+        usedBy: node.usedBy,
+        exportsCount: node.exports.length,
+      },
+      explanation: generateDependencyExplanation(node, { nodes: [] }),
+    });
+  }
+
+  // Fallback: Generate live (development only)
   const generator = new DependencyGraphGenerator(PROJECT_ROOT);
   const graph = await generator.generateDependencyGraph();
 
@@ -139,7 +234,7 @@ async function handleDependencyQuery(file: string | null, traceId: string) {
     }, { status: 404 });
   }
 
-  logger.info('self_improvement', 'Dependency query completed', {
+  logger.info('self_improvement', 'Dependency query completed (live generation)', {
     traceId,
     file: node.file,
     imports: node.imports.length,
@@ -170,6 +265,43 @@ async function handleImpactQuery(file: string | null, traceId: string) {
     }, { status: 400 });
   }
 
+  // Try to get from database first
+  const depNode = await prisma.dependencyGraph.findFirst({
+    where: {
+      OR: [
+        { filePath: file },
+        { filePath: { endsWith: file } },
+      ],
+    },
+  });
+
+  if (depNode) {
+    logger.info('self_improvement', 'Impact query completed (from database)', {
+      traceId,
+      file: depNode.filePath,
+      directImpact: depNode.directDependents.length,
+      totalImpact: depNode.totalImpact,
+    });
+
+    const impact = {
+      file: depNode.filePath,
+      directImpact: depNode.directDependents,
+      totalImpact: [], // We'd need to recursively calculate this, for now use totalImpact count
+    };
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        file: impact.file,
+        directImpact: impact.directImpact,
+        totalImpactCount: depNode.totalImpact,
+        riskLevel: calculateRiskLevel(depNode.totalImpact),
+      },
+      explanation: `Changing ${impact.file} will DIRECTLY impact ${impact.directImpact.length} files, with a TOTAL impact of ${depNode.totalImpact} files. Risk Level: ${calculateRiskLevel(depNode.totalImpact).toUpperCase()}`,
+    });
+  }
+
+  // Fallback: Generate live (development only)
   const generator = new DependencyGraphGenerator(PROJECT_ROOT);
   const graph = await generator.generateDependencyGraph();
 
@@ -183,7 +315,7 @@ async function handleImpactQuery(file: string | null, traceId: string) {
     }, { status: 404 });
   }
 
-  logger.info('self_improvement', 'Impact query completed', {
+  logger.info('self_improvement', 'Impact query completed (live generation)', {
     traceId,
     file: impact.file,
     directImpact: impact.directImpact.length,
