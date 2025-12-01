@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
     const query = searchParams.get('query');
     const action = searchParams.get('action');
 
-    logger.info(`Knowledge API request: ${query || action}`, 'self_improvement', {
+    logger.info('self_improvement', `Knowledge API request: ${query || action}`, {
       traceId,
       userId,
       query,
@@ -69,7 +69,7 @@ export async function GET(req: NextRequest) {
         }, { status: 400 });
     }
   } catch (error: any) {
-    logger.error('Knowledge API error', 'self_improvement', {
+    logger.error('self_improvement', 'Knowledge API error', {
       traceId,
       error: error.message,
       stack: error.stack,
@@ -93,7 +93,7 @@ async function handleArchitectureQuery(traceId: string) {
   const mapper = new ArchitectureMapper(PROJECT_ROOT);
   const architecture = await mapper.generateArchitectureMap();
 
-  logger.info('Architecture query completed', 'self_improvement', {
+  logger.info('self_improvement', 'Architecture query completed', {
     traceId,
     totalFiles: architecture.summary.totalFiles,
     features: architecture.features.length,
@@ -139,7 +139,7 @@ async function handleDependencyQuery(file: string | null, traceId: string) {
     }, { status: 404 });
   }
 
-  logger.info('Dependency query completed', 'self_improvement', {
+  logger.info('self_improvement', 'Dependency query completed', {
     traceId,
     file: node.file,
     imports: node.imports.length,
@@ -183,7 +183,7 @@ async function handleImpactQuery(file: string | null, traceId: string) {
     }, { status: 404 });
   }
 
-  logger.info('Impact query completed', 'self_improvement', {
+  logger.info('self_improvement', 'Impact query completed', {
     traceId,
     file: impact.file,
     directImpact: impact.directImpact.length,
@@ -227,7 +227,7 @@ async function handleCodeSearch(query: string | null, traceId: string) {
     );
   });
 
-  logger.info('Code search completed', 'self_improvement', {
+  logger.info('self_improvement', 'Code search completed', {
     traceId,
     query,
     results: results.length,
