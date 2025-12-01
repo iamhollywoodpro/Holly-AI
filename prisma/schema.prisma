@@ -50,6 +50,12 @@ model User {
   workLogStats            WorkLogStats?
   emotionLogs             EmotionLog[]
   emotionalBaseline       EmotionalBaseline?
+  
+  // Phase 2C: Learning & Adaptation
+  userPreferences         UserPreference[]
+  conversationPatterns    ConversationPattern[]
+  responseFeedback        ResponseFeedback[]
+  adaptationStrategies    AdaptationStrategy[]
 
   @@map("users")
 }
@@ -824,3 +830,96 @@ model EmotionalBaseline {
 
   @@map("emotional_baselines")
 }
+
+// ===========================================
+// PHASE 2C: REAL-TIME LEARNING & ADAPTATION
+// ===========================================
+
+// User preferences learned from interactions
+model UserPreference {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category     String   // coding_style, communication, music_taste, design_preference, etc.
+  preferenceKey String  // specific preference identifier
+  value        Json     // flexible value storage
+  confidence   Float    @default(0.5) // 0.0 to 1.0 - how confident we are
+  source       String   // conversation, explicit_feedback, behavior_pattern
+  timesObserved Int     @default(1)
+  lastObserved DateTime @default(now())
+  createdAt    DateTime @default(now())
+
+  @@unique([userId, category, preferenceKey])
+  @@index([userId])
+  @@index([category])
+  @@index([confidence])
+  @@map("user_preferences")
+}
+
+// Detected patterns in conversations and behavior
+model ConversationPattern {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  patternType     String   // question_pattern, work_pattern, time_preference, response_style
+  pattern         String   @db.Text // description of the pattern
+  context         Json     // when/where this pattern appears
+  frequency       Int      @default(1)
+  effectiveness   Float    @default(0.5) // how well responses using this pattern work
+  lastSeen        DateTime @default(now())
+  firstSeen       DateTime @default(now())
+  examples        String[] @default([]) // example conversations
+  relatedPatterns String[] @default([]) // IDs of related patterns
+
+  @@index([userId])
+  @@index([patternType])
+  @@index([frequency])
+  @@map("conversation_patterns")
+}
+
+// Feedback on HOLLY's responses (implicit and explicit)
+model ResponseFeedback {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversationId  String?
+  messageId       String?  // specific message that received feedback
+  feedbackType    String   // implicit, explicit, correction, appreciation
+  sentiment       String   // positive, negative, neutral
+  sentimentScore  Float    // -1.0 to 1.0
+  context         Json     // what was being discussed
+  hollyResponse   String   @db.Text // what HOLLY said
+  userReaction    String?  @db.Text // how user reacted
+  lessonLearned   String?  @db.Text // what to do differently
+  applied         Boolean  @default(false) // has this lesson been applied
+  createdAt       DateTime @default(now())
+
+  @@index([userId])
+  @@index([feedbackType])
+  @@index([sentiment])
+  @@index([applied])
+  @@map("response_feedback")
+}
+
+// Adaptation strategies that work for this user
+model AdaptationStrategy {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  strategyName    String   // be_more_concise, use_more_emojis, technical_depth, etc.
+  description     String   @db.Text
+  context         String   // when to apply this strategy
+  successRate     Float    @default(0.5)
+  timesApplied    Int      @default(0)
+  timesSuccessful Int      @default(0)
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  lastApplied     DateTime?
+
+  @@unique([userId, strategyName])
+  @@index([userId])
+  @@index([active])
+  @@index([successRate])
+  @@map("adaptation_strategies")
+}
+

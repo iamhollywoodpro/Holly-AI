@@ -7,6 +7,9 @@ import { getHollyResponse } from '@/lib/ai/ai-orchestrator';
 import { prisma } from '@/lib/db';
 import { DEFAULT_SETTINGS } from '@/lib/settings/default-settings';
 import { getUserContext, getPersonalizedSystemPrompt } from '@/lib/memory/user-context';
+// Phase 2C: Real-time Learning & Adaptation
+import { PatternRecognition } from '@/lib/learning/pattern-recognition';
+import { AdaptiveResponseSystem } from '@/lib/learning/adaptive-responses';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -234,10 +237,48 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // 🧠 PHASE 2C: Real-time Learning & Adaptation
+    let adaptiveContext = null;
+    if (userId && userId !== 'anonymous') {
+      try {
+        // Analyze conversation patterns
+        const patternRecognition = new PatternRecognition(userId);
+        const detectedPatterns = await patternRecognition.analyzeConversation(messages);
+        
+        // Save detected patterns (non-blocking)
+        patternRecognition.savePatterns(detectedPatterns)
+          .catch(err => console.error('[Learning] Pattern save failed:', err));
+        
+        // Get adaptive response context
+        const adaptiveSystem = new AdaptiveResponseSystem(userId);
+        adaptiveContext = await adaptiveSystem.getAdaptiveContext({
+          userId,
+          messageContent: lastMessage.content,
+          conversationHistory: messages
+        });
+        
+        console.log('[Learning] Adaptive context:', {
+          guidelines: adaptiveContext.responseGuidelines.length,
+          strategies: adaptiveContext.activeStrategies.length,
+          confidence: adaptiveContext.confidence
+        });
+      } catch (error) {
+        console.error('[Learning] Adaptive context error:', error);
+      }
+    }
+    
     // Get personalized system prompt if user context available
-    const systemPromptOverride = userContext 
+    let systemPromptOverride = userContext 
       ? getPersonalizedSystemPrompt(userContext)
       : undefined;
+    
+    // Enhance system prompt with adaptive context
+    if (adaptiveContext && adaptiveContext.systemPromptAdditions.length > 0) {
+      const adaptiveInstructions = adaptiveContext.systemPromptAdditions.join('\n');
+      systemPromptOverride = systemPromptOverride
+        ? `${systemPromptOverride}\n\n[Learned Preferences & Patterns]:\n${adaptiveInstructions}`
+        : `[Learned Preferences & Patterns]:\n${adaptiveInstructions}`;
+    }
     
     // Get HOLLY's response with user's AI preferences and personalized context
     const hollyResponse = await getHollyResponse(
