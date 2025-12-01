@@ -44,7 +44,7 @@ async function generateArchitecture() {
         totalClasses: architecture.summary.totalClasses,
         totalInterfaces: architecture.summary.totalInterfaces,
         apiEndpoints: architecture.summary.apiEndpoints,
-        featureModules: architecture.features,
+        featureModules: JSON.parse(JSON.stringify(architecture.features)),
         layers: architecture.layers,
         techStack: architecture.techStack,
         integrationPoints: architecture.integrationPoints,
