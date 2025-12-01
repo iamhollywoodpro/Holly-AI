@@ -160,7 +160,7 @@ export async function POST(request: NextRequest) {
 
     // Parse request body
     const body: ChatRequest = await request.json();
-    const { messages } = body;
+    const { messages, conversationId } = body;
 
     if (!messages || messages.length === 0) {
       return new Response(
