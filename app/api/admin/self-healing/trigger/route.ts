@@ -215,9 +215,10 @@ export async function POST(req: NextRequest) {
         where: { id: action.id },
         data: {
           status: result.success ? 'completed' : 'failed',
-          attemptCount: action.attemptCount + 1,
-          lastAttempt: new Date(),
-          result: result.details
+          success: result.success,
+          attemptedAt: new Date(),
+          completedAt: result.success ? new Date() : null,
+          errorMessage: result.success ? null : result.details
         }
       });
 
@@ -284,7 +285,7 @@ export async function GET(req: NextRequest) {
     // Get all actions with statistics
     const actions = await prisma.selfHealingAction.findMany({
       include: { codeChange: true },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { detectedAt: 'desc' },
       take: 50
     });
 
