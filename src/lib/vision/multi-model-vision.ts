@@ -1,14 +1,22 @@
 /**
  * Multi-Model Vision System - HOLLY's Eyes
  * 
- * Integrates multiple vision models for comprehensive image understanding:
- * - GPT-4 Vision (OpenAI) - Best for general analysis, design critique
- * - BLIP (Salesforce) - Best for detailed captioning
- * - ViT-GPT2 - Fast, efficient image-to-text
+ * 🆓 USES 100% FREE MODELS BY DEFAULT (No API keys needed!)
+ * 
+ * FREE Models (Hugging Face Inference API):
+ * - Qwen2-VL-7B-Instruct - BEST (7B params, SOTA quality)
+ * - Moondream2 - FASTEST (1.6B params, optimized)
+ * - BLIP-Large - RELIABLE (500M params, Salesforce)
+ * - ViT-GPT2 - BACKUP (300M params, always available)
+ * 
+ * Optional Paid Models (if API keys provided):
+ * - GPT-4 Vision (OpenAI) - Best for complex design critique
  * - Google Cloud Vision - Best for OCR, label detection
  * 
  * Automatically selects the best model based on task type.
  */
+
+import { FreeVisionModels } from './free-vision-models';
 
 export interface VisionResult {
   model: string;
@@ -41,15 +49,20 @@ export class MultiModelVision {
   private openaiKey: string;
   private huggingfaceKey: string;
   private googleVisionKey: string;
+  private freeModels: FreeVisionModels;
 
   constructor() {
     this.openaiKey = process.env.OPENAI_API_KEY || '';
     this.huggingfaceKey = process.env.HUGGINGFACE_API_KEY || '';
     this.googleVisionKey = process.env.GOOGLE_VISION_API_KEY || '';
+    
+    // 🆓 Initialize FREE vision models (always available)
+    this.freeModels = new FreeVisionModels();
   }
 
   /**
    * Main entry point - intelligently analyzes image with best model(s)
+   * 🆓 USES FREE MODELS BY DEFAULT!
    */
   async analyzeImage(
     imageUrl: string,
@@ -58,15 +71,45 @@ export class MultiModelVision {
       prompt?: string;
       useMultipleModels?: boolean;
       detail?: 'low' | 'high' | 'auto';
+      preferPaid?: boolean; // Set true to use paid models (requires API keys)
     } = {}
   ): Promise<MultiVisionAnalysis> {
     const startTime = Date.now();
-    const { taskType = 'general', prompt, useMultipleModels = false, detail = 'auto' } = options;
+    const { taskType = 'general', prompt, useMultipleModels = false, detail = 'auto', preferPaid = false } = options;
+
+    // 🆓 DEFAULT: Use FREE models (no API keys needed)
+    if (!preferPaid || !this.openaiKey) {
+      console.log('[Vision] 🆓 Using FREE Hugging Face models');
+      
+      const freeResult = await this.freeModels.analyzeImageAuto(imageUrl, prompt);
+      
+      const primary: VisionResult = {
+        model: freeResult.model,
+        description: freeResult.description,
+        confidence: freeResult.confidence,
+        processingTime: freeResult.processingTime,
+        timestamp: freeResult.timestamp,
+        details: freeResult.details
+      };
+      
+      const combined = this.synthesizeResults(primary, undefined);
+      const structured = this.extractStructuredData(primary, undefined);
+
+      return {
+        primary,
+        secondary: undefined,
+        combined,
+        structured
+      };
+    }
+
+    // 💰 PAID: Use OpenAI/Google Vision (only if API keys exist AND preferPaid=true)
+    console.log('[Vision] 💰 Using PAID models (API keys provided)');
 
     let primary: VisionResult;
     let secondary: VisionResult | undefined;
 
-    // Select best model based on task
+    // Select best PAID model based on task
     switch (taskType) {
       case 'design-critique':
         primary = await this.analyzeWithGPT4Vision(imageUrl, prompt || 'Analyze this design professionally', detail);
