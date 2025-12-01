@@ -1,7 +1,7 @@
 {
   "crons": [
     {
-      "path": "/api/work-log/cleanup",
+      "path": "/api/admin/architecture/generate",
       "schedule": "0 3 * * *"
     }
   ]
