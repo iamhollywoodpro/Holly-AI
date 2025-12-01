@@ -13,6 +13,10 @@ import { AdaptiveResponseSystem } from '@/lib/learning/adaptive-responses';
 // Phase 2E: Deeper Emotional Intelligence
 import { EmotionalIntelligence } from '@/lib/emotion/emotional-intelligence';
 import { EmpathyEngine } from '@/lib/emotion/empathy-engine';
+// Phase 1: Metamorphosis - Self-Awareness
+import { logger } from '@/lib/metamorphosis/logging-system';
+import { metrics, startPerformanceTimer } from '@/lib/metamorphosis/performance-metrics';
+import { feedback } from '@/lib/metamorphosis/feedback-system';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -133,7 +137,15 @@ function calculateSignificance(userMessage: string, hollyResponse: string): numb
 }
 
 export async function POST(request: NextRequest) {
+  // 📊 PHASE 1: Start performance tracking
+  const apiTimer = startPerformanceTimer('chat_api');
+  let userId = 'anonymous';
+  let conversationId: string | undefined;
+  
   try {
+    // 📝 Log API call start
+    await logger.api.start('/api/chat', { endpoint: '/api/chat' });
+    
     // Authenticate with Clerk
     const { userId: clerkUserId } = await auth();
     
@@ -156,11 +168,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const userId = user.id;
+    userId = user.id;
 
     // Parse request body
     const body: ChatRequest = await request.json();
-    const { messages, conversationId } = body;
+    const { messages } = body;
+    conversationId = body.conversationId;
+    
+    // 📝 Log authenticated user
+    await logger.info('api_call', 'Chat request authenticated', { userId, conversationId });
 
     if (!messages || messages.length === 0) {
       return new Response(
@@ -335,6 +351,10 @@ export async function POST(request: NextRequest) {
         : `[Learned Preferences & Patterns]:\n${adaptiveInstructions}`;
     }
     
+    // 🤖 PHASE 1: Track AI inference
+    const aiTimer = startPerformanceTimer('ai_inference');
+    await logger.ai.start('holly-chat', messageWithContext, { userId, conversationId });
+    
     // Get HOLLY's response with user's AI preferences and personalized context
     const hollyResponse = await getHollyResponse(
       messageWithContext,
@@ -347,6 +367,11 @@ export async function POST(request: NextRequest) {
         userName: userContext?.firstName || user.name?.split(' ')[0] || 'there',
       }
     );
+    
+    // 📊 Log AI inference success
+    const aiDuration = await aiTimer.end({ status: 'success' });
+    await metrics.aiInference('holly-chat', aiDuration);
+    await logger.ai.success('holly-chat', aiDuration, undefined, { userId, conversationId });
 
     // Record conversation experience (non-blocking)
     if (userId && userId !== 'anonymous') {
@@ -372,6 +397,11 @@ export async function POST(request: NextRequest) {
         }
       }
     });
+    
+    // ✅ PHASE 1: Log successful API response
+    const totalDuration = await apiTimer.end({ status: 'success' });
+    await metrics.apiResponse('/api/chat', totalDuration, 200);
+    await logger.api.success('/api/chat', totalDuration, { userId, conversationId });
 
     return new Response(stream, {
       headers: {
@@ -382,6 +412,11 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
+    // ❌ PHASE 1: Log error and metrics
+    await apiTimer.end({ status: 'error' });
+    await metrics.error('chat_api', 'high');
+    await logger.api.error('/api/chat', error, { userId, conversationId });
+    
     console.error('Chat API error:', error);
     return new Response(
       JSON.stringify({ 
