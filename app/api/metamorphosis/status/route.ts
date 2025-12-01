@@ -192,7 +192,8 @@ function determineOverallHealth(
   if (
     perfSnapshot.health === 'critical' ||
     logStats.errorRate > 10 ||
-    feedbackStats.satisfactionRate < 30
+    // Only consider satisfaction rate if we have feedback data
+    (feedbackStats.total > 10 && feedbackStats.satisfactionRate < 30)
   ) {
     return 'critical';
   }
@@ -201,7 +202,8 @@ function determineOverallHealth(
   if (
     perfSnapshot.health === 'degraded' ||
     logStats.errorRate > 5 ||
-    feedbackStats.satisfactionRate < 60
+    // Only consider satisfaction rate if we have feedback data
+    (feedbackStats.total > 10 && feedbackStats.satisfactionRate < 60)
   ) {
     return 'degraded';
   }
