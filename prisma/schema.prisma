@@ -89,6 +89,9 @@ model User {
   // Phase 4D: Development Automation
   // (Relations will be added when models are used)
 
+  // Phase 4E Relations
+  integrations     Integration[]
+  notifications    Notification[]
   @@map("users")
 }
 
@@ -2288,3 +2291,250 @@ model DeploymentLog {
 // testRuns          TestRun[]
 // codeReviews       CodeReview[]
 // deployments       DeploymentLog[]
+// ============================================================================
+// PHASE 4E: INTEGRATION HUB - DATABASE MODELS
+// Hollywood Phase 4E: External service integrations, notifications, webhooks
+// ============================================================================
+
+// ============================================================================
+// MODEL 1: Integration - External Service Connections
+// ============================================================================
+model Integration {
+  id                String   @id @default(cuid())
+  
+  // Service Details
+  service           String   // slack, jira, email, github, discord, etc.
+  serviceName       String   // User-friendly name
+  serviceIcon       String?  // Icon URL or emoji
+  
+  // Connection Config
+  status            String   @default("inactive") // active, inactive, error, pending
+  config            Json     // Service-specific configuration
+  credentials       Json?    // Encrypted credentials
+  
+  // Authentication
+  authType          String   // oauth, api_key, webhook, basic
+  accessToken       String?  @db.Text
+  refreshToken      String?  @db.Text
+  tokenExpiry       DateTime?
+  
+  // Features & Capabilities
+  capabilities      String[] @default([]) // send_message, create_ticket, send_email, etc.
+  enabledFeatures   String[] @default([]) // Which features are enabled
+  
+  // Webhook Config
+  webhookUrl        String?  @db.Text
+  webhookSecret     String?
+  webhookEvents     String[] @default([])
+  
+  // Rate Limiting
+  rateLimit         Int?     // Requests per minute
+  requestCount      Int      @default(0)
+  lastRequestAt     DateTime?
+  
+  // Health & Monitoring
+  lastSyncAt        DateTime?
+  lastErrorAt       DateTime?
+  lastError         String?  @db.Text
+  syncFrequency     Int?     // Minutes between syncs
+  
+  // Metadata
+  isActive          Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  createdBy         String
+  user              User     @relation(fields: [createdBy], references: [clerkUserId], onDelete: Cascade)
+  
+  // Relations
+  notifications     Notification[]
+  webhookLogs       WebhookLog[]
+  
+  @@index([service])
+  @@index([status])
+  @@index([createdBy])
+  @@map("integrations")
+}
+
+// ============================================================================
+// MODEL 2: Notification - Notification System & Preferences
+// ============================================================================
+model Notification {
+  id                String   @id @default(cuid())
+  
+  // Notification Details
+  type              String   // info, success, warning, error, mention, task, deployment
+  title             String
+  message           String   @db.Text
+  category          String   // system, user, integration, deployment, code_review, etc.
+  
+  // Priority & Status
+  priority          String   @default("normal") // low, normal, high, critical
+  status            String   @default("unread") // unread, read, archived, dismissed
+  
+  // Delivery Channels
+  channels          String[] @default([]) // web, email, slack, sms, push
+  deliveredVia      String[] @default([]) // Which channels successfully delivered
+  failedChannels    String[] @default([])
+  
+  // Target User
+  userId            String
+  clerkUserId       String
+  user              User     @relation(fields: [clerkUserId], references: [clerkUserId], onDelete: Cascade)
+  
+  // Action & Navigation
+  actionUrl         String?  @db.Text
+  actionLabel       String?
+  actionData        Json?
+  
+  // Integration Source
+  integrationId     String?
+  integration       Integration? @relation(fields: [integrationId], references: [id], onDelete: SetNull)
+  sourceService     String?  // Which service generated this notification
+  externalId        String?  // External notification ID
+  
+  // Grouping & Threading
+  groupKey          String?  // Group related notifications
+  threadId          String?  // Thread/conversation ID
+  parentId          String?  // Reply to another notification
+  
+  // Metadata
+  metadata          Json?
+  attachments       Json?    // Files, images, links
+  
+  // Timing
+  scheduledFor      DateTime?
+  sentAt            DateTime?
+  readAt            DateTime?
+  dismissedAt       DateTime?
+  expiresAt         DateTime?
+  
+  // Timestamps
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([clerkUserId])
+  @@index([status])
+  @@index([type])
+  @@index([priority])
+  @@index([createdAt])
+  @@index([groupKey])
+  @@map("notifications")
+}
+
+// ============================================================================
+// MODEL 3: WebhookLog - Webhook Activity Tracking
+// ============================================================================
+model WebhookLog {
+  id                String   @id @default(cuid())
+  
+  // Webhook Details
+  integrationId     String?
+  integration       Integration? @relation(fields: [integrationId], references: [id], onDelete: SetNull)
+  service           String   // Which service sent the webhook
+  event             String   // Event type
+  
+  // Request Details
+  method            String   // POST, PUT, etc.
+  url               String   @db.Text
+  headers           Json?
+  body              Json?
+  query             Json?
+  
+  // Response Details
+  status            String   // success, failed, pending, retrying
+  statusCode        Int?
+  responseBody      Json?
+  responseTime      Int?     // Milliseconds
+  
+  // Processing
+  processed         Boolean  @default(false)
+  processedAt       DateTime?
+  processingTime    Int?     // Milliseconds
+  
+  // Error Handling
+  error             String?  @db.Text
+  errorStack        String?  @db.Text
+  retryCount        Int      @default(0)
+  maxRetries        Int      @default(3)
+  nextRetryAt       DateTime?
+  
+  // Validation
+  signatureValid    Boolean?
+  ipAddress         String?
+  userAgent         String?  @db.Text
+  
+  // Metadata
+  metadata          Json?
+  tags              String[] @default([])
+  
+  // Timestamps
+  receivedAt        DateTime @default(now())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([integrationId])
+  @@index([service])
+  @@index([status])
+  @@index([receivedAt])
+  @@index([event])
+  @@map("webhook_logs")
+}
+
+// ============================================================================
+// MODEL 4: ExternalService - Third-Party Service Configurations
+// ============================================================================
+model ExternalService {
+  id                String   @id @default(cuid())
+  
+  // Service Identity
+  name              String   @unique // slack, jira, github, gmail, etc.
+  displayName       String
+  description       String?  @db.Text
+  category          String   // communication, project_management, email, code, etc.
+  
+  // Service Config
+  baseUrl           String?  @db.Text
+  apiVersion        String?
+  authType          String   // oauth2, api_key, basic, bearer, custom
+  
+  // OAuth Config
+  oauthClientId     String?  @db.Text
+  oauthClientSecret String?  @db.Text
+  oauthScopes       String[] @default([])
+  oauthAuthUrl      String?  @db.Text
+  oauthTokenUrl     String?  @db.Text
+  
+  // API Config
+  apiKeyHeader      String?  // Header name for API key
+  rateLimitPerMin   Int?
+  rateLimitPerHour  Int?
+  
+  // Capabilities
+  capabilities      Json     // What this service can do
+  endpoints         Json?    // Available endpoints
+  webhookSupport    Boolean  @default(false)
+  
+  // Documentation
+  docsUrl           String?  @db.Text
+  iconUrl           String?  @db.Text
+  setupInstructions String?  @db.Text
+  
+  // Status
+  isActive          Boolean  @default(true)
+  isAvailable       Boolean  @default(true)
+  lastHealthCheck   DateTime?
+  healthStatus      String?  // healthy, degraded, down
+  
+  // Metadata
+  version           String?
+  metadata          Json?
+  
+  // Timestamps
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([name])
+  @@index([category])
+  @@index([isActive])
+  @@map("external_services")
+}
