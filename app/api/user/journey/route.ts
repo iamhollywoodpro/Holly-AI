@@ -37,8 +37,8 @@ export async function GET(req: NextRequest) {
           session: {
             select: {
               id: true,
-              startTime: true,
-              endTime: true
+              startedAt: true,
+              endedAt: true
             }
           }
         },
