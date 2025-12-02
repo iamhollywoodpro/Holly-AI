@@ -20,15 +20,15 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { action, testId, variantId, conversionType, testData } = body;
+    const { action, testId, variant, metricName, metricValue, testData } = body;
 
     // Route based on action
     if (action === 'assign') {
-      return await handleAssign(userId, testId, variantId);
+      return await handleAssign(userId, testId, variant);
     } else if (action === 'expose') {
-      return await handleExpose(userId, testId, variantId);
+      return await handleExpose(userId, testId, variant);
     } else if (action === 'convert') {
-      return await handleConvert(userId, testId, conversionType);
+      return await handleConvert(userId, testId, metricName || 'conversion', metricValue || 1.0);
     } else if (action === 'create' || !action) {
       // Create new A/B test
       return await createTest(testData);
@@ -66,15 +66,15 @@ export async function GET(req: NextRequest) {
         assignments: {
           select: {
             id: true,
-            variantId: true,
+            variant: true,
             assignedAt: true,
           },
         },
         conversions: {
           select: {
             id: true,
-            conversionType: true,
-            value: true,
+            metricName: true,
+            metricValue: true,
           },
         },
       },
@@ -213,7 +213,7 @@ async function createTest(testData: any) {
   return NextResponse.json({ test: newTest }, { status: 201 });
 }
 
-async function handleAssign(clerkUserId: string, testId: string, variantId: string) {
+async function handleAssign(clerkUserId: string, testId: string, variant: string) {
   if (!testId) {
     return NextResponse.json({ error: 'Test ID required' }, { status: 400 });
   }
@@ -226,7 +226,7 @@ async function handleAssign(clerkUserId: string, testId: string, variantId: stri
 
   // Check if assignment already exists
   const existingAssignment = await prisma.aBTestAssignment.findFirst({
-    where: { userId: user.id, testId },
+    where: { clerkUserId, testId },
   });
 
   if (existingAssignment) {
@@ -240,8 +240,8 @@ async function handleAssign(clerkUserId: string, testId: string, variantId: stri
   }
 
   // Auto-assign variant if not provided
-  let assignedVariantId = variantId;
-  if (!assignedVariantId) {
+  let assignedVariant = variant;
+  if (!assignedVariant) {
     const variants = test.variants as any[];
     const trafficAllocation = test.trafficAllocation as any;
     
@@ -252,29 +252,30 @@ async function handleAssign(clerkUserId: string, testId: string, variantId: stri
     for (const [key, value] of Object.entries(trafficAllocation)) {
       cumulative += value as number;
       if (random <= cumulative) {
-        assignedVariantId = variants.find(v => v.id === key)?.id || variants[0].id;
+        assignedVariant = variants.find(v => v.id === key)?.id || variants[0].id;
         break;
       }
     }
     
-    if (!assignedVariantId) assignedVariantId = variants[0].id;
+    if (!assignedVariant) assignedVariant = variants[0].id;
   }
 
   // Create assignment
   const assignment = await prisma.aBTestAssignment.create({
     data: {
       userId: user.id,
+      clerkUserId,
       testId,
-      variantId: assignedVariantId,
+      variant: assignedVariant,
     },
   });
 
   return NextResponse.json({ assignment }, { status: 201 });
 }
 
-async function handleExpose(clerkUserId: string, testId: string, variantId: string) {
-  if (!testId || !variantId) {
-    return NextResponse.json({ error: 'Test ID and Variant ID required' }, { status: 400 });
+async function handleExpose(clerkUserId: string, testId: string, variant: string) {
+  if (!testId || !variant) {
+    return NextResponse.json({ error: 'Test ID and Variant required' }, { status: 400 });
   }
 
   // Get user by clerkId
@@ -285,14 +286,14 @@ async function handleExpose(clerkUserId: string, testId: string, variantId: stri
 
   // Update exposure timestamp
   const assignment = await prisma.aBTestAssignment.updateMany({
-    where: { userId: user.id, testId, variantId },
-    data: { exposedAt: new Date() },
+    where: { clerkUserId, testId, variant },
+    data: { exposed: true, exposedAt: new Date() },
   });
 
   return NextResponse.json({ message: 'Exposure tracked', updated: assignment.count }, { status: 200 });
 }
 
-async function handleConvert(clerkUserId: string, testId: string, conversionType: string = 'conversion') {
+async function handleConvert(clerkUserId: string, testId: string, metricName: string = 'conversion', metricValue: number = 1.0) {
   if (!testId) {
     return NextResponse.json({ error: 'Test ID required' }, { status: 400 });
   }
@@ -305,7 +306,7 @@ async function handleConvert(clerkUserId: string, testId: string, conversionType
 
   // Get user's assignment
   const assignment = await prisma.aBTestAssignment.findFirst({
-    where: { userId: user.id, testId },
+    where: { clerkUserId, testId },
   });
 
   if (!assignment) {
@@ -316,10 +317,11 @@ async function handleConvert(clerkUserId: string, testId: string, conversionType
   const conversion = await prisma.aBTestConversion.create({
     data: {
       userId: user.id,
+      clerkUserId,
       testId,
-      variantId: assignment.variantId,
-      conversionType,
-      value: 1.0,
+      variant: assignment.variant,
+      metricName,
+      metricValue,
     },
   });
 
@@ -342,9 +344,9 @@ async function getTestResults(testId: string) {
   const variants = test.variants as any[];
   
   // Calculate stats per variant
-  const variantStats = variants.map(variant => {
-    const assignments = test.assignments.filter(a => a.variantId === variant.id);
-    const conversions = test.conversions.filter(c => c.variantId === variant.id);
+  const variantStats = variants.map(variantDef => {
+    const assignments = test.assignments.filter(a => a.variant === variantDef.id);
+    const conversions = test.conversions.filter(c => c.variant === variantDef.id);
     
     const assignmentCount = assignments.length;
     const conversionCount = conversions.length;
@@ -352,14 +354,14 @@ async function getTestResults(testId: string) {
       ? ((conversionCount / assignmentCount) * 100).toFixed(2)
       : '0.00';
     
-    const exposures = assignments.filter(a => a.exposedAt).length;
+    const exposures = assignments.filter(a => a.exposed).length;
     const exposureRate = assignmentCount > 0
       ? ((exposures / assignmentCount) * 100).toFixed(2)
       : '0.00';
 
     return {
-      variantId: variant.id,
-      variantName: variant.name,
+      variantId: variantDef.id,
+      variantName: variantDef.name,
       assignments: assignmentCount,
       exposures,
       exposureRate: `${exposureRate}%`,
