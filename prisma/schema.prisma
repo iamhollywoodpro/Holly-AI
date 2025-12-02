@@ -1434,3 +1434,182 @@ model LearningInsight {
   @@index([learnedAt])
   @@map("learning_insights")
 }
+
+// ============================================
+// PHASE 4A: AUTO-MERGE PR & PREDICTIVE DETECTION
+// ============================================
+
+model PullRequest {
+  id                String    @id @default(cuid())
+  prNumber          Int
+  prUrl             String
+  title             String
+  description       String?   @db.Text
+  branch            String
+  baseBranch        String    @default("main")
+  
+  // Relations
+  selfHealingId     String?
+  selfHealingAction SelfHealingAction? @relation(fields: [selfHealingId], references: [id], onDelete: SetNull)
+  
+  // Auto-merge decision
+  autoMergeable     Boolean   @default(false)
+  safetyScore       Float     @default(0.0)
+  riskFactors       String[]  @default([])
+  checksStatus      String    @default("pending") // pending, passing, failing
+  
+  // Merge status
+  status            String    @default("open") // open, merged, closed, rolled_back
+  merged            Boolean   @default(false)
+  mergedAt          DateTime?
+  mergedBy          String?   @default("holly-auto-merge")
+  rolledBack        Boolean   @default(false)
+  rollbackReason    String?   @db.Text
+  rolledBackAt      DateTime?
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  @@unique([prNumber])
+  @@index([status])
+  @@index([autoMergeable])
+  @@index([selfHealingId])
+  @@index([createdAt])
+  @@map("pull_requests")
+}
+
+model Prediction {
+  id                String    @id @default(cuid())
+  predictionType    String    // performance_degradation, bug_risk, complexity_increase, security_vulnerability
+  category          String    // code_quality, performance, security, maintainability
+  
+  // Target
+  filePath          String
+  fileName          String
+  component         String?
+  module            String?
+  
+  // Prediction details
+  title             String
+  description       String    @db.Text
+  reasoning         String    @db.Text
+  confidence        Float     @default(0.5) // 0.0 to 1.0
+  severity          String    // critical, high, medium, low
+  likelihood        Float     @default(0.5) // 0.0 to 1.0
+  
+  // Evidence
+  indicators        Json      // Data that led to prediction
+  patterns          String[]  @default([])
+  historicalData    Json?
+  
+  // Recommendation
+  recommendation    String    @db.Text
+  preventionSteps   String[]  @default([])
+  estimatedImpact   String?
+  
+  // Status
+  status            String    @default("predicted") // predicted, monitoring, occurred, prevented, false_positive
+  validated         Boolean   @default(false)
+  validatedAt       DateTime?
+  accuracy          Float?    // Set after validation
+  
+  // Timestamps
+  predictedAt       DateTime  @default(now())
+  monitorUntil      DateTime?
+  occurredAt        DateTime?
+  
+  @@index([predictionType])
+  @@index([status])
+  @@index([confidence])
+  @@index([severity])
+  @@index([predictedAt])
+  @@map("predictions")
+}
+
+model CodeQualityMetric {
+  id                String    @id @default(cuid())
+  
+  // Scope
+  scope             String    // file, module, project
+  scopePath         String?
+  scopeName         String?
+  
+  // Metrics
+  linesOfCode       Int
+  complexity        Int
+  maintainability   Float     @default(0.0)
+  testCoverage      Float     @default(0.0)
+  
+  // Quality scores
+  qualityScore      Float     @default(0.0)
+  duplication       Float     @default(0.0)
+  documentation     Float     @default(0.0)
+  
+  // Issues
+  bugs              Int       @default(0)
+  vulnerabilities   Int       @default(0)
+  codeSmells        Int       @default(0)
+  
+  // Tech debt
+  technicalDebt     Int       @default(0) // Minutes
+  debtRatio         Float     @default(0.0)
+  
+  // Trend data
+  trend             String    @default("stable") // improving, stable, degrading
+  changeFromPrev    Float     @default(0.0)
+  
+  measuredAt        DateTime  @default(now())
+  
+  @@index([scope])
+  @@index([scopePath])
+  @@index([qualityScore])
+  @@index([measuredAt])
+  @@map("code_quality_metrics")
+}
+
+model TechnicalDebt {
+  id                String    @id @default(cuid())
+  debtType          String    // code_smell, outdated_dependency, missing_test, poor_design
+  category          String    // maintainability, reliability, security, performance
+  
+  // Location
+  filePath          String
+  fileName          String
+  lineNumbers       Int[]     @default([])
+  module            String?
+  
+  // Debt details
+  title             String
+  description       String    @db.Text
+  impact            String    @db.Text
+  
+  // Effort estimation
+  effortMinutes     Int       @default(0)
+  severity          String    // critical, high, medium, low
+  priority          Int       @default(5) // 1-10
+  
+  // Business impact
+  affectedFeatures  String[]  @default([])
+  userImpact        String?
+  businessCost      String?
+  
+  // Remediation
+  recommendation    String    @db.Text
+  suggestedApproach String?   @db.Text
+  
+  // Status
+  status            String    @default("identified") // identified, planned, in_progress, resolved
+  resolved          Boolean   @default(false)
+  resolvedAt        DateTime?
+  
+  identifiedAt      DateTime  @default(now())
+  
+  @@index([debtType])
+  @@index([status])
+  @@index([severity])
+  @@index([priority])
+  @@index([filePath])
+  @@index([identifiedAt])
+  @@map("technical_debt")
+}
+
