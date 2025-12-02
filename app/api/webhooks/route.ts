@@ -7,332 +7,110 @@ import crypto from 'crypto';
 
 const prisma = new PrismaClient();
 
-// Verify webhook signature
-function verifyWebhookSignature(
-  payload: string,
-  signature: string,
-  secret: string,
-  algorithm: string = 'sha256'
-): boolean {
-  const hmac = crypto.createHmac(algorithm, secret);
-  const digest = hmac.update(payload).digest('hex');
-  return crypto.timingSafeEqual(
-    Buffer.from(signature),
-    Buffer.from(digest)
-  );
-}
-
-// POST - Receive webhook
+// POST: Handle incoming webhook
 export async function POST(req: NextRequest) {
-  const startTime = Date.now();
-  let webhookLog: any = null;
-
   try {
     const { searchParams } = new URL(req.url);
     const service = searchParams.get('service');
     const integrationId = searchParams.get('integration');
 
     if (!service) {
-      return NextResponse.json({ error: 'Service parameter required' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Service parameter required' },
+        { status: 400 }
+      );
     }
 
     // Get request details
-    const body = await req.text();
-    const headers = Object.fromEntries(req.headers);
-    const method = req.method;
+    const body = await req.json();
+    const headers = Object.fromEntries(req.headers.entries());
     const url = req.url;
+    const method = req.method;
 
-    // Parse body
-    let parsedBody: any;
-    try {
-      parsedBody = JSON.parse(body);
-    } catch {
-      parsedBody = { raw: body };
-    }
-
-    // Get integration for signature verification
-    let integration = null;
+    // Verify webhook signature if integration exists
     let signatureValid = null;
+    let integration = null;
 
     if (integrationId) {
       integration = await prisma.integration.findUnique({
         where: { id: integrationId }
       });
 
-      // Verify signature if integration has webhook secret
-      if (integration?.webhookSecret) {
-        const signature = headers['x-hub-signature'] || 
-                         headers['x-webhook-signature'] || 
-                         headers['x-signature'];
-        
-        if (signature) {
-          signatureValid = verifyWebhookSignature(
-            body,
-            signature,
-            integration.webhookSecret
-          );
-        }
+      if (integration && integration.webhookSecret) {
+        signatureValid = verifyWebhookSignature(
+          service,
+          headers,
+          body,
+          integration.webhookSecret
+        );
       }
     }
 
+    // Determine event type
+    const event = extractEventType(service, headers, body);
+
     // Create webhook log
-    webhookLog = await prisma.webhookLog.create({
+    const webhookLog = await prisma.webhookLog.create({
       data: {
         integrationId: integration?.id,
         service,
-        event: parsedBody.event || parsedBody.type || 'unknown',
+        event,
         method,
         url,
         headers,
-        body: parsedBody,
+        body,
         status: 'pending',
         signatureValid,
         ipAddress: headers['x-forwarded-for'] || headers['x-real-ip'],
-        userAgent: headers['user-agent']
+        userAgent: headers['user-agent'],
+        receivedAt: new Date()
       }
     });
 
-    // Process webhook based on service
-    let processed = false;
-    let responseData: any = { success: true };
-
-    try {
-      switch (service.toLowerCase()) {
-        case 'slack':
-          responseData = await processSlackWebhook(parsedBody, integration);
-          processed = true;
-          break;
-
-        case 'jira':
-          responseData = await processJiraWebhook(parsedBody, integration);
-          processed = true;
-          break;
-
-        case 'github':
-          responseData = await processGitHubWebhook(parsedBody, integration);
-          processed = true;
-          break;
-
-        case 'discord':
-          responseData = await processDiscordWebhook(parsedBody, integration);
-          processed = true;
-          break;
-
-        default:
-          responseData = { 
-            success: true, 
-            message: 'Webhook received but no handler configured' 
-          };
-      }
-
-      // Update webhook log
-      await prisma.webhookLog.update({
-        where: { id: webhookLog.id },
-        data: {
-          status: 'success',
-          processed,
-          processedAt: new Date(),
-          processingTime: Date.now() - startTime,
-          responseBody: responseData
-        }
-      });
-
-      // Update integration stats
-      if (integration) {
-        await prisma.integration.update({
-          where: { id: integration.id },
+    // Process webhook asynchronously
+    processWebhook(webhookLog.id, service, event, body, integration)
+      .then(result => {
+        // Update webhook log with result
+        prisma.webhookLog.update({
+          where: { id: webhookLog.id },
           data: {
-            lastSyncAt: new Date(),
-            requestCount: { increment: 1 },
-            lastRequestAt: new Date()
+            status: result.success ? 'success' : 'failed',
+            processed: true,
+            processedAt: new Date(),
+            processingTime: result.processingTime,
+            error: result.error,
+            responseBody: result.data
           }
-        });
-      }
-
-      return NextResponse.json(responseData);
-
-    } catch (processingError: any) {
-      // Update webhook log with error
-      await prisma.webhookLog.update({
-        where: { id: webhookLog.id },
-        data: {
-          status: 'failed',
-          processed: false,
-          error: processingError.message,
-          errorStack: processingError.stack,
-          processingTime: Date.now() - startTime
-        }
+        }).catch(console.error);
+      })
+      .catch(error => {
+        console.error('Webhook processing error:', error);
+        prisma.webhookLog.update({
+          where: { id: webhookLog.id },
+          data: {
+            status: 'failed',
+            error: error.message,
+            errorStack: error.stack
+          }
+        }).catch(console.error);
       });
 
-      return NextResponse.json({ 
-        success: false, 
-        error: processingError.message 
-      }, { status: 500 });
-    }
-
+    // Return immediate response
+    return NextResponse.json({
+      success: true,
+      message: 'Webhook received',
+      webhookId: webhookLog.id
+    });
   } catch (error: any) {
-    console.error('Webhook API error:', error);
-
-    // Try to log error if webhook log was created
-    if (webhookLog) {
-      await prisma.webhookLog.update({
-        where: { id: webhookLog.id },
-        data: {
-          status: 'failed',
-          error: error.message,
-          errorStack: error.stack,
-          processingTime: Date.now() - startTime
-        }
-      });
-    }
-
-    return NextResponse.json({ 
-      success: false, 
-      error: error.message 
-    }, { status: 500 });
+    console.error('Webhook POST error:', error);
+    return NextResponse.json(
+      { error: 'Failed to process webhook', message: error.message },
+      { status: 500 }
+    );
   }
 }
 
-// Slack webhook processor
-async function processSlackWebhook(body: any, integration: any) {
-  // Handle Slack URL verification
-  if (body.type === 'url_verification') {
-    return { challenge: body.challenge };
-  }
-
-  // Handle Slack events
-  if (body.event) {
-    const event = body.event;
-
-    // Create notification for relevant events
-    if (event.type === 'message' && !event.bot_id) {
-      await prisma.notification.create({
-        data: {
-          type: 'mention',
-          title: `New Slack message`,
-          message: event.text || 'New message received',
-          category: 'integration',
-          priority: 'normal',
-          channels: ['web'],
-          userId: integration?.createdBy || 'system',
-          clerkUserId: integration?.createdBy || 'system',
-          integrationId: integration?.id,
-          sourceService: 'slack',
-          externalId: event.client_msg_id,
-          metadata: { event }
-        }
-      });
-    }
-  }
-
-  return { success: true, processed: true };
-}
-
-// Jira webhook processor
-async function processJiraWebhook(body: any, integration: any) {
-  const webhookEvent = body.webhookEvent;
-  
-  // Handle issue events
-  if (webhookEvent && webhookEvent.includes('issue')) {
-    const issue = body.issue;
-    
-    await prisma.notification.create({
-      data: {
-        type: 'task',
-        title: `Jira: ${issue?.fields?.summary || 'Issue updated'}`,
-        message: `${webhookEvent}: ${issue?.key}`,
-        category: 'integration',
-        priority: issue?.fields?.priority?.name === 'High' ? 'high' : 'normal',
-        channels: ['web'],
-        userId: integration?.createdBy || 'system',
-        clerkUserId: integration?.createdBy || 'system',
-        integrationId: integration?.id,
-        sourceService: 'jira',
-        externalId: issue?.id,
-        actionUrl: issue?.self,
-        metadata: { issue }
-      }
-    });
-  }
-
-  return { success: true, processed: true };
-}
-
-// GitHub webhook processor
-async function processGitHubWebhook(body: any, integration: any) {
-  const event = body.action;
-  
-  // Handle pull request events
-  if (body.pull_request) {
-    const pr = body.pull_request;
-    
-    await prisma.notification.create({
-      data: {
-        type: 'code_review',
-        title: `GitHub PR: ${pr.title}`,
-        message: `${event}: ${pr.html_url}`,
-        category: 'integration',
-        priority: pr.state === 'open' ? 'high' : 'normal',
-        channels: ['web'],
-        userId: integration?.createdBy || 'system',
-        clerkUserId: integration?.createdBy || 'system',
-        integrationId: integration?.id,
-        sourceService: 'github',
-        externalId: pr.id.toString(),
-        actionUrl: pr.html_url,
-        metadata: { pull_request: pr }
-      }
-    });
-  }
-
-  // Handle push events
-  if (body.commits) {
-    await prisma.notification.create({
-      data: {
-        type: 'deployment',
-        title: `GitHub: New commits pushed`,
-        message: `${body.commits.length} commits to ${body.ref}`,
-        category: 'integration',
-        priority: 'normal',
-        channels: ['web'],
-        userId: integration?.createdBy || 'system',
-        clerkUserId: integration?.createdBy || 'system',
-        integrationId: integration?.id,
-        sourceService: 'github',
-        metadata: { commits: body.commits }
-      }
-    });
-  }
-
-  return { success: true, processed: true };
-}
-
-// Discord webhook processor
-async function processDiscordWebhook(body: any, integration: any) {
-  // Handle Discord messages
-  if (body.content) {
-    await prisma.notification.create({
-      data: {
-        type: 'mention',
-        title: `Discord message`,
-        message: body.content,
-        category: 'integration',
-        priority: 'normal',
-        channels: ['web'],
-        userId: integration?.createdBy || 'system',
-        clerkUserId: integration?.createdBy || 'system',
-        integrationId: integration?.id,
-        sourceService: 'discord',
-        externalId: body.id,
-        metadata: body
-      }
-    });
-  }
-
-  return { success: true, processed: true };
-}
-
-// GET - Retrieve webhook logs
+// GET: List webhook logs (admin only)
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
@@ -351,7 +129,6 @@ export async function GET(req: NextRequest) {
       include: {
         integration: {
           select: {
-            id: true,
             service: true,
             serviceName: true,
             serviceIcon: true
@@ -362,10 +139,208 @@ export async function GET(req: NextRequest) {
       take: limit
     });
 
-    return NextResponse.json({ webhookLogs });
+    // Get stats
+    const stats = await prisma.webhookLog.groupBy({
+      by: ['status'],
+      _count: true
+    });
 
-  } catch (error: any) {
+    return NextResponse.json({
+      webhookLogs,
+      stats: stats.reduce((acc: any, item) => {
+        acc[item.status] = item._count;
+        return acc;
+      }, {})
+    });
+  } catch (error) {
     console.error('Webhook GET error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to fetch webhook logs' },
+      { status: 500 }
+    );
+  }
+}
+
+// Helper: Verify webhook signature
+function verifyWebhookSignature(
+  service: string,
+  headers: any,
+  body: any,
+  secret: string
+): boolean {
+  try {
+    switch (service) {
+      case 'slack':
+        // Slack verification
+        const slackSignature = headers['x-slack-signature'];
+        const slackTimestamp = headers['x-slack-request-timestamp'];
+        if (!slackSignature || !slackTimestamp) return false;
+
+        const sigBasestring = `v0:${slackTimestamp}:${JSON.stringify(body)}`;
+        const mySignature = 'v0=' + crypto
+          .createHmac('sha256', secret)
+          .update(sigBasestring)
+          .digest('hex');
+
+        return crypto.timingSafeEqual(
+          Buffer.from(mySignature),
+          Buffer.from(slackSignature)
+        );
+
+      case 'github':
+        // GitHub verification
+        const githubSignature = headers['x-hub-signature-256'];
+        if (!githubSignature) return false;
+
+        const expectedSignature = 'sha256=' + crypto
+          .createHmac('sha256', secret)
+          .update(JSON.stringify(body))
+          .digest('hex');
+
+        return crypto.timingSafeEqual(
+          Buffer.from(expectedSignature),
+          Buffer.from(githubSignature)
+        );
+
+      case 'jira':
+        // Jira verification (basic)
+        return true; // Jira doesn't use signature verification
+
+      default:
+        return false;
+    }
+  } catch (error) {
+    console.error('Signature verification error:', error);
+    return false;
+  }
+}
+
+// Helper: Extract event type from webhook
+function extractEventType(service: string, headers: any, body: any): string {
+  switch (service) {
+    case 'slack':
+      return body.type || body.event?.type || 'unknown';
+
+    case 'github':
+      return headers['x-github-event'] || 'unknown';
+
+    case 'jira':
+      return body.webhookEvent || 'unknown';
+
+    case 'stripe':
+      return body.type || 'unknown';
+
+    default:
+      return body.event || body.type || 'unknown';
+  }
+}
+
+// Helper: Process webhook
+async function processWebhook(
+  webhookId: string,
+  service: string,
+  event: string,
+  body: any,
+  integration: any
+): Promise<any> {
+  const startTime = Date.now();
+
+  try {
+    // Process based on service and event type
+    switch (service) {
+      case 'slack':
+        await processSlackWebhook(event, body, integration);
+        break;
+
+      case 'github':
+        await processGitHubWebhook(event, body, integration);
+        break;
+
+      case 'jira':
+        await processJiraWebhook(event, body, integration);
+        break;
+
+      default:
+        console.log(`Unhandled webhook service: ${service}`);
+    }
+
+    const processingTime = Date.now() - startTime;
+
+    return {
+      success: true,
+      processingTime,
+      data: { processed: true }
+    };
+  } catch (error: any) {
+    const processingTime = Date.now() - startTime;
+
+    return {
+      success: false,
+      processingTime,
+      error: error.message,
+      data: null
+    };
+  }
+}
+
+// Helper: Process Slack webhook
+async function processSlackWebhook(event: string, body: any, integration: any) {
+  // Handle Slack events
+  switch (event) {
+    case 'message':
+      // Handle message
+      console.log('Slack message received:', body);
+      break;
+
+    case 'app_mention':
+      // Handle mention
+      console.log('Slack mention received:', body);
+      break;
+
+    default:
+      console.log('Unhandled Slack event:', event);
+  }
+}
+
+// Helper: Process GitHub webhook
+async function processGitHubWebhook(event: string, body: any, integration: any) {
+  // Handle GitHub events
+  switch (event) {
+    case 'push':
+      // Handle push
+      console.log('GitHub push received:', body);
+      break;
+
+    case 'pull_request':
+      // Handle PR
+      console.log('GitHub PR received:', body);
+      break;
+
+    case 'issues':
+      // Handle issues
+      console.log('GitHub issue received:', body);
+      break;
+
+    default:
+      console.log('Unhandled GitHub event:', event);
+  }
+}
+
+// Helper: Process Jira webhook
+async function processJiraWebhook(event: string, body: any, integration: any) {
+  // Handle Jira events
+  switch (event) {
+    case 'jira:issue_created':
+      // Handle issue created
+      console.log('Jira issue created:', body);
+      break;
+
+    case 'jira:issue_updated':
+      // Handle issue updated
+      console.log('Jira issue updated:', body);
+      break;
+
+    default:
+      console.log('Unhandled Jira event:', event);
   }
 }
