@@ -233,11 +233,14 @@ export async function POST(req: NextRequest) {
       if (result.success) {
         await prisma.learningInsight.create({
           data: {
+            category: 'self_healing',
             insightType: 'self_healing',
-            title: `Auto-fixed: ${action.actionType}`,
+            title: `Auto-fixed: ${action.healingType}`,
             description: result.details,
+            evidence: { actionId: action.id, healingType: action.healingType, result: result.details },
             confidence: 0.9,
             actionable: true,
+            applied: true,
             appliedAt: new Date(),
             impact: 'Successfully resolved code issue automatically'
           }
