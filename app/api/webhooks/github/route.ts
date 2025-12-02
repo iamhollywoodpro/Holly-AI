@@ -184,12 +184,13 @@ export async function POST(req: NextRequest) {
       for (const issue of analysis.performanceIssues) {
         await prisma.performanceIssue.create({
           data: {
-            codeChangeId: codeChange.id,
+            endpoint: '/api/unknown',
             issueType: 'n_plus_one',
             severity: 'medium',
+            avgResponseTime: 0,
             description: issue,
-            status: 'identified',
-            estimatedImpact: 'Medium - may slow down response times'
+            recommendation: 'Review and optimize database queries',
+            status: 'open'
           }
         });
       }
@@ -198,13 +199,15 @@ export async function POST(req: NextRequest) {
       for (const recommendation of analysis.refactoringNeeded) {
         await prisma.refactoringRecommendation.create({
           data: {
-            codeChangeId: codeChange.id,
+            filePath: '/unknown',
+            fileName: 'unknown',
             recommendationType: 'type_safety',
-            priority: 'medium',
-            description: recommendation,
-            status: 'suggested',
+            severity: 'medium',
             estimatedEffort: 'low',
-            estimatedBenefit: 'Improved type safety and maintainability'
+            description: recommendation,
+            reasoning: 'Detected potential type safety issue in code change',
+            suggestedApproach: 'Add proper TypeScript types',
+            status: 'pending'
           }
         });
       }
