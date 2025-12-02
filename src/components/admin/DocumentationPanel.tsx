@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   FileText, 
   RefreshCw, 
@@ -313,61 +312,59 @@ export default function DocsGeneratorPanel() {
               </div>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-[500px]">
-                <div className="space-y-2">
-                  {filteredDocs.map((doc) => (
-                    <Card key={doc.id}>
-                      <CardContent className="pt-6">
-                        <div className="flex items-center justify-between">
-                          <div className="space-y-1 flex-1">
-                            <div className="flex items-center gap-2">
-                              <FileCode className="h-4 w-4" />
-                              <h4 className="font-semibold">{doc.title}</h4>
-                              <Badge variant={doc.status === 'up-to-date' ? 'default' : 'secondary'}>
-                                {doc.status}
-                              </Badge>
-                              <Badge variant="outline">{doc.type}</Badge>
-                            </div>
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                              <span>v{doc.version}</span>
-                              <span>{doc.sections} sections</span>
-                              <span>{doc.wordCount.toLocaleString()} words</span>
-                              <span>{doc.format.toUpperCase()}</span>
-                              <span className="flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
-                                {new Date(doc.lastGenerated).toLocaleDateString()}
-                              </span>
-                            </div>
+              <div className="max-h-[500px] overflow-y-auto space-y-2">
+                {filteredDocs.map((doc) => (
+                  <Card key={doc.id}>
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-1 flex-1">
+                          <div className="flex items-center gap-2">
+                            <FileCode className="h-4 w-4" />
+                            <h4 className="font-semibold">{doc.title}</h4>
+                            <Badge variant={doc.status === 'up-to-date' ? 'default' : 'secondary'}>
+                              {doc.status}
+                            </Badge>
+                            <Badge variant="outline">{doc.type}</Badge>
                           </div>
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => updateDocs(doc.id)}
-                              disabled={loading}
-                            >
-                              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-                            </Button>
-                            <Button size="sm" variant="outline">
-                              <Download className="h-4 w-4" />
-                            </Button>
-                            <Button size="sm" variant="outline">
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => deleteDocs(doc.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                            <span>v{doc.version}</span>
+                            <span>{doc.sections} sections</span>
+                            <span>{doc.wordCount.toLocaleString()} words</span>
+                            <span>{doc.format.toUpperCase()}</span>
+                            <span className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              {new Date(doc.lastGenerated).toLocaleDateString()}
+                            </span>
                           </div>
                         </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </ScrollArea>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => updateDocs(doc.id)}
+                            disabled={loading}
+                          >
+                            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                          </Button>
+                          <Button size="sm" variant="outline">
+                            <Download className="h-4 w-4" />
+                          </Button>
+                          <Button size="sm" variant="outline">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => deleteDocs(doc.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
