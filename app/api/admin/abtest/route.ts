@@ -1,17 +1,15 @@
+/**
+ * A/B Testing API - Phase 4B
+ * Manages A/B tests with proper schema alignment
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-// ============================================
-// Phase 4B: A/B Testing API
-// ============================================
-// Purpose: Create and manage A/B tests, assign users, track conversions
-// Methods: POST (create/assign/expose/convert), GET (list/results), PUT (update), DELETE (delete)
-// ============================================
-
-// POST: Create test OR handle action-based operations (assign/expose/convert)
+// POST: Create test OR handle actions (assign/expose/convert)
 export async function POST(req: NextRequest) {
   try {
     const { userId } = await auth();
@@ -20,20 +18,59 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { action, testId, variant, metricName, metricValue, testData } = body;
+    const { action } = body;
 
     // Route based on action
     if (action === 'assign') {
-      return await handleAssign(userId, testId, variant);
+      return await handleAssign(userId, body.testId, body.variant);
     } else if (action === 'expose') {
-      return await handleExpose(userId, testId, variant);
+      return await handleExpose(userId, body.testId, body.variant);
     } else if (action === 'convert') {
-      return await handleConvert(userId, testId, metricName || 'conversion', metricValue || 1.0);
-    } else if (action === 'create' || !action) {
-      // Create new A/B test
-      return await createTest(testData);
+      return await handleConvert(userId, body.testId, body.metricName, body.metricValue);
     } else {
-      return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+      // Create new A/B test
+      const { 
+        name, 
+        description, 
+        hypothesis,
+        testType, 
+        controlVariant, 
+        testVariants,
+        primaryMetric,
+        secondaryMetrics,
+        trafficAllocation,
+        targetSegmentId,
+        successCriteria,
+        duration
+      } = body;
+
+      if (!name || !testType || !controlVariant || !testVariants || !primaryMetric) {
+        return NextResponse.json(
+          { error: 'Missing required fields: name, testType, controlVariant, testVariants, primaryMetric' },
+          { status: 400 }
+        );
+      }
+
+      const newTest = await prisma.aBTest.create({
+        data: {
+          name,
+          description: description || null,
+          hypothesis: hypothesis || null,
+          testType,
+          status: 'draft',
+          controlVariant: JSON.parse(JSON.stringify(controlVariant)),
+          testVariants: JSON.parse(JSON.stringify(testVariants)),
+          primaryMetric,
+          secondaryMetrics: secondaryMetrics || [],
+          trafficAllocation: trafficAllocation || 1.0,
+          targetSegmentId: targetSegmentId || null,
+          successCriteria: successCriteria ? JSON.parse(JSON.stringify(successCriteria)) : null,
+          duration: duration || null,
+          createdBy: userId,
+        },
+      });
+
+      return NextResponse.json({ test: newTest }, { status: 201 });
     }
   } catch (error: any) {
     console.error('A/B Test POST error:', error);
@@ -68,6 +105,7 @@ export async function GET(req: NextRequest) {
             id: true,
             variant: true,
             assignedAt: true,
+            exposed: true,
           },
         },
         conversions: {
@@ -118,7 +156,24 @@ export async function PUT(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { testId, name, description, status, variants, trafficAllocation } = body;
+    const { 
+      testId, 
+      name, 
+      description, 
+      hypothesis,
+      status, 
+      controlVariant, 
+      testVariants,
+      trafficAllocation,
+      primaryMetric,
+      secondaryMetrics,
+      successCriteria,
+      winner,
+      confidence,
+      startDate,
+      endDate,
+      duration
+    } = body;
 
     if (!testId) {
       return NextResponse.json({ error: 'Test ID required' }, { status: 400 });
@@ -128,11 +183,20 @@ export async function PUT(req: NextRequest) {
       where: { id: testId },
       data: {
         name: name || undefined,
-        description: description || undefined,
+        description: description !== undefined ? description : undefined,
+        hypothesis: hypothesis !== undefined ? hypothesis : undefined,
         status: status || undefined,
-        variants: variants ? JSON.parse(JSON.stringify(variants)) : undefined,
-        trafficAllocation: trafficAllocation ? JSON.parse(JSON.stringify(trafficAllocation)) : undefined,
-        updatedAt: new Date(),
+        controlVariant: controlVariant ? JSON.parse(JSON.stringify(controlVariant)) : undefined,
+        testVariants: testVariants ? JSON.parse(JSON.stringify(testVariants)) : undefined,
+        trafficAllocation: trafficAllocation !== undefined ? trafficAllocation : undefined,
+        primaryMetric: primaryMetric || undefined,
+        secondaryMetrics: secondaryMetrics || undefined,
+        successCriteria: successCriteria ? JSON.parse(JSON.stringify(successCriteria)) : undefined,
+        winner: winner !== undefined ? winner : undefined,
+        confidence: confidence !== undefined ? confidence : undefined,
+        startDate: startDate ? new Date(startDate) : undefined,
+        endDate: endDate ? new Date(endDate) : undefined,
+        duration: duration !== undefined ? duration : undefined,
       },
       include: {
         assignments: true,
@@ -184,36 +248,7 @@ export async function DELETE(req: NextRequest) {
 // HELPER FUNCTIONS
 // ============================================
 
-async function createTest(testData: any) {
-  const { name, description, variants, trafficAllocation, targetUrl, successMetrics } = testData;
-
-  if (!name || !variants || variants.length < 2) {
-    return NextResponse.json(
-      { error: 'Test name and at least 2 variants required' },
-      { status: 400 }
-    );
-  }
-
-  const newTest = await prisma.aBTest.create({
-    data: {
-      name,
-      description: description || '',
-      status: 'draft',
-      variants: JSON.parse(JSON.stringify(variants)),
-      trafficAllocation: trafficAllocation 
-        ? JSON.parse(JSON.stringify(trafficAllocation))
-        : JSON.parse(JSON.stringify({ control: 50, variant: 50 })),
-      targetUrl: targetUrl || null,
-      successMetrics: successMetrics 
-        ? JSON.parse(JSON.stringify(successMetrics))
-        : JSON.parse(JSON.stringify(['conversion'])),
-    },
-  });
-
-  return NextResponse.json({ test: newTest }, { status: 201 });
-}
-
-async function handleAssign(clerkUserId: string, testId: string, variant: string) {
+async function handleAssign(clerkUserId: string, testId: string, variant?: string) {
   if (!testId) {
     return NextResponse.json({ error: 'Test ID required' }, { status: 400 });
   }
@@ -233,7 +268,7 @@ async function handleAssign(clerkUserId: string, testId: string, variant: string
     return NextResponse.json({ assignment: existingAssignment }, { status: 200 });
   }
 
-  // Get test and determine variant
+  // Get test
   const test = await prisma.aBTest.findUnique({ where: { id: testId } });
   if (!test) {
     return NextResponse.json({ error: 'Test not found' }, { status: 404 });
@@ -242,22 +277,18 @@ async function handleAssign(clerkUserId: string, testId: string, variant: string
   // Auto-assign variant if not provided
   let assignedVariant = variant;
   if (!assignedVariant) {
-    const variants = test.variants as any[];
-    const trafficAllocation = test.trafficAllocation as any;
+    const testVariantsArray = test.testVariants as any[];
+    const controlVariantData = test.controlVariant as any;
     
-    // Simple random assignment based on traffic allocation
-    const random = Math.random() * 100;
-    let cumulative = 0;
-    
-    for (const [key, value] of Object.entries(trafficAllocation)) {
-      cumulative += value as number;
-      if (random <= cumulative) {
-        assignedVariant = variants.find(v => v.id === key)?.id || variants[0].id;
-        break;
-      }
+    // Simple random assignment (50/50 control vs test for now)
+    const random = Math.random();
+    if (random < 0.5 || testVariantsArray.length === 0) {
+      assignedVariant = 'control';
+    } else {
+      // Pick random test variant
+      const randomIndex = Math.floor(Math.random() * testVariantsArray.length);
+      assignedVariant = testVariantsArray[randomIndex]?.id || 'control';
     }
-    
-    if (!assignedVariant) assignedVariant = variants[0].id;
   }
 
   // Create assignment
@@ -284,7 +315,7 @@ async function handleExpose(clerkUserId: string, testId: string, variant: string
     return NextResponse.json({ error: 'User not found' }, { status: 404 });
   }
 
-  // Update exposure timestamp
+  // Update exposure
   const assignment = await prisma.aBTestAssignment.updateMany({
     where: { clerkUserId, testId, variant },
     data: { exposed: true, exposedAt: new Date() },
@@ -341,7 +372,14 @@ async function getTestResults(testId: string) {
     return NextResponse.json({ error: 'Test not found' }, { status: 404 });
   }
 
-  const variants = test.variants as any[];
+  const testVariantsArray = test.testVariants as any[];
+  const controlVariantData = test.controlVariant as any;
+  
+  // Build variant list (control + test variants)
+  const variants = [
+    { id: 'control', name: 'Control', ...controlVariantData },
+    ...testVariantsArray,
+  ];
   
   // Calculate stats per variant
   const variantStats = variants.map(variantDef => {
@@ -361,7 +399,7 @@ async function getTestResults(testId: string) {
 
     return {
       variantId: variantDef.id,
-      variantName: variantDef.name,
+      variantName: variantDef.name || variantDef.id,
       assignments: assignmentCount,
       exposures,
       exposureRate: `${exposureRate}%`,
@@ -375,9 +413,13 @@ async function getTestResults(testId: string) {
       id: test.id,
       name: test.name,
       status: test.status,
+      testType: test.testType,
+      primaryMetric: test.primaryMetric,
       createdAt: test.createdAt,
-      startedAt: test.startedAt,
-      endedAt: test.endedAt,
+      startDate: test.startDate,
+      endDate: test.endDate,
+      winner: test.winner,
+      confidence: test.confidence,
     },
     variantStats,
     totalAssignments: test.assignments.length,
