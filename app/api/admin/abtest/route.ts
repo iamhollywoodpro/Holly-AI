@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import prisma from '@/lib/prisma';
+import { auth } from '@clerk/nextjs/server';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 // ============================================
 // Phase 4B: A/B Testing API
@@ -13,8 +14,8 @@ import prisma from '@/lib/prisma';
 // POST: Create test OR handle action-based operations (assign/expose/convert)
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
+    const { userId } = await auth();
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -23,11 +24,11 @@ export async function POST(req: NextRequest) {
 
     // Route based on action
     if (action === 'assign') {
-      return await handleAssign(session.user.email, testId, variantId);
+      return await handleAssign(userId, testId, variantId);
     } else if (action === 'expose') {
-      return await handleExpose(session.user.email, testId, variantId);
+      return await handleExpose(userId, testId, variantId);
     } else if (action === 'convert') {
-      return await handleConvert(session.user.email, testId, conversionType);
+      return await handleConvert(userId, testId, conversionType);
     } else if (action === 'create' || !action) {
       // Create new A/B test
       return await createTest(testData);
@@ -46,8 +47,8 @@ export async function POST(req: NextRequest) {
 // GET: List tests OR get test results
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
+    const { userId } = await auth();
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -111,8 +112,8 @@ export async function GET(req: NextRequest) {
 // PUT: Update test
 export async function PUT(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
+    const { userId } = await auth();
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -152,8 +153,8 @@ export async function PUT(req: NextRequest) {
 // DELETE: Remove test
 export async function DELETE(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
+    const { userId } = await auth();
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -212,12 +213,13 @@ async function createTest(testData: any) {
   return NextResponse.json({ test: newTest }, { status: 201 });
 }
 
-async function handleAssign(userEmail: string, testId: string, variantId: string) {
+async function handleAssign(clerkUserId: string, testId: string, variantId: string) {
   if (!testId) {
     return NextResponse.json({ error: 'Test ID required' }, { status: 400 });
   }
 
-  const user = await prisma.user.findUnique({ where: { email: userEmail } });
+  // Get user by clerkId
+  const user = await prisma.user.findUnique({ where: { clerkId: clerkUserId } });
   if (!user) {
     return NextResponse.json({ error: 'User not found' }, { status: 404 });
   }
@@ -270,12 +272,13 @@ async function handleAssign(userEmail: string, testId: string, variantId: string
   return NextResponse.json({ assignment }, { status: 201 });
 }
 
-async function handleExpose(userEmail: string, testId: string, variantId: string) {
+async function handleExpose(clerkUserId: string, testId: string, variantId: string) {
   if (!testId || !variantId) {
     return NextResponse.json({ error: 'Test ID and Variant ID required' }, { status: 400 });
   }
 
-  const user = await prisma.user.findUnique({ where: { email: userEmail } });
+  // Get user by clerkId
+  const user = await prisma.user.findUnique({ where: { clerkId: clerkUserId } });
   if (!user) {
     return NextResponse.json({ error: 'User not found' }, { status: 404 });
   }
@@ -289,12 +292,13 @@ async function handleExpose(userEmail: string, testId: string, variantId: string
   return NextResponse.json({ message: 'Exposure tracked', updated: assignment.count }, { status: 200 });
 }
 
-async function handleConvert(userEmail: string, testId: string, conversionType: string = 'conversion') {
+async function handleConvert(clerkUserId: string, testId: string, conversionType: string = 'conversion') {
   if (!testId) {
     return NextResponse.json({ error: 'Test ID required' }, { status: 400 });
   }
 
-  const user = await prisma.user.findUnique({ where: { email: userEmail } });
+  // Get user by clerkId
+  const user = await prisma.user.findUnique({ where: { clerkId: clerkUserId } });
   if (!user) {
     return NextResponse.json({ error: 'User not found' }, { status: 404 });
   }
