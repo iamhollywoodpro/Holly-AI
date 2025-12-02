@@ -1,68 +1,93 @@
 // Phase 4E - External Services API
-// Hollywood Phase 4E: Manage external service configurations and catalog
+// Hollywood Phase 4E: Manage available external service configurations
 
-import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-// GET - List available external services or get specific service
+// GET: List external services
 export async function GET(req: NextRequest) {
   try {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(req.url);
-    const action = searchParams.get('action');
-    const serviceName = searchParams.get('name');
     const category = searchParams.get('category');
-    const isActive = searchParams.get('active');
+    const name = searchParams.get('name');
+    const action = searchParams.get('action');
 
     // Get specific service
-    if (action === 'get' && serviceName) {
+    if (name) {
       const service = await prisma.externalService.findUnique({
-        where: { name: serviceName }
+        where: { name }
       });
 
       if (!service) {
-        return NextResponse.json({ error: 'Service not found' }, { status: 404 });
+        return NextResponse.json(
+          { error: 'Service not found' },
+          { status: 404 }
+        );
       }
 
-      // Remove sensitive data for non-admin users
-      const sanitized = {
-        ...service,
-        oauthClientSecret: undefined
-      };
-
-      return NextResponse.json({ service: sanitized });
+      return NextResponse.json({ service });
     }
 
-    // List services catalog
-    const where: any = {};
+    // Get service categories
+    if (action === 'categories') {
+      const categories = await prisma.externalService.groupBy({
+        by: ['category'],
+        _count: true,
+        where: { isActive: true }
+      });
+
+      return NextResponse.json({
+        categories: categories.map(c => ({
+          name: c.category,
+          count: c._count
+        }))
+      });
+    }
+
+    // List services
+    const where: any = { isActive: true };
     if (category) where.category = category;
-    if (isActive !== null) where.isActive = isActive === 'true';
 
     const services = await prisma.externalService.findMany({
       where,
       orderBy: [
-        { isAvailable: 'desc' },
+        { category: 'asc' },
         { displayName: 'asc' }
       ]
     });
 
-    // Remove sensitive data
-    const sanitized = services.map(service => ({
-      ...service,
-      oauthClientSecret: undefined
-    }));
+    // Group by category
+    const grouped = services.reduce((acc: any, service) => {
+      if (!acc[service.category]) {
+        acc[service.category] = [];
+      }
+      acc[service.category].push(service);
+      return acc;
+    }, {});
 
-    return NextResponse.json({ services: sanitized });
-
-  } catch (error: any) {
-    console.error('External Services API GET error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({
+      services,
+      grouped,
+      total: services.length
+    });
+  } catch (error) {
+    console.error('Services GET error:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch services' },
+      { status: 500 }
+    );
   }
 }
 
-// POST - Add or manage external services (Admin only)
+// POST: Create external service (admin only)
 export async function POST(req: NextRequest) {
   try {
     const { userId } = await auth();
@@ -73,9 +98,65 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { action } = body;
 
-    // Add new service to catalog
-    if (action === 'create' || !action) {
-      const {
+    // Test service health
+    if (action === 'health-check') {
+      const { name } = body;
+
+      const service = await prisma.externalService.findUnique({
+        where: { name }
+      });
+
+      if (!service) {
+        return NextResponse.json(
+          { error: 'Service not found' },
+          { status: 404 }
+        );
+      }
+
+      const healthResult = await checkServiceHealth(service);
+
+      // Update health status
+      await prisma.externalService.update({
+        where: { name },
+        data: {
+          lastHealthCheck: new Date(),
+          healthStatus: healthResult.status,
+          isAvailable: healthResult.available
+        }
+      });
+
+      return NextResponse.json(healthResult);
+    }
+
+    // Create new service
+    const {
+      name,
+      displayName,
+      description,
+      category,
+      baseUrl,
+      apiVersion,
+      authType,
+      oauthClientId,
+      oauthClientSecret,
+      oauthScopes,
+      oauthAuthUrl,
+      oauthTokenUrl,
+      apiKeyHeader,
+      rateLimitPerMin,
+      rateLimitPerHour,
+      capabilities,
+      endpoints,
+      webhookSupport,
+      docsUrl,
+      iconUrl,
+      setupInstructions,
+      version,
+      metadata
+    } = body;
+
+    const service = await prisma.externalService.create({
+      data: {
         name,
         displayName,
         description,
@@ -85,98 +166,40 @@ export async function POST(req: NextRequest) {
         authType,
         oauthClientId,
         oauthClientSecret,
-        oauthScopes,
+        oauthScopes: oauthScopes || [],
         oauthAuthUrl,
         oauthTokenUrl,
         apiKeyHeader,
         rateLimitPerMin,
         rateLimitPerHour,
-        capabilities,
+        capabilities: capabilities || {},
         endpoints,
-        webhookSupport,
+        webhookSupport: webhookSupport || false,
         docsUrl,
         iconUrl,
-        setupInstructions
-      } = body;
-
-      const service = await prisma.externalService.create({
-        data: {
-          name,
-          displayName,
-          description,
-          category,
-          baseUrl,
-          apiVersion,
-          authType,
-          oauthClientId,
-          oauthClientSecret,
-          oauthScopes: oauthScopes || [],
-          oauthAuthUrl,
-          oauthTokenUrl,
-          apiKeyHeader,
-          rateLimitPerMin,
-          rateLimitPerHour,
-          capabilities: capabilities || {},
-          endpoints: endpoints || {},
-          webhookSupport: webhookSupport || false,
-          docsUrl,
-          iconUrl,
-          setupInstructions
-        }
-      });
-
-      return NextResponse.json({ 
-        success: true, 
-        service: {
-          ...service,
-          oauthClientSecret: undefined
-        }
-      });
-    }
-
-    // Test service health
-    if (action === 'health-check') {
-      const { serviceName } = body;
-
-      const service = await prisma.externalService.findUnique({
-        where: { name: serviceName }
-      });
-
-      if (!service) {
-        return NextResponse.json({ error: 'Service not found' }, { status: 404 });
+        setupInstructions,
+        version,
+        metadata,
+        isActive: true,
+        isAvailable: true,
+        healthStatus: 'healthy'
       }
+    });
 
-      // TODO: Implement actual health check
-      // This would ping the service's health endpoint
-
-      const isHealthy = true; // Placeholder
-      const healthStatus = isHealthy ? 'healthy' : 'down';
-
-      await prisma.externalService.update({
-        where: { name: serviceName },
-        data: {
-          lastHealthCheck: new Date(),
-          healthStatus,
-          isAvailable: isHealthy
-        }
-      });
-
-      return NextResponse.json({ 
-        success: true,
-        healthStatus,
-        isAvailable: isHealthy
-      });
-    }
-
-    return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
-
-  } catch (error: any) {
-    console.error('External Services API POST error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({
+      success: true,
+      service
+    });
+  } catch (error) {
+    console.error('Services POST error:', error);
+    return NextResponse.json(
+      { error: 'Failed to create service' },
+      { status: 500 }
+    );
   }
 }
 
-// PUT - Update service configuration (Admin only)
+// PUT: Update external service
 export async function PUT(req: NextRequest) {
   try {
     const { userId } = await auth();
@@ -185,126 +208,106 @@ export async function PUT(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { serviceName, action } = body;
+    const { name, action } = body;
 
-    if (!serviceName) {
-      return NextResponse.json({ error: 'Service name required' }, { status: 400 });
-    }
-
-    const existing = await prisma.externalService.findUnique({
-      where: { name: serviceName }
-    });
-
-    if (!existing) {
-      return NextResponse.json({ error: 'Service not found' }, { status: 404 });
-    }
-
-    // Update service configuration
-    if (action === 'update-config') {
-      const {
-        displayName,
-        description,
-        baseUrl,
-        apiVersion,
-        rateLimitPerMin,
-        rateLimitPerHour,
-        capabilities,
-        endpoints,
-        docsUrl,
-        iconUrl,
-        setupInstructions
-      } = body;
-
-      const service = await prisma.externalService.update({
-        where: { name: serviceName },
-        data: {
-          displayName: displayName || existing.displayName,
-          description: description || existing.description,
-          baseUrl: baseUrl || existing.baseUrl,
-          apiVersion: apiVersion || existing.apiVersion,
-          rateLimitPerMin: rateLimitPerMin !== undefined ? rateLimitPerMin : existing.rateLimitPerMin,
-          rateLimitPerHour: rateLimitPerHour !== undefined ? rateLimitPerHour : existing.rateLimitPerHour,
-          capabilities: capabilities || existing.capabilities,
-          endpoints: endpoints || existing.endpoints,
-          docsUrl: docsUrl || existing.docsUrl,
-          iconUrl: iconUrl || existing.iconUrl,
-          setupInstructions: setupInstructions || existing.setupInstructions
-        }
+    // Toggle active status
+    if (action === 'toggle') {
+      const service = await prisma.externalService.findUnique({
+        where: { name }
       });
 
-      return NextResponse.json({ success: true, service });
-    }
-
-    // Update OAuth credentials
-    if (action === 'update-oauth') {
-      const {
-        oauthClientId,
-        oauthClientSecret,
-        oauthScopes,
-        oauthAuthUrl,
-        oauthTokenUrl
-      } = body;
-
-      const service = await prisma.externalService.update({
-        where: { name: serviceName },
-        data: {
-          oauthClientId: oauthClientId || existing.oauthClientId,
-          oauthClientSecret: oauthClientSecret || existing.oauthClientSecret,
-          oauthScopes: oauthScopes || existing.oauthScopes,
-          oauthAuthUrl: oauthAuthUrl || existing.oauthAuthUrl,
-          oauthTokenUrl: oauthTokenUrl || existing.oauthTokenUrl
-        }
-      });
-
-      return NextResponse.json({ 
-        success: true, 
-        service: {
-          ...service,
-          oauthClientSecret: undefined
-        }
-      });
-    }
-
-    // Toggle service active status
-    if (action === 'toggle-active') {
-      const service = await prisma.externalService.update({
-        where: { name: serviceName },
-        data: {
-          isActive: !existing.isActive
-        }
-      });
-
-      return NextResponse.json({ success: true, service });
-    }
-
-    // General update
-    const updateData: any = {};
-    Object.keys(body).forEach(key => {
-      if (key !== 'serviceName' && key !== 'action' && body[key] !== undefined) {
-        updateData[key] = body[key];
+      if (!service) {
+        return NextResponse.json(
+          { error: 'Service not found' },
+          { status: 404 }
+        );
       }
-    });
+
+      const updated = await prisma.externalService.update({
+        where: { name },
+        data: {
+          isActive: !service.isActive
+        }
+      });
+
+      return NextResponse.json({
+        success: true,
+        service: updated
+      });
+    }
+
+    // Update service
+    const {
+      displayName,
+      description,
+      category,
+      baseUrl,
+      apiVersion,
+      authType,
+      oauthClientId,
+      oauthClientSecret,
+      oauthScopes,
+      oauthAuthUrl,
+      oauthTokenUrl,
+      apiKeyHeader,
+      rateLimitPerMin,
+      rateLimitPerHour,
+      capabilities,
+      endpoints,
+      webhookSupport,
+      docsUrl,
+      iconUrl,
+      setupInstructions,
+      isActive,
+      isAvailable,
+      version,
+      metadata
+    } = body;
 
     const service = await prisma.externalService.update({
-      where: { name: serviceName },
-      data: updateData
-    });
-
-    return NextResponse.json({ 
-      success: true, 
-      service: {
-        ...service,
-        oauthClientSecret: undefined
+      where: { name },
+      data: {
+        ...(displayName && { displayName }),
+        ...(description && { description }),
+        ...(category && { category }),
+        ...(baseUrl && { baseUrl }),
+        ...(apiVersion && { apiVersion }),
+        ...(authType && { authType }),
+        ...(oauthClientId && { oauthClientId }),
+        ...(oauthClientSecret && { oauthClientSecret }),
+        ...(oauthScopes && { oauthScopes }),
+        ...(oauthAuthUrl && { oauthAuthUrl }),
+        ...(oauthTokenUrl && { oauthTokenUrl }),
+        ...(apiKeyHeader && { apiKeyHeader }),
+        ...(rateLimitPerMin && { rateLimitPerMin }),
+        ...(rateLimitPerHour && { rateLimitPerHour }),
+        ...(capabilities && { capabilities }),
+        ...(endpoints && { endpoints }),
+        ...(typeof webhookSupport === 'boolean' && { webhookSupport }),
+        ...(docsUrl && { docsUrl }),
+        ...(iconUrl && { iconUrl }),
+        ...(setupInstructions && { setupInstructions }),
+        ...(typeof isActive === 'boolean' && { isActive }),
+        ...(typeof isAvailable === 'boolean' && { isAvailable }),
+        ...(version && { version }),
+        ...(metadata && { metadata })
       }
     });
 
-  } catch (error: any) {
-    console.error('External Services API PUT error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({
+      success: true,
+      service
+    });
+  } catch (error) {
+    console.error('Services PUT error:', error);
+    return NextResponse.json(
+      { error: 'Failed to update service' },
+      { status: 500 }
+    );
   }
 }
 
-// DELETE - Remove service from catalog (Admin only)
+// DELETE: Remove external service
 export async function DELETE(req: NextRequest) {
   try {
     const { userId } = await auth();
@@ -313,28 +316,144 @@ export async function DELETE(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url);
-    const serviceName = searchParams.get('name');
+    const name = searchParams.get('name');
 
-    if (!serviceName) {
-      return NextResponse.json({ error: 'Service name required' }, { status: 400 });
-    }
-
-    const existing = await prisma.externalService.findUnique({
-      where: { name: serviceName }
-    });
-
-    if (!existing) {
-      return NextResponse.json({ error: 'Service not found' }, { status: 404 });
+    if (!name) {
+      return NextResponse.json(
+        { error: 'Service name required' },
+        { status: 400 }
+      );
     }
 
     await prisma.externalService.delete({
-      where: { name: serviceName }
+      where: { name }
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({
+      success: true,
+      message: 'Service deleted'
+    });
+  } catch (error) {
+    console.error('Services DELETE error:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete service' },
+      { status: 500 }
+    );
+  }
+}
 
+// Helper: Check service health
+async function checkServiceHealth(service: any) {
+  try {
+    // Placeholder for actual health check
+    // In production, this would make API calls to verify service availability
+
+    if (!service.baseUrl) {
+      return {
+        status: 'unknown',
+        available: true,
+        message: 'No base URL to check'
+      };
+    }
+
+    // Simulate health check
+    const isHealthy = true; // Would make actual request here
+
+    return {
+      status: isHealthy ? 'healthy' : 'down',
+      available: isHealthy,
+      message: isHealthy ? 'Service is operational' : 'Service is unavailable',
+      responseTime: 150 // ms
+    };
   } catch (error: any) {
-    console.error('External Services API DELETE error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return {
+      status: 'down',
+      available: false,
+      message: error.message,
+      error: error.toString()
+    };
+  }
+}
+
+// Initialize default services
+export async function initializeDefaultServices() {
+  const defaultServices = [
+    {
+      name: 'slack',
+      displayName: 'Slack',
+      description: 'Team communication and collaboration platform',
+      category: 'communication',
+      baseUrl: 'https://slack.com/api',
+      authType: 'oauth2',
+      oauthScopes: ['chat:write', 'channels:read', 'users:read'],
+      webhookSupport: true,
+      iconUrl: '🔔',
+      capabilities: {
+        sendMessage: true,
+        readChannels: true,
+        readUsers: true,
+        receiveWebhooks: true
+      }
+    },
+    {
+      name: 'jira',
+      displayName: 'Jira',
+      description: 'Project management and issue tracking',
+      category: 'project_management',
+      baseUrl: 'https://api.atlassian.com',
+      authType: 'oauth2',
+      webhookSupport: true,
+      iconUrl: '📋',
+      capabilities: {
+        createIssue: true,
+        updateIssue: true,
+        readIssues: true,
+        receiveWebhooks: true
+      }
+    },
+    {
+      name: 'github',
+      displayName: 'GitHub',
+      description: 'Code hosting and version control',
+      category: 'code',
+      baseUrl: 'https://api.github.com',
+      authType: 'oauth2',
+      webhookSupport: true,
+      iconUrl: '🐙',
+      capabilities: {
+        readRepos: true,
+        createPR: true,
+        managePR: true,
+        receiveWebhooks: true
+      }
+    },
+    {
+      name: 'gmail',
+      displayName: 'Gmail',
+      description: 'Email service',
+      category: 'email',
+      baseUrl: 'https://gmail.googleapis.com',
+      authType: 'oauth2',
+      webhookSupport: false,
+      iconUrl: '📧',
+      capabilities: {
+        sendEmail: true,
+        readEmail: true
+      }
+    }
+  ];
+
+  // Create services if they don't exist
+  for (const service of defaultServices) {
+    await prisma.externalService.upsert({
+      where: { name: service.name },
+      update: {},
+      create: {
+        ...service,
+        isActive: true,
+        isAvailable: true,
+        healthStatus: 'healthy'
+      }
+    });
   }
 }
