@@ -1,450 +1,380 @@
-/**
- * A/B Testing API
- * Phase 4B - Create, manage, and track A/B tests
- */
-
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
-import { PrismaClient } from '@prisma/client';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import prisma from '@/lib/prisma';
 
-const prisma = new PrismaClient();
+// ============================================
+// Phase 4B: A/B Testing API
+// ============================================
+// Purpose: Create and manage A/B tests, assign users, track conversions
+// Methods: POST (create/assign/expose/convert), GET (list/results), PUT (update), DELETE (delete)
+// ============================================
 
-/**
- * POST /api/admin/abtest
- * Create a new A/B test
- */
+// POST: Create test OR handle action-based operations (assign/expose/convert)
 export async function POST(req: NextRequest) {
   try {
-    const { userId } = await auth();
-    
-    if (!userId) {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const body = await req.json();
-    const {
-      name,
-      description,
-      hypothesis,
-      testType,
-      controlVariant,
-      testVariants,
-      targetSegmentId,
-      trafficAllocation,
-      primaryMetric,
-      secondaryMetrics,
-      successCriteria,
-      duration
-    } = body;
+    const { action, testId, variantId, conversionType, testData } = body;
 
-    const test = await prisma.aBTest.create({
-      data: {
-        name,
-        description,
-        hypothesis,
-        testType,
-        controlVariant: JSON.parse(JSON.stringify(controlVariant)),
-        testVariants: JSON.parse(JSON.stringify(testVariants)),
-        targetSegmentId,
-        trafficAllocation: trafficAllocation || 1.0,
-        primaryMetric,
-        secondaryMetrics: secondaryMetrics || [],
-        successCriteria: successCriteria ? JSON.parse(JSON.stringify(successCriteria)) : null,
-        duration,
-        createdBy: userId
-      }
-    });
-
-    return NextResponse.json({
-      success: true,
-      test
-    });
-
-  } catch (error) {
-    console.error('Error creating A/B test:', error);
+    // Route based on action
+    if (action === 'assign') {
+      return await handleAssign(session.user.email, testId, variantId);
+    } else if (action === 'expose') {
+      return await handleExpose(session.user.email, testId, variantId);
+    } else if (action === 'convert') {
+      return await handleConvert(session.user.email, testId, conversionType);
+    } else if (action === 'create' || !action) {
+      // Create new A/B test
+      return await createTest(testData);
+    } else {
+      return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+    }
+  } catch (error: any) {
+    console.error('A/B Test POST error:', error);
     return NextResponse.json(
-      { error: 'Failed to create A/B test' },
+      { error: error.message || 'Failed to process A/B test request' },
       { status: 500 }
     );
   }
 }
 
-/**
- * GET /api/admin/abtest
- * List all A/B tests
- */
+// GET: List tests OR get test results
 export async function GET(req: NextRequest) {
   try {
-    const { userId } = await auth();
-    
-    if (!userId) {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const url = new URL(req.url);
-    const status = url.searchParams.get('status') || undefined;
+    const { searchParams } = new URL(req.url);
+    const testId = searchParams.get('testId');
+    const action = searchParams.get('action');
 
+    if (action === 'results' && testId) {
+      return await getTestResults(testId);
+    }
+
+    // List all A/B tests with stats
     const tests = await prisma.aBTest.findMany({
-      where: status ? { status } : undefined,
       include: {
-        targetSegment: {
+        assignments: {
           select: {
-            name: true
-          }
+            id: true,
+            variantId: true,
+            assignedAt: true,
+          },
         },
-        _count: {
+        conversions: {
           select: {
-            assignments: true,
-            conversions: true
-          }
-        }
+            id: true,
+            conversionType: true,
+            value: true,
+          },
+        },
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
     });
 
-    return NextResponse.json({
-      success: true,
-      tests
+    // Calculate stats for each test
+    const testsWithStats = tests.map(test => {
+      const totalAssignments = test.assignments.length;
+      const totalConversions = test.conversions.length;
+      const conversionRate = totalAssignments > 0 
+        ? (totalConversions / totalAssignments * 100).toFixed(2)
+        : '0.00';
+
+      return {
+        ...test,
+        stats: {
+          totalAssignments,
+          totalConversions,
+          conversionRate: `${conversionRate}%`,
+        },
+      };
     });
 
-  } catch (error) {
-    console.error('Error listing A/B tests:', error);
+    return NextResponse.json({ tests: testsWithStats }, { status: 200 });
+  } catch (error: any) {
+    console.error('A/B Test GET error:', error);
     return NextResponse.json(
-      { error: 'Failed to list A/B tests' },
+      { error: error.message || 'Failed to fetch A/B tests' },
       { status: 500 }
     );
   }
 }
 
-/**
- * PUT /api/admin/abtest/:id/start
- * Start an A/B test
- */
+// PUT: Update test
 export async function PUT(req: NextRequest) {
   try {
-    const { userId } = await auth();
-    
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const url = new URL(req.url);
-    const testId = url.pathname.split('/').slice(-2, -1)[0];
-    const action = url.pathname.split('/').pop();
-
-    if (action === 'start') {
-      const test = await prisma.aBTest.update({
-        where: { id: testId },
-        data: {
-          status: 'running',
-          startDate: new Date()
-        }
-      });
-
-      return NextResponse.json({
-        success: true,
-        test
-      });
-    } else if (action === 'pause') {
-      const test = await prisma.aBTest.update({
-        where: { id: testId },
-        data: {
-          status: 'paused'
-        }
-      });
-
-      return NextResponse.json({
-        success: true,
-        test
-      });
-    } else if (action === 'complete') {
-      const test = await prisma.aBTest.update({
-        where: { id: testId },
-        data: {
-          status: 'completed',
-          endDate: new Date()
-        }
-      });
-
-      return NextResponse.json({
-        success: true,
-        test
-      });
-    }
-
-    return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
-
-  } catch (error) {
-    console.error('Error updating A/B test:', error);
-    return NextResponse.json(
-      { error: 'Failed to update A/B test' },
-      { status: 500 }
-    );
-  }
-}
-
-/**
- * POST /api/user/abtest/assign
- * Assign user to A/B test variant
- */
-export async function POST_ASSIGN(req: NextRequest) {
-  try {
-    const { userId } = await auth();
-    
-    if (!userId) {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const body = await req.json();
-    const { testId } = body;
+    const { testId, name, description, status, variants, trafficAllocation } = body;
 
-    // Check if already assigned
-    const existing = await prisma.aBTestAssignment.findUnique({
-      where: {
-        testId_clerkUserId: {
-          testId,
-          clerkUserId: userId
-        }
-      }
-    });
-
-    if (existing) {
-      return NextResponse.json({
-        success: true,
-        assignment: existing
-      });
+    if (!testId) {
+      return NextResponse.json({ error: 'Test ID required' }, { status: 400 });
     }
 
-    // Get test
-    const test = await prisma.aBTest.findUnique({
-      where: { id: testId }
-    });
-
-    if (!test || test.status !== 'running') {
-      return NextResponse.json({ error: 'Test not available' }, { status: 400 });
-    }
-
-    // Check if user is in target segment
-    if (test.targetSegmentId) {
-      const inSegment = await prisma.userSegmentMember.findFirst({
-        where: {
-          segmentId: test.targetSegmentId,
-          clerkUserId: userId
-        }
-      });
-
-      if (!inSegment) {
-        return NextResponse.json({ error: 'User not in target segment' }, { status: 403 });
-      }
-    }
-
-    // Assign variant (simple random assignment)
-    const variants = ['control', ...(Array.isArray(test.testVariants) ? test.testVariants : [test.testVariants]).map((v: any, i: number) => `variant_${i + 1}`)];
-    const variant = variants[Math.floor(Math.random() * variants.length)];
-
-    const assignment = await prisma.aBTestAssignment.create({
+    const updatedTest = await prisma.aBTest.update({
+      where: { id: testId },
       data: {
-        testId,
-        userId,
-        clerkUserId: userId,
-        variant
-      }
-    });
-
-    return NextResponse.json({
-      success: true,
-      assignment
-    });
-
-  } catch (error) {
-    console.error('Error assigning A/B test:', error);
-    return NextResponse.json(
-      { error: 'Failed to assign A/B test' },
-      { status: 500 }
-    );
-  }
-}
-
-/**
- * POST /api/user/abtest/expose
- * Mark user as exposed to test
- */
-export async function POST_EXPOSE(req: NextRequest) {
-  try {
-    const { userId } = await auth();
-    
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const body = await req.json();
-    const { testId } = body;
-
-    await prisma.aBTestAssignment.updateMany({
-      where: {
-        testId,
-        clerkUserId: userId
+        name: name || undefined,
+        description: description || undefined,
+        status: status || undefined,
+        variants: variants ? JSON.parse(JSON.stringify(variants)) : undefined,
+        trafficAllocation: trafficAllocation ? JSON.parse(JSON.stringify(trafficAllocation)) : undefined,
+        updatedAt: new Date(),
       },
-      data: {
-        exposed: true,
-        firstExposedAt: new Date(),
-        exposureCount: { increment: 1 }
-      }
+      include: {
+        assignments: true,
+        conversions: true,
+      },
     });
 
-    return NextResponse.json({
-      success: true
-    });
-
-  } catch (error) {
-    console.error('Error exposing A/B test:', error);
+    return NextResponse.json({ test: updatedTest }, { status: 200 });
+  } catch (error: any) {
+    console.error('A/B Test PUT error:', error);
     return NextResponse.json(
-      { error: 'Failed to expose A/B test' },
+      { error: error.message || 'Failed to update A/B test' },
       { status: 500 }
     );
   }
 }
 
-/**
- * POST /api/user/abtest/convert
- * Track conversion for A/B test
- */
-export async function POST_CONVERT(req: NextRequest) {
+// DELETE: Remove test
+export async function DELETE(req: NextRequest) {
   try {
-    const { userId } = await auth();
-    
-    if (!userId) {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await req.json();
-    const { testId, metricName, metricValue, sessionId, metadata } = body;
+    const { searchParams } = new URL(req.url);
+    const testId = searchParams.get('testId');
 
-    // Get assignment
-    const assignment = await prisma.aBTestAssignment.findUnique({
-      where: {
-        testId_clerkUserId: {
-          testId,
-          clerkUserId: userId
-        }
-      }
-    });
-
-    if (!assignment) {
-      return NextResponse.json({ error: 'Not assigned to test' }, { status: 400 });
+    if (!testId) {
+      return NextResponse.json({ error: 'Test ID required' }, { status: 400 });
     }
 
-    // Track conversion
-    const conversion = await prisma.aBTestConversion.create({
-      data: {
-        testId,
-        userId,
-        clerkUserId: userId,
-        variant: assignment.variant,
-        metricName,
-        metricValue,
-        sessionId,
-        metadata: metadata ? JSON.parse(JSON.stringify(metadata)) : null
-      }
-    });
+    // Delete assignments and conversions first (cascade)
+    await prisma.aBTestConversion.deleteMany({ where: { testId } });
+    await prisma.aBTestAssignment.deleteMany({ where: { testId } });
+    await prisma.aBTest.delete({ where: { id: testId } });
 
-    return NextResponse.json({
-      success: true,
-      conversion
-    });
-
-  } catch (error) {
-    console.error('Error tracking conversion:', error);
+    return NextResponse.json({ message: 'Test deleted successfully' }, { status: 200 });
+  } catch (error: any) {
+    console.error('A/B Test DELETE error:', error);
     return NextResponse.json(
-      { error: 'Failed to track conversion' },
+      { error: error.message || 'Failed to delete A/B test' },
       { status: 500 }
     );
   }
 }
 
-/**
- * GET /api/admin/abtest/:id/results
- * Get A/B test results
- */
-export async function GET_RESULTS(req: NextRequest) {
-  try {
-    const { userId } = await auth();
-    
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+// ============================================
+// HELPER FUNCTIONS
+// ============================================
 
-    const url = new URL(req.url);
-    const testId = url.pathname.split('/').slice(-2, -1)[0];
+async function createTest(testData: any) {
+  const { name, description, variants, trafficAllocation, targetUrl, successMetrics } = testData;
 
-    // Get test
-    const test = await prisma.aBTest.findUnique({
-      where: { id: testId }
-    });
-
-    if (!test) {
-      return NextResponse.json({ error: 'Test not found' }, { status: 404 });
-    }
-
-    // Get assignments
-    const assignments = await prisma.aBTestAssignment.findMany({
-      where: { testId }
-    });
-
-    // Get conversions
-    const conversions = await prisma.aBTestConversion.findMany({
-      where: { testId }
-    });
-
-    // Calculate results by variant
-    const variantResults: any = {};
-    
-    assignments.forEach(a => {
-      if (!variantResults[a.variant]) {
-        variantResults[a.variant] = {
-          assigned: 0,
-          exposed: 0,
-          conversions: 0,
-          totalValue: 0
-        };
-      }
-      variantResults[a.variant].assigned++;
-      if (a.exposed) variantResults[a.variant].exposed++;
-    });
-
-    conversions.forEach(c => {
-      if (variantResults[c.variant]) {
-        variantResults[c.variant].conversions++;
-        variantResults[c.variant].totalValue += c.metricValue;
-      }
-    });
-
-    // Calculate rates
-    Object.keys(variantResults).forEach(variant => {
-      const data = variantResults[variant];
-      data.exposureRate = data.assigned > 0 ? data.exposed / data.assigned : 0;
-      data.conversionRate = data.exposed > 0 ? data.conversions / data.exposed : 0;
-      data.avgValue = data.conversions > 0 ? data.totalValue / data.conversions : 0;
-    });
-
-    return NextResponse.json({
-      success: true,
-      test,
-      results: variantResults,
-      summary: {
-        totalAssignments: assignments.length,
-        totalConversions: conversions.length,
-        overallConversionRate: assignments.length > 0 
-          ? conversions.length / assignments.filter(a => a.exposed).length 
-          : 0
-      }
-    });
-
-  } catch (error) {
-    console.error('Error getting test results:', error);
+  if (!name || !variants || variants.length < 2) {
     return NextResponse.json(
-      { error: 'Failed to get test results' },
-      { status: 500 }
+      { error: 'Test name and at least 2 variants required' },
+      { status: 400 }
     );
   }
+
+  const newTest = await prisma.aBTest.create({
+    data: {
+      name,
+      description: description || '',
+      status: 'draft',
+      variants: JSON.parse(JSON.stringify(variants)),
+      trafficAllocation: trafficAllocation 
+        ? JSON.parse(JSON.stringify(trafficAllocation))
+        : JSON.parse(JSON.stringify({ control: 50, variant: 50 })),
+      targetUrl: targetUrl || null,
+      successMetrics: successMetrics 
+        ? JSON.parse(JSON.stringify(successMetrics))
+        : JSON.parse(JSON.stringify(['conversion'])),
+    },
+  });
+
+  return NextResponse.json({ test: newTest }, { status: 201 });
+}
+
+async function handleAssign(userEmail: string, testId: string, variantId: string) {
+  if (!testId) {
+    return NextResponse.json({ error: 'Test ID required' }, { status: 400 });
+  }
+
+  const user = await prisma.user.findUnique({ where: { email: userEmail } });
+  if (!user) {
+    return NextResponse.json({ error: 'User not found' }, { status: 404 });
+  }
+
+  // Check if assignment already exists
+  const existingAssignment = await prisma.aBTestAssignment.findFirst({
+    where: { userId: user.id, testId },
+  });
+
+  if (existingAssignment) {
+    return NextResponse.json({ assignment: existingAssignment }, { status: 200 });
+  }
+
+  // Get test and determine variant
+  const test = await prisma.aBTest.findUnique({ where: { id: testId } });
+  if (!test) {
+    return NextResponse.json({ error: 'Test not found' }, { status: 404 });
+  }
+
+  // Auto-assign variant if not provided
+  let assignedVariantId = variantId;
+  if (!assignedVariantId) {
+    const variants = test.variants as any[];
+    const trafficAllocation = test.trafficAllocation as any;
+    
+    // Simple random assignment based on traffic allocation
+    const random = Math.random() * 100;
+    let cumulative = 0;
+    
+    for (const [key, value] of Object.entries(trafficAllocation)) {
+      cumulative += value as number;
+      if (random <= cumulative) {
+        assignedVariantId = variants.find(v => v.id === key)?.id || variants[0].id;
+        break;
+      }
+    }
+    
+    if (!assignedVariantId) assignedVariantId = variants[0].id;
+  }
+
+  // Create assignment
+  const assignment = await prisma.aBTestAssignment.create({
+    data: {
+      userId: user.id,
+      testId,
+      variantId: assignedVariantId,
+    },
+  });
+
+  return NextResponse.json({ assignment }, { status: 201 });
+}
+
+async function handleExpose(userEmail: string, testId: string, variantId: string) {
+  if (!testId || !variantId) {
+    return NextResponse.json({ error: 'Test ID and Variant ID required' }, { status: 400 });
+  }
+
+  const user = await prisma.user.findUnique({ where: { email: userEmail } });
+  if (!user) {
+    return NextResponse.json({ error: 'User not found' }, { status: 404 });
+  }
+
+  // Update exposure timestamp
+  const assignment = await prisma.aBTestAssignment.updateMany({
+    where: { userId: user.id, testId, variantId },
+    data: { exposedAt: new Date() },
+  });
+
+  return NextResponse.json({ message: 'Exposure tracked', updated: assignment.count }, { status: 200 });
+}
+
+async function handleConvert(userEmail: string, testId: string, conversionType: string = 'conversion') {
+  if (!testId) {
+    return NextResponse.json({ error: 'Test ID required' }, { status: 400 });
+  }
+
+  const user = await prisma.user.findUnique({ where: { email: userEmail } });
+  if (!user) {
+    return NextResponse.json({ error: 'User not found' }, { status: 404 });
+  }
+
+  // Get user's assignment
+  const assignment = await prisma.aBTestAssignment.findFirst({
+    where: { userId: user.id, testId },
+  });
+
+  if (!assignment) {
+    return NextResponse.json({ error: 'No assignment found for this test' }, { status: 404 });
+  }
+
+  // Create conversion
+  const conversion = await prisma.aBTestConversion.create({
+    data: {
+      userId: user.id,
+      testId,
+      variantId: assignment.variantId,
+      conversionType,
+      value: 1.0,
+    },
+  });
+
+  return NextResponse.json({ conversion }, { status: 201 });
+}
+
+async function getTestResults(testId: string) {
+  const test = await prisma.aBTest.findUnique({
+    where: { id: testId },
+    include: {
+      assignments: true,
+      conversions: true,
+    },
+  });
+
+  if (!test) {
+    return NextResponse.json({ error: 'Test not found' }, { status: 404 });
+  }
+
+  const variants = test.variants as any[];
+  
+  // Calculate stats per variant
+  const variantStats = variants.map(variant => {
+    const assignments = test.assignments.filter(a => a.variantId === variant.id);
+    const conversions = test.conversions.filter(c => c.variantId === variant.id);
+    
+    const assignmentCount = assignments.length;
+    const conversionCount = conversions.length;
+    const conversionRate = assignmentCount > 0 
+      ? ((conversionCount / assignmentCount) * 100).toFixed(2)
+      : '0.00';
+    
+    const exposures = assignments.filter(a => a.exposedAt).length;
+    const exposureRate = assignmentCount > 0
+      ? ((exposures / assignmentCount) * 100).toFixed(2)
+      : '0.00';
+
+    return {
+      variantId: variant.id,
+      variantName: variant.name,
+      assignments: assignmentCount,
+      exposures,
+      exposureRate: `${exposureRate}%`,
+      conversions: conversionCount,
+      conversionRate: `${conversionRate}%`,
+    };
+  });
+
+  return NextResponse.json({
+    test: {
+      id: test.id,
+      name: test.name,
+      status: test.status,
+      createdAt: test.createdAt,
+      startedAt: test.startedAt,
+      endedAt: test.endedAt,
+    },
+    variantStats,
+    totalAssignments: test.assignments.length,
+    totalConversions: test.conversions.length,
+  }, { status: 200 });
 }
