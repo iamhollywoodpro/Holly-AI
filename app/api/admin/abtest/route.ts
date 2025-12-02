@@ -254,7 +254,7 @@ async function handleAssign(clerkUserId: string, testId: string, variant?: strin
   }
 
   // Get user by clerkId
-  const user = await prisma.user.findUnique({ where: { clerkId: clerkUserId } });
+  const user = await prisma.user.findUnique({ where: { clerkUserId: clerkUserId } });
   if (!user) {
     return NextResponse.json({ error: 'User not found' }, { status: 404 });
   }
@@ -310,7 +310,7 @@ async function handleExpose(clerkUserId: string, testId: string, variant: string
   }
 
   // Get user by clerkId
-  const user = await prisma.user.findUnique({ where: { clerkId: clerkUserId } });
+  const user = await prisma.user.findUnique({ where: { clerkUserId: clerkUserId } });
   if (!user) {
     return NextResponse.json({ error: 'User not found' }, { status: 404 });
   }
@@ -330,7 +330,7 @@ async function handleConvert(clerkUserId: string, testId: string, metricName: st
   }
 
   // Get user by clerkId
-  const user = await prisma.user.findUnique({ where: { clerkId: clerkUserId } });
+  const user = await prisma.user.findUnique({ where: { clerkUserId: clerkUserId } });
   if (!user) {
     return NextResponse.json({ error: 'User not found' }, { status: 404 });
   }
