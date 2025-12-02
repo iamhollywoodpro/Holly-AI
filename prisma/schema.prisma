@@ -86,6 +86,9 @@ model User {
   engagementScore       UserEngagementScore?
   feedbackV2            UserFeedbackV2[]
 
+  // Phase 4D: Development Automation
+  // (Relations will be added when models are used)
+
   @@map("users")
 }
 
@@ -2044,3 +2047,244 @@ model UserFeedbackV2 {
   @@index([createdAt])
   @@map("user_feedback_v2")
 }
+// ============================================
+// PHASE 4D: DEVELOPMENT AUTOMATION
+// ============================================
+// Purpose: Automated testing, CI/CD, code review, documentation
+// Models: TestSuite, TestRun, CodeReview, DeploymentLog
+// ============================================
+
+// Test Suite Management
+model TestSuite {
+  id                String     @id @default(cuid())
+  
+  // Suite info
+  name              String     @unique
+  description       String?    @db.Text
+  suiteType         String     // unit, integration, e2e, performance
+  framework         String     // jest, vitest, playwright, cypress
+  
+  // Configuration
+  testFiles         String[]   @default([])
+  coverage          Boolean    @default(true)
+  parallel          Boolean    @default(true)
+  timeout           Int        @default(30000) // milliseconds
+  
+  // Environment
+  environment       String     @default("test") // test, staging, production
+  envVariables      Json?      // Environment variables
+  
+  // Status
+  enabled           Boolean    @default(true)
+  lastRun           DateTime?
+  totalTests        Int        @default(0)
+  passingTests      Int        @default(0)
+  failingTests      Int        @default(0)
+  
+  // Thresholds
+  minCoverage       Float      @default(80.0) // percentage
+  maxDuration       Int        @default(300000) // 5 minutes
+  
+  // Relations
+  runs              TestRun[]
+  
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+  createdBy         String?
+  
+  @@index([suiteType])
+  @@index([enabled])
+  @@map("test_suites")
+}
+
+// Test Run Execution
+model TestRun {
+  id                String     @id @default(cuid())
+  
+  // Suite reference
+  suiteId           String
+  suite             TestSuite  @relation(fields: [suiteId], references: [id], onDelete: Cascade)
+  
+  // Run info
+  runNumber         Int
+  status            String     // running, passed, failed, error
+  trigger           String     // manual, ci, cron, webhook
+  triggeredBy       String?
+  
+  // Results
+  totalTests        Int        @default(0)
+  passedTests       Int        @default(0)
+  failedTests       Int        @default(0)
+  skippedTests      Int        @default(0)
+  
+  // Coverage
+  coveragePercent   Float?     // overall coverage
+  lineCoverage      Float?
+  branchCoverage    Float?
+  functionCoverage  Float?
+  
+  // Performance
+  duration          Int?       // milliseconds
+  startedAt         DateTime   @default(now())
+  completedAt       DateTime?
+  
+  // Results data
+  testResults       Json       // Detailed test results
+  coverageReport    Json?      // Coverage details
+  errorLog          String?    @db.Text
+  
+  // Context
+  branch            String?
+  commitSha         String?
+  pullRequestId     String?
+  
+  @@index([suiteId])
+  @@index([status])
+  @@index([startedAt])
+  @@map("test_runs")
+}
+
+// AI-Powered Code Review
+model CodeReview {
+  id                String     @id @default(cuid())
+  
+  // PR/Commit info
+  pullRequestId     String?
+  pullRequestUrl    String?
+  commitSha         String
+  branch            String
+  author            String
+  
+  // Review metadata
+  reviewType        String     @default("automated") // automated, manual, hybrid
+  status            String     @default("pending") // pending, approved, changes_requested, commented
+  
+  // AI Analysis
+  overallScore      Float      @default(0.0) // 0-100
+  qualityScore      Float      @default(0.0)
+  securityScore     Float      @default(0.0)
+  performanceScore  Float      @default(0.0)
+  maintainabilityScore Float   @default(0.0)
+  
+  // Issues found
+  criticalIssues    Int        @default(0)
+  majorIssues       Int        @default(0)
+  minorIssues       Int        @default(0)
+  suggestions       Int        @default(0)
+  
+  // Detailed findings
+  findings          Json       // Array of issue objects
+  securityVulnerabilities Json? // Security issues
+  performanceWarnings Json?    // Performance concerns
+  
+  // Code metrics
+  linesChanged      Int        @default(0)
+  filesChanged      Int        @default(0)
+  complexity        Float?     // Cyclomatic complexity
+  duplicateCode     Float?     // Percentage
+  
+  // AI comments
+  aiComments        Json?      // Generated review comments
+  autoApproved      Boolean    @default(false)
+  
+  // Human review
+  humanReviewer     String?
+  humanReviewedAt   DateTime?
+  humanComments     String?    @db.Text
+  
+  // Actions taken
+  merged            Boolean    @default(false)
+  mergedAt          DateTime?
+  blocked           Boolean    @default(false)
+  blockReason       String?    @db.Text
+  
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+  
+  @@index([status])
+  @@index([overallScore])
+  @@index([commitSha])
+  @@index([createdAt])
+  @@map("code_reviews")
+}
+
+// Deployment Tracking
+model DeploymentLog {
+  id                String     @id @default(cuid())
+  
+  // Deployment info
+  deploymentId      String     @unique
+  environment       String     // development, staging, production
+  platform          String     // vercel, netlify, aws, heroku
+  
+  // Version info
+  version           String?
+  commitSha         String
+  branch            String
+  tag               String?
+  
+  // Status
+  status            String     // pending, deploying, success, failed, rolled_back
+  deployType        String     // standard, hotfix, rollback, canary
+  
+  // Triggering
+  trigger           String     // manual, ci, webhook, schedule
+  triggeredBy       String?
+  pullRequestId     String?
+  
+  // URLs
+  deploymentUrl     String?
+  previewUrl        String?
+  logsUrl           String?
+  
+  // Timing
+  startedAt         DateTime   @default(now())
+  completedAt       DateTime?
+  duration          Int?       // seconds
+  
+  // Build info
+  buildTime         Int?       // seconds
+  buildSize         Float?     // MB
+  buildLog          String?    @db.Text
+  
+  // Tests
+  testsRun          Boolean    @default(false)
+  testsPassed       Boolean?
+  testResults       Json?
+  
+  // Health checks
+  healthCheckPassed Boolean?
+  healthCheckUrl    String?
+  
+  // Rollback info
+  canRollback       Boolean    @default(true)
+  rolledBack        Boolean    @default(false)
+  rollbackTo        String?    // Previous deployment ID
+  rollbackReason    String?    @db.Text
+  
+  // Metrics
+  errorRate         Float?     // percentage
+  responseTime      Float?     // milliseconds
+  uptimePercent     Float?
+  
+  // Notifications
+  notificationsSent Boolean    @default(false)
+  notifiedUsers     String[]   @default([])
+  
+  // Context
+  metadata          Json?
+  environmentVars   Json?      // Sanitized env vars (no secrets)
+  
+  @@index([environment])
+  @@index([status])
+  @@index([startedAt])
+  @@index([commitSha])
+  @@map("deployment_logs")
+}
+
+// Add relations to User model
+// (These should be added to the existing User model)
+// testSuites        TestSuite[]
+// testRuns          TestRun[]
+// codeReviews       CodeReview[]
+// deployments       DeploymentLog[]
