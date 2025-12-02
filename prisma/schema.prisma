@@ -74,6 +74,18 @@ model User {
   brainstormSessions      BrainstormSession[]
   creativeInsights        CreativeInsight[]
 
+
+  // Phase 4B: Advanced User Intelligence
+  sessions              UserSession[]
+  events                UserEvent[]
+  journeys              UserJourney[]
+  preferencesV2         UserPreferences?
+  segmentMemberships    UserSegmentMember[]
+  abTestAssignments     ABTestAssignment[]
+  abTestConversions     ABTestConversion[]
+  engagementScore       UserEngagementScore?
+  feedbackV2            UserFeedbackV2[]
+
   @@map("users")
 }
 
