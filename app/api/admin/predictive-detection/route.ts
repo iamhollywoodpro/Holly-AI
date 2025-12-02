@@ -375,7 +375,7 @@ async function createPrediction(
       confidence: highestConfidence,
       severity,
       likelihood: highestConfidence,
-      indicators: { matches },
+      indicators: JSON.parse(JSON.stringify({ matches })),
       patterns,
       recommendation: `Review ${fileName} and address the identified patterns: ${patterns.join(', ')}`,
       preventionSteps: [
