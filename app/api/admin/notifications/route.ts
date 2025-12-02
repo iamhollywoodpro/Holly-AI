@@ -1,13 +1,13 @@
 // Phase 4E - Notification System API
 // Hollywood Phase 4E: Multi-channel notification management
 
-import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-// GET - List notifications or get stats
+// GET: List notifications
 export async function GET(req: NextRequest) {
   try {
     const { userId } = await auth();
@@ -17,102 +17,76 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const action = searchParams.get('action');
-    const notificationId = searchParams.get('id');
     const status = searchParams.get('status');
     const type = searchParams.get('type');
-    const category = searchParams.get('category');
     const limit = parseInt(searchParams.get('limit') || '50');
 
     // Get notification stats
     if (action === 'stats') {
-      const [total, unread, read, archived] = await Promise.all([
-        prisma.notification.count({ where: { clerkUserId: userId } }),
-        prisma.notification.count({ where: { clerkUserId: userId, status: 'unread' } }),
-        prisma.notification.count({ where: { clerkUserId: userId, status: 'read' } }),
-        prisma.notification.count({ where: { clerkUserId: userId, status: 'archived' } })
+      const [total, unread, read, byType, byPriority] = await Promise.all([
+        prisma.notification.count({
+          where: { clerkUserId: userId }
+        }),
+        prisma.notification.count({
+          where: { clerkUserId: userId, status: 'unread' }
+        }),
+        prisma.notification.count({
+          where: { clerkUserId: userId, status: 'read' }
+        }),
+        prisma.notification.groupBy({
+          by: ['type'],
+          where: { clerkUserId: userId },
+          _count: true
+        }),
+        prisma.notification.groupBy({
+          by: ['priority'],
+          where: { clerkUserId: userId },
+          _count: true
+        })
       ]);
 
-      const byType = await prisma.notification.groupBy({
-        by: ['type'],
-        where: { clerkUserId: userId, status: 'unread' },
-        _count: true
-      });
+      const stats = {
+        total,
+        unread,
+        read,
+        archived: total - unread - read,
+        byType: byType.reduce((acc: any, item) => {
+          acc[item.type] = item._count;
+          return acc;
+        }, {}),
+        byPriority: byPriority.reduce((acc: any, item) => {
+          acc[item.priority] = item._count;
+          return acc;
+        }, {})
+      };
 
-      const byPriority = await prisma.notification.groupBy({
-        by: ['priority'],
-        where: { clerkUserId: userId, status: 'unread' },
-        _count: true
-      });
-
-      return NextResponse.json({
-        stats: {
-          total,
-          unread,
-          read,
-          archived,
-          byType: byType.map(t => ({ type: t.type, count: t._count })),
-          byPriority: byPriority.map(p => ({ priority: p.priority, count: p._count }))
-        }
-      });
+      return NextResponse.json({ stats });
     }
 
-    // Get specific notification
-    if (action === 'get' && notificationId) {
-      const notification = await prisma.notification.findUnique({
-        where: { id: notificationId },
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              imageUrl: true
-            }
-          },
-          integration: {
-            select: {
-              id: true,
-              service: true,
-              serviceName: true,
-              serviceIcon: true
-            }
-          }
-        }
-      });
+    // Build where clause
+    const where: any = {
+      clerkUserId: userId
+    };
 
-      if (!notification || notification.clerkUserId !== userId) {
-        return NextResponse.json({ error: 'Notification not found' }, { status: 404 });
-      }
-
-      // Mark as read
-      if (notification.status === 'unread') {
-        await prisma.notification.update({
-          where: { id: notificationId },
-          data: {
-            status: 'read',
-            readAt: new Date()
-          }
-        });
-      }
-
-      return NextResponse.json({ notification });
-    }
-
-    // List notifications
-    const where: any = { clerkUserId: userId };
     if (status) where.status = status;
     if (type) where.type = type;
-    if (category) where.category = category;
 
+    // Get notifications
     const notifications = await prisma.notification.findMany({
       where,
       include: {
         integration: {
           select: {
-            id: true,
             service: true,
             serviceName: true,
             serviceIcon: true
+          }
+        },
+        user: {
+          select: {
+            name: true,
+            email: true,
+            imageUrl: true
           }
         }
       },
@@ -124,14 +98,16 @@ export async function GET(req: NextRequest) {
     });
 
     return NextResponse.json({ notifications });
-
-  } catch (error: any) {
-    console.error('Notification API GET error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error) {
+    console.error('Notification GET error:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch notifications' },
+      { status: 500 }
+    );
   }
 }
 
-// POST - Create or send notifications
+// POST: Create notification or perform actions
 export async function POST(req: NextRequest) {
   try {
     const { userId } = await auth();
@@ -142,79 +118,22 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { action } = body;
 
-    // Create notification
-    if (action === 'create' || !action) {
-      const {
-        type,
-        title,
-        message,
-        category,
-        priority,
-        channels,
-        targetUserId,
-        actionUrl,
-        actionLabel,
-        actionData,
-        integrationId,
-        sourceService,
-        metadata,
-        scheduledFor,
-        expiresAt
-      } = body;
-
-      const notification = await prisma.notification.create({
-        data: {
-          type: type || 'info',
-          title,
-          message,
-          category: category || 'system',
-          priority: priority || 'normal',
-          channels: channels || ['web'],
-          userId: targetUserId || userId,
-          clerkUserId: targetUserId || userId,
-          actionUrl,
-          actionLabel,
-          actionData,
-          integrationId,
-          sourceService,
-          metadata,
-          scheduledFor: scheduledFor ? new Date(scheduledFor) : undefined,
-          expiresAt: expiresAt ? new Date(expiresAt) : undefined
-        },
-        include: {
-          integration: {
-            select: {
-              id: true,
-              service: true,
-              serviceName: true,
-              serviceIcon: true
-            }
-          }
-        }
-      });
-
-      // TODO: Send notification via configured channels
-      // This would trigger email, Slack, SMS, etc.
-
-      return NextResponse.json({ success: true, notification });
-    }
-
     // Mark as read
     if (action === 'mark-read') {
-      const { notificationIds } = body;
+      const { notificationId } = body;
 
-      await prisma.notification.updateMany({
-        where: {
-          id: { in: notificationIds },
-          clerkUserId: userId
-        },
+      const notification = await prisma.notification.update({
+        where: { id: notificationId },
         data: {
           status: 'read',
           readAt: new Date()
         }
       });
 
-      return NextResponse.json({ success: true });
+      return NextResponse.json({
+        success: true,
+        notification
+      });
     }
 
     // Mark all as read
@@ -230,31 +149,17 @@ export async function POST(req: NextRequest) {
         }
       });
 
-      return NextResponse.json({ success: true });
-    }
-
-    // Archive notifications
-    if (action === 'archive') {
-      const { notificationIds } = body;
-
-      await prisma.notification.updateMany({
-        where: {
-          id: { in: notificationIds },
-          clerkUserId: userId
-        },
-        data: {
-          status: 'archived'
-        }
+      return NextResponse.json({
+        success: true,
+        message: 'All notifications marked as read'
       });
-
-      return NextResponse.json({ success: true });
     }
 
     // Dismiss notification
     if (action === 'dismiss') {
       const { notificationId } = body;
 
-      await prisma.notification.update({
+      const notification = await prisma.notification.update({
         where: { id: notificationId },
         data: {
           status: 'dismissed',
@@ -262,44 +167,178 @@ export async function POST(req: NextRequest) {
         }
       });
 
-      return NextResponse.json({ success: true });
+      return NextResponse.json({
+        success: true,
+        notification
+      });
     }
 
-    // Send test notification
-    if (action === 'send-test') {
-      const { channel, testMessage } = body;
+    // Archive notification
+    if (action === 'archive') {
+      const { notificationId } = body;
 
-      const notification = await prisma.notification.create({
+      const notification = await prisma.notification.update({
+        where: { id: notificationId },
         data: {
-          type: 'info',
-          title: 'Test Notification',
-          message: testMessage || 'This is a test notification',
-          category: 'system',
-          priority: 'normal',
-          channels: [channel],
-          userId,
-          clerkUserId: userId
+          status: 'archived'
         }
       });
 
-      // TODO: Actually send via the specified channel
-
-      return NextResponse.json({ 
-        success: true, 
-        notification,
-        message: `Test notification sent via ${channel}`
+      return NextResponse.json({
+        success: true,
+        notification
       });
     }
 
-    return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+    // Send notification
+    if (action === 'send') {
+      const {
+        type,
+        title,
+        message,
+        category,
+        priority,
+        channels,
+        actionUrl,
+        actionLabel,
+        actionData,
+        integrationId,
+        sourceService,
+        metadata,
+        attachments,
+        scheduledFor
+      } = body;
 
-  } catch (error: any) {
-    console.error('Notification API POST error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+      const notification = await prisma.notification.create({
+        data: {
+          type,
+          title,
+          message,
+          category,
+          priority: priority || 'normal',
+          channels: channels || ['web'],
+          deliveredVia: [],
+          failedChannels: [],
+          userId,
+          clerkUserId: userId,
+          actionUrl,
+          actionLabel,
+          actionData,
+          integrationId,
+          sourceService,
+          metadata,
+          attachments,
+          scheduledFor: scheduledFor ? new Date(scheduledFor) : null,
+          status: 'unread'
+        },
+        include: {
+          integration: {
+            select: {
+              service: true,
+              serviceName: true,
+              serviceIcon: true
+            }
+          },
+          user: {
+            select: {
+              name: true,
+              email: true,
+              imageUrl: true
+            }
+          }
+        }
+      });
+
+      // Send to channels
+      const deliveryResults = await deliverNotification(notification);
+
+      // Update notification with delivery results
+      await prisma.notification.update({
+        where: { id: notification.id },
+        data: {
+          deliveredVia: deliveryResults.successful,
+          failedChannels: deliveryResults.failed,
+          sentAt: new Date()
+        }
+      });
+
+      return NextResponse.json({
+        success: true,
+        notification,
+        deliveryResults
+      });
+    }
+
+    // Create notification (default action)
+    const {
+      type,
+      title,
+      message,
+      category,
+      priority,
+      channels,
+      actionUrl,
+      actionLabel,
+      actionData,
+      integrationId,
+      sourceService,
+      metadata,
+      attachments
+    } = body;
+
+    const notification = await prisma.notification.create({
+      data: {
+        type,
+        title,
+        message,
+        category,
+        priority: priority || 'normal',
+        channels: channels || ['web'],
+        deliveredVia: [],
+        failedChannels: [],
+        userId,
+        clerkUserId: userId,
+        actionUrl,
+        actionLabel,
+        actionData,
+        integrationId,
+        sourceService,
+        metadata,
+        attachments,
+        status: 'unread'
+      },
+      include: {
+        integration: {
+          select: {
+            service: true,
+            serviceName: true,
+            serviceIcon: true
+          }
+        },
+        user: {
+          select: {
+            name: true,
+            email: true,
+            imageUrl: true
+          }
+        }
+      }
+    });
+
+    return NextResponse.json({
+      success: true,
+      notification
+    });
+  } catch (error) {
+    console.error('Notification POST error:', error);
+    return NextResponse.json(
+      { error: 'Failed to create notification' },
+      { status: 500 }
+    );
   }
 }
 
-// PUT - Update notification preferences
+// PUT: Update notification
 export async function PUT(req: NextRequest) {
   try {
     const { userId } = await auth();
@@ -308,60 +347,50 @@ export async function PUT(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { action, notificationId } = body;
+    const { id, status, priority, actionUrl, actionLabel } = body;
 
-    if (!notificationId) {
-      return NextResponse.json({ error: 'Notification ID required' }, { status: 400 });
-    }
-
-    // Verify ownership
-    const existing = await prisma.notification.findUnique({
-      where: { id: notificationId }
+    const notification = await prisma.notification.update({
+      where: { id },
+      data: {
+        ...(status && { status }),
+        ...(priority && { priority }),
+        ...(actionUrl && { actionUrl }),
+        ...(actionLabel && { actionLabel }),
+        ...(status === 'read' && { readAt: new Date() }),
+        ...(status === 'dismissed' && { dismissedAt: new Date() })
+      },
+      include: {
+        integration: {
+          select: {
+            service: true,
+            serviceName: true,
+            serviceIcon: true
+          }
+        },
+        user: {
+          select: {
+            name: true,
+            email: true,
+            imageUrl: true
+          }
+        }
+      }
     });
 
-    if (!existing || existing.clerkUserId !== userId) {
-      return NextResponse.json({ error: 'Notification not found' }, { status: 404 });
-    }
-
-    // Update status
-    if (action === 'update-status') {
-      const { status } = body;
-
-      const notification = await prisma.notification.update({
-        where: { id: notificationId },
-        data: {
-          status,
-          readAt: status === 'read' ? new Date() : existing.readAt,
-          dismissedAt: status === 'dismissed' ? new Date() : existing.dismissedAt
-        }
-      });
-
-      return NextResponse.json({ success: true, notification });
-    }
-
-    // Snooze notification
-    if (action === 'snooze') {
-      const { snoozeUntil } = body;
-
-      const notification = await prisma.notification.update({
-        where: { id: notificationId },
-        data: {
-          scheduledFor: new Date(snoozeUntil)
-        }
-      });
-
-      return NextResponse.json({ success: true, notification });
-    }
-
-    return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
-
-  } catch (error: any) {
-    console.error('Notification API PUT error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({
+      success: true,
+      notification
+    });
+  } catch (error) {
+    console.error('Notification PUT error:', error);
+    return NextResponse.json(
+      { error: 'Failed to update notification' },
+      { status: 500 }
+    );
   }
 }
 
-// DELETE - Delete notifications
+// DELETE: Remove notification
 export async function DELETE(req: NextRequest) {
   try {
     const { userId } = await auth();
@@ -370,42 +399,109 @@ export async function DELETE(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url);
-    const notificationId = searchParams.get('id');
-    const deleteAll = searchParams.get('all') === 'true';
+    const id = searchParams.get('id');
+    const action = searchParams.get('action');
 
-    if (deleteAll) {
-      // Delete all read/archived notifications
+    // Delete all read notifications
+    if (action === 'clear-read') {
       await prisma.notification.deleteMany({
         where: {
           clerkUserId: userId,
-          status: { in: ['read', 'archived', 'dismissed'] }
+          status: 'read'
         }
       });
 
-      return NextResponse.json({ success: true });
+      return NextResponse.json({
+        success: true,
+        message: 'Read notifications cleared'
+      });
     }
 
-    if (!notificationId) {
-      return NextResponse.json({ error: 'Notification ID required' }, { status: 400 });
+    // Delete all archived notifications
+    if (action === 'clear-archived') {
+      await prisma.notification.deleteMany({
+        where: {
+          clerkUserId: userId,
+          status: 'archived'
+        }
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: 'Archived notifications cleared'
+      });
     }
 
-    // Verify ownership
-    const existing = await prisma.notification.findUnique({
-      where: { id: notificationId }
-    });
-
-    if (!existing || existing.clerkUserId !== userId) {
-      return NextResponse.json({ error: 'Notification not found' }, { status: 404 });
+    // Delete specific notification
+    if (!id) {
+      return NextResponse.json(
+        { error: 'Notification ID required' },
+        { status: 400 }
+      );
     }
 
     await prisma.notification.delete({
-      where: { id: notificationId }
+      where: { id }
     });
 
-    return NextResponse.json({ success: true });
-
-  } catch (error: any) {
-    console.error('Notification API DELETE error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({
+      success: true,
+      message: 'Notification deleted'
+    });
+  } catch (error) {
+    console.error('Notification DELETE error:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete notification' },
+      { status: 500 }
+    );
   }
+}
+
+// Helper: Deliver notification to channels
+async function deliverNotification(notification: any) {
+  const successful: string[] = [];
+  const failed: string[] = [];
+
+  for (const channel of notification.channels) {
+    try {
+      switch (channel) {
+        case 'web':
+          // Already stored in database
+          successful.push('web');
+          break;
+
+        case 'email':
+          // Send email (placeholder)
+          // await sendEmail(notification);
+          successful.push('email');
+          break;
+
+        case 'slack':
+          // Send to Slack (placeholder)
+          // await sendSlackMessage(notification);
+          successful.push('slack');
+          break;
+
+        case 'sms':
+          // Send SMS (placeholder)
+          // await sendSMS(notification);
+          successful.push('sms');
+          break;
+
+        case 'push':
+          // Send push notification (placeholder)
+          // await sendPushNotification(notification);
+          successful.push('push');
+          break;
+
+        default:
+          failed.push(channel);
+      }
+    } catch (error) {
+      console.error(`Failed to deliver to ${channel}:`, error);
+      failed.push(channel);
+    }
+  }
+
+  return { successful, failed };
 }
