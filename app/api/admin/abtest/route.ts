@@ -318,7 +318,7 @@ async function handleExpose(clerkUserId: string, testId: string, variant: string
   // Update exposure
   const assignment = await prisma.aBTestAssignment.updateMany({
     where: { clerkUserId, testId, variant },
-    data: { exposed: true, exposedAt: new Date() },
+    data: { exposed: true, firstExposedAt: new Date(), exposureCount: { increment: 1 } },
   });
 
   return NextResponse.json({ message: 'Exposure tracked', updated: assignment.count }, { status: 200 });
