@@ -1614,3 +1614,421 @@ model TechnicalDebt {
   @@map("technical_debt")
 }
 
+
+// ============================================
+// PHASE 4B: ADVANCED USER INTELLIGENCE
+// ============================================
+
+// User Behavior Tracking
+model UserSession {
+  id                String    @id @default(cuid())
+  userId            String
+  clerkUserId       String
+  user              User      @relation(fields: [clerkUserId], references: [clerkUserId], onDelete: Cascade)
+  
+  // Session info
+  sessionId         String    @unique
+  ipAddress         String?
+  userAgent         String?   @db.Text
+  device            String?   // mobile, tablet, desktop
+  browser           String?
+  os                String?
+  country           String?
+  city              String?
+  
+  // Session metrics
+  startedAt         DateTime  @default(now())
+  endedAt           DateTime?
+  duration          Int?      // seconds
+  pageViews         Int       @default(0)
+  eventsCount       Int       @default(0)
+  
+  // Engagement
+  activeTime        Int       @default(0) // seconds of active engagement
+  idleTime          Int       @default(0) // seconds idle
+  scrollDepth       Float     @default(0) // percentage
+  clickCount        Int       @default(0)
+  
+  // Pages visited
+  landingPage       String?
+  exitPage          String?
+  pagesVisited      String[]  @default([])
+  
+  // Conversion tracking
+  converted         Boolean   @default(false)
+  conversionType    String?
+  conversionValue   Float?
+  
+  // Relations
+  events            UserEvent[]
+  journeys          UserJourney[]
+  
+  @@index([clerkUserId])
+  @@index([sessionId])
+  @@index([startedAt])
+  @@index([converted])
+  @@map("user_sessions")
+}
+
+model UserEvent {
+  id                String      @id @default(cuid())
+  userId            String
+  clerkUserId       String
+  user              User        @relation(fields: [clerkUserId], references: [clerkUserId], onDelete: Cascade)
+  
+  sessionId         String
+  session           UserSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  
+  // Event details
+  eventType         String      // click, page_view, form_submit, feature_use, etc.
+  eventName         String
+  eventCategory     String?
+  
+  // Context
+  page              String
+  component         String?
+  elementId         String?
+  elementText       String?     @db.Text
+  
+  // Data
+  eventData         Json?       // Custom event data
+  metadata          Json?       // Additional metadata
+  
+  // Timing
+  timestamp         DateTime    @default(now())
+  timeOnPage        Int?        // seconds
+  
+  // Position
+  scrollPosition    Int?        // pixels
+  clickX            Int?
+  clickY            Int?
+  
+  @@index([clerkUserId])
+  @@index([sessionId])
+  @@index([eventType])
+  @@index([eventName])
+  @@index([timestamp])
+  @@map("user_events")
+}
+
+model UserJourney {
+  id                String      @id @default(cuid())
+  userId            String
+  clerkUserId       String
+  user              User        @relation(fields: [clerkUserId], references: [clerkUserId], onDelete: Cascade)
+  
+  sessionId         String
+  session           UserSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  
+  // Journey details
+  journeyName       String      // e.g., "Onboarding", "Feature Discovery"
+  currentStep       String
+  totalSteps        Int
+  completedSteps    Int         @default(0)
+  
+  // Status
+  status            String      @default("in_progress") // in_progress, completed, abandoned
+  completed         Boolean     @default(false)
+  abandoned         Boolean     @default(false)
+  
+  // Timing
+  startedAt         DateTime    @default(now())
+  completedAt       DateTime?
+  abandonedAt       DateTime?
+  duration          Int?        // seconds
+  
+  // Path taken
+  steps             Json        // Array of step objects
+  dropOffStep       String?
+  dropOffReason     String?
+  
+  @@index([clerkUserId])
+  @@index([sessionId])
+  @@index([journeyName])
+  @@index([status])
+  @@index([startedAt])
+  @@map("user_journeys")
+}
+
+// User Preferences & Personalization
+model UserPreferences {
+  id                String    @id @default(cuid())
+  userId            String
+  clerkUserId       String    @unique
+  user              User      @relation(fields: [clerkUserId], references: [clerkUserId], onDelete: Cascade)
+  
+  // UI Preferences
+  theme             String    @default("system") // light, dark, system
+  language          String    @default("en")
+  timezone          String?
+  dateFormat        String    @default("MM/DD/YYYY")
+  timeFormat        String    @default("12h") // 12h, 24h
+  
+  // Dashboard Layout
+  dashboardLayout   Json?     // Custom layout configuration
+  pinnedFeatures    String[]  @default([])
+  hiddenFeatures    String[]  @default([])
+  favoritePages     String[]  @default([])
+  
+  // Notifications
+  emailNotifications    Boolean @default(true)
+  pushNotifications     Boolean @default(true)
+  notificationFrequency String  @default("real_time") // real_time, hourly, daily
+  
+  // Content Preferences
+  contentTypes      String[]  @default([])
+  interests         String[]  @default([])
+  categories        String[]  @default([])
+  
+  // Feature Flags
+  betaFeatures      Boolean   @default(false)
+  experimentalUI    Boolean   @default(false)
+  
+  // Personalization Data
+  personalizationScore Float  @default(0.0)
+  lastPersonalizedAt   DateTime?
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  @@index([clerkUserId])
+  @@map("user_preferences_v2")
+}
+
+model UserSegment {
+  id                String    @id @default(cuid())
+  
+  // Segment definition
+  name              String    @unique
+  description       String?   @db.Text
+  segmentType       String    // demographic, behavioral, engagement, value
+  
+  // Criteria
+  criteria          Json      // Segment rules
+  
+  // Stats
+  userCount         Int       @default(0)
+  active            Boolean   @default(true)
+  
+  // Metadata
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  createdBy         String?
+  
+  // Relations
+  users             UserSegmentMember[]
+  experiments       ABTest[]
+  
+  @@index([segmentType])
+  @@index([active])
+  @@map("user_segments")
+}
+
+model UserSegmentMember {
+  id                String      @id @default(cuid())
+  
+  segmentId         String
+  segment           UserSegment @relation(fields: [segmentId], references: [id], onDelete: Cascade)
+  
+  userId            String
+  clerkUserId       String
+  user              User        @relation(fields: [clerkUserId], references: [clerkUserId], onDelete: Cascade)
+  
+  // Membership
+  joinedAt          DateTime    @default(now())
+  score             Float?      // How well they match the segment
+  
+  @@unique([segmentId, clerkUserId])
+  @@index([segmentId])
+  @@index([clerkUserId])
+  @@map("user_segment_members")
+}
+
+// A/B Testing & Experimentation
+model ABTest {
+  id                String    @id @default(cuid())
+  
+  // Test definition
+  name              String    @unique
+  description       String?   @db.Text
+  hypothesis        String?   @db.Text
+  
+  // Test configuration
+  testType          String    // ui, feature, content, algorithm
+  status            String    @default("draft") // draft, running, paused, completed
+  
+  // Variants
+  controlVariant    Json      // Control configuration
+  testVariants      Json      // Array of test variants
+  
+  // Targeting
+  targetSegmentId   String?
+  targetSegment     UserSegment? @relation(fields: [targetSegmentId], references: [id], onDelete: SetNull)
+  trafficAllocation Float     @default(1.0) // 0.0 to 1.0
+  
+  // Success metrics
+  primaryMetric     String
+  secondaryMetrics  String[]  @default([])
+  successCriteria   Json?
+  
+  // Results
+  winner            String?   // variant id
+  confidence        Float?    // statistical confidence
+  
+  // Timing
+  startDate         DateTime?
+  endDate           DateTime?
+  duration          Int?      // days
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  createdBy         String?
+  
+  // Relations
+  assignments       ABTestAssignment[]
+  conversions       ABTestConversion[]
+  
+  @@index([status])
+  @@index([startDate])
+  @@map("ab_tests")
+}
+
+model ABTestAssignment {
+  id                String   @id @default(cuid())
+  
+  testId            String
+  test              ABTest   @relation(fields: [testId], references: [id], onDelete: Cascade)
+  
+  userId            String
+  clerkUserId       String
+  user              User     @relation(fields: [clerkUserId], references: [clerkUserId], onDelete: Cascade)
+  
+  // Assignment
+  variant           String   // variant id
+  assignedAt        DateTime @default(now())
+  
+  // Exposure
+  exposed           Boolean  @default(false)
+  firstExposedAt    DateTime?
+  exposureCount     Int      @default(0)
+  
+  @@unique([testId, clerkUserId])
+  @@index([testId])
+  @@index([clerkUserId])
+  @@index([variant])
+  @@map("ab_test_assignments")
+}
+
+model ABTestConversion {
+  id                String   @id @default(cuid())
+  
+  testId            String
+  test              ABTest   @relation(fields: [testId], references: [id], onDelete: Cascade)
+  
+  userId            String
+  clerkUserId       String
+  user              User     @relation(fields: [clerkUserId], references: [clerkUserId], onDelete: Cascade)
+  
+  // Conversion details
+  variant           String
+  metricName        String
+  metricValue       Float
+  
+  convertedAt       DateTime @default(now())
+  
+  // Context
+  sessionId         String?
+  metadata          Json?
+  
+  @@index([testId])
+  @@index([clerkUserId])
+  @@index([variant])
+  @@index([metricName])
+  @@map("ab_test_conversions")
+}
+
+// Engagement & Retention
+model UserEngagementScore {
+  id                String   @id @default(cuid())
+  userId            String
+  clerkUserId       String   @unique
+  user              User     @relation(fields: [clerkUserId], references: [clerkUserId], onDelete: Cascade)
+  
+  // Overall scores (0-100)
+  overallScore      Float    @default(0.0)
+  activityScore     Float    @default(0.0)
+  frequencyScore    Float    @default(0.0)
+  recencyScore      Float    @default(0.0)
+  depthScore        Float    @default(0.0)
+  
+  // Engagement metrics
+  totalSessions     Int      @default(0)
+  avgSessionDuration Float   @default(0.0)
+  totalEvents       Int      @default(0)
+  featuresUsed      Int      @default(0)
+  
+  // Activity levels
+  lastActive        DateTime?
+  activeStreak      Int      @default(0) // consecutive days
+  longestStreak     Int      @default(0)
+  
+  // Engagement trend
+  trend             String   @default("new") // growing, stable, declining, new
+  riskLevel         String   @default("low") // low, medium, high
+  churnProbability  Float    @default(0.0)
+  
+  // Timestamps
+  calculatedAt      DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([clerkUserId])
+  @@index([overallScore])
+  @@index([trend])
+  @@index([riskLevel])
+  @@map("user_engagement_scores")
+}
+
+model UserFeedbackV2 {
+  id                String   @id @default(cuid())
+  userId            String
+  clerkUserId       String
+  user              User     @relation(fields: [clerkUserId], references: [clerkUserId], onDelete: Cascade)
+  
+  // Feedback details
+  feedbackType      String   // feature_request, bug_report, general, nps
+  category          String?
+  subject           String
+  message           String   @db.Text
+  
+  // Rating (NPS or satisfaction)
+  rating            Int?     // 0-10 for NPS, 1-5 for satisfaction
+  npsCategory       String?  // promoter, passive, detractor
+  
+  // Context
+  page              String?
+  feature           String?
+  sessionId         String?
+  
+  // Status
+  status            String   @default("new") // new, reviewed, in_progress, resolved
+  priority          String   @default("medium") // low, medium, high
+  
+  // Response
+  response          String?  @db.Text
+  respondedAt       DateTime?
+  respondedBy       String?
+  
+  // Metadata
+  metadata          Json?
+  attachments       String[] @default([])
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([clerkUserId])
+  @@index([feedbackType])
+  @@index([status])
+  @@index([rating])
+  @@index([createdAt])
+  @@map("user_feedback_v2")
+}
