@@ -212,13 +212,14 @@ export async function POST(req: NextRequest) {
       // Create learning insight
       await prisma.learningInsight.create({
         data: {
+          category: 'code_analysis',
           insightType: 'code_pattern',
           title: `Code Change: ${message.substring(0, 50)}...`,
           description: `Analyzed ${changedFiles.length} file changes. Detected ${analysis.performanceIssues.length} performance issues and ${analysis.refactoringNeeded.length} refactoring opportunities.`,
+          evidence: { commitSha: id, filesChanged: changedFiles.length, analysis },
           confidence: 0.85,
           actionable: true,
-          appliedAt: null,
-          impact: null
+          applied: false
         }
       });
     }
