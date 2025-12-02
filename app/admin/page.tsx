@@ -1,7 +1,8 @@
 /**
- * Admin Dashboard Page with Phase 4A & 4B Components
+ * Admin Dashboard Page with Phase 4A, 4B & 4D Components
  * Phase 4A: Architecture, Self-Healing, Insights, Auto-Merge, Predictive Detection, Analytics
  * Phase 4B: Behavior Analytics, A/B Testing, Personalization, Engagement Scoring, User Journeys
+ * Phase 4D: Testing Dashboard, CI/CD Pipeline, Code Review, Documentation Generator
  */
 
 'use client';
@@ -18,7 +19,11 @@ import {
   FlaskConical,
   Sparkles,
   Zap,
-  Map
+  Map,
+  CheckCircle,
+  Rocket,
+  FileCheck,
+  BookOpen
 } from 'lucide-react';
 
 // Phase 4A Panels
@@ -36,6 +41,12 @@ import PersonalizationPanel from '@/components/admin/PersonalizationPanel';
 import EngagementScoringPanel from '@/components/admin/EngagementScoringPanel';
 import UserJourneyPanel from '@/components/admin/UserJourneyPanel';
 
+// Phase 4D Panels
+import TestingDashboardPanel from '@/components/admin/TestingDashboardPanel';
+import CICDPipelinePanel from '@/components/admin/CICDPipelinePanel';
+import CodeReviewPanel from '@/components/admin/CodeReviewPanel';
+import DocumentationPanel from '@/components/admin/DocumentationPanel';
+
 type Tab = 
   // Phase 4A
   | 'architecture' 
@@ -49,7 +60,12 @@ type Tab =
   | 'abtest'
   | 'personalization'
   | 'engagement'
-  | 'journeys';
+  | 'journeys'
+  // Phase 4D
+  | 'testing'
+  | 'cicd'
+  | 'code-review'
+  | 'documentation';
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<Tab>('analytics');
@@ -133,6 +149,35 @@ export default function AdminDashboard() {
       icon: Map,
       description: 'User journey tracking',
       phase: '4B'
+    },
+    // Phase 4D Tabs
+    {
+      id: 'testing' as Tab,
+      label: 'Testing',
+      icon: CheckCircle,
+      description: 'Automated testing',
+      phase: '4D'
+    },
+    {
+      id: 'cicd' as Tab,
+      label: 'CI/CD',
+      icon: Rocket,
+      description: 'Pipeline automation',
+      phase: '4D'
+    },
+    {
+      id: 'code-review' as Tab,
+      label: 'Code Review',
+      icon: FileCheck,
+      description: 'AI code review',
+      phase: '4D'
+    },
+    {
+      id: 'documentation' as Tab,
+      label: 'Docs',
+      icon: BookOpen,
+      description: 'Auto documentation',
+      phase: '4D'
     }
   ];
 
@@ -146,7 +191,7 @@ export default function AdminDashboard() {
               HOLLY Admin Dashboard
             </h1>
             <p className="mt-2 text-gray-600">
-              Enhanced Self-Awareness & Advanced User Intelligence System
+              Enhanced Self-Awareness • Advanced User Intelligence • Development Automation
             </p>
           </div>
 
@@ -174,7 +219,7 @@ export default function AdminDashboard() {
                     <div className="font-medium">{tab.label}</div>
                     <div className="text-xs text-gray-500">{tab.description}</div>
                   </div>
-                  {tab.phase === '4B' && (
+                  {(tab.phase === '4B' || tab.phase === '4D') && (
                     <span className="absolute top-1 right-1 text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded">
                       NEW
                     </span>
@@ -202,6 +247,12 @@ export default function AdminDashboard() {
         {activeTab === 'personalization' && <PersonalizationPanel />}
         {activeTab === 'engagement' && <EngagementScoringPanel />}
         {activeTab === 'journeys' && <UserJourneyPanel />}
+
+        {/* Phase 4D Panels */}
+        {activeTab === 'testing' && <TestingDashboardPanel />}
+        {activeTab === 'cicd' && <CICDPipelinePanel />}
+        {activeTab === 'code-review' && <CodeReviewPanel />}
+        {activeTab === 'documentation' && <DocumentationPanel />}
       </div>
 
       {/* Footer */}
@@ -212,7 +263,7 @@ export default function AdminDashboard() {
               <strong>HOLLY</strong> - Hyper-Optimized Logic & Learning Yield
             </div>
             <div>
-              Phase 4A: Self-Awareness • Phase 4B: Advanced User Intelligence
+              Phase 4A: Self-Awareness • Phase 4B: User Intelligence • Phase 4D: DevOps Automation
             </div>
           </div>
         </div>
