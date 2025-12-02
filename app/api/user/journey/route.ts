@@ -33,6 +33,15 @@ export async function GET(req: NextRequest) {
             gte: startDate
           }
         },
+        include: {
+          session: {
+            select: {
+              id: true,
+              startTime: true,
+              endTime: true
+            }
+          }
+        },
         orderBy: {
           startedAt: 'desc'
         },
@@ -44,7 +53,7 @@ export async function GET(req: NextRequest) {
 
     if (action === 'stats') {
       // Get journey statistics
-      const [totalJourneys, completedJourneys, averageDuration] = await Promise.all([
+      const [totalJourneys, completedJourneys, abandonedJourneys, averageDuration] = await Promise.all([
         prisma.userJourney.count({
           where: {
             clerkUserId: userId,
@@ -54,7 +63,14 @@ export async function GET(req: NextRequest) {
         prisma.userJourney.count({
           where: {
             clerkUserId: userId,
-            status: 'completed',
+            completed: true,
+            startedAt: { gte: startDate }
+          }
+        }),
+        prisma.userJourney.count({
+          where: {
+            clerkUserId: userId,
+            abandoned: true,
             startedAt: { gte: startDate }
           }
         }),
@@ -73,7 +89,8 @@ export async function GET(req: NextRequest) {
       const stats = {
         total: totalJourneys,
         completed: completedJourneys,
-        inProgress: totalJourneys - completedJourneys,
+        abandoned: abandonedJourneys,
+        inProgress: totalJourneys - completedJourneys - abandonedJourneys,
         averageDuration: Math.round(averageDuration._avg.duration || 0),
         completionRate: totalJourneys > 0 ? Math.round((completedJourneys / totalJourneys) * 100) : 0
       };
@@ -87,6 +104,7 @@ export async function GET(req: NextRequest) {
       stats: {
         total: 0,
         completed: 0,
+        abandoned: 0,
         inProgress: 0,
         averageDuration: 0,
         completionRate: 0
@@ -102,6 +120,7 @@ export async function GET(req: NextRequest) {
         stats: {
           total: 0,
           completed: 0,
+          abandoned: 0,
           inProgress: 0,
           averageDuration: 0,
           completionRate: 0
@@ -124,16 +143,34 @@ export async function POST(req: NextRequest) {
     const { action } = body;
 
     if (action === 'start') {
-      const { goal, entryPoint, metadata } = body;
+      const { 
+        sessionId, 
+        journeyName, 
+        currentStep, 
+        totalSteps,
+        steps 
+      } = body;
+
+      if (!sessionId || !journeyName) {
+        return NextResponse.json(
+          { success: false, error: 'sessionId and journeyName required' },
+          { status: 400 }
+        );
+      }
 
       const journey = await prisma.userJourney.create({
         data: {
           clerkUserId: userId,
           userId,
-          goal: goal || 'browse',
-          entryPoint: entryPoint || 'homepage',
+          sessionId,
+          journeyName,
+          currentStep: currentStep || 'start',
+          totalSteps: totalSteps || 1,
+          completedSteps: 0,
           status: 'in_progress',
-          metadata: metadata || {},
+          completed: false,
+          abandoned: false,
+          steps: steps || [],
           startedAt: new Date()
         }
       });
@@ -142,14 +179,66 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === 'complete') {
-      const { journeyId, completedGoal } = body;
+      const { journeyId } = body;
+
+      if (!journeyId) {
+        return NextResponse.json(
+          { success: false, error: 'journeyId required' },
+          { status: 400 }
+        );
+      }
 
       const journey = await prisma.userJourney.update({
         where: { id: journeyId },
         data: {
           status: 'completed',
-          completedGoal: completedGoal || false,
+          completed: true,
           completedAt: new Date()
+        }
+      });
+
+      return NextResponse.json({ success: true, journey });
+    }
+
+    if (action === 'abandon') {
+      const { journeyId, dropOffStep, dropOffReason } = body;
+
+      if (!journeyId) {
+        return NextResponse.json(
+          { success: false, error: 'journeyId required' },
+          { status: 400 }
+        );
+      }
+
+      const journey = await prisma.userJourney.update({
+        where: { id: journeyId },
+        data: {
+          status: 'abandoned',
+          abandoned: true,
+          abandonedAt: new Date(),
+          dropOffStep,
+          dropOffReason
+        }
+      });
+
+      return NextResponse.json({ success: true, journey });
+    }
+
+    if (action === 'update-step') {
+      const { journeyId, currentStep, completedSteps } = body;
+
+      if (!journeyId) {
+        return NextResponse.json(
+          { success: false, error: 'journeyId required' },
+          { status: 400 }
+        );
+      }
+
+      const journey = await prisma.userJourney.update({
+        where: { id: journeyId },
+        data: {
+          currentStep,
+          ...(completedSteps !== undefined && { completedSteps })
         }
       });
 
@@ -161,8 +250,8 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error('Journey POST error:', error);
     return NextResponse.json(
-      { error: 'Failed to create journey' },
-      { status: 500 }
+      { success: false, error: 'Failed to process journey' },
+      { status: 200 } // Return 200 to prevent UI crash
     );
   }
 }
