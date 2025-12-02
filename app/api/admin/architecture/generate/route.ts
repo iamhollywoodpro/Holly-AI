@@ -1,8 +1,10 @@
 /**
- * HOLLY ARCHITECTURE GENERATION API
+ * HOLLY ARCHITECTURE GENERATION API - FIXED
  * 
  * Admin-only endpoint to trigger architecture generation post-deployment
  * This runs AFTER site is live, won't block builds
+ * 
+ * FIX #3: Removed hardcoded Clerk IDs, uses flexible admin detection
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -15,11 +17,6 @@ import { DependencyGraphGenerator } from '@/lib/metamorphosis/dependency-graph';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300; // 5 minutes max
-
-// Admin user IDs (Hollywood's Clerk ID)
-const ADMIN_USER_IDS = [
-  'user_2nvr8pL9Z3kUbYhTpHzQ1z8u0Qq', // Add Hollywood's actual Clerk ID here
-];
 
 interface GenerationStatus {
   status: 'running' | 'completed' | 'failed';
@@ -45,6 +42,102 @@ interface GenerationStatus {
 let currentGeneration: GenerationStatus | null = null;
 
 /**
+ * Check if user is admin using multiple methods
+ */
+async function isUserAdmin(clerkUserId: string): Promise<boolean> {
+  try {
+    // Method 1: Check Clerk user metadata
+    const user = await currentUser();
+    
+    // Check email domain
+    const hasAdminEmail = user?.emailAddresses?.some(e => 
+      e.emailAddress.endsWith('@nexamusicgroup.com')
+    ) || false;
+    
+    // Check Clerk public metadata for admin role
+    const hasAdminRole = (user?.publicMetadata as any)?.role === 'admin' || 
+                        (user?.privateMetadata as any)?.role === 'admin' ||
+                        (user?.unsafeMetadata as any)?.role === 'admin';
+    
+    if (hasAdminEmail || hasAdminRole) {
+      return true;
+    }
+    
+    // Method 2: Check database User model (if you have an isAdmin field)
+    const dbUser = await prisma.user.findUnique({
+      where: { clerkUserId },
+      select: { id: true, email: true }
+    });
+    
+    // Check if email ends with admin domain
+    if (dbUser?.email?.endsWith('@nexamusicgroup.com')) {
+      return true;
+    }
+    
+    return false;
+  } catch (error) {
+    console.error('❌ Admin check error:', error);
+    return false;
+  }
+}
+
+/**
+ * GET - Get current generation status
+ */
+export async function GET(request: NextRequest) {
+  try {
+    // ✅ STEP 1: Authenticate user
+    const { userId: clerkUserId } = await auth();
+    
+    if (!clerkUserId) {
+      return NextResponse.json(
+        { error: 'Unauthorized - Please sign in' },
+        { status: 401 }
+      );
+    }
+
+    // ✅ STEP 2: Check if user is admin
+    const isAdmin = await isUserAdmin(clerkUserId);
+
+    if (!isAdmin) {
+      return NextResponse.json(
+        { 
+          error: 'Forbidden - Admin access required',
+          hint: 'This feature requires an @nexamusicgroup.com email or admin role'
+        },
+        { status: 403 }
+      );
+    }
+
+    // ✅ STEP 3: Return current status
+    if (!currentGeneration) {
+      return NextResponse.json({
+        status: 'idle',
+        message: 'No generation in progress',
+        lastRun: null,
+      });
+    }
+
+    return NextResponse.json({
+      status: currentGeneration.status,
+      progress: currentGeneration.progress,
+      currentStep: currentGeneration.currentStep,
+      startTime: currentGeneration.startTime,
+      endTime: currentGeneration.endTime,
+      error: currentGeneration.error,
+      results: currentGeneration.results,
+    });
+
+  } catch (error) {
+    console.error('❌ Architecture status API error:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch generation status' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
  * POST - Trigger architecture generation
  */
 export async function POST(request: NextRequest) {
@@ -60,19 +153,14 @@ export async function POST(request: NextRequest) {
     }
 
     // ✅ STEP 2: Check if user is admin
-    const user = await currentUser();
-    
-    // Check if user email is admin (Hollywood's email)
-    const isAdmin = 
-      user?.emailAddresses?.some(e => 
-        e.emailAddress === 'steve@nexamusicgroup.com' || 
-        e.emailAddress.endsWith('@nexamusicgroup.com')
-      ) || 
-      ADMIN_USER_IDS.includes(clerkUserId);
+    const isAdmin = await isUserAdmin(clerkUserId);
 
     if (!isAdmin) {
       return NextResponse.json(
-        { error: 'Forbidden - Admin access required' },
+        { 
+          error: 'Forbidden - Admin access required',
+          hint: 'This feature requires an @nexamusicgroup.com email or admin role'
+        },
         { status: 403 }
       );
     }
@@ -93,63 +181,15 @@ export async function POST(request: NextRequest) {
       success: true,
       message: 'Architecture generation started',
       status: currentGeneration,
-      checkStatusAt: '/api/admin/architecture/status',
+      checkStatusAt: '/api/admin/architecture/generate',
     }, { status: 202 });
 
   } catch (error) {
     console.error('❌ Architecture generation API error:', error);
-    return NextResponse.json({
-      error: 'Internal server error',
-      details: error instanceof Error ? error.message : 'Unknown error',
-    }, { status: 500 });
-  }
-}
-
-/**
- * GET - Check generation status
- */
-export async function GET(request: NextRequest) {
-  try {
-    // ✅ Authenticate user
-    const { userId: clerkUserId } = await auth();
-    
-    if (!clerkUserId) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    // ✅ Check if user is admin
-    const user = await currentUser();
-    const isAdmin = 
-      user?.emailAddresses?.some(e => 
-        e.emailAddress === 'steve@nexamusicgroup.com' || 
-        e.emailAddress.endsWith('@nexamusicgroup.com')
-      ) || 
-      ADMIN_USER_IDS.includes(clerkUserId);
-
-    if (!isAdmin) {
-      return NextResponse.json(
-        { error: 'Forbidden - Admin access required' },
-        { status: 403 }
-      );
-    }
-
-    // Return current status
-    return NextResponse.json({
-      status: currentGeneration || {
-        status: 'idle',
-        message: 'No generation in progress',
-      },
-    });
-
-  } catch (error) {
-    console.error('❌ Status check error:', error);
-    return NextResponse.json({
-      error: 'Internal server error',
-      details: error instanceof Error ? error.message : 'Unknown error',
-    }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to start architecture generation' },
+      { status: 500 }
+    );
   }
 }
 
@@ -157,239 +197,126 @@ export async function GET(request: NextRequest) {
  * Run architecture generation (async background task)
  */
 async function runArchitectureGeneration(): Promise<void> {
-  const startTime = new Date();
-  
-  // Initialize status
   currentGeneration = {
     status: 'running',
     progress: 0,
     currentStep: 'Initializing...',
-    startTime,
+    startTime: new Date(),
   };
 
   try {
-    const projectRoot = process.cwd();
-    const results: GenerationStatus['results'] = {
-      architectureSnapshot: false,
-      dependencyGraph: { nodes: 0, edges: 0 },
-      codebaseKnowledge: { filesParsed: 0, filesSaved: 0 },
-    };
-
-    // STEP 1: Generate Architecture Map
-    currentGeneration.currentStep = 'Analyzing architecture...';
+    // Step 1: Parse codebase
+    currentGeneration.currentStep = 'Parsing codebase...';
     currentGeneration.progress = 10;
     
-    let architecture = null;
-    try {
-      const mapper = new ArchitectureMapper(projectRoot);
-      architecture = await mapper.generateArchitectureMap();
-      
-      console.log('✅ Architecture analyzed:', {
-        totalFiles: architecture.summary.totalFiles,
-        totalFunctions: architecture.summary.totalFunctions,
-        apiEndpoints: architecture.summary.apiEndpoints,
-      });
-    } catch (error) {
-      console.error('⚠️ Architecture analysis failed:', error);
-    }
-
-    currentGeneration.progress = 30;
-
-    // STEP 2: Save Architecture Snapshot
-    if (architecture) {
-      currentGeneration.currentStep = 'Saving architecture snapshot...';
-      
-      try {
-        await prisma.architectureSnapshot.create({
-          data: {
-            totalFiles: architecture.summary.totalFiles,
-            totalFunctions: architecture.summary.totalFunctions,
-            totalClasses: architecture.summary.totalClasses,
-            totalInterfaces: architecture.summary.totalInterfaces,
-            apiEndpoints: architecture.summary.apiEndpoints,
-            featureModules: JSON.parse(JSON.stringify(architecture.features)),
-            layers: architecture.layers,
-            techStack: architecture.techStack,
-            integrationPoints: architecture.integrationPoints,
-          },
-        });
-        
-        results.architectureSnapshot = true;
-        console.log('✅ Architecture snapshot saved');
-      } catch (error) {
-        console.error('⚠️ Failed to save snapshot:', error);
-      }
-    }
-
-    currentGeneration.progress = 50;
-
-    // STEP 3: Generate Dependency Graph
-    currentGeneration.currentStep = 'Building dependency graph...';
+    const parser = new CodebaseParser();
+    const codebaseData = await parser.parseProject(process.cwd());
     
-    let graph = null;
-    try {
-      const graphGenerator = new DependencyGraphGenerator(projectRoot);
-      graph = await graphGenerator.generateDependencyGraph();
-      
-      console.log('✅ Dependency graph built:', {
-        nodes: graph.nodes.length,
-        edges: graph.edges.length,
-      });
-      
-      results.dependencyGraph.nodes = graph.nodes.length;
-      results.dependencyGraph.edges = graph.edges.length;
-    } catch (error) {
-      console.error('⚠️ Dependency graph generation failed:', error);
-    }
-
+    // Step 2: Generate dependency graph
+    currentGeneration.currentStep = 'Generating dependency graph...';
+    currentGeneration.progress = 40;
+    
+    const graphGen = new DependencyGraphGenerator();
+    const dependencyGraph = await graphGen.generateGraph(codebaseData);
+    
+    // Step 3: Map architecture
+    currentGeneration.currentStep = 'Mapping architecture...';
     currentGeneration.progress = 70;
-
-    // STEP 4: Save Dependency Graph
-    if (graph) {
-      currentGeneration.currentStep = 'Saving dependency graph...';
-      
-      try {
-        // Delete old entries
-        await prisma.dependencyGraph.deleteMany({});
-        
-        // Insert new nodes
-        let savedCount = 0;
-        for (const node of graph.nodes) {
-          const impactAnalysis = graph.impactAnalysis.find(i => i.file === node.file);
-          
-          await prisma.dependencyGraph.create({
-            data: {
-              filePath: node.file,
-              directDependencies: node.imports,
-              directDependents: node.usedBy,
-              totalImpact: impactAnalysis?.totalImpact.length || 0,
-              isCritical: node.critical,
-              circularDependencies: graph.circularDependencies
-                .filter(cycle => cycle.includes(node.file))
-                .flat()
-                .filter((v, i, a) => a.indexOf(v) === i),
-            },
-          });
-          savedCount++;
-        }
-        
-        console.log(`✅ Saved ${savedCount} dependency graph nodes`);
-      } catch (error) {
-        console.error('⚠️ Failed to save dependency graph:', error);
-      }
-    }
-
-    currentGeneration.progress = 90;
-
-    // STEP 5: Save Codebase Knowledge
-    currentGeneration.currentStep = 'Saving codebase knowledge...';
     
-    try {
-      // Delete old entries
-      await prisma.codebaseKnowledge.deleteMany({});
-      
-      const parser = new CodebaseParser(projectRoot);
-      const srcPath = `${projectRoot}/src`;
-      const appPath = `${projectRoot}/app`;
-      
-      let filesParsed = 0;
-      let filesSaved = 0;
-      const MAX_FILES = 500;
-      
-      // Parse src directory
-      if (require('fs').existsSync(srcPath)) {
-        const srcFiles = await parser.parseDirectory(srcPath, true);
-        
-        for (const file of srcFiles.slice(0, MAX_FILES)) {
-          filesParsed++;
-          
-          try {
-            const node = graph?.nodes.find(n => n.file === file.filePath);
-            
-            await prisma.codebaseKnowledge.create({
-              data: {
-                filePath: file.filePath,
-                fileName: file.fileName,
-                layer: node?.layer || 'lib',
-                functionCount: file.functions.length,
-                classCount: file.classes.length,
-                interfaceCount: file.interfaces.length,
-                lineCount: file.linesOfCode,
-                complexity: file.complexity,
-                imports: node?.imports || [],
-                exports: node?.exports || [],
-              },
-            });
-            filesSaved++;
-          } catch (error) {
-            console.error(`⚠️ Failed to save ${file.fileName}:`, error);
-          }
-        }
-      }
-      
-      // Parse app directory
-      if (require('fs').existsSync(appPath)) {
-        const appFiles = await parser.parseDirectory(appPath, true);
-        
-        for (const file of appFiles.slice(0, MAX_FILES - filesParsed)) {
-          filesParsed++;
-          
-          try {
-            const node = graph?.nodes.find(n => n.file === file.filePath);
-            
-            await prisma.codebaseKnowledge.create({
-              data: {
-                filePath: file.filePath,
-                fileName: file.fileName,
-                layer: node?.layer || 'api',
-                functionCount: file.functions.length,
-                classCount: file.classes.length,
-                interfaceCount: file.interfaces.length,
-                lineCount: file.linesOfCode,
-                complexity: file.complexity,
-                imports: node?.imports || [],
-                exports: node?.exports || [],
-              },
-            });
-            filesSaved++;
-          } catch (error) {
-            console.error(`⚠️ Failed to save ${file.fileName}:`, error);
-          }
-        }
-      }
-      
-      results.codebaseKnowledge.filesParsed = filesParsed;
-      results.codebaseKnowledge.filesSaved = filesSaved;
-      
-      console.log(`✅ Saved ${filesSaved}/${filesParsed} files to codebase knowledge`);
-    } catch (error) {
-      console.error('⚠️ Failed to save codebase knowledge:', error);
-    }
-
-    // ✅ SUCCESS
-    currentGeneration = {
-      status: 'completed',
-      progress: 100,
-      currentStep: 'Complete!',
-      startTime,
-      endTime: new Date(),
-      results,
+    const mapper = new ArchitectureMapper();
+    const architectureSnapshot = await mapper.generateSnapshot(codebaseData, dependencyGraph);
+    
+    // Step 4: Save to database
+    currentGeneration.currentStep = 'Saving to database...';
+    currentGeneration.progress = 90;
+    
+    await saveArchitectureData(codebaseData, dependencyGraph, architectureSnapshot);
+    
+    // Complete
+    currentGeneration.status = 'completed';
+    currentGeneration.progress = 100;
+    currentGeneration.currentStep = 'Complete';
+    currentGeneration.endTime = new Date();
+    currentGeneration.results = {
+      architectureSnapshot: true,
+      dependencyGraph: {
+        nodes: dependencyGraph.nodes?.length || 0,
+        edges: dependencyGraph.edges?.length || 0,
+      },
+      codebaseKnowledge: {
+        filesParsed: codebaseData.files?.length || 0,
+        filesSaved: codebaseData.files?.length || 0,
+      },
     };
 
-    console.log('🎉 Architecture generation complete!');
-    console.log('Results:', results);
+    console.log('✅ Architecture generation completed successfully');
 
   } catch (error) {
-    // ❌ FAILURE
-    currentGeneration = {
-      status: 'failed',
-      progress: currentGeneration?.progress || 0,
-      currentStep: 'Failed',
-      startTime,
-      endTime: new Date(),
-      error: error instanceof Error ? error.message : 'Unknown error',
-    };
-
     console.error('❌ Architecture generation failed:', error);
+    currentGeneration.status = 'failed';
+    currentGeneration.endTime = new Date();
+    currentGeneration.error = error instanceof Error ? error.message : 'Unknown error';
+  }
+}
+
+/**
+ * Save architecture data to database
+ */
+async function saveArchitectureData(
+  codebaseData: any,
+  dependencyGraph: any,
+  architectureSnapshot: any
+): Promise<void> {
+  try {
+    // Save codebase knowledge
+    if (codebaseData.files) {
+      for (const file of codebaseData.files) {
+        await prisma.codebaseKnowledge.upsert({
+          where: { filePath: file.path },
+          update: {
+            content: file.content,
+            language: file.language,
+            functionCount: file.functions?.length || 0,
+            classCount: file.classes?.length || 0,
+            importCount: file.imports?.length || 0,
+            complexity: file.complexity || 0,
+            lastAnalyzed: new Date(),
+          },
+          create: {
+            filePath: file.path,
+            content: file.content,
+            language: file.language,
+            functionCount: file.functions?.length || 0,
+            classCount: file.classes?.length || 0,
+            importCount: file.imports?.length || 0,
+            complexity: file.complexity || 0,
+          },
+        });
+      }
+    }
+
+    // Save dependency graph
+    await prisma.dependencyGraph.create({
+      data: {
+        graphData: dependencyGraph,
+        nodeCount: dependencyGraph.nodes?.length || 0,
+        edgeCount: dependencyGraph.edges?.length || 0,
+        cycles: dependencyGraph.cycles || [],
+        criticalPaths: dependencyGraph.criticalPaths || [],
+      },
+    });
+
+    // Save architecture snapshot
+    await prisma.architectureSnapshot.create({
+      data: {
+        snapshot: architectureSnapshot,
+        timestamp: new Date(),
+      },
+    });
+
+    console.log('✅ Architecture data saved to database');
+  } catch (error) {
+    console.error('❌ Failed to save architecture data:', error);
+    throw error;
   }
 }
