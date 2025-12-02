@@ -1340,6 +1340,7 @@ model SelfHealingAction {
   attemptedAt     DateTime?
   completedAt     DateTime?
 
+  pullRequests    PullRequest[]
   @@index([issueType])
   @@index([status])
   @@index([severity])
