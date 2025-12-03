@@ -33,6 +33,9 @@ import {
   FileText,
   Bell as BellAlert,
   BarChart4,
+  Image,
+  Video,
+  Music,
 } from 'lucide-react';
 
 // Phase 4A Panels
