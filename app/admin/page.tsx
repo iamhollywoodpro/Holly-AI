@@ -193,9 +193,27 @@ export default function AdminDashboard() {
     },
 
     // Phase 4C Tabs
-    { id: 'image-gen', label: 'Image Gen', icon: Image, category: 'Phase 4C' },
-    { id: 'video-gen', label: 'Video Gen', icon: Video, category: 'Phase 4C' },
-    { id: 'audio-gen', label: 'Audio Gen', icon: Music, category: 'Phase 4C' },
+    {
+      id: 'image-gen' as Tab,
+      label: 'Image Gen',
+      icon: Image,
+      description: 'AI image generation',
+      phase: '4C'
+    },
+    {
+      id: 'video-gen' as Tab,
+      label: 'Video Gen',
+      icon: Video,
+      description: 'AI video generation',
+      phase: '4C'
+    },
+    {
+      id: 'audio-gen' as Tab,
+      label: 'Audio Gen',
+      icon: Music,
+      description: 'AI audio generation',
+      phase: '4C'
+    },
     // Phase 4D Tabs
     {
       id: 'testing' as Tab,
