@@ -434,12 +434,12 @@ export default function ImageGeneratorPanel() {
                   </div>
                   <div className="flex gap-2">
                     {image.status === 'completed' && (
-                      <Button variant="outline" size="sm" className="flex-1" asChild>
-                        <a href={image.url} download>
+                      <a href={image.url} download className="flex-1">
+                        <Button variant="outline" size="sm" className="w-full">
                           <Download className="w-3 h-3 mr-1" />
                           Download
-                        </a>
-                      </Button>
+                        </Button>
+                      </a>
                     )}
                     <Button 
                       variant="destructive" 
