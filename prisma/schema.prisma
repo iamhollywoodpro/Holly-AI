@@ -2986,7 +2986,7 @@ model GeneratedCode {
   
   // Generation Job
   generationJobId   String?
-  generationJob     GenerationJob? @relation(fields: [generationJobId], references: [id])
+  generationJob     CodeGenerationJob? @relation(fields: [generationJobId], references: [id])
   
   // Metadata
   userId            String
@@ -3047,7 +3047,7 @@ model CodeTemplate {
 }
 
 // Generation Jobs - Track code generation processes
-model GenerationJob {
+model CodeCodeGenerationJob {
   id                String   @id @default(cuid())
   
   // Job Details
@@ -3145,12 +3145,5 @@ model CodePattern {
 // Add relations to existing User model (append to User model in schema)
 // GeneratedCode[]     generatedCodes
 // CodeTemplate[]      codeTemplates
-// GenerationJob[]     generationJobs
+// CodeGenerationJob[]     generationJobs
 // CodePattern[]       codePatterns
-
-// Phase 5A Relations added to User model
-// Add these fields to the existing User model:
-// generatedCodes    GeneratedCode[]
-// codeTemplates     CodeTemplate[]
-// generationJobs    GenerationJob[]
-// codePatterns      CodePattern[]
