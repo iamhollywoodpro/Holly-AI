@@ -27,7 +27,6 @@ import {
   BookOpen,
   Link as LinkIcon,
   Bell,
-  Zap
 } from 'lucide-react';
 
 // Phase 4A Panels
