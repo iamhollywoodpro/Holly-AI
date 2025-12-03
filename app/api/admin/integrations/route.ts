@@ -113,7 +113,7 @@ export async function GET(request: NextRequest) {
           integration: {
             createdBy: clerkUserId
           },
-          timestamp: {
+          createdAt: {
             gte: new Date(Date.now() - 24 * 60 * 60 * 1000)
           }
         }
