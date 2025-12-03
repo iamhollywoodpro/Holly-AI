@@ -2939,3 +2939,218 @@ model AssetMetadata {
   
   @@index([assetId])
 }
+// ============================================================================
+// PHASE 5A: INTELLIGENT CODE SYNTHESIZER
+// Purpose: Enable HOLLY to generate, manage, and validate code autonomously
+// ============================================================================
+
+// Generated Code Records
+model GeneratedCode {
+  id                String   @id @default(cuid())
+  
+  // Code Details
+  language          String   // typescript, python, sql, css, etc.
+  code              String   @db.Text
+  filePath          String?  // Suggested file path
+  purpose           String   // What this code does
+  description       String?  @db.Text
+  
+  // Generation Context
+  prompt            String   @db.Text // Original generation request
+  templateId        String?  // If generated from template
+  template          CodeTemplate? @relation(fields: [templateId], references: [id])
+  contextUsed       Json?    // Cognitive map context used
+  
+  // Status & Approval
+  status            String   // draft, pending_review, approved, rejected, deployed
+  approvalStatus    String   // pending, approved, rejected, needs_revision
+  riskLevel         String   // low, medium, high, critical
+  
+  // Quality Metrics
+  linesOfCode       Int?
+  complexity        Float?   // Cyclomatic complexity
+  testCoverage      Float?   // 0-100%
+  securityScore     Float?   // 0-100%
+  
+  // Testing & Validation
+  testsPass         Boolean?
+  securityIssues    Json?    // Array of security findings
+  lintErrors        Json?    // Array of linting errors
+  
+  // Feedback & Iteration
+  reviewComments    String?  @db.Text
+  iterationCount    Int      @default(0)
+  previousVersionId String?
+  previousVersion   GeneratedCode? @relation("CodeVersions", fields: [previousVersionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  nextVersions      GeneratedCode[] @relation("CodeVersions")
+  
+  // Generation Job
+  generationJobId   String?
+  generationJob     GenerationJob? @relation(fields: [generationJobId], references: [id])
+  
+  // Metadata
+  userId            String
+  user              User     @relation(fields: [userId], references: [id])
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  approvedAt        DateTime?
+  deployedAt        DateTime?
+  
+  @@index([userId])
+  @@index([status])
+  @@index([approvalStatus])
+  @@index([language])
+  @@index([templateId])
+}
+
+// Code Templates - Reusable patterns
+model CodeTemplate {
+  id                String   @id @default(cuid())
+  
+  // Template Identity
+  name              String
+  description       String   @db.Text
+  category          String   // component, api, utility, test, etc.
+  language          String   // typescript, python, sql, etc.
+  
+  // Template Content
+  templateCode      String   @db.Text
+  variables         Json     // Array of variable definitions
+  placeholders      Json?    // Placeholder replacement rules
+  
+  // Configuration
+  isPublic          Boolean  @default(false)
+  tags              String[] // Searchable tags
+  framework         String?  // react, next, express, fastapi, etc.
+  
+  // Usage Stats
+  usageCount        Int      @default(0)
+  lastUsed          DateTime?
+  
+  // Quality & Validation
+  validated         Boolean  @default(false)
+  exampleOutput     String?  @db.Text
+  requiredContext   Json?    // What context this template needs
+  
+  // Relationships
+  generatedCodes    GeneratedCode[]
+  
+  // Metadata
+  userId            String
+  user              User     @relation(fields: [userId], references: [id])
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([category])
+  @@index([language])
+}
+
+// Generation Jobs - Track code generation processes
+model GenerationJob {
+  id                String   @id @default(cuid())
+  
+  // Job Details
+  jobType           String   // synthesis, refactor, optimization
+  status            String   // queued, running, completed, failed, cancelled
+  priority          String   // low, medium, high, urgent
+  
+  // Input
+  input             Json     // Generation request details
+  prompt            String   @db.Text
+  language          String
+  targetPath        String?
+  
+  // Context & Configuration
+  cognitiveContext  Json?    // Context from Cognitive Map
+  templateId        String?
+  securityChecks    Boolean  @default(true)
+  requireTests      Boolean  @default(true)
+  
+  // Output
+  output            Json?    // Generated code IDs and metadata
+  generatedCodes    GeneratedCode[]
+  
+  // Execution Metrics
+  startedAt         DateTime?
+  completedAt       DateTime?
+  durationMs        Int?
+  tokensUsed        Int?
+  cost              Float?
+  
+  // Error Handling
+  error             String?  @db.Text
+  retryCount        Int      @default(0)
+  maxRetries        Int      @default(3)
+  
+  // Quality Metrics
+  successRate       Float?   // 0-100%
+  codeQualityScore  Float?   // 0-100%
+  
+  // Metadata
+  userId            String
+  user              User     @relation(fields: [userId], references: [id])
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([status])
+  @@index([jobType])
+  @@index([createdAt])
+}
+
+// Code Patterns - Learned patterns from existing codebase
+model CodePattern {
+  id                String   @id @default(cuid())
+  
+  // Pattern Identity
+  name              String
+  description       String   @db.Text
+  patternType       String   // architectural, design, security, performance
+  language          String
+  
+  // Pattern Details
+  pattern           String   @db.Text
+  antiPattern       String?  @db.Text // What NOT to do
+  examples          Json     // Array of example usages
+  
+  // Context
+  framework         String?
+  domain            String?  // auth, api, ui, database, etc.
+  
+  // Quality Indicators
+  confidence        Float    // 0-1, how confident are we in this pattern
+  occurrenceCount   Int      @default(1) // How many times seen in codebase
+  successRate       Float?   // 0-100%
+  
+  // Learning
+  learnedFrom       Json?    // Source files where pattern was found
+  lastSeen          DateTime @default(now())
+  
+  // Usage
+  timesApplied      Int      @default(0)
+  
+  // Metadata
+  userId            String
+  user              User     @relation(fields: [userId], references: [id])
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([patternType])
+  @@index([language])
+  @@index([confidence])
+}
+
+// Add relations to existing User model (append to User model in schema)
+// GeneratedCode[]     generatedCodes
+// CodeTemplate[]      codeTemplates
+// GenerationJob[]     generationJobs
+// CodePattern[]       codePatterns
+
+// Phase 5A Relations added to User model
+// Add these fields to the existing User model:
+// generatedCodes    GeneratedCode[]
+// codeTemplates     CodeTemplate[]
+// generationJobs    GenerationJob[]
+// codePatterns      CodePattern[]
