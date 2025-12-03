@@ -40,7 +40,7 @@ import { SelfHealingPanel } from '@/components/admin/SelfHealingPanel';
 import { InsightsPanel } from '@/components/admin/InsightsPanel';
 import { AutoMergePanel } from '@/components/admin/AutoMergePanel';
 import { PredictiveDetectionPanel } from '@/components/admin/PredictiveDetectionPanel';
-import { AnalyticsDashboardPanel } from '@/components/admin/AnalyticsDashboardPanel';
+import AnalyticsDashboardPanel from '@/components/admin/AnalyticsDashboardPanel';
 
 // Phase 4B Panels
 import BehaviorAnalyticsPanel from '@/components/admin/BehaviorAnalyticsPanel';
