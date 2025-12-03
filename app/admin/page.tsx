@@ -1,9 +1,10 @@
 /**
- * Admin Dashboard Page with Phase 4A, 4B, 4D & 4E Components
+ * Admin Dashboard Page with Phase 4A, 4B, 4D, 4E & 4F Components
  * Phase 4A: Architecture, Self-Healing, Insights, Auto-Merge, Predictive Detection, Analytics
  * Phase 4B: Behavior Analytics, A/B Testing, Personalization, Engagement Scoring, User Journeys
  * Phase 4D: Testing Dashboard, CI/CD Pipeline, Code Review, Documentation Generator
  * Phase 4E: Integrations Dashboard, Notification Center, Webhook Manager
+ * Phase 4F: Business Metrics, Custom Reports, Metric Alerts, Analytics Dashboards
  */
 
 'use client';
@@ -27,6 +28,10 @@ import {
   BookOpen,
   Link as LinkIcon,
   Bell,
+  DollarSign,
+  FileText,
+  Bell as BellAlert,
+  BarChart4,
 } from 'lucide-react';
 
 // Phase 4A Panels
@@ -54,6 +59,12 @@ import DocumentationPanel from '@/components/admin/DocumentationPanel';
 import IntegrationsDashboardPanel from '@/components/admin/IntegrationsDashboardPanel';
 import NotificationCenterPanel from '@/components/admin/NotificationCenterPanel';
 import WebhookManagerPanel from '@/components/admin/WebhookManagerPanel';
+// Phase 4F Panels
+import BusinessMetricsDashboard from '@/components/admin/BusinessMetricsDashboard';
+import CustomReportsBuilder from '@/components/admin/CustomReportsBuilder';
+import MetricAlertsManager from '@/components/admin/MetricAlertsManager';
+import AnalyticsDashboardManager from '@/components/admin/AnalyticsDashboardPanel';
+
 
 type Tab = 
   // Phase 4A
@@ -77,7 +88,12 @@ type Tab =
   // Phase 4E
   | 'integrations'
   | 'notifications'
-  | 'webhooks';
+  | 'webhooks'
+  // Phase 4F
+  | 'metrics'
+  | 'reports'
+  | 'alerts'
+  | 'dashboards';
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<Tab>('analytics');
@@ -190,6 +206,57 @@ export default function AdminDashboard() {
       icon: BookOpen,
       description: 'Auto documentation',
       phase: '4D'
+    },
+    // Phase 4E Tabs
+    {
+      id: 'integrations' as Tab,
+      label: 'Integrations',
+      icon: LinkIcon,
+      description: 'External integrations',
+      phase: '4E'
+    },
+    {
+      id: 'notifications' as Tab,
+      label: 'Notifications',
+      icon: Bell,
+      description: 'Notification center',
+      phase: '4E'
+    },
+    {
+      id: 'webhooks' as Tab,
+      label: 'Webhooks',
+      icon: Zap,
+      description: 'Webhook manager',
+      phase: '4E'
+    },
+    // Phase 4F Tabs
+    {
+      id: 'metrics' as Tab,
+      label: 'Metrics',
+      icon: DollarSign,
+      description: 'Business metrics',
+      phase: '4F'
+    },
+    {
+      id: 'reports' as Tab,
+      label: 'Reports',
+      icon: FileText,
+      description: 'Custom reports',
+      phase: '4F'
+    },
+    {
+      id: 'alerts' as Tab,
+      label: 'Alerts',
+      icon: BellAlert,
+      description: 'Metric alerts',
+      phase: '4F'
+    },
+    {
+      id: 'dashboards' as Tab,
+      label: 'Dashboards',
+      icon: BarChart4,
+      description: 'Analytics dashboards',
+      phase: '4F'
     }
   ];
 
@@ -231,7 +298,7 @@ export default function AdminDashboard() {
                     <div className="font-medium">{tab.label}</div>
                     <div className="text-xs text-gray-500">{tab.description}</div>
                   </div>
-                  {(tab.phase === '4B' || tab.phase === '4D') && (
+                  {(tab.phase === '4B' || tab.phase === '4D' || tab.phase === '4F') && (
                     <span className="absolute top-1 right-1 text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded">
                       NEW
                     </span>
@@ -265,6 +332,17 @@ export default function AdminDashboard() {
         {activeTab === 'cicd' && <CICDPipelinePanel />}
         {activeTab === 'code-review' && <CodeReviewPanel />}
         {activeTab === 'documentation' && <DocumentationPanel />}
+
+        {/* Phase 4E Panels */}
+        {activeTab === 'integrations' && <IntegrationsDashboardPanel />}
+        {activeTab === 'notifications' && <NotificationCenterPanel />}
+        {activeTab === 'webhooks' && <WebhookManagerPanel />}
+
+        {/* Phase 4F Panels */}
+        {activeTab === 'metrics' && <BusinessMetricsDashboard />}
+        {activeTab === 'reports' && <CustomReportsBuilder />}
+        {activeTab === 'alerts' && <MetricAlertsManager />}
+        {activeTab === 'dashboards' && <AnalyticsDashboardManager />}
       </div>
 
       {/* Footer */}
@@ -275,7 +353,7 @@ export default function AdminDashboard() {
               <strong>HOLLY</strong> - Hyper-Optimized Logic & Learning Yield
             </div>
             <div>
-              Phase 4A: Self-Awareness • Phase 4B: User Intelligence • Phase 4D: DevOps Automation
+              Phase 4A: Self-Awareness • Phase 4B: User Intelligence • Phase 4D: DevOps • Phase 4E: Integration Hub • Phase 4F: Advanced Analytics
             </div>
           </div>
         </div>
