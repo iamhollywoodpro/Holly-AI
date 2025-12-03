@@ -1,8 +1,9 @@
 /**
- * Admin Dashboard Page with Phase 4A, 4B & 4D Components
+ * Admin Dashboard Page with Phase 4A, 4B, 4D & 4E Components
  * Phase 4A: Architecture, Self-Healing, Insights, Auto-Merge, Predictive Detection, Analytics
  * Phase 4B: Behavior Analytics, A/B Testing, Personalization, Engagement Scoring, User Journeys
  * Phase 4D: Testing Dashboard, CI/CD Pipeline, Code Review, Documentation Generator
+ * Phase 4E: Integrations Dashboard
  */
 
 'use client';
@@ -23,7 +24,8 @@ import {
   CheckCircle,
   Rocket,
   FileCheck,
-  BookOpen
+  BookOpen,
+  Link as LinkIcon
 } from 'lucide-react';
 
 // Phase 4A Panels
@@ -47,6 +49,9 @@ import CICDPipelinePanel from '@/components/admin/CICDPipelinePanel';
 import CodeReviewPanel from '@/components/admin/CodeReviewPanel';
 import DocumentationPanel from '@/components/admin/DocumentationPanel';
 
+// Phase 4E Panels
+import IntegrationsDashboardPanel from '@/components/admin/IntegrationsDashboardPanel';
+
 type Tab = 
   // Phase 4A
   | 'architecture' 
@@ -65,7 +70,9 @@ type Tab =
   | 'testing'
   | 'cicd'
   | 'code-review'
-  | 'documentation';
+  | 'documentation'
+  // Phase 4E
+  | 'integrations';
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<Tab>('analytics');
