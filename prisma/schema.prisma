@@ -91,6 +91,9 @@ model User {
 
   // Phase 4E Relations
   integrations     Integration[]
+  customReports        CustomReport[]
+  metricAlerts         MetricAlert[]
+  analyticsDashboards  AnalyticsDashboard[]
   notifications    Notification[]
   @@map("users")
 }
@@ -2537,4 +2540,203 @@ model ExternalService {
   @@index([category])
   @@index([isActive])
   @@map("external_services")
+}
+// ===========================================
+// PHASE 4F: ADVANCED ANALYTICS MODELS
+// ===========================================
+
+// Business Metrics & KPIs
+model BusinessMetric {
+  id                String   @id @default(cuid())
+  
+  // Metric Identity
+  name              String   @unique // revenue, users, conversions, etc.
+  displayName       String
+  description       String?  @db.Text
+  category          String   // business, technical, user, performance
+  
+  // Metric Type
+  metricType        String   // counter, gauge, histogram, summary
+  aggregationType   String   // sum, avg, min, max, count
+  unit              String?  // dollars, users, ms, percentage
+  
+  // Current Value
+  currentValue      Float
+  previousValue     Float?
+  changePercent     Float?
+  
+  // Target & Goals
+  targetValue       Float?
+  minThreshold      Float?
+  maxThreshold      Float?
+  
+  // Trend Analysis
+  trend             String   @default("stable") // up, down, stable
+  dataPoints        Json     // Array of historical values
+  
+  // Metadata
+  isActive          Boolean  @default(true)
+  priority          Int      @default(0)
+  refreshInterval   Int      @default(300) // seconds
+  lastCalculated    DateTime @default(now())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  // Relations
+  reports           ReportMetric[]
+  alerts            MetricAlert[]
+  
+  @@index([category])
+  @@index([isActive])
+  @@map("business_metrics")
+}
+
+// Custom Reports
+model CustomReport {
+  id                String   @id @default(cuid())
+  
+  // Report Identity
+  name              String
+  description       String?  @db.Text
+  reportType        String   // dashboard, table, chart, export
+  
+  // Configuration
+  config            Json     // Report configuration
+  metrics           ReportMetric[]
+  filters           Json?    // Filter criteria
+  groupBy           String[] @default([])
+  sortBy            String?
+  
+  // Schedule
+  isScheduled       Boolean  @default(false)
+  schedule          String?  // cron expression
+  recipients        String[] @default([])
+  
+  // Access Control
+  isPublic          Boolean  @default(false)
+  createdBy         String
+  owner             User     @relation(fields: [createdBy], references: [clerkUserId], onDelete: Cascade)
+  
+  // Execution
+  lastRun           DateTime?
+  nextRun           DateTime?
+  runCount          Int      @default(0)
+  
+  // Metadata
+  favorite          Boolean  @default(false)
+  tags              String[] @default([])
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([createdBy])
+  @@index([isScheduled])
+  @@map("custom_reports")
+}
+
+// Report Metrics (join table)
+model ReportMetric {
+  id                String   @id @default(cuid())
+  
+  reportId          String
+  report            CustomReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  
+  metricId          String
+  metric            BusinessMetric @relation(fields: [metricId], references: [id], onDelete: Cascade)
+  
+  // Display Config
+  displayOrder      Int      @default(0)
+  chartType         String?  // line, bar, pie, gauge
+  color             String?
+  
+  createdAt         DateTime @default(now())
+  
+  @@unique([reportId, metricId])
+  @@index([reportId])
+  @@index([metricId])
+  @@map("report_metrics")
+}
+
+// Metric Alerts
+model MetricAlert {
+  id                String   @id @default(cuid())
+  
+  // Alert Identity
+  name              String
+  description       String?  @db.Text
+  
+  // Metric Reference
+  metricId          String
+  metric            BusinessMetric @relation(fields: [metricId], references: [id], onDelete: Cascade)
+  
+  // Condition
+  condition         String   // gt, lt, eq, gte, lte
+  threshold         Float
+  duration          Int?     // seconds - how long condition must be true
+  
+  // Notification
+  severity          String   @default("warning") // info, warning, critical
+  channels          String[] @default([]) // email, slack, sms
+  recipients        String[] @default([])
+  
+  // Status
+  isActive          Boolean  @default(true)
+  isTriggered       Boolean  @default(false)
+  triggeredAt       DateTime?
+  resolvedAt        DateTime?
+  triggerCount      Int      @default(0)
+  
+  // Snooze
+  isSnoozed         Boolean  @default(false)
+  snoozeUntil       DateTime?
+  
+  // Ownership
+  createdBy         String
+  owner             User     @relation(fields: [createdBy], references: [clerkUserId], onDelete: Cascade)
+  
+  // Metadata
+  lastChecked       DateTime @default(now())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([metricId])
+  @@index([isActive])
+  @@index([isTriggered])
+  @@map("metric_alerts")
+}
+
+// Analytics Dashboard
+model AnalyticsDashboard {
+  id                String   @id @default(cuid())
+  
+  // Dashboard Identity
+  name              String
+  description       String?  @db.Text
+  dashboardType     String   // business, technical, custom
+  
+  // Layout Configuration
+  layout            Json     // Grid layout configuration
+  widgets           Json     // Array of widget configurations
+  
+  // Settings
+  refreshInterval   Int      @default(300) // seconds
+  timeRange         String   @default("24h") // 1h, 24h, 7d, 30d, custom
+  
+  // Access Control
+  isPublic          Boolean  @default(false)
+  isDefault         Boolean  @default(false)
+  createdBy         String
+  owner             User     @relation(fields: [createdBy], references: [clerkUserId], onDelete: Cascade)
+  
+  // Metadata
+  viewCount         Int      @default(0)
+  favorite          Boolean  @default(false)
+  tags              String[] @default([])
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  lastViewed        DateTime?
+  
+  @@index([createdBy])
+  @@index([isPublic])
+  @@index([isDefault])
+  @@map("analytics_dashboards")
 }
