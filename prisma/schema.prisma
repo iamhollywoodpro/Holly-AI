@@ -2939,6 +2939,7 @@ model AssetMetadata {
   
   @@index([assetId])
 }
+
 // ============================================================================
 // PHASE 5A: INTELLIGENT CODE SYNTHESIZER
 // Purpose: Enable HOLLY to generate, manage, and validate code autonomously
@@ -2985,8 +2986,8 @@ model GeneratedCode {
   nextVersions      GeneratedCode[] @relation("CodeVersions")
   
   // Generation Job
-  generationJobId   String?
-  generationJob     CodeGenerationJob? @relation(fields: [generationJobId], references: [id])
+  codeGenJobId      String?
+  codeGenJob        CodeGenerationJob? @relation(fields: [codeGenJobId], references: [id])
   
   // Metadata
   userId            String
@@ -3046,8 +3047,8 @@ model CodeTemplate {
   @@index([language])
 }
 
-// Generation Jobs - Track code generation processes
-model CodeCodeGenerationJob {
+// Code Generation Jobs - Track code generation processes
+model CodeGenerationJob {
   id                String   @id @default(cuid())
   
   // Job Details
@@ -3141,9 +3142,3 @@ model CodePattern {
   @@index([language])
   @@index([confidence])
 }
-
-// Add relations to existing User model (append to User model in schema)
-// GeneratedCode[]     generatedCodes
-// CodeTemplate[]      codeTemplates
-// CodeGenerationJob[]     generationJobs
-// CodePattern[]       codePatterns
