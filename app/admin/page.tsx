@@ -3,7 +3,7 @@
  * Phase 4A: Architecture, Self-Healing, Insights, Auto-Merge, Predictive Detection, Analytics
  * Phase 4B: Behavior Analytics, A/B Testing, Personalization, Engagement Scoring, User Journeys
  * Phase 4D: Testing Dashboard, CI/CD Pipeline, Code Review, Documentation Generator
- * Phase 4E: Integrations Dashboard
+ * Phase 4E: Integrations Dashboard, Notification Center, Webhook Manager
  */
 
 'use client';
@@ -25,7 +25,9 @@ import {
   Rocket,
   FileCheck,
   BookOpen,
-  Link as LinkIcon
+  Link as LinkIcon,
+  Bell,
+  Zap
 } from 'lucide-react';
 
 // Phase 4A Panels
@@ -51,6 +53,8 @@ import DocumentationPanel from '@/components/admin/DocumentationPanel';
 
 // Phase 4E Panels
 import IntegrationsDashboardPanel from '@/components/admin/IntegrationsDashboardPanel';
+import NotificationCenterPanel from '@/components/admin/NotificationCenterPanel';
+import WebhookManagerPanel from '@/components/admin/WebhookManagerPanel';
 
 type Tab = 
   // Phase 4A
@@ -72,7 +76,9 @@ type Tab =
   | 'code-review'
   | 'documentation'
   // Phase 4E
-  | 'integrations';
+  | 'integrations'
+  | 'notifications'
+  | 'webhooks';
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<Tab>('analytics');
