@@ -96,6 +96,11 @@ model User {
   analyticsDashboards  AnalyticsDashboard[]
   notifications    Notification[]
   @@map("users")
+  
+  // Phase 4C: Creative AI Systems
+  creativeAssets     CreativeAsset[]
+  generationJobs     GenerationJob[]
+  creativeTemplates  CreativeTemplate[]
 }
 
 model Conversation {
@@ -2739,4 +2744,198 @@ model AnalyticsDashboard {
   @@index([isPublic])
   @@index([isDefault])
   @@map("analytics_dashboards")
+}
+// ============================================
+// PHASE 4C: CREATIVE AI SYSTEMS SCHEMA
+// ============================================
+
+// Creative Asset - Store generated images/videos/audio
+model CreativeAsset {
+  id              String   @id @default(cuid())
+  userId          String
+  clerkUserId     String?
+  
+  // Asset Details
+  type            String   // image, video, audio
+  category        String   // art, photo, illustration, music, voiceover, sfx, etc.
+  title           String?
+  description     String?
+  
+  // Generation Details
+  prompt          String   @db.Text
+  negativePrompt  String?  @db.Text
+  model           String   // dall-e-3, stable-diffusion, midjourney, etc.
+  generationId    String?  // Reference to GenerationJob
+  
+  // File Details
+  url             String   @db.Text
+  thumbnailUrl    String?  @db.Text
+  fileSize        Int?
+  duration        Int?     // For video/audio (seconds)
+  width           Int?     // For images/videos
+  height          Int?     // For images/videos
+  format          String?  // png, jpg, mp4, mp3, etc.
+  
+  // Generation Parameters
+  parameters      Json?    // Model-specific parameters
+  seed            String?
+  steps           Int?
+  guidance        Float?
+  sampler         String?
+  
+  // Status & Metadata
+  status          String   @default("completed") // pending, processing, completed, failed
+  isPublic        Boolean  @default(false)
+  isFavorite      Boolean  @default(false)
+  tags            String[]
+  metadata        Json?
+  
+  // AI Provider Details
+  provider        String?  // openai, stability, replicate, etc.
+  cost            Float?   // Generation cost in credits
+  
+  // Timestamps
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relations
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  generationJob   GenerationJob? @relation(fields: [generationId], references: [id])
+  
+  @@index([userId])
+  @@index([clerkUserId])
+  @@index([type])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// Generation Job - Track generation requests & status
+model GenerationJob {
+  id              String   @id @default(cuid())
+  userId          String
+  clerkUserId     String?
+  
+  // Job Details
+  type            String   // image, video, audio
+  status          String   @default("pending") // pending, processing, completed, failed, cancelled
+  priority        String   @default("normal") // low, normal, high, urgent
+  
+  // Request Details
+  prompt          String   @db.Text
+  negativePrompt  String?  @db.Text
+  model           String
+  parameters      Json?
+  templateId      String?
+  
+  // Progress Tracking
+  progress        Int      @default(0) // 0-100
+  currentStep     String?
+  totalSteps      Int?
+  estimatedTime   Int?     // Seconds
+  
+  // Result Details
+  resultUrl       String?  @db.Text
+  resultUrls      String[] // For batch generations
+  error           String?  @db.Text
+  errorCode       String?
+  
+  // Queue Management
+  queuePosition   Int?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  cancelledAt     DateTime?
+  
+  // Metadata
+  metadata        Json?
+  retryCount      Int      @default(0)
+  maxRetries      Int      @default(3)
+  
+  // Timestamps
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relations
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  template        CreativeTemplate? @relation(fields: [templateId], references: [id])
+  assets          CreativeAsset[]
+  
+  @@index([userId])
+  @@index([clerkUserId])
+  @@index([status])
+  @@index([type])
+  @@index([createdAt])
+}
+
+// Creative Template - Reusable templates
+model CreativeTemplate {
+  id              String   @id @default(cuid())
+  userId          String?
+  clerkUserId     String?
+  
+  // Template Details
+  name            String
+  description     String?  @db.Text
+  type            String   // image, video, audio
+  category        String
+  
+  // Template Configuration
+  prompt          String   @db.Text
+  negativePrompt  String?  @db.Text
+  model           String
+  parameters      Json
+  
+  // Metadata
+  thumbnailUrl    String?  @db.Text
+  isPublic        Boolean  @default(false)
+  isDefault       Boolean  @default(false)
+  tags            String[]
+  usageCount      Int      @default(0)
+  
+  // Timestamps
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relations
+  user            User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobs            GenerationJob[]
+  
+  @@index([userId])
+  @@index([type])
+  @@index([isPublic])
+}
+
+// Asset Metadata - Extended asset information
+model AssetMetadata {
+  id              String   @id @default(cuid())
+  assetId         String   @unique
+  
+  // Technical Metadata
+  colorPalette    String[]
+  dominantColors  Json?
+  aspectRatio     String?
+  bitrate         Int?     // For audio/video
+  frameRate       Int?     // For video
+  channels        Int?     // For audio
+  sampleRate      Int?     // For audio
+  
+  // AI Analysis
+  aiLabels        String[]
+  aiDescription   String?  @db.Text
+  nsfwScore       Float?
+  qualityScore    Float?
+  
+  // Usage Tracking
+  viewCount       Int      @default(0)
+  downloadCount   Int      @default(0)
+  shareCount      Int      @default(0)
+  
+  // Performance
+  generationTime  Int?     // Milliseconds
+  processingTime  Int?     // Milliseconds
+  
+  // Timestamps
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([assetId])
 }
