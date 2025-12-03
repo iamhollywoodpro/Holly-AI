@@ -1,7 +1,8 @@
 /**
- * Admin Dashboard Page with Phase 4A, 4B, 4D, 4E & 4F Components
+ * Admin Dashboard Page with Phase 4A, 4B, 4C, 4D, 4E & 4F Components
  * Phase 4A: Architecture, Self-Healing, Insights, Auto-Merge, Predictive Detection, Analytics
  * Phase 4B: Behavior Analytics, A/B Testing, Personalization, Engagement Scoring, User Journeys
+ * Phase 4C: Image Generator, Video Generator, Audio Generator
  * Phase 4D: Testing Dashboard, CI/CD Pipeline, Code Review, Documentation Generator
  * Phase 4E: Integrations Dashboard, Notification Center, Webhook Manager
  * Phase 4F: Business Metrics, Custom Reports, Metric Alerts, Analytics Dashboards
@@ -49,6 +50,11 @@ import PersonalizationPanel from '@/components/admin/PersonalizationPanel';
 import EngagementScoringPanel from '@/components/admin/EngagementScoringPanel';
 import UserJourneyPanel from '@/components/admin/UserJourneyPanel';
 
+
+// Phase 4C Panels
+import ImageGeneratorPanel from '@/components/admin/ImageGeneratorPanel'
+import VideoGeneratorPanel from '@/components/admin/VideoGeneratorPanel'
+import AudioGeneratorPanel from '@/components/admin/AudioGeneratorPanel'
 // Phase 4D Panels
 import TestingDashboardPanel from '@/components/admin/TestingDashboardPanel';
 import CICDPipelinePanel from '@/components/admin/CICDPipelinePanel';
@@ -178,6 +184,11 @@ export default function AdminDashboard() {
       description: 'User journey tracking',
       phase: '4B'
     },
+
+    // Phase 4C Tabs
+    { id: 'image-gen', label: 'Image Gen', icon: Image, category: 'Phase 4C' },
+    { id: 'video-gen', label: 'Video Gen', icon: Video, category: 'Phase 4C' },
+    { id: 'audio-gen', label: 'Audio Gen', icon: Music, category: 'Phase 4C' },
     // Phase 4D Tabs
     {
       id: 'testing' as Tab,
@@ -328,6 +339,12 @@ export default function AdminDashboard() {
         {activeTab === 'journeys' && <UserJourneyPanel />}
 
         {/* Phase 4D Panels */}
+
+        {/* Phase 4C Panels */}
+        {activeTab === 'image-gen' && <ImageGeneratorPanel />}
+        {activeTab === 'video-gen' && <VideoGeneratorPanel />}
+        {activeTab === 'audio-gen' && <AudioGeneratorPanel />}
+
         {activeTab === 'testing' && <TestingDashboardPanel />}
         {activeTab === 'cicd' && <CICDPipelinePanel />}
         {activeTab === 'code-review' && <CodeReviewPanel />}
