@@ -89,6 +89,10 @@ type Tab =
   | 'personalization'
   | 'engagement'
   | 'journeys'
+  // Phase 4C
+  | 'image-gen'
+  | 'video-gen'
+  | 'audio-gen'
   // Phase 4D
   | 'testing'
   | 'cicd'
