@@ -101,6 +101,12 @@ model User {
   creativeAssets     CreativeAsset[]
   generationJobs     GenerationJob[]
   creativeTemplates  CreativeTemplate[]
+
+  // Phase 5A: Intelligent Code Synthesizer
+  generatedCodes      GeneratedCode[]
+  codeTemplates       CodeTemplate[]
+  codeGenerationJobs  CodeGenerationJob[]
+  codePatterns        CodePattern[]
 }
 
 model Conversation {
