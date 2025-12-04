@@ -302,7 +302,13 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
       await addMessage('user', userMessage, undefined, undefined, conversationToUse.id);
 
       // Stream AI response
-      const response = await fetch('/api/chat', {
+      // Use new streaming endpoint if enabled (fallback to old if it fails)
+      const useNewStreaming = process.env.NEXT_PUBLIC_ENABLE_TRUE_STREAMING !== 'false'; // Default: enabled
+      const chatEndpoint = useNewStreaming ? '/api/chat-stream' : '/api/chat';
+      
+      console.log(`🌊 [CHAT] Using ${chatEndpoint}`);
+      
+      const response = await fetch(chatEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -315,6 +321,61 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
         }),
       });
 
+      // If new streaming fails, automatically fallback to old endpoint
+      if (!response.ok && useNewStreaming) {
+        console.warn('🌊 [CHAT] New streaming failed, falling back to /api/chat');
+        const fallbackResponse = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messages: [
+              ...messages.map(m => ({ role: m.role, content: m.content })),
+              { role: 'user', content: userMessage },
+            ],
+            conversationId: conversationToUse.id,
+            userId,
+          }),
+        });
+        
+        if (!fallbackResponse.ok) throw new Error('Failed to get response from fallback');
+        
+        // Use fallback response
+        const fallbackReader = fallbackResponse.body?.getReader();
+        if (!fallbackReader) throw new Error('No reader available');
+        
+        const decoder = new TextDecoder();
+        let fullResponse = '';
+        
+        while (true) {
+          const { done, value } = await fallbackReader.read();
+          if (done) break;
+          
+          const chunk = decoder.decode(value);
+          const lines = chunk.split('\\n');
+          
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6);
+              if (data === '[DONE]') continue;
+              try {
+                const parsed = JSON.parse(data);
+                if (parsed.content) {
+                  fullResponse += parsed.content;
+                  setStreamingMessage(fullResponse);
+                  setCurrentEmotion('confident');
+                }
+              } catch (e) {}
+            }
+          }
+        }
+        
+        if (fullResponse) {
+          await addMessage('assistant', fullResponse, 'confident', 'gpt-4', conversationToUse.id);
+        }
+        
+        return; // Exit early after fallback
+      }
+      
       if (!response.ok) throw new Error('Failed to get response');
 
       const reader = response.body?.getReader();

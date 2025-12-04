@@ -18,7 +18,7 @@ const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY || '',
 });
 
-const HOLLY_TOOLS = [
+export const HOLLY_TOOLS = [
   // ============================================================================
   // 🎨 CREATIVE GENERATION (Currently Working)
   // ============================================================================
@@ -1158,7 +1158,7 @@ const HOLLY_TOOLS = [
   },
 ];
 
-async function executeTool(toolName: string, toolInput: any, userId: string, conversationId?: string) {
+export async function executeTool(toolName: string, toolInput: any, userId: string, conversationId?: string) {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
   
   // NEW TOOLS - Code Generation
