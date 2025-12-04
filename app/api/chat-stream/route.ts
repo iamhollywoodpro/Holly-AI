@@ -109,6 +109,7 @@ export async function POST(request: NextRequest) {
             prisma.message.create({
               data: {
                 conversationId,
+                userId,
                 role: 'assistant',
                 content: fullResponse,
               },
