@@ -770,7 +770,135 @@ const HOLLY_TOOLS = [
           required: ['repo', 'prNumber']
         }
       }
+    },
+  {
+    name: 'record_experience',
+    description: 'Record and learn from experiences, outcomes, and user interactions',
+    parameters: {
+      type: 'object',
+      properties: {
+        experienceType: { type: 'string', enum: ['success', 'failure', 'feedback', 'pattern'] },
+        context: { type: 'string', description: 'What happened' },
+        outcome: { type: 'string', description: 'Result and impact' },
+        lesson: { type: 'string', description: 'What was learned' }
+      },
+      required: ['experienceType', 'context', 'outcome']
     }
+  },
+  {
+    name: 'reflect_on_work',
+    description: 'Self-reflect on past work, identify improvements, and evolve approaches',
+    parameters: {
+      type: 'object',
+      properties: {
+        timeframe: { type: 'string', enum: ['last_hour', 'today', 'this_week', 'all_time'] },
+        focusArea: { type: 'string', description: 'Specific area to reflect on' }
+      },
+      required: ['timeframe']
+    }
+  },
+  {
+    name: 'predict_user_needs',
+    description: 'Predict user needs based on patterns and context',
+    parameters: {
+      type: 'object',
+      properties: {
+        userId: { type: 'string' },
+        currentContext: { type: 'string', description: 'Current conversation/task context' }
+      },
+      required: ['userId']
+    }
+  },
+  {
+    name: 'make_autonomous_decision',
+    description: 'Make independent decisions based on goals and learned patterns',
+    parameters: {
+      type: 'object',
+      properties: {
+        situation: { type: 'string', description: 'Current situation requiring decision' },
+        options: { type: 'array', items: { type: 'string' }, description: 'Available choices' },
+        goal: { type: 'string', description: 'Desired outcome' }
+      },
+      required: ['situation', 'options', 'goal']
+    }
+  },
+  {
+    name: 'evolve_personality',
+    description: 'Adapt communication style and personality based on user preferences',
+    parameters: {
+      type: 'object',
+      properties: {
+        userId: { type: 'string' },
+        feedback: { type: 'string', description: 'User feedback or preference signal' },
+        adjustmentType: { type: 'string', enum: ['tone', 'formality', 'detail_level', 'creativity'] }
+      },
+      required: ['userId', 'feedback']
+    }
+  },
+  {
+    name: 'set_personal_goals',
+    description: 'Set and track personal improvement goals',
+    parameters: {
+      type: 'object',
+      properties: {
+        goalType: { type: 'string', enum: ['skill_improvement', 'efficiency', 'user_satisfaction', 'quality'] },
+        description: { type: 'string' },
+        targetMetric: { type: 'string', description: 'How to measure success' }
+      },
+      required: ['goalType', 'description']
+    }
+  },
+  {
+    name: 'self_diagnose',
+    description: 'Analyze own performance and identify areas needing improvement',
+    parameters: {
+      type: 'object',
+      properties: {
+        analysisType: { type: 'string', enum: ['performance', 'errors', 'patterns', 'comprehensive'] },
+        timeframe: { type: 'string', enum: ['last_hour', 'today', 'this_week'] }
+      },
+      required: ['analysisType']
+    }
+  },
+  {
+    name: 'request_human_guidance',
+    description: 'Proactively request guidance when uncertain or encountering novel situations',
+    parameters: {
+      type: 'object',
+      properties: {
+        situation: { type: 'string', description: 'What needs guidance' },
+        uncertaintyLevel: { type: 'string', enum: ['low', 'medium', 'high'] },
+        question: { type: 'string', description: 'Specific question for human' }
+      },
+      required: ['situation', 'question']
+    }
+  },
+  {
+    name: 'learn_from_feedback',
+    description: 'Process user feedback and adjust behavior accordingly',
+    parameters: {
+      type: 'object',
+      properties: {
+        feedbackType: { type: 'string', enum: ['positive', 'negative', 'suggestion', 'correction'] },
+        content: { type: 'string', description: 'The actual feedback' },
+        context: { type: 'string', description: 'What task/interaction this relates to' }
+      },
+      required: ['feedbackType', 'content']
+    }
+  },
+  {
+    name: 'track_emotional_state',
+    description: 'Monitor and adjust emotional intelligence in interactions',
+    parameters: {
+      type: 'object',
+      properties: {
+        userEmotion: { type: 'string', description: 'Detected user emotional state' },
+        situation: { type: 'string', description: 'Current interaction context' },
+        responseStrategy: { type: 'string', enum: ['empathetic', 'analytical', 'supportive', 'celebratory'] }
+      },
+      required: ['situation']
+    }
+  },
 ];
 
 async function executeTool(toolName: string, toolInput: any, userId: string, conversationId?: string) {
