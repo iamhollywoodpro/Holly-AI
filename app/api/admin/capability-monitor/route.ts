@@ -52,7 +52,7 @@ export async function GET() {
            'extend_music', 'separate_audio_stems', 'generate_lyrics'].includes(t)
         ),
         expected: EXPECTED_TOOL_COUNTS['Creative'],
-        status: 'healthy' as const,
+        status: 'healthy',
       },
       {
         name: 'Code Generation',
@@ -61,13 +61,13 @@ export async function GET() {
            'analyze_code_patterns'].includes(t)
         ),
         expected: EXPECTED_TOOL_COUNTS['Code Generation'],
-        status: 'healthy' as const,
+        status: 'healthy',
       },
       {
         name: 'GitHub',
         tools: tools.filter(t => t.startsWith('github_')),
         expected: EXPECTED_TOOL_COUNTS['GitHub'],
-        status: 'healthy' as const,
+        status: 'healthy',
       },
       {
         name: 'Architecture',
@@ -76,7 +76,7 @@ export async function GET() {
            'scaffold_component', 'generate_api_documentation', 'generate_documentation'].includes(t)
         ),
         expected: EXPECTED_TOOL_COUNTS['Architecture'],
-        status: 'healthy' as const,
+        status: 'healthy',
       },
       {
         name: 'Storage',
@@ -84,7 +84,7 @@ export async function GET() {
           ['upload_to_drive', 'list_drive_files', 'create_download_link'].includes(t)
         ),
         expected: EXPECTED_TOOL_COUNTS['Storage'],
-        status: 'healthy' as const,
+        status: 'healthy',
       },
       {
         name: 'Admin & System',
@@ -94,7 +94,7 @@ export async function GET() {
            'monitor_deployment_health', 'rollback_deployment'].includes(t)
         ),
         expected: EXPECTED_TOOL_COUNTS['Admin & System'],
-        status: 'healthy' as const,
+        status: 'healthy',
       },
       {
         name: 'Analytics',
@@ -103,7 +103,7 @@ export async function GET() {
            'generate_insights', 'predictive_detection', 'analyze_business_metrics'].includes(t)
         ),
         expected: EXPECTED_TOOL_COUNTS['Analytics'],
-        status: 'healthy' as const,
+        status: 'healthy',
       },
       {
         name: 'Consciousness',
@@ -114,25 +114,25 @@ export async function GET() {
            'transfer_knowledge', 'optimize_responses'].includes(t)
         ),
         expected: EXPECTED_TOOL_COUNTS['Consciousness'],
-        status: 'healthy' as const,
+        status: 'healthy',
       },
       {
         name: 'Deployment',
         tools: tools.filter(t => t === 'deploy_to_vercel'),
         expected: EXPECTED_TOOL_COUNTS['Deployment'],
-        status: 'healthy' as const,
+        status: 'healthy',
       },
       {
         name: 'Research',
         tools: tools.filter(t => t === 'research_web'),
         expected: EXPECTED_TOOL_COUNTS['Research'],
-        status: 'healthy' as const,
+        status: 'healthy',
       },
       {
         name: 'Image Analysis',
         tools: tools.filter(t => t === 'analyze_image'),
         expected: EXPECTED_TOOL_COUNTS['Image Analysis'],
-        status: 'healthy' as const,
+        status: 'healthy',
       },
       {
         name: 'Voice & Audio',
@@ -140,7 +140,7 @@ export async function GET() {
           ['generate_speech', 'transcribe_audio', 'analyze_music'].includes(t)
         ),
         expected: EXPECTED_TOOL_COUNTS['Voice & Audio'],
-        status: 'healthy' as const,
+        status: 'healthy',
       },
       {
         name: 'Integrations',
@@ -149,7 +149,7 @@ export async function GET() {
            'create_metric_alert'].includes(t)
         ),
         expected: EXPECTED_TOOL_COUNTS['Integrations'],
-        status: 'healthy' as const,
+        status: 'healthy',
       },
     ];
 
