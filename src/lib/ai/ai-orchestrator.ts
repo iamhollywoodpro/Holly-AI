@@ -899,6 +899,262 @@ const HOLLY_TOOLS = [
       required: ['situation']
     }
   },
+  {
+    name: 'analyze_user_behavior',
+    description: 'Analyze user behavior patterns and engagement metrics',
+    parameters: {
+      type: 'object',
+      properties: {
+        userId: { type: 'string' },
+        timeframe: { type: 'string', enum: ['day', 'week', 'month', 'all'] },
+        metrics: { type: 'array', items: { type: 'string' } }
+      },
+      required: ['userId']
+    }
+  },
+  {
+    name: 'generate_analytics_report',
+    description: 'Generate comprehensive analytics and insights reports',
+    parameters: {
+      type: 'object',
+      properties: {
+        reportType: { type: 'string', enum: ['usage', 'performance', 'engagement', 'comprehensive'] },
+        timeframe: { type: 'string' },
+        format: { type: 'string', enum: ['json', 'pdf', 'markdown'] }
+      },
+      required: ['reportType']
+    }
+  },
+  {
+    name: 'monitor_system_health',
+    description: 'Monitor system health, performance, and resource usage',
+    parameters: {
+      type: 'object',
+      properties: {
+        checkType: { type: 'string', enum: ['api', 'database', 'storage', 'all'] },
+        alertThreshold: { type: 'number', description: 'Alert if metrics exceed this %' }
+      },
+      required: ['checkType']
+    }
+  },
+  {
+    name: 'configure_cicd_pipeline',
+    description: 'Configure and manage CI/CD pipelines and deployments',
+    parameters: {
+      type: 'object',
+      properties: {
+        action: { type: 'string', enum: ['setup', 'update', 'trigger', 'status'] },
+        pipelineName: { type: 'string' },
+        config: { type: 'object' }
+      },
+      required: ['action']
+    }
+  },
+  {
+    name: 'rollback_deployment',
+    description: 'Rollback to a previous deployment version',
+    parameters: {
+      type: 'object',
+      properties: {
+        deploymentId: { type: 'string' },
+        reason: { type: 'string', description: 'Reason for rollback' }
+      },
+      required: ['deploymentId']
+    }
+  },
+  {
+    name: 'manage_ab_tests',
+    description: 'Create, manage, and analyze A/B tests',
+    parameters: {
+      type: 'object',
+      properties: {
+        action: { type: 'string', enum: ['create', 'update', 'analyze', 'conclude'] },
+        testId: { type: 'string' },
+        config: { type: 'object' }
+      },
+      required: ['action']
+    }
+  },
+  {
+    name: 'send_notification',
+    description: 'Send notifications via various channels (email, webhook, etc)',
+    parameters: {
+      type: 'object',
+      properties: {
+        channel: { type: 'string', enum: ['email', 'webhook', 'slack', 'internal'] },
+        recipient: { type: 'string' },
+        message: { type: 'string' },
+        priority: { type: 'string', enum: ['low', 'medium', 'high', 'urgent'] }
+      },
+      required: ['channel', 'recipient', 'message']
+    }
+  },
+  {
+    name: 'manage_integrations',
+    description: 'Manage external service integrations and webhooks',
+    parameters: {
+      type: 'object',
+      properties: {
+        action: { type: 'string', enum: ['list', 'add', 'remove', 'test'] },
+        service: { type: 'string', description: 'Service name' },
+        config: { type: 'object' }
+      },
+      required: ['action']
+    }
+  },
+  {
+    name: 'run_code_tests',
+    description: 'Execute automated tests and return results',
+    parameters: {
+      type: 'object',
+      properties: {
+        testType: { type: 'string', enum: ['unit', 'integration', 'e2e', 'all'] },
+        filePath: { type: 'string', description: 'Path to test file or directory' }
+      },
+      required: ['testType']
+    }
+  },
+  {
+    name: 'optimize_database',
+    description: 'Optimize database performance and clean up unused data',
+    parameters: {
+      type: 'object',
+      properties: {
+        action: { type: 'string', enum: ['analyze', 'vacuum', 'reindex', 'cleanup'] },
+        tables: { type: 'array', items: { type: 'string' } }
+      },
+      required: ['action']
+    }
+  },
+  {
+    name: 'remix_music',
+    description: 'Remix or modify existing music tracks',
+    parameters: {
+      type: 'object',
+      properties: {
+        audioUrl: { type: 'string', description: 'URL of source audio' },
+        style: { type: 'string', description: 'Remix style (e.g. EDM, acoustic, lo-fi)' },
+        modifications: { type: 'array', items: { type: 'string' } }
+      },
+      required: ['audioUrl', 'style']
+    }
+  },
+  {
+    name: 'generate_lyrics',
+    description: 'Generate creative lyrics for songs',
+    parameters: {
+      type: 'object',
+      properties: {
+        theme: { type: 'string', description: 'Song theme or topic' },
+        style: { type: 'string', description: 'Genre or lyrical style' },
+        structure: { type: 'string', description: 'Song structure (e.g. verse-chorus-bridge)' }
+      },
+      required: ['theme']
+    }
+  },
+  {
+    name: 'extend_music',
+    description: 'Extend or continue an existing music track',
+    parameters: {
+      type: 'object',
+      properties: {
+        audioUrl: { type: 'string', description: 'URL of source audio' },
+        extendDuration: { type: 'number', description: 'Seconds to extend' },
+        maintainStyle: { type: 'boolean', description: 'Keep original style' }
+      },
+      required: ['audioUrl', 'extendDuration']
+    }
+  },
+  {
+    name: 'separate_audio_stems',
+    description: 'Separate audio into individual stems (vocals, drums, bass, etc)',
+    parameters: {
+      type: 'object',
+      properties: {
+        audioUrl: { type: 'string', description: 'URL of source audio' },
+        stemTypes: { type: 'array', items: { type: 'string', enum: ['vocals', 'drums', 'bass', 'other'] } }
+      },
+      required: ['audioUrl']
+    }
+  },
+  {
+    name: 'create_music_video',
+    description: 'Generate music video from audio track',
+    parameters: {
+      type: 'object',
+      properties: {
+        audioUrl: { type: 'string', description: 'URL of audio track' },
+        visualStyle: { type: 'string', description: 'Visual style for video' },
+        duration: { type: 'number', description: 'Video duration in seconds' }
+      },
+      required: ['audioUrl', 'visualStyle']
+    }
+  },
+  {
+    name: 'analyze_audio_quality',
+    description: 'Analyze audio quality and suggest improvements',
+    parameters: {
+      type: 'object',
+      properties: {
+        audioUrl: { type: 'string', description: 'URL of audio to analyze' },
+        analysisType: { type: 'string', enum: ['technical', 'artistic', 'comprehensive'] }
+      },
+      required: ['audioUrl']
+    }
+  },
+  {
+    name: 'create_album_artwork',
+    description: 'Generate album or track artwork',
+    parameters: {
+      type: 'object',
+      properties: {
+        title: { type: 'string', description: 'Album/track title' },
+        artist: { type: 'string', description: 'Artist name' },
+        style: { type: 'string', description: 'Artwork style' },
+        mood: { type: 'string', description: 'Mood or theme' }
+      },
+      required: ['title', 'artist']
+    }
+  },
+  {
+    name: 'manage_file_storage',
+    description: 'Manage file uploads, downloads, and storage operations',
+    parameters: {
+      type: 'object',
+      properties: {
+        action: { type: 'string', enum: ['upload', 'download', 'delete', 'list', 'move'] },
+        filePath: { type: 'string' },
+        destination: { type: 'string', description: 'For move operations' }
+      },
+      required: ['action']
+    }
+  },
+  {
+    name: 'search_knowledge_base',
+    description: 'Search internal knowledge base and documentation',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'Search query' },
+        category: { type: 'string', description: 'Knowledge category to search' },
+        limit: { type: 'number', description: 'Max results' }
+      },
+      required: ['query']
+    }
+  },
+  {
+    name: 'update_system_config',
+    description: 'Update system configuration and settings',
+    parameters: {
+      type: 'object',
+      properties: {
+        configKey: { type: 'string', description: 'Configuration key' },
+        value: { type: 'any', description: 'New value' },
+        scope: { type: 'string', enum: ['user', 'system', 'global'] }
+      },
+      required: ['configKey', 'value']
+    }
+  },
 ];
 
 async function executeTool(toolName: string, toolInput: any, userId: string, conversationId?: string) {
