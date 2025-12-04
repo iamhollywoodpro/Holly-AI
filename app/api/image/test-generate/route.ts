@@ -1,0 +1,108 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
+
+// DIAGNOSTIC ENDPOINT - Test image generation flow
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
+export async function POST(request: NextRequest) {
+  const diagnostics: any = {
+    timestamp: new Date().toISOString(),
+    step: 'Starting',
+    errors: [],
+  };
+
+  try {
+    // Step 1: Check authentication
+    diagnostics.step = 'Checking auth';
+    const { userId } = await auth();
+    diagnostics.auth = { userId: userId ? 'Present' : 'Missing', userIdLength: userId?.length };
+
+    if (!userId) {
+      diagnostics.errors.push('No userId from Clerk auth');
+      return NextResponse.json({ success: false, diagnostics }, { status: 401 });
+    }
+
+    // Step 2: Parse request body
+    diagnostics.step = 'Parsing request';
+    const body = await request.json();
+    diagnostics.request = {
+      hasPrompt: !!body.prompt,
+      promptLength: body.prompt?.length,
+      hasConversationId: !!body.conversationId,
+      keys: Object.keys(body),
+    };
+
+    if (!body.prompt) {
+      diagnostics.errors.push('No prompt provided');
+      return NextResponse.json({ success: false, diagnostics }, { status: 400 });
+    }
+
+    // Step 3: Check environment variables
+    diagnostics.step = 'Checking env vars';
+    diagnostics.env = {
+      hasHuggingFaceKey: !!process.env.HUGGINGFACE_API_KEY,
+      hasBlobToken: !!process.env.BLOB_READ_WRITE_TOKEN,
+      nodeEnv: process.env.NODE_ENV,
+    };
+
+    if (!process.env.HUGGINGFACE_API_KEY) {
+      diagnostics.errors.push('HUGGINGFACE_API_KEY missing');
+    }
+
+    if (!process.env.BLOB_READ_WRITE_TOKEN) {
+      diagnostics.errors.push('BLOB_READ_WRITE_TOKEN missing');
+    }
+
+    // Step 4: Test HuggingFace API
+    diagnostics.step = 'Testing HuggingFace API';
+    const hfTest = await fetch('https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.HUGGINGFACE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ inputs: 'test prompt' }),
+    });
+
+    diagnostics.huggingface = {
+      status: hfTest.status,
+      statusText: hfTest.statusText,
+      contentType: hfTest.headers.get('content-type'),
+    };
+
+    if (!hfTest.ok) {
+      const errorText = await hfTest.text();
+      diagnostics.errors.push(`HuggingFace error: ${errorText.substring(0, 200)}`);
+    }
+
+    diagnostics.step = 'Complete';
+    diagnostics.success = diagnostics.errors.length === 0;
+
+    return NextResponse.json({
+      success: diagnostics.errors.length === 0,
+      message: diagnostics.errors.length === 0 
+        ? 'All systems operational for image generation'
+        : 'Issues detected',
+      diagnostics,
+    });
+
+  } catch (error) {
+    diagnostics.step = 'Exception caught';
+    diagnostics.exception = {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+    };
+
+    return NextResponse.json({ success: false, diagnostics }, { status: 500 });
+  }
+}
+
+export async function GET() {
+  return NextResponse.json({ 
+    endpoint: '/api/image/test-generate',
+    method: 'POST',
+    purpose: 'Diagnostic endpoint to test image generation capabilities',
+    requiredEnv: ['HUGGINGFACE_API_KEY', 'BLOB_READ_WRITE_TOKEN'],
+  });
+}
