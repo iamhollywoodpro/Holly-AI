@@ -1434,12 +1434,19 @@ export async function generateHollyResponse(
     
     if (estimatedTotalTokens > 800000) {
       console.warn('⚠️ [CONTEXT] Approaching 1M token limit - applying compression');
+      // Cast messages to proper type for context manager
+      const typedMessages = messages.map(m => ({
+        role: m.role as 'user' | 'system' | 'assistant',
+        content: m.content
+      }));
       // Only NOW do we need to manage context
-      limitedMessages = manageContext(messages, {
+      const managed = manageContext(typedMessages, {
         maxMessages: 50, // Still generous
         maxTokensPerMessage: 8000, // Allow longer messages
         enableSummarization: true,
       });
+      // Cast back to original type
+      limitedMessages = managed.map(m => ({ role: m.role, content: m.content }));
     } else {
       // Normal case: Use ALL messages, no limits
       console.log('✅ [CONTEXT] Using full conversation history (no limits)');
