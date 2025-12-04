@@ -1386,6 +1386,10 @@ export async function generateHollyResponse(
       ...limitedMessages
     ];
 
+    // Intelligent tool choice: REQUIRE tools for creative/action requests
+    const lastUserMessage = messages[messages.length - 1]?.content?.toLowerCase() || '';
+    const requiresTools = /\b(generate|create|make|build|design|compose|draw|paint|render|produce|synthesize|image|picture|photo|illustration|music|song|beat|melody|audio|sound|video|clip|animation|commit|deploy|push|merge|analyze)\b/.test(lastUserMessage);
+
     // Use Google Gemini 2.0 Flash - BEST FREE MODEL
     // 1M tokens/minute, 200 requests/day, $0 cost forever
     const completion = await gemini.chat.completions.create({
@@ -1395,7 +1399,7 @@ export async function generateHollyResponse(
         content: m.content 
       })),
       tools: HOLLY_TOOLS as any,
-      tool_choice: 'auto',
+      tool_choice: requiresTools ? 'required' : 'auto',  // FORCE tool use for creative requests
       temperature: aiSettings?.creativity ?? 0.7, // User's creativity setting
       max_tokens: 2048,
     });
