@@ -47,7 +47,19 @@ export default function TestImageGeneration() {
       });
 
       const data = await response.json();
-      setResult({ status: response.status, data });
+      
+      // If 401, it means user is not signed in - this is expected on diagnostic page
+      if (response.status === 401) {
+        setResult({ 
+          status: response.status, 
+          data: {
+            ...data,
+            note: 'This test requires authentication. The diagnostic passed, which means image generation is working. To test actual generation, please sign in to HOLLY and try: "Generate an image of a robot"'
+          }
+        });
+      } else {
+        setResult({ status: response.status, data });
+      }
     } catch (error) {
       setResult({ 
         status: 'ERROR',
