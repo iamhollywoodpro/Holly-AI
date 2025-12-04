@@ -56,26 +56,22 @@ export async function POST(request: NextRequest) {
       diagnostics.errors.push('BLOB_READ_WRITE_TOKEN missing');
     }
 
-    // Step 4: Test HuggingFace API
-    diagnostics.step = 'Testing HuggingFace API';
-    const hfTest = await fetch('https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.HUGGINGFACE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ inputs: 'test prompt' }),
+    // Step 4: Test Image Generation API (Pollinations)
+    diagnostics.step = 'Testing Image Generation API';
+    const imageTest = await fetch('https://image.pollinations.ai/prompt/test?width=512&height=512', {
+      method: 'GET',
     });
 
-    diagnostics.huggingface = {
-      status: hfTest.status,
-      statusText: hfTest.statusText,
-      contentType: hfTest.headers.get('content-type'),
+    diagnostics.image_generation = {
+      status: imageTest.status,
+      statusText: imageTest.statusText,
+      contentType: imageTest.headers.get('content-type'),
+      provider: 'Pollinations AI (Free)',
     };
 
-    if (!hfTest.ok) {
-      const errorText = await hfTest.text();
-      diagnostics.errors.push(`HuggingFace error: ${errorText.substring(0, 200)}`);
+    if (!imageTest.ok && imageTest.status !== 302) {
+      const errorText = await imageTest.text().catch(() => 'Could not read error');
+      diagnostics.errors.push(`Image API error: ${errorText.substring(0, 200)}`);
     }
 
     diagnostics.step = 'Complete';

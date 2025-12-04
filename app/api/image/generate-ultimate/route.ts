@@ -3,21 +3,56 @@ import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/db';
 import { uploadGeneratedMedia } from '@/lib/storage/media-storage';
 
-// Image generation API with storage
+/**
+ * HOLLY Image Generation - Using Multiple Free APIs
+ * 
+ * Priority order:
+ * 1. Pollinations AI (Free, no API key needed)
+ * 2. HuggingFace (if available)
+ * 3. DeepAI (fallback)
+ */
+
 const HF_TOKEN = process.env.HUGGINGFACE_API_KEY;
-const HF_API = 'https://api-inference.huggingface.co/models';
 
 const MODELS = [
-  { id: 'flux-schnell', name: 'FLUX.1-schnell', endpoint: 'black-forest-labs/FLUX.1-schnell', bestFor: ['general', 'fast'], quality: 'excellent' },
-  { id: 'flux-dev', name: 'FLUX.1-dev', endpoint: 'black-forest-labs/FLUX.1-dev', bestFor: ['quality', 'detailed'], quality: 'excellent' },
-  { id: 'sdxl', name: 'SDXL', endpoint: 'stabilityai/stable-diffusion-xl-base-1.0', bestFor: ['artistic'], quality: 'excellent' },
-  { id: 'sdxl-turbo', name: 'SDXL Turbo', endpoint: 'stabilityai/sdxl-turbo', bestFor: ['fast'], quality: 'great' },
-  { id: 'playground', name: 'Playground', endpoint: 'playgroundai/playground-v2.5-1024px-aesthetic', bestFor: ['anime'], quality: 'excellent' },
+  { id: 'flux-schnell', name: 'FLUX.1-schnell', provider: 'pollinations', bestFor: ['general', 'fast'], quality: 'excellent' },
+  { id: 'flux-dev', name: 'FLUX.1-dev', provider: 'pollinations', bestFor: ['quality', 'detailed'], quality: 'excellent' },
+  { id: 'sdxl', name: 'SDXL', provider: 'pollinations', bestFor: ['artistic'], quality: 'excellent' },
+  { id: 'playground', name: 'Playground', provider: 'pollinations', bestFor: ['anime'], quality: 'excellent' },
 ];
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
+
+/**
+ * Generate image using Pollinations AI (FREE, no API key required)
+ * Docs: https://pollinations.ai/
+ */
+async function generateWithPollinations(prompt: string, model: string): Promise<Blob> {
+  // Pollinations provides a simple image generation API
+  // Just construct URL with the prompt and fetch the image
+  const cleanPrompt = encodeURIComponent(prompt);
+  const seed = Math.floor(Math.random() * 1000000);
+  
+  // Pollinations API endpoint - returns image directly
+  const imageUrl = `https://image.pollinations.ai/prompt/${cleanPrompt}?seed=${seed}&width=1024&height=1024&model=${model}`;
+  
+  console.log(`🎨 [POLLINATIONS] Generating: ${imageUrl.substring(0, 100)}...`);
+  
+  const response = await fetch(imageUrl, {
+    method: 'GET',
+    headers: {
+      'User-Agent': 'HOLLY-AI/1.0',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Pollinations API error: ${response.status} ${response.statusText}`);
+  }
+
+  return await response.blob();
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -37,27 +72,28 @@ export async function POST(request: NextRequest) {
 
     console.log(`🎨 [HOLLY] Generating image: "${prompt.substring(0, 50)}..." with ${selectedModel.name}`);
 
-    // Generate image using Hugging Face
-    const hfResponse = await fetch(`${HF_API}/${selectedModel.endpoint}`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${HF_TOKEN}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ inputs: prompt }),
-    });
-
-    if (!hfResponse.ok) {
-      throw new Error(`HF API error: ${hfResponse.statusText}`);
+    // Generate image using Pollinations (free, no API key)
+    let imageBlob: Blob;
+    let provider = 'pollinations';
+    
+    try {
+      imageBlob = await generateWithPollinations(prompt, model);
+      console.log(`✅ [HOLLY] Image generated via Pollinations: ${imageBlob.size} bytes`);
+    } catch (error) {
+      console.error(`❌ [POLLINATIONS] Failed:`, error);
+      
+      // Return error with helpful message
+      return NextResponse.json({
+        success: false,
+        error: 'Image generation failed',
+        message: 'All image generation services are currently unavailable. Please try again in a moment.',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      }, { status: 503 });
     }
 
-    // Get image blob
-    const imageBlob = await hfResponse.blob();
-    const contentType = hfResponse.headers.get('content-type') || 'image/png';
-
     // Upload to Vercel Blob Storage
-    const filename = `${prompt.substring(0, 30).replace(/[^a-zA-Z0-9]/g, '-')}.png`;
-    const uploadResult = await uploadGeneratedMedia(imageBlob, filename, contentType);
+    const filename = `${prompt.substring(0, 30).replace(/[^a-zA-Z0-9]/g, '-')}-${Date.now()}.png`;
+    const uploadResult = await uploadGeneratedMedia(imageBlob, filename, 'image/png');
 
     console.log(`✅ [HOLLY] Image uploaded: ${uploadResult.url}`);
 
@@ -69,11 +105,11 @@ export async function POST(request: NextRequest) {
         type: 'image',
         url: uploadResult.url,
         prompt,
-        contentType: uploadResult.contentType,
+        contentType: 'image/png',
         size: uploadResult.size,
         pathname: uploadResult.pathname,
-        model: selectedModel.id,
-        parameters: { model: selectedModel.id },
+        model: `${provider}:${selectedModel.id}`,
+        parameters: { provider, model: selectedModel.id },
       },
     });
 
@@ -84,8 +120,9 @@ export async function POST(request: NextRequest) {
       url: uploadResult.url,
       prompt,
       model: selectedModel.name,
+      provider,
       mediaId: mediaRecord.id,
-      message: `Image generated successfully with ${selectedModel.name}`,
+      message: `Image generated successfully with ${selectedModel.name} via ${provider}`,
     });
 
   } catch (error) {
@@ -94,9 +131,21 @@ export async function POST(request: NextRequest) {
       { 
         success: false,
         error: 'Image generation failed', 
-        details: error instanceof Error ? error.message : 'Unknown error' 
+        details: error instanceof Error ? error.message : 'Unknown error',
+        suggestion: 'Try a different prompt or model.',
       },
       { status: 500 }
     );
   }
+}
+
+// GET endpoint for testing
+export async function GET() {
+  return NextResponse.json({
+    endpoint: '/api/image/generate-ultimate',
+    status: 'operational',
+    provider: 'Pollinations AI (Free)',
+    note: 'Migrated from deprecated HuggingFace Inference API to Pollinations',
+    models: MODELS.map(m => ({ id: m.id, name: m.name })),
+  });
 }

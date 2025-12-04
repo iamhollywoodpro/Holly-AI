@@ -46,28 +46,26 @@ export async function GET() {
     checks.services.environment = { status: 'healthy' };
   }
 
-  // Check 3: HuggingFace API (quick test)
+  // Check 3: Image Generation API (Pollinations - free, no key needed)
   try {
-    const hfResponse = await fetch('https://api-inference.huggingface.co/models', {
-      headers: {
-        'Authorization': `Bearer ${process.env.HUGGINGFACE_API_KEY}`,
-      },
+    const testResponse = await fetch('https://image.pollinations.ai/prompt/test', {
+      method: 'HEAD', // Just check if endpoint is up
     });
     
-    if (hfResponse.ok) {
-      checks.services.huggingface = { status: 'healthy' };
+    if (testResponse.ok || testResponse.status === 200 || testResponse.status === 302) {
+      checks.services.image_generation = { status: 'healthy' };
     } else {
       checks.status = 'degraded';
-      checks.services.huggingface = { 
-        status: 'unhealthy', 
-        message: `HuggingFace API returned ${hfResponse.status}` 
+      checks.services.image_generation = { 
+        status: 'degraded', 
+        message: `Image API returned ${testResponse.status}` 
       };
     }
   } catch (error) {
     checks.status = 'degraded';
-    checks.services.huggingface = { 
+    checks.services.image_generation = { 
       status: 'unhealthy', 
-      message: 'HuggingFace API unreachable' 
+      message: 'Image generation API unreachable' 
     };
   }
 
