@@ -13,19 +13,21 @@ export async function POST(request: NextRequest) {
   };
 
   try {
-    // Step 1: Check authentication
+    // Step 1: Check authentication (OPTIONAL for diagnostic)
     diagnostics.step = 'Checking auth';
     const { userId } = await auth();
-    diagnostics.auth = { userId: userId ? 'Present' : 'Missing', userIdLength: userId?.length };
+    diagnostics.auth = { 
+      userId: userId ? 'Present' : 'Not authenticated (running in diagnostic mode)', 
+      userIdLength: userId?.length,
+      note: 'Authentication not required for diagnostics'
+    };
 
-    if (!userId) {
-      diagnostics.errors.push('No userId from Clerk auth');
-      return NextResponse.json({ success: false, diagnostics }, { status: 401 });
-    }
+    // Don't block if no auth - this is a diagnostic tool
+    const effectiveUserId = userId || 'diagnostic-test-user';
 
     // Step 2: Parse request body
     diagnostics.step = 'Parsing request';
-    const body = await request.json();
+    const body = await request.json().catch(() => ({ prompt: 'diagnostic test' }));
     diagnostics.request = {
       hasPrompt: !!body.prompt,
       promptLength: body.prompt?.length,
@@ -34,8 +36,8 @@ export async function POST(request: NextRequest) {
     };
 
     if (!body.prompt) {
-      diagnostics.errors.push('No prompt provided');
-      return NextResponse.json({ success: false, diagnostics }, { status: 400 });
+      diagnostics.warnings = ['No prompt provided - using default test prompt'];
+      body.prompt = 'a diagnostic test image';
     }
 
     // Step 3: Check environment variables
