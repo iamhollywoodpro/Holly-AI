@@ -14,6 +14,7 @@ import { CommitButton } from './chat/CommitButton';
 import { DeployButton } from './chat/DeployButton';
 import { useActiveRepo } from '@/hooks/useActiveRepos';
 import type { GitHubFile } from '@/lib/github-api';
+import { MediaMessage, parseMediaFromMessage } from './chat/MediaMessage';
 
 interface ChatMessageProps {
   message: Message;
@@ -25,6 +26,9 @@ export function ChatMessage({ message }: ChatMessageProps) {
   const [isLoading, setIsLoading] = useState(false);
   const voiceSettings = useVoiceSettings();
   const { activeRepo } = useActiveRepo();
+
+  // Check if message contains generated media
+  const mediaContent = parseMediaFromMessage(message.content);
 
   // Detect if message contains code blocks
   const hasCodeBlocks = message.content.includes('```');
@@ -151,34 +155,43 @@ export function ChatMessage({ message }: ChatMessageProps) {
             }
           `}
         >
-          {/* Message text with markdown support */}
-          <div className="prose prose-invert prose-sm max-w-none">
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              components={{
-                code: ({ node, inline, className, children, ...props }: any) => {
-                  return inline ? (
-                    <code
-                      className="bg-black/30 px-2 py-1 rounded text-holly-purple-300 font-mono text-sm"
-                      {...props}
-                    >
-                      {children}
-                    </code>
-                  ) : (
-                    <pre className="bg-black/50 p-4 rounded-lg overflow-x-auto border border-white/10">
-                      <code className="text-sm font-mono text-gray-100" {...props}>
+          {/* Media content (images, videos, audio) */}
+          {mediaContent && (
+            <div className="mb-4">
+              <MediaMessage content={mediaContent} />
+            </div>
+          )}
+
+          {/* Message text with markdown support (only if not pure media) */}
+          {!mediaContent && (
+            <div className="prose prose-invert prose-sm max-w-none">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  code: ({ node, inline, className, children, ...props }: any) => {
+                    return inline ? (
+                      <code
+                        className="bg-black/30 px-2 py-1 rounded text-holly-purple-300 font-mono text-sm"
+                        {...props}
+                      >
                         {children}
                       </code>
-                    </pre>
-                  );
-                },
-                p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-                strong: ({ children }) => <strong className="text-holly-purple-300 font-bold">{children}</strong>,
-              }}
-            >
-              {message.content}
-            </ReactMarkdown>
-          </div>
+                    ) : (
+                      <pre className="bg-black/50 p-4 rounded-lg overflow-x-auto border border-white/10">
+                        <code className="text-sm font-mono text-gray-100" {...props}>
+                          {children}
+                        </code>
+                      </pre>
+                    );
+                  },
+                  p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                  strong: ({ children }) => <strong className="text-holly-purple-300 font-bold">{children}</strong>,
+                }}
+              >
+                {message.content}
+              </ReactMarkdown>
+            </div>
+          )}
 
           {/* Action Buttons */}
           {shouldShowCommitButton && (
