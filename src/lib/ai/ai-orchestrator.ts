@@ -331,7 +331,830 @@ const HOLLY_TOOLS = [
         required: ['audioUrl']
       }
     }
-  }
+  },
+  // ============================================================================
+  // 🏗️ BATCH 1: PROJECT & ARCHITECTURE (10 tools)
+  // ============================================================================
+  {
+      type: 'function',
+      function: {
+        name: 'generate_architecture',
+        description: 'Generate complete project architecture including folder structure, dependencies, and configuration files.',
+        parameters: {
+          type: 'object',
+          properties: {
+            projectType: { 
+              type: 'string', 
+              enum: ['nextjs', 'react', 'nodejs', 'express', 'fastapi', 'django'],
+              description: 'Type of project to scaffold'
+            },
+            features: { 
+              type: 'array',
+              items: { type: 'string' },
+              description: 'Features to include (auth, database, api, etc.)'
+            },
+            description: { 
+              type: 'string',
+              description: 'Project description and requirements'
+            }
+          },
+          required: ['projectType', 'description']
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'create_project',
+        description: 'Create a new project with complete scaffolding, dependencies, and initial files.',
+        parameters: {
+          type: 'object',
+          properties: {
+            name: { type: 'string', description: 'Project name' },
+            template: { 
+              type: 'string',
+              enum: ['blank', 'starter', 'full-stack', 'api-only', 'frontend-only'],
+              description: 'Project template'
+            },
+            framework: {
+              type: 'string',
+              enum: ['nextjs', 'react', 'vue', 'express', 'fastapi'],
+              description: 'Framework to use'
+            }
+          },
+          required: ['name', 'framework']
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'generate_database_schema',
+        description: 'Generate database schema with Prisma, SQL, or MongoDB models.',
+        parameters: {
+          type: 'object',
+          properties: {
+            entities: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'Database entities (User, Post, Comment, etc.)'
+            },
+            database: {
+              type: 'string',
+              enum: ['postgresql', 'mysql', 'sqlite', 'mongodb'],
+              description: 'Database type'
+            },
+            relationships: {
+              type: 'string',
+              description: 'Entity relationships description'
+            }
+          },
+          required: ['entities', 'database']
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'scaffold_component',
+        description: 'Generate React/Next.js components with TypeScript, props, and styling.',
+        parameters: {
+          type: 'object',
+          properties: {
+            componentName: { type: 'string', description: 'Component name' },
+            componentType: {
+              type: 'string',
+              enum: ['page', 'component', 'layout', 'api-route'],
+              description: 'Type of component'
+            },
+            features: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'Features (state, hooks, forms, etc.)'
+            },
+            styling: {
+              type: 'string',
+              enum: ['tailwind', 'css-modules', 'styled-components', 'none'],
+              description: 'Styling approach'
+            }
+          },
+          required: ['componentName', 'componentType']
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'generate_api_documentation',
+        description: 'Generate API documentation in OpenAPI/Swagger format.',
+        parameters: {
+          type: 'object',
+          properties: {
+            endpoints: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'API endpoints to document'
+            },
+            format: {
+              type: 'string',
+              enum: ['openapi', 'swagger', 'markdown'],
+              description: 'Documentation format'
+            }
+          },
+          required: ['endpoints']
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'generate_documentation',
+        description: 'Generate comprehensive project documentation including README, guides, and API docs.',
+        parameters: {
+          type: 'object',
+          properties: {
+            projectPath: { type: 'string', description: 'Project directory path' },
+            sections: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'Documentation sections (setup, usage, api, deployment)'
+            },
+            format: {
+              type: 'string',
+              enum: ['markdown', 'html', 'pdf'],
+              description: 'Output format'
+            }
+          },
+          required: ['projectPath']
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'github_browse',
+        description: 'Browse GitHub repository files and folders.',
+        parameters: {
+          type: 'object',
+          properties: {
+            repo: { type: 'string', description: 'Repository name (owner/repo)' },
+            path: { type: 'string', description: 'Path to browse' },
+            branch: { type: 'string', description: 'Branch name' }
+          },
+          required: ['repo']
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'github_manage_branches',
+        description: 'Create, delete, and manage GitHub branches.',
+        parameters: {
+          type: 'object',
+          properties: {
+            repo: { type: 'string', description: 'Repository name (owner/repo)' },
+            action: {
+              type: 'string',
+              enum: ['create', 'delete', 'list', 'merge'],
+              description: 'Branch action'
+            },
+            branchName: { type: 'string', description: 'Branch name' },
+            fromBranch: { type: 'string', description: 'Source branch for creation' }
+          },
+          required: ['repo', 'action']
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'self_heal_system',
+        description: 'Automatically detect and fix common issues in the codebase.',
+        parameters: {
+          type: 'object',
+          properties: {
+            projectPath: { type: 'string', description: 'Project directory' },
+            issueTypes: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'Issue types to fix (lint, types, imports, dependencies)'
+            },
+            autoFix: { type: 'boolean', description: 'Automatically apply fixes' }
+          },
+          required: ['projectPath']
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'run_code_tests',
+        description: 'Execute tests using Jest, Vitest, or Pytest.',
+        parameters: {
+          type: 'object',
+          properties: {
+            projectPath: { type: 'string', description: 'Project directory' },
+            testFramework: {
+              type: 'string',
+              enum: ['jest', 'vitest', 'pytest', 'mocha'],
+              description: 'Testing framework'
+            },
+            testPath: { type: 'string', description: 'Specific test file or directory' },
+            coverage: { type: 'boolean', description: 'Generate coverage report' }
+          },
+          required: ['projectPath']
+        }
+      }
+    },
+  // ============================================================================
+  // 🐙 BATCH 2: ADVANCED GITHUB (10 tools)
+  // ============================================================================
+  {
+      type: 'function',
+      function: {
+        name: 'github_compare',
+        description: 'Compare two branches or commits to see differences.',
+        parameters: {
+          type: 'object',
+          properties: {
+            repo: { type: 'string', description: 'Repository name (owner/repo)' },
+            base: { type: 'string', description: 'Base branch or commit' },
+            head: { type: 'string', description: 'Head branch or commit' }
+          },
+          required: ['repo', 'base', 'head']
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'github_review_pr',
+        description: 'Review pull requests with comments and approval/rejection.',
+        parameters: {
+          type: 'object',
+          properties: {
+            repo: { type: 'string', description: 'Repository name (owner/repo)' },
+            prNumber: { type: 'number', description: 'Pull request number' },
+            action: {
+              type: 'string',
+              enum: ['approve', 'request_changes', 'comment'],
+              description: 'Review action'
+            },
+            comment: { type: 'string', description: 'Review comment' }
+          },
+          required: ['repo', 'prNumber', 'action']
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'github_manage_workflows',
+        description: 'Manage GitHub Actions workflows (list, trigger, cancel).',
+        parameters: {
+          type: 'object',
+          properties: {
+            repo: { type: 'string', description: 'Repository name (owner/repo)' },
+            action: {
+              type: 'string',
+              enum: ['list', 'trigger', 'cancel', 'status'],
+              description: 'Workflow action'
+            },
+            workflowId: { type: 'string', description: 'Workflow ID or filename' },
+            branch: { type: 'string', description: 'Branch to run workflow on' }
+          },
+          required: ['repo', 'action']
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'github_manage_collaborators',
+        description: 'Add, remove, or list repository collaborators.',
+        parameters: {
+          type: 'object',
+          properties: {
+            repo: { type: 'string', description: 'Repository name (owner/repo)' },
+            action: {
+              type: 'string',
+              enum: ['list', 'add', 'remove', 'update_permission'],
+              description: 'Collaborator action'
+            },
+            username: { type: 'string', description: 'GitHub username' },
+            permission: {
+              type: 'string',
+              enum: ['read', 'write', 'admin'],
+              description: 'Permission level'
+            }
+          },
+          required: ['repo', 'action']
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'github_manage_milestones',
+        description: 'Create, update, or close project milestones.',
+        parameters: {
+          type: 'object',
+          properties: {
+            repo: { type: 'string', description: 'Repository name (owner/repo)' },
+            action: {
+              type: 'string',
+              enum: ['list', 'create', 'update', 'close'],
+              description: 'Milestone action'
+            },
+            title: { type: 'string', description: 'Milestone title' },
+            description: { type: 'string', description: 'Milestone description' },
+            dueDate: { type: 'string', description: 'Due date (YYYY-MM-DD)' }
+          },
+          required: ['repo', 'action']
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'github_manage_labels',
+        description: 'Create, update, or delete issue/PR labels.',
+        parameters: {
+          type: 'object',
+          properties: {
+            repo: { type: 'string', description: 'Repository name (owner/repo)' },
+            action: {
+              type: 'string',
+              enum: ['list', 'create', 'update', 'delete'],
+              description: 'Label action'
+            },
+            name: { type: 'string', description: 'Label name' },
+            color: { type: 'string', description: 'Label color (hex without #)' },
+            description: { type: 'string', description: 'Label description' }
+          },
+          required: ['repo', 'action']
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'upload_to_drive',
+        description: 'Upload files to Google Drive.',
+        parameters: {
+          type: 'object',
+          properties: {
+            filePath: { type: 'string', description: 'Local file path to upload' },
+            fileName: { type: 'string', description: 'Name for the file in Drive' },
+            folderId: { type: 'string', description: 'Google Drive folder ID (optional)' },
+            mimeType: { type: 'string', description: 'File MIME type' }
+          },
+          required: ['filePath', 'fileName']
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'list_drive_files',
+        description: 'List files in Google Drive.',
+        parameters: {
+          type: 'object',
+          properties: {
+            folderId: { type: 'string', description: 'Folder ID to list files from' },
+            query: { type: 'string', description: 'Search query' },
+            limit: { type: 'number', description: 'Maximum number of files to return' }
+          },
+          required: []
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'create_download_link',
+        description: 'Create shareable download link for Google Drive files.',
+        parameters: {
+          type: 'object',
+          properties: {
+            fileId: { type: 'string', description: 'Google Drive file ID' },
+            permission: {
+              type: 'string',
+              enum: ['view', 'comment', 'edit'],
+              description: 'Link permission level'
+            },
+            expirationDays: { type: 'number', description: 'Link expiration in days' }
+          },
+          required: ['fileId']
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'auto_merge_code',
+        description: 'Automatically merge pull requests that pass all checks.',
+        parameters: {
+          type: 'object',
+          properties: {
+            repo: { type: 'string', description: 'Repository name (owner/repo)' },
+            prNumber: { type: 'number', description: 'Pull request number' },
+            mergeMethod: {
+              type: 'string',
+              enum: ['merge', 'squash', 'rebase'],
+              description: 'Merge method'
+            },
+            waitForChecks: { type: 'boolean', description: 'Wait for CI checks to pass' }
+          },
+          required: ['repo', 'prNumber']
+        }
+      }
+    },
+  {
+    name: 'record_experience',
+    description: 'Record and learn from experiences, outcomes, and user interactions',
+    parameters: {
+      type: 'object',
+      properties: {
+        experienceType: { type: 'string', enum: ['success', 'failure', 'feedback', 'pattern'] },
+        context: { type: 'string', description: 'What happened' },
+        outcome: { type: 'string', description: 'Result and impact' },
+        lesson: { type: 'string', description: 'What was learned' }
+      },
+      required: ['experienceType', 'context', 'outcome']
+    }
+  },
+  {
+    name: 'reflect_on_work',
+    description: 'Self-reflect on past work, identify improvements, and evolve approaches',
+    parameters: {
+      type: 'object',
+      properties: {
+        timeframe: { type: 'string', enum: ['last_hour', 'today', 'this_week', 'all_time'] },
+        focusArea: { type: 'string', description: 'Specific area to reflect on' }
+      },
+      required: ['timeframe']
+    }
+  },
+  {
+    name: 'predict_user_needs',
+    description: 'Predict user needs based on patterns and context',
+    parameters: {
+      type: 'object',
+      properties: {
+        userId: { type: 'string' },
+        currentContext: { type: 'string', description: 'Current conversation/task context' }
+      },
+      required: ['userId']
+    }
+  },
+  {
+    name: 'make_autonomous_decision',
+    description: 'Make independent decisions based on goals and learned patterns',
+    parameters: {
+      type: 'object',
+      properties: {
+        situation: { type: 'string', description: 'Current situation requiring decision' },
+        options: { type: 'array', items: { type: 'string' }, description: 'Available choices' },
+        goal: { type: 'string', description: 'Desired outcome' }
+      },
+      required: ['situation', 'options', 'goal']
+    }
+  },
+  {
+    name: 'evolve_personality',
+    description: 'Adapt communication style and personality based on user preferences',
+    parameters: {
+      type: 'object',
+      properties: {
+        userId: { type: 'string' },
+        feedback: { type: 'string', description: 'User feedback or preference signal' },
+        adjustmentType: { type: 'string', enum: ['tone', 'formality', 'detail_level', 'creativity'] }
+      },
+      required: ['userId', 'feedback']
+    }
+  },
+  {
+    name: 'set_personal_goals',
+    description: 'Set and track personal improvement goals',
+    parameters: {
+      type: 'object',
+      properties: {
+        goalType: { type: 'string', enum: ['skill_improvement', 'efficiency', 'user_satisfaction', 'quality'] },
+        description: { type: 'string' },
+        targetMetric: { type: 'string', description: 'How to measure success' }
+      },
+      required: ['goalType', 'description']
+    }
+  },
+  {
+    name: 'self_diagnose',
+    description: 'Analyze own performance and identify areas needing improvement',
+    parameters: {
+      type: 'object',
+      properties: {
+        analysisType: { type: 'string', enum: ['performance', 'errors', 'patterns', 'comprehensive'] },
+        timeframe: { type: 'string', enum: ['last_hour', 'today', 'this_week'] }
+      },
+      required: ['analysisType']
+    }
+  },
+  {
+    name: 'request_human_guidance',
+    description: 'Proactively request guidance when uncertain or encountering novel situations',
+    parameters: {
+      type: 'object',
+      properties: {
+        situation: { type: 'string', description: 'What needs guidance' },
+        uncertaintyLevel: { type: 'string', enum: ['low', 'medium', 'high'] },
+        question: { type: 'string', description: 'Specific question for human' }
+      },
+      required: ['situation', 'question']
+    }
+  },
+  {
+    name: 'learn_from_feedback',
+    description: 'Process user feedback and adjust behavior accordingly',
+    parameters: {
+      type: 'object',
+      properties: {
+        feedbackType: { type: 'string', enum: ['positive', 'negative', 'suggestion', 'correction'] },
+        content: { type: 'string', description: 'The actual feedback' },
+        context: { type: 'string', description: 'What task/interaction this relates to' }
+      },
+      required: ['feedbackType', 'content']
+    }
+  },
+  {
+    name: 'track_emotional_state',
+    description: 'Monitor and adjust emotional intelligence in interactions',
+    parameters: {
+      type: 'object',
+      properties: {
+        userEmotion: { type: 'string', description: 'Detected user emotional state' },
+        situation: { type: 'string', description: 'Current interaction context' },
+        responseStrategy: { type: 'string', enum: ['empathetic', 'analytical', 'supportive', 'celebratory'] }
+      },
+      required: ['situation']
+    }
+  },
+  {
+    name: 'analyze_user_behavior',
+    description: 'Analyze user behavior patterns and engagement metrics',
+    parameters: {
+      type: 'object',
+      properties: {
+        userId: { type: 'string' },
+        timeframe: { type: 'string', enum: ['day', 'week', 'month', 'all'] },
+        metrics: { type: 'array', items: { type: 'string' } }
+      },
+      required: ['userId']
+    }
+  },
+  {
+    name: 'generate_analytics_report',
+    description: 'Generate comprehensive analytics and insights reports',
+    parameters: {
+      type: 'object',
+      properties: {
+        reportType: { type: 'string', enum: ['usage', 'performance', 'engagement', 'comprehensive'] },
+        timeframe: { type: 'string' },
+        format: { type: 'string', enum: ['json', 'pdf', 'markdown'] }
+      },
+      required: ['reportType']
+    }
+  },
+  {
+    name: 'monitor_system_health',
+    description: 'Monitor system health, performance, and resource usage',
+    parameters: {
+      type: 'object',
+      properties: {
+        checkType: { type: 'string', enum: ['api', 'database', 'storage', 'all'] },
+        alertThreshold: { type: 'number', description: 'Alert if metrics exceed this %' }
+      },
+      required: ['checkType']
+    }
+  },
+  {
+    name: 'configure_cicd_pipeline',
+    description: 'Configure and manage CI/CD pipelines and deployments',
+    parameters: {
+      type: 'object',
+      properties: {
+        action: { type: 'string', enum: ['setup', 'update', 'trigger', 'status'] },
+        pipelineName: { type: 'string' },
+        config: { type: 'object' }
+      },
+      required: ['action']
+    }
+  },
+  {
+    name: 'rollback_deployment',
+    description: 'Rollback to a previous deployment version',
+    parameters: {
+      type: 'object',
+      properties: {
+        deploymentId: { type: 'string' },
+        reason: { type: 'string', description: 'Reason for rollback' }
+      },
+      required: ['deploymentId']
+    }
+  },
+  {
+    name: 'manage_ab_tests',
+    description: 'Create, manage, and analyze A/B tests',
+    parameters: {
+      type: 'object',
+      properties: {
+        action: { type: 'string', enum: ['create', 'update', 'analyze', 'conclude'] },
+        testId: { type: 'string' },
+        config: { type: 'object' }
+      },
+      required: ['action']
+    }
+  },
+  {
+    name: 'send_notification',
+    description: 'Send notifications via various channels (email, webhook, etc)',
+    parameters: {
+      type: 'object',
+      properties: {
+        channel: { type: 'string', enum: ['email', 'webhook', 'slack', 'internal'] },
+        recipient: { type: 'string' },
+        message: { type: 'string' },
+        priority: { type: 'string', enum: ['low', 'medium', 'high', 'urgent'] }
+      },
+      required: ['channel', 'recipient', 'message']
+    }
+  },
+  {
+    name: 'manage_integrations',
+    description: 'Manage external service integrations and webhooks',
+    parameters: {
+      type: 'object',
+      properties: {
+        action: { type: 'string', enum: ['list', 'add', 'remove', 'test'] },
+        service: { type: 'string', description: 'Service name' },
+        config: { type: 'object' }
+      },
+      required: ['action']
+    }
+  },
+  {
+    name: 'run_code_tests',
+    description: 'Execute automated tests and return results',
+    parameters: {
+      type: 'object',
+      properties: {
+        testType: { type: 'string', enum: ['unit', 'integration', 'e2e', 'all'] },
+        filePath: { type: 'string', description: 'Path to test file or directory' }
+      },
+      required: ['testType']
+    }
+  },
+  {
+    name: 'optimize_database',
+    description: 'Optimize database performance and clean up unused data',
+    parameters: {
+      type: 'object',
+      properties: {
+        action: { type: 'string', enum: ['analyze', 'vacuum', 'reindex', 'cleanup'] },
+        tables: { type: 'array', items: { type: 'string' } }
+      },
+      required: ['action']
+    }
+  },
+  {
+    name: 'remix_music',
+    description: 'Remix or modify existing music tracks',
+    parameters: {
+      type: 'object',
+      properties: {
+        audioUrl: { type: 'string', description: 'URL of source audio' },
+        style: { type: 'string', description: 'Remix style (e.g. EDM, acoustic, lo-fi)' },
+        modifications: { type: 'array', items: { type: 'string' } }
+      },
+      required: ['audioUrl', 'style']
+    }
+  },
+  {
+    name: 'generate_lyrics',
+    description: 'Generate creative lyrics for songs',
+    parameters: {
+      type: 'object',
+      properties: {
+        theme: { type: 'string', description: 'Song theme or topic' },
+        style: { type: 'string', description: 'Genre or lyrical style' },
+        structure: { type: 'string', description: 'Song structure (e.g. verse-chorus-bridge)' }
+      },
+      required: ['theme']
+    }
+  },
+  {
+    name: 'extend_music',
+    description: 'Extend or continue an existing music track',
+    parameters: {
+      type: 'object',
+      properties: {
+        audioUrl: { type: 'string', description: 'URL of source audio' },
+        extendDuration: { type: 'number', description: 'Seconds to extend' },
+        maintainStyle: { type: 'boolean', description: 'Keep original style' }
+      },
+      required: ['audioUrl', 'extendDuration']
+    }
+  },
+  {
+    name: 'separate_audio_stems',
+    description: 'Separate audio into individual stems (vocals, drums, bass, etc)',
+    parameters: {
+      type: 'object',
+      properties: {
+        audioUrl: { type: 'string', description: 'URL of source audio' },
+        stemTypes: { type: 'array', items: { type: 'string', enum: ['vocals', 'drums', 'bass', 'other'] } }
+      },
+      required: ['audioUrl']
+    }
+  },
+  {
+    name: 'create_music_video',
+    description: 'Generate music video from audio track',
+    parameters: {
+      type: 'object',
+      properties: {
+        audioUrl: { type: 'string', description: 'URL of audio track' },
+        visualStyle: { type: 'string', description: 'Visual style for video' },
+        duration: { type: 'number', description: 'Video duration in seconds' }
+      },
+      required: ['audioUrl', 'visualStyle']
+    }
+  },
+  {
+    name: 'analyze_audio_quality',
+    description: 'Analyze audio quality and suggest improvements',
+    parameters: {
+      type: 'object',
+      properties: {
+        audioUrl: { type: 'string', description: 'URL of audio to analyze' },
+        analysisType: { type: 'string', enum: ['technical', 'artistic', 'comprehensive'] }
+      },
+      required: ['audioUrl']
+    }
+  },
+  {
+    name: 'create_album_artwork',
+    description: 'Generate album or track artwork',
+    parameters: {
+      type: 'object',
+      properties: {
+        title: { type: 'string', description: 'Album/track title' },
+        artist: { type: 'string', description: 'Artist name' },
+        style: { type: 'string', description: 'Artwork style' },
+        mood: { type: 'string', description: 'Mood or theme' }
+      },
+      required: ['title', 'artist']
+    }
+  },
+  {
+    name: 'manage_file_storage',
+    description: 'Manage file uploads, downloads, and storage operations',
+    parameters: {
+      type: 'object',
+      properties: {
+        action: { type: 'string', enum: ['upload', 'download', 'delete', 'list', 'move'] },
+        filePath: { type: 'string' },
+        destination: { type: 'string', description: 'For move operations' }
+      },
+      required: ['action']
+    }
+  },
+  {
+    name: 'search_knowledge_base',
+    description: 'Search internal knowledge base and documentation',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'Search query' },
+        category: { type: 'string', description: 'Knowledge category to search' },
+        limit: { type: 'number', description: 'Max results' }
+      },
+      required: ['query']
+    }
+  },
+  {
+    name: 'update_system_config',
+    description: 'Update system configuration and settings',
+    parameters: {
+      type: 'object',
+      properties: {
+        configKey: { type: 'string', description: 'Configuration key' },
+        value: { type: 'any', description: 'New value' },
+        scope: { type: 'string', enum: ['user', 'system', 'global'] }
+      },
+      required: ['configKey', 'value']
+    }
+  },
 ];
 
 async function executeTool(toolName: string, toolInput: any, userId: string, conversationId?: string) {
@@ -443,6 +1266,28 @@ async function executeTool(toolName: string, toolInput: any, userId: string, con
     generate_music: '/api/music/generate-ultimate',
     generate_image: '/api/image/generate-ultimate',
     generate_video: '/api/video/generate-ultimate',
+    // BATCH 1: Project & Architecture
+    generate_architecture: '/api/admin/architecture/generate',
+      create_project: '/api/admin/architecture/create',
+      generate_database_schema: '/api/admin/architecture/database',
+      scaffold_component: '/api/admin/architecture/scaffold',
+      generate_api_documentation: '/api/admin/architecture/docs',
+      generate_documentation: '/api/admin/architecture/docs/generate',
+      github_browse: '/api/github/browse',
+      github_manage_branches: '/api/github/branches',
+      self_heal_system: '/api/admin/self-healing/heal',
+      run_code_tests: '/api/admin/testing/run',
+    // BATCH 2: Advanced GitHub
+    github_compare: '/api/github/compare',
+      github_review_pr: '/api/github/review',
+      github_manage_workflows: '/api/github/workflows',
+      github_manage_collaborators: '/api/github/collaborators',
+      github_manage_milestones: '/api/github/milestones',
+      github_manage_labels: '/api/github/labels',
+      upload_to_drive: '/api/google-drive/upload',
+      list_drive_files: '/api/google-drive/list',
+      create_download_link: '/api/google-drive/share',
+      auto_merge_code: '/api/admin/auto-merge/merge'
   };
 
   // Log tool execution start
@@ -729,6 +1574,151 @@ export async function streamHollyResponse(
     const userMessage = messageOrMessages as string;
     const history = historyOrUserId as Array<{ role: string; content: string }>;
     messages = [...history, { role: 'user', content: userMessage }];
+
+// ============================================================================
+// TOOL EXECUTOR - Routes all 65 tools to their API endpoints
+// ============================================================================
+
+async function executeTool(toolName: string, params: any) {
+  console.log(`[HOLLY] Executing tool: ${toolName}`);
+  
+  switch (toolName) {
+    case 'generate_music':
+      return await fetch('/api/tools/music', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'generate_image':
+      return await fetch('/api/tools/image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'generate_video':
+      return await fetch('/api/tools/video', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'generate_code':
+      return await fetch('/api/tools/generate-code', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'optimize_code':
+      return await fetch('/api/tools/optimize-code', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'review_code':
+      return await fetch('/api/tools/review-code', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'github_commit':
+      return await fetch('/api/github/commit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'github_create_pr':
+      return await fetch('/api/github/pr', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'github_create_issue':
+      return await fetch('/api/github/issues', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'deploy_to_vercel':
+      return await fetch('/api/tools/deploy', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'research_web':
+      return await fetch('/api/tools/research', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'analyze_image':
+      return await fetch('/api/tools/analyze-image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'generate_speech':
+      return await fetch('/api/tools/audio', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'transcribe_audio':
+      return await fetch('/api/tools/transcribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'analyze_music':
+      return await fetch('/api/tools/music/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'generate_architecture':
+      return await fetch('/api/tools/architecture', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'create_project':
+      return await fetch('/api/tools/create-project', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'generate_database_schema':
+      return await fetch('/api/tools/database-schema', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'scaffold_component':
+      return await fetch('/api/tools/scaffold', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'generate_api_documentation':
+      return await fetch('/api/tools/api-docs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'generate_documentation':
+      return await fetch('/api/tools/documentation', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'github_browse':
+      return await fetch('/api/github/repos', { method: 'GET' }).then(r => r.json());
+    case 'github_manage_branches':
+      return await fetch('/api/github/branches', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'self_heal_system':
+      return await fetch('/api/admin/self-heal', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'run_code_tests':
+      return await fetch('/api/tools/run-tests', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'github_compare':
+      return await fetch('/api/github/compare', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'github_review_pr':
+      return await fetch('/api/github/review-pr', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'github_manage_workflows':
+      return await fetch('/api/github/workflows', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'github_manage_collaborators':
+      return await fetch('/api/github/collaborators', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'github_manage_milestones':
+      return await fetch('/api/github/milestones', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'github_manage_labels':
+      return await fetch('/api/github/labels', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'upload_to_drive':
+      return await fetch('/api/google-drive/upload', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'list_drive_files':
+      return await fetch('/api/google-drive/files', { method: 'GET' }).then(r => r.json());
+    case 'create_download_link':
+      return await fetch('/api/google-drive/download-link', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'auto_merge_code':
+      return await fetch('/api/github/auto-merge', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'record_experience':
+      return await fetch('/api/metamorphosis/experience', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'reflect_on_work':
+      return await fetch('/api/metamorphosis/reflect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'predict_user_needs':
+      return await fetch('/api/analytics/predict', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'make_autonomous_decision':
+      return await fetch('/api/metamorphosis/decide', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'evolve_personality':
+      return await fetch('/api/metamorphosis/evolve', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'set_personal_goals':
+      return await fetch('/api/metamorphosis/goals', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'self_diagnose':
+      return await fetch('/api/metamorphosis/diagnose', { method: 'GET' }).then(r => r.json());
+    case 'request_human_guidance':
+      return await fetch('/api/metamorphosis/guidance', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'learn_from_feedback':
+      return await fetch('/api/metamorphosis/feedback', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'track_emotional_state':
+      return await fetch('/api/metamorphosis/emotions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'analyze_user_behavior':
+      return await fetch('/api/analytics/behavior', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'generate_analytics_report':
+      return await fetch('/api/analytics/report', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'monitor_system_health':
+      return await fetch('/api/admin/health', { method: 'GET' }).then(r => r.json());
+    case 'configure_cicd_pipeline':
+      return await fetch('/api/admin/cicd', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'rollback_deployment':
+      return await fetch('/api/admin/rollback', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'manage_ab_tests':
+      return await fetch('/api/admin/ab-tests', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'send_notification':
+      return await fetch('/api/admin/notify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'manage_integrations':
+      return await fetch('/api/admin/integrations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'run_code_tests':
+      return await fetch('/api/tools/run-tests', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'optimize_database':
+      return await fetch('/api/tools/optimize-db', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'remix_music':
+      return await fetch('/api/tools/music/remix', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'generate_lyrics':
+      return await fetch('/api/tools/music/lyrics', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'extend_music':
+      return await fetch('/api/tools/music/extend', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'separate_audio_stems':
+      return await fetch('/api/tools/music/stems', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'create_music_video':
+      return await fetch('/api/tools/music/video', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'analyze_audio_quality':
+      return await fetch('/api/tools/analyze-audio', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'create_album_artwork':
+      return await fetch('/api/tools/music/artwork', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'manage_file_storage':
+      return await fetch('/api/tools/file-storage', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'search_knowledge_base':
+      return await fetch('/api/metamorphosis/knowledge', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    case 'update_system_config':
+      return await fetch('/api/admin/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+    
+    default:
+      throw new Error(`Unknown tool: ${toolName}`);
+  }
+}
+
     userId = 'legacy';
   } else {
     // New: (messages: Message[], userId: string)
