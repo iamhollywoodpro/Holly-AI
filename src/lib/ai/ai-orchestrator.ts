@@ -331,7 +331,242 @@ const HOLLY_TOOLS = [
         required: ['audioUrl']
       }
     }
-  }
+  },
+  // ============================================================================
+  // 🏗️ BATCH 1: PROJECT & ARCHITECTURE (10 tools)
+  // ============================================================================
+  {
+      type: 'function',
+      function: {
+        name: 'generate_architecture',
+        description: 'Generate complete project architecture including folder structure, dependencies, and configuration files.',
+        parameters: {
+          type: 'object',
+          properties: {
+            projectType: { 
+              type: 'string', 
+              enum: ['nextjs', 'react', 'nodejs', 'express', 'fastapi', 'django'],
+              description: 'Type of project to scaffold'
+            },
+            features: { 
+              type: 'array',
+              items: { type: 'string' },
+              description: 'Features to include (auth, database, api, etc.)'
+            },
+            description: { 
+              type: 'string',
+              description: 'Project description and requirements'
+            }
+          },
+          required: ['projectType', 'description']
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'create_project',
+        description: 'Create a new project with complete scaffolding, dependencies, and initial files.',
+        parameters: {
+          type: 'object',
+          properties: {
+            name: { type: 'string', description: 'Project name' },
+            template: { 
+              type: 'string',
+              enum: ['blank', 'starter', 'full-stack', 'api-only', 'frontend-only'],
+              description: 'Project template'
+            },
+            framework: {
+              type: 'string',
+              enum: ['nextjs', 'react', 'vue', 'express', 'fastapi'],
+              description: 'Framework to use'
+            }
+          },
+          required: ['name', 'framework']
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'generate_database_schema',
+        description: 'Generate database schema with Prisma, SQL, or MongoDB models.',
+        parameters: {
+          type: 'object',
+          properties: {
+            entities: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'Database entities (User, Post, Comment, etc.)'
+            },
+            database: {
+              type: 'string',
+              enum: ['postgresql', 'mysql', 'sqlite', 'mongodb'],
+              description: 'Database type'
+            },
+            relationships: {
+              type: 'string',
+              description: 'Entity relationships description'
+            }
+          },
+          required: ['entities', 'database']
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'scaffold_component',
+        description: 'Generate React/Next.js components with TypeScript, props, and styling.',
+        parameters: {
+          type: 'object',
+          properties: {
+            componentName: { type: 'string', description: 'Component name' },
+            componentType: {
+              type: 'string',
+              enum: ['page', 'component', 'layout', 'api-route'],
+              description: 'Type of component'
+            },
+            features: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'Features (state, hooks, forms, etc.)'
+            },
+            styling: {
+              type: 'string',
+              enum: ['tailwind', 'css-modules', 'styled-components', 'none'],
+              description: 'Styling approach'
+            }
+          },
+          required: ['componentName', 'componentType']
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'generate_api_documentation',
+        description: 'Generate API documentation in OpenAPI/Swagger format.',
+        parameters: {
+          type: 'object',
+          properties: {
+            endpoints: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'API endpoints to document'
+            },
+            format: {
+              type: 'string',
+              enum: ['openapi', 'swagger', 'markdown'],
+              description: 'Documentation format'
+            }
+          },
+          required: ['endpoints']
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'generate_documentation',
+        description: 'Generate comprehensive project documentation including README, guides, and API docs.',
+        parameters: {
+          type: 'object',
+          properties: {
+            projectPath: { type: 'string', description: 'Project directory path' },
+            sections: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'Documentation sections (setup, usage, api, deployment)'
+            },
+            format: {
+              type: 'string',
+              enum: ['markdown', 'html', 'pdf'],
+              description: 'Output format'
+            }
+          },
+          required: ['projectPath']
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'github_browse',
+        description: 'Browse GitHub repository files and folders.',
+        parameters: {
+          type: 'object',
+          properties: {
+            repo: { type: 'string', description: 'Repository name (owner/repo)' },
+            path: { type: 'string', description: 'Path to browse' },
+            branch: { type: 'string', description: 'Branch name' }
+          },
+          required: ['repo']
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'github_manage_branches',
+        description: 'Create, delete, and manage GitHub branches.',
+        parameters: {
+          type: 'object',
+          properties: {
+            repo: { type: 'string', description: 'Repository name (owner/repo)' },
+            action: {
+              type: 'string',
+              enum: ['create', 'delete', 'list', 'merge'],
+              description: 'Branch action'
+            },
+            branchName: { type: 'string', description: 'Branch name' },
+            fromBranch: { type: 'string', description: 'Source branch for creation' }
+          },
+          required: ['repo', 'action']
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'self_heal_system',
+        description: 'Automatically detect and fix common issues in the codebase.',
+        parameters: {
+          type: 'object',
+          properties: {
+            projectPath: { type: 'string', description: 'Project directory' },
+            issueTypes: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'Issue types to fix (lint, types, imports, dependencies)'
+            },
+            autoFix: { type: 'boolean', description: 'Automatically apply fixes' }
+          },
+          required: ['projectPath']
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'run_code_tests',
+        description: 'Execute tests using Jest, Vitest, or Pytest.',
+        parameters: {
+          type: 'object',
+          properties: {
+            projectPath: { type: 'string', description: 'Project directory' },
+            testFramework: {
+              type: 'string',
+              enum: ['jest', 'vitest', 'pytest', 'mocha'],
+              description: 'Testing framework'
+            },
+            testPath: { type: 'string', description: 'Specific test file or directory' },
+            coverage: { type: 'boolean', description: 'Generate coverage report' }
+          },
+          required: ['projectPath']
+        }
+      }
+    }
 ];
 
 async function executeTool(toolName: string, toolInput: any, userId: string, conversationId?: string) {
@@ -443,6 +678,17 @@ async function executeTool(toolName: string, toolInput: any, userId: string, con
     generate_music: '/api/music/generate-ultimate',
     generate_image: '/api/image/generate-ultimate',
     generate_video: '/api/video/generate-ultimate',
+    // BATCH 1: Project & Architecture
+    generate_architecture: '/api/admin/architecture/generate',
+      create_project: '/api/admin/architecture/create',
+      generate_database_schema: '/api/admin/architecture/database',
+      scaffold_component: '/api/admin/architecture/scaffold',
+      generate_api_documentation: '/api/admin/architecture/docs',
+      generate_documentation: '/api/admin/architecture/docs/generate',
+      github_browse: '/api/github/browse',
+      github_manage_branches: '/api/github/branches',
+      self_heal_system: '/api/admin/self-healing/heal',
+      run_code_tests: '/api/admin/testing/run'
   };
 
   // Log tool execution start
