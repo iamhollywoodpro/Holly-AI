@@ -1308,11 +1308,29 @@ async function executeTool(toolName: string, toolInput: any, userId: string, con
   // });
 
   try {
+    console.log(`[HOLLY TOOL] Calling ${toolName} at ${baseUrl}${endpoints[toolName]}`);
+    console.log(`[HOLLY TOOL] Params:`, JSON.stringify({ ...toolInput, userId: userId?.substring(0, 10), conversationId }, null, 2));
+
     const response = await fetch(`${baseUrl}${endpoints[toolName]}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...toolInput, userId, conversationId })
     });
+
+    console.log(`[HOLLY TOOL] Response status: ${response.status} ${response.statusText}`);
+
+    // If response is not OK, log detailed error
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[HOLLY TOOL] Error response:`, errorText);
+      
+      return {
+        success: false,
+        error: `API returned ${response.status}: ${response.statusText}`,
+        details: errorText,
+        endpoint: endpoints[toolName]
+      };
+    }
 
     // Handle different response types (JSON vs Blob for images/videos)
     const contentType = response.headers.get('content-type');
@@ -1320,6 +1338,7 @@ async function executeTool(toolName: string, toolInput: any, userId: string, con
     
     if (contentType && contentType.includes('application/json')) {
       result = await response.json();
+      console.log(`[HOLLY TOOL] JSON result:`, result);
     } else if (contentType && (contentType.includes('image/') || contentType.includes('video/'))) {
       // Image/video endpoints return blobs - provide metadata
       result = {
@@ -1329,16 +1348,19 @@ async function executeTool(toolName: string, toolInput: any, userId: string, con
         message: `${toolDisplayNames[toolName] || 'Content'} generated successfully`,
         note: 'Media file generated and ready for display'
       };
+      console.log(`[HOLLY TOOL] Blob result:`, result);
     } else {
       // Fallback - try JSON
       try {
         result = await response.json();
+        console.log(`[HOLLY TOOL] Fallback JSON result:`, result);
       } catch (e) {
         result = { 
           success: response.ok, 
           message: response.ok ? 'Operation completed' : 'Operation failed',
           status: response.status
         };
+        console.log(`[HOLLY TOOL] Parse failed, using fallback:`, result);
       }
     }
     
