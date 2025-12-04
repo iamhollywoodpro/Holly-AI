@@ -1584,135 +1584,390 @@ async function executeTool(toolName: string, params: any) {
   
   switch (toolName) {
     case 'generate_music':
-      return await fetch('/api/tools/music', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+      return await fetch('/api/music/generate', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
     case 'generate_image':
-      return await fetch('/api/tools/image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+      return await fetch('/api/image/generate', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
     case 'generate_video':
-      return await fetch('/api/tools/video', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
-    case 'generate_code':
-      return await fetch('/api/tools/generate-code', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
-    case 'optimize_code':
-      return await fetch('/api/tools/optimize-code', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
-    case 'review_code':
-      return await fetch('/api/tools/review-code', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
-    case 'github_commit':
-      return await fetch('/api/github/commit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
-    case 'github_create_pr':
-      return await fetch('/api/github/pr', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
-    case 'github_create_issue':
-      return await fetch('/api/github/issues', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
-    case 'deploy_to_vercel':
-      return await fetch('/api/tools/deploy', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
-    case 'research_web':
-      return await fetch('/api/tools/research', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
-    case 'analyze_image':
-      return await fetch('/api/tools/analyze-image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+      return await fetch('/api/video/generate', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
     case 'generate_speech':
-      return await fetch('/api/tools/audio', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
-    case 'transcribe_audio':
-      return await fetch('/api/tools/transcribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
-    case 'analyze_music':
-      return await fetch('/api/tools/music/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
-    case 'generate_architecture':
-      return await fetch('/api/tools/architecture', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
-    case 'create_project':
-      return await fetch('/api/tools/create-project', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
-    case 'generate_database_schema':
-      return await fetch('/api/tools/database-schema', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+      return await fetch('/api/tts/generate', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
+    case 'generate_code':
+      return await fetch('/api/code/generate', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
+    case 'optimize_code':
+      return await fetch('/api/code/optimize', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
+    case 'review_code':
+      return await fetch('/api/code/review', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
+    case 'run_code_tests':
+      return await fetch('/api/testing/run', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
     case 'scaffold_component':
-      return await fetch('/api/tools/scaffold', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+      return await fetch('/api/code/scaffold', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
+    case 'create_project':
+      return await fetch('/api/projects', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
+    case 'generate_architecture':
+      return await fetch('/api/admin/architecture/generate', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
+    case 'generate_database_schema':
+      return await fetch('/api/admin/builder/generate', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
     case 'generate_api_documentation':
-      return await fetch('/api/tools/api-docs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+      return await fetch('/api/admin/docs', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
     case 'generate_documentation':
-      return await fetch('/api/tools/documentation', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+      return await fetch('/api/admin/docs', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
+    case 'github_commit':
+      return await fetch('/api/github/commit', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
+    case 'github_create_pr':
+      return await fetch('/api/github/pull-request', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
+    case 'github_create_issue':
+      return await fetch('/api/github/issues', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
     case 'github_browse':
-      return await fetch('/api/github/repos', { method: 'GET' }).then(r => r.json());
+      return await fetch('/api/github/browse', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
     case 'github_manage_branches':
-      return await fetch('/api/github/branches', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
-    case 'self_heal_system':
-      return await fetch('/api/admin/self-heal', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
-    case 'run_code_tests':
-      return await fetch('/api/tools/run-tests', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
-    case 'github_compare':
-      return await fetch('/api/github/compare', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
-    case 'github_review_pr':
-      return await fetch('/api/github/review-pr', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+      return await fetch('/api/github/branches', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
     case 'github_manage_workflows':
-      return await fetch('/api/github/workflows', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+      return await fetch('/api/github/workflows', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
     case 'github_manage_collaborators':
-      return await fetch('/api/github/collaborators', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+      return await fetch('/api/github/collaborators', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
+    case 'github_compare':
+      return await fetch('/api/github/compare', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
+    case 'github_review_pr':
+      return await fetch('/api/github/review', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
     case 'github_manage_milestones':
-      return await fetch('/api/github/milestones', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+      return await fetch('/api/github/milestones', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
     case 'github_manage_labels':
-      return await fetch('/api/github/labels', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
-    case 'upload_to_drive':
-      return await fetch('/api/google-drive/upload', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
-    case 'list_drive_files':
-      return await fetch('/api/google-drive/files', { method: 'GET' }).then(r => r.json());
-    case 'create_download_link':
-      return await fetch('/api/google-drive/download-link', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+      return await fetch('/api/github/labels', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
     case 'auto_merge_code':
-      return await fetch('/api/github/auto-merge', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
-    case 'record_experience':
-      return await fetch('/api/metamorphosis/experience', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
-    case 'reflect_on_work':
-      return await fetch('/api/metamorphosis/reflect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
-    case 'predict_user_needs':
-      return await fetch('/api/analytics/predict', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
-    case 'make_autonomous_decision':
-      return await fetch('/api/metamorphosis/decide', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
-    case 'evolve_personality':
-      return await fetch('/api/metamorphosis/evolve', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
-    case 'set_personal_goals':
-      return await fetch('/api/metamorphosis/goals', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
-    case 'self_diagnose':
-      return await fetch('/api/metamorphosis/diagnose', { method: 'GET' }).then(r => r.json());
-    case 'request_human_guidance':
-      return await fetch('/api/metamorphosis/guidance', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
-    case 'learn_from_feedback':
-      return await fetch('/api/metamorphosis/feedback', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
-    case 'track_emotional_state':
-      return await fetch('/api/metamorphosis/emotions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
-    case 'analyze_user_behavior':
-      return await fetch('/api/analytics/behavior', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
-    case 'generate_analytics_report':
-      return await fetch('/api/analytics/report', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
-    case 'monitor_system_health':
-      return await fetch('/api/admin/health', { method: 'GET' }).then(r => r.json());
-    case 'configure_cicd_pipeline':
-      return await fetch('/api/admin/cicd', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
-    case 'rollback_deployment':
-      return await fetch('/api/admin/rollback', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
-    case 'manage_ab_tests':
-      return await fetch('/api/admin/ab-tests', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
-    case 'send_notification':
-      return await fetch('/api/admin/notify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
-    case 'manage_integrations':
-      return await fetch('/api/admin/integrations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
-    case 'run_code_tests':
-      return await fetch('/api/tools/run-tests', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
-    case 'optimize_database':
-      return await fetch('/api/tools/optimize-db', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
-    case 'remix_music':
-      return await fetch('/api/tools/music/remix', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
-    case 'generate_lyrics':
-      return await fetch('/api/tools/music/lyrics', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
-    case 'extend_music':
-      return await fetch('/api/tools/music/extend', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
-    case 'separate_audio_stems':
-      return await fetch('/api/tools/music/stems', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
-    case 'create_music_video':
-      return await fetch('/api/tools/music/video', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+      return await fetch('/api/admin/auto-merge', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
+    case 'deploy_to_vercel':
+      return await fetch('/api/vercel/deploy', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
+    case 'research_web':
+      return await fetch('/api/research/web', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
+    case 'analyze_image':
+      return await fetch('/api/vision/analyze', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
+    case 'transcribe_audio':
+      return await fetch('/api/audio/transcribe', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
     case 'analyze_audio_quality':
-      return await fetch('/api/tools/analyze-audio', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
-    case 'create_album_artwork':
-      return await fetch('/api/tools/music/artwork', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
-    case 'manage_file_storage':
-      return await fetch('/api/tools/file-storage', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+      return await fetch('/api/audio/analyze-advanced', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
+    case 'learn_from_feedback':
+      return await fetch('/api/consciousness/learn', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
+    case 'record_experience':
+      return await fetch('/api/consciousness/record-experience', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
+    case 'self_diagnose':
+      return await fetch('/api/health', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
+    case 'evolve_personality':
+      return await fetch('/api/consciousness/identity-evolution', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
+    case 'make_autonomous_decision':
+      return await fetch('/api/consciousness/decide', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
+    case 'set_personal_goals':
+      return await fetch('/api/consciousness/goals', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
+    case 'reflect_on_work':
+      return await fetch('/api/consciousness/reflect', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
+    case 'track_emotional_state':
+      return await fetch('/api/consciousness/emotional-state', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
     case 'search_knowledge_base':
-      return await fetch('/api/metamorphosis/knowledge', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+      return await fetch('/api/metamorphosis/knowledge', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
+    case 'request_human_guidance':
+      return await fetch('/api/consciousness/initiative', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
+    case 'analyze_user_behavior':
+      return await fetch('/api/user/behavior', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
+    case 'generate_analytics_report':
+      return await fetch('/api/admin/analytics', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
+    case 'monitor_system_health':
+      return await fetch('/api/health', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
+    case 'manage_integrations':
+      return await fetch('/api/admin/integrations', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
+    case 'send_notification':
+      return await fetch('/api/admin/notifications', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
+    case 'manage_ab_tests':
+      return await fetch('/api/admin/abtest', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
     case 'update_system_config':
-      return await fetch('/api/admin/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params) }).then(r => r.json());
+      return await fetch('/api/settings', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
+    case 'configure_cicd_pipeline':
+      return await fetch('/api/admin/cicd', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
+    case 'rollback_deployment':
+      return await fetch('/api/vercel/rollback', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
+    case 'self_heal_system':
+      return await fetch('/api/admin/self-healing/trigger', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
+    case 'generate_lyrics':
+      return await fetch('/api/music/lyrics', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
+    case 'remix_music':
+      return await fetch('/api/music/remix', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
+    case 'extend_music':
+      return await fetch('/api/music/extend', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
+    case 'separate_audio_stems':
+      return await fetch('/api/music/separate-stems', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
+    case 'analyze_music':
+      return await fetch('/api/music/analyze', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
+    case 'create_music_video':
+      return await fetch('/api/music/video', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
+    case 'create_album_artwork':
+      return await fetch('/api/media/album-cover', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
+    case 'upload_to_drive':
+      return await fetch('/api/google-drive/upload', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
+    case 'list_drive_files':
+      return await fetch('/api/google-drive/files', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
+    case 'create_download_link':
+      return await fetch('/api/download-link/create', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
+    case 'manage_file_storage':
+      return await fetch('/api/upload', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
+    case 'optimize_database':
+      return await fetch('/api/admin/optimize-db', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
+    case 'predict_user_needs':
+      return await fetch('/api/learning/predictive/needs', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(params) 
+      }).then(r => r.json());
+
     
     default:
       throw new Error(`Unknown tool: ${toolName}`);
