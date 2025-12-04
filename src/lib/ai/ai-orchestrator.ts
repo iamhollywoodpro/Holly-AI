@@ -566,6 +566,210 @@ const HOLLY_TOOLS = [
           required: ['projectPath']
         }
       }
+    },
+  // ============================================================================
+  // 🐙 BATCH 2: ADVANCED GITHUB (10 tools)
+  // ============================================================================
+  {
+      type: 'function',
+      function: {
+        name: 'github_compare',
+        description: 'Compare two branches or commits to see differences.',
+        parameters: {
+          type: 'object',
+          properties: {
+            repo: { type: 'string', description: 'Repository name (owner/repo)' },
+            base: { type: 'string', description: 'Base branch or commit' },
+            head: { type: 'string', description: 'Head branch or commit' }
+          },
+          required: ['repo', 'base', 'head']
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'github_review_pr',
+        description: 'Review pull requests with comments and approval/rejection.',
+        parameters: {
+          type: 'object',
+          properties: {
+            repo: { type: 'string', description: 'Repository name (owner/repo)' },
+            prNumber: { type: 'number', description: 'Pull request number' },
+            action: {
+              type: 'string',
+              enum: ['approve', 'request_changes', 'comment'],
+              description: 'Review action'
+            },
+            comment: { type: 'string', description: 'Review comment' }
+          },
+          required: ['repo', 'prNumber', 'action']
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'github_manage_workflows',
+        description: 'Manage GitHub Actions workflows (list, trigger, cancel).',
+        parameters: {
+          type: 'object',
+          properties: {
+            repo: { type: 'string', description: 'Repository name (owner/repo)' },
+            action: {
+              type: 'string',
+              enum: ['list', 'trigger', 'cancel', 'status'],
+              description: 'Workflow action'
+            },
+            workflowId: { type: 'string', description: 'Workflow ID or filename' },
+            branch: { type: 'string', description: 'Branch to run workflow on' }
+          },
+          required: ['repo', 'action']
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'github_manage_collaborators',
+        description: 'Add, remove, or list repository collaborators.',
+        parameters: {
+          type: 'object',
+          properties: {
+            repo: { type: 'string', description: 'Repository name (owner/repo)' },
+            action: {
+              type: 'string',
+              enum: ['list', 'add', 'remove', 'update_permission'],
+              description: 'Collaborator action'
+            },
+            username: { type: 'string', description: 'GitHub username' },
+            permission: {
+              type: 'string',
+              enum: ['read', 'write', 'admin'],
+              description: 'Permission level'
+            }
+          },
+          required: ['repo', 'action']
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'github_manage_milestones',
+        description: 'Create, update, or close project milestones.',
+        parameters: {
+          type: 'object',
+          properties: {
+            repo: { type: 'string', description: 'Repository name (owner/repo)' },
+            action: {
+              type: 'string',
+              enum: ['list', 'create', 'update', 'close'],
+              description: 'Milestone action'
+            },
+            title: { type: 'string', description: 'Milestone title' },
+            description: { type: 'string', description: 'Milestone description' },
+            dueDate: { type: 'string', description: 'Due date (YYYY-MM-DD)' }
+          },
+          required: ['repo', 'action']
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'github_manage_labels',
+        description: 'Create, update, or delete issue/PR labels.',
+        parameters: {
+          type: 'object',
+          properties: {
+            repo: { type: 'string', description: 'Repository name (owner/repo)' },
+            action: {
+              type: 'string',
+              enum: ['list', 'create', 'update', 'delete'],
+              description: 'Label action'
+            },
+            name: { type: 'string', description: 'Label name' },
+            color: { type: 'string', description: 'Label color (hex without #)' },
+            description: { type: 'string', description: 'Label description' }
+          },
+          required: ['repo', 'action']
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'upload_to_drive',
+        description: 'Upload files to Google Drive.',
+        parameters: {
+          type: 'object',
+          properties: {
+            filePath: { type: 'string', description: 'Local file path to upload' },
+            fileName: { type: 'string', description: 'Name for the file in Drive' },
+            folderId: { type: 'string', description: 'Google Drive folder ID (optional)' },
+            mimeType: { type: 'string', description: 'File MIME type' }
+          },
+          required: ['filePath', 'fileName']
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'list_drive_files',
+        description: 'List files in Google Drive.',
+        parameters: {
+          type: 'object',
+          properties: {
+            folderId: { type: 'string', description: 'Folder ID to list files from' },
+            query: { type: 'string', description: 'Search query' },
+            limit: { type: 'number', description: 'Maximum number of files to return' }
+          },
+          required: []
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'create_download_link',
+        description: 'Create shareable download link for Google Drive files.',
+        parameters: {
+          type: 'object',
+          properties: {
+            fileId: { type: 'string', description: 'Google Drive file ID' },
+            permission: {
+              type: 'string',
+              enum: ['view', 'comment', 'edit'],
+              description: 'Link permission level'
+            },
+            expirationDays: { type: 'number', description: 'Link expiration in days' }
+          },
+          required: ['fileId']
+        }
+      }
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'auto_merge_code',
+        description: 'Automatically merge pull requests that pass all checks.',
+        parameters: {
+          type: 'object',
+          properties: {
+            repo: { type: 'string', description: 'Repository name (owner/repo)' },
+            prNumber: { type: 'number', description: 'Pull request number' },
+            mergeMethod: {
+              type: 'string',
+              enum: ['merge', 'squash', 'rebase'],
+              description: 'Merge method'
+            },
+            waitForChecks: { type: 'boolean', description: 'Wait for CI checks to pass' }
+          },
+          required: ['repo', 'prNumber']
+        }
+      }
     }
 ];
 
@@ -688,7 +892,18 @@ async function executeTool(toolName: string, toolInput: any, userId: string, con
       github_browse: '/api/github/browse',
       github_manage_branches: '/api/github/branches',
       self_heal_system: '/api/admin/self-healing/heal',
-      run_code_tests: '/api/admin/testing/run'
+      run_code_tests: '/api/admin/testing/run',
+    // BATCH 2: Advanced GitHub
+    github_compare: '/api/github/compare',
+      github_review_pr: '/api/github/review',
+      github_manage_workflows: '/api/github/workflows',
+      github_manage_collaborators: '/api/github/collaborators',
+      github_manage_milestones: '/api/github/milestones',
+      github_manage_labels: '/api/github/labels',
+      upload_to_drive: '/api/google-drive/upload',
+      list_drive_files: '/api/google-drive/list',
+      create_download_link: '/api/google-drive/share',
+      auto_merge_code: '/api/admin/auto-merge/merge'
   };
 
   // Log tool execution start
