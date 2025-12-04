@@ -6,6 +6,7 @@
  * Phase 4D: Testing Dashboard, CI/CD Pipeline, Code Review, Documentation Generator
  * Phase 4E: Integrations Dashboard, Notification Center, Webhook Manager
  * Phase 4F: Business Metrics, Custom Reports, Metric Alerts, Analytics Dashboards
+ * Phase 5A: Code Synthesizer, Code Templates Manager
  */
 
 'use client';
@@ -36,6 +37,8 @@ import {
   Image,
   Video,
   Music,
+  Code,
+  Package,
 } from 'lucide-react';
 
 // Phase 4A Panels
@@ -73,6 +76,10 @@ import BusinessMetricsDashboard from '@/components/admin/BusinessMetricsDashboar
 import CustomReportsBuilder from '@/components/admin/CustomReportsBuilder';
 import MetricAlertsManager from '@/components/admin/MetricAlertsManager';
 import AnalyticsDashboardManager from '@/components/admin/AnalyticsDashboardPanel';
+// Phase 5A Panels
+import CodeSynthesizerPanel from '@/components/admin/CodeSynthesizerPanel';
+import CodeTemplatesPanel from '@/components/admin/CodeTemplatesPanel';
+
 
 
 type Tab = 
@@ -106,7 +113,9 @@ type Tab =
   | 'metrics'
   | 'reports'
   | 'alerts'
-  | 'dashboards';
+  | 'dashboards' |
+  'code-synthesizer' |
+  'code-templates';
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<Tab>('analytics');
@@ -265,6 +274,22 @@ export default function AdminDashboard() {
       description: 'Webhook manager',
       phase: '4E'
     },
+    // Phase 5A: Builder - Code Synthesizer
+    {
+      id: 'code-synthesizer' as Tab,
+      label: 'Code Synthesizer',
+      icon: Code,
+      phase: '5A',
+      description: 'AI-powered code generation with approval workflow'
+    },
+    {
+      id: 'code-templates' as Tab,
+      label: 'Code Templates',
+      icon: Package,
+      phase: '5A',
+      description: 'Reusable code patterns and templates library'
+    },
+
     // Phase 4F Tabs
     {
       id: 'metrics' as Tab,
@@ -381,6 +406,8 @@ export default function AdminDashboard() {
         {activeTab === 'webhooks' && <WebhookManagerPanel />}
 
         {/* Phase 4F Panels */}
+        {activeTab === 'code-synthesizer' && <CodeSynthesizerPanel />}
+        {activeTab === 'code-templates' && <CodeTemplatesPanel />}
         {activeTab === 'metrics' && <BusinessMetricsDashboard />}
         {activeTab === 'reports' && <CustomReportsBuilder />}
         {activeTab === 'alerts' && <MetricAlertsManager />}
