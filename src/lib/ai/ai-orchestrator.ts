@@ -2,6 +2,7 @@
 // 1M tokens/minute, 200 requests/day, completely FREE, cutting-edge Google AI
 import OpenAI from 'openai';
 import { getHollySystemPrompt } from './holly-system-prompt';
+import { manageContext, validateMessages, estimateTokens } from './context-manager';
 // Work Log system disabled for regular responses - only used for creation tasks
 // import { logWorking, logSuccess, logError, logInfo } from '@/lib/logging/work-log-service';
 
@@ -1423,11 +1424,26 @@ export async function generateHollyResponse(
       // 'casual' is default - no modification needed
     }
     
-    // Apply context window (limit conversation history)
-    const contextWindow = aiSettings?.contextWindow || 20;
-    const limitedMessages = messages.length > contextWindow 
+    // Apply intelligent context management to prevent 400 errors
+    const contextWindow = aiSettings?.contextWindow || 15; // Reduced from 20 for safety
+    let limitedMessages = messages.length > contextWindow 
       ? messages.slice(-contextWindow) 
       : messages;
+    
+    // Use context manager to prevent 400 errors
+    limitedMessages = manageContext(limitedMessages, {
+      maxMessages: contextWindow,
+      maxTokensPerMessage: 4000,
+      enableSummarization: messages.length > 12,
+    });
+    
+    // Validate messages before sending to API
+    const validation = validateMessages(limitedMessages);
+    console.log(`📊 [CONTEXT] Messages: ${limitedMessages.length}, Est. tokens: ${validation.estimatedTokens}`);
+    
+    if (!validation.valid) {
+      console.warn('⚠️ [CONTEXT] Validation issues:', validation.issues);
+    }
     
     const messagesWithPersonality = [
       { role: 'system', content: hollySystemPrompt },
@@ -1515,6 +1531,44 @@ export async function generateHollyResponse(
     };
   } catch (error: any) {
     console.error('Gemini error:', error);
+    
+    // CRITICAL: Handle 400 Bad Request errors specifically
+    if (error?.status === 400 || error?.message?.includes('400')) {
+      console.error('❌ [400 ERROR] Bad request to Gemini API');
+      console.error('❌ [400 ERROR] This usually means:');
+      console.error('   1. Message format is invalid');
+      console.error('   2. Tool definitions are malformed');
+      console.error('   3. Context is too large (rare with 1M token limit)');
+      console.error('   4. Some parameter is invalid');
+      console.error('❌ [400 ERROR] Message count:', messages.length);
+      console.error('❌ [400 ERROR] Estimated tokens:', estimateTokens(JSON.stringify(messages)));
+      
+      // Try to recover by drastically reducing context
+      if (messages.length > 3) {
+        console.log('🔄 [RECOVERY] Attempting recovery with minimal context...');
+        try {
+          const minimalMessages = messages.slice(-3); // Just last 3 messages
+          const recovery = await gemini.chat.completions.create({
+            model: 'gemini-2.5-flash',
+            messages: [
+              { role: 'system', content: getHollySystemPrompt('Hollywood') },
+              ...minimalMessages.map(m => ({ role: m.role as any, content: m.content }))
+            ],
+            temperature: 0.7,
+            max_tokens: 2048,
+            // NO TOOLS in recovery mode
+          });
+          
+          return {
+            content: (recovery.choices[0]?.message?.content || 'Error occurred') + 
+              '\n\n_Note: I had to reset my context due to a technical issue. Please continue from here._',
+            model: 'gemini-2.5-flash-recovery'
+          };
+        } catch (recoveryError) {
+          console.error('❌ [RECOVERY] Failed:', recoveryError);
+        }
+      }
+    }
     
     // Work log disabled
     // await logError(userId, `Gemini error: ${error.message}`, {
