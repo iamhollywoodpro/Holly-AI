@@ -18,16 +18,19 @@ const groq = new Groq({
 });
 
 const HOLLY_TOOLS = [
+  // ============================================================================
+  // 🎨 CREATIVE GENERATION (Currently Working)
+  // ============================================================================
   {
     type: 'function',
     function: {
       name: 'generate_music',
-      description: 'Generate music using Suno AI (primary) or free alternatives',
+      description: 'Generate music using Suno AI or free alternatives. Creates professional songs with lyrics.',
       parameters: {
         type: 'object',
         properties: {
-          prompt: { type: 'string', description: 'Music description' },
-          lyrics: { type: 'string', description: 'Optional lyrics' },
+          prompt: { type: 'string', description: 'Music style and mood description' },
+          lyrics: { type: 'string', description: 'Optional song lyrics' },
           modelPreference: { 
             type: 'string', 
             enum: ['suno', 'musicgen', 'riffusion', 'audiocraft', 'audioldm'] 
@@ -41,12 +44,12 @@ const HOLLY_TOOLS = [
     type: 'function',
     function: {
       name: 'generate_image',
-      description: 'Generate images using 8 FREE Hugging Face models',
+      description: 'Generate images using FLUX, SDXL, or other AI models. Best for artwork, designs, illustrations.',
       parameters: {
         type: 'object',
         properties: {
-          prompt: { type: 'string', description: 'Image description' },
-          style: { type: 'string', description: 'Art style' },
+          prompt: { type: 'string', description: 'Detailed image description' },
+          style: { type: 'string', description: 'Art style (realistic, artistic, anime, etc.)' },
           modelPreference: { 
             type: 'string',
             enum: ['flux-schnell', 'flux-dev', 'sdxl', 'animagine', 'realistic', 'proteus']
@@ -60,11 +63,11 @@ const HOLLY_TOOLS = [
     type: 'function',
     function: {
       name: 'generate_video',
-      description: 'Generate videos using 5 FREE Hugging Face models',
+      description: 'Generate videos using AI models. Creates 3-10 second video clips from descriptions.',
       parameters: {
         type: 'object',
         properties: {
-          prompt: { type: 'string', description: 'Video description' },
+          prompt: { type: 'string', description: 'Video scene description' },
           modelPreference: { 
             type: 'string',
             enum: ['zeroscope-v2', 'animatediff', 'cogvideo', 'modelscope', 'lavie']
@@ -73,11 +76,369 @@ const HOLLY_TOOLS = [
         required: ['prompt']
       }
     }
+  },
+  
+  // ============================================================================
+  // 💻 CODE GENERATION & DEVELOPMENT (RESTORED!)
+  // ============================================================================
+  {
+    type: 'function',
+    function: {
+      name: 'generate_code',
+      description: 'Generate production-ready code in any language (TypeScript, Python, JavaScript, React, Node.js, SQL, etc.). Use when user asks to create, write, or build code, components, functions, or applications.',
+      parameters: {
+        type: 'object',
+        properties: {
+          prompt: { type: 'string', description: 'Detailed description of code to generate' },
+          language: { 
+            type: 'string', 
+            enum: ['typescript', 'javascript', 'python', 'react', 'nodejs', 'sql', 'html', 'css', 'php'],
+            description: 'Programming language'
+          },
+          template: {
+            type: 'string',
+            enum: ['react-component', 'api-route', 'database-schema', 'function', 'class', 'hook', 'none'],
+            description: 'Code template type (optional)'
+          },
+          includeTests: { type: 'boolean', description: 'Generate unit tests' },
+          includeDocs: { type: 'boolean', description: 'Generate documentation' }
+        },
+        required: ['prompt', 'language']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'optimize_code',
+      description: 'Optimize existing code for performance, readability, security, or best practices. Use when user wants to improve or refactor code.',
+      parameters: {
+        type: 'object',
+        properties: {
+          code: { type: 'string', description: 'Code to optimize' },
+          language: { type: 'string', description: 'Programming language' },
+          optimizationType: {
+            type: 'string',
+            enum: ['performance', 'readability', 'security', 'best-practices'],
+            description: 'Type of optimization'
+          }
+        },
+        required: ['code', 'language']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'review_code',
+      description: 'Review code for issues, bugs, security vulnerabilities, and improvements. Use for code analysis, debugging, or quality checks.',
+      parameters: {
+        type: 'object',
+        properties: {
+          code: { type: 'string', description: 'Code to review' },
+          language: { type: 'string', description: 'Programming language' },
+          focusAreas: {
+            type: 'array',
+            items: { type: 'string', enum: ['security', 'performance', 'bugs', 'style', 'best-practices'] }
+          }
+        },
+        required: ['code', 'language']
+      }
+    }
+  },
+  
+  // ============================================================================
+  // 🔧 GITHUB INTEGRATION (RESTORED!)
+  // ============================================================================
+  {
+    type: 'function',
+    function: {
+      name: 'github_commit',
+      description: 'Commit and push code changes to GitHub repository. Use when user wants to save or deploy code to GitHub.',
+      parameters: {
+        type: 'object',
+        properties: {
+          files: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                path: { type: 'string', description: 'File path (e.g., src/components/Button.tsx)' },
+                content: { type: 'string', description: 'File content' }
+              }
+            },
+            description: 'Array of files to commit'
+          },
+          message: { type: 'string', description: 'Commit message' },
+          branch: { type: 'string', description: 'Branch name (default: main)' }
+        },
+        required: ['files', 'message']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'github_create_pr',
+      description: 'Create a pull request on GitHub for code review. Use when user wants to propose changes or request code review.',
+      parameters: {
+        type: 'object',
+        properties: {
+          title: { type: 'string', description: 'PR title' },
+          description: { type: 'string', description: 'PR description' },
+          sourceBranch: { type: 'string', description: 'Source branch with changes' },
+          targetBranch: { type: 'string', description: 'Target branch (default: main)' }
+        },
+        required: ['title', 'sourceBranch']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'github_create_issue',
+      description: 'Create a GitHub issue for bug tracking or feature requests.',
+      parameters: {
+        type: 'object',
+        properties: {
+          title: { type: 'string', description: 'Issue title' },
+          body: { type: 'string', description: 'Issue description' },
+          labels: { type: 'array', items: { type: 'string' }, description: 'Labels (e.g., bug, enhancement)' }
+        },
+        required: ['title']
+      }
+    }
+  },
+  
+  // ============================================================================
+  // 🚀 DEPLOYMENT (RESTORED!)
+  // ============================================================================
+  {
+    type: 'function',
+    function: {
+      name: 'deploy_to_vercel',
+      description: 'Deploy application to Vercel hosting platform. Use when user wants to deploy or publish their project online.',
+      parameters: {
+        type: 'object',
+        properties: {
+          projectName: { type: 'string', description: 'Project name' },
+          framework: { 
+            type: 'string', 
+            enum: ['nextjs', 'react', 'vue', 'svelte', 'static'],
+            description: 'Application framework' 
+          }
+        },
+        required: ['projectName']
+      }
+    }
+  },
+  
+  // ============================================================================
+  // 🔍 RESEARCH & ANALYSIS (RESTORED!)
+  // ============================================================================
+  {
+    type: 'function',
+    function: {
+      name: 'research_web',
+      description: 'Search the web for information, documentation, APIs, libraries, or technical solutions. Use when you need current information or need to research a topic.',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: 'Search query' },
+          focus: {
+            type: 'string',
+            enum: ['documentation', 'apis', 'libraries', 'tutorials', 'news', 'general'],
+            description: 'Research focus area'
+          }
+        },
+        required: ['query']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'analyze_image',
+      description: 'Analyze images to extract information, identify objects, read text (OCR), or understand visual content.',
+      parameters: {
+        type: 'object',
+        properties: {
+          imageUrl: { type: 'string', description: 'URL of image to analyze' },
+          analysisType: {
+            type: 'string',
+            enum: ['general', 'ocr', 'objects', 'detailed'],
+            description: 'Type of analysis'
+          }
+        },
+        required: ['imageUrl']
+      }
+    }
+  },
+  
+  // ============================================================================
+  // 🎤 VOICE & AUDIO (RESTORED!)
+  // ============================================================================
+  {
+    type: 'function',
+    function: {
+      name: 'generate_speech',
+      description: 'Generate text-to-speech audio. Convert text to natural-sounding voice audio.',
+      parameters: {
+        type: 'object',
+        properties: {
+          text: { type: 'string', description: 'Text to convert to speech' },
+          voice: { type: 'string', enum: ['female', 'male', 'neutral'], description: 'Voice type' },
+          language: { type: 'string', description: 'Language code (e.g., en, es, fr, zh)' }
+        },
+        required: ['text']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'transcribe_audio',
+      description: 'Transcribe audio or video to text. Convert speech to written text.',
+      parameters: {
+        type: 'object',
+        properties: {
+          audioUrl: { type: 'string', description: 'URL of audio/video file' },
+          language: { type: 'string', description: 'Audio language (auto-detect if omitted)' }
+        },
+        required: ['audioUrl']
+      }
+    }
+  },
+  
+  // ============================================================================
+  // 🎵 ADVANCED MUSIC (RESTORED!)
+  // ============================================================================
+  {
+    type: 'function',
+    function: {
+      name: 'analyze_music',
+      description: 'Analyze music tracks for technical properties, mix quality, mastering, and structure.',
+      parameters: {
+        type: 'object',
+        properties: {
+          audioUrl: { type: 'string', description: 'URL of music file' },
+          analysisType: { 
+            type: 'string', 
+            enum: ['full', 'mix', 'mastering', 'structure'],
+            description: 'Analysis type'
+          }
+        },
+        required: ['audioUrl']
+      }
+    }
   }
 ];
 
 async function executeTool(toolName: string, toolInput: any, userId: string, conversationId?: string) {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  
+  // NEW TOOLS - Code Generation
+  if (toolName === 'generate_code') {
+    return await fetch(`${baseUrl}/api/code/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...toolInput, userId, conversationId })
+    }).then(r => r.json());
+  }
+  
+  if (toolName === 'optimize_code') {
+    return await fetch(`${baseUrl}/api/code/optimize`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...toolInput, userId })
+    }).then(r => r.json());
+  }
+  
+  if (toolName === 'review_code') {
+    return await fetch(`${baseUrl}/api/code/review`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...toolInput, userId })
+    }).then(r => r.json());
+  }
+  
+  // GitHub Integration
+  if (toolName === 'github_commit') {
+    return await fetch(`${baseUrl}/api/github/commit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...toolInput, userId })
+    }).then(r => r.json());
+  }
+  
+  if (toolName === 'github_create_pr') {
+    return await fetch(`${baseUrl}/api/github/pull-request`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...toolInput, userId })
+    }).then(r => r.json());
+  }
+  
+  if (toolName === 'github_create_issue') {
+    return await fetch(`${baseUrl}/api/github/issues`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...toolInput, userId })
+    }).then(r => r.json());
+  }
+  
+  // Deployment
+  if (toolName === 'deploy_to_vercel') {
+    return await fetch(`${baseUrl}/api/vercel/deploy`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...toolInput, userId })
+    }).then(r => r.json());
+  }
+  
+  // Research & Analysis
+  if (toolName === 'research_web') {
+    return await fetch(`${baseUrl}/api/research/web`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...toolInput, userId })
+    }).then(r => r.json());
+  }
+  
+  if (toolName === 'analyze_image') {
+    return await fetch(`${baseUrl}/api/vision/analyze-enhanced`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...toolInput, userId })
+    }).then(r => r.json());
+  }
+  
+  // Voice & Audio
+  if (toolName === 'generate_speech') {
+    return await fetch(`${baseUrl}/api/tts/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...toolInput, userId })
+    }).then(r => r.json());
+  }
+  
+  if (toolName === 'transcribe_audio') {
+    return await fetch(`${baseUrl}/api/audio/transcribe`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...toolInput, userId })
+    }).then(r => r.json());
+  }
+  
+  // Advanced Music
+  if (toolName === 'analyze_music') {
+    return await fetch(`${baseUrl}/api/music/analyze`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...toolInput, userId })
+    }).then(r => r.json());
+  }
+
   const endpoints: Record<string, string> = {
     generate_music: '/api/music/generate-ultimate',
     generate_image: '/api/image/generate-ultimate',
