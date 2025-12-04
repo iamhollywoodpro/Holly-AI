@@ -1424,30 +1424,31 @@ export async function generateHollyResponse(
       // 'casual' is default - no modification needed
     }
     
-    // Apply intelligent context management to prevent 400 errors
-    const contextWindow = aiSettings?.contextWindow || 15; // Reduced from 20 for safety
-    let limitedMessages = messages.length > contextWindow 
-      ? messages.slice(-contextWindow) 
-      : messages;
+    // NO MESSAGE CAP - Gemini has 1M token context window!
+    // Only apply safety measures if messages are EXTREMELY long
+    let limitedMessages = messages;
     
-    // Use context manager to prevent 400 errors
-    limitedMessages = manageContext(limitedMessages, {
-      maxMessages: contextWindow,
-      maxTokensPerMessage: 4000,
-      enableSummarization: messages.length > 12,
-    });
+    // Only manage context if we're approaching 800K tokens (80% of 1M limit)
+    const estimatedTotalTokens = estimateTokens(JSON.stringify(messages));
+    console.log(`📊 [CONTEXT] Messages: ${messages.length}, Est. tokens: ${estimatedTotalTokens}`);
     
-    // Validate messages before sending to API
-    const validation = validateMessages(limitedMessages);
-    console.log(`📊 [CONTEXT] Messages: ${limitedMessages.length}, Est. tokens: ${validation.estimatedTokens}`);
-    
-    if (!validation.valid) {
-      console.warn('⚠️ [CONTEXT] Validation issues:', validation.issues);
+    if (estimatedTotalTokens > 800000) {
+      console.warn('⚠️ [CONTEXT] Approaching 1M token limit - applying compression');
+      // Only NOW do we need to manage context
+      limitedMessages = manageContext(messages, {
+        maxMessages: 50, // Still generous
+        maxTokensPerMessage: 8000, // Allow longer messages
+        enableSummarization: true,
+      });
+    } else {
+      // Normal case: Use ALL messages, no limits
+      console.log('✅ [CONTEXT] Using full conversation history (no limits)');
     }
     
+    // Use ALL messages (no artificial caps)
     const messagesWithPersonality = [
       { role: 'system', content: hollySystemPrompt },
-      ...limitedMessages
+      ...limitedMessages // This is now the full conversation (unless >800K tokens)
     ];
 
     // Intelligent tool choice: REQUIRE tools for creative/action requests
