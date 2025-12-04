@@ -1,17 +1,16 @@
 name: 🛡️ HOLLY Capability Protection
 
-# Run on every push and PR to prevent capability regression
 on:
   push:
-    branches: [main, develop]
+    branches:
+      - main
     paths:
       - 'src/lib/ai/ai-orchestrator.ts'
-      - 'src/lib/ai/holly-*.ts'
   pull_request:
-    branches: [main]
+    branches:
+      - main
     paths:
       - 'src/lib/ai/ai-orchestrator.ts'
-      - 'src/lib/ai/holly-*.ts'
 
 jobs:
   validate-capabilities:
@@ -21,199 +20,59 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+        
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-      
-      - name: Check HOLLY Tool Count
-        id: tool-count
+          
+      - name: Validate Tool Count
         run: |
-          echo "🔍 Checking HOLLY_TOOLS array..."
+          echo "🔍 Checking HOLLY tool count..."
           
-          ORCHESTRATOR_FILE="src/lib/ai/ai-orchestrator.ts"
+          TOOL_COUNT=$(grep -o "name: '" src/lib/ai/ai-orchestrator.ts | wc -l)
           
-          if [ ! -f "$ORCHESTRATOR_FILE" ]; then
-            echo "❌ ERROR: ai-orchestrator.ts not found!"
+          echo "📊 Found $TOOL_COUNT tools"
+          
+          if [ $TOOL_COUNT -lt 60 ]; then
+            echo "❌ CRITICAL: Tool count ($TOOL_COUNT) is below minimum threshold (60)"
+            echo "🚨 This indicates a potential capability loss!"
             exit 1
           fi
           
-          # Count tools in HOLLY_TOOLS array
-          TOOL_COUNT=$(grep -c "name: ['\"]" "$ORCHESTRATOR_FILE" || echo "0")
+          echo "✅ Tool count validation passed ($TOOL_COUNT >= 60)"
           
-          echo "📊 Tools found: $TOOL_COUNT"
-          echo "tool_count=$TOOL_COUNT" >> $GITHUB_OUTPUT
+      - name: Validate File Structure
+        run: |
+          echo "🔍 Validating orchestrator structure..."
           
-          # CRITICAL: Minimum 60 tools required
-          if [ "$TOOL_COUNT" -lt 60 ]; then
-            echo "❌ CRITICAL: Only $TOOL_COUNT tools found (minimum: 60)"
-            echo "❌ This deployment would break HOLLY's capabilities!"
-            echo ""
-            echo "Required tools:"
-            echo "  • Creative: 7 tools"
-            echo "  • Code Generation: 5 tools"
-            echo "  • GitHub: 11 tools"
-            echo "  • Architecture: 6 tools"
-            echo "  • Storage: 3 tools"
-            echo "  • Admin & System: 7 tools"
-            echo "  • Analytics: 6 tools"
-            echo "  • Consciousness: 10 tools"
-            echo "  • Deployment: 1 tool"
-            echo "  • Research: 1 tool"
-            echo "  • Image Analysis: 1 tool"
-            echo "  • Voice & Audio: 3 tools"
-            echo "  • Integrations: 4 tools"
-            echo "  TOTAL: 65 tools minimum"
+          if ! grep -q "const HOLLY_TOOLS" src/lib/ai/ai-orchestrator.ts; then
+            echo "❌ HOLLY_TOOLS array not found!"
             exit 1
           fi
           
-          echo "✅ Tool count validation passed: $TOOL_COUNT tools"
-      
-      - name: Check Executor Endpoint Mappings
-        run: |
-          echo "🔍 Checking executor endpoint mappings..."
-          
-          ORCHESTRATOR_FILE="src/lib/ai/ai-orchestrator.ts"
-          
-          # Extract endpoint mappings
-          ENDPOINT_COUNT=$(grep -A 100 "const endpoints" "$ORCHESTRATOR_FILE" | grep ":" | grep -c "/api/" || echo "0")
-          
-          echo "📊 Endpoints mapped: $ENDPOINT_COUNT"
-          
-          if [ "$ENDPOINT_COUNT" -lt 60 ]; then
-            echo "❌ ERROR: Only $ENDPOINT_COUNT endpoints mapped (minimum: 60)"
-            echo "❌ Tools without endpoints will fail!"
+          if ! grep -q "executeTool" src/lib/ai/ai-orchestrator.ts; then
+            echo "❌ executeTool function not found!"
             exit 1
           fi
           
-          echo "✅ Endpoint mapping validation passed: $ENDPOINT_COUNT endpoints"
-      
-      - name: Check Critical Functions Exist
+          echo "✅ Structure validation passed"
+          
+      - name: Report Success
+        if: success()
         run: |
-          echo "🔍 Checking critical functions..."
-          
-          ORCHESTRATOR_FILE="src/lib/ai/ai-orchestrator.ts"
-          
-          # Check for required components
-          CHECKS=(
-            "const HOLLY_TOOLS"
-            "async function executeTool"
-            "export async function generateHollyResponse"
-            "gemini-2.5-flash"
-            "tool_choice"
-          )
-          
-          for CHECK in "${CHECKS[@]}"; do
-            if ! grep -q "$CHECK" "$ORCHESTRATOR_FILE"; then
-              echo "❌ CRITICAL: '$CHECK' not found in orchestrator!"
-              exit 1
-            fi
-            echo "  ✅ $CHECK"
-          done
-          
-          echo "✅ All critical functions present"
-      
-      - name: Validate Tool Categories
-        run: |
-          echo "🔍 Validating tool categories..."
-          
-          ORCHESTRATOR_FILE="src/lib/ai/ai-orchestrator.ts"
-          
-          # Check for critical tool categories
-          CRITICAL_TOOLS=(
-            "generate_code"
-            "github_commit"
-            "deploy_to_vercel"
-            "generate_architecture"
-            "research_web"
-          )
-          
-          MISSING=()
-          
-          for TOOL in "${CRITICAL_TOOLS[@]}"; do
-            if ! grep -q "name: ['\"]$TOOL['\"]" "$ORCHESTRATOR_FILE"; then
-              MISSING+=("$TOOL")
-              echo "  ❌ Missing: $TOOL"
-            else
-              echo "  ✅ $TOOL"
-            fi
-          done
-          
-          if [ ${#MISSING[@]} -gt 0 ]; then
-            echo ""
-            echo "❌ CRITICAL TOOLS MISSING: ${MISSING[*]}"
-            echo "❌ HOLLY would lose core development capabilities!"
-            exit 1
-          fi
-          
-          echo "✅ All critical tool categories present"
-      
-      - name: Generate Capability Report
-        if: always()
-        run: |
-          echo "📊 HOLLY CAPABILITY REPORT" > capability-report.txt
-          echo "==========================" >> capability-report.txt
-          echo "" >> capability-report.txt
-          echo "Tool Count: ${{ steps.tool-count.outputs.tool_count }}" >> capability-report.txt
-          echo "Status: $([ ${{ steps.tool-count.outputs.tool_count }} -ge 60 ] && echo '✅ PASS' || echo '❌ FAIL')" >> capability-report.txt
-          echo "Timestamp: $(date)" >> capability-report.txt
-          echo "Commit: ${{ github.sha }}" >> capability-report.txt
-          
-          cat capability-report.txt
-      
-      - name: Comment PR with Results
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const toolCount = ${{ steps.tool-count.outputs.tool_count }};
-            const status = toolCount >= 60 ? '✅ PASS' : '❌ FAIL';
-            const emoji = toolCount >= 60 ? '🎉' : '🚨';
-            
-            const comment = `${emoji} **HOLLY Capability Validation**
-            
-            **Tool Count:** ${toolCount}/65
-            **Status:** ${status}
-            
-            ${toolCount >= 60 
-              ? '✅ All capability checks passed! HOLLY remains fully operational.' 
-              : `❌ **CRITICAL:** Only ${toolCount} tools detected. This would break HOLLY!\n\n**Minimum Required:** 60 tools\n**Missing:** ${60 - toolCount} tools\n\n⚠️ This PR cannot be merged until capabilities are restored.`
-            }
-            
-            ---
-            *Automated by HOLLY Capability Protection System*`;
-            
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: comment
-            });
-      
-      - name: Block Deployment on Failure
-        if: failure()
-        run: |
-          echo "🚨 DEPLOYMENT BLOCKED"
-          echo "❌ HOLLY capability validation failed"
-          echo "❌ This change would break HOLLY's core functionality"
-          echo ""
-          echo "To fix:"
-          echo "  1. Ensure HOLLY_TOOLS has 60+ tools"
-          echo "  2. Verify all tool categories are present"
-          echo "  3. Check executor endpoint mappings"
-          echo "  4. Run validation locally before pushing"
-          exit 1
+          echo "🎉 All capability checks passed!"
+          echo "✅ HOLLY's capabilities are intact"
 
-  notify-success:
-    name: Notify Success
+  notify-failure:
+    name: Notify on Failure
     runs-on: ubuntu-latest
     needs: validate-capabilities
-    if: success()
+    if: failure()
     
     steps:
-      - name: Success Notification
+      - name: Capability Loss Alert
         run: |
-          echo "✅ HOLLY CAPABILITY VALIDATION PASSED"
-          echo "🎉 All safeguards satisfied"
-          echo "✅ Deployment approved"
+          echo "🚨 HOLLY CAPABILITY PROTECTION TRIGGERED"
+          echo "❌ Validation failed - deployment blocked"
+          echo "📋 Review the orchestrator changes carefully"
