@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
+import { prisma } from '@/lib/db';
+import { uploadGeneratedMedia } from '@/lib/storage/media-storage';
 
-// Image generation API - Stub (TODO: Implement with Prisma storage)
+// Image generation API with storage
 const HF_TOKEN = process.env.HUGGINGFACE_API_KEY;
 const HF_API = 'https://api-inference.huggingface.co/models';
 
@@ -25,7 +27,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { prompt, model = 'flux-schnell' } = body;
+    const { prompt, model = 'flux-schnell', conversationId } = body;
 
     if (!prompt) {
       return NextResponse.json({ error: 'Prompt is required' }, { status: 400 });
@@ -33,8 +35,10 @@ export async function POST(request: NextRequest) {
 
     const selectedModel = MODELS.find(m => m.id === model) || MODELS[0];
 
+    console.log(`🎨 [HOLLY] Generating image: "${prompt.substring(0, 50)}..." with ${selectedModel.name}`);
+
     // Generate image using Hugging Face
-    const response = await fetch(`${HF_API}/${selectedModel.endpoint}`, {
+    const hfResponse = await fetch(`${HF_API}/${selectedModel.endpoint}`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${HF_TOKEN}`,
@@ -43,26 +47,55 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({ inputs: prompt }),
     });
 
-    if (!response.ok) {
-      throw new Error(`HF API error: ${response.statusText}`);
+    if (!hfResponse.ok) {
+      throw new Error(`HF API error: ${hfResponse.statusText}`);
     }
 
-    const imageBlob = await response.blob();
-    const buffer = Buffer.from(await imageBlob.arrayBuffer());
+    // Get image blob
+    const imageBlob = await hfResponse.blob();
+    const contentType = hfResponse.headers.get('content-type') || 'image/png';
 
-    // TODO: Save to Prisma database + file storage
-    // For now, return the image directly
-    return new NextResponse(buffer, {
-      headers: {
-        'Content-Type': 'image/png',
-        'Cache-Control': 'public, max-age=31536000',
+    // Upload to Vercel Blob Storage
+    const filename = `${prompt.substring(0, 30).replace(/[^a-zA-Z0-9]/g, '-')}.png`;
+    const uploadResult = await uploadGeneratedMedia(imageBlob, filename, contentType);
+
+    console.log(`✅ [HOLLY] Image uploaded: ${uploadResult.url}`);
+
+    // Save to database
+    const mediaRecord = await prisma.generatedMedia.create({
+      data: {
+        userId,
+        conversationId,
+        type: 'image',
+        url: uploadResult.url,
+        prompt,
+        contentType: uploadResult.contentType,
+        size: uploadResult.size,
+        pathname: uploadResult.pathname,
+        model: selectedModel.id,
+        parameters: { model: selectedModel.id },
       },
     });
 
+    // Return structured response for HOLLY
+    return NextResponse.json({
+      success: true,
+      type: 'image',
+      url: uploadResult.url,
+      prompt,
+      model: selectedModel.name,
+      mediaId: mediaRecord.id,
+      message: `Image generated successfully with ${selectedModel.name}`,
+    });
+
   } catch (error) {
-    console.error('Image generation error:', error);
+    console.error('❌ [HOLLY] Image generation error:', error);
     return NextResponse.json(
-      { error: 'Image generation failed', details: error instanceof Error ? error.message : 'Unknown error' },
+      { 
+        success: false,
+        error: 'Image generation failed', 
+        details: error instanceof Error ? error.message : 'Unknown error' 
+      },
       { status: 500 }
     );
   }

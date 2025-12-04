@@ -3148,3 +3148,31 @@ model CodePattern {
   @@index([language])
   @@index([confidence])
 }
+
+// HOLLY Generated Media - Images, Videos, Audio created by HOLLY
+model GeneratedMedia {
+  id             String   @id @default(cuid())
+  userId         String
+  conversationId String?
+  
+  // Media details
+  type           String   // 'image', 'video', 'audio'
+  url            String   // Public URL from Vercel Blob
+  prompt         String   // User's original request
+  contentType    String   // MIME type (image/png, video/mp4, etc.)
+  size           Int      // File size in bytes
+  pathname       String   // Storage pathname
+  
+  // Generation metadata
+  model          String?  // AI model used (flux-schnell, suno, etc.)
+  parameters     Json?    // Generation parameters
+  
+  // Timestamps
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([conversationId])
+  @@index([type])
+  @@index([createdAt])
+}
