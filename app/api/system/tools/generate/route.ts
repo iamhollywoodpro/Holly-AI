@@ -18,23 +18,23 @@ export async function POST(request: NextRequest) {
 
     // Parse request body
     const body = await request.json();
-    const { toolName, outputPath } = body;
+    const { toolName, purpose } = body;
 
     // Validate required fields
-    if (!toolName) {
+    if (!toolName || !purpose) {
       return NextResponse.json(
-        { error: 'Tool name is required' },
+        { error: 'Tool name and purpose are required' },
         { status: 400 }
       );
     }
 
     // Generate scaffold
-    const result = await generateToolBoilerplate(toolName, outputPath);
+    const result = await generateToolBoilerplate(toolName, purpose);
 
     if (result.success) {
       return NextResponse.json({
         success: true,
-        filePath: result.filePath,
+        path: result.path,
         code: result.code,
         message: 'Tool scaffold generated successfully'
       });

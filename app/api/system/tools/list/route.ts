@@ -22,20 +22,14 @@ export async function GET(request: NextRequest) {
     const category = searchParams.get('category') as 'system' | 'creative' | 'analysis' | 'integration' | undefined;
 
     // List tools
-    const result = await listAvailableTools({ status, category });
+    const tools = await listAvailableTools({ status, category });
 
-    if (result.success) {
-      return NextResponse.json({
-        success: true,
-        tools: result.tools,
-        count: result.tools?.length || 0,
-        filters: { status, category }
-      });
-    } else {
-      return NextResponse.json(
-        { error: 'Failed to list tools', details: result.error },
-        { status: 500 }
-      );
+    return NextResponse.json({
+      success: true,
+      tools,
+      count: tools.length,
+      filters: { status, category }
+    });
     }
 
   } catch (error) {

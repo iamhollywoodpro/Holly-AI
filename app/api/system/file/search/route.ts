@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
 
     // Parse request body
     const body = await request.json();
-    const { query, filePattern, maxResults } = body;
+    const { query, path, fileType, caseSensitive } = body;
 
     // Validate required fields
     if (!query) {
@@ -30,8 +30,9 @@ export async function POST(request: NextRequest) {
 
     // Search codebase
     const results = await searchCodebase(query, {
-      filePattern,
-      maxResults: maxResults || 50
+      path,
+      fileType,
+      caseSensitive
     });
 
     return NextResponse.json({
