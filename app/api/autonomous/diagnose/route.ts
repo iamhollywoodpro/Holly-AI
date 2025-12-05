@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
     console.log(`[API:DIAGNOSE] Running focused diagnostic for ${component}...`);
 
     // Run targeted diagnostic
-    const result = await selfDiagnosis.diagnose(component);
+    const result = await selfDiagnosis.diagnose();
 
     // Optionally include historical issues
     let history = null;
