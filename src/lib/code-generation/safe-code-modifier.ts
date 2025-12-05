@@ -171,7 +171,7 @@ export class SafeCodeModifier {
           break;
         
         case 'modify':
-          modifiedContent = this.modifyCode(modifiedContent, change);
+          modifiedContent = this.modifyCodeContent(modifiedContent, change);
           break;
         
         case 'delete':
@@ -223,7 +223,7 @@ export class SafeCodeModifier {
   /**
    * Modify existing code
    */
-  private modifyCode(content: string, change: CodeChange): string {
+  private modifyCodeContent(content: string, change: CodeChange): string {
     if (!change.oldCode || !change.newCode) {
       throw new Error('Both oldCode and newCode required for modify operation');
     }
@@ -256,7 +256,7 @@ export class SafeCodeModifier {
    */
   private refactorCode(content: string, change: CodeChange): string {
     // For now, treat refactoring as modify
-    return this.modifyCode(content, change);
+    return this.modifyCodeContent(content, change);
   }
 
   /**

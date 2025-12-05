@@ -607,40 +607,40 @@ export class AutoFixEngine {
     }
   }
 
-  /**
-   * Save a fix that requires manual approval
-   */
-  private async savePendingFix(
-    issue: SystemIssue,
-    strategy: FixStrategy,
-      //     rootCause: RootCauseAnalysis
-      //   ): Promise<void> {
-      //     try {
-      //       await prisma.hypothesis.create({
-      //         data: {
-      //           description: strategy.description,
-      //           confidence: strategy.confidence,
-      //           evidence: rootCause.contributingFactors,
-      //           suggestedActions: strategy.steps.map(s => s.description),
-      //           risks: [
-      //             `Risk Level: ${strategy.riskLevel}`,
-      //             `Estimated Impact: ${strategy.estimatedImpact}`,
-      //             ...(strategy.requiredApprovals ? [`Requires approval: ${strategy.requiredApprovals.join(', ')}`] : [])
-      //           ],
-      //           status: 'pending_review',
-      //           metadata: {
-      //             strategyId: strategy.id,
-      //             issueComponent: issue.component,
-      //             issueSeverity: issue.severity
-      //           }
-      //         }
-      //       });
-      //       
-      console.log('[AUTO-FIX] Fix saved for manual review');
-    } catch (error) {
-      console.error('[AUTO-FIX] Failed to save pending fix:', error);
-    }
-  }
+  // /**
+  //  * Save a fix that requires manual approval
+  //  * DISABLED: Hypothesis model schema mismatch - needs problemId
+  //  */
+  // private async savePendingFix(
+  //   issue: SystemIssue,
+  //   strategy: FixStrategy,
+  //   rootCause: RootCauseAnalysis
+  // ): Promise<void> {
+  //   try {
+  //     await prisma.hypothesis.create({
+  //       data: {
+  //         description: strategy.description,
+  //         confidence: strategy.confidence,
+  //         evidence: rootCause.contributingFactors,
+  //         suggestedActions: strategy.steps.map(s => s.description),
+  //         risks: [
+  //           `Risk Level: ${strategy.riskLevel}`,
+  //           `Estimated Impact: ${strategy.estimatedImpact}`,
+  //           ...(strategy.requiredApprovals ? [`Requires approval: ${strategy.requiredApprovals.join(', ')}`] : [])
+  //         ],
+  //         status: 'pending_review',
+  //         metadata: {
+  //           strategyId: strategy.id,
+  //           issueComponent: issue.component,
+  //           issueSeverity: issue.severity
+  //         }
+  //       }
+  //     });
+  //     console.log('[AUTO-FIX] Fix saved for manual review');
+  //   } catch (error) {
+  //     console.error('[AUTO-FIX] Failed to save pending fix:', error);
+  //   }
+  // }
 
   /**
    * Record a successful fix in the database for learning
