@@ -80,7 +80,7 @@ export class AutoFixEngine {
    * Main entry point: Analyze problem and attempt automatic fix
    */
   async fixProblem(issue: SystemIssue, autoApply: boolean = false): Promise<FixResult | null> {
-    console.log(`[AUTO-FIX] Analyzing issue: ${issue.description}`);
+    console.log(`[AUTO-FIX] Analyzing issue: ${issue.message}`);
 
     try {
       // Step 1: Perform root cause analysis

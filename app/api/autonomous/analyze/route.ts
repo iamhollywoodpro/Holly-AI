@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.log(`[API:ANALYZE] Analyzing issue: ${issue.description}`);
+    console.log(`[API:ANALYZE] Analyzing issue: ${issue.message}`);
 
     // Perform root cause analysis
     const analysis = await rootCauseAnalyzer.analyzeIssue(issue);

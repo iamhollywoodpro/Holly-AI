@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.log(`[API:FIX] Attempting to fix issue: ${issue.description}`);
+    console.log(`[API:FIX] Attempting to fix issue: ${issue.message}`);
     console.log(`[API:FIX] Auto-apply: ${autoApply ? 'YES' : 'NO (manual approval required)'}`);
 
     // Attempt to fix the issue
