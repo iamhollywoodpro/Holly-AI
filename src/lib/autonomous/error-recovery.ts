@@ -386,3 +386,9 @@ export async function attemptRecovery(error: string | Error): Promise<RecoveryRe
   const recovery = new AutomaticErrorRecovery();
   return await recovery.recover(error);
 }
+
+// ===========================
+// Export Singleton Instance
+// ===========================
+
+export const errorRecovery = new ErrorRecoverySystem();

@@ -374,3 +374,9 @@ export async function quickHealthCheck(): Promise<{
     criticalIssues
   };
 }
+
+// ===========================
+// Export Singleton Instance
+// ===========================
+
+export const selfDiagnosis = new SelfDiagnosisSystem();

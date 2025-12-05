@@ -326,3 +326,9 @@ export async function analyzeError(error: string | Error): Promise<RootCauseAnal
   const analyzer = new RootCauseAnalyzer();
   return await analyzer.analyze(error);
 }
+
+// ===========================
+// Export Singleton Instance
+// ===========================
+
+export const rootCauseAnalyzer = new RootCauseAnalyzer();
