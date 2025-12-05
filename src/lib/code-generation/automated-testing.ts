@@ -8,7 +8,7 @@
 
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import { prisma } from '@/lib/database/prisma';
+import { prisma } from '@/lib/db';
 
 const execAsync = promisify(exec);
 

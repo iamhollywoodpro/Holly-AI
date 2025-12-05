@@ -6,7 +6,7 @@
  * Phase 6: Controlled Deployment & Monitoring
  */
 
-import { prisma } from '@/lib/database/prisma';
+import { prisma } from '@/lib/db';
 
 // ===========================
 // Types & Interfaces

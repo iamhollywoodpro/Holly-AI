@@ -8,7 +8,7 @@
 
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { prisma } from '@/lib/database/prisma';
+import { prisma } from '@/lib/db';
 import { automatedTesting } from './automated-testing';
 import * as ts from 'typescript';
 

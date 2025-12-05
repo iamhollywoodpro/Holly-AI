@@ -7,7 +7,7 @@
  * Phase 4: Autonomous Problem-Solving
  */
 
-import { prisma } from '@/lib/database/prisma';
+import { prisma } from '@/lib/db';
 import { RootCauseAnalyzer, type RootCauseAnalysis } from './root-cause-analyzer';
 import type { DiagnosticResult, SystemIssue } from './self-diagnosis';
 import * as fs from 'fs/promises';
