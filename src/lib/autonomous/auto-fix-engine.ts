@@ -160,7 +160,7 @@ export class AutoFixEngine {
   /**
    * Generate TypeScript-specific fixes
    */
-  private async generateTypeScriptFixes(issue: SystemIssue, hypothesis: any): Promise<FixStrategy[]> {
+  private async generateTypeScriptFixes(issue: SystemIssue, rootCause: any): Promise<FixStrategy[]> {
     const fixes: FixStrategy[] = [];
     const errorMessage = issue.message.toLowerCase();
 
@@ -266,7 +266,7 @@ export class AutoFixEngine {
   /**
    * Generate API-specific fixes
    */
-  private async generateAPIFixes(issue: SystemIssue, hypothesis: any): Promise<FixStrategy[]> {
+  private async generateAPIFixes(issue: SystemIssue, rootCause: any): Promise<FixStrategy[]> {
     const fixes: FixStrategy[] = [];
 
     // Fix 1: Missing error handling
@@ -326,7 +326,7 @@ export class AutoFixEngine {
   /**
    * Generate Database-specific fixes
    */
-  private async generateDatabaseFixes(issue: SystemIssue, hypothesis: any): Promise<FixStrategy[]> {
+  private async generateDatabaseFixes(issue: SystemIssue, rootCause: any): Promise<FixStrategy[]> {
     const fixes: FixStrategy[] = [];
 
     // Fix 1: Schema mismatch
@@ -405,7 +405,7 @@ export class AutoFixEngine {
   /**
    * Generate Streaming-specific fixes
    */
-  private async generateStreamingFixes(issue: SystemIssue, hypothesis: any): Promise<FixStrategy[]> {
+  private async generateStreamingFixes(issue: SystemIssue, rootCause: any): Promise<FixStrategy[]> {
     const fixes: FixStrategy[] = [];
 
     // Fix 1: Event parsing issues
@@ -440,7 +440,7 @@ export class AutoFixEngine {
   /**
    * Generate generic fixes for unknown issue types
    */
-  private async generateGenericFixes(issue: SystemIssue, hypothesis: any): Promise<FixStrategy[]> {
+  private async generateGenericFixes(issue: SystemIssue, rootCause: any): Promise<FixStrategy[]> {
     return [
       {
         id: `generic-restart-${Date.now()}`,
