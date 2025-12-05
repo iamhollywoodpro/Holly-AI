@@ -258,7 +258,7 @@ export class LearningLoop {
         context: {
           situation: hypothesis.problem.description,
           problem: hypothesis.problem.title,
-          constraints: hypothesis.risks
+          constraints: Array.isArray(hypothesis.risks) ? hypothesis.risks : []
         },
         outcome: wasSuccessful ? 'success' : 'failure',
         results: {
