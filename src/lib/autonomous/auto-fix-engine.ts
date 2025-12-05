@@ -52,7 +52,7 @@ export interface FixResult {
   validationResults: ValidationResult[];
   error?: string;
   rollbackPerformed?: boolean;
-  learnings: string[];
+  lessonsLearned: string[);
 }
 
 export interface ValidationResult {
@@ -80,7 +80,7 @@ export class AutoFixEngine {
    * Main entry point: Analyze problem and attempt automatic fix
    */
   async fixProblem(issue: SystemIssue, autoApply: boolean = false): Promise<FixResult | null> {
-    console.log(`[AUTO-FIX] Analyzing issue: ${issue.message}`);
+    console.log(`[AUTO-FIX) Analyzing issue: ${issue.message}`);
 
     try {
       // Step 1: Perform root cause analysis
@@ -493,7 +493,7 @@ export class AutoFixEngine {
       strategy,
       appliedSteps: [],
       validationResults: [],
-      learnings: []
+      lessonsLearned: ]
     };
 
     try {
@@ -653,6 +653,7 @@ export class AutoFixEngine {
     try {
       await prisma.experience.create({
         data: {
+          type: "system_operation",
           action: 'auto_fix_applied',
           context: {
             issue: {
@@ -667,13 +668,15 @@ export class AutoFixEngine {
             }
           },
           outcome: result.success ? 'success' : 'failure',
+          wouldRepeat: true,
+          confidence: 80,
           results: {
             stepsApplied: result.appliedSteps.length,
             validationsPassed: result.validationResults.filter(v => v.passed).length,
             totalValidations: result.validationResults.length,
             rollbackPerformed: result.rollbackPerformed
           },
-          learnings: result.learnings
+          lessonsLearned: result.learnings
         }
       });
 
@@ -715,7 +718,7 @@ export class AutoFixEngine {
           action: e.action,
           outcome: e.outcome,
           timestamp: e.timestamp,
-          learnings: e.learnings
+          lessonsLearned: e.learnings
         }))
       };
     } catch (error) {

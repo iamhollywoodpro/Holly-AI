@@ -358,6 +358,7 @@ export class SafeCodeModifier {
     try {
       await prisma.experience.create({
         data: {
+          type: "system_operation",
           action: 'code_modification',
           context: {
             filePath: modification.filePath,
@@ -366,13 +367,15 @@ export class SafeCodeModifier {
             author: modification.author
           },
           outcome: result.success ? 'success' : 'failure',
+          wouldRepeat: true,
+          confidence: 80,
           results: {
             testsRun: result.testsRun,
             testsPassed: result.testsPassed,
             rolledBack: result.rolledBack,
             warnings: result.warnings
           },
-          learnings: result.success
+          lessonsLearned: result.success
             ? [`Successfully modified ${modification.filePath}: ${modification.reason}`]
             : [`Failed to modify ${modification.filePath}: ${result.error}`]
         }

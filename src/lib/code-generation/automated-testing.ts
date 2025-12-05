@@ -312,6 +312,7 @@ export class AutomatedTestingSystem {
     try {
       await prisma.experience.create({
         data: {
+          type: "system_operation",
           action: 'test_suite_run',
           context: {
             suite: {
@@ -322,6 +323,8 @@ export class AutomatedTestingSystem {
             duration: suiteResult.duration
           },
           outcome: suiteResult.overallPassed ? 'success' : 'failure',
+          wouldRepeat: true,
+          confidence: 80,
           results: {
             passed: suiteResult.passedTests,
             failed: suiteResult.failedTests,
@@ -332,7 +335,7 @@ export class AutomatedTestingSystem {
                 error: r.error
               }))
           },
-          learnings: suiteResult.overallPassed
+          lessonsLearned: suiteResult.overallPassed
             ? [`Test suite ${suiteResult.suite.name} passed successfully`]
             : [`Test suite ${suiteResult.suite.name} failed - ${suiteResult.failedTests} tests failed`]
         }

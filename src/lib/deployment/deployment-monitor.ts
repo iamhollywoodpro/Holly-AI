@@ -346,6 +346,7 @@ export class DeploymentMonitor {
     try {
       await prisma.experience.create({
         data: {
+          type: "system_operation",
           action: 'alert_triggered',
           context: {
             anomaly: {
@@ -355,8 +356,10 @@ export class DeploymentMonitor {
             }
           },
           outcome: 'alert_sent',
+          wouldRepeat: true,
+          confidence: 80,
           results: anomaly.metrics,
-          learnings: [`Alert triggered: ${anomaly.description}`]
+          lessonsLearned: `Alert triggered: ${anomaly.description}`]
         }
       });
     } catch (error) {

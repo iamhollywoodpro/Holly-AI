@@ -60,9 +60,9 @@ export interface DecisionOutcome {
   timestamp: Date;
   actual_result: string;
   success: boolean;
-  learnings: string[];
+  lessonsLearned: string[);
   impact: {
-    on_goals: string[];
+    on_goals: string[);
     on_identity: string[];
     on_relationships: string[];
   };

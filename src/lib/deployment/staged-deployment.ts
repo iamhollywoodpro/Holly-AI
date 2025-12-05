@@ -357,6 +357,7 @@ export class StagedDeploymentSystem {
     try {
       await prisma.experience.create({
         data: {
+          type: "system_operation",
           action: 'deployment',
           context: {
             pipeline: {
@@ -368,6 +369,8 @@ export class StagedDeploymentSystem {
             completedStages: result.completedStages.length
           },
           outcome: result.success ? 'success' : 'failure',
+          wouldRepeat: true,
+          confidence: 80,
           results: {
             duration: pipeline.endTime && pipeline.startTime
               ? pipeline.endTime.getTime() - pipeline.startTime.getTime()
@@ -375,7 +378,7 @@ export class StagedDeploymentSystem {
             rolledBack: result.rolledBack,
             failedStage: result.failedStage
           },
-          learnings: result.success
+          lessonsLearned: result.success
             ? [`Successful deployment: ${pipeline.name}`]
             : [`Failed deployment at stage: ${result.failedStage}`]
         }
@@ -392,6 +395,7 @@ export class StagedDeploymentSystem {
     try {
       await prisma.experience.create({
         data: {
+          type: "system_operation",
           action: 'rollback',
           context: {
             pipeline: {
@@ -402,8 +406,10 @@ export class StagedDeploymentSystem {
             stage: pipeline.currentStage
           },
           outcome: 'success',
+          wouldRepeat: true,
+          confidence: 80,
           results: {},
-          learnings: [`Rolled back deployment: ${pipeline.name}`]
+          lessonsLearned: `Rolled back deployment: ${pipeline.name}`]
         }
       });
     } catch (error) {
