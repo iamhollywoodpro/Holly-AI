@@ -392,7 +392,7 @@ export class SafeCodeModifier {
     try {
       const experiences = await prisma.experience.findMany({
         where: { action: 'code_modification' },
-        orderBy: { timestamp: 'desc' },
+        orderBy: { createdAt: 'desc' },
         take: 100
       });
 
@@ -409,7 +409,7 @@ export class SafeCodeModifier {
           file: (e.context as any).filePath || 'Unknown',
           reason: (e.context as any).reason || 'Unknown',
           outcome: e.outcome,
-          timestamp: e.timestamp
+          timestamp: e.createdAt
         }))
       };
     } catch (error) {

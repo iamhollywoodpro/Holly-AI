@@ -431,7 +431,7 @@ export class StagedDeploymentSystem {
     try {
       const experiences = await prisma.experience.findMany({
         where: { action: { in: ['deployment', 'rollback'] } },
-        orderBy: { timestamp: 'desc' },
+        orderBy: { createdAt: 'desc' },
         take: 50
       });
 
@@ -451,7 +451,7 @@ export class StagedDeploymentSystem {
         recentDeployments: deployments.slice(0, 10).map(e => ({
           pipeline: (e.context as any).pipeline?.name || 'Unknown',
           outcome: e.outcome,
-          timestamp: e.timestamp,
+          timestamp: e.createdAt,
           rolledBack: (e.results as any).rolledBack || false
         }))
       };

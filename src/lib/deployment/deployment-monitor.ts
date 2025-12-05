@@ -374,7 +374,7 @@ export class DeploymentMonitor {
     try {
       const experiences = await prisma.experience.findMany({
         where: { action: 'alert_triggered' },
-        orderBy: { timestamp: 'desc' },
+        orderBy: { createdAt: 'desc' },
         take: 100
       });
 
@@ -390,7 +390,7 @@ export class DeploymentMonitor {
           type: (e.context as any).anomaly?.type || 'unknown',
           severity: (e.context as any).anomaly?.severity || 'unknown',
           description: (e.context as any).anomaly?.description || 'Unknown',
-          timestamp: e.timestamp
+          timestamp: e.createdAt
         }))
       };
     } catch (error) {

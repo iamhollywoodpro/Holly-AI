@@ -701,7 +701,7 @@ export class AutoFixEngine {
     try {
       const experiences = await prisma.experience.findMany({
         where: { action: 'auto_fix_applied' },
-        orderBy: { timestamp: 'desc' },
+        orderBy: { createdAt: 'desc' },
         take: 100
       });
 
@@ -717,7 +717,7 @@ export class AutoFixEngine {
         recentFixes: experiences.slice(0, 10).map(e => ({
           action: e.action,
           outcome: e.outcome,
-          timestamp: e.timestamp,
+          timestamp: e.createdAt,
           lessonsLearned: e.lessonsLearned
         }))
       };

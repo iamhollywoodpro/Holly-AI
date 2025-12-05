@@ -352,7 +352,7 @@ export class AutomatedTestingSystem {
     try {
       const experiences = await prisma.experience.findMany({
         where: { action: 'test_suite_run' },
-        orderBy: { timestamp: 'desc' },
+        orderBy: { createdAt: 'desc' },
         take: 50
       });
 
@@ -368,7 +368,7 @@ export class AutomatedTestingSystem {
         recentRuns: experiences.slice(0, 10).map(e => ({
           suite: (e.context as any).suite?.name || 'Unknown',
           outcome: e.outcome,
-          timestamp: e.timestamp,
+          timestamp: e.createdAt,
           duration: (e.context as any).duration
         }))
       };
