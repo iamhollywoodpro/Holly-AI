@@ -359,7 +359,7 @@ export class DeploymentMonitor {
           wouldRepeat: true,
           confidence: 80,
           results: anomaly.metrics,
-          lessonsLearned: `Alert triggered: ${anomaly.description}`]
+          lessonsLearned: `Alert triggered: ${anomaly.description}`
         }
       });
     } catch (error) {

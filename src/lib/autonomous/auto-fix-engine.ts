@@ -52,7 +52,7 @@ export interface FixResult {
   validationResults: ValidationResult[];
   error?: string;
   rollbackPerformed?: boolean;
-  lessonsLearned: string[);
+  lessonsLearned: string[];
 }
 
 export interface ValidationResult {

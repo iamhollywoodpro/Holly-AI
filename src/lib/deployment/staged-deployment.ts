@@ -409,7 +409,7 @@ export class StagedDeploymentSystem {
           wouldRepeat: true,
           confidence: 80,
           results: {},
-          lessonsLearned: `Rolled back deployment: ${pipeline.name}`]
+          lessonsLearned: `Rolled back deployment: ${pipeline.name}`
         }
       });
     } catch (error) {

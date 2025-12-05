@@ -73,7 +73,8 @@ export async function GET(req: NextRequest) {
       overallSuccessRate: successRate,
       timestamp: new Date().toISOString()
     };
-    });
+    
+    return NextResponse.json(stats);
 
   } catch (error) {
     console.error('[API:RECOVER] Error getting statistics:', error);
