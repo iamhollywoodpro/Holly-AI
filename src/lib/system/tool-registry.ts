@@ -142,9 +142,9 @@ export async function registerTool(
       name: schema.name,
       description: schema.description,
       category: schema.category,
-      schema: schema.parameters,
-      status: 'testing', // New tools start in testing mode
-      createdBy: 'holly',
+      schema: JSON.parse(JSON.stringify(schema.parameters)), // Convert to plain JSON
+      status: 'testing' as const, // New tools start in testing mode
+      createdBy: 'holly' as const,
       version: '1.0.0',
       usageCount: 0,
       successRate: null,
@@ -263,7 +263,7 @@ export async function updateTool(
     }
     
     if (updates.parameters) {
-      updatedData.schema = updates.parameters;
+      updatedData.schema = JSON.parse(JSON.stringify(updates.parameters)); // Convert to plain JSON
     }
     
     // Increment version
