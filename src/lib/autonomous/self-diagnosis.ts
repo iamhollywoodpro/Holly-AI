@@ -31,6 +31,10 @@ export interface DiagnosticIssue {
   suggestedFixes: string[];
 }
 
+// Type alias for backward compatibility
+export type SystemIssue = DiagnosticIssue;
+export type DiagnosticResult = DiagnosticReport;
+
 export interface SystemMetrics {
   errorRate: number;
   avgResponseTime: number;
