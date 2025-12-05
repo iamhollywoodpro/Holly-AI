@@ -302,9 +302,8 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
       await addMessage('user', userMessage, undefined, undefined, conversationToUse.id);
 
       // Stream AI response
-      // TEMPORARILY DISABLED: Streaming needs debugging
       // Use new streaming endpoint if enabled (fallback to old if it fails)
-      const useNewStreaming = false; // DISABLED until we debug it
+      const useNewStreaming = process.env.NEXT_PUBLIC_ENABLE_TRUE_STREAMING !== 'false'; // Default: enabled
       const chatEndpoint = useNewStreaming ? '/api/chat-stream' : '/api/chat';
       
       console.log(`🌊 [CHAT] Using ${chatEndpoint}`);
@@ -398,10 +397,24 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
 
               try {
                 const parsed = JSON.parse(data);
-                if (parsed.content) {
+                
+                // Handle streaming events
+                if (parsed.type === 'content' && parsed.content) {
                   fullResponse += parsed.content;
                   setStreamingMessage(fullResponse);
                   setCurrentEmotion('confident');
+                } else if (parsed.type === 'tool_start') {
+                  // Show tool execution indicator
+                  setStreamingMessage(fullResponse + `\n\n🔧 [Calling: ${parsed.toolName}]`);
+                } else if (parsed.type === 'tool_result') {
+                  // Tool completed, continue streaming
+                  setStreamingMessage(fullResponse);
+                } else if (parsed.type === 'done') {
+                  // Stream complete
+                  break;
+                } else if (parsed.type === 'error') {
+                  console.error('Stream error:', parsed.error);
+                  throw new Error(parsed.error);
                 }
               } catch (e) {
                 // Skip invalid JSON
