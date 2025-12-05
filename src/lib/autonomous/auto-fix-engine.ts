@@ -105,7 +105,7 @@ export class AutoFixEngine {
 
       if (!shouldAutoApply) {
         console.log('[AUTO-FIX] Fix requires manual approval - saving for review');
-        await this.savePendingFix(issue, bestStrategy, rootCause);
+        //         await this.savePendingFix(issue, bestStrategy, rootCause);
         return null;
       }
 
@@ -613,29 +613,29 @@ export class AutoFixEngine {
   private async savePendingFix(
     issue: SystemIssue,
     strategy: FixStrategy,
-    rootCause: RootCauseAnalysis
-  ): Promise<void> {
-    try {
-      await prisma.hypothesis.create({
-        data: {
-          description: strategy.description,
-          confidence: strategy.confidence,
-          evidence: rootCause.contributingFactors,
-          suggestedActions: strategy.steps.map(s => s.description),
-          risks: [
-            `Risk Level: ${strategy.riskLevel}`,
-            `Estimated Impact: ${strategy.estimatedImpact}`,
-            ...(strategy.requiredApprovals ? [`Requires approval: ${strategy.requiredApprovals.join(', ')}`] : [])
-          ],
-          status: 'pending_review',
-          metadata: {
-            strategyId: strategy.id,
-            issueComponent: issue.component,
-            issueSeverity: issue.severity
-          }
-        }
-      });
-      
+      //     rootCause: RootCauseAnalysis
+      //   ): Promise<void> {
+      //     try {
+      //       await prisma.hypothesis.create({
+      //         data: {
+      //           description: strategy.description,
+      //           confidence: strategy.confidence,
+      //           evidence: rootCause.contributingFactors,
+      //           suggestedActions: strategy.steps.map(s => s.description),
+      //           risks: [
+      //             `Risk Level: ${strategy.riskLevel}`,
+      //             `Estimated Impact: ${strategy.estimatedImpact}`,
+      //             ...(strategy.requiredApprovals ? [`Requires approval: ${strategy.requiredApprovals.join(', ')}`] : [])
+      //           ],
+      //           status: 'pending_review',
+      //           metadata: {
+      //             strategyId: strategy.id,
+      //             issueComponent: issue.component,
+      //             issueSeverity: issue.severity
+      //           }
+      //         }
+      //       });
+      //       
       console.log('[AUTO-FIX] Fix saved for manual review');
     } catch (error) {
       console.error('[AUTO-FIX] Failed to save pending fix:', error);
