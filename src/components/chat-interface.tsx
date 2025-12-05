@@ -302,8 +302,9 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
       await addMessage('user', userMessage, undefined, undefined, conversationToUse.id);
 
       // Stream AI response
+      // TEMPORARILY DISABLED: Streaming needs debugging
       // Use new streaming endpoint if enabled (fallback to old if it fails)
-      const useNewStreaming = process.env.NEXT_PUBLIC_ENABLE_TRUE_STREAMING !== 'false'; // Default: enabled
+      const useNewStreaming = false; // DISABLED until we debug it
       const chatEndpoint = useNewStreaming ? '/api/chat-stream' : '/api/chat';
       
       console.log(`🌊 [CHAT] Using ${chatEndpoint}`);
