@@ -30,7 +30,6 @@ export async function GET(request: NextRequest) {
       count: tools.length,
       filters: { status, category }
     });
-    }
 
   } catch (error) {
     console.error('[API] List tools error:', error);
