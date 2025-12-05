@@ -129,29 +129,29 @@ export class AutoFixEngine {
     const strategies: FixStrategy[] = [];
 
     // Use top hypothesis to guide fix generation
-    const topHypothesis = rootCause.hypotheses[0];
-    if (!topHypothesis) return strategies;
+    const topHypothesis = { description: rootCause.rootCause, likelihood: rootCause.confidence };
+    if (!rootCause) return strategies;
 
     // Generate fixes based on issue type
     switch (issue.component) {
       case 'typescript':
-        strategies.push(...await this.generateTypeScriptFixes(issue, topHypothesis));
+        strategies.push(...await this.generateTypeScriptFixes(issue, rootCause));
         break;
       
       case 'api':
-        strategies.push(...await this.generateAPIFixes(issue, topHypothesis));
+        strategies.push(...await this.generateAPIFixes(issue, rootCause));
         break;
       
       case 'database':
-        strategies.push(...await this.generateDatabaseFixes(issue, topHypothesis));
+        strategies.push(...await this.generateDatabaseFixes(issue, rootCause));
         break;
       
       case 'streaming':
-        strategies.push(...await this.generateStreamingFixes(issue, topHypothesis));
+        strategies.push(...await this.generateStreamingFixes(issue, rootCause));
         break;
 
       default:
-        strategies.push(...await this.generateGenericFixes(issue, topHypothesis));
+        strategies.push(...await this.generateGenericFixes(issue, rootCause));
     }
 
     return strategies.filter(s => s.confidence >= 0.5); // Only return strategies with >50% confidence
@@ -176,7 +176,7 @@ export class AutoFixEngine {
         steps: [
           {
             action: 'add_type_cast',
-            target: hypothesis.affectedFiles[0] || 'unknown',
+            target: rootCause.affectedComponents[0] || 'unknown',
             changes: {
               pattern: /(\w+):\s*JsonValue/g,
               replacement: '($1 as string[])' // Smart casting based on context
@@ -188,7 +188,7 @@ export class AutoFixEngine {
         rollbackSteps: [
           {
             action: 'revert_git',
-            target: hypothesis.affectedFiles[0] || 'unknown',
+            target: rootCause.affectedComponents[0] || 'unknown',
             changes: {},
             description: 'Revert file to previous commit',
             canRollback: false
@@ -214,7 +214,7 @@ export class AutoFixEngine {
         steps: [
           {
             action: 'add_import',
-            target: hypothesis.affectedFiles[0] || 'unknown',
+            target: rootCause.affectedComponents[0] || 'unknown',
             changes: { importName: missingName },
             description: `Import ${missingName} from appropriate module`,
             canRollback: true
@@ -223,7 +223,7 @@ export class AutoFixEngine {
         rollbackSteps: [
           {
             action: 'remove_import',
-            target: hypothesis.affectedFiles[0] || 'unknown',
+            target: rootCause.affectedComponents[0] || 'unknown',
             changes: { importName: missingName },
             description: 'Remove added import',
             canRollback: true
@@ -247,7 +247,7 @@ export class AutoFixEngine {
         steps: [
           {
             action: 'analyze_types',
-            target: hypothesis.affectedFiles[0] || 'unknown',
+            target: rootCause.affectedComponents[0] || 'unknown',
             changes: {},
             description: 'Analyze type mismatch and determine correct type',
             canRollback: true
@@ -281,7 +281,7 @@ export class AutoFixEngine {
         steps: [
           {
             action: 'wrap_try_catch',
-            target: hypothesis.affectedFiles[0] || 'unknown',
+            target: rootCause.affectedComponents[0] || 'unknown',
             changes: {},
             description: 'Wrap endpoint logic in try-catch with proper error responses',
             canRollback: true
@@ -307,7 +307,7 @@ export class AutoFixEngine {
         steps: [
           {
             action: 'add_retry_logic',
-            target: hypothesis.affectedFiles[0] || 'unknown',
+            target: rootCause.affectedComponents[0] || 'unknown',
             changes: { strategy: 'exponential_backoff', maxRetries: 3 },
             description: 'Add retry logic with exponential backoff',
             canRollback: true
@@ -420,7 +420,7 @@ export class AutoFixEngine {
         steps: [
           {
             action: 'add_type_guards',
-            target: hypothesis.affectedFiles[0] || 'unknown',
+            target: rootCause.affectedComponents[0] || 'unknown',
             changes: {},
             description: 'Add type guards for streaming event parsing',
             canRollback: true
@@ -620,7 +620,7 @@ export class AutoFixEngine {
         data: {
           description: strategy.description,
           confidence: strategy.confidence,
-          evidence: rootCause.evidence,
+          evidence: rootCause.contributingFactors,
           suggestedActions: strategy.steps.map(s => s.description),
           risks: [
             `Risk Level: ${strategy.riskLevel}`,
