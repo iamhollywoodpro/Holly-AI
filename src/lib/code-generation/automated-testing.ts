@@ -336,8 +336,8 @@ export class AutomatedTestingSystem {
               }))
           },
           lessonsLearned: suiteResult.overallPassed
-            ? [`Test suite ${suiteResult.suite.name} passed successfully`]
-            : [`Test suite ${suiteResult.suite.name} failed - ${suiteResult.failedTests} tests failed`]
+            ? `Test suite ${suiteResult.suite.name} passed successfully`
+            : `Test suite ${suiteResult.suite.name} failed - ${suiteResult.failedTests} tests failed`
         }
       });
     } catch (error) {

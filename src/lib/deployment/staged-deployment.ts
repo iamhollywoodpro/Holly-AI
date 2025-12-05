@@ -379,8 +379,8 @@ export class StagedDeploymentSystem {
             failedStage: result.failedStage
           },
           lessonsLearned: result.success
-            ? [`Successful deployment: ${pipeline.name}`]
-            : [`Failed deployment at stage: ${result.failedStage}`]
+            ? `Successful deployment: ${pipeline.name}`
+            : `Failed deployment at stage: ${result.failedStage}`
         }
       });
     } catch (error) {

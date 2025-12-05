@@ -521,7 +521,7 @@ export class AutoFixEngine {
           console.log('[AUTO-FIX] Performing rollback...');
           await this.rollbackFix(strategy);
           result.rollbackPerformed = true;
-          result.learnings.push(`Fix validation failed: ${validationResult.error}`);
+          result.lessonsLearned.push(`Fix validation failed: ${validationResult.error}`);
           
           return result;
         }
@@ -529,7 +529,7 @@ export class AutoFixEngine {
 
       // All validations passed!
       result.success = true;
-      result.learnings.push(`Successfully applied fix: ${strategy.description}`);
+      result.lessonsLearned.push(`Successfully applied fix: ${strategy.description}`);
       console.log('[AUTO-FIX] Fix applied successfully!');
 
       // Record success in database
@@ -539,7 +539,7 @@ export class AutoFixEngine {
       console.error('[AUTO-FIX] Error applying fix:', error);
       result.success = false;
       result.error = error instanceof Error ? error.message : 'Unknown error';
-      result.learnings.push(`Fix application failed: ${result.error}`);
+      result.lessonsLearned.push(`Fix application failed: ${result.error}`);
 
       // Attempt rollback
       try {
@@ -547,7 +547,7 @@ export class AutoFixEngine {
         result.rollbackPerformed = true;
       } catch (rollbackError) {
         console.error('[AUTO-FIX] Rollback failed:', rollbackError);
-        result.learnings.push('Rollback failed - manual intervention required');
+        result.lessonsLearned.push('Rollback failed - manual intervention required');
       }
     }
 
@@ -676,7 +676,7 @@ export class AutoFixEngine {
             totalValidations: result.validationResults.length,
             rollbackPerformed: result.rollbackPerformed
           },
-          lessonsLearned: result.learnings
+          lessonsLearned: result.lessonsLearned.join('; ')
         }
       });
 
@@ -718,7 +718,7 @@ export class AutoFixEngine {
           action: e.action,
           outcome: e.outcome,
           timestamp: e.timestamp,
-          lessonsLearned: e.learnings
+          lessonsLearned: e.lessonsLearned
         }))
       };
     } catch (error) {

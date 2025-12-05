@@ -376,8 +376,8 @@ export class SafeCodeModifier {
             warnings: result.warnings
           },
           lessonsLearned: result.success
-            ? [`Successfully modified ${modification.filePath}: ${modification.reason}`]
-            : [`Failed to modify ${modification.filePath}: ${result.error}`]
+            ? `Successfully modified ${modification.filePath}: ${modification.reason}`
+            : `Failed to modify ${modification.filePath}: ${result.error}`
         }
       });
     } catch (error) {
