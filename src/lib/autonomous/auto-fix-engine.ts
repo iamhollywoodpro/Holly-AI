@@ -84,7 +84,7 @@ export class AutoFixEngine {
 
     try {
       // Step 1: Perform root cause analysis
-      const rootCause = await this.rootCauseAnalyzer.analyzeIssue(issue);
+      const rootCause = await this.rootCauseAnalyzer.analyze(issue);
       
       // Step 2: Generate fix strategies
       const strategies = await this.generateFixStrategies(issue, rootCause);

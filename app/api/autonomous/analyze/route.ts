@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
     console.log(`[API:ANALYZE] Analyzing issue: ${issue.message}`);
 
     // Perform root cause analysis
-    const analysis = await rootCauseAnalyzer.analyzeIssue(issue);
+    const analysis = await rootCauseAnalyzer.analyze(issue);
 
     return NextResponse.json({
       success: true,
