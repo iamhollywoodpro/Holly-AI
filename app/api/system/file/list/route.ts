@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
     }
 
     // List directory
-    const files = await listDirectory(path, recursive || false);
+    const files = await listDirectory(path, { recursive });
 
     return NextResponse.json({
       success: true,

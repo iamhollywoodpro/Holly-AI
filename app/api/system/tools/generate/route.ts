@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { generateToolScaffold } from '@/lib/system/tool-registry';
+import { generateToolBoilerplate } from '@/lib/system/tool-registry';
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate scaffold
-    const result = await generateToolScaffold(toolName, outputPath);
+    const result = await generateToolBoilerplate(toolName, outputPath);
 
     if (result.success) {
       return NextResponse.json({

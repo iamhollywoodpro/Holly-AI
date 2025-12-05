@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { listTools } from '@/lib/system/tool-registry';
+import { listAvailableTools } from '@/lib/system/tool-registry';
 
 export async function GET(request: NextRequest) {
   try {
@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     const category = searchParams.get('category') as 'system' | 'creative' | 'analysis' | 'integration' | undefined;
 
     // List tools
-    const result = await listTools({ status, category });
+    const result = await listAvailableTools({ status, category });
 
     if (result.success) {
       return NextResponse.json({

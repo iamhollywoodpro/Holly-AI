@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { getTool, updateTool, deleteTool } from '@/lib/system/tool-registry';
+import { updateTool, unregisterTool } from '@/lib/system/tool-registry';
 
 interface RouteParams {
   params: {
@@ -26,8 +26,15 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     const { toolName } = params;
 
-    // Get tool
-    const result = await getTool(toolName);
+    // Get tool from database directly
+    const { prisma } = await import('@/lib/db');
+    const tool = await prisma.toolDefinition.findUnique({
+      where: { name: toolName }
+    });
+    
+    const result = tool 
+      ? { success: true, tool }
+      : { success: false, error: 'Tool not found' };
 
     if (result.success) {
       return NextResponse.json({
@@ -105,7 +112,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     const { toolName } = params;
 
     // Delete tool
-    const result = await deleteTool(toolName);
+    const result = await unregisterTool(toolName);
 
     if (result.success) {
       return NextResponse.json({
