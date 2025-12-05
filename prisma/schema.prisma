@@ -50,63 +50,63 @@ model User {
   workLogStats            WorkLogStats?
   emotionLogs             EmotionLog[]
   emotionalBaseline       EmotionalBaseline?
-  
-  // Phase 1: Metamorphosis - Self-Awareness
-  userFeedbacks           UserFeedback[]
-  
-  // Phase 2C: Learning & Adaptation
-  userPreferences         UserPreference[]
-  conversationPatterns    ConversationPattern[]
-  responseFeedback        ResponseFeedback[]
-  adaptationStrategies    AdaptationStrategy[]
-  
-  // Phase 2E: Emotional Intelligence
-  emotionalStates         EmotionalState[]
-  emotionalTriggers       EmotionalTrigger[]
-  empathyInteractions     EmpathyInteraction[]
-  emotionalJourneys       EmotionalJourney[]
-  supportStrategies       SupportStrategy[]
-  
-  // Phase 2D: Creative Co-Pilot
-  creativeSuggestions     CreativeSuggestion[]
-  refinementHistory       RefinementHistory[]
-  narrativeTemplates      NarrativeTemplate[]
-  brainstormSessions      BrainstormSession[]
-  creativeInsights        CreativeInsight[]
 
+  // Phase 1: Metamorphosis - Self-Awareness
+  userFeedbacks UserFeedback[]
+
+  // Phase 2C: Learning & Adaptation
+  userPreferences      UserPreference[]
+  conversationPatterns ConversationPattern[]
+  responseFeedback     ResponseFeedback[]
+  adaptationStrategies AdaptationStrategy[]
+
+  // Phase 2E: Emotional Intelligence
+  emotionalStates     EmotionalState[]
+  emotionalTriggers   EmotionalTrigger[]
+  empathyInteractions EmpathyInteraction[]
+  emotionalJourneys   EmotionalJourney[]
+  supportStrategies   SupportStrategy[]
+
+  // Phase 2D: Creative Co-Pilot
+  creativeSuggestions CreativeSuggestion[]
+  refinementHistory   RefinementHistory[]
+  narrativeTemplates  NarrativeTemplate[]
+  brainstormSessions  BrainstormSession[]
+  creativeInsights    CreativeInsight[]
 
   // Phase 4B: Advanced User Intelligence
-  sessions              UserSession[]
-  events                UserEvent[]
-  journeys              UserJourney[]
-  preferencesV2         UserPreferences?
-  segmentMemberships    UserSegmentMember[]
-  abTestAssignments     ABTestAssignment[]
-  abTestConversions     ABTestConversion[]
-  engagementScore       UserEngagementScore?
-  feedbackV2            UserFeedbackV2[]
+  sessions           UserSession[]
+  events             UserEvent[]
+  journeys           UserJourney[]
+  preferencesV2      UserPreferences?
+  segmentMemberships UserSegmentMember[]
+  abTestAssignments  ABTestAssignment[]
+  abTestConversions  ABTestConversion[]
+  engagementScore    UserEngagementScore?
+  feedbackV2         UserFeedbackV2[]
 
   // Phase 4D: Development Automation
   // (Relations will be added when models are used)
 
   // Phase 4E Relations
-  integrations     Integration[]
-  customReports        CustomReport[]
-  metricAlerts         MetricAlert[]
-  analyticsDashboards  AnalyticsDashboard[]
-  notifications    Notification[]
-  @@map("users")
-  
+  integrations        Integration[]
+  customReports       CustomReport[]
+  metricAlerts        MetricAlert[]
+  analyticsDashboards AnalyticsDashboard[]
+  notifications       Notification[]
+
   // Phase 4C: Creative AI Systems
-  creativeAssets     CreativeAsset[]
-  generationJobs     GenerationJob[]
-  creativeTemplates  CreativeTemplate[]
+  creativeAssets    CreativeAsset[]
+  generationJobs    GenerationJob[]
+  creativeTemplates CreativeTemplate[]
 
   // Phase 5A: Intelligent Code Synthesizer
-  generatedCodes      GeneratedCode[]
-  codeTemplates       CodeTemplate[]
-  codeGenerationJobs  CodeGenerationJob[]
-  codePatterns        CodePattern[]
+  generatedCodes     GeneratedCode[]
+  codeTemplates      CodeTemplate[]
+  codeGenerationJobs CodeGenerationJob[]
+  codePatterns       CodePattern[]
+
+  @@map("users")
 }
 
 model Conversation {
@@ -292,7 +292,7 @@ model WorkLog {
   taskName       String
   description    String?  @db.Text
   details        Json?    @default("{}")
-  duration       Int      // in minutes
+  duration       Int // in minutes
   category       String?
   tags           String[]
   metadata       Json?    @default("{}")
@@ -656,43 +656,43 @@ model GoogleDriveConnection {
 // ===========================================
 
 model DownloadLink {
-  id              String    @id @default(cuid())
-  linkId          String    @unique // Short, shareable link ID
-  userId          String
-  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  conversationId  String?   // Optional conversation context
-  
+  id             String  @id @default(cuid())
+  linkId         String  @unique // Short, shareable link ID
+  userId         String
+  user           User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversationId String? // Optional conversation context
+
   // File information
-  fileName        String
-  fileType        String    // 'image', 'audio', 'video', 'document', 'code', 'other'
-  fileSize        Int       // Size in bytes
-  storagePath     String    // Path in storage system (e.g., S3, local)
-  mimeType        String    // MIME type (e.g., 'image/png')
-  
+  fileName    String
+  fileType    String // 'image', 'audio', 'video', 'document', 'code', 'other'
+  fileSize    Int // Size in bytes
+  storagePath String // Path in storage system (e.g., S3, local)
+  mimeType    String // MIME type (e.g., 'image/png')
+
   // Security
-  password        String?   // Hashed password for protected links
-  expiresAt       DateTime?
-  maxDownloads    Int?      // Maximum number of downloads allowed
-  downloadCount   Int       @default(0)
-  lastDownloadAt  DateTime?
-  
+  password       String? // Hashed password for protected links
+  expiresAt      DateTime?
+  maxDownloads   Int? // Maximum number of downloads allowed
+  downloadCount  Int       @default(0)
+  lastDownloadAt DateTime?
+
   // Metadata
-  title           String?
-  description     String?
-  tags            Json?     // Array of tags
-  metadata        Json?     // Additional metadata
-  
+  title       String?
+  description String?
+  tags        Json? // Array of tags
+  metadata    Json? // Additional metadata
+
   // Analytics
-  downloadIPs     Json?     // Array of IPs that downloaded
-  
+  downloadIPs Json? // Array of IPs that downloaded
+
   // Work Log integration
-  generatedBy     String?   // What generated this (e.g., 'AI', 'User', 'System')
-  generationTime  Int?      // Time taken to generate in milliseconds
-  
+  generatedBy    String? // What generated this (e.g., 'AI', 'User', 'System')
+  generationTime Int? // Time taken to generate in milliseconds
+
   // Timestamps
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  revokedAt       DateTime? // When link was manually revoked
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  revokedAt DateTime? // When link was manually revoked
 
   @@index([userId])
   @@index([linkId])
@@ -886,17 +886,17 @@ model EmotionalBaseline {
 
 // User preferences learned from interactions
 model UserPreference {
-  id           String   @id @default(cuid())
-  userId       String
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  category     String   // coding_style, communication, music_taste, design_preference, etc.
-  preferenceKey String  // specific preference identifier
-  value        Json     // flexible value storage
-  confidence   Float    @default(0.5) // 0.0 to 1.0 - how confident we are
-  source       String   // conversation, explicit_feedback, behavior_pattern
-  timesObserved Int     @default(1)
-  lastObserved DateTime @default(now())
-  createdAt    DateTime @default(now())
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category      String // coding_style, communication, music_taste, design_preference, etc.
+  preferenceKey String // specific preference identifier
+  value         Json // flexible value storage
+  confidence    Float    @default(0.5) // 0.0 to 1.0 - how confident we are
+  source        String // conversation, explicit_feedback, behavior_pattern
+  timesObserved Int      @default(1)
+  lastObserved  DateTime @default(now())
+  createdAt     DateTime @default(now())
 
   @@unique([userId, category, preferenceKey])
   @@index([userId])
@@ -910,9 +910,9 @@ model ConversationPattern {
   id              String   @id @default(cuid())
   userId          String
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  patternType     String   // question_pattern, work_pattern, time_preference, response_style
+  patternType     String // question_pattern, work_pattern, time_preference, response_style
   pattern         String   @db.Text // description of the pattern
-  context         Json     // when/where this pattern appears
+  context         Json // when/where this pattern appears
   frequency       Int      @default(1)
   effectiveness   Float    @default(0.5) // how well responses using this pattern work
   lastSeen        DateTime @default(now())
@@ -928,20 +928,20 @@ model ConversationPattern {
 
 // Feedback on HOLLY's responses (implicit and explicit)
 model ResponseFeedback {
-  id              String   @id @default(cuid())
-  userId          String
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  conversationId  String?
-  messageId       String?  // specific message that received feedback
-  feedbackType    String   // implicit, explicit, correction, appreciation
-  sentiment       String   // positive, negative, neutral
-  sentimentScore  Float    // -1.0 to 1.0
-  context         Json     // what was being discussed
-  hollyResponse   String   @db.Text // what HOLLY said
-  userReaction    String?  @db.Text // how user reacted
-  lessonLearned   String?  @db.Text // what to do differently
-  applied         Boolean  @default(false) // has this lesson been applied
-  createdAt       DateTime @default(now())
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversationId String?
+  messageId      String? // specific message that received feedback
+  feedbackType   String // implicit, explicit, correction, appreciation
+  sentiment      String // positive, negative, neutral
+  sentimentScore Float // -1.0 to 1.0
+  context        Json // what was being discussed
+  hollyResponse  String   @db.Text // what HOLLY said
+  userReaction   String?  @db.Text // how user reacted
+  lessonLearned  String?  @db.Text // what to do differently
+  applied        Boolean  @default(false) // has this lesson been applied
+  createdAt      DateTime @default(now())
 
   @@index([userId])
   @@index([feedbackType])
@@ -952,17 +952,17 @@ model ResponseFeedback {
 
 // Adaptation strategies that work for this user
 model AdaptationStrategy {
-  id              String   @id @default(cuid())
+  id              String    @id @default(cuid())
   userId          String
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  strategyName    String   // be_more_concise, use_more_emojis, technical_depth, etc.
-  description     String   @db.Text
-  context         String   // when to apply this strategy
-  successRate     Float    @default(0.5)
-  timesApplied    Int      @default(0)
-  timesSuccessful Int      @default(0)
-  active          Boolean  @default(true)
-  createdAt       DateTime @default(now())
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  strategyName    String // be_more_concise, use_more_emojis, technical_depth, etc.
+  description     String    @db.Text
+  context         String // when to apply this strategy
+  successRate     Float     @default(0.5)
+  timesApplied    Int       @default(0)
+  timesSuccessful Int       @default(0)
+  active          Boolean   @default(true)
+  createdAt       DateTime  @default(now())
   lastApplied     DateTime?
 
   @@unique([userId, strategyName])
@@ -971,7 +971,6 @@ model AdaptationStrategy {
   @@index([successRate])
   @@map("adaptation_strategies")
 }
-
 
 // ===========================================
 // PHASE 2E: DEEPER EMOTIONAL INTELLIGENCE
@@ -982,12 +981,12 @@ model EmotionalState {
   id                String   @id @default(cuid())
   userId            String
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  primaryEmotion    String   // joy, sadness, anxiety, excitement, frustration, etc.
-  intensity         Float    // 0.0 to 1.0
-  valence           Float    // -1.0 (negative) to 1.0 (positive)
-  arousal           Float    // 0.0 (calm) to 1.0 (energized)
-  secondaryEmotions Json     // { emotion: string, intensity: number }[]
-  context           Json     // what's happening, conversation topic, etc.
+  primaryEmotion    String // joy, sadness, anxiety, excitement, frustration, etc.
+  intensity         Float // 0.0 to 1.0
+  valence           Float // -1.0 (negative) to 1.0 (positive)
+  arousal           Float // 0.0 (calm) to 1.0 (energized)
+  secondaryEmotions Json // { emotion: string, intensity: number }[]
+  context           Json // what's happening, conversation topic, etc.
   triggers          String[] @default([]) // what caused this emotion
   cues              String[] @default([]) // detected emotional cues (language, patterns)
   conversationId    String?
@@ -1004,14 +1003,14 @@ model EmotionalTrigger {
   id          String   @id @default(cuid())
   userId      String
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  triggerType String   // success, failure, frustration, pressure, praise, criticism
+  triggerType String // success, failure, frustration, pressure, praise, criticism
   description String   @db.Text
-  emotion     String   // emotion it typically triggers
-  intensity   Float    // typical intensity
+  emotion     String // emotion it typically triggers
+  intensity   Float // typical intensity
   frequency   Int      @default(1)
   lastSeen    DateTime @default(now())
   firstSeen   DateTime @default(now())
-  context     Json     // when/where this trigger appears
+  context     Json // when/where this trigger appears
 
   @@index([userId])
   @@index([triggerType])
@@ -1020,18 +1019,18 @@ model EmotionalTrigger {
 
 // Empathy interactions and responses
 model EmpathyInteraction {
-  id                 String   @id @default(cuid())
-  userId             String
-  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  conversationId     String?
-  detectedEmotion    String   // emotion HOLLY detected
-  emotionIntensity   Float
-  empathyType        String   // celebration, comfort, encouragement, validation, understanding
-  hollyResponse      String   @db.Text // what HOLLY said
-  userReaction       String?  @db.Text // how user reacted
-  effectiveness      Float?   // 0.0 to 1.0 (how well it worked)
-  context            Json     // situation context
-  timestamp          DateTime @default(now())
+  id               String   @id @default(cuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversationId   String?
+  detectedEmotion  String // emotion HOLLY detected
+  emotionIntensity Float
+  empathyType      String // celebration, comfort, encouragement, validation, understanding
+  hollyResponse    String   @db.Text // what HOLLY said
+  userReaction     String?  @db.Text // how user reacted
+  effectiveness    Float? // 0.0 to 1.0 (how well it worked)
+  context          Json // situation context
+  timestamp        DateTime @default(now())
 
   @@index([userId])
   @@index([empathyType])
@@ -1041,18 +1040,18 @@ model EmpathyInteraction {
 
 // Emotional journey tracking
 model EmotionalJourney {
-  id              String   @id @default(cuid())
+  id              String    @id @default(cuid())
   userId          String
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   conversationId  String?
   startEmotion    String
   endEmotion      String
-  emotionalArc    Json     // array of emotional states throughout conversation
-  keyMoments      Json     // significant emotional shifts
-  supportProvided String[] @default([]) // types of support HOLLY provided
-  outcome         String?  // resolved, ongoing, needs_followup
-  duration        Int?     // in seconds
-  startTime       DateTime @default(now())
+  emotionalArc    Json // array of emotional states throughout conversation
+  keyMoments      Json // significant emotional shifts
+  supportProvided String[]  @default([]) // types of support HOLLY provided
+  outcome         String? // resolved, ongoing, needs_followup
+  duration        Int? // in seconds
+  startTime       DateTime  @default(now())
   endTime         DateTime?
 
   @@index([userId])
@@ -1063,18 +1062,18 @@ model EmotionalJourney {
 
 // Emotional support strategies
 model SupportStrategy {
-  id              String   @id @default(cuid())
-  userId          String
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  strategyName    String   // celebrate_wins, comfort_setbacks, validate_feelings, etc.
-  emotionContext  String   // when to use (joy, sadness, frustration, etc.)
-  description     String   @db.Text
-  effectivenessScore Float @default(0.5)
-  timesUsed       Int      @default(0)
-  timesEffective  Int      @default(0)
-  active          Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  lastUsed        DateTime?
+  id                 String    @id @default(cuid())
+  userId             String
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  strategyName       String // celebrate_wins, comfort_setbacks, validate_feelings, etc.
+  emotionContext     String // when to use (joy, sadness, frustration, etc.)
+  description        String    @db.Text
+  effectivenessScore Float     @default(0.5)
+  timesUsed          Int       @default(0)
+  timesEffective     Int       @default(0)
+  active             Boolean   @default(true)
+  createdAt          DateTime  @default(now())
+  lastUsed           DateTime?
 
   @@unique([userId, strategyName])
   @@index([userId])
@@ -1083,28 +1082,27 @@ model SupportStrategy {
   @@map("support_strategies")
 }
 
-
 // ===========================================
 // PHASE 2D: ADVANCED CREATIVE CO-PILOT
 // ===========================================
 
 // Proactive suggestions generated by HOLLY
 model CreativeSuggestion {
-  id              String   @id @default(cuid())
-  userId          String
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  suggestionType  String   // next_step, improvement, alternative, optimization, creative_idea
-  context         Json     // what project/conversation/task
-  suggestion      String   @db.Text
-  reasoning       String   @db.Text // why HOLLY is suggesting this
-  priority        Int      @default(5) // 1-10
-  status          String   @default("pending") // pending, accepted, declined, implemented
-  relatedTo       String?  // project ID, conversation ID, etc.
-  userFeedback    String?  // what user thought
-  implemented     Boolean  @default(false)
+  id                 String   @id @default(cuid())
+  userId             String
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  suggestionType     String // next_step, improvement, alternative, optimization, creative_idea
+  context            Json // what project/conversation/task
+  suggestion         String   @db.Text
+  reasoning          String   @db.Text // why HOLLY is suggesting this
+  priority           Int      @default(5) // 1-10
+  status             String   @default("pending") // pending, accepted, declined, implemented
+  relatedTo          String? // project ID, conversation ID, etc.
+  userFeedback       String? // what user thought
+  implemented        Boolean  @default(false)
   effectivenessScore Float?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   @@index([userId])
   @@index([suggestionType])
@@ -1115,20 +1113,20 @@ model CreativeSuggestion {
 
 // Track iterations and refinements of creative work
 model RefinementHistory {
-  id              String   @id @default(cuid())
-  userId          String
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  projectId       String?
-  itemType        String   // code, design, copy, music, document
-  itemName        String
-  version         Int      @default(1)
-  content         String   @db.Text
-  changes         Json     // what changed from previous version
-  improvements    String[] @default([]) // specific improvements made
-  feedback        String?  @db.Text
-  quality         Float?   // 0.0 to 1.0
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectId         String?
+  itemType          String // code, design, copy, music, document
+  itemName          String
+  version           Int      @default(1)
+  content           String   @db.Text
+  changes           Json // what changed from previous version
+  improvements      String[] @default([]) // specific improvements made
+  feedback          String?  @db.Text
+  quality           Float? // 0.0 to 1.0
   previousVersionId String?
-  createdAt       DateTime @default(now())
+  createdAt         DateTime @default(now())
 
   @@index([userId])
   @@index([projectId])
@@ -1139,20 +1137,20 @@ model RefinementHistory {
 
 // Narrative templates and generated stories
 model NarrativeTemplate {
-  id              String   @id @default(cuid())
-  userId          String
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  templateType    String   // project_description, marketing_copy, story_arc, pitch, explanation
-  name            String
-  structure       Json     // narrative structure/arc
-  tone            String   // professional, casual, exciting, technical, etc.
-  audienceType    String   // developers, clients, users, investors
-  elements        Json     // key elements to include
-  examples        String[] @default([]) // example outputs
-  timesUsed       Int      @default(0)
-  effectiveness   Float    @default(0.5)
-  createdAt       DateTime @default(now())
-  lastUsed        DateTime?
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  templateType  String // project_description, marketing_copy, story_arc, pitch, explanation
+  name          String
+  structure     Json // narrative structure/arc
+  tone          String // professional, casual, exciting, technical, etc.
+  audienceType  String // developers, clients, users, investors
+  elements      Json // key elements to include
+  examples      String[]  @default([]) // example outputs
+  timesUsed     Int       @default(0)
+  effectiveness Float     @default(0.5)
+  createdAt     DateTime  @default(now())
+  lastUsed      DateTime?
 
   @@index([userId])
   @@index([templateType])
@@ -1162,18 +1160,18 @@ model NarrativeTemplate {
 
 // Creative brainstorming sessions
 model BrainstormSession {
-  id              String   @id @default(cuid())
-  userId          String
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  topic           String
-  goal            String   @db.Text
-  ideas           Json     // array of generated ideas
-  selectedIdeas   String[] @default([])
-  context         Json
-  techniques      String[] @default([]) // what brainstorming techniques were used
-  outcome         String?  @db.Text
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topic         String
+  goal          String   @db.Text
+  ideas         Json // array of generated ideas
+  selectedIdeas String[] @default([])
+  context       Json
+  techniques    String[] @default([]) // what brainstorming techniques were used
+  outcome       String?  @db.Text
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   @@index([userId])
   @@index([createdAt])
@@ -1182,18 +1180,18 @@ model BrainstormSession {
 
 // Creative insights and patterns
 model CreativeInsight {
-  id              String   @id @default(cuid())
-  userId          String
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  insightType     String   // pattern, trend, opportunity, optimization
-  category        String   // coding, design, workflow, communication
-  insight         String   @db.Text
-  evidence        Json     // what led to this insight
-  actionable      Boolean  @default(true)
-  priority        Int      @default(5)
-  applied         Boolean  @default(false)
-  impact          Float?   // measured impact if applied
-  createdAt       DateTime @default(now())
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  insightType String // pattern, trend, opportunity, optimization
+  category    String // coding, design, workflow, communication
+  insight     String   @db.Text
+  evidence    Json // what led to this insight
+  actionable  Boolean  @default(true)
+  priority    Int      @default(5)
+  applied     Boolean  @default(false)
+  impact      Float? // measured impact if applied
+  createdAt   DateTime @default(now())
 
   @@index([userId])
   @@index([insightType])
@@ -1202,24 +1200,23 @@ model CreativeInsight {
   @@map("creative_insights")
 }
 
-
 // ============================================================================
 // PHASE 1: METAMORPHOSIS - SELF-AWARENESS & MONITORING
 // ============================================================================
 
 // User feedback tracking - explicit and implicit feedback
 model UserFeedback {
-  id              String   @id @default(cuid())
-  userId          String
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  conversationId  String?
-  messageId       String?
-  feedbackType    String   // thumbs_up, thumbs_down, rating, regenerate, etc.
-  sentiment       String   // very_positive, positive, neutral, negative, frustrated
-  rating          Int?     // 1-5 for rating type
-  suggestion      String?  @db.Text // For explicit suggestions
-  context         Json     // What HOLLY said, what feature was used, etc.
-  createdAt       DateTime @default(now())
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversationId String?
+  messageId      String?
+  feedbackType   String // thumbs_up, thumbs_down, rating, regenerate, etc.
+  sentiment      String // very_positive, positive, neutral, negative, frustrated
+  rating         Int? // 1-5 for rating type
+  suggestion     String?  @db.Text // For explicit suggestions
+  context        Json // What HOLLY said, what feature was used, etc.
+  createdAt      DateTime @default(now())
 
   @@index([userId])
   @@index([feedbackType])
@@ -1230,18 +1227,18 @@ model UserFeedback {
 
 // Performance snapshots - periodic system health checks
 model PerformanceSnapshot {
-  id                  String   @id @default(cuid())
-  avgResponseTime     Float    // milliseconds
-  avgAIInferenceTime  Float    // milliseconds
-  avgDbQueryTime      Float    // milliseconds
-  errorRate           Float    // percentage
-  requestCount        Int      // requests in time window
-  memoryUsageMB       Float    // memory usage in MB
-  cpuUsagePercent     Float    // CPU usage percentage
-  health              String   // healthy, degraded, critical
-  issues              Json     // list of detected issues
-  metrics             Json     // detailed breakdown of all metrics
-  timestamp           DateTime @default(now())
+  id                 String   @id @default(cuid())
+  avgResponseTime    Float // milliseconds
+  avgAIInferenceTime Float // milliseconds
+  avgDbQueryTime     Float // milliseconds
+  errorRate          Float // percentage
+  requestCount       Int // requests in time window
+  memoryUsageMB      Float // memory usage in MB
+  cpuUsagePercent    Float // CPU usage percentage
+  health             String // healthy, degraded, critical
+  issues             Json // list of detected issues
+  metrics            Json // detailed breakdown of all metrics
+  timestamp          DateTime @default(now())
 
   @@index([health])
   @@index([timestamp])
@@ -1250,13 +1247,13 @@ model PerformanceSnapshot {
 
 // System logs - important system events persisted to database
 model SystemLog {
-  id          String   @id @default(cuid())
-  level       String   // DEBUG, INFO, WARN, ERROR, CRITICAL
-  category    String   // api_call, database_query, ai_inference, etc.
-  message     String   @db.Text
-  context     Json     // userId, conversationId, endpoint, etc.
-  metadata    Json?    // stackTrace, errorCode, performance metrics
-  timestamp   DateTime @default(now())
+  id        String   @id @default(cuid())
+  level     String // DEBUG, INFO, WARN, ERROR, CRITICAL
+  category  String // api_call, database_query, ai_inference, etc.
+  message   String   @db.Text
+  context   Json // userId, conversationId, endpoint, etc.
+  metadata  Json? // stackTrace, errorCode, performance metrics
+  timestamp DateTime @default(now())
 
   @@index([level])
   @@index([category])
@@ -1272,7 +1269,7 @@ model CodebaseKnowledge {
   id             String   @id @default(cuid())
   filePath       String
   fileName       String
-  layer          String   // 'api', 'services', 'database', 'ui', 'lib'
+  layer          String // 'api', 'services', 'database', 'ui', 'lib'
   functionCount  Int      @default(0)
   classCount     Int      @default(0)
   interfaceCount Int      @default(0)
@@ -1289,32 +1286,32 @@ model CodebaseKnowledge {
 }
 
 model ArchitectureSnapshot {
-  id                  String   @id @default(cuid())
-  totalFiles          Int
-  totalFunctions      Int
-  totalClasses        Int
-  totalInterfaces     Int
-  apiEndpoints        Int
-  featureModules      Json     // Array of feature module data
-  layers              Json     // Architecture layers data
-  techStack           Json     // Technology stack data
-  integrationPoints   Json     // External integration points
-  timestamp           DateTime @default(now())
+  id                String   @id @default(cuid())
+  totalFiles        Int
+  totalFunctions    Int
+  totalClasses      Int
+  totalInterfaces   Int
+  apiEndpoints      Int
+  featureModules    Json // Array of feature module data
+  layers            Json // Architecture layers data
+  techStack         Json // Technology stack data
+  integrationPoints Json // External integration points
+  timestamp         DateTime @default(now())
 
   @@index([timestamp])
 }
 
 model DependencyGraph {
-  id                    String   @id @default(cuid())
-  filePath              String   @unique
-  directDependencies    String[] // Files this file directly imports
-  directDependents      String[] // Files that directly import this file
-  totalImpact           Int      @default(0) // Total files affected by changes
-  isCritical            Boolean  @default(false)
-  circularDependencies  String[] // Files involved in circular dependencies
-  lastAnalyzed          DateTime @default(now())
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  id                   String   @id @default(cuid())
+  filePath             String   @unique
+  directDependencies   String[] // Files this file directly imports
+  directDependents     String[] // Files that directly import this file
+  totalImpact          Int      @default(0) // Total files affected by changes
+  isCritical           Boolean  @default(false)
+  circularDependencies String[] // Files involved in circular dependencies
+  lastAnalyzed         DateTime @default(now())
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
   @@index([isCritical])
   @@index([lastAnalyzed])
@@ -1325,22 +1322,22 @@ model DependencyGraph {
 // ============================================================================
 
 model CodeChange {
-  id              String   @id @default(cuid())
+  id              String              @id @default(cuid())
   commitSha       String
-  commitMessage   String   @db.Text
+  commitMessage   String              @db.Text
   authorName      String
   authorEmail     String
-  branch          String   @default("main")
-  filesChanged    Int      @default(0)
-  additions       Int      @default(0)
-  deletions       Int      @default(0)
+  branch          String              @default("main")
+  filesChanged    Int                 @default(0)
+  additions       Int                 @default(0)
+  deletions       Int                 @default(0)
   changedFiles    Json
   changeType      String
-  impactScore     Float    @default(0)
-  riskLevel       String   @default("low")
-  affectedModules String[] @default([])
+  impactScore     Float               @default(0)
+  riskLevel       String              @default("low")
+  affectedModules String[]            @default([])
   committedAt     DateTime
-  detectedAt      DateTime @default(now())
+  detectedAt      DateTime            @default(now())
   analyzedAt      DateTime?
   healingActions  SelfHealingAction[]
 
@@ -1352,27 +1349,28 @@ model CodeChange {
 }
 
 model SelfHealingAction {
-  id              String      @id @default(cuid())
-  codeChangeId    String?
-  codeChange      CodeChange? @relation(fields: [codeChangeId], references: [id], onDelete: SetNull)
-  issueType       String
-  severity        String
-  description     String      @db.Text
-  affectedFiles   String[]    @default([])
-  healingType     String
-  actionTaken     String      @db.Text
-  changes         Json
-  status          String      @default("pending")
-  success         Boolean     @default(false)
-  errorMessage    String?     @db.Text
-  prUrl           String?
-  prNumber        Int?
-  prMerged        Boolean     @default(false)
-  detectedAt      DateTime    @default(now())
-  attemptedAt     DateTime?
-  completedAt     DateTime?
+  id            String      @id @default(cuid())
+  codeChangeId  String?
+  codeChange    CodeChange? @relation(fields: [codeChangeId], references: [id], onDelete: SetNull)
+  issueType     String
+  severity      String
+  description   String      @db.Text
+  affectedFiles String[]    @default([])
+  healingType   String
+  actionTaken   String      @db.Text
+  changes       Json
+  status        String      @default("pending")
+  success       Boolean     @default(false)
+  errorMessage  String?     @db.Text
+  prUrl         String?
+  prNumber      Int?
+  prMerged      Boolean     @default(false)
+  detectedAt    DateTime    @default(now())
+  attemptedAt   DateTime?
+  completedAt   DateTime?
 
-  pullRequests    PullRequest[]
+  pullRequests PullRequest[]
+
   @@index([issueType])
   @@index([status])
   @@index([severity])
@@ -1381,24 +1379,24 @@ model SelfHealingAction {
 }
 
 model PerformanceIssue {
-  id              String   @id @default(cuid())
+  id              String    @id @default(cuid())
   endpoint        String
   issueType       String
   severity        String
   avgResponseTime Float
   p95ResponseTime Float?
   p99ResponseTime Float?
-  requestCount    Int      @default(0)
+  requestCount    Int       @default(0)
   errorRate       Float?
-  description     String   @db.Text
-  stackTrace      String?  @db.Text
-  query           String?  @db.Text
-  recommendation  String   @db.Text
-  status          String   @default("open")
-  priority        Int      @default(5)
-  resolved        Boolean  @default(false)
-  firstDetected   DateTime @default(now())
-  lastOccurred    DateTime @default(now())
+  description     String    @db.Text
+  stackTrace      String?   @db.Text
+  query           String?   @db.Text
+  recommendation  String    @db.Text
+  status          String    @default("open")
+  priority        Int       @default(5)
+  resolved        Boolean   @default(false)
+  firstDetected   DateTime  @default(now())
+  lastOccurred    DateTime  @default(now())
   resolvedAt      DateTime?
 
   @@index([endpoint])
@@ -1410,28 +1408,28 @@ model PerformanceIssue {
 }
 
 model RefactoringRecommendation {
-  id                  String   @id @default(cuid())
-  filePath            String
-  fileName            String
-  codeSection         String?  @db.Text
-  lineNumbers         Int[]    @default([])
-  recommendationType  String
-  severity            String
-  priority            Int      @default(5)
-  currentComplexity   Float?
-  targetComplexity    Float?
-  estimatedEffort     String
-  benefits            String[] @default([])
-  description         String   @db.Text
-  reasoning           String   @db.Text
-  suggestedApproach   String   @db.Text
-  codeExample         String?  @db.Text
-  status              String   @default("pending")
-  implemented         Boolean  @default(false)
-  effectiveness       Float?
-  detectedAt          DateTime @default(now())
-  acceptedAt          DateTime?
-  completedAt         DateTime?
+  id                 String    @id @default(cuid())
+  filePath           String
+  fileName           String
+  codeSection        String?   @db.Text
+  lineNumbers        Int[]     @default([])
+  recommendationType String
+  severity           String
+  priority           Int       @default(5)
+  currentComplexity  Float?
+  targetComplexity   Float?
+  estimatedEffort    String
+  benefits           String[]  @default([])
+  description        String    @db.Text
+  reasoning          String    @db.Text
+  suggestedApproach  String    @db.Text
+  codeExample        String?   @db.Text
+  status             String    @default("pending")
+  implemented        Boolean   @default(false)
+  effectiveness      Float?
+  detectedAt         DateTime  @default(now())
+  acceptedAt         DateTime?
+  completedAt        DateTime?
 
   @@index([filePath])
   @@index([recommendationType])
@@ -1442,21 +1440,21 @@ model RefactoringRecommendation {
 }
 
 model LearningInsight {
-  id              String   @id @default(cuid())
+  id              String    @id @default(cuid())
   category        String
   insightType     String
   title           String
-  description     String   @db.Text
+  description     String    @db.Text
   evidence        Json
-  confidence      Float    @default(0.5)
-  actionable      Boolean  @default(false)
-  applied         Boolean  @default(false)
-  priority        Int      @default(5)
+  confidence      Float     @default(0.5)
+  actionable      Boolean   @default(false)
+  applied         Boolean   @default(false)
+  priority        Int       @default(5)
   impact          String?
-  relatedFiles    String[] @default([])
-  relatedPatterns String[] @default([])
-  tags            String[] @default([])
-  learnedAt       DateTime @default(now())
+  relatedFiles    String[]  @default([])
+  relatedPatterns String[]  @default([])
+  tags            String[]  @default([])
+  learnedAt       DateTime  @default(now())
   appliedAt       DateTime?
   validatedAt     DateTime?
 
@@ -1473,36 +1471,36 @@ model LearningInsight {
 // ============================================
 
 model PullRequest {
-  id                String    @id @default(cuid())
-  prNumber          Int
-  prUrl             String
-  title             String
-  description       String?   @db.Text
-  branch            String
-  baseBranch        String    @default("main")
-  
+  id          String  @id @default(cuid())
+  prNumber    Int
+  prUrl       String
+  title       String
+  description String? @db.Text
+  branch      String
+  baseBranch  String  @default("main")
+
   // Relations
   selfHealingId     String?
   selfHealingAction SelfHealingAction? @relation(fields: [selfHealingId], references: [id], onDelete: SetNull)
-  
+
   // Auto-merge decision
-  autoMergeable     Boolean   @default(false)
-  safetyScore       Float     @default(0.0)
-  riskFactors       String[]  @default([])
-  checksStatus      String    @default("pending") // pending, passing, failing
-  
+  autoMergeable Boolean  @default(false)
+  safetyScore   Float    @default(0.0)
+  riskFactors   String[] @default([])
+  checksStatus  String   @default("pending") // pending, passing, failing
+
   // Merge status
-  status            String    @default("open") // open, merged, closed, rolled_back
-  merged            Boolean   @default(false)
-  mergedAt          DateTime?
-  mergedBy          String?   @default("holly-auto-merge")
-  rolledBack        Boolean   @default(false)
-  rollbackReason    String?   @db.Text
-  rolledBackAt      DateTime?
-  
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  
+  status         String    @default("open") // open, merged, closed, rolled_back
+  merged         Boolean   @default(false)
+  mergedAt       DateTime?
+  mergedBy       String?   @default("holly-auto-merge")
+  rolledBack     Boolean   @default(false)
+  rollbackReason String?   @db.Text
+  rolledBackAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@unique([prNumber])
   @@index([status])
   @@index([autoMergeable])
@@ -1512,45 +1510,45 @@ model PullRequest {
 }
 
 model Prediction {
-  id                String    @id @default(cuid())
-  predictionType    String    // performance_degradation, bug_risk, complexity_increase, security_vulnerability
-  category          String    // code_quality, performance, security, maintainability
-  
+  id             String @id @default(cuid())
+  predictionType String // performance_degradation, bug_risk, complexity_increase, security_vulnerability
+  category       String // code_quality, performance, security, maintainability
+
   // Target
-  filePath          String
-  fileName          String
-  component         String?
-  module            String?
-  
+  filePath  String
+  fileName  String
+  component String?
+  module    String?
+
   // Prediction details
-  title             String
-  description       String    @db.Text
-  reasoning         String    @db.Text
-  confidence        Float     @default(0.5) // 0.0 to 1.0
-  severity          String    // critical, high, medium, low
-  likelihood        Float     @default(0.5) // 0.0 to 1.0
-  
+  title       String
+  description String @db.Text
+  reasoning   String @db.Text
+  confidence  Float  @default(0.5) // 0.0 to 1.0
+  severity    String // critical, high, medium, low
+  likelihood  Float  @default(0.5) // 0.0 to 1.0
+
   // Evidence
-  indicators        Json      // Data that led to prediction
-  patterns          String[]  @default([])
-  historicalData    Json?
-  
+  indicators     Json // Data that led to prediction
+  patterns       String[] @default([])
+  historicalData Json?
+
   // Recommendation
-  recommendation    String    @db.Text
-  preventionSteps   String[]  @default([])
-  estimatedImpact   String?
-  
+  recommendation  String   @db.Text
+  preventionSteps String[] @default([])
+  estimatedImpact String?
+
   // Status
-  status            String    @default("predicted") // predicted, monitoring, occurred, prevented, false_positive
-  validated         Boolean   @default(false)
-  validatedAt       DateTime?
-  accuracy          Float?    // Set after validation
-  
+  status      String    @default("predicted") // predicted, monitoring, occurred, prevented, false_positive
+  validated   Boolean   @default(false)
+  validatedAt DateTime?
+  accuracy    Float? // Set after validation
+
   // Timestamps
-  predictedAt       DateTime  @default(now())
-  monitorUntil      DateTime?
-  occurredAt        DateTime?
-  
+  predictedAt  DateTime  @default(now())
+  monitorUntil DateTime?
+  occurredAt   DateTime?
+
   @@index([predictionType])
   @@index([status])
   @@index([confidence])
@@ -1560,39 +1558,39 @@ model Prediction {
 }
 
 model CodeQualityMetric {
-  id                String    @id @default(cuid())
-  
+  id String @id @default(cuid())
+
   // Scope
-  scope             String    // file, module, project
-  scopePath         String?
-  scopeName         String?
-  
+  scope     String // file, module, project
+  scopePath String?
+  scopeName String?
+
   // Metrics
-  linesOfCode       Int
-  complexity        Int
-  maintainability   Float     @default(0.0)
-  testCoverage      Float     @default(0.0)
-  
+  linesOfCode     Int
+  complexity      Int
+  maintainability Float @default(0.0)
+  testCoverage    Float @default(0.0)
+
   // Quality scores
-  qualityScore      Float     @default(0.0)
-  duplication       Float     @default(0.0)
-  documentation     Float     @default(0.0)
-  
+  qualityScore  Float @default(0.0)
+  duplication   Float @default(0.0)
+  documentation Float @default(0.0)
+
   // Issues
-  bugs              Int       @default(0)
-  vulnerabilities   Int       @default(0)
-  codeSmells        Int       @default(0)
-  
+  bugs            Int @default(0)
+  vulnerabilities Int @default(0)
+  codeSmells      Int @default(0)
+
   // Tech debt
-  technicalDebt     Int       @default(0) // Minutes
-  debtRatio         Float     @default(0.0)
-  
+  technicalDebt Int   @default(0) // Minutes
+  debtRatio     Float @default(0.0)
+
   // Trend data
-  trend             String    @default("stable") // improving, stable, degrading
-  changeFromPrev    Float     @default(0.0)
-  
-  measuredAt        DateTime  @default(now())
-  
+  trend          String @default("stable") // improving, stable, degrading
+  changeFromPrev Float  @default(0.0)
+
+  measuredAt DateTime @default(now())
+
   @@index([scope])
   @@index([scopePath])
   @@index([qualityScore])
@@ -1601,42 +1599,42 @@ model CodeQualityMetric {
 }
 
 model TechnicalDebt {
-  id                String    @id @default(cuid())
-  debtType          String    // code_smell, outdated_dependency, missing_test, poor_design
-  category          String    // maintainability, reliability, security, performance
-  
+  id       String @id @default(cuid())
+  debtType String // code_smell, outdated_dependency, missing_test, poor_design
+  category String // maintainability, reliability, security, performance
+
   // Location
-  filePath          String
-  fileName          String
-  lineNumbers       Int[]     @default([])
-  module            String?
-  
+  filePath    String
+  fileName    String
+  lineNumbers Int[]   @default([])
+  module      String?
+
   // Debt details
-  title             String
-  description       String    @db.Text
-  impact            String    @db.Text
-  
+  title       String
+  description String @db.Text
+  impact      String @db.Text
+
   // Effort estimation
-  effortMinutes     Int       @default(0)
-  severity          String    // critical, high, medium, low
-  priority          Int       @default(5) // 1-10
-  
+  effortMinutes Int    @default(0)
+  severity      String // critical, high, medium, low
+  priority      Int    @default(5) // 1-10
+
   // Business impact
-  affectedFeatures  String[]  @default([])
-  userImpact        String?
-  businessCost      String?
-  
+  affectedFeatures String[] @default([])
+  userImpact       String?
+  businessCost     String?
+
   // Remediation
-  recommendation    String    @db.Text
-  suggestedApproach String?   @db.Text
-  
+  recommendation    String  @db.Text
+  suggestedApproach String? @db.Text
+
   // Status
-  status            String    @default("identified") // identified, planned, in_progress, resolved
-  resolved          Boolean   @default(false)
-  resolvedAt        DateTime?
-  
-  identifiedAt      DateTime  @default(now())
-  
+  status     String    @default("identified") // identified, planned, in_progress, resolved
+  resolved   Boolean   @default(false)
+  resolvedAt DateTime?
+
+  identifiedAt DateTime @default(now())
+
   @@index([debtType])
   @@index([status])
   @@index([severity])
@@ -1646,55 +1644,54 @@ model TechnicalDebt {
   @@map("technical_debt")
 }
 
-
 // ============================================
 // PHASE 4B: ADVANCED USER INTELLIGENCE
 // ============================================
 
 // User Behavior Tracking
 model UserSession {
-  id                String    @id @default(cuid())
-  userId            String
-  clerkUserId       String
-  user              User      @relation(fields: [clerkUserId], references: [clerkUserId], onDelete: Cascade)
-  
+  id          String @id @default(cuid())
+  userId      String
+  clerkUserId String
+  user        User   @relation(fields: [clerkUserId], references: [clerkUserId], onDelete: Cascade)
+
   // Session info
-  sessionId         String    @unique
-  ipAddress         String?
-  userAgent         String?   @db.Text
-  device            String?   // mobile, tablet, desktop
-  browser           String?
-  os                String?
-  country           String?
-  city              String?
-  
+  sessionId String  @unique
+  ipAddress String?
+  userAgent String? @db.Text
+  device    String? // mobile, tablet, desktop
+  browser   String?
+  os        String?
+  country   String?
+  city      String?
+
   // Session metrics
-  startedAt         DateTime  @default(now())
-  endedAt           DateTime?
-  duration          Int?      // seconds
-  pageViews         Int       @default(0)
-  eventsCount       Int       @default(0)
-  
+  startedAt   DateTime  @default(now())
+  endedAt     DateTime?
+  duration    Int? // seconds
+  pageViews   Int       @default(0)
+  eventsCount Int       @default(0)
+
   // Engagement
-  activeTime        Int       @default(0) // seconds of active engagement
-  idleTime          Int       @default(0) // seconds idle
-  scrollDepth       Float     @default(0) // percentage
-  clickCount        Int       @default(0)
-  
+  activeTime  Int   @default(0) // seconds of active engagement
+  idleTime    Int   @default(0) // seconds idle
+  scrollDepth Float @default(0) // percentage
+  clickCount  Int   @default(0)
+
   // Pages visited
-  landingPage       String?
-  exitPage          String?
-  pagesVisited      String[]  @default([])
-  
+  landingPage  String?
+  exitPage     String?
+  pagesVisited String[] @default([])
+
   // Conversion tracking
-  converted         Boolean   @default(false)
-  conversionType    String?
-  conversionValue   Float?
-  
+  converted       Boolean @default(false)
+  conversionType  String?
+  conversionValue Float?
+
   // Relations
-  events            UserEvent[]
-  journeys          UserJourney[]
-  
+  events   UserEvent[]
+  journeys UserJourney[]
+
   @@index([clerkUserId])
   @@index([sessionId])
   @@index([startedAt])
@@ -1703,38 +1700,38 @@ model UserSession {
 }
 
 model UserEvent {
-  id                String      @id @default(cuid())
-  userId            String
-  clerkUserId       String
-  user              User        @relation(fields: [clerkUserId], references: [clerkUserId], onDelete: Cascade)
-  
-  sessionId         String
-  session           UserSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  
+  id          String @id @default(cuid())
+  userId      String
+  clerkUserId String
+  user        User   @relation(fields: [clerkUserId], references: [clerkUserId], onDelete: Cascade)
+
+  sessionId String
+  session   UserSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
   // Event details
-  eventType         String      // click, page_view, form_submit, feature_use, etc.
-  eventName         String
-  eventCategory     String?
-  
+  eventType     String // click, page_view, form_submit, feature_use, etc.
+  eventName     String
+  eventCategory String?
+
   // Context
-  page              String
-  component         String?
-  elementId         String?
-  elementText       String?     @db.Text
-  
+  page        String
+  component   String?
+  elementId   String?
+  elementText String? @db.Text
+
   // Data
-  eventData         Json?       // Custom event data
-  metadata          Json?       // Additional metadata
-  
+  eventData Json? // Custom event data
+  metadata  Json? // Additional metadata
+
   // Timing
-  timestamp         DateTime    @default(now())
-  timeOnPage        Int?        // seconds
-  
+  timestamp  DateTime @default(now())
+  timeOnPage Int? // seconds
+
   // Position
-  scrollPosition    Int?        // pixels
-  clickX            Int?
-  clickY            Int?
-  
+  scrollPosition Int? // pixels
+  clickX         Int?
+  clickY         Int?
+
   @@index([clerkUserId])
   @@index([sessionId])
   @@index([eventType])
@@ -1744,36 +1741,36 @@ model UserEvent {
 }
 
 model UserJourney {
-  id                String      @id @default(cuid())
-  userId            String
-  clerkUserId       String
-  user              User        @relation(fields: [clerkUserId], references: [clerkUserId], onDelete: Cascade)
-  
-  sessionId         String
-  session           UserSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  
+  id          String @id @default(cuid())
+  userId      String
+  clerkUserId String
+  user        User   @relation(fields: [clerkUserId], references: [clerkUserId], onDelete: Cascade)
+
+  sessionId String
+  session   UserSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
   // Journey details
-  journeyName       String      // e.g., "Onboarding", "Feature Discovery"
-  currentStep       String
-  totalSteps        Int
-  completedSteps    Int         @default(0)
-  
+  journeyName    String // e.g., "Onboarding", "Feature Discovery"
+  currentStep    String
+  totalSteps     Int
+  completedSteps Int    @default(0)
+
   // Status
-  status            String      @default("in_progress") // in_progress, completed, abandoned
-  completed         Boolean     @default(false)
-  abandoned         Boolean     @default(false)
-  
+  status    String  @default("in_progress") // in_progress, completed, abandoned
+  completed Boolean @default(false)
+  abandoned Boolean @default(false)
+
   // Timing
-  startedAt         DateTime    @default(now())
-  completedAt       DateTime?
-  abandonedAt       DateTime?
-  duration          Int?        // seconds
-  
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+  abandonedAt DateTime?
+  duration    Int? // seconds
+
   // Path taken
-  steps             Json        // Array of step objects
-  dropOffStep       String?
-  dropOffReason     String?
-  
+  steps         Json // Array of step objects
+  dropOffStep   String?
+  dropOffReason String?
+
   @@index([clerkUserId])
   @@index([sessionId])
   @@index([journeyName])
@@ -1784,92 +1781,92 @@ model UserJourney {
 
 // User Preferences & Personalization
 model UserPreferences {
-  id                String    @id @default(cuid())
-  userId            String
-  clerkUserId       String    @unique
-  user              User      @relation(fields: [clerkUserId], references: [clerkUserId], onDelete: Cascade)
-  
+  id          String @id @default(cuid())
+  userId      String
+  clerkUserId String @unique
+  user        User   @relation(fields: [clerkUserId], references: [clerkUserId], onDelete: Cascade)
+
   // UI Preferences
-  theme             String    @default("system") // light, dark, system
-  language          String    @default("en")
-  timezone          String?
-  dateFormat        String    @default("MM/DD/YYYY")
-  timeFormat        String    @default("12h") // 12h, 24h
-  
+  theme      String  @default("system") // light, dark, system
+  language   String  @default("en")
+  timezone   String?
+  dateFormat String  @default("MM/DD/YYYY")
+  timeFormat String  @default("12h") // 12h, 24h
+
   // Dashboard Layout
-  dashboardLayout   Json?     // Custom layout configuration
-  pinnedFeatures    String[]  @default([])
-  hiddenFeatures    String[]  @default([])
-  favoritePages     String[]  @default([])
-  
+  dashboardLayout Json? // Custom layout configuration
+  pinnedFeatures  String[] @default([])
+  hiddenFeatures  String[] @default([])
+  favoritePages   String[] @default([])
+
   // Notifications
   emailNotifications    Boolean @default(true)
   pushNotifications     Boolean @default(true)
   notificationFrequency String  @default("real_time") // real_time, hourly, daily
-  
+
   // Content Preferences
-  contentTypes      String[]  @default([])
-  interests         String[]  @default([])
-  categories        String[]  @default([])
-  
+  contentTypes String[] @default([])
+  interests    String[] @default([])
+  categories   String[] @default([])
+
   // Feature Flags
-  betaFeatures      Boolean   @default(false)
-  experimentalUI    Boolean   @default(false)
-  
+  betaFeatures   Boolean @default(false)
+  experimentalUI Boolean @default(false)
+
   // Personalization Data
-  personalizationScore Float  @default(0.0)
+  personalizationScore Float     @default(0.0)
   lastPersonalizedAt   DateTime?
-  
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([clerkUserId])
   @@map("user_preferences_v2")
 }
 
 model UserSegment {
-  id                String    @id @default(cuid())
-  
+  id String @id @default(cuid())
+
   // Segment definition
-  name              String    @unique
-  description       String?   @db.Text
-  segmentType       String    // demographic, behavioral, engagement, value
-  
+  name        String  @unique
+  description String? @db.Text
+  segmentType String // demographic, behavioral, engagement, value
+
   // Criteria
-  criteria          Json      // Segment rules
-  
+  criteria Json // Segment rules
+
   // Stats
-  userCount         Int       @default(0)
-  active            Boolean   @default(true)
-  
+  userCount Int     @default(0)
+  active    Boolean @default(true)
+
   // Metadata
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  createdBy         String?
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String?
+
   // Relations
-  users             UserSegmentMember[]
-  experiments       ABTest[]
-  
+  users       UserSegmentMember[]
+  experiments ABTest[]
+
   @@index([segmentType])
   @@index([active])
   @@map("user_segments")
 }
 
 model UserSegmentMember {
-  id                String      @id @default(cuid())
-  
-  segmentId         String
-  segment           UserSegment @relation(fields: [segmentId], references: [id], onDelete: Cascade)
-  
-  userId            String
-  clerkUserId       String
-  user              User        @relation(fields: [clerkUserId], references: [clerkUserId], onDelete: Cascade)
-  
+  id String @id @default(cuid())
+
+  segmentId String
+  segment   UserSegment @relation(fields: [segmentId], references: [id], onDelete: Cascade)
+
+  userId      String
+  clerkUserId String
+  user        User   @relation(fields: [clerkUserId], references: [clerkUserId], onDelete: Cascade)
+
   // Membership
-  joinedAt          DateTime    @default(now())
-  score             Float?      // How well they match the segment
-  
+  joinedAt DateTime @default(now())
+  score    Float? // How well they match the segment
+
   @@unique([segmentId, clerkUserId])
   @@index([segmentId])
   @@index([clerkUserId])
@@ -1878,72 +1875,72 @@ model UserSegmentMember {
 
 // A/B Testing & Experimentation
 model ABTest {
-  id                String    @id @default(cuid())
-  
+  id String @id @default(cuid())
+
   // Test definition
-  name              String    @unique
-  description       String?   @db.Text
-  hypothesis        String?   @db.Text
-  
+  name        String  @unique
+  description String? @db.Text
+  hypothesis  String? @db.Text
+
   // Test configuration
-  testType          String    // ui, feature, content, algorithm
-  status            String    @default("draft") // draft, running, paused, completed
-  
+  testType String // ui, feature, content, algorithm
+  status   String @default("draft") // draft, running, paused, completed
+
   // Variants
-  controlVariant    Json      // Control configuration
-  testVariants      Json      // Array of test variants
-  
+  controlVariant Json // Control configuration
+  testVariants   Json // Array of test variants
+
   // Targeting
   targetSegmentId   String?
   targetSegment     UserSegment? @relation(fields: [targetSegmentId], references: [id], onDelete: SetNull)
-  trafficAllocation Float     @default(1.0) // 0.0 to 1.0
-  
+  trafficAllocation Float        @default(1.0) // 0.0 to 1.0
+
   // Success metrics
-  primaryMetric     String
-  secondaryMetrics  String[]  @default([])
-  successCriteria   Json?
-  
+  primaryMetric    String
+  secondaryMetrics String[] @default([])
+  successCriteria  Json?
+
   // Results
-  winner            String?   // variant id
-  confidence        Float?    // statistical confidence
-  
+  winner     String? // variant id
+  confidence Float? // statistical confidence
+
   // Timing
-  startDate         DateTime?
-  endDate           DateTime?
-  duration          Int?      // days
-  
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  createdBy         String?
-  
+  startDate DateTime?
+  endDate   DateTime?
+  duration  Int? // days
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String?
+
   // Relations
-  assignments       ABTestAssignment[]
-  conversions       ABTestConversion[]
-  
+  assignments ABTestAssignment[]
+  conversions ABTestConversion[]
+
   @@index([status])
   @@index([startDate])
   @@map("ab_tests")
 }
 
 model ABTestAssignment {
-  id                String   @id @default(cuid())
-  
-  testId            String
-  test              ABTest   @relation(fields: [testId], references: [id], onDelete: Cascade)
-  
-  userId            String
-  clerkUserId       String
-  user              User     @relation(fields: [clerkUserId], references: [clerkUserId], onDelete: Cascade)
-  
+  id String @id @default(cuid())
+
+  testId String
+  test   ABTest @relation(fields: [testId], references: [id], onDelete: Cascade)
+
+  userId      String
+  clerkUserId String
+  user        User   @relation(fields: [clerkUserId], references: [clerkUserId], onDelete: Cascade)
+
   // Assignment
-  variant           String   // variant id
-  assignedAt        DateTime @default(now())
-  
+  variant    String // variant id
+  assignedAt DateTime @default(now())
+
   // Exposure
-  exposed           Boolean  @default(false)
-  firstExposedAt    DateTime?
-  exposureCount     Int      @default(0)
-  
+  exposed        Boolean   @default(false)
+  firstExposedAt DateTime?
+  exposureCount  Int       @default(0)
+
   @@unique([testId, clerkUserId])
   @@index([testId])
   @@index([clerkUserId])
@@ -1952,26 +1949,26 @@ model ABTestAssignment {
 }
 
 model ABTestConversion {
-  id                String   @id @default(cuid())
-  
-  testId            String
-  test              ABTest   @relation(fields: [testId], references: [id], onDelete: Cascade)
-  
-  userId            String
-  clerkUserId       String
-  user              User     @relation(fields: [clerkUserId], references: [clerkUserId], onDelete: Cascade)
-  
+  id String @id @default(cuid())
+
+  testId String
+  test   ABTest @relation(fields: [testId], references: [id], onDelete: Cascade)
+
+  userId      String
+  clerkUserId String
+  user        User   @relation(fields: [clerkUserId], references: [clerkUserId], onDelete: Cascade)
+
   // Conversion details
-  variant           String
-  metricName        String
-  metricValue       Float
-  
-  convertedAt       DateTime @default(now())
-  
+  variant     String
+  metricName  String
+  metricValue Float
+
+  convertedAt DateTime @default(now())
+
   // Context
-  sessionId         String?
-  metadata          Json?
-  
+  sessionId String?
+  metadata  Json?
+
   @@index([testId])
   @@index([clerkUserId])
   @@index([variant])
@@ -1981,38 +1978,38 @@ model ABTestConversion {
 
 // Engagement & Retention
 model UserEngagementScore {
-  id                String   @id @default(cuid())
-  userId            String
-  clerkUserId       String   @unique
-  user              User     @relation(fields: [clerkUserId], references: [clerkUserId], onDelete: Cascade)
-  
+  id          String @id @default(cuid())
+  userId      String
+  clerkUserId String @unique
+  user        User   @relation(fields: [clerkUserId], references: [clerkUserId], onDelete: Cascade)
+
   // Overall scores (0-100)
-  overallScore      Float    @default(0.0)
-  activityScore     Float    @default(0.0)
-  frequencyScore    Float    @default(0.0)
-  recencyScore      Float    @default(0.0)
-  depthScore        Float    @default(0.0)
-  
+  overallScore   Float @default(0.0)
+  activityScore  Float @default(0.0)
+  frequencyScore Float @default(0.0)
+  recencyScore   Float @default(0.0)
+  depthScore     Float @default(0.0)
+
   // Engagement metrics
-  totalSessions     Int      @default(0)
-  avgSessionDuration Float   @default(0.0)
-  totalEvents       Int      @default(0)
-  featuresUsed      Int      @default(0)
-  
+  totalSessions      Int   @default(0)
+  avgSessionDuration Float @default(0.0)
+  totalEvents        Int   @default(0)
+  featuresUsed       Int   @default(0)
+
   // Activity levels
-  lastActive        DateTime?
-  activeStreak      Int      @default(0) // consecutive days
-  longestStreak     Int      @default(0)
-  
+  lastActive    DateTime?
+  activeStreak  Int       @default(0) // consecutive days
+  longestStreak Int       @default(0)
+
   // Engagement trend
-  trend             String   @default("new") // growing, stable, declining, new
-  riskLevel         String   @default("low") // low, medium, high
-  churnProbability  Float    @default(0.0)
-  
+  trend            String @default("new") // growing, stable, declining, new
+  riskLevel        String @default("low") // low, medium, high
+  churnProbability Float  @default(0.0)
+
   // Timestamps
-  calculatedAt      DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  
+  calculatedAt DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
   @@index([clerkUserId])
   @@index([overallScore])
   @@index([trend])
@@ -2021,42 +2018,42 @@ model UserEngagementScore {
 }
 
 model UserFeedbackV2 {
-  id                String   @id @default(cuid())
-  userId            String
-  clerkUserId       String
-  user              User     @relation(fields: [clerkUserId], references: [clerkUserId], onDelete: Cascade)
-  
+  id          String @id @default(cuid())
+  userId      String
+  clerkUserId String
+  user        User   @relation(fields: [clerkUserId], references: [clerkUserId], onDelete: Cascade)
+
   // Feedback details
-  feedbackType      String   // feature_request, bug_report, general, nps
-  category          String?
-  subject           String
-  message           String   @db.Text
-  
+  feedbackType String // feature_request, bug_report, general, nps
+  category     String?
+  subject      String
+  message      String  @db.Text
+
   // Rating (NPS or satisfaction)
-  rating            Int?     // 0-10 for NPS, 1-5 for satisfaction
-  npsCategory       String?  // promoter, passive, detractor
-  
+  rating      Int? // 0-10 for NPS, 1-5 for satisfaction
+  npsCategory String? // promoter, passive, detractor
+
   // Context
-  page              String?
-  feature           String?
-  sessionId         String?
-  
+  page      String?
+  feature   String?
+  sessionId String?
+
   // Status
-  status            String   @default("new") // new, reviewed, in_progress, resolved
-  priority          String   @default("medium") // low, medium, high
-  
+  status   String @default("new") // new, reviewed, in_progress, resolved
+  priority String @default("medium") // low, medium, high
+
   // Response
-  response          String?  @db.Text
-  respondedAt       DateTime?
-  respondedBy       String?
-  
+  response    String?   @db.Text
+  respondedAt DateTime?
+  respondedBy String?
+
   // Metadata
-  metadata          Json?
-  attachments       String[] @default([])
-  
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  
+  metadata    Json?
+  attachments String[] @default([])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([clerkUserId])
   @@index([feedbackType])
   @@index([status])
@@ -2064,6 +2061,7 @@ model UserFeedbackV2 {
   @@index([createdAt])
   @@map("user_feedback_v2")
 }
+
 // ============================================
 // PHASE 4D: DEVELOPMENT AUTOMATION
 // ============================================
@@ -2073,42 +2071,42 @@ model UserFeedbackV2 {
 
 // Test Suite Management
 model TestSuite {
-  id                String     @id @default(cuid())
-  
+  id String @id @default(cuid())
+
   // Suite info
-  name              String     @unique
-  description       String?    @db.Text
-  suiteType         String     // unit, integration, e2e, performance
-  framework         String     // jest, vitest, playwright, cypress
-  
+  name        String  @unique
+  description String? @db.Text
+  suiteType   String // unit, integration, e2e, performance
+  framework   String // jest, vitest, playwright, cypress
+
   // Configuration
-  testFiles         String[]   @default([])
-  coverage          Boolean    @default(true)
-  parallel          Boolean    @default(true)
-  timeout           Int        @default(30000) // milliseconds
-  
+  testFiles String[] @default([])
+  coverage  Boolean  @default(true)
+  parallel  Boolean  @default(true)
+  timeout   Int      @default(30000) // milliseconds
+
   // Environment
-  environment       String     @default("test") // test, staging, production
-  envVariables      Json?      // Environment variables
-  
+  environment  String @default("test") // test, staging, production
+  envVariables Json? // Environment variables
+
   // Status
-  enabled           Boolean    @default(true)
-  lastRun           DateTime?
-  totalTests        Int        @default(0)
-  passingTests      Int        @default(0)
-  failingTests      Int        @default(0)
-  
+  enabled      Boolean   @default(true)
+  lastRun      DateTime?
+  totalTests   Int       @default(0)
+  passingTests Int       @default(0)
+  failingTests Int       @default(0)
+
   // Thresholds
-  minCoverage       Float      @default(80.0) // percentage
-  maxDuration       Int        @default(300000) // 5 minutes
-  
+  minCoverage Float @default(80.0) // percentage
+  maxDuration Int   @default(300000) // 5 minutes
+
   // Relations
-  runs              TestRun[]
-  
-  createdAt         DateTime   @default(now())
-  updatedAt         DateTime   @updatedAt
-  createdBy         String?
-  
+  runs TestRun[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String?
+
   @@index([suiteType])
   @@index([enabled])
   @@map("test_suites")
@@ -2116,45 +2114,45 @@ model TestSuite {
 
 // Test Run Execution
 model TestRun {
-  id                String     @id @default(cuid())
-  
+  id String @id @default(cuid())
+
   // Suite reference
-  suiteId           String
-  suite             TestSuite  @relation(fields: [suiteId], references: [id], onDelete: Cascade)
-  
+  suiteId String
+  suite   TestSuite @relation(fields: [suiteId], references: [id], onDelete: Cascade)
+
   // Run info
-  runNumber         Int
-  status            String     // running, passed, failed, error
-  trigger           String     // manual, ci, cron, webhook
-  triggeredBy       String?
-  
+  runNumber   Int
+  status      String // running, passed, failed, error
+  trigger     String // manual, ci, cron, webhook
+  triggeredBy String?
+
   // Results
-  totalTests        Int        @default(0)
-  passedTests       Int        @default(0)
-  failedTests       Int        @default(0)
-  skippedTests      Int        @default(0)
-  
+  totalTests   Int @default(0)
+  passedTests  Int @default(0)
+  failedTests  Int @default(0)
+  skippedTests Int @default(0)
+
   // Coverage
-  coveragePercent   Float?     // overall coverage
-  lineCoverage      Float?
-  branchCoverage    Float?
-  functionCoverage  Float?
-  
+  coveragePercent  Float? // overall coverage
+  lineCoverage     Float?
+  branchCoverage   Float?
+  functionCoverage Float?
+
   // Performance
-  duration          Int?       // milliseconds
-  startedAt         DateTime   @default(now())
-  completedAt       DateTime?
-  
+  duration    Int? // milliseconds
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+
   // Results data
-  testResults       Json       // Detailed test results
-  coverageReport    Json?      // Coverage details
-  errorLog          String?    @db.Text
-  
+  testResults    Json // Detailed test results
+  coverageReport Json? // Coverage details
+  errorLog       String? @db.Text
+
   // Context
-  branch            String?
-  commitSha         String?
-  pullRequestId     String?
-  
+  branch        String?
+  commitSha     String?
+  pullRequestId String?
+
   @@index([suiteId])
   @@index([status])
   @@index([startedAt])
@@ -2163,61 +2161,61 @@ model TestRun {
 
 // AI-Powered Code Review
 model CodeReview {
-  id                String     @id @default(cuid())
-  
+  id String @id @default(cuid())
+
   // PR/Commit info
-  pullRequestId     String?
-  pullRequestUrl    String?
-  commitSha         String
-  branch            String
-  author            String
-  
+  pullRequestId  String?
+  pullRequestUrl String?
+  commitSha      String
+  branch         String
+  author         String
+
   // Review metadata
-  reviewType        String     @default("automated") // automated, manual, hybrid
-  status            String     @default("pending") // pending, approved, changes_requested, commented
-  
+  reviewType String @default("automated") // automated, manual, hybrid
+  status     String @default("pending") // pending, approved, changes_requested, commented
+
   // AI Analysis
-  overallScore      Float      @default(0.0) // 0-100
-  qualityScore      Float      @default(0.0)
-  securityScore     Float      @default(0.0)
-  performanceScore  Float      @default(0.0)
-  maintainabilityScore Float   @default(0.0)
-  
+  overallScore         Float @default(0.0) // 0-100
+  qualityScore         Float @default(0.0)
+  securityScore        Float @default(0.0)
+  performanceScore     Float @default(0.0)
+  maintainabilityScore Float @default(0.0)
+
   // Issues found
-  criticalIssues    Int        @default(0)
-  majorIssues       Int        @default(0)
-  minorIssues       Int        @default(0)
-  suggestions       Int        @default(0)
-  
+  criticalIssues Int @default(0)
+  majorIssues    Int @default(0)
+  minorIssues    Int @default(0)
+  suggestions    Int @default(0)
+
   // Detailed findings
-  findings          Json       // Array of issue objects
+  findings                Json // Array of issue objects
   securityVulnerabilities Json? // Security issues
-  performanceWarnings Json?    // Performance concerns
-  
+  performanceWarnings     Json? // Performance concerns
+
   // Code metrics
-  linesChanged      Int        @default(0)
-  filesChanged      Int        @default(0)
-  complexity        Float?     // Cyclomatic complexity
-  duplicateCode     Float?     // Percentage
-  
+  linesChanged  Int    @default(0)
+  filesChanged  Int    @default(0)
+  complexity    Float? // Cyclomatic complexity
+  duplicateCode Float? // Percentage
+
   // AI comments
-  aiComments        Json?      // Generated review comments
-  autoApproved      Boolean    @default(false)
-  
+  aiComments   Json? // Generated review comments
+  autoApproved Boolean @default(false)
+
   // Human review
-  humanReviewer     String?
-  humanReviewedAt   DateTime?
-  humanComments     String?    @db.Text
-  
+  humanReviewer   String?
+  humanReviewedAt DateTime?
+  humanComments   String?   @db.Text
+
   // Actions taken
-  merged            Boolean    @default(false)
-  mergedAt          DateTime?
-  blocked           Boolean    @default(false)
-  blockReason       String?    @db.Text
-  
-  createdAt         DateTime   @default(now())
-  updatedAt         DateTime   @updatedAt
-  
+  merged      Boolean   @default(false)
+  mergedAt    DateTime?
+  blocked     Boolean   @default(false)
+  blockReason String?   @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([status])
   @@index([overallScore])
   @@index([commitSha])
@@ -2227,71 +2225,71 @@ model CodeReview {
 
 // Deployment Tracking
 model DeploymentLog {
-  id                String     @id @default(cuid())
-  
+  id String @id @default(cuid())
+
   // Deployment info
-  deploymentId      String     @unique
-  environment       String     // development, staging, production
-  platform          String     // vercel, netlify, aws, heroku
-  
+  deploymentId String @unique
+  environment  String // development, staging, production
+  platform     String // vercel, netlify, aws, heroku
+
   // Version info
-  version           String?
-  commitSha         String
-  branch            String
-  tag               String?
-  
+  version   String?
+  commitSha String
+  branch    String
+  tag       String?
+
   // Status
-  status            String     // pending, deploying, success, failed, rolled_back
-  deployType        String     // standard, hotfix, rollback, canary
-  
+  status     String // pending, deploying, success, failed, rolled_back
+  deployType String // standard, hotfix, rollback, canary
+
   // Triggering
-  trigger           String     // manual, ci, webhook, schedule
-  triggeredBy       String?
-  pullRequestId     String?
-  
+  trigger       String // manual, ci, webhook, schedule
+  triggeredBy   String?
+  pullRequestId String?
+
   // URLs
-  deploymentUrl     String?
-  previewUrl        String?
-  logsUrl           String?
-  
+  deploymentUrl String?
+  previewUrl    String?
+  logsUrl       String?
+
   // Timing
-  startedAt         DateTime   @default(now())
-  completedAt       DateTime?
-  duration          Int?       // seconds
-  
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+  duration    Int? // seconds
+
   // Build info
-  buildTime         Int?       // seconds
-  buildSize         Float?     // MB
-  buildLog          String?    @db.Text
-  
+  buildTime Int? // seconds
+  buildSize Float? // MB
+  buildLog  String? @db.Text
+
   // Tests
-  testsRun          Boolean    @default(false)
-  testsPassed       Boolean?
-  testResults       Json?
-  
+  testsRun    Boolean  @default(false)
+  testsPassed Boolean?
+  testResults Json?
+
   // Health checks
   healthCheckPassed Boolean?
   healthCheckUrl    String?
-  
+
   // Rollback info
-  canRollback       Boolean    @default(true)
-  rolledBack        Boolean    @default(false)
-  rollbackTo        String?    // Previous deployment ID
-  rollbackReason    String?    @db.Text
-  
+  canRollback    Boolean @default(true)
+  rolledBack     Boolean @default(false)
+  rollbackTo     String? // Previous deployment ID
+  rollbackReason String? @db.Text
+
   // Metrics
-  errorRate         Float?     // percentage
-  responseTime      Float?     // milliseconds
-  uptimePercent     Float?
-  
+  errorRate     Float? // percentage
+  responseTime  Float? // milliseconds
+  uptimePercent Float?
+
   // Notifications
-  notificationsSent Boolean    @default(false)
-  notifiedUsers     String[]   @default([])
-  
+  notificationsSent Boolean  @default(false)
+  notifiedUsers     String[] @default([])
+
   // Context
-  metadata          Json?
-  environmentVars   Json?      // Sanitized env vars (no secrets)
-  
+  metadata        Json?
+  environmentVars Json? // Sanitized env vars (no secrets)
+
   @@index([environment])
   @@index([status])
   @@index([startedAt])
@@ -2314,55 +2312,55 @@ model DeploymentLog {
 // MODEL 1: Integration - External Service Connections
 // ============================================================================
 model Integration {
-  id                String   @id @default(cuid())
-  
+  id String @id @default(cuid())
+
   // Service Details
-  service           String   // slack, jira, email, github, discord, etc.
-  serviceName       String   // User-friendly name
-  serviceIcon       String?  // Icon URL or emoji
-  
+  service     String // slack, jira, email, github, discord, etc.
+  serviceName String // User-friendly name
+  serviceIcon String? // Icon URL or emoji
+
   // Connection Config
-  status            String   @default("inactive") // active, inactive, error, pending
-  config            Json     // Service-specific configuration
-  credentials       Json?    // Encrypted credentials
-  
+  status      String @default("inactive") // active, inactive, error, pending
+  config      Json // Service-specific configuration
+  credentials Json? // Encrypted credentials
+
   // Authentication
-  authType          String   // oauth, api_key, webhook, basic
-  accessToken       String?  @db.Text
-  refreshToken      String?  @db.Text
-  tokenExpiry       DateTime?
-  
+  authType     String // oauth, api_key, webhook, basic
+  accessToken  String?   @db.Text
+  refreshToken String?   @db.Text
+  tokenExpiry  DateTime?
+
   // Features & Capabilities
-  capabilities      String[] @default([]) // send_message, create_ticket, send_email, etc.
-  enabledFeatures   String[] @default([]) // Which features are enabled
-  
+  capabilities    String[] @default([]) // send_message, create_ticket, send_email, etc.
+  enabledFeatures String[] @default([]) // Which features are enabled
+
   // Webhook Config
-  webhookUrl        String?  @db.Text
-  webhookSecret     String?
-  webhookEvents     String[] @default([])
-  
+  webhookUrl    String?  @db.Text
+  webhookSecret String?
+  webhookEvents String[] @default([])
+
   // Rate Limiting
-  rateLimit         Int?     // Requests per minute
-  requestCount      Int      @default(0)
-  lastRequestAt     DateTime?
-  
+  rateLimit     Int? // Requests per minute
+  requestCount  Int       @default(0)
+  lastRequestAt DateTime?
+
   // Health & Monitoring
-  lastSyncAt        DateTime?
-  lastErrorAt       DateTime?
-  lastError         String?  @db.Text
-  syncFrequency     Int?     // Minutes between syncs
-  
+  lastSyncAt    DateTime?
+  lastErrorAt   DateTime?
+  lastError     String?   @db.Text
+  syncFrequency Int? // Minutes between syncs
+
   // Metadata
-  isActive          Boolean  @default(false)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  createdBy         String
-  user              User     @relation(fields: [createdBy], references: [clerkUserId], onDelete: Cascade)
-  
+  isActive  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String
+  user      User     @relation(fields: [createdBy], references: [clerkUserId], onDelete: Cascade)
+
   // Relations
-  notifications     Notification[]
-  webhookLogs       WebhookLog[]
-  
+  notifications Notification[]
+  webhookLogs   WebhookLog[]
+
   @@index([service])
   @@index([status])
   @@index([createdBy])
@@ -2373,59 +2371,59 @@ model Integration {
 // MODEL 2: Notification - Notification System & Preferences
 // ============================================================================
 model Notification {
-  id                String   @id @default(cuid())
-  
+  id String @id @default(cuid())
+
   // Notification Details
-  type              String   // info, success, warning, error, mention, task, deployment
-  title             String
-  message           String   @db.Text
-  category          String   // system, user, integration, deployment, code_review, etc.
-  
+  type     String // info, success, warning, error, mention, task, deployment
+  title    String
+  message  String @db.Text
+  category String // system, user, integration, deployment, code_review, etc.
+
   // Priority & Status
-  priority          String   @default("normal") // low, normal, high, critical
-  status            String   @default("unread") // unread, read, archived, dismissed
-  
+  priority String @default("normal") // low, normal, high, critical
+  status   String @default("unread") // unread, read, archived, dismissed
+
   // Delivery Channels
-  channels          String[] @default([]) // web, email, slack, sms, push
-  deliveredVia      String[] @default([]) // Which channels successfully delivered
-  failedChannels    String[] @default([])
-  
+  channels       String[] @default([]) // web, email, slack, sms, push
+  deliveredVia   String[] @default([]) // Which channels successfully delivered
+  failedChannels String[] @default([])
+
   // Target User
-  userId            String
-  clerkUserId       String
-  user              User     @relation(fields: [clerkUserId], references: [clerkUserId], onDelete: Cascade)
-  
+  userId      String
+  clerkUserId String
+  user        User   @relation(fields: [clerkUserId], references: [clerkUserId], onDelete: Cascade)
+
   // Action & Navigation
-  actionUrl         String?  @db.Text
-  actionLabel       String?
-  actionData        Json?
-  
+  actionUrl   String? @db.Text
+  actionLabel String?
+  actionData  Json?
+
   // Integration Source
-  integrationId     String?
-  integration       Integration? @relation(fields: [integrationId], references: [id], onDelete: SetNull)
-  sourceService     String?  // Which service generated this notification
-  externalId        String?  // External notification ID
-  
+  integrationId String?
+  integration   Integration? @relation(fields: [integrationId], references: [id], onDelete: SetNull)
+  sourceService String? // Which service generated this notification
+  externalId    String? // External notification ID
+
   // Grouping & Threading
-  groupKey          String?  // Group related notifications
-  threadId          String?  // Thread/conversation ID
-  parentId          String?  // Reply to another notification
-  
+  groupKey String? // Group related notifications
+  threadId String? // Thread/conversation ID
+  parentId String? // Reply to another notification
+
   // Metadata
-  metadata          Json?
-  attachments       Json?    // Files, images, links
-  
+  metadata    Json?
+  attachments Json? // Files, images, links
+
   // Timing
-  scheduledFor      DateTime?
-  sentAt            DateTime?
-  readAt            DateTime?
-  dismissedAt       DateTime?
-  expiresAt         DateTime?
-  
+  scheduledFor DateTime?
+  sentAt       DateTime?
+  readAt       DateTime?
+  dismissedAt  DateTime?
+  expiresAt    DateTime?
+
   // Timestamps
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([clerkUserId])
   @@index([status])
   @@index([type])
@@ -2439,53 +2437,53 @@ model Notification {
 // MODEL 3: WebhookLog - Webhook Activity Tracking
 // ============================================================================
 model WebhookLog {
-  id                String   @id @default(cuid())
-  
+  id String @id @default(cuid())
+
   // Webhook Details
-  integrationId     String?
-  integration       Integration? @relation(fields: [integrationId], references: [id], onDelete: SetNull)
-  service           String   // Which service sent the webhook
-  event             String   // Event type
-  
+  integrationId String?
+  integration   Integration? @relation(fields: [integrationId], references: [id], onDelete: SetNull)
+  service       String // Which service sent the webhook
+  event         String // Event type
+
   // Request Details
-  method            String   // POST, PUT, etc.
-  url               String   @db.Text
-  headers           Json?
-  body              Json?
-  query             Json?
-  
+  method  String // POST, PUT, etc.
+  url     String @db.Text
+  headers Json?
+  body    Json?
+  query   Json?
+
   // Response Details
-  status            String   // success, failed, pending, retrying
-  statusCode        Int?
-  responseBody      Json?
-  responseTime      Int?     // Milliseconds
-  
+  status       String // success, failed, pending, retrying
+  statusCode   Int?
+  responseBody Json?
+  responseTime Int? // Milliseconds
+
   // Processing
-  processed         Boolean  @default(false)
-  processedAt       DateTime?
-  processingTime    Int?     // Milliseconds
-  
+  processed      Boolean   @default(false)
+  processedAt    DateTime?
+  processingTime Int? // Milliseconds
+
   // Error Handling
-  error             String?  @db.Text
-  errorStack        String?  @db.Text
-  retryCount        Int      @default(0)
-  maxRetries        Int      @default(3)
-  nextRetryAt       DateTime?
-  
+  error       String?   @db.Text
+  errorStack  String?   @db.Text
+  retryCount  Int       @default(0)
+  maxRetries  Int       @default(3)
+  nextRetryAt DateTime?
+
   // Validation
-  signatureValid    Boolean?
-  ipAddress         String?
-  userAgent         String?  @db.Text
-  
+  signatureValid Boolean?
+  ipAddress      String?
+  userAgent      String?  @db.Text
+
   // Metadata
-  metadata          Json?
-  tags              String[] @default([])
-  
+  metadata Json?
+  tags     String[] @default([])
+
   // Timestamps
-  receivedAt        DateTime @default(now())
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  
+  receivedAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
   @@index([integrationId])
   @@index([service])
   @@index([status])
@@ -2498,105 +2496,106 @@ model WebhookLog {
 // MODEL 4: ExternalService - Third-Party Service Configurations
 // ============================================================================
 model ExternalService {
-  id                String   @id @default(cuid())
-  
+  id String @id @default(cuid())
+
   // Service Identity
-  name              String   @unique // slack, jira, github, gmail, etc.
-  displayName       String
-  description       String?  @db.Text
-  category          String   // communication, project_management, email, code, etc.
-  
+  name        String  @unique // slack, jira, github, gmail, etc.
+  displayName String
+  description String? @db.Text
+  category    String // communication, project_management, email, code, etc.
+
   // Service Config
-  baseUrl           String?  @db.Text
-  apiVersion        String?
-  authType          String   // oauth2, api_key, basic, bearer, custom
-  
+  baseUrl    String? @db.Text
+  apiVersion String?
+  authType   String // oauth2, api_key, basic, bearer, custom
+
   // OAuth Config
   oauthClientId     String?  @db.Text
   oauthClientSecret String?  @db.Text
   oauthScopes       String[] @default([])
   oauthAuthUrl      String?  @db.Text
   oauthTokenUrl     String?  @db.Text
-  
+
   // API Config
-  apiKeyHeader      String?  // Header name for API key
-  rateLimitPerMin   Int?
-  rateLimitPerHour  Int?
-  
+  apiKeyHeader     String? // Header name for API key
+  rateLimitPerMin  Int?
+  rateLimitPerHour Int?
+
   // Capabilities
-  capabilities      Json     // What this service can do
-  endpoints         Json?    // Available endpoints
-  webhookSupport    Boolean  @default(false)
-  
+  capabilities   Json // What this service can do
+  endpoints      Json? // Available endpoints
+  webhookSupport Boolean @default(false)
+
   // Documentation
-  docsUrl           String?  @db.Text
-  iconUrl           String?  @db.Text
-  setupInstructions String?  @db.Text
-  
+  docsUrl           String? @db.Text
+  iconUrl           String? @db.Text
+  setupInstructions String? @db.Text
+
   // Status
-  isActive          Boolean  @default(true)
-  isAvailable       Boolean  @default(true)
-  lastHealthCheck   DateTime?
-  healthStatus      String?  // healthy, degraded, down
-  
+  isActive        Boolean   @default(true)
+  isAvailable     Boolean   @default(true)
+  lastHealthCheck DateTime?
+  healthStatus    String? // healthy, degraded, down
+
   // Metadata
-  version           String?
-  metadata          Json?
-  
+  version  String?
+  metadata Json?
+
   // Timestamps
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([name])
   @@index([category])
   @@index([isActive])
   @@map("external_services")
 }
+
 // ===========================================
 // PHASE 4F: ADVANCED ANALYTICS MODELS
 // ===========================================
 
 // Business Metrics & KPIs
 model BusinessMetric {
-  id                String   @id @default(cuid())
-  
+  id String @id @default(cuid())
+
   // Metric Identity
-  name              String   @unique // revenue, users, conversions, etc.
-  displayName       String
-  description       String?  @db.Text
-  category          String   // business, technical, user, performance
-  
+  name        String  @unique // revenue, users, conversions, etc.
+  displayName String
+  description String? @db.Text
+  category    String // business, technical, user, performance
+
   // Metric Type
-  metricType        String   // counter, gauge, histogram, summary
-  aggregationType   String   // sum, avg, min, max, count
-  unit              String?  // dollars, users, ms, percentage
-  
+  metricType      String // counter, gauge, histogram, summary
+  aggregationType String // sum, avg, min, max, count
+  unit            String? // dollars, users, ms, percentage
+
   // Current Value
-  currentValue      Float
-  previousValue     Float?
-  changePercent     Float?
-  
+  currentValue  Float
+  previousValue Float?
+  changePercent Float?
+
   // Target & Goals
-  targetValue       Float?
-  minThreshold      Float?
-  maxThreshold      Float?
-  
+  targetValue  Float?
+  minThreshold Float?
+  maxThreshold Float?
+
   // Trend Analysis
-  trend             String   @default("stable") // up, down, stable
-  dataPoints        Json     // Array of historical values
-  
+  trend      String @default("stable") // up, down, stable
+  dataPoints Json // Array of historical values
+
   // Metadata
-  isActive          Boolean  @default(true)
-  priority          Int      @default(0)
-  refreshInterval   Int      @default(300) // seconds
-  lastCalculated    DateTime @default(now())
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  
+  isActive        Boolean  @default(true)
+  priority        Int      @default(0)
+  refreshInterval Int      @default(300) // seconds
+  lastCalculated  DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
   // Relations
-  reports           ReportMetric[]
-  alerts            MetricAlert[]
-  
+  reports ReportMetric[]
+  alerts  MetricAlert[]
+
   @@index([category])
   @@index([isActive])
   @@map("business_metrics")
@@ -2604,41 +2603,41 @@ model BusinessMetric {
 
 // Custom Reports
 model CustomReport {
-  id                String   @id @default(cuid())
-  
+  id String @id @default(cuid())
+
   // Report Identity
-  name              String
-  description       String?  @db.Text
-  reportType        String   // dashboard, table, chart, export
-  
+  name        String
+  description String? @db.Text
+  reportType  String // dashboard, table, chart, export
+
   // Configuration
-  config            Json     // Report configuration
-  metrics           ReportMetric[]
-  filters           Json?    // Filter criteria
-  groupBy           String[] @default([])
-  sortBy            String?
-  
+  config  Json // Report configuration
+  metrics ReportMetric[]
+  filters Json? // Filter criteria
+  groupBy String[]       @default([])
+  sortBy  String?
+
   // Schedule
-  isScheduled       Boolean  @default(false)
-  schedule          String?  // cron expression
-  recipients        String[] @default([])
-  
+  isScheduled Boolean  @default(false)
+  schedule    String? // cron expression
+  recipients  String[] @default([])
+
   // Access Control
-  isPublic          Boolean  @default(false)
-  createdBy         String
-  owner             User     @relation(fields: [createdBy], references: [clerkUserId], onDelete: Cascade)
-  
+  isPublic  Boolean @default(false)
+  createdBy String
+  owner     User    @relation(fields: [createdBy], references: [clerkUserId], onDelete: Cascade)
+
   // Execution
-  lastRun           DateTime?
-  nextRun           DateTime?
-  runCount          Int      @default(0)
-  
+  lastRun  DateTime?
+  nextRun  DateTime?
+  runCount Int       @default(0)
+
   // Metadata
-  favorite          Boolean  @default(false)
-  tags              String[] @default([])
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  
+  favorite  Boolean  @default(false)
+  tags      String[] @default([])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([createdBy])
   @@index([isScheduled])
   @@map("custom_reports")
@@ -2646,21 +2645,21 @@ model CustomReport {
 
 // Report Metrics (join table)
 model ReportMetric {
-  id                String   @id @default(cuid())
-  
-  reportId          String
-  report            CustomReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
-  
-  metricId          String
-  metric            BusinessMetric @relation(fields: [metricId], references: [id], onDelete: Cascade)
-  
+  id String @id @default(cuid())
+
+  reportId String
+  report   CustomReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  metricId String
+  metric   BusinessMetric @relation(fields: [metricId], references: [id], onDelete: Cascade)
+
   // Display Config
-  displayOrder      Int      @default(0)
-  chartType         String?  // line, bar, pie, gauge
-  color             String?
-  
-  createdAt         DateTime @default(now())
-  
+  displayOrder Int     @default(0)
+  chartType    String? // line, bar, pie, gauge
+  color        String?
+
+  createdAt DateTime @default(now())
+
   @@unique([reportId, metricId])
   @@index([reportId])
   @@index([metricId])
@@ -2669,46 +2668,46 @@ model ReportMetric {
 
 // Metric Alerts
 model MetricAlert {
-  id                String   @id @default(cuid())
-  
+  id String @id @default(cuid())
+
   // Alert Identity
-  name              String
-  description       String?  @db.Text
-  
+  name        String
+  description String? @db.Text
+
   // Metric Reference
-  metricId          String
-  metric            BusinessMetric @relation(fields: [metricId], references: [id], onDelete: Cascade)
-  
+  metricId String
+  metric   BusinessMetric @relation(fields: [metricId], references: [id], onDelete: Cascade)
+
   // Condition
-  condition         String   // gt, lt, eq, gte, lte
-  threshold         Float
-  duration          Int?     // seconds - how long condition must be true
-  
+  condition String // gt, lt, eq, gte, lte
+  threshold Float
+  duration  Int? // seconds - how long condition must be true
+
   // Notification
-  severity          String   @default("warning") // info, warning, critical
-  channels          String[] @default([]) // email, slack, sms
-  recipients        String[] @default([])
-  
+  severity   String   @default("warning") // info, warning, critical
+  channels   String[] @default([]) // email, slack, sms
+  recipients String[] @default([])
+
   // Status
-  isActive          Boolean  @default(true)
-  isTriggered       Boolean  @default(false)
-  triggeredAt       DateTime?
-  resolvedAt        DateTime?
-  triggerCount      Int      @default(0)
-  
+  isActive     Boolean   @default(true)
+  isTriggered  Boolean   @default(false)
+  triggeredAt  DateTime?
+  resolvedAt   DateTime?
+  triggerCount Int       @default(0)
+
   // Snooze
-  isSnoozed         Boolean  @default(false)
-  snoozeUntil       DateTime?
-  
+  isSnoozed   Boolean   @default(false)
+  snoozeUntil DateTime?
+
   // Ownership
-  createdBy         String
-  owner             User     @relation(fields: [createdBy], references: [clerkUserId], onDelete: Cascade)
-  
+  createdBy String
+  owner     User   @relation(fields: [createdBy], references: [clerkUserId], onDelete: Cascade)
+
   // Metadata
-  lastChecked       DateTime @default(now())
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  
+  lastChecked DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
   @@index([metricId])
   @@index([isActive])
   @@index([isTriggered])
@@ -2717,97 +2716,98 @@ model MetricAlert {
 
 // Analytics Dashboard
 model AnalyticsDashboard {
-  id                String   @id @default(cuid())
-  
+  id String @id @default(cuid())
+
   // Dashboard Identity
-  name              String
-  description       String?  @db.Text
-  dashboardType     String   // business, technical, custom
-  
+  name          String
+  description   String? @db.Text
+  dashboardType String // business, technical, custom
+
   // Layout Configuration
-  layout            Json     // Grid layout configuration
-  widgets           Json     // Array of widget configurations
-  
+  layout  Json // Grid layout configuration
+  widgets Json // Array of widget configurations
+
   // Settings
-  refreshInterval   Int      @default(300) // seconds
-  timeRange         String   @default("24h") // 1h, 24h, 7d, 30d, custom
-  
+  refreshInterval Int    @default(300) // seconds
+  timeRange       String @default("24h") // 1h, 24h, 7d, 30d, custom
+
   // Access Control
-  isPublic          Boolean  @default(false)
-  isDefault         Boolean  @default(false)
-  createdBy         String
-  owner             User     @relation(fields: [createdBy], references: [clerkUserId], onDelete: Cascade)
-  
+  isPublic  Boolean @default(false)
+  isDefault Boolean @default(false)
+  createdBy String
+  owner     User    @relation(fields: [createdBy], references: [clerkUserId], onDelete: Cascade)
+
   // Metadata
-  viewCount         Int      @default(0)
-  favorite          Boolean  @default(false)
-  tags              String[] @default([])
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  lastViewed        DateTime?
-  
+  viewCount  Int       @default(0)
+  favorite   Boolean   @default(false)
+  tags       String[]  @default([])
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  lastViewed DateTime?
+
   @@index([createdBy])
   @@index([isPublic])
   @@index([isDefault])
   @@map("analytics_dashboards")
 }
+
 // ============================================
 // PHASE 4C: CREATIVE AI SYSTEMS SCHEMA
 // ============================================
 
 // Creative Asset - Store generated images/videos/audio
 model CreativeAsset {
-  id              String   @id @default(cuid())
-  userId          String
-  clerkUserId     String?
-  
+  id          String  @id @default(cuid())
+  userId      String
+  clerkUserId String?
+
   // Asset Details
-  type            String   // image, video, audio
-  category        String   // art, photo, illustration, music, voiceover, sfx, etc.
-  title           String?
-  description     String?
-  
+  type        String // image, video, audio
+  category    String // art, photo, illustration, music, voiceover, sfx, etc.
+  title       String?
+  description String?
+
   // Generation Details
-  prompt          String   @db.Text
-  negativePrompt  String?  @db.Text
-  model           String   // dall-e-3, stable-diffusion, midjourney, etc.
-  generationId    String?  // Reference to GenerationJob
-  
+  prompt         String  @db.Text
+  negativePrompt String? @db.Text
+  model          String // dall-e-3, stable-diffusion, midjourney, etc.
+  generationId   String? // Reference to GenerationJob
+
   // File Details
-  url             String   @db.Text
-  thumbnailUrl    String?  @db.Text
-  fileSize        Int?
-  duration        Int?     // For video/audio (seconds)
-  width           Int?     // For images/videos
-  height          Int?     // For images/videos
-  format          String?  // png, jpg, mp4, mp3, etc.
-  
+  url          String  @db.Text
+  thumbnailUrl String? @db.Text
+  fileSize     Int?
+  duration     Int? // For video/audio (seconds)
+  width        Int? // For images/videos
+  height       Int? // For images/videos
+  format       String? // png, jpg, mp4, mp3, etc.
+
   // Generation Parameters
-  parameters      Json?    // Model-specific parameters
-  seed            String?
-  steps           Int?
-  guidance        Float?
-  sampler         String?
-  
+  parameters Json? // Model-specific parameters
+  seed       String?
+  steps      Int?
+  guidance   Float?
+  sampler    String?
+
   // Status & Metadata
-  status          String   @default("completed") // pending, processing, completed, failed
-  isPublic        Boolean  @default(false)
-  isFavorite      Boolean  @default(false)
-  tags            String[]
-  metadata        Json?
-  
+  status     String   @default("completed") // pending, processing, completed, failed
+  isPublic   Boolean  @default(false)
+  isFavorite Boolean  @default(false)
+  tags       String[]
+  metadata   Json?
+
   // AI Provider Details
-  provider        String?  // openai, stability, replicate, etc.
-  cost            Float?   // Generation cost in credits
-  
+  provider String? // openai, stability, replicate, etc.
+  cost     Float? // Generation cost in credits
+
   // Timestamps
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  generationJob   GenerationJob? @relation(fields: [generationId], references: [id])
-  
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  generationJob GenerationJob? @relation(fields: [generationId], references: [id])
+
   @@index([userId])
   @@index([clerkUserId])
   @@index([type])
@@ -2817,54 +2817,54 @@ model CreativeAsset {
 
 // Generation Job - Track generation requests & status
 model GenerationJob {
-  id              String   @id @default(cuid())
-  userId          String
-  clerkUserId     String?
-  
+  id          String  @id @default(cuid())
+  userId      String
+  clerkUserId String?
+
   // Job Details
-  type            String   // image, video, audio
-  status          String   @default("pending") // pending, processing, completed, failed, cancelled
-  priority        String   @default("normal") // low, normal, high, urgent
-  
+  type     String // image, video, audio
+  status   String @default("pending") // pending, processing, completed, failed, cancelled
+  priority String @default("normal") // low, normal, high, urgent
+
   // Request Details
-  prompt          String   @db.Text
-  negativePrompt  String?  @db.Text
-  model           String
-  parameters      Json?
-  templateId      String?
-  
+  prompt         String  @db.Text
+  negativePrompt String? @db.Text
+  model          String
+  parameters     Json?
+  templateId     String?
+
   // Progress Tracking
-  progress        Int      @default(0) // 0-100
-  currentStep     String?
-  totalSteps      Int?
-  estimatedTime   Int?     // Seconds
-  
+  progress      Int     @default(0) // 0-100
+  currentStep   String?
+  totalSteps    Int?
+  estimatedTime Int? // Seconds
+
   // Result Details
-  resultUrl       String?  @db.Text
-  resultUrls      String[] // For batch generations
-  error           String?  @db.Text
-  errorCode       String?
-  
+  resultUrl  String?  @db.Text
+  resultUrls String[] // For batch generations
+  error      String?  @db.Text
+  errorCode  String?
+
   // Queue Management
-  queuePosition   Int?
-  startedAt       DateTime?
-  completedAt     DateTime?
-  cancelledAt     DateTime?
-  
+  queuePosition Int?
+  startedAt     DateTime?
+  completedAt   DateTime?
+  cancelledAt   DateTime?
+
   // Metadata
-  metadata        Json?
-  retryCount      Int      @default(0)
-  maxRetries      Int      @default(3)
-  
+  metadata   Json?
+  retryCount Int   @default(0)
+  maxRetries Int   @default(3)
+
   // Timestamps
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  template        CreativeTemplate? @relation(fields: [templateId], references: [id])
-  assets          CreativeAsset[]
-  
+  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  template CreativeTemplate? @relation(fields: [templateId], references: [id])
+  assets   CreativeAsset[]
+
   @@index([userId])
   @@index([clerkUserId])
   @@index([status])
@@ -2874,37 +2874,37 @@ model GenerationJob {
 
 // Creative Template - Reusable templates
 model CreativeTemplate {
-  id              String   @id @default(cuid())
-  userId          String?
-  clerkUserId     String?
-  
+  id          String  @id @default(cuid())
+  userId      String?
+  clerkUserId String?
+
   // Template Details
-  name            String
-  description     String?  @db.Text
-  type            String   // image, video, audio
-  category        String
-  
+  name        String
+  description String? @db.Text
+  type        String // image, video, audio
+  category    String
+
   // Template Configuration
-  prompt          String   @db.Text
-  negativePrompt  String?  @db.Text
-  model           String
-  parameters      Json
-  
+  prompt         String  @db.Text
+  negativePrompt String? @db.Text
+  model          String
+  parameters     Json
+
   // Metadata
-  thumbnailUrl    String?  @db.Text
-  isPublic        Boolean  @default(false)
-  isDefault       Boolean  @default(false)
-  tags            String[]
-  usageCount      Int      @default(0)
-  
+  thumbnailUrl String?  @db.Text
+  isPublic     Boolean  @default(false)
+  isDefault    Boolean  @default(false)
+  tags         String[]
+  usageCount   Int      @default(0)
+
   // Timestamps
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  user            User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  jobs            GenerationJob[]
-  
+  user User?           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobs GenerationJob[]
+
   @@index([userId])
   @@index([type])
   @@index([isPublic])
@@ -2912,37 +2912,37 @@ model CreativeTemplate {
 
 // Asset Metadata - Extended asset information
 model AssetMetadata {
-  id              String   @id @default(cuid())
-  assetId         String   @unique
-  
+  id      String @id @default(cuid())
+  assetId String @unique
+
   // Technical Metadata
-  colorPalette    String[]
-  dominantColors  Json?
-  aspectRatio     String?
-  bitrate         Int?     // For audio/video
-  frameRate       Int?     // For video
-  channels        Int?     // For audio
-  sampleRate      Int?     // For audio
-  
+  colorPalette   String[]
+  dominantColors Json?
+  aspectRatio    String?
+  bitrate        Int? // For audio/video
+  frameRate      Int? // For video
+  channels       Int? // For audio
+  sampleRate     Int? // For audio
+
   // AI Analysis
-  aiLabels        String[]
-  aiDescription   String?  @db.Text
-  nsfwScore       Float?
-  qualityScore    Float?
-  
+  aiLabels      String[]
+  aiDescription String?  @db.Text
+  nsfwScore     Float?
+  qualityScore  Float?
+
   // Usage Tracking
-  viewCount       Int      @default(0)
-  downloadCount   Int      @default(0)
-  shareCount      Int      @default(0)
-  
+  viewCount     Int @default(0)
+  downloadCount Int @default(0)
+  shareCount    Int @default(0)
+
   // Performance
-  generationTime  Int?     // Milliseconds
-  processingTime  Int?     // Milliseconds
-  
+  generationTime Int? // Milliseconds
+  processingTime Int? // Milliseconds
+
   // Timestamps
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([assetId])
 }
 
@@ -2953,56 +2953,56 @@ model AssetMetadata {
 
 // Generated Code Records
 model GeneratedCode {
-  id                String   @id @default(cuid())
-  
+  id String @id @default(cuid())
+
   // Code Details
-  language          String   // typescript, python, sql, css, etc.
-  code              String   @db.Text
-  filePath          String?  // Suggested file path
-  purpose           String   // What this code does
-  description       String?  @db.Text
-  
+  language    String // typescript, python, sql, css, etc.
+  code        String  @db.Text
+  filePath    String? // Suggested file path
+  purpose     String // What this code does
+  description String? @db.Text
+
   // Generation Context
-  prompt            String   @db.Text // Original generation request
-  templateId        String?  // If generated from template
-  template          CodeTemplate? @relation(fields: [templateId], references: [id])
-  contextUsed       Json?    // Cognitive map context used
-  
+  prompt      String        @db.Text // Original generation request
+  templateId  String? // If generated from template
+  template    CodeTemplate? @relation(fields: [templateId], references: [id])
+  contextUsed Json? // Cognitive map context used
+
   // Status & Approval
-  status            String   // draft, pending_review, approved, rejected, deployed
-  approvalStatus    String   // pending, approved, rejected, needs_revision
-  riskLevel         String   // low, medium, high, critical
-  
+  status         String // draft, pending_review, approved, rejected, deployed
+  approvalStatus String // pending, approved, rejected, needs_revision
+  riskLevel      String // low, medium, high, critical
+
   // Quality Metrics
-  linesOfCode       Int?
-  complexity        Float?   // Cyclomatic complexity
-  testCoverage      Float?   // 0-100%
-  securityScore     Float?   // 0-100%
-  
+  linesOfCode   Int?
+  complexity    Float? // Cyclomatic complexity
+  testCoverage  Float? // 0-100%
+  securityScore Float? // 0-100%
+
   // Testing & Validation
-  testsPass         Boolean?
-  securityIssues    Json?    // Array of security findings
-  lintErrors        Json?    // Array of linting errors
-  
+  testsPass      Boolean?
+  securityIssues Json? // Array of security findings
+  lintErrors     Json? // Array of linting errors
+
   // Feedback & Iteration
-  reviewComments    String?  @db.Text
-  iterationCount    Int      @default(0)
+  reviewComments    String?         @db.Text
+  iterationCount    Int             @default(0)
   previousVersionId String?
-  previousVersion   GeneratedCode? @relation("CodeVersions", fields: [previousVersionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  previousVersion   GeneratedCode?  @relation("CodeVersions", fields: [previousVersionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   nextVersions      GeneratedCode[] @relation("CodeVersions")
-  
+
   // Generation Job
-  codeGenJobId      String?
-  codeGenJob        CodeGenerationJob? @relation(fields: [codeGenJobId], references: [id])
-  
+  codeGenJobId String?
+  codeGenJob   CodeGenerationJob? @relation(fields: [codeGenJobId], references: [id])
+
   // Metadata
-  userId            String
-  user              User     @relation(fields: [userId], references: [id])
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  approvedAt        DateTime?
-  deployedAt        DateTime?
-  
+  userId     String
+  user       User      @relation(fields: [userId], references: [id])
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  approvedAt DateTime?
+  deployedAt DateTime?
+
   @@index([userId])
   @@index([status])
   @@index([approvalStatus])
@@ -3012,42 +3012,42 @@ model GeneratedCode {
 
 // Code Templates - Reusable patterns
 model CodeTemplate {
-  id                String   @id @default(cuid())
-  
+  id String @id @default(cuid())
+
   // Template Identity
-  name              String
-  description       String   @db.Text
-  category          String   // component, api, utility, test, etc.
-  language          String   // typescript, python, sql, etc.
-  
+  name        String
+  description String @db.Text
+  category    String // component, api, utility, test, etc.
+  language    String // typescript, python, sql, etc.
+
   // Template Content
-  templateCode      String   @db.Text
-  variables         Json     // Array of variable definitions
-  placeholders      Json?    // Placeholder replacement rules
-  
+  templateCode String @db.Text
+  variables    Json // Array of variable definitions
+  placeholders Json? // Placeholder replacement rules
+
   // Configuration
-  isPublic          Boolean  @default(false)
-  tags              String[] // Searchable tags
-  framework         String?  // react, next, express, fastapi, etc.
-  
+  isPublic  Boolean  @default(false)
+  tags      String[] // Searchable tags
+  framework String? // react, next, express, fastapi, etc.
+
   // Usage Stats
-  usageCount        Int      @default(0)
-  lastUsed          DateTime?
-  
+  usageCount Int       @default(0)
+  lastUsed   DateTime?
+
   // Quality & Validation
-  validated         Boolean  @default(false)
-  exampleOutput     String?  @db.Text
-  requiredContext   Json?    // What context this template needs
-  
+  validated       Boolean @default(false)
+  exampleOutput   String? @db.Text
+  requiredContext Json? // What context this template needs
+
   // Relationships
-  generatedCodes    GeneratedCode[]
-  
+  generatedCodes GeneratedCode[]
+
   // Metadata
-  userId            String
-  user              User     @relation(fields: [userId], references: [id])
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([userId])
   @@index([category])
   @@index([language])
@@ -3055,51 +3055,51 @@ model CodeTemplate {
 
 // Code Generation Jobs - Track code generation processes
 model CodeGenerationJob {
-  id                String   @id @default(cuid())
-  
+  id String @id @default(cuid())
+
   // Job Details
-  jobType           String   // synthesis, refactor, optimization
-  status            String   // queued, running, completed, failed, cancelled
-  priority          String   // low, medium, high, urgent
-  
+  jobType  String // synthesis, refactor, optimization
+  status   String // queued, running, completed, failed, cancelled
+  priority String // low, medium, high, urgent
+
   // Input
-  input             Json     // Generation request details
-  prompt            String   @db.Text
-  language          String
-  targetPath        String?
-  
+  input      Json // Generation request details
+  prompt     String  @db.Text
+  language   String
+  targetPath String?
+
   // Context & Configuration
-  cognitiveContext  Json?    // Context from Cognitive Map
-  templateId        String?
-  securityChecks    Boolean  @default(true)
-  requireTests      Boolean  @default(true)
-  
+  cognitiveContext Json? // Context from Cognitive Map
+  templateId       String?
+  securityChecks   Boolean @default(true)
+  requireTests     Boolean @default(true)
+
   // Output
-  output            Json?    // Generated code IDs and metadata
-  generatedCodes    GeneratedCode[]
-  
+  output         Json? // Generated code IDs and metadata
+  generatedCodes GeneratedCode[]
+
   // Execution Metrics
-  startedAt         DateTime?
-  completedAt       DateTime?
-  durationMs        Int?
-  tokensUsed        Int?
-  cost              Float?
-  
+  startedAt   DateTime?
+  completedAt DateTime?
+  durationMs  Int?
+  tokensUsed  Int?
+  cost        Float?
+
   // Error Handling
-  error             String?  @db.Text
-  retryCount        Int      @default(0)
-  maxRetries        Int      @default(3)
-  
+  error      String? @db.Text
+  retryCount Int     @default(0)
+  maxRetries Int     @default(3)
+
   // Quality Metrics
-  successRate       Float?   // 0-100%
-  codeQualityScore  Float?   // 0-100%
-  
+  successRate      Float? // 0-100%
+  codeQualityScore Float? // 0-100%
+
   // Metadata
-  userId            String
-  user              User     @relation(fields: [userId], references: [id])
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([userId])
   @@index([status])
   @@index([jobType])
@@ -3108,41 +3108,41 @@ model CodeGenerationJob {
 
 // Code Patterns - Learned patterns from existing codebase
 model CodePattern {
-  id                String   @id @default(cuid())
-  
+  id String @id @default(cuid())
+
   // Pattern Identity
-  name              String
-  description       String   @db.Text
-  patternType       String   // architectural, design, security, performance
-  language          String
-  
+  name        String
+  description String @db.Text
+  patternType String // architectural, design, security, performance
+  language    String
+
   // Pattern Details
-  pattern           String   @db.Text
-  antiPattern       String?  @db.Text // What NOT to do
-  examples          Json     // Array of example usages
-  
+  pattern     String  @db.Text
+  antiPattern String? @db.Text // What NOT to do
+  examples    Json // Array of example usages
+
   // Context
-  framework         String?
-  domain            String?  // auth, api, ui, database, etc.
-  
+  framework String?
+  domain    String? // auth, api, ui, database, etc.
+
   // Quality Indicators
-  confidence        Float    // 0-1, how confident are we in this pattern
-  occurrenceCount   Int      @default(1) // How many times seen in codebase
-  successRate       Float?   // 0-100%
-  
+  confidence      Float // 0-1, how confident are we in this pattern
+  occurrenceCount Int    @default(1) // How many times seen in codebase
+  successRate     Float? // 0-100%
+
   // Learning
-  learnedFrom       Json?    // Source files where pattern was found
-  lastSeen          DateTime @default(now())
-  
+  learnedFrom Json? // Source files where pattern was found
+  lastSeen    DateTime @default(now())
+
   // Usage
-  timesApplied      Int      @default(0)
-  
+  timesApplied Int @default(0)
+
   // Metadata
-  userId            String
-  user              User     @relation(fields: [userId], references: [id])
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([userId])
   @@index([patternType])
   @@index([language])
@@ -3151,26 +3151,26 @@ model CodePattern {
 
 // HOLLY Generated Media - Images, Videos, Audio created by HOLLY
 model GeneratedMedia {
-  id             String   @id @default(cuid())
+  id             String  @id @default(cuid())
   userId         String
   conversationId String?
-  
+
   // Media details
-  type           String   // 'image', 'video', 'audio'
-  url            String   // Public URL from Vercel Blob
-  prompt         String   // User's original request
-  contentType    String   // MIME type (image/png, video/mp4, etc.)
-  size           Int      // File size in bytes
-  pathname       String   // Storage pathname
-  
+  type        String // 'image', 'video', 'audio'
+  url         String // Public URL from Vercel Blob
+  prompt      String // User's original request
+  contentType String // MIME type (image/png, video/mp4, etc.)
+  size        Int // File size in bytes
+  pathname    String // Storage pathname
+
   // Generation metadata
-  model          String?  // AI model used (flux-schnell, suno, etc.)
-  parameters     Json?    // Generation parameters
-  
+  model      String? // AI model used (flux-schnell, suno, etc.)
+  parameters Json? // Generation parameters
+
   // Timestamps
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([userId])
   @@index([conversationId])
   @@index([type])
@@ -3183,26 +3183,26 @@ model GeneratedMedia {
 
 // Problems detected by HOLLY's self-monitoring system
 model DetectedProblem {
-  id              String   @id @default(cuid())
-  
+  id String @id @default(cuid())
+
   // Problem classification
-  type            String   // 'performance', 'error', 'ux', 'code_quality', 'security'
-  severity        String   // 'low', 'medium', 'high', 'critical'
-  
+  type     String // 'performance', 'error', 'ux', 'code_quality', 'security'
+  severity String // 'low', 'medium', 'high', 'critical'
+
   // Problem details
-  title           String
-  description     String   @db.Text
-  evidence        Json     // { logs: [], metrics: {}, affectedComponents: [] }
-  impact          String   // User-facing impact description
-  
+  title       String
+  description String @db.Text
+  evidence    Json // { logs: [], metrics: {}, affectedComponents: [] }
+  impact      String // User-facing impact description
+
   // Status tracking
-  status          String   @default("detected") // 'detected', 'analyzing', 'resolved', 'ignored'
-  detectedAt      DateTime @default(now())
-  resolvedAt      DateTime?
-  
+  status     String    @default("detected") // 'detected', 'analyzing', 'resolved', 'ignored'
+  detectedAt DateTime  @default(now())
+  resolvedAt DateTime?
+
   // Relationships
-  hypotheses      Hypothesis[]
-  
+  hypotheses Hypothesis[]
+
   @@index([status, severity])
   @@index([detectedAt])
   @@index([type])
@@ -3211,35 +3211,35 @@ model DetectedProblem {
 
 // Solution hypotheses generated by HOLLY
 model Hypothesis {
-  id                  String   @id @default(cuid())
-  
+  id String @id @default(cuid())
+
   // Related problem
-  problemId           String
-  problem             DetectedProblem @relation(fields: [problemId], references: [id], onDelete: Cascade)
-  
+  problemId String
+  problem   DetectedProblem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+
   // Hypothesis details
-  proposedSolution    String   @db.Text
-  reasoning           String   @db.Text
-  expectedImpact      String
-  confidence          Float    // 0-100
-  
+  proposedSolution String @db.Text
+  reasoning        String @db.Text
+  expectedImpact   String
+  confidence       Float // 0-100
+
   // Testing and risks
-  testingStrategy     String   @db.Text
-  risks               Json     // Array of risk strings
-  
+  testingStrategy String @db.Text
+  risks           Json // Array of risk strings
+
   // Implementation plan
-  implementation      Json     // { filesAffected: [], complexity: 'low/medium/high', dependencies: [] }
-  
+  implementation Json // { filesAffected: [], complexity: 'low/medium/high', dependencies: [] }
+
   // Testing results
-  tested              Boolean  @default(false)
-  testResults         Json?    // Metrics if tested
-  
+  tested      Boolean @default(false)
+  testResults Json? // Metrics if tested
+
   // Timestamps
-  createdAt           DateTime @default(now())
-  
+  createdAt DateTime @default(now())
+
   // Relationships
-  experiences         Experience[]
-  
+  experiences Experience[]
+
   @@index([problemId])
   @@index([confidence])
   @@index([tested])
@@ -3248,31 +3248,57 @@ model Hypothesis {
 
 // Learning experiences from deployments and fixes
 model Experience {
-  id                String   @id @default(cuid())
-  
+  id String @id @default(cuid())
+
   // Related hypothesis (optional - some experiences don't come from hypotheses)
-  hypothesisId      String?
-  hypothesis        Hypothesis? @relation(fields: [hypothesisId], references: [id])
-  
+  hypothesisId String?
+  hypothesis   Hypothesis? @relation(fields: [hypothesisId], references: [id])
+
   // Experience classification
-  type              String   // 'deployment', 'fix', 'feature', 'optimization', 'refactor'
-  action            String   @db.Text // What was done
-  context           Json     // { situation: '', problem: '', constraints: [] }
-  
+  type    String // 'deployment', 'fix', 'feature', 'optimization', 'refactor'
+  action  String @db.Text // What was done
+  context Json // { situation: '', problem: '', constraints: [] }
+
   // Outcome tracking
-  outcome           String   // 'success', 'failure', 'partial'
-  results           Json     // { errorRate: 0.01, responseTime: 250, userFeedback: 'positive' }
-  
+  outcome String // 'success', 'failure', 'partial'
+  results Json // { errorRate: 0.01, responseTime: 250, userFeedback: 'positive' }
+
   // Learning
-  lessonsLearned    String   @db.Text
-  wouldRepeat       Boolean  // Would we do this again?
-  confidence        Float    // 0-100, how confident in this approach
-  
+  lessonsLearned String  @db.Text
+  wouldRepeat    Boolean // Would we do this again?
+  confidence     Float // 0-100, how confident in this approach
+
   // Timestamps
-  createdAt         DateTime @default(now())
-  
+  createdAt DateTime @default(now())
+
   @@index([type, outcome])
   @@index([createdAt])
   @@index([wouldRepeat])
   @@map("experiences")
+}
+
+// Tool definitions for dynamic tool management (Phase 7)
+model ToolDefinition {
+  id          String @id @default(cuid())
+  name        String @unique
+  description String @db.Text
+  category    String // 'system', 'creative', 'analysis', 'integration'
+  schema      Json // Tool configuration and parameters
+  status      String // 'active', 'disabled', 'testing'
+  createdBy   String // 'system', 'holly', 'admin'
+  version     String
+
+  // Metadata
+  usageCount  Int       @default(0)
+  successRate Float? // 0-100
+  lastUsed    DateTime?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([category])
+  @@index([createdBy])
+  @@map("tool_definitions")
 }
