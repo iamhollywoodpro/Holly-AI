@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
     const result = await errorRecovery.recover(error, context);
 
     return NextResponse.json({
-      success: result.recovered,
+      success: result.success,
       result,
       timestamp: new Date().toISOString()
     });
