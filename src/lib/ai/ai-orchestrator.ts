@@ -180,6 +180,20 @@ export const HOLLY_TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'validate_deployment',
+      description: 'Validate code changes before deploying to prevent TypeScript errors and build failures. MUST be used before committing code to GitHub. Returns whether it is safe to deploy.',
+      parameters: {
+        type: 'object',
+        properties: {
+          reason: { type: 'string', description: 'Why validation is needed (e.g., "Before committing TypeScript changes")' }
+        },
+        required: []
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
       name: 'github_create_pr',
       description: 'Create a pull request on GitHub for code review. Use when user wants to propose changes or request code review.',
       parameters: {
@@ -1195,6 +1209,15 @@ export async function executeTool(toolName: string, toolInput: any, userId: stri
     }).then(r => r.json());
   }
   
+  
+  // Deployment Safety
+  if (toolName === 'validate_deployment') {
+    return await fetch(`${baseUrl}/api/deployment/validate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...toolInput, userId })
+    }).then(r => r.json());
+  }
   if (toolName === 'github_create_pr') {
     return await fetch(`${baseUrl}/api/github/pull-request`, {
       method: 'POST',
