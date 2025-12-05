@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
     console.log(`[API:DIAGNOSE] Running diagnostics${target ? ` for ${target}` : ' (all systems)'}...`);
 
     // Run diagnostics
-    const result = await selfDiagnosis.runDiagnostics(target);
+    const result = await selfDiagnosis.diagnose();
 
     return NextResponse.json({
       success: true,
@@ -67,12 +67,12 @@ export async function POST(req: NextRequest) {
     console.log(`[API:DIAGNOSE] Running focused diagnostic for ${component}...`);
 
     // Run targeted diagnostic
-    const result = await selfDiagnosis.runDiagnostics(component);
+    const result = await selfDiagnosis.diagnose(component);
 
     // Optionally include historical issues
     let history = null;
     if (includeHistory) {
-      history = await selfDiagnosis.getIssueHistory(component);
+      history = await selfDiagnosis.getDiagnosticHistory(component);
     }
 
     return NextResponse.json({
