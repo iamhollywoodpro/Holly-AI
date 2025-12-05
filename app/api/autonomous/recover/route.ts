@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
     console.log(`[API:RECOVER] Attempting recovery for error: ${error.message || 'Unknown error'}`);
 
     // Attempt recovery
-    const result = await errorRecovery.handleError(error, context);
+    const result = await errorRecovery.recover(error, context);
 
     return NextResponse.json({
       success: result.recovered,
@@ -68,12 +68,11 @@ export async function GET(req: NextRequest) {
     }
 
     // Get recovery statistics
-    const stats = await errorRecovery.getRecoveryStats();
-
-    return NextResponse.json({
-      success: true,
-      statistics: stats,
+    const successRate = await errorRecovery.getRecoverySuccessRate("all");
+    const stats = {
+      overallSuccessRate: successRate,
       timestamp: new Date().toISOString()
+    };
     });
 
   } catch (error) {

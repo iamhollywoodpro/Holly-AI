@@ -391,4 +391,4 @@ export async function attemptRecovery(error: string | Error): Promise<RecoveryRe
 // Export Singleton Instance
 // ===========================
 
-export const errorRecovery = new ErrorRecoverySystem();
+export const errorRecovery = new AutomaticErrorRecovery();
