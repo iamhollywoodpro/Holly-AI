@@ -493,7 +493,7 @@ export class AutoFixEngine {
       strategy,
       appliedSteps: [],
       validationResults: [],
-      lessonsLearned: ]
+      lessonsLearned: []
     };
 
     try {
