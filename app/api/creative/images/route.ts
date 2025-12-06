@@ -10,14 +10,10 @@ export async function GET(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url);
-    const status = searchParams.get('status') || undefined;
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined;
 
-    // listUserImages takes (userId, filters)
-    const images = await listUserImages(userId, {
-      status,
-      limit
-    });
+    // listUserImages takes (userId, filters) where filters only has 'limit'
+    const images = await listUserImages(userId, { limit });
 
     return NextResponse.json(images);
   } catch (error) {
