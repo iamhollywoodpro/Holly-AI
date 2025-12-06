@@ -12,12 +12,12 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const category = searchParams.get('category') || undefined;
-    const priority = searchParams.get('priority') || undefined;
+    const severity = searchParams.get('severity') || undefined;
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined;
 
     const result = await getInsights(userId, {
       category,
-      priority,
+      severity,
       limit
     });
 
