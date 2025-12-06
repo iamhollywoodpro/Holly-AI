@@ -8,6 +8,12 @@
  * 4. Apply learned knowledge to new situations
  * 
  * Uses: LearningInsight (Prisma model)
+ * 
+ * ACTUAL PRISMA FIELDS:
+ * - category, insightType, title, description, evidence (Json)
+ * - confidence, actionable, applied (Boolean), priority, impact
+ * - relatedFiles, relatedPatterns, tags (String[])
+ * - learnedAt, appliedAt, validatedAt
  */
 
 import { prisma } from '@/lib/db';
@@ -16,23 +22,37 @@ import { prisma } from '@/lib/db';
 
 export interface LearningInput {
   category: string;
-  type: string;
+  type: string; // Maps to insightType
+  title: string;
   description: string;
-  context?: Record<string, any>;
+  evidence?: Record<string, any>; // Maps to evidence Json
+  confidence?: number;
+  actionable?: boolean;
+  priority?: number;
+  impact?: string;
   relatedFiles?: string[];
   relatedPatterns?: string[];
+  tags?: string[];
 }
 
 export interface LearningPattern {
   id: string;
   category: string;
   type: string;
+  title: string;
   description: string;
+  evidence: Record<string, any>;
   confidence: number;
-  occurrences: number;
-  context: Record<string, any>;
-  createdAt: Date;
-  updatedAt: Date;
+  actionable: boolean;
+  applied: boolean;
+  priority: number;
+  impact?: string;
+  relatedFiles: string[];
+  relatedPatterns: string[];
+  tags: string[];
+  learnedAt: Date;
+  appliedAt?: Date;
+  validatedAt?: Date;
 }
 
 export interface AdaptationResult {
@@ -48,7 +68,8 @@ export interface LearningProgress {
   categoryCounts: Record<string, number>;
   topPatterns: LearningPattern[];
   recentLearning: LearningPattern[];
-  adaptationRate: number;
+  appliedCount: number;
+  averageConfidence: number;
 }
 
 // ================== LEARNING ENGINE ==================
@@ -66,12 +87,17 @@ export async function recordLearning(input: LearningInput): Promise<{
       data: {
         category: input.category,
         insightType: input.type,
+        title: input.title,
         description: input.description,
-        context: input.context || {},
+        evidence: input.evidence || {},
+        confidence: input.confidence || 0.5,
+        actionable: input.actionable || false,
+        applied: false,
+        priority: input.priority || 5,
+        impact: input.impact,
         relatedFiles: input.relatedFiles || [],
         relatedPatterns: input.relatedPatterns || [],
-        confidence: 1.0,
-        appliedCount: 0,
+        tags: input.tags || []
       }
     });
 
@@ -95,6 +121,7 @@ export async function getLearnedPatterns(options?: {
   category?: string;
   type?: string;
   minConfidence?: number;
+  applied?: boolean;
   limit?: number;
 }): Promise<LearningPattern[]> {
   try {
@@ -105,12 +132,15 @@ export async function getLearnedPatterns(options?: {
     if (options?.minConfidence) {
       where.confidence = { gte: options.minConfidence };
     }
+    if (options?.applied !== undefined) {
+      where.applied = options.applied;
+    }
 
     const insights = await prisma.learningInsight.findMany({
       where,
       orderBy: [
         { confidence: 'desc' },
-        { appliedCount: 'desc' }
+        { priority: 'asc' }
       ],
       take: options?.limit || 50
     });
@@ -119,12 +149,20 @@ export async function getLearnedPatterns(options?: {
       id: insight.id,
       category: insight.category,
       type: insight.insightType,
+      title: insight.title,
       description: insight.description,
+      evidence: insight.evidence as Record<string, any>,
       confidence: insight.confidence,
-      occurrences: insight.appliedCount,
-      context: insight.context as Record<string, any>,
-      createdAt: insight.createdAt,
-      updatedAt: insight.updatedAt
+      actionable: insight.actionable,
+      applied: insight.applied,
+      priority: insight.priority,
+      impact: insight.impact || undefined,
+      relatedFiles: insight.relatedFiles,
+      relatedPatterns: insight.relatedPatterns,
+      tags: insight.tags,
+      learnedAt: insight.learnedAt,
+      appliedAt: insight.appliedAt || undefined,
+      validatedAt: insight.validatedAt || undefined
     }));
   } catch (error) {
     console.error('Error retrieving learned patterns:', error);
@@ -144,7 +182,8 @@ export async function applyLearning(options: {
     // Get relevant learned patterns
     const patterns = await getLearnedPatterns({
       category: options.category,
-      minConfidence: options.similarityThreshold || 0.7
+      minConfidence: options.similarityThreshold || 0.7,
+      applied: false // Only get patterns not yet applied
     });
 
     if (patterns.length === 0) {
@@ -157,24 +196,24 @@ export async function applyLearning(options: {
       };
     }
 
-    // Find most relevant pattern based on context similarity
-    const relevantPattern = patterns[0]; // Simplified: use highest confidence
+    // Find most relevant pattern based on actionability and priority
+    const relevantPattern = patterns.find(p => p.actionable) || patterns[0];
 
-    // Update applied count
+    // Mark as applied
     await prisma.learningInsight.update({
       where: { id: relevantPattern.id },
       data: {
-        appliedCount: { increment: 1 },
-        lastApplied: new Date()
+        applied: true,
+        appliedAt: new Date()
       }
     });
 
     return {
       success: true,
       adapted: true,
-      changes: [`Applied pattern: ${relevantPattern.description}`],
+      changes: [`Applied pattern: ${relevantPattern.title}`],
       confidence: relevantPattern.confidence,
-      reasoning: `Used learned pattern from ${relevantPattern.category}`
+      reasoning: `Used learned pattern from ${relevantPattern.category} with priority ${relevantPattern.priority}`
     };
   } catch (error) {
     console.error('Error applying learning:', error);
@@ -194,7 +233,7 @@ export async function applyLearning(options: {
 export async function getLearningProgress(): Promise<LearningProgress> {
   try {
     const allInsights = await prisma.learningInsight.findMany({
-      orderBy: { createdAt: 'desc' }
+      orderBy: { learnedAt: 'desc' }
     });
 
     // Calculate category counts
@@ -203,9 +242,9 @@ export async function getLearningProgress(): Promise<LearningProgress> {
       categoryCounts[insight.category] = (categoryCounts[insight.category] || 0) + 1;
     });
 
-    // Get top patterns (highest confidence + most applied)
+    // Get top patterns (highest confidence + actionable)
     const topPatterns = await getLearnedPatterns({
-      minConfidence: 0.8,
+      minConfidence: 0.7,
       limit: 10
     });
 
@@ -214,18 +253,29 @@ export async function getLearningProgress(): Promise<LearningProgress> {
       id: insight.id,
       category: insight.category,
       type: insight.insightType,
+      title: insight.title,
       description: insight.description,
+      evidence: insight.evidence as Record<string, any>,
       confidence: insight.confidence,
-      occurrences: insight.appliedCount,
-      context: insight.context as Record<string, any>,
-      createdAt: insight.createdAt,
-      updatedAt: insight.updatedAt
+      actionable: insight.actionable,
+      applied: insight.applied,
+      priority: insight.priority,
+      impact: insight.impact || undefined,
+      relatedFiles: insight.relatedFiles,
+      relatedPatterns: insight.relatedPatterns,
+      tags: insight.tags,
+      learnedAt: insight.learnedAt,
+      appliedAt: insight.appliedAt || undefined,
+      validatedAt: insight.validatedAt || undefined
     }));
 
-    // Calculate adaptation rate (insights applied vs total)
-    const totalApplied = allInsights.reduce((sum, i) => sum + i.appliedCount, 0);
-    const adaptationRate = allInsights.length > 0 
-      ? totalApplied / allInsights.length 
+    // Count applied insights
+    const appliedCount = allInsights.filter(i => i.applied).length;
+
+    // Calculate average confidence
+    const totalConfidence = allInsights.reduce((sum, i) => sum + i.confidence, 0);
+    const averageConfidence = allInsights.length > 0 
+      ? totalConfidence / allInsights.length 
       : 0;
 
     return {
@@ -233,7 +283,8 @@ export async function getLearningProgress(): Promise<LearningProgress> {
       categoryCounts,
       topPatterns,
       recentLearning,
-      adaptationRate: Math.round(adaptationRate * 100) / 100
+      appliedCount,
+      averageConfidence: Math.round(averageConfidence * 100) / 100
     };
   } catch (error) {
     console.error('Error getting learning progress:', error);
@@ -242,7 +293,8 @@ export async function getLearningProgress(): Promise<LearningProgress> {
       categoryCounts: {},
       topPatterns: [],
       recentLearning: [],
-      adaptationRate: 0
+      appliedCount: 0,
+      averageConfidence: 0
     };
   }
 }

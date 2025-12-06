@@ -15,18 +15,19 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { predictionId, outcome, accuracy } = body;
+    const { predictionId, actualOutcome, wasAccurate, accuracy } = body;
 
-    if (!predictionId || !outcome || accuracy === undefined) {
+    if (!predictionId || !actualOutcome || wasAccurate === undefined || accuracy === undefined) {
       return NextResponse.json(
-        { error: 'predictionId, outcome, and accuracy are required' },
+        { error: 'predictionId, actualOutcome, wasAccurate, and accuracy are required' },
         { status: 400 }
       );
     }
 
     const result = await validatePrediction({
       predictionId,
-      outcome,
+      actualOutcome,
+      wasAccurate,
       accuracy
     });
 

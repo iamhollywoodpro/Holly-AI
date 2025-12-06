@@ -8,6 +8,11 @@
  * 4. Track task success patterns
  * 
  * Uses: TaskAnalysis (Prisma model)
+ * 
+ * ACTUAL PRISMA FIELDS:
+ * - taskDescription, complexity, estimatedTime (Int?), requiredSkills, dependencies, risks, approach (Json)
+ * - status, actualTime (Int?), outcome (Json?), learnings (String[])
+ * - createdAt, completedAt
  */
 
 import { prisma } from '@/lib/db';
@@ -16,20 +21,19 @@ import { prisma } from '@/lib/db';
 
 export interface TaskInput {
   taskDescription: string;
-  category: string;
   context?: Record<string, any>;
 }
 
 export interface TaskAnalysisResult {
   id: string;
   taskDescription: string;
-  category: string;
-  estimatedDuration: number;
   complexity: string;
-  suggestedApproach: string[];
-  requiredResources: string[];
-  potentialChallenges: string[];
-  context: Record<string, any>;
+  estimatedTime?: number;
+  requiredSkills: string[];
+  dependencies: string[];
+  risks: string[];
+  approach: Record<string, any>;
+  status: string;
   createdAt: Date;
 }
 
@@ -38,7 +42,7 @@ export interface TaskBreakdown {
   subtasks: Array<{
     description: string;
     order: number;
-    estimatedDuration: number;
+    estimatedTime: number;
     dependencies: string[];
   }>;
   totalEstimate: number;
@@ -46,10 +50,10 @@ export interface TaskBreakdown {
 
 export interface TaskMetrics {
   totalTasks: number;
-  averageDuration: number;
+  averageTime: number;
   byComplexity: Record<string, number>;
-  byCategory: Record<string, number>;
-  successRate: number;
+  byStatus: Record<string, number>;
+  completionRate: number;
 }
 
 // ================== TASK INTELLIGENCE ==================
@@ -65,29 +69,33 @@ export async function analyzeTask(input: TaskInput): Promise<{
   try {
     // Simple complexity estimation based on description length and keywords
     const complexity = estimateComplexity(input.taskDescription);
-    const estimatedDuration = estimateDuration(input.taskDescription, complexity);
+    const estimatedTime = estimateTime(input.taskDescription, complexity);
     
+    // Identify required skills
+    const requiredSkills = identifySkills(input.taskDescription);
+    
+    // Identify dependencies
+    const dependencies = identifyDependencies(input.taskDescription);
+    
+    // Predict potential risks
+    const risks = predictRisks(complexity, input.taskDescription);
+
     // Generate suggested approach
-    const suggestedApproach = generateApproach(input.taskDescription, input.category);
-    
-    // Identify required resources
-    const requiredResources = identifyResources(input.taskDescription);
-    
-    // Predict potential challenges
-    const potentialChallenges = predictChallenges(complexity, input.category);
+    const approach = generateApproach(input.taskDescription, complexity);
 
     const analysis = await prisma.taskAnalysis.create({
       data: {
         taskDescription: input.taskDescription,
-        category: input.category,
-        estimatedDuration,
         complexity,
-        suggestedApproach,
-        requiredResources,
-        potentialChallenges,
-        context: input.context || {},
-        actualDuration: null,
-        success: null
+        estimatedTime,
+        requiredSkills,
+        dependencies,
+        risks,
+        approach,
+        status: 'pending',
+        actualTime: null,
+        outcome: null,
+        learnings: []
       }
     });
 
@@ -96,13 +104,13 @@ export async function analyzeTask(input: TaskInput): Promise<{
       analysis: {
         id: analysis.id,
         taskDescription: analysis.taskDescription,
-        category: analysis.category,
-        estimatedDuration: analysis.estimatedDuration,
         complexity: analysis.complexity,
-        suggestedApproach: analysis.suggestedApproach,
-        requiredResources: analysis.requiredResources,
-        potentialChallenges: analysis.potentialChallenges,
-        context: analysis.context as Record<string, any>,
+        estimatedTime: analysis.estimatedTime || undefined,
+        requiredSkills: analysis.requiredSkills,
+        dependencies: analysis.dependencies,
+        risks: analysis.risks,
+        approach: analysis.approach as Record<string, any>,
+        status: analysis.status,
         createdAt: analysis.createdAt
       }
     };
@@ -120,8 +128,10 @@ export async function analyzeTask(input: TaskInput): Promise<{
  */
 export async function updateTaskResults(options: {
   analysisId: string;
-  actualDuration: number;
-  success: boolean;
+  actualTime: number;
+  outcome: Record<string, any>;
+  learnings?: string[];
+  status: 'completed' | 'failed';
 }): Promise<{
   success: boolean;
   accuracyScore?: number;
@@ -140,16 +150,21 @@ export async function updateTaskResults(options: {
     }
 
     // Calculate accuracy score (how close was the estimate)
-    const estimatedDuration = analysis.estimatedDuration;
-    const actualDuration = options.actualDuration;
-    const difference = Math.abs(estimatedDuration - actualDuration);
-    const accuracyScore = Math.max(0, 1 - (difference / estimatedDuration));
+    let accuracyScore = 0;
+    if (analysis.estimatedTime && options.actualTime > 0) {
+      const estimatedTime = analysis.estimatedTime;
+      const actualTime = options.actualTime;
+      const difference = Math.abs(estimatedTime - actualTime);
+      accuracyScore = Math.max(0, 1 - (difference / estimatedTime));
+    }
 
     await prisma.taskAnalysis.update({
       where: { id: options.analysisId },
       data: {
-        actualDuration: options.actualDuration,
-        success: options.success,
+        actualTime: options.actualTime,
+        outcome: options.outcome,
+        learnings: options.learnings || [],
+        status: options.status,
         completedAt: new Date()
       }
     });
@@ -174,7 +189,7 @@ export async function breakdownTask(taskDescription: string): Promise<TaskBreakd
   try {
     // Simplified task breakdown logic
     const subtasks = generateSubtasks(taskDescription);
-    const totalEstimate = subtasks.reduce((sum, st) => sum + st.estimatedDuration, 0);
+    const totalEstimate = subtasks.reduce((sum, st) => sum + st.estimatedTime, 0);
 
     return {
       mainTask: taskDescription,
@@ -196,19 +211,16 @@ export async function breakdownTask(taskDescription: string): Promise<TaskBreakd
  */
 export async function getTaskMetrics(): Promise<TaskMetrics> {
   try {
-    const allTasks = await prisma.taskAnalysis.findMany({
-      where: {
-        completedAt: { not: null }
-      }
-    });
+    const allTasks = await prisma.taskAnalysis.findMany();
 
     const totalTasks = allTasks.length;
     
-    // Average duration
-    const totalActualDuration = allTasks.reduce((sum, t) => 
-      sum + (t.actualDuration || 0), 0
+    // Average time (only for completed tasks with actualTime)
+    const completedTasks = allTasks.filter(t => t.actualTime !== null);
+    const totalActualTime = completedTasks.reduce((sum, t) => 
+      sum + (t.actualTime || 0), 0
     );
-    const averageDuration = totalTasks > 0 ? totalActualDuration / totalTasks : 0;
+    const averageTime = completedTasks.length > 0 ? totalActualTime / completedTasks.length : 0;
 
     // By complexity
     const byComplexity: Record<string, number> = {};
@@ -216,31 +228,31 @@ export async function getTaskMetrics(): Promise<TaskMetrics> {
       byComplexity[t.complexity] = (byComplexity[t.complexity] || 0) + 1;
     });
 
-    // By category
-    const byCategory: Record<string, number> = {};
+    // By status
+    const byStatus: Record<string, number> = {};
     allTasks.forEach(t => {
-      byCategory[t.category] = (byCategory[t.category] || 0) + 1;
+      byStatus[t.status] = (byStatus[t.status] || 0) + 1;
     });
 
-    // Success rate
-    const successfulTasks = allTasks.filter(t => t.success === true).length;
-    const successRate = totalTasks > 0 ? successfulTasks / totalTasks : 0;
+    // Completion rate
+    const completedCount = allTasks.filter(t => t.status === 'completed').length;
+    const completionRate = totalTasks > 0 ? completedCount / totalTasks : 0;
 
     return {
       totalTasks,
-      averageDuration: Math.round(averageDuration),
+      averageTime: Math.round(averageTime),
       byComplexity,
-      byCategory,
-      successRate: Math.round(successRate * 100) / 100
+      byStatus,
+      completionRate: Math.round(completionRate * 100) / 100
     };
   } catch (error) {
     console.error('Error getting task metrics:', error);
     return {
       totalTasks: 0,
-      averageDuration: 0,
+      averageTime: 0,
       byComplexity: {},
-      byCategory: {},
-      successRate: 0
+      byStatus: {},
+      completionRate: 0
     };
   }
 }
@@ -254,80 +266,91 @@ function estimateComplexity(description: string): string {
     description.toLowerCase().includes(word)
   );
 
-  if (length > 200 || hasComplexWords) return 'high';
-  if (length > 100) return 'medium';
-  return 'low';
+  if (length > 200 || hasComplexWords) return 'complex';
+  if (length > 100) return 'moderate';
+  return 'simple';
 }
 
-function estimateDuration(description: string, complexity: string): number {
-  // Duration in minutes
-  const baseEstimates = {
-    low: 30,
-    medium: 120,
-    high: 360
+function estimateTime(description: string, complexity: string): number {
+  // Time in minutes
+  const baseEstimates: Record<string, number> = {
+    simple: 30,
+    moderate: 120,
+    complex: 360
   };
-  return baseEstimates[complexity as keyof typeof baseEstimates] || 60;
+  return baseEstimates[complexity] || 60;
 }
 
-function generateApproach(description: string, category: string): string[] {
-  // Simplified approach generation
-  const approaches: string[] = [
+function identifySkills(description: string): string[] {
+  const skills: string[] = [];
+  const lowerDesc = description.toLowerCase();
+  
+  if (lowerDesc.includes('code') || lowerDesc.includes('develop')) skills.push('Programming');
+  if (lowerDesc.includes('design') || lowerDesc.includes('ui')) skills.push('Design');
+  if (lowerDesc.includes('database') || lowerDesc.includes('sql')) skills.push('Database');
+  if (lowerDesc.includes('api') || lowerDesc.includes('integration')) skills.push('API Integration');
+  if (lowerDesc.includes('deploy') || lowerDesc.includes('devops')) skills.push('DevOps');
+  
+  return skills.length > 0 ? skills : ['General'];
+}
+
+function identifyDependencies(description: string): string[] {
+  const dependencies: string[] = [];
+  const lowerDesc = description.toLowerCase();
+  
+  if (lowerDesc.includes('after') || lowerDesc.includes('once')) {
+    dependencies.push('Previous task completion');
+  }
+  if (lowerDesc.includes('api')) dependencies.push('API access');
+  if (lowerDesc.includes('database')) dependencies.push('Database setup');
+  if (lowerDesc.includes('design')) dependencies.push('Design approval');
+  
+  return dependencies;
+}
+
+function predictRisks(complexity: string, description: string): string[] {
+  const risks: string[] = [];
+  
+  if (complexity === 'complex') {
+    risks.push('Time overrun');
+    risks.push('Technical complexity');
+  }
+
+  const lowerDesc = description.toLowerCase();
+  if (lowerDesc.includes('api') || lowerDesc.includes('integration')) {
+    risks.push('External dependency');
+    risks.push('Authentication issues');
+  }
+
+  if (lowerDesc.includes('database')) {
+    risks.push('Data migration');
+    risks.push('Performance issues');
+  }
+
+  return risks.length > 0 ? risks : ['None identified'];
+}
+
+function generateApproach(description: string, complexity: string): Record<string, any> {
+  const steps: string[] = [
     'Review requirements and constraints',
     'Break down into smaller subtasks',
-    'Implement core functionality first',
-    'Test and validate results',
+    'Implement core functionality',
+    'Test and validate',
     'Document and deploy'
   ];
 
-  if (category === 'development') {
-    approaches.push('Write unit tests');
-    approaches.push('Review code quality');
-  }
-
-  if (category === 'design') {
-    approaches.push('Create wireframes');
-    approaches.push('Gather user feedback');
-  }
-
-  return approaches;
-}
-
-function identifyResources(description: string): string[] {
-  const resources: string[] = [];
-  
-  if (description.toLowerCase().includes('api')) resources.push('API access');
-  if (description.toLowerCase().includes('database')) resources.push('Database');
-  if (description.toLowerCase().includes('design')) resources.push('Design tools');
-  if (description.toLowerCase().includes('deploy')) resources.push('Hosting platform');
-  
-  return resources.length > 0 ? resources : ['Time', 'Focus'];
-}
-
-function predictChallenges(complexity: string, category: string): string[] {
-  const challenges: string[] = [];
-  
-  if (complexity === 'high') {
-    challenges.push('Time management');
-    challenges.push('Technical complexity');
-  }
-
-  if (category === 'development') {
-    challenges.push('Debugging edge cases');
-    challenges.push('Performance optimization');
-  }
-
-  if (category === 'integration') {
-    challenges.push('API compatibility');
-    challenges.push('Authentication issues');
-  }
-
-  return challenges.length > 0 ? challenges : ['None identified'];
+  return {
+    steps,
+    estimatedPhases: complexity === 'complex' ? 5 : complexity === 'moderate' ? 3 : 2,
+    parallelizable: complexity === 'simple',
+    reviewPoints: ['After planning', 'After implementation', 'Before deployment']
+  };
 }
 
 function generateSubtasks(description: string): Array<{
   description: string;
   order: number;
-  estimatedDuration: number;
+  estimatedTime: number;
   dependencies: string[];
 }> {
   // Simplified subtask generation
@@ -335,25 +358,25 @@ function generateSubtasks(description: string): Array<{
     {
       description: 'Plan and design approach',
       order: 1,
-      estimatedDuration: 30,
+      estimatedTime: 30,
       dependencies: []
     },
     {
       description: 'Implement core functionality',
       order: 2,
-      estimatedDuration: 60,
+      estimatedTime: 60,
       dependencies: ['Plan and design approach']
     },
     {
       description: 'Test and validate',
       order: 3,
-      estimatedDuration: 30,
+      estimatedTime: 30,
       dependencies: ['Implement core functionality']
     },
     {
       description: 'Deploy and document',
       order: 4,
-      estimatedDuration: 20,
+      estimatedTime: 20,
       dependencies: ['Test and validate']
     }
   ];

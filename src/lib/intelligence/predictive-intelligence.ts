@@ -8,6 +8,11 @@
  * 4. Track prediction accuracy
  * 
  * Uses: PredictionLog (Prisma model)
+ * 
+ * ACTUAL PRISMA FIELDS:
+ * - predictionType, context (Json), prediction (Json), confidence
+ * - wasAccurate (Boolean?), actualOutcome (Json?), accuracy (Float?)
+ * - createdAt, evaluatedAt
  */
 
 import { prisma } from '@/lib/db';
@@ -15,8 +20,7 @@ import { prisma } from '@/lib/db';
 // ================== TYPE DEFINITIONS ==================
 
 export interface PredictionInput {
-  type: string;
-  target: string;
+  type: string; // Maps to predictionType
   prediction: Record<string, any>;
   confidence: number;
   context?: Record<string, any>;
@@ -25,19 +29,20 @@ export interface PredictionInput {
 export interface Prediction {
   id: string;
   type: string;
-  target: string;
   prediction: Record<string, any>;
   confidence: number;
   context: Record<string, any>;
+  wasAccurate?: boolean;
+  actualOutcome?: Record<string, any>;
   accuracy?: number;
-  outcome?: Record<string, any>;
   createdAt: Date;
-  validatedAt?: Date;
+  evaluatedAt?: Date;
 }
 
 export interface PredictionValidation {
   predictionId: string;
-  outcome: Record<string, any>;
+  actualOutcome: Record<string, any>;
+  wasAccurate: boolean;
   accuracy: number;
 }
 
@@ -45,8 +50,8 @@ export interface AccuracyMetrics {
   overall: number;
   byType: Record<string, number>;
   totalPredictions: number;
-  validatedPredictions: number;
-  highAccuracyCount: number;
+  evaluatedPredictions: number;
+  accurateCount: number;
 }
 
 // ================== PREDICTIVE INTELLIGENCE ==================
@@ -64,26 +69,26 @@ export async function makePrediction(input: PredictionInput): Promise<{
     const log = await prisma.predictionLog.create({
       data: {
         predictionType: input.type,
-        target: input.target,
         prediction: input.prediction,
         confidence: input.confidence,
         context: input.context || {},
-        accuracy: null,
-        outcome: null
+        wasAccurate: null,
+        actualOutcome: null,
+        accuracy: null
       }
     });
 
     const prediction: Prediction = {
       id: log.id,
       type: log.predictionType,
-      target: log.target,
       prediction: log.prediction as Record<string, any>,
       confidence: log.confidence,
       context: log.context as Record<string, any>,
+      wasAccurate: log.wasAccurate || undefined,
+      actualOutcome: log.actualOutcome ? (log.actualOutcome as Record<string, any>) : undefined,
       accuracy: log.accuracy || undefined,
-      outcome: log.outcome ? (log.outcome as Record<string, any>) : undefined,
       createdAt: log.createdAt,
-      validatedAt: log.validatedAt || undefined
+      evaluatedAt: log.evaluatedAt || undefined
     };
 
     return {
@@ -112,9 +117,10 @@ export async function validatePrediction(validation: PredictionValidation): Prom
     const updated = await prisma.predictionLog.update({
       where: { id: validation.predictionId },
       data: {
-        outcome: validation.outcome,
+        actualOutcome: validation.actualOutcome,
+        wasAccurate: validation.wasAccurate,
         accuracy: validation.accuracy,
-        validatedAt: new Date()
+        evaluatedAt: new Date()
       }
     });
 
@@ -132,12 +138,11 @@ export async function validatePrediction(validation: PredictionValidation): Prom
 }
 
 /**
- * Get predictions by type/target
+ * Get predictions by type
  */
 export async function getPredictions(options?: {
   type?: string;
-  target?: string;
-  validated?: boolean;
+  evaluated?: boolean;
   minConfidence?: number;
   limit?: number;
 }): Promise<Prediction[]> {
@@ -145,9 +150,8 @@ export async function getPredictions(options?: {
     const where: any = {};
 
     if (options?.type) where.predictionType = options.type;
-    if (options?.target) where.target = options.target;
-    if (options?.validated !== undefined) {
-      where.validatedAt = options.validated ? { not: null } : null;
+    if (options?.evaluated !== undefined) {
+      where.evaluatedAt = options.evaluated ? { not: null } : null;
     }
     if (options?.minConfidence) {
       where.confidence = { gte: options.minConfidence };
@@ -162,14 +166,14 @@ export async function getPredictions(options?: {
     return logs.map(log => ({
       id: log.id,
       type: log.predictionType,
-      target: log.target,
       prediction: log.prediction as Record<string, any>,
       confidence: log.confidence,
       context: log.context as Record<string, any>,
+      wasAccurate: log.wasAccurate || undefined,
+      actualOutcome: log.actualOutcome ? (log.actualOutcome as Record<string, any>) : undefined,
       accuracy: log.accuracy || undefined,
-      outcome: log.outcome ? (log.outcome as Record<string, any>) : undefined,
       createdAt: log.createdAt,
-      validatedAt: log.validatedAt || undefined
+      evaluatedAt: log.evaluatedAt || undefined
     }));
   } catch (error) {
     console.error('Error getting predictions:', error);
@@ -183,21 +187,21 @@ export async function getPredictions(options?: {
 export async function getAccuracyMetrics(): Promise<AccuracyMetrics> {
   try {
     const allPredictions = await prisma.predictionLog.findMany();
-    const validatedPredictions = allPredictions.filter(p => p.validatedAt !== null);
+    const evaluatedPredictions = allPredictions.filter(p => p.evaluatedAt !== null);
 
     // Calculate overall accuracy
-    const totalAccuracy = validatedPredictions.reduce((sum, p) => 
+    const totalAccuracy = evaluatedPredictions.reduce((sum, p) => 
       sum + (p.accuracy || 0), 0
     );
-    const overall = validatedPredictions.length > 0 
-      ? totalAccuracy / validatedPredictions.length 
+    const overall = evaluatedPredictions.length > 0 
+      ? totalAccuracy / evaluatedPredictions.length 
       : 0;
 
     // Calculate accuracy by type
     const byType: Record<string, number> = {};
     const typeCounts: Record<string, number> = {};
 
-    validatedPredictions.forEach(p => {
+    evaluatedPredictions.forEach(p => {
       const type = p.predictionType;
       if (!byType[type]) {
         byType[type] = 0;
@@ -212,17 +216,15 @@ export async function getAccuracyMetrics(): Promise<AccuracyMetrics> {
       byType[type] = byType[type] / typeCounts[type];
     });
 
-    // Count high accuracy predictions (>= 0.8)
-    const highAccuracyCount = validatedPredictions.filter(p => 
-      (p.accuracy || 0) >= 0.8
-    ).length;
+    // Count accurate predictions (wasAccurate = true)
+    const accurateCount = evaluatedPredictions.filter(p => p.wasAccurate === true).length;
 
     return {
       overall: Math.round(overall * 100) / 100,
       byType,
       totalPredictions: allPredictions.length,
-      validatedPredictions: validatedPredictions.length,
-      highAccuracyCount
+      evaluatedPredictions: evaluatedPredictions.length,
+      accurateCount
     };
   } catch (error) {
     console.error('Error calculating accuracy metrics:', error);
@@ -230,8 +232,8 @@ export async function getAccuracyMetrics(): Promise<AccuracyMetrics> {
       overall: 0,
       byType: {},
       totalPredictions: 0,
-      validatedPredictions: 0,
-      highAccuracyCount: 0
+      evaluatedPredictions: 0,
+      accurateCount: 0
     };
   }
 }
@@ -241,8 +243,7 @@ export async function getAccuracyMetrics(): Promise<AccuracyMetrics> {
  */
 export async function predictFromHistory(options: {
   type: string;
-  target: string;
-  contextSimilarity?: number;
+  context?: Record<string, any>;
 }): Promise<{
   success: boolean;
   prediction?: Prediction;
@@ -250,10 +251,10 @@ export async function predictFromHistory(options: {
   error?: string;
 }> {
   try {
-    // Get similar validated predictions
+    // Get similar evaluated predictions
     const historicalPredictions = await getPredictions({
       type: options.type,
-      validated: true,
+      evaluated: true,
       minConfidence: 0.7
     });
 
@@ -270,17 +271,24 @@ export async function predictFromHistory(options: {
     ) / historicalPredictions.length;
 
     // Use most accurate historical prediction as base
-    const bestPrediction = historicalPredictions.sort((a, b) => 
-      (b.accuracy || 0) - (a.accuracy || 0)
-    )[0];
+    const bestPrediction = historicalPredictions
+      .filter(p => p.accuracy !== undefined)
+      .sort((a, b) => (b.accuracy || 0) - (a.accuracy || 0))[0];
+
+    if (!bestPrediction) {
+      return {
+        success: true,
+        reasoning: 'No accurate historical predictions found'
+      };
+    }
 
     // Create new prediction based on historical pattern
     const result = await makePrediction({
       type: options.type,
-      target: options.target,
       prediction: bestPrediction.prediction,
       confidence: avgConfidence,
       context: {
+        ...options.context,
         basedOn: 'historical_pattern',
         sourcePredictionId: bestPrediction.id,
         historicalAccuracy: bestPrediction.accuracy

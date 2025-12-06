@@ -15,11 +15,11 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { category, type, description, context, relatedFiles, relatedPatterns } = body;
+    const { category, type, title, description, evidence, confidence, actionable, priority, impact, relatedFiles, relatedPatterns, tags } = body;
 
-    if (!category || !type || !description) {
+    if (!category || !type || !title || !description) {
       return NextResponse.json(
-        { error: 'Category, type, and description are required' },
+        { error: 'Category, type, title, and description are required' },
         { status: 400 }
       );
     }
@@ -27,10 +27,16 @@ export async function POST(req: Request) {
     const result = await recordLearning({
       category,
       type,
+      title,
       description,
-      context: context || {},
-      relatedFiles: relatedFiles || [],
-      relatedPatterns: relatedPatterns || []
+      evidence,
+      confidence,
+      actionable,
+      priority,
+      impact,
+      relatedFiles,
+      relatedPatterns,
+      tags
     });
 
     if (!result.success) {

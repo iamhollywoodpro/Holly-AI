@@ -15,19 +15,18 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { taskDescription, category, context } = body;
+    const { taskDescription, context } = body;
 
-    if (!taskDescription || !category) {
+    if (!taskDescription) {
       return NextResponse.json(
-        { error: 'taskDescription and category are required' },
+        { error: 'taskDescription is required' },
         { status: 400 }
       );
     }
 
     const result = await analyzeTask({
       taskDescription,
-      category,
-      context: context || {}
+      context
     });
 
     if (!result.success) {

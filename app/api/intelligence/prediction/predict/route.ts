@@ -15,21 +15,20 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { type, target, prediction, confidence, context } = body;
+    const { type, prediction, confidence, context } = body;
 
-    if (!type || !target || !prediction || confidence === undefined) {
+    if (!type || !prediction || confidence === undefined) {
       return NextResponse.json(
-        { error: 'Type, target, prediction, and confidence are required' },
+        { error: 'Type, prediction, and confidence are required' },
         { status: 400 }
       );
     }
 
     const result = await makePrediction({
       type,
-      target,
       prediction,
       confidence,
-      context: context || {}
+      context
     });
 
     if (!result.success) {
