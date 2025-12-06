@@ -41,12 +41,11 @@ export async function exportUserData(
       where: { clerkUserId: userId },
       include: {
         conversations: true,
-        messages: true,
         fileUploads: true,
         projects: true,
         sessions: true,
         events: true,
-        preferences: true,
+        userPreferences: true,
       },
     });
 
