@@ -4,12 +4,12 @@ import { improveCopy } from '@/lib/creative/content-creator';
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { content, goal, audience } = await req.json();
+    const { content, goal } = await req.json();
     
     if (!content || !goal) {
       return NextResponse.json(
@@ -18,7 +18,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const result = await improveCopy(content, goal, audience);
+    // improveCopy takes (original, goal) - 2 params ONLY
+    const result = await improveCopy(content, goal);
 
     return NextResponse.json(result);
   } catch (error) {

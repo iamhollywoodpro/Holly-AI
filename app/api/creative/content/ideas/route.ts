@@ -9,22 +9,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { category, context, count } = await req.json();
+    const { topic, count } = await req.json();
     
-    if (!category) {
+    if (!topic) {
       return NextResponse.json(
-        { error: 'Category is required' },
+        { error: 'Topic is required' },
         { status: 400 }
       );
     }
 
-    // generateIdeas takes (category, context, userId, count)
-    const result = await generateIdeas(
-      category,
-      context || {},
-      userId,
-      count || 5
-    );
+    // generateIdeas takes (topic, count) - 2 params ONLY
+    const result = await generateIdeas(topic, count || 5);
 
     return NextResponse.json(result);
   } catch (error) {
