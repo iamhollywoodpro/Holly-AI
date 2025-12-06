@@ -7,7 +7,7 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -21,7 +21,8 @@ export async function POST(
       );
     }
 
-    const result = await addTags(params.id, tags, userId);
+    // addTags takes (assetId, tags) - 2 params ONLY
+    const result = await addTags(params.id, tags);
 
     if (!result.success) {
       return NextResponse.json({ error: result.error }, { status: 404 });
