@@ -3342,3 +3342,98 @@ model WebBrowseLog {
   @@index([action])
   @@map("web_browse_logs")
 }
+
+// =====================================================
+// PHASE 11: KNOWLEDGE & INTELLIGENCE SYSTEM
+// =====================================================
+
+// Knowledge nodes for graph-based knowledge storage
+model KnowledgeNode {
+  id          String  @id @default(cuid())
+  entityType  String // 'concept', 'file', 'function', 'pattern', 'user', 'project'
+  entityId    String? // Reference to actual entity if applicable
+  name        String
+  description String? @db.Text
+  metadata    Json // Flexible metadata storage
+  confidence  Float   @default(1.0) // 0-1
+
+  // Relationships
+  fromLinks KnowledgeLink[] @relation("FromNode")
+  toLinks   KnowledgeLink[] @relation("ToNode")
+
+  // Timestamps
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  lastAccessed DateTime @default(now())
+  accessCount  Int      @default(0)
+
+  @@index([entityType])
+  @@index([name])
+  @@map("knowledge_nodes")
+}
+
+// Links between knowledge nodes
+model KnowledgeLink {
+  id               String @id @default(cuid())
+  fromNodeId       String
+  toNodeId         String
+  relationshipType String // 'uses', 'implements', 'related_to', 'caused_by', 'solves'
+  strength         Float  @default(1.0) // 0-1
+  metadata         Json?
+
+  fromNode KnowledgeNode @relation("FromNode", fields: [fromNodeId], references: [id], onDelete: Cascade)
+  toNode   KnowledgeNode @relation("ToNode", fields: [toNodeId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([fromNodeId])
+  @@index([toNodeId])
+  @@index([relationshipType])
+  @@map("knowledge_links")
+}
+
+// Prediction tracking for learning accuracy
+model PredictionLog {
+  id             String @id @default(cuid())
+  predictionType String // 'next_action', 'issue', 'recommendation'
+  context        Json // What led to this prediction
+  prediction     Json // What was predicted
+  confidence     Float // 0-1
+
+  // Outcome tracking
+  wasAccurate   Boolean?
+  actualOutcome Json?
+  accuracy      Float? // How accurate (0-1)
+
+  createdAt   DateTime  @default(now())
+  evaluatedAt DateTime?
+
+  @@index([predictionType])
+  @@index([createdAt])
+  @@map("prediction_logs")
+}
+
+// Task analysis for intelligent task execution
+model TaskAnalysis {
+  id              String   @id @default(cuid())
+  taskDescription String   @db.Text
+  complexity      String // 'simple', 'moderate', 'complex'
+  estimatedTime   Int? // minutes
+  requiredSkills  String[]
+  dependencies    String[]
+  risks           String[]
+  approach        Json // Recommended approach
+
+  // Execution tracking
+  status     String   @default("pending") // 'pending', 'in_progress', 'completed', 'failed'
+  actualTime Int? // minutes
+  outcome    Json?
+  learnings  String[] @default([])
+
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("task_analyses")
+}
