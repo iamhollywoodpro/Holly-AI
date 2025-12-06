@@ -13,7 +13,7 @@ export interface Asset {
   category?: string;
   isFavorite: boolean;
   tags: string[];
-  createdAt: string;
+  createdAt: Date; // FIXED: Changed to Date
 }
 
 export interface Template {
@@ -23,7 +23,7 @@ export interface Template {
   description?: string;
   category?: string;
   isPublic: boolean;
-  createdAt: string;
+  createdAt: Date; // FIXED: Changed to Date
 }
 
 export interface GenerationJob {
@@ -32,13 +32,16 @@ export interface GenerationJob {
   status: string;
   progress: number;
   resultUrl?: string;
-  createdAt: string;
+  createdAt: Date; // FIXED: Changed to Date
 }
 
 // Image Generation
 export const generateImage = async (data: {
   prompt: string;
   model?: string;
+  width?: number;
+  height?: number;
+  numImages?: number;
   parameters?: Record<string, any>;
 }) => {
   return apiClient.post<{ success: boolean; jobId: string }>('creative/image/generate', data);
@@ -56,12 +59,23 @@ export const listImages = async (params?: { status?: string; limit?: number }) =
 export const generateContent = async (data: {
   type: string;
   topic: string;
+  tone?: string;
   parameters?: Record<string, any>;
 }) => {
   return apiClient.post<{ success: boolean; content: string }>('creative/content/generate', data);
 };
 
-// Assets
+// Assets - FIXED: Added missing exports
+export const getAssets = async (filters?: {
+  type?: string;
+  tags?: string[];
+  category?: string;
+  isFavorite?: boolean;
+  limit?: number;
+}) => {
+  return apiClient.get<Asset[]>('creative/assets', filters);
+};
+
 export const listAssets = async (params?: {
   type?: string;
   category?: string;
@@ -75,13 +89,22 @@ export const getAsset = async (id: string) => {
   return apiClient.get<Asset>(`creative/asset/${id}`);
 };
 
+// FIXED: Added missing deleteAsset export
+export const deleteAsset = async (id: string) => {
+  return apiClient.delete(`creative/asset/${id}`);
+};
+
 export const toggleAssetFavorite = async (id: string) => {
   return apiClient.post<{ success: boolean; isFavorite: boolean }>(
     `creative/asset/${id}/favorite`
   );
 };
 
-// Templates
+// Templates - FIXED: Added missing getTemplates export
+export const getTemplates = async (type?: string) => {
+  return apiClient.get<Template[]>('creative/templates', type ? { type } : undefined);
+};
+
 export const listTemplates = async (params?: {
   type?: string;
   category?: string;

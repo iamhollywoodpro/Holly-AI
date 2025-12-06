@@ -9,20 +9,24 @@ export interface Metric {
   id: string;
   name: string;
   displayName: string;
+  category?: string;
+  value: number; // FIXED: Added value property
   currentValue: number;
   previousValue?: number;
   changePercent?: number;
   trend: string;
   unit?: string;
+  timestamp: Date;
 }
 
 export interface Report {
   id: string;
   name: string;
+  type: string; // FIXED: Changed from reportType to type
   reportType: string;
-  status?: string;
+  status: string; // FIXED: Made required
   lastRun?: string;
-  createdAt: string;
+  createdAt: Date; // FIXED: Changed to Date
 }
 
 export interface Dashboard {
@@ -30,12 +34,23 @@ export interface Dashboard {
   name: string;
   dashboardType: string;
   widgets: any[];
-  createdAt: string;
+  createdAt: Date; // FIXED: Changed to Date
+}
+
+export interface Insight {
+  id: string;
+  title: string;
+  description: string;
+  category?: string;
+  severity: string; // FIXED: Added severity
+  timestamp: Date;
 }
 
 // Metrics
 export const getMetrics = async (params?: {
   category?: string;
+  startDate?: Date;
+  endDate?: Date;
   isActive?: boolean;
   limit?: number;
 }) => {
@@ -56,6 +71,8 @@ export const createMetric = async (data: {
 
 // Reports
 export const getReports = async (params?: {
+  type?: string;
+  status?: string;
   reportType?: string;
   limit?: number;
 }) => {
@@ -74,10 +91,10 @@ export const runReport = async (id: string) => {
 
 export const createReport = async (data: {
   name: string;
-  reportType: string;
-  config?: any;
+  type: string;
+  config: any;
 }) => {
-  return apiClient.post<{ success: boolean; reportId: string }>('analytics/reports', data);
+  return apiClient.post<Report>('analytics/reports', data);
 };
 
 // Dashboards
@@ -90,4 +107,26 @@ export const getDashboards = async (params?: {
 
 export const getDashboard = async (id: string) => {
   return apiClient.get<Dashboard>(`analytics/dashboards/${id}`);
+};
+
+// FIXED: Added missing createDashboard export
+export const createDashboard = async (data: {
+  name: string;
+  description?: string;
+  widgets: any[];
+}) => {
+  return apiClient.post<Dashboard>('analytics/dashboards', data);
+};
+
+// FIXED: Added missing deleteDashboard export
+export const deleteDashboard = async (id: string) => {
+  return apiClient.delete(`analytics/dashboards/${id}`);
+};
+
+// FIXED: Added missing getInsights export
+export const getInsights = async (filters?: {
+  category?: string;
+  severity?: string;
+}) => {
+  return apiClient.get<Insight[]>('analytics/insights', filters);
 };
