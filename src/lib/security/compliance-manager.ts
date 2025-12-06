@@ -115,7 +115,7 @@ export async function deleteUserData(
 export async function getPrivacyConsent(userId: string): Promise<ConsentStatus> {
   try {
     const preferences = await prisma.userPreferences.findUnique({
-      where: { userId },
+      where: { clerkUserId: userId },
     });
 
     // Default consents if not found
