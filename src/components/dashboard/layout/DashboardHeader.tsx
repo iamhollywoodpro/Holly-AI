@@ -1,7 +1,8 @@
 'use client';
 
 import { UserButton } from '@clerk/nextjs';
-import { Bell, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
+import { NotificationPanel } from '@/components/dashboard/notifications/NotificationPanel';
 
 export function DashboardHeader() {
   return (
@@ -20,11 +21,8 @@ export function DashboardHeader() {
 
       {/* Actions */}
       <div className="flex items-center gap-4">
-        {/* Notifications */}
-        <button className="relative rounded-lg p-2 hover:bg-gray-100">
-          <Bell className="h-5 w-5 text-gray-600" />
-          <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-red-500"></span>
-        </button>
+        {/* Real-Time Notifications */}
+        <NotificationPanel />
 
         {/* User Menu */}
         <UserButton afterSignOutUrl="/" />
