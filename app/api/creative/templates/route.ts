@@ -4,7 +4,7 @@ import { listTemplates } from '@/lib/creative/template-manager';
 
 export async function GET(req: NextRequest) {
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -16,7 +16,8 @@ export async function GET(req: NextRequest) {
     const isPublic = searchParams.get('isPublic') === 'true' ? true : undefined;
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined;
 
-    const templates = await listTemplates(userId, {
+    // listTemplates takes ONLY filters (NO userId)
+    const templates = await listTemplates({
       type,
       category,
       tags,

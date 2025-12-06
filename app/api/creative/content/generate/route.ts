@@ -4,7 +4,7 @@ import { generateContent } from '@/lib/creative/content-creator';
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -18,11 +18,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const result = await generateContent({
-      type,
-      topic,
-      parameters: parameters || {}
-    }, userId);
+    // generateContent takes (userId, type, prompt, options)
+    const result = await generateContent(userId, type, topic, parameters || {});
 
     return NextResponse.json(result);
   } catch (error) {

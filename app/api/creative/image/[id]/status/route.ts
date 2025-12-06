@@ -7,12 +7,12 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // The 'id' parameter is the jobId for this endpoint
+    // getImageStatus only takes jobId (1 param)
     const status = await getImageStatus(params.id);
 
     if (!status) {

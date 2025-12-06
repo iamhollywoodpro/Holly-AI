@@ -7,12 +7,13 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const template = await getTemplate(params.id, userId);
+    // getTemplate only takes templateId (1 param)
+    const template = await getTemplate(params.id);
     if (!template) {
       return NextResponse.json({ error: 'Template not found' }, { status: 404 });
     }
@@ -32,19 +33,20 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const updates = await req.json();
-    const result = await updateTemplate(params.id, updates, userId);
+    // updateTemplate takes (templateId, updates)
+    const result = await updateTemplate(params.id, updates);
 
     if (!result.success) {
       return NextResponse.json({ error: result.error }, { status: 404 });
     }
 
-    return NextResponse.json(result.template);
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error updating template:', error);
     return NextResponse.json(
@@ -59,12 +61,13 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const result = await deleteTemplate(params.id, userId);
+    // deleteTemplate only takes templateId (1 param)
+    const result = await deleteTemplate(params.id);
 
     if (!result.success) {
       return NextResponse.json({ error: result.error }, { status: 404 });

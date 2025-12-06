@@ -7,12 +7,13 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const asset = await getAsset(params.id, userId);
+    // getAsset only takes assetId (1 param)
+    const asset = await getAsset(params.id);
     if (!asset) {
       return NextResponse.json({ error: 'Asset not found' }, { status: 404 });
     }
@@ -32,19 +33,20 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const updates = await req.json();
-    const result = await updateAsset(params.id, updates, userId);
+    // updateAsset takes (assetId, updates)
+    const result = await updateAsset(params.id, updates);
 
     if (!result.success) {
       return NextResponse.json({ error: result.error }, { status: 404 });
     }
 
-    return NextResponse.json(result.asset);
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error updating asset:', error);
     return NextResponse.json(
@@ -59,12 +61,13 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const result = await deleteAsset(params.id, userId);
+    // deleteAsset only takes assetId (1 param)
+    const result = await deleteAsset(params.id);
 
     if (!result.success) {
       return NextResponse.json({ error: result.error }, { status: 404 });

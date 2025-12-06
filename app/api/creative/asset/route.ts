@@ -4,7 +4,7 @@ import { saveAsset } from '@/lib/creative/asset-manager';
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -18,7 +18,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const result = await saveAsset(assetData, userId);
+    // saveAsset takes (userId, asset)
+    const result = await saveAsset(userId, assetData);
 
     return NextResponse.json(result);
   } catch (error) {

@@ -1,22 +1,16 @@
-/**
- * POST /api/creative/image/generate
- * Generate new image
- */
-
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { generateImage } from '@/lib/creative/image-generator';
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await req.json();
-    const { prompt, options } = body;
-
+    const { prompt, options } = await req.json();
+    
     if (!prompt) {
       return NextResponse.json(
         { error: 'Prompt is required' },
@@ -24,24 +18,14 @@ export async function POST(req: Request) {
       );
     }
 
+    // generateImage takes (userId, prompt, options)
     const result = await generateImage(userId, prompt, options || {});
 
-    if (!result.success) {
-      return NextResponse.json(
-        { error: result.error || 'Failed to generate image' },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json({
-      success: true,
-      jobId: result.jobId,
-      assetId: result.assetId
-    });
+    return NextResponse.json(result);
   } catch (error) {
-    console.error('Error in generate image API:', error);
+    console.error('Error generating image:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Failed to generate image' },
       { status: 500 }
     );
   }

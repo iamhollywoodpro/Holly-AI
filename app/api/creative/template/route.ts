@@ -4,7 +4,7 @@ import { createTemplate } from '@/lib/creative/template-manager';
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -18,7 +18,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const result = await createTemplate(templateData, userId);
+    // createTemplate takes (userId, template)
+    const result = await createTemplate(userId, templateData);
 
     return NextResponse.json(result);
   } catch (error) {
