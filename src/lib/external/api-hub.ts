@@ -69,7 +69,7 @@ export async function callAPI(config: APIConfig): Promise<APIResponse> {
 
     // If apiName provided, load from database
     if (config.apiName) {
-      apiDef = await prisma.apiDefinition.findUnique({
+      apiDef = await prisma.aPIDefinition.findUnique({
         where: { name: config.apiName }
       });
 
@@ -152,7 +152,7 @@ export async function callAPI(config: APIConfig): Promise<APIResponse> {
 
     // Update API usage stats if using registered API
     if (apiDef) {
-      await prisma.apiDefinition.update({
+      await prisma.aPIDefinition.update({
         where: { id: apiDef.id },
         data: {
           callCount: { increment: 1 },
@@ -186,7 +186,7 @@ export async function callAPI(config: APIConfig): Promise<APIResponse> {
 export async function registerAPI(apiDef: APIDefinitionInput): Promise<{ success: boolean; id?: string; error?: string }> {
   try {
     // Check if API with this name already exists
-    const existing = await prisma.apiDefinition.findUnique({
+    const existing = await prisma.aPIDefinition.findUnique({
       where: { name: apiDef.name }
     });
 
@@ -198,7 +198,7 @@ export async function registerAPI(apiDef: APIDefinitionInput): Promise<{ success
     }
 
     // Create new API definition
-    const created = await prisma.apiDefinition.create({
+    const created = await prisma.aPIDefinition.create({
       data: {
         name: apiDef.name,
         description: apiDef.description,
@@ -240,7 +240,7 @@ export async function listAPIs(options?: ListAPIOptions): Promise<any[]> {
       where.createdBy = options.createdBy;
     }
 
-    const apis = await prisma.apiDefinition.findMany({
+    const apis = await prisma.aPIDefinition.findMany({
       where,
       orderBy: { createdAt: 'desc' }
     });
@@ -259,7 +259,7 @@ export async function listAPIs(options?: ListAPIOptions): Promise<any[]> {
 export async function testConnection(apiName: string): Promise<{ success: boolean; message: string; duration?: number }> {
   try {
     // Get API definition
-    const apiDef = await prisma.apiDefinition.findUnique({
+    const apiDef = await prisma.aPIDefinition.findUnique({
       where: { name: apiName }
     });
 
