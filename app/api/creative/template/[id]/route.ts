@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs';
+import { auth } from '@clerk/nextjs/server';
 import { getTemplate, updateTemplate, deleteTemplate } from '@/lib/creative/template-manager';
 
 export async function GET(

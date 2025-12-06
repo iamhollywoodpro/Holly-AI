@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs';
+import { auth } from '@clerk/nextjs/server';
 import { getAsset, updateAsset, deleteAsset } from '@/lib/creative/asset-manager';
 
 export async function GET(
