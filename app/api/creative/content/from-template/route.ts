@@ -18,10 +18,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // createFromTemplate takes (templateId, userId, customization)
+    // createFromTemplate takes (templateId, variables) - 2 params ONLY
+    // customization object is used as variables for template
     const result = await createFromTemplate(
       templateId,
-      userId,
       customization || {}
     );
 
