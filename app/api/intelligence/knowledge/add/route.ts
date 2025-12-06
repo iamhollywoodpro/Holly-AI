@@ -15,33 +15,27 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { type, content, tags, metadata } = body;
+    const { entityType, entityId, name, description, metadata, confidence } = body;
 
-    if (!type || !content) {
+    if (!entityType || !name) {
       return NextResponse.json(
-        { error: 'Type and content are required' },
+        { error: 'entityType and name are required' },
         { status: 400 }
       );
     }
 
-    const result = await addKnowledge({
-      type,
-      content,
-      tags: tags || [],
-      metadata: metadata || {}
+    const nodeId = await addKnowledge({
+      entityType,
+      entityId,
+      name,
+      description,
+      metadata,
+      confidence
     });
-
-    if (!result.success) {
-      return NextResponse.json(
-        { error: result.error || 'Failed to add knowledge' },
-        { status: 500 }
-      );
-    }
 
     return NextResponse.json({
       success: true,
-      nodeId: result.nodeId,
-      node: result.node
+      nodeId
     });
   } catch (error) {
     console.error('Error in knowledge add API:', error);

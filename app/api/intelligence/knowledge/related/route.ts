@@ -15,28 +15,17 @@ export async function GET(req: Request) {
     }
 
     const { searchParams } = new URL(req.url);
-    const nodeId = searchParams.get('nodeId');
+    const entityId = searchParams.get('entityId');
     const relationshipType = searchParams.get('relationshipType') || undefined;
-    const minStrength = searchParams.get('minStrength')
-      ? parseFloat(searchParams.get('minStrength')!)
-      : undefined;
-    const limit = searchParams.get('limit')
-      ? parseInt(searchParams.get('limit')!)
-      : undefined;
 
-    if (!nodeId) {
+    if (!entityId) {
       return NextResponse.json(
-        { error: 'nodeId parameter is required' },
+        { error: 'entityId parameter is required' },
         { status: 400 }
       );
     }
 
-    const related = await getRelated({
-      nodeId,
-      relationshipType,
-      minStrength,
-      limit
-    });
+    const related = await getRelated(entityId, relationshipType);
 
     return NextResponse.json({
       success: true,

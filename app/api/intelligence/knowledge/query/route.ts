@@ -16,8 +16,10 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
     const query = searchParams.get('query');
-    const type = searchParams.get('type') || undefined;
-    const tags = searchParams.get('tags')?.split(',') || undefined;
+    const entityType = searchParams.get('entityType') || undefined;
+    const minConfidence = searchParams.get('minConfidence')
+      ? parseFloat(searchParams.get('minConfidence')!)
+      : undefined;
     const limit = searchParams.get('limit') 
       ? parseInt(searchParams.get('limit')!) 
       : undefined;
@@ -29,10 +31,9 @@ export async function GET(req: Request) {
       );
     }
 
-    const nodes = await queryKnowledge({
-      query,
-      type,
-      tags,
+    const nodes = await queryKnowledge(query, {
+      entityType,
+      minConfidence,
       limit
     });
 

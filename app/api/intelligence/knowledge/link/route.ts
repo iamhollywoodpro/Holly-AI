@@ -15,32 +15,24 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { fromNodeId, toNodeId, relationshipType, strength } = body;
+    const { fromId, toId, type, strength, metadata } = body;
 
-    if (!fromNodeId || !toNodeId || !relationshipType) {
+    if (!fromId || !toId || !type) {
       return NextResponse.json(
-        { error: 'fromNodeId, toNodeId, and relationshipType are required' },
+        { error: 'fromId, toId, and type are required' },
         { status: 400 }
       );
     }
 
-    const result = await linkKnowledge({
-      fromNodeId,
-      toNodeId,
-      relationshipType,
-      strength: strength || 1.0
+    const linkId = await linkKnowledge(fromId, toId, {
+      type,
+      strength,
+      metadata
     });
-
-    if (!result.success) {
-      return NextResponse.json(
-        { error: result.error || 'Failed to create link' },
-        { status: 500 }
-      );
-    }
 
     return NextResponse.json({
       success: true,
-      linkId: result.linkId
+      linkId
     });
   } catch (error) {
     console.error('Error in knowledge link API:', error);
