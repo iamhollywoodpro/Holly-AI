@@ -14,3 +14,9 @@ out/
 *.log
 .env.credentials
 core
+
+# Oracle Cloud Private Keys
+*.pem
+oracle-private-key.pem
+.oci/
+

@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HOLLY 3.0 - Investor Pitch Deck</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #000;
+            color: #fff;
+            overflow: hidden;
+        }
+
+        .presentation {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        .slide {
+            width: 100%;
+            height: 100%;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 4rem;
+            background: linear-gradient(135deg, #0066cc, #004999);
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .slide.active {
+            display: flex;
+        }
+
+        .slide h1 {
+            font-size: 4.5rem;
+            font-weight: 700;
+            margin-bottom: 2rem;
+            text-align: center;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .slide h2 {
+            font-size: 3rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        .slide h3 {
+            font-size: 2rem;
+            font-weight: 500;
+            margin-bottom: 1rem;
+            opacity: 0.9;
+        }
+
+        .slide p {
+            font-size: 1.5rem;
+            line-height: 1.8;
+            max-width: 1000px;
+            text-align: center;
+            opacity: 0.9;
+        }
+
+        .slide ul {
+            list-style: none;
+            max-width: 1000px;
+            margin: 2rem 0;
+        }
+
+        .slide li {
+            font-size: 1.8rem;
+            line-height: 2;
+            padding: 1rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .slide li:last-child {
+            border-bottom: none;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .card h3 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .card p {
+            font-size: 1.3rem;
+            text-align: left;
+        }
+
+        .metric {
+            font-size: 4rem;
+            font-weight: 700;
+            color: #10b981;
+            margin: 1rem 0;
+        }
+
+        .highlight {
+            color: #fbbf24;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            font-size: 2rem;
+            opacity: 0.8;
+            margin-bottom: 3rem;
+        }
+
+        .navigation {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 1rem;
+            z-index: 100;
+        }
+
+        .nav-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: all 0.3s;
+        }
+
+        .nav-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .slide-counter {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            font-size: 1.5rem;
+            opacity: 0.6;
+        }
+
+        .problem-slide {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+        }
+
+        .solution-slide {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+
+        .market-slide {
+            background: linear-gradient(135deg, #6366f1, #4f46e5);
+        }
+
+        .financial-slide {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+        }
+
+        .team-slide {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+        }
+
+        .ask-slide {
+            background: linear-gradient(135deg, #ec4899, #db2777);
+        }
+
+        table {
+            width: 100%;
+            max-width: 1000px;
+            border-collapse: collapse;
+            margin: 2rem 0;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        th, td {
+            padding: 1.5rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        th {
+            background: rgba(0, 0, 0, 0.3);
+            font-weight: 600;
+            font-size: 1.5rem;
+        }
+
+        td {
+            font-size: 1.3rem;
+        }
+
+        .logo {
+            font-size: 6rem;
+            margin-bottom: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation">
+        <!-- SLIDE 1: COVER -->
+        <div class="slide active">
+            <div class="logo">🧠</div>
+            <h1>HOLLY 3.0</h1>
+            <p class="subtitle">Hyper-Optimized Logic & Learning Yield</p>
+            <p style="font-size: 2rem;">The AI Development Platform Revolutionizing Enterprise Productivity</p>
+            <p style="margin-top: 2rem; opacity: 0.7;">Investor Pitch Deck | December 2025</p>
+        </div>
+
+        <!-- SLIDE 2: THE PROBLEM -->
+        <div class="slide problem-slide">
+            <h2>🚨 The Problem</h2>
+            <div class="grid-2">
+                <div class="card">
+                    <h3>Fragmentation Crisis</h3>
+                    <p>Enterprises use <strong>10-15 disconnected AI tools</strong>, leading to data silos, integration nightmares, and wasted resources.</p>
+                </div>
+                <div class="card">
+                    <h3>Productivity Drain</h3>
+                    <p>Developers spend <strong>40% of time</strong> on tool management instead of building products.</p>
+                </div>
+                <div class="card">
+                    <h3>Security Blind Spots</h3>
+                    <p><strong>68% of AI projects fail</strong> due to undetected vulnerabilities and compliance gaps.</p>
+                </div>
+                <div class="card">
+                    <h3>Cost Explosion</h3>
+                    <p>Organizations waste <strong>$250K+/year</strong> on redundant subscriptions and inefficient workflows.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 3: THE SOLUTION -->
+        <div class="slide solution-slide">
+            <h2>✨ The HOLLY Solution</h2>
+            <p class="subtitle">360° AI Development Platform - Create, Analyze, Secure, Orchestrate</p>
+            <ul>
+                <li>🎨 <strong>Creative Engine</strong> - AI-powered image & content generation</li>
+                <li>📊 <strong>Analytical Engine</strong> - Real-time performance insights & predictive analytics</li>
+                <li>🔒 <strong>Security Engine</strong> - Automated threat detection & compliance monitoring</li>
+                <li>🤖 <strong>Orchestration Engine</strong> - Autonomous agent coordination & workflow automation</li>
+            </ul>
+            <div class="metric" style="margin-top: 2rem;">10x Productivity Gain</div>
+        </div>
+
+        <!-- SLIDE 4: MARKET OPPORTUNITY -->
+        <div class="slide market-slide">
+            <h2>📈 Market Opportunity</h2>
+            <table>
+                <tr>
+                    <th>Market Segment</th>
+                    <th>Size</th>
+                </tr>
+                <tr>
+                    <td>SAM (Serviceable Addressable Market)</td>
+                    <td class="metric" style="font-size: 2rem;">$135B</td>
+                </tr>
+                <tr>
+                    <td>TAM (Total Addressable Market)</td>
+                    <td class="metric" style="font-size: 2rem;">$27B</td>
+                </tr>
+                <tr>
+                    <td>SOM (Serviceable Obtainable Market)</td>
+                    <td class="metric" style="font-size: 2rem;">$5B</td>
+                </tr>
+            </table>
+            <p style="margin-top: 2rem; font-size: 1.8rem;">
+                Global AI software market projected at <span class="highlight">$135B by 2030</span>
+            </p>
+        </div>
+
+        <!-- SLIDE 5: BUSINESS MODEL -->
+        <div class="slide">
+            <h2>💰 Business Model</h2>
+            <div class="grid-2">
+                <div class="card">
+                    <h3>Starter</h3>
+                    <div class="metric">$29</div>
+                    <p>/month</p>
+                    <p style="margin-top: 1rem;">• 100 API calls/day<br>• 5 AI agents<br>• Basic analytics</p>
+                </div>
+                <div class="card">
+                    <h3>Professional</h3>
+                    <div class="metric">$99</div>
+                    <p>/month</p>
+                    <p style="margin-top: 1rem;">• 1,000 API calls/day<br>• 20 AI agents<br>• Advanced security</p>
+                </div>
+            </div>
+            <div class="grid-2" style="margin-top: 2rem;">
+                <div class="card">
+                    <h3>Enterprise</h3>
+                    <div class="metric">$499</div>
+                    <p>/month</p>
+                    <p style="margin-top: 1rem;">• Unlimited API calls<br>• Unlimited agents<br>• Custom integrations</p>
+                </div>
+                <div class="card">
+                    <h3>White Label</h3>
+                    <div class="metric">Custom</div>
+                    <p style="margin-top: 1rem;">• Full platform licensing<br>• Brand customization<br>• Dedicated support</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 6: COMPETITIVE ADVANTAGE -->
+        <div class="slide">
+            <h2>🎯 Competitive Advantages</h2>
+            <ul>
+                <li>✅ <strong>360° Integration</strong> - Only platform combining creative, analytics, security, and orchestration</li>
+                <li>✅ <strong>Autonomous Orchestration</strong> - Self-managing AI agents that learn and adapt</li>
+                <li>✅ <strong>Adaptive Learning</strong> - Platform improves automatically based on usage patterns</li>
+                <li>✅ <strong>Zero-Config Deployment</strong> - Deploy in minutes, not months</li>
+            </ul>
+        </div>
+
+        <!-- SLIDE 7: TRACTION -->
+        <div class="slide">
+            <h2>📊 Traction & Milestones</h2>
+            <div class="grid-2">
+                <div class="card">
+                    <h3>Current Status</h3>
+                    <p>✅ MVP Complete<br>✅ 4 Core Engines Built<br>✅ 66+ API Endpoints<br>✅ Real-time Dashboard</p>
+                </div>
+                <div class="card">
+                    <h3>Next 90 Days</h3>
+                    <p>🎯 Beta Launch<br>🎯 First 100 Users<br>🎯 Enterprise Pilots<br>🎯 $50K MRR</p>
+                </div>
+            </div>
+            <div class="grid-2" style="margin-top: 2rem;">
+                <div class="card">
+                    <h3>6-Month Goals</h3>
+                    <p>🚀 1,000 Paying Users<br>🚀 $150K MRR<br>🚀 5 Enterprise Clients<br>🚀 Strategic Partnerships</p>
+                </div>
+                <div class="card">
+                    <h3>12-Month Vision</h3>
+                    <p>💎 10,000 Users<br>💎 $500K MRR<br>💎 Series A Ready<br>💎 Market Leader</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 8: FINANCIAL PROJECTIONS -->
+        <div class="slide financial-slide">
+            <h2>💵 Financial Projections</h2>
+            <table>
+                <tr>
+                    <th>Year</th>
+                    <th>Users</th>
+                    <th>Revenue</th>
+                    <th>Gross Margin</th>
+                </tr>
+                <tr>
+                    <td>Year 1</td>
+                    <td>2,500</td>
+                    <td>$2.5M</td>
+                    <td>70%</td>
+                </tr>
+                <tr>
+                    <td>Year 2</td>
+                    <td>12,000</td>
+                    <td>$12.8M</td>
+                    <td>75%</td>
+                </tr>
+                <tr>
+                    <td>Year 3</td>
+                    <td>35,000</td>
+                    <td>$38.5M</td>
+                    <td>78%</td>
+                </tr>
+                <tr>
+                    <td>Year 4</td>
+                    <td>80,000</td>
+                    <td>$89.6M</td>
+                    <td>80%</td>
+                </tr>
+                <tr>
+                    <td>Year 5</td>
+                    <td>150,000</td>
+                    <td>$142.6M</td>
+                    <td>82%</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- SLIDE 9: TEAM -->
+        <div class="slide team-slide">
+            <h2>👥 The Team</h2>
+            <div class="card" style="max-width: 900px;">
+                <h3>Steve "Hollywood" Dorego</h3>
+                <p style="font-size: 1.8rem; margin-top: 1rem;">
+                    <strong>Founder & CEO</strong>
+                </p>
+                <p style="margin-top: 1rem;">
+                    • 10+ years in AI/ML development<br>
+                    • Former Tech Lead at Fortune 500 companies<br>
+                    • Expert in autonomous systems and orchestration<br>
+                    • Patent holder in AI workflow optimization
+                </p>
+            </div>
+            <p style="margin-top: 2rem; font-size: 1.5rem; opacity: 0.8;">
+                Assembling world-class team across Engineering, Product, Sales, and Marketing
+            </p>
+        </div>
+
+        <!-- SLIDE 10: THE ASK -->
+        <div class="slide ask-slide">
+            <h2>🎯 The Ask</h2>
+            <div class="metric">$2.5M Seed Round</div>
+            <p class="subtitle">@ $15M Pre-Money Valuation</p>
+            
+            <div class="grid-2" style="margin-top: 2rem;">
+                <div class="card">
+                    <h3>Use of Funds</h3>
+                    <p>
+                        • 40% Engineering & Product<br>
+                        • 30% Sales & Marketing<br>
+                        • 20% Operations<br>
+                        • 10% Reserve
+                    </p>
+                </div>
+                <div class="card">
+                    <h3>Key Milestones</h3>
+                    <p>
+                        • Launch Enterprise Platform<br>
+                        • Scale to 10K Users<br>
+                        • $500K MRR<br>
+                        • Series A Ready (18 months)
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 11: CLOSING -->
+        <div class="slide">
+            <div class="logo">🧠</div>
+            <h1>HOLLY 3.0</h1>
+            <p class="subtitle">The Future of AI Development is Here</p>
+            <div style="margin-top: 3rem;">
+                <p style="font-size: 2rem;">Contact: Steve "Hollywood" Dorego</p>
+                <p style="font-size: 1.5rem; margin-top: 1rem; opacity: 0.8;">
+                    Email: steve@hollywood.ai<br>
+                    Web: holly.ai<br>
+                    Deck: holly.ai/pitch
+                </p>
+            </div>
+            <p style="margin-top: 3rem; font-size: 1.8rem;">
+                <span class="highlight">Let's revolutionize AI development together.</span>
+            </p>
+        </div>
+    </div>
+
+    <div class="slide-counter">
+        <span id="current-slide">1</span> / <span id="total-slides">11</span>
+    </div>
+
+    <div class="navigation">
+        <button class="nav-button" onclick="previousSlide()">← Previous</button>
+        <button class="nav-button" onclick="nextSlide()">Next →</button>
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+
+        document.getElementById('total-slides').textContent = totalSlides;
+
+        function showSlide(n) {
+            slides[currentSlide].classList.remove('active');
+            currentSlide = (n + totalSlides) % totalSlides;
+            slides[currentSlide].classList.add('active');
+            document.getElementById('current-slide').textContent = currentSlide + 1;
+        }
+
+        function nextSlide() {
+            showSlide(currentSlide + 1);
+        }
+
+        function previousSlide() {
+            showSlide(currentSlide - 1);
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ') {
+                nextSlide();
+            } else if (e.key === 'ArrowLeft') {
+                previousSlide();
+            }
+        });
+
+        // Touch swipe support
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        document.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+        });
+
+        document.addEventListener('touchend', (e) => {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        });
+
+        function handleSwipe() {
+            if (touchEndX < touchStartX - 50) {
+                nextSlide();
+            }
+            if (touchEndX > touchStartX + 50) {
+                previousSlide();
+            }
+        }
+    </script>
+</body>
+</html>
