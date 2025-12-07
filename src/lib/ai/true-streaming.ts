@@ -73,7 +73,7 @@ export async function* streamHollyResponse(
       model: 'gemini-2.5-flash',
       messages: messagesWithPersonality,
       tools: requiresTools ? HOLLY_TOOLS as any : undefined,
-      tool_choice: requiresTools ? 'required' : 'auto',
+      // NOTE: Gemini doesn't support tool_choice parameter - removed to fix 400 error
       temperature: aiSettings?.creativity ?? 0.7,
       max_tokens: 2048,
       stream: true, // ← CRITICAL: Real streaming
