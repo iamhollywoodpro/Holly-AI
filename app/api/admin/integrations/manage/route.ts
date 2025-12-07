@@ -91,13 +91,13 @@ export async function POST(req: NextRequest) {
       case 'list':
       case 'status':
         const integrations = await prisma.integration.findMany({
-          where: { userId },
+          where: { createdBy: userId },
           select: {
             id: true,
-            name: true,
-            type: true,
+            service: true,
+            serviceName: true,
             status: true,
-            enabled: true,
+            isActive: true,
             createdAt: true,
             updatedAt: true
           }
