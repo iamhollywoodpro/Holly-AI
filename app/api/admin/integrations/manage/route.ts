@@ -121,10 +121,7 @@ export async function POST(req: NextRequest) {
 
         await prisma.integration.delete({
           where: {
-            userId_name: {
-              userId,
-              name: integration
-            }
+            id: `${userId}_${integration}`
           }
         });
 
