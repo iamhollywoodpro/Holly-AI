@@ -164,7 +164,7 @@ export async function GET(req: NextRequest) {
     }
 
     const integrations = await prisma.integration.findMany({
-      where: { userId }
+      where: { createdBy: userId }
     });
 
     return NextResponse.json({
