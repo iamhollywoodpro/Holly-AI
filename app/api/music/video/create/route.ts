@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyAuth } from '@/lib/auth/verify-auth';
+import { auth } from '@clerk/nextjs/server';
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId } = await verifyAuth(req);
+    const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
