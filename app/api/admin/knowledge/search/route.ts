@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
         ...(userId && { userId })
       },
       take: limit,
-      orderBy: { createdAt: 'desc' }
+      orderBy: { uploadedAt: 'desc' }
     });
 
     // Calculate relevance scores (simple keyword matching)
@@ -74,8 +74,8 @@ export async function POST(req: NextRequest) {
         excerpt: `File: ${file.fileName} (${file.mimeType})`,
         relevance: 0.7,
         source: 'files',
-        createdAt: file.createdAt,
-        url: file.url
+        createdAt: file.uploadedAt,
+        url: file.publicUrl
       });
     });
 

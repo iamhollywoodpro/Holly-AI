@@ -44,11 +44,11 @@ export async function POST(req: NextRequest) {
     // Get file upload statistics from database
     const fileStats = await prisma.fileUpload.aggregate({
       _count: { id: true },
-      _sum: { size: true }
+      _sum: { fileSize: true }
     });
 
     const totalFiles = fileStats._count.id || 0;
-    const totalSize = fileStats._sum.size || 0;
+    const totalSize = fileStats._sum.fileSize || 0;
     const totalSizeMB = Math.round(totalSize / (1024 * 1024));
 
     result.fileStats = {
@@ -66,14 +66,14 @@ export async function POST(req: NextRequest) {
         
         const oldFiles = await prisma.fileUpload.findMany({
           where: {
-            createdAt: { lt: oldDate },
-            type: 'temporary'
+            uploadedAt: { lt: oldDate },
+            fileType: 'temporary'
           }
         });
 
         result.cleanup = {
           filesIdentified: oldFiles.length,
-          potentialSavings: `${Math.round(oldFiles.reduce((sum, f) => sum + (f.size || 0), 0) / (1024 * 1024))} MB`,
+          potentialSavings: `${Math.round(oldFiles.reduce((sum, f) => sum + (f.fileSize || 0), 0) / (1024 * 1024))} MB`,
           status: 'identified',
           message: 'Files identified for cleanup (manual deletion required)'
         };
@@ -82,15 +82,15 @@ export async function POST(req: NextRequest) {
       case 'analyze':
         // Analyze storage by type
         const filesByType = await prisma.fileUpload.groupBy({
-          by: ['type'],
+          by: ['fileType'],
           _count: { id: true },
-          _sum: { size: true }
+          _sum: { fileSize: true }
         });
 
         result.analysis = filesByType.map((group: any) => ({
-          type: group.type,
+          type: group.fileType,
           count: group._count.id,
-          totalSize: `${Math.round((group._sum.size || 0) / (1024 * 1024))} MB`
+          totalSize: `${Math.round((group._sum.fileSize || 0) / (1024 * 1024))} MB`
         }));
         break;
 
