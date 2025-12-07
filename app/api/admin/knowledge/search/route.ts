@@ -61,7 +61,8 @@ export async function POST(req: NextRequest) {
         relevance: Math.min(0.9, 0.5 + (occurrences * 0.1)),
         source: 'conversations',
         createdAt: msg.createdAt,
-        conversationId: msg.conversation.id
+        conversationId: msg.conversation.id,
+        url: undefined
       };
     });
 
