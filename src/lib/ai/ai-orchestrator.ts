@@ -1286,6 +1286,31 @@ export async function executeTool(toolName: string, toolInput: any, userId: stri
     }).then(r => r.json());
   }
 
+  // 🩺 DEVELOPER TOOLS - Self-diagnosis and fixing
+  if (toolName === 'self_diagnose') {
+    return await fetch(`${baseUrl}/api/developer/diagnose`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...toolInput, userId })
+    }).then(r => r.json());
+  }
+  
+  if (toolName === 'execute_fix') {
+    return await fetch(`${baseUrl}/api/developer/fix`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...toolInput, userId })
+    }).then(r => r.json());
+  }
+  
+  if (toolName === 'check_system_health') {
+    return await fetch(`${baseUrl}/api/developer/health`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...toolInput, userId })
+    }).then(r => r.json());
+  }
+
   const endpoints: Record<string, string> = {
     generate_music: '/api/music/generate-ultimate',
     generate_image: '/api/image/generate-ultimate',
