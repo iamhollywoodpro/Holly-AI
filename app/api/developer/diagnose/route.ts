@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
         };
         diagnostics.recommendation = 'Add response filter in client code to remove unwanted messages';
         diagnostics.canFix = true;
-        diagnostics.fixType: 'client_side_filter';
+        diagnostics.fixType = 'client_side_filter';
         break;
 
       case 'streaming':
