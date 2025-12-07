@@ -1336,7 +1336,39 @@ export async function executeTool(toolName: string, toolInput: any, userId: stri
       upload_to_drive: '/api/google-drive/upload',
       list_drive_files: '/api/google-drive/list',
       create_download_link: '/api/google-drive/share',
-      auto_merge_code: '/api/admin/auto-merge/merge'
+      auto_merge_code: '/api/admin/auto-merge/merge',
+    // BATCH 3: Music & Audio Tools
+    generate_lyrics: '/api/music/lyrics/generate',
+      remix_music: '/api/music/remix',
+      extend_music: '/api/music/extend',
+      separate_audio_stems: '/api/music/stems/separate',
+      create_album_artwork: '/api/music/artwork/create',
+      create_music_video: '/api/music/video/create',
+      analyze_audio_quality: '/api/music/quality/analyze',
+    // BATCH 4: Autonomous & Learning
+    record_experience: '/api/autonomous/experience/record',
+      reflect_on_work: '/api/autonomous/reflect',
+      predict_user_needs: '/api/autonomous/predict',
+      make_autonomous_decision: '/api/autonomous/decide',
+      evolve_personality: '/api/autonomous/evolve',
+      set_personal_goals: '/api/autonomous/goals/set',
+      request_human_guidance: '/api/autonomous/guidance/request',
+      learn_from_feedback: '/api/autonomous/feedback/learn',
+      track_emotional_state: '/api/autonomous/emotion/track',
+    // BATCH 5: Analytics & Monitoring
+    analyze_user_behavior: '/api/analytics/user/analyze',
+      generate_analytics_report: '/api/analytics/report/generate',
+      monitor_system_health: '/api/monitoring/health',
+    // BATCH 6: DevOps & System Management
+    configure_cicd_pipeline: '/api/devops/cicd/configure',
+      rollback_deployment: '/api/devops/deployment/rollback',
+      manage_ab_tests: '/api/devops/abtest/manage',
+      optimize_database: '/api/admin/database/optimize',
+      manage_file_storage: '/api/admin/storage/manage',
+      manage_integrations: '/api/admin/integrations/manage',
+      send_notification: '/api/admin/notifications/send',
+      search_knowledge_base: '/api/admin/knowledge/search',
+      update_system_config: '/api/admin/config/update'
   };
 
   // Log tool execution start

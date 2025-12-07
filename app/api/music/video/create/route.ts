@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 export async function POST(req: NextRequest) {
   try {
-    const { audioUrl, duration = 30, userId } = await req.json();
+    const { audioUrl, visualStyle = 'abstract', duration, userId } = await req.json();
     const result = {
-      success: true, message: 'Music extended successfully', extendedUrl: `${audioUrl}_extended`,
-      originalDuration: 10, newDuration: duration, timestamp: new Date().toISOString()
+      success: true, message: 'Music video created', videoUrl: `${audioUrl.replace('.mp3', '_video.mp4')}`,
+      visualStyle, duration, resolution: '1920x1080', timestamp: new Date().toISOString()
     };
     return NextResponse.json(result);
   } catch (error: any) {

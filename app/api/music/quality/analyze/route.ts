@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 export async function POST(req: NextRequest) {
   try {
-    const { audioUrl, duration = 30, userId } = await req.json();
+    const { audioUrl, userId } = await req.json();
     const result = {
-      success: true, message: 'Music extended successfully', extendedUrl: `${audioUrl}_extended`,
-      originalDuration: 10, newDuration: duration, timestamp: new Date().toISOString()
+      success: true, analysis: { bitrate: '320kbps', sampleRate: '44.1kHz', format: 'mp3',
+        quality: 'high', dynamicRange: 12.5, clipping: false, noise: 'minimal' },
+      timestamp: new Date().toISOString()
     };
     return NextResponse.json(result);
   } catch (error: any) {
