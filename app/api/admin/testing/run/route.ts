@@ -1,40 +1,40 @@
-// Run Code Tests API
-// Executes test suites and returns results
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest) {
   try {
     const { testSuite = 'all', coverage = false, userId } = await req.json();
-
-    // TODO: Implement actual test execution
+    
+    // Simulate test execution
+    const totalTests = 125;
+    const passed = 118;
+    const failed = 7;
+    
     const result = {
       success: true,
       testSuite,
       results: {
-        total: 245,
-        passed: 243,
-        failed: 2,
+        total: totalTests,
+        passed,
+        failed,
         skipped: 0,
-        duration: '12.5s'
+        duration: '8.2s',
+        passRate: Math.round((passed / totalTests) * 100)
       },
       coverage: coverage ? {
-        statements: 85.2,
-        branches: 78.9,
-        functions: 90.1,
-        lines: 84.7
+        statements: 82.5,
+        branches: 76.3,
+        functions: 88.1,
+        lines: 81.9
       } : null,
-      failures: [
-        { test: 'test_user_authentication', error: 'Expected 200, got 401' },
-        { test: 'test_file_upload', error: 'Timeout after 5000ms' }
-      ],
+      failures: failed > 0 ? [
+        { test: 'test_authentication', error: 'Expected 200, got 401' },
+        { test: 'test_file_upload', error: 'Timeout exceeded' }
+      ].slice(0, failed) : [],
       timestamp: new Date().toISOString()
     };
 
     return NextResponse.json(result);
   } catch (error: any) {
-    return NextResponse.json(
-      { success: false, error: error.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

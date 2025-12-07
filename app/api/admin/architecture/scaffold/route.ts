@@ -1,12 +1,28 @@
-// Scaffold Component API
-// Generates component boilerplate code
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest) {
   try {
     const { componentName, type = 'react', includeStyles = true, userId } = await req.json();
+    
+    const componentCode = `import React from 'react';
+${includeStyles ? `import styles from './${componentName}.module.css';` : ''}
 
-    // TODO: Implement actual component scaffolding
+interface ${componentName}Props {
+  // Add props here
+}
+
+export default function ${componentName}({}: ${componentName}Props) {
+  return (
+    <div${includeStyles ? ` className={styles.container}` : ''}>
+      <h1>${componentName}</h1>
+    </div>
+  );
+}`;
+
+    const styleCode = includeStyles ? `.container {
+  padding: 2rem;
+}` : null;
+
     const result = {
       success: true,
       componentName,
@@ -14,19 +30,16 @@ export async function POST(req: NextRequest) {
       files: {
         component: `${componentName}.tsx`,
         styles: includeStyles ? `${componentName}.module.css` : null,
-        test: `${componentName}.test.tsx`,
-        story: `${componentName}.stories.tsx`
+        test: `${componentName}.test.tsx`
       },
-      code: `// ${componentName} Component\nexport default function ${componentName}() { return <div>${componentName}</div>; }`,
+      code: componentCode,
+      styles: styleCode,
       message: `Component '${componentName}' scaffolded successfully`,
       timestamp: new Date().toISOString()
     };
 
     return NextResponse.json(result);
   } catch (error: any) {
-    return NextResponse.json(
-      { success: false, error: error.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
