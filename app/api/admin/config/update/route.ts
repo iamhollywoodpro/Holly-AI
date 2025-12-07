@@ -48,14 +48,18 @@ export async function POST(req: NextRequest) {
       where: { userId },
       create: {
         userId,
-        theme: 'dark',
-        language: 'en',
-        notifications: true,
-        [key]: value
+        settings: {
+          theme: 'dark',
+          language: 'en',
+          notifications: true,
+          [key]: value
+        }
       },
       update: {
-        [key]: value,
-        updatedAt: new Date()
+        settings: {
+          ...((await prisma.userSettings.findUnique({ where: { userId } }))?.settings as any || {}),
+          [key]: value
+        }
       }
     });
 
@@ -65,15 +69,14 @@ export async function POST(req: NextRequest) {
         data: {
           userId,
           action: 'config_update',
-          resource: 'system_config',
-          resourceId: key,
-          changes: {
+          details: {
+            resource: 'system_config',
+            resourceId: key,
             key,
             previousValue,
             newValue: value,
             category
-          },
-          timestamp: new Date()
+          }
         }
       });
     } catch (error) {

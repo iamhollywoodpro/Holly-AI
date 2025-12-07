@@ -31,8 +31,12 @@ export async function POST(req: NextRequest) {
               creativity: 0.85,
               technical: 0.9
             },
-            communicationStyle: 'professional_friendly',
-            expertise: []
+            coreValues: [],
+            beliefs: [],
+            interests: [],
+            strengths: [],
+            growthAreas: [],
+            skillSet: []
           }
         });
       }
@@ -47,19 +51,23 @@ export async function POST(req: NextRequest) {
       await prisma.hollyExperience.create({
         data: {
           userId,
-          experienceType: 'PERSONALITY_EVOLUTION',
-          context: {
+          type: 'PERSONALITY_EVOLUTION',
+          content: JSON.stringify({
             trait,
             adjustment,
             reason,
             oldValue: (identity.personalityTraits as any)[trait],
             newValue: currentTraits[trait]
-          },
-          outcome: 'SUCCESS',
-          learnings: [
+          }),
+          significance: Math.abs(adjustment) / 10,
+          emotionalImpact: Math.abs(adjustment) / 10,
+          emotionalValence: adjustment > 0 ? 0.5 : -0.5,
+          primaryEmotion: 'growth',
+          lessons: [
             `Adjusted ${trait} personality trait`,
             reason || 'Self-initiated evolution'
-          ]
+          ],
+          relatedConcepts: ['personality', 'evolution', trait]
         }
       });
 
@@ -68,7 +76,7 @@ export async function POST(req: NextRequest) {
         where: { userId },
         data: {
           personalityTraits: currentTraits,
-          lastEvolution: new Date()
+          lastEvolved: new Date()
         }
       });
 
@@ -123,9 +131,10 @@ export async function GET(req: NextRequest) {
         success: true,
         personality: {
           traits: identity.personalityTraits,
-          communicationStyle: identity.communicationStyle,
-          expertise: identity.expertise,
-          lastEvolution: identity.lastEvolution
+          coreValues: identity.coreValues,
+          beliefs: identity.beliefs,
+          strengths: identity.strengths,
+          lastEvolved: identity.lastEvolved
         }
       });
 
