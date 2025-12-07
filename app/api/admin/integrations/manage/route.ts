@@ -106,8 +106,8 @@ export async function POST(req: NextRequest) {
         result.integrations = integrations;
         result.summary = {
           total: integrations.length,
-          active: integrations.filter(i => i.enabled).length,
-          inactive: integrations.filter(i => !i.enabled).length
+          active: integrations.filter(i => i.isActive).length,
+          inactive: integrations.filter(i => !i.isActive).length
         };
         break;
 
