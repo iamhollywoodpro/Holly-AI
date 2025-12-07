@@ -1,10 +1,191 @@
+// PHASE 2: REAL Integration Management
+// CRUD operations on Integration table
 import { NextRequest, NextResponse } from 'next/server';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
+
 export async function POST(req: NextRequest) {
   try {
-    const { integration, action, userId } = await req.json();
-    const result = { success: true, integration: { name: integration, action, status: 'active', configured: true }, timestamp: new Date().toISOString() };
+    const { integration, action = 'status', userId, config } = await req.json();
+
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, error: 'userId required' },
+        { status: 400 }
+      );
+    }
+
+    let result: any = {
+      success: true,
+      action,
+      timestamp: new Date().toISOString()
+    };
+
+    switch (action) {
+      case 'create':
+      case 'enable':
+        if (!integration) {
+          return NextResponse.json(
+            { success: false, error: 'integration name required' },
+            { status: 400 }
+          );
+        }
+
+        const newIntegration = await prisma.integration.upsert({
+          where: {
+            userId_name: {
+              userId,
+              name: integration
+            }
+          },
+          create: {
+            userId,
+            name: integration,
+            type: integration.toLowerCase(),
+            status: 'active',
+            config: config || {},
+            enabled: true,
+            createdAt: new Date()
+          },
+          update: {
+            status: 'active',
+            enabled: true,
+            config: config || {},
+            updatedAt: new Date()
+          }
+        });
+
+        result.integration = {
+          id: newIntegration.id,
+          name: newIntegration.name,
+          status: newIntegration.status,
+          enabled: newIntegration.enabled,
+          configured: true
+        };
+        break;
+
+      case 'disable':
+        if (!integration) {
+          return NextResponse.json(
+            { success: false, error: 'integration name required' },
+            { status: 400 }
+          );
+        }
+
+        await prisma.integration.update({
+          where: {
+            userId_name: {
+              userId,
+              name: integration
+            }
+          },
+          data: {
+            enabled: false,
+            status: 'inactive',
+            updatedAt: new Date()
+          }
+        });
+
+        result.integration = {
+          name: integration,
+          status: 'inactive',
+          enabled: false
+        };
+        break;
+
+      case 'list':
+      case 'status':
+        const integrations = await prisma.integration.findMany({
+          where: { userId },
+          select: {
+            id: true,
+            name: true,
+            type: true,
+            status: true,
+            enabled: true,
+            createdAt: true,
+            updatedAt: true
+          }
+        });
+
+        result.integrations = integrations;
+        result.summary = {
+          total: integrations.length,
+          active: integrations.filter(i => i.enabled).length,
+          inactive: integrations.filter(i => !i.enabled).length
+        };
+        break;
+
+      case 'delete':
+        if (!integration) {
+          return NextResponse.json(
+            { success: false, error: 'integration name required' },
+            { status: 400 }
+          );
+        }
+
+        await prisma.integration.delete({
+          where: {
+            userId_name: {
+              userId,
+              name: integration
+            }
+          }
+        });
+
+        result.integration = {
+          name: integration,
+          deleted: true
+        };
+        break;
+
+      default:
+        return NextResponse.json(
+          { success: false, error: `Unknown action: ${action}` },
+          { status: 400 }
+        );
+    }
+
     return NextResponse.json(result);
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    console.error('Integration management error:', error);
+    return NextResponse.json(
+      { success: false, error: error.message },
+      { status: 500 }
+    );
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+// GET endpoint to retrieve integrations
+export async function GET(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const userId = searchParams.get('userId');
+
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, error: 'userId required' },
+        { status: 400 }
+      );
+    }
+
+    const integrations = await prisma.integration.findMany({
+      where: { userId }
+    });
+
+    return NextResponse.json({
+      success: true,
+      integrations
+    });
+  } catch (error: any) {
+    return NextResponse.json(
+      { success: false, error: error.message },
+      { status: 500 }
+    );
+  } finally {
+    await prisma.$disconnect();
   }
 }
