@@ -20,12 +20,13 @@ export async function POST(req: NextRequest) {
     const notification = await prisma.notification.create({
       data: {
         userId,
+        clerkUserId: userId,
         type: channel,
         title: title || 'Notification',
         message,
+        category: 'system',
         priority,
-        status: 'sent',
-        read: false,
+        status: 'read',
         sentAt: new Date()
       }
     });
