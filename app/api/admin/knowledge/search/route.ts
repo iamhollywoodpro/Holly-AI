@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
     const fileResults = await prisma.fileUpload.findMany({
       where: {
         OR: [
-          { name: { contains: query, mode: 'insensitive' } },
+          { fileName: { contains: query, mode: 'insensitive' } },
           { mimeType: { contains: query, mode: 'insensitive' } }
         ],
         ...(userId && { userId })
@@ -70,8 +70,8 @@ export async function POST(req: NextRequest) {
       results.push({
         id: file.id,
         type: 'file',
-        title: file.name,
-        excerpt: `File: ${file.name} (${file.mimeType})`,
+        title: file.fileName,
+        excerpt: `File: ${file.fileName} (${file.mimeType})`,
         relevance: 0.7,
         source: 'files',
         createdAt: file.createdAt,
