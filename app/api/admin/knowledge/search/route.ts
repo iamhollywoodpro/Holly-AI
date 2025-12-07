@@ -5,6 +5,19 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+// Define explicit type for search results
+interface SearchResult {
+  id: string;
+  type: 'message' | 'file';
+  title: string;
+  excerpt: string;
+  relevance: number;
+  source: string;
+  createdAt: Date;
+  conversationId?: string;
+  url?: string;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { query, userId, limit = 10 } = await req.json();
@@ -50,19 +63,18 @@ export async function POST(req: NextRequest) {
     });
 
     // Calculate relevance scores (simple keyword matching)
-    const results = messageResults.map((msg, index) => {
+    const results: SearchResult[] = messageResults.map((msg, index) => {
       const content = msg.content.toLowerCase();
       const occurrences = (content.match(new RegExp(query.toLowerCase(), 'g')) || []).length;
       return {
         id: msg.id,
-        type: 'message',
+        type: 'message' as const,
         title: msg.conversation.title || 'Conversation',
         excerpt: msg.content.substring(0, 200) + '...',
         relevance: Math.min(0.9, 0.5 + (occurrences * 0.1)),
         source: 'conversations',
         createdAt: msg.createdAt,
-        conversationId: msg.conversation.id,
-        url: undefined
+        conversationId: msg.conversation.id
       };
     });
 
@@ -70,7 +82,7 @@ export async function POST(req: NextRequest) {
     fileResults.forEach(file => {
       results.push({
         id: file.id,
-        type: 'file',
+        type: 'file' as const,
         title: file.fileName,
         excerpt: `File: ${file.fileName} (${file.mimeType})`,
         relevance: 0.7,
