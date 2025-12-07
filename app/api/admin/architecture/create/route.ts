@@ -69,8 +69,9 @@ export async function POST(req: NextRequest) {
         userId,
         name: projectName,
         description: `${template} project with ${stack}`,
-        type: template,
+        category: template,
         status: 'active',
+        technologies: [stack],
         metadata: {
           template,
           stack,

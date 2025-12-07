@@ -48,21 +48,6 @@ export async function POST(req: NextRequest) {
         const prisma = new PrismaClient();
 
         try {
-          const remixTrack = await prisma.musicTrack.create({
-            data: {
-              userId,
-              title: `Remix - ${style}`,
-              artist: 'HOLLY AI',
-              genre: style,
-              metadata: {
-                type: 'remix',
-                originalAudio: audioUrl,
-                intensity,
-                predictionId: prediction.id,
-                status: 'processing'
-              }
-            }
-          });
 
           return NextResponse.json({
             success: true,

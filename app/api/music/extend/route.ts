@@ -48,21 +48,6 @@ export async function POST(req: NextRequest) {
         const prisma = new PrismaClient();
 
         try {
-          const extendedTrack = await prisma.musicTrack.create({
-            data: {
-              userId,
-              title: `Extended Music`,
-              artist: 'HOLLY AI',
-              metadata: {
-                type: 'extension',
-                originalAudio: audioUrl,
-                duration,
-                continuationStyle,
-                predictionId: prediction.id,
-                status: 'processing'
-              }
-            }
-          });
 
           return NextResponse.json({
             success: true,

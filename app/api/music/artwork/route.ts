@@ -61,22 +61,6 @@ Requirements:
       const prisma = new PrismaClient();
 
       try {
-        const artwork = await prisma.musicTrack.create({
-          data: {
-            userId,
-            title: albumName,
-            artist: artistName || 'Unknown Artist',
-            genre,
-            mood,
-            metadata: {
-              type: 'album_artwork',
-              imageUrl: imageResult.imageUrl,
-              style,
-              additionalPrompt,
-              generatedAt: new Date().toISOString()
-            }
-          }
-        });
 
         return NextResponse.json({
           success: true,

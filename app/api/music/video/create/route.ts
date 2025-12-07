@@ -56,20 +56,6 @@ Requirements:
       const prisma = new PrismaClient();
 
       try {
-        const musicVideo = await prisma.musicTrack.create({
-          data: {
-            userId,
-            title: 'Music Video',
-            metadata: {
-              type: 'music_video',
-              audioUrl,
-              videoUrl: videoResult.videoUrl,
-              visualStyle,
-              duration,
-              generatedAt: new Date().toISOString()
-            }
-          }
-        });
 
         return NextResponse.json({
           success: true,

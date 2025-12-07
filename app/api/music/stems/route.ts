@@ -46,20 +46,6 @@ export async function POST(req: NextRequest) {
         const prisma = new PrismaClient();
 
         try {
-          const stemJob = await prisma.musicTrack.create({
-            data: {
-              userId,
-              title: 'Stem Separation Job',
-              artist: 'HOLLY AI',
-              metadata: {
-                type: 'stem_separation',
-                originalAudio: audioUrl,
-                requestedStems: stems,
-                predictionId: prediction.id,
-                status: 'processing'
-              }
-            }
-          });
 
           return NextResponse.json({
             success: true,

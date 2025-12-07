@@ -71,17 +71,13 @@ Generate complete, professional song lyrics:`;
       const track = await prisma.musicTrack.create({
         data: {
           userId,
-          title: prompt.substring(0, 100),
-          artist: 'HOLLY AI',
-          genre,
-          mood,
-          lyrics,
-          language,
-          metadata: {
-            structure,
-            generatedAt: new Date().toISOString(),
-            prompt
-          }
+          artistName: 'HOLLY AI',
+          trackTitle: prompt.substring(0, 100),
+          fileName: `lyrics-${Date.now()}.txt`,
+          fileSize: lyrics.length,
+          fileType: 'text',
+          blobUrl: '',
+          status: 'analyzed'
         }
       });
 
