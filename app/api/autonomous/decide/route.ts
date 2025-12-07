@@ -60,7 +60,7 @@ Context: ${JSON.stringify(context, null, 2)}
 Urgency: ${urgency}
 
 Historical Context:
-${recentExperiences.slice(0, 3).map(exp => `- ${exp.experienceType}: ${exp.outcome}`).join('\n')}
+${recentExperiences.slice(0, 3).map(exp => `- ${exp.type}: ${String(exp.content).substring(0, 50)}`).join('\n')}
 
 Instructions:
 1. Analyze the scenario thoroughly
@@ -84,7 +84,7 @@ BENEFITS: [Expected benefits]`;
       // Parse AI decision
       const decisionMatch = decisionText.match(/DECISION:\s*(.+?)(?:\n|$)/);
       const confidenceMatch = decisionText.match(/CONFIDENCE:\s*(\d+)/);
-      const reasoningMatch = decisionText.match(/REASONING:\s*(.+?)(?=\nRISKS:|$)/s);
+      const reasoningMatch = decisionText.match(/REASONING:[\s\S]*?(.+?)(?=\nRISKS:|$)/);
 
       const decision = decisionMatch ? decisionMatch[1].trim() : 'Unable to determine';
       const confidence = confidenceMatch ? parseInt(confidenceMatch[1]) : 50;
@@ -94,17 +94,21 @@ BENEFITS: [Expected benefits]`;
       await prisma.hollyExperience.create({
         data: {
           userId,
-          experienceType: 'AUTONOMOUS_DECISION',
-          context: {
+          type: 'AUTONOMOUS_DECISION',
+          content: JSON.stringify({
             scenario,
             options,
             urgency,
             decision,
             confidence,
             timestamp: new Date().toISOString()
-          },
-          outcome: 'DECISION_MADE',
-          learnings: [reasoning]
+          }),
+          significance: confidence / 100,
+          emotionalImpact: 0.7,
+          emotionalValence: confidence > 70 ? 0.5 : 0,
+          primaryEmotion: 'determined',
+          lessons: [reasoning],
+          relatedConcepts: ['decision-making', 'autonomy', scenario.substring(0, 30)]
         }
       });
 

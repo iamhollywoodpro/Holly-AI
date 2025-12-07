@@ -68,16 +68,12 @@ export async function POST(req: NextRequest) {
       data: {
         userId,
         name: projectName,
-        description: `${template} project with ${stack}`,
+        description: `${template} project with ${stack}. Structure: ${JSON.stringify(selectedTemplate).substring(0, 200)}`,
         category: template,
         status: 'active',
-        technologies: [stack],
-        metadata: {
-          template,
-          stack,
-          structure: selectedTemplate
-        },
-        createdAt: new Date()
+        progress: 0,
+        color: '#a855f7',
+        technologies: [stack]
       }
     });
 

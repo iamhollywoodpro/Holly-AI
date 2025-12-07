@@ -24,10 +24,10 @@ export async function POST(req: NextRequest) {
     try {
       const githubConnection = await prisma.gitHubConnection.findFirst({
         where: { userId },
-        select: { accessToken: true, isActive: true }
+        select: { accessToken: true, isConnected: true }
       });
 
-      if (!githubConnection || !githubConnection.isActive) {
+      if (!githubConnection || !githubConnection.isConnected) {
         return NextResponse.json({ 
           error: 'GitHub not connected. Please connect your GitHub account first.' 
         }, { status: 400 });
@@ -64,20 +64,15 @@ export async function POST(req: NextRequest) {
         merge_method: mergeMethod as 'merge' | 'squash' | 'rebase'
       });
 
-      // Record merge activity
-      await prisma.projectActivity.create({
-        data: {
-          userId,
-          action: 'AUTO_MERGE',
-          details: {
-            repo: `${owner}/${repo}`,
-            pullNumber,
-            mergeMethod,
-            sha: mergeResult.sha,
-            merged: mergeResult.merged
-          }
-        }
-      });
+      // Record merge activity (optional - requires projectId)
+      // await prisma.projectActivity.create({
+      //   data: {
+      //     projectId: 'project-id-here',
+      //     userId,
+      //     type: 'AUTO_MERGE',
+      //     description: `Auto-merged PR #${pullNumber} in ${owner}/${repo}`
+      //   }
+      // });
 
       return NextResponse.json({
         success: true,

@@ -8,11 +8,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { goal, category, deadline, priority = 'MEDIUM' } = await req.json();
+    const { title, description, category, deadline, priority = 5 } = await req.json();
 
-    if (!goal) {
+    if (!title) {
       return NextResponse.json({ 
-        error: 'Missing goal description' 
+        error: 'Missing goal title' 
       }, { status: 400 });
     }
 
@@ -23,16 +23,12 @@ export async function POST(req: NextRequest) {
       const newGoal = await prisma.hollyGoal.create({
         data: {
           userId,
-          goal,
-          category: category || 'IMPROVEMENT',
-          priority,
+          title,
+          description: description || null,
+          category: category || 'general',
+          priority: typeof priority === 'number' ? priority : 5,
           targetDate: deadline ? new Date(deadline) : null,
-          progress: 0,
-          status: 'ACTIVE',
-          metadata: {
-            createdBy: 'AUTONOMOUS',
-            timestamp: new Date().toISOString()
-          }
+          status: 'active'
         }
       });
 
@@ -46,18 +42,18 @@ export async function POST(req: NextRequest) {
         success: true,
         goal: {
           id: newGoal.id,
-          description: newGoal.goal,
+          title: newGoal.title,
+          description: newGoal.description,
           category: newGoal.category,
           priority: newGoal.priority,
-          deadline: newGoal.targetDate,
-          progress: newGoal.progress
+          deadline: newGoal.targetDate
         },
         context: {
           totalActiveGoals: activeGoals.length,
           goalsByPriority: {
-            high: activeGoals.filter(g => g.priority === 'HIGH').length,
-            medium: activeGoals.filter(g => g.priority === 'MEDIUM').length,
-            low: activeGoals.filter(g => g.priority === 'LOW').length
+            high: activeGoals.filter(g => g.priority >= 7).length,
+            medium: activeGoals.filter(g => g.priority >= 4 && g.priority < 7).length,
+            low: activeGoals.filter(g => g.priority < 4).length
           }
         }
       });
@@ -99,10 +95,10 @@ export async function GET(req: NextRequest) {
         success: true,
         goals: goals.map(g => ({
           id: g.id,
-          description: g.goal,
+          title: g.title,
+          description: g.description,
           category: g.category,
           priority: g.priority,
-          progress: g.progress,
           status: g.status,
           deadline: g.targetDate,
           createdAt: g.createdAt

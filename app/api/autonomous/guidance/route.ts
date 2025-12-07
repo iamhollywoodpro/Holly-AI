@@ -25,17 +25,31 @@ export async function POST(req: NextRequest) {
     const prisma = new PrismaClient();
 
     try {
+      // Get user's clerkUserId from database
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { clerkUserId: true }
+      });
+
+      if (!user?.clerkUserId) {
+        return NextResponse.json({ 
+          error: 'User clerkUserId not found' 
+        }, { status: 400 });
+      }
+
       // Create a guidance request notification
       const guidanceRequest = await prisma.notification.create({
         data: {
           userId,
-          type: 'GUIDANCE_REQUEST',
+          clerkUserId: user.clerkUserId,
+          type: 'task',
           title: 'HOLLY Needs Your Guidance',
           message: issue,
+          category: 'system',
+          priority: priority.toLowerCase(),
           metadata: {
             uncertaintyReason,
             attemptedSolutions,
-            priority,
             requestedAt: new Date().toISOString(),
             status: 'PENDING'
           }
@@ -46,15 +60,19 @@ export async function POST(req: NextRequest) {
       await prisma.hollyExperience.create({
         data: {
           userId,
-          experienceType: 'GUIDANCE_REQUESTED',
-          context: {
+          type: 'GUIDANCE_REQUESTED',
+          content: JSON.stringify({
             issue,
             uncertaintyReason,
             attemptedSolutions,
             notificationId: guidanceRequest.id
-          },
-          outcome: 'AWAITING_RESPONSE',
-          learnings: [
+          }),
+          emotionalImpact: 0.6,
+          emotionalValence: -0.2,
+          primaryEmotion: 'uncertain',
+          significance: 0.7,
+          relatedConcepts: ['guidance', 'uncertainty', 'collaboration'],
+          lessons: [
             'Recognized need for human guidance',
             `Uncertainty: ${uncertaintyReason}`
           ]

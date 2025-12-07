@@ -79,16 +79,10 @@ export async function POST(req: NextRequest) {
         data: {
           userId,
           projectId,
-          version: targetDeployment.meta?.githubCommitSha || targetDeployment.uid.substring(0, 7),
-          environment: 'production',
-          status: 'ROLLBACK',
-          deploymentUrl: targetDeployment.url,
-          metadata: {
-            rolledBackFrom: deployments[0]?.uid,
-            rolledBackTo: targetDeployment.uid,
-            reason,
-            timestamp: new Date().toISOString()
-          }
+          status: 'completed',
+          platform: 'vercel',
+          url: targetDeployment.url,
+          logUrl: `https://vercel.com/deployments/${targetDeployment.uid}`
         }
       });
 
