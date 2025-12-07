@@ -34,33 +34,30 @@ export async function POST(req: NextRequest) {
 
         const newIntegration = await prisma.integration.upsert({
           where: {
-            userId_name: {
-              userId,
-              name: integration
-            }
+            id: `${userId}_${integration}` // Use compound ID
           },
           create: {
-            userId,
-            name: integration,
-            type: integration.toLowerCase(),
+            createdBy: userId,
+            service: integration.toLowerCase(),
+            serviceName: integration,
+            authType: 'api_key',
             status: 'active',
             config: config || {},
-            enabled: true,
-            createdAt: new Date()
+            isActive: true
           },
           update: {
             status: 'active',
-            enabled: true,
-            config: config || {},
-            updatedAt: new Date()
+            isActive: true,
+            config: config || {}
           }
         });
 
         result.integration = {
           id: newIntegration.id,
-          name: newIntegration.name,
+          service: newIntegration.service,
+          serviceName: newIntegration.serviceName,
           status: newIntegration.status,
-          enabled: newIntegration.enabled,
+          isActive: newIntegration.isActive,
           configured: true
         };
         break;
@@ -75,13 +72,10 @@ export async function POST(req: NextRequest) {
 
         await prisma.integration.update({
           where: {
-            userId_name: {
-              userId,
-              name: integration
-            }
+            id: `${userId}_${integration}`
           },
           data: {
-            enabled: false,
+            isActive: false,
             status: 'inactive',
             updatedAt: new Date()
           }

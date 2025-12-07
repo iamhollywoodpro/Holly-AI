@@ -304,10 +304,7 @@ export async function PUT(request: NextRequest) {
 
     const updated = await prisma.integration.update({
       where: { id: integrationId },
-      data: {
-        ...updates,
-        updatedAt: new Date()
-      }
+      data: updates
     });
 
     return NextResponse.json({
