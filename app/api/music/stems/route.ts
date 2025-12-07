@@ -8,7 +8,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { audioUrl, duration = 30, continuationStyle = 'seamless' } = await req.json();
+    const { audioUrl, stems = ['vocals', 'drums', 'bass', 'other'] } = await req.json();
 
     if (!audioUrl) {
       return NextResponse.json({ 
@@ -20,6 +20,7 @@ export async function POST(req: NextRequest) {
     
     if (replicateToken) {
       try {
+        // Use Demucs or similar for stem separation
         const response = await fetch('https://api.replicate.com/v1/predictions', {
           method: 'POST',
           headers: {
@@ -27,19 +28,16 @@ export async function POST(req: NextRequest) {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            version: 'meta/musicgen:latest',
+            version: 'cjwbw/deezer-spleeter:latest',
             input: {
-              prompt: `Continue this music seamlessly for ${duration} seconds`,
-              model_version: 'melody',
-              duration,
-              continuation_start: audioUrl,
-              continuation: true
+              audio: audioUrl,
+              stems: stems.length
             }
           })
         });
 
         if (!response.ok) {
-          throw new Error('Extension API failed');
+          throw new Error('Stem separation API failed');
         }
 
         const prediction = await response.json();
@@ -48,16 +46,15 @@ export async function POST(req: NextRequest) {
         const prisma = new PrismaClient();
 
         try {
-          const extendedTrack = await prisma.musicTrack.create({
+          const stemJob = await prisma.musicTrack.create({
             data: {
               userId,
-              title: `Extended Music`,
+              title: 'Stem Separation Job',
               artist: 'HOLLY AI',
               metadata: {
-                type: 'extension',
+                type: 'stem_separation',
                 originalAudio: audioUrl,
-                duration,
-                continuationStyle,
+                requestedStems: stems,
                 predictionId: prediction.id,
                 status: 'processing'
               }
@@ -66,12 +63,12 @@ export async function POST(req: NextRequest) {
 
           return NextResponse.json({
             success: true,
-            extension: {
-              id: extendedTrack.id,
+            separation: {
+              id: stemJob.id,
               predictionId: prediction.id,
               status: 'processing',
-              estimatedDuration: duration,
-              checkUrl: `/api/music/extend/${prediction.id}/status`
+              stems: stems,
+              checkUrl: `/api/music/stems/${prediction.id}/status`
             }
           });
 
@@ -80,30 +77,35 @@ export async function POST(req: NextRequest) {
         }
 
       } catch (error) {
-        console.error('Extension error:', error);
+        console.error('Stem separation error:', error);
       }
     }
 
     // Fallback response
     return NextResponse.json({
       success: false,
-      message: 'Music extension API not configured. Please set REPLICATE_API_TOKEN.',
+      message: 'Stem separation API not configured. Please set REPLICATE_API_TOKEN.',
       instructions: {
         audioUrl,
-        targetDuration: duration,
-        method: 'Loop or AI-extend the audio file',
-        suggestedServices: [
-          'Replicate (MusicGen)',
-          'AIVA',
-          'Mubert API'
+        requestedStems: stems,
+        freeTools: [
+          'Spleeter (Open Source)',
+          'Demucs',
+          'LALAL.AI (Free tier)'
+        ],
+        process: [
+          '1. Download audio file',
+          '2. Run through Spleeter: spleeter separate -i audio.mp3 -o output/',
+          '3. Get separated stems',
+          '4. Upload to your storage'
         ]
       }
     });
 
   } catch (error: any) {
-    console.error('Extend error:', error);
+    console.error('Stem separation error:', error);
     return NextResponse.json({
-      error: 'Extension failed',
+      error: 'Stem separation failed',
       details: error.message
     }, { status: 500 });
   }
