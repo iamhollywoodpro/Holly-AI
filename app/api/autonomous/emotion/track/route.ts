@@ -48,10 +48,14 @@ export async function POST(req: NextRequest) {
     const emotionalState = await prisma.emotionalState.create({
       data: {
         userId,
-        emotion: detectedEmotion,
+        primaryEmotion: detectedEmotion,
         intensity: emotionConfidence,
-        trigger: interaction?.substring(0, 500) || 'Unknown',
-        context: { interaction },
+        valence: emotionSentiment === 'positive' ? 0.7 : emotionSentiment === 'negative' ? -0.7 : 0,
+        arousal: emotionConfidence,
+        secondaryEmotions: [],
+        triggers: interaction ? [interaction.substring(0, 100)] : [],
+        cues: [],
+        context: { interaction, sentiment: emotionSentiment },
         timestamp: new Date()
       }
     });
@@ -65,7 +69,7 @@ export async function POST(req: NextRequest) {
 
     const emotionCounts: Record<string, number> = {};
     recentStates.forEach(state => {
-      emotionCounts[state.emotion] = (emotionCounts[state.emotion] || 0) + 1;
+      emotionCounts[state.primaryEmotion] = (emotionCounts[state.primaryEmotion] || 0) + 1;
     });
 
     const dominantEmotion = Object.entries(emotionCounts)
