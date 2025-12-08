@@ -29,11 +29,11 @@ export async function POST(req: NextRequest) {
     const feedbackRecord = await prisma.userFeedback.create({
       data: {
         userId,
-        type,
-        content: feedback,
+        feedbackType: type,
+        sentiment: type === 'positive' ? 'positive' : type === 'negative' ? 'negative' : 'neutral',
+        suggestion: feedback,
         context: context || {},
         rating: type === 'positive' ? 5 : type === 'negative' ? 1 : 3,
-        status: 'reviewed',
         createdAt: new Date()
       }
     });
@@ -45,9 +45,9 @@ export async function POST(req: NextRequest) {
       take: 20
     });
 
-    const positiveFeedback = recentFeedback.filter(f => f.type === 'positive').length;
-    const negativeFeedback = recentFeedback.filter(f => f.type === 'negative').length;
-    const suggestions = recentFeedback.filter(f => f.type === 'suggestion').length;
+    const positiveFeedback = recentFeedback.filter(f => f.feedbackType === 'positive').length;
+    const negativeFeedback = recentFeedback.filter(f => f.feedbackType === 'negative').length;
+    const suggestions = recentFeedback.filter(f => f.feedbackType === 'suggestion').length;
 
     // Extract learning adjustments
     const adjustments: string[] = [];
