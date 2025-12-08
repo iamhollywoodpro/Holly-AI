@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
           suggestion: `Continue work on ${activeProjects[0].name}`,
           context: {
             projectId: activeProjects[0].id,
-            lastActivity: activities.find(a => a.details && (a.details as any).projectId === activeProjects[0].id)
+            lastActivity: activities.find(a => a.projectId === activeProjects[0].id)
           }
         });
       }
