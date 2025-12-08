@@ -21,10 +21,13 @@ export async function POST(req: NextRequest) {
       data: {
         userId,
         type: category || 'general',
-        description: experience,
-        context: context || {},
-        learnings: learnings || [],
-        impact: 'medium', // Could be calculated
+        content: { experience, context: context || {} },
+        lessons: learnings || [],
+        significance: 0.5, // Default medium significance
+        emotionalImpact: 0.5,
+        emotionalValence: 0,
+        relatedConcepts: [],
+        futureImplications: [],
         createdAt: new Date()
       }
     });
@@ -34,7 +37,7 @@ export async function POST(req: NextRequest) {
       experienceId: experienceRecord.id,
       recorded: true,
       category: experienceRecord.type,
-      learnings: experienceRecord.learnings,
+      learnings: experienceRecord.lessons,
       timestamp: experienceRecord.createdAt.toISOString()
     };
 
