@@ -56,32 +56,12 @@ export async function POST(req: NextRequest) {
 
       qualityScore = Math.round(qualityScore / 2); // Average
 
-      // Save analysis to database
-      const { PrismaClient } = await import('@prisma/client');
-      const prisma = new PrismaClient();
-
-      try {
-        const analysis = await prisma.musicAnalysis.create({
-          data: {
-            userId,
-            audioUrl,
-            qualityScore,
-            analysisData: {
-              fileSize,
-              estimatedBitrate: bitrate,
-              contentType,
-              issues,
-              recommendations,
-              analyzedAt: new Date().toISOString()
-            }
-          }
-        });
-
-        return NextResponse.json({
-          success: true,
-          analysis: {
-            id: analysis.id,
-            audioUrl,
+      // Return analysis directly (no database model matches this structure)
+      return NextResponse.json({
+        success: true,
+        analysis: {
+          id: `quality_${Date.now()}`,
+          audioUrl,
             qualityScore,
             rating: qualityScore >= 90 ? 'Excellent' : 
                     qualityScore >= 75 ? 'Good' :
@@ -95,10 +75,6 @@ export async function POST(req: NextRequest) {
             recommendations
           }
         });
-
-      } finally {
-        await prisma.$disconnect();
-      }
 
     } catch (error) {
       console.error('Quality analysis error:', error);
