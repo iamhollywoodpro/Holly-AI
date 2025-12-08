@@ -86,9 +86,9 @@ export async function POST(req: NextRequest) {
       },
       pattern: {
         dominant: dominantEmotion,
-        recent: recentStates.slice(0, 5).map(s => s.emotion),
+        recent: recentStates.slice(0, 5).map(s => s.primaryEmotion),
         stability: recentStates.length >= 3 && 
-                   recentStates.slice(0, 3).every(s => s.emotion === recentStates[0].emotion)
+                   recentStates.slice(0, 3).every(s => s.primaryEmotion === recentStates[0].primaryEmotion)
                    ? 'stable' : 'variable'
       },
       timestamp: emotionalState.timestamp.toISOString()
