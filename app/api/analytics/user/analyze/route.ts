@@ -42,9 +42,9 @@ export async function POST(req: NextRequest) {
       prisma.musicTrack.findMany({
         where: {
           userId,
-          createdAt: { gte: startDate }
+          uploadedAt: { gte: startDate }
         },
-        select: { id: true, createdAt: true }
+        select: { id: true, uploadedAt: true }
       }),
       prisma.project.findMany({
         where: {

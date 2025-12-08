@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
         where: { createdAt: { gte: startDate } }
       }),
       prisma.musicTrack.count({
-        where: { createdAt: { gte: startDate } }
+        where: { uploadedAt: { gte: startDate } }
       }),
       prisma.project.count({
         where: { createdAt: { gte: startDate } }
