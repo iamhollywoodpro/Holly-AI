@@ -77,8 +77,8 @@ export async function POST(req: NextRequest) {
           _count: {
             select: {
               conversations: true,
-              messages: true,
-              musicTracks: true
+              musicTracks: true,
+              projects: true
             }
           }
         },
@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
         id: u.id,
         name: u.name,
         conversations: u._count.conversations,
-        messages: u._count.messages,
+        projects: u._count.projects,
         musicTracks: u._count.musicTracks
       }));
     }
