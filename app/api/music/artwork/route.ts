@@ -57,27 +57,19 @@ Requirements:
       const imageResult = await imageResponse.json();
 
       // Save to database
-      const { PrismaClient } = await import('@prisma/client');
-      const prisma = new PrismaClient();
-
-      try {
-
-        return NextResponse.json({
-          success: true,
-          artwork: {
-            id: artwork.id,
-            albumName,
-            artistName,
-            imageUrl: imageResult.imageUrl,
-            style,
-            mood,
-            genre
-          }
-        });
-
-      } finally {
-        await prisma.$disconnect();
-      }
+      // No database model for artwork - return generated data directly
+      return NextResponse.json({
+        success: true,
+        artwork: {
+          id: `artwork_${Date.now()}`, // Generate temporary ID
+          albumName,
+          artistName,
+          imageUrl: imageResult.imageUrl,
+          style,
+          mood,
+          genre
+        }
+      });
 
     } catch (error) {
       console.error('Artwork generation error:', error);
