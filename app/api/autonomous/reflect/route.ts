@@ -41,9 +41,9 @@ export async function POST(req: NextRequest) {
     const recentActivities = await prisma.recentActivity.findMany({
       where: {
         userId,
-        timestamp: { gte: startDate }
+        createdAt: { gte: startDate }
       },
-      orderBy: { timestamp: 'desc' },
+      orderBy: { createdAt: 'desc' },
       take: 50
     });
 
