@@ -35,13 +35,19 @@ export async function POST(req: NextRequest) {
         const variantArray = Array.isArray(variants) ? variants : ['A', 'B'];
         const traffic = distribution || `${Math.floor(100 / variantArray.length)}%`;
 
+        // Split variants into control and test variants
+        const [control, ...testVars] = variantArray;
+
         // Create A/B test
         const abTest = await prisma.aBTest.create({
           data: {
             name: testName,
             description: `A/B test: ${testName}`,
-            variants: variantArray,
-            distribution: distribution || { [variantArray[0]]: 50, [variantArray[1]]: 50 },
+            testType: 'feature', // Default test type
+            controlVariant: { name: control, config: {} },
+            testVariants: testVars.map(v => ({ name: v, config: {} })),
+            primaryMetric: 'conversion', // Default metric
+            trafficAllocation: 1.0,
             status: 'active',
             startDate: new Date(),
             createdBy: userId
@@ -51,7 +57,7 @@ export async function POST(req: NextRequest) {
         result.test = {
           id: abTest.id,
           name: abTest.name,
-          variants: abTest.variants,
+          variants: [control, ...testVars], // Return as array for backward compatibility
           status: abTest.status,
           traffic,
           startDate: abTest.startDate
@@ -64,14 +70,22 @@ export async function POST(req: NextRequest) {
           orderBy: { createdAt: 'desc' }
         });
 
-        result.tests = tests.map(t => ({
-          id: t.id,
-          name: t.name,
-          variants: t.variants,
-          status: t.status,
-          startDate: t.startDate,
-          endDate: t.endDate
-        }));
+        result.tests = tests.map(t => {
+          // Reconstruct variants array from controlVariant + testVariants
+          const controlName = (t.controlVariant as any)?.name || 'Control';
+          const testVarNames = Array.isArray(t.testVariants) 
+            ? (t.testVariants as any[]).map(v => v.name || 'Test')
+            : [];
+          
+          return {
+            id: t.id,
+            name: t.name,
+            variants: [controlName, ...testVarNames],
+            status: t.status,
+            startDate: t.startDate,
+            endDate: t.endDate
+          };
+        });
         break;
 
       case 'results':
