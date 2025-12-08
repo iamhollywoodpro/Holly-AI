@@ -42,13 +42,9 @@ export async function POST(req: NextRequest) {
     await prisma.deployment.update({
       where: { id: deploymentId },
       data: {
-        status: 'rolled_back',
-        metadata: {
-          ...deployment.metadata as any,
-          rollbackAt: new Date().toISOString(),
-          rollbackBy: userId,
-          targetVersion: targetVersion || deployment.version
-        }
+        status: 'rolled_back'
+        // Deployment model has: id, userId, projectId, status, platform, url, logUrl, createdAt, completedAt
+        // NO metadata field - rollback tracking moved to AuditLog
       }
     });
 
@@ -60,7 +56,7 @@ export async function POST(req: NextRequest) {
         resource: 'deployment',
         resourceId: deploymentId,
         changes: {
-          from: deployment.version,
+          from: deployment.url || deployment.id,
           to: targetVersion || 'previous',
           reason: 'Manual rollback initiated'
         },
@@ -72,7 +68,7 @@ export async function POST(req: NextRequest) {
       success: true,
       rollback: {
         deploymentId,
-        from: deployment.version,
+        from: deployment.url || deployment.id,
         to: targetVersion || 'previous',
         status: 'completed',
         message: 'Deployment rollback initiated',
