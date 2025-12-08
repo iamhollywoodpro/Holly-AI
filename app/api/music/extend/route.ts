@@ -44,25 +44,17 @@ export async function POST(req: NextRequest) {
 
         const prediction = await response.json();
 
-        const { PrismaClient } = await import('@prisma/client');
-        const prisma = new PrismaClient();
-
-        try {
-
-          return NextResponse.json({
-            success: true,
-            extension: {
-              id: extendedTrack.id,
-              predictionId: prediction.id,
-              status: 'processing',
-              estimatedDuration: duration,
-              checkUrl: `/api/music/extend/${prediction.id}/status`
-            }
-          });
-
-        } finally {
-          await prisma.$disconnect();
-        }
+        // No database model for extended tracks - return prediction data directly
+        return NextResponse.json({
+          success: true,
+          extension: {
+            id: `ext_${Date.now()}`, // Generate temporary ID
+            predictionId: prediction.id,
+            status: 'processing',
+            estimatedDuration: duration,
+            checkUrl: `/api/music/extend/${prediction.id}/status`
+          }
+        });
 
       } catch (error) {
         console.error('Extension error:', error);

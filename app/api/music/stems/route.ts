@@ -42,25 +42,17 @@ export async function POST(req: NextRequest) {
 
         const prediction = await response.json();
 
-        const { PrismaClient } = await import('@prisma/client');
-        const prisma = new PrismaClient();
-
-        try {
-
-          return NextResponse.json({
-            success: true,
-            separation: {
-              id: stemJob.id,
-              predictionId: prediction.id,
-              status: 'processing',
-              stems: stems,
-              checkUrl: `/api/music/stems/${prediction.id}/status`
-            }
-          });
-
-        } finally {
-          await prisma.$disconnect();
-        }
+        // No database model - return prediction data directly
+        return NextResponse.json({
+          success: true,
+          separation: {
+            id: `stems_${Date.now()}`,
+            predictionId: prediction.id,
+            status: 'processing',
+            stems: stems,
+            checkUrl: `/api/music/stems/${prediction.id}/status`
+          }
+        });
 
       } catch (error) {
         console.error('Stem separation error:', error);

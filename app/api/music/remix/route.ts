@@ -43,25 +43,16 @@ export async function POST(req: NextRequest) {
 
         const prediction = await response.json();
 
-        // Save to database
-        const { PrismaClient } = await import('@prisma/client');
-        const prisma = new PrismaClient();
-
-        try {
-
-          return NextResponse.json({
-            success: true,
-            remix: {
-              id: remixTrack.id,
-              predictionId: prediction.id,
-              status: 'processing',
-              checkUrl: `/api/music/remix/${prediction.id}/status`
-            }
-          });
-
-        } finally {
-          await prisma.$disconnect();
-        }
+        // No database model - return prediction data directly
+        return NextResponse.json({
+          success: true,
+          remix: {
+            id: `remix_${Date.now()}`,
+            predictionId: prediction.id,
+            status: 'processing',
+            checkUrl: `/api/music/remix/${prediction.id}/status`
+          }
+        });
 
       } catch (error) {
         console.error('Replicate remix error:', error);

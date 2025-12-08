@@ -52,25 +52,17 @@ Requirements:
 
       const videoResult = await videoResponse.json();
 
-      const { PrismaClient } = await import('@prisma/client');
-      const prisma = new PrismaClient();
-
-      try {
-
-        return NextResponse.json({
-          success: true,
-          musicVideo: {
-            id: musicVideo.id,
-            videoUrl: videoResult.videoUrl,
-            audioUrl,
-            visualStyle,
-            duration
-          }
-        });
-
-      } finally {
-        await prisma.$disconnect();
-      }
+      // No database model - return video data directly
+      return NextResponse.json({
+        success: true,
+        musicVideo: {
+          id: `video_${Date.now()}`,
+          videoUrl: videoResult.videoUrl,
+          audioUrl,
+          visualStyle,
+          duration
+        }
+      });
 
     } catch (error) {
       console.error('Music video error:', error);
