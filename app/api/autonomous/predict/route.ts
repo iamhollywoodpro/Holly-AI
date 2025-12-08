@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
 
       // 4. Tool usage patterns
       const toolUsage = activities.reduce((acc, act) => {
-        const action = act.action;
+        const action = act.activityType;
         acc[action] = (acc[action] || 0) + 1;
         return acc;
       }, {} as Record<string, number>);
