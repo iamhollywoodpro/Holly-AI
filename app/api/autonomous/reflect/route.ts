@@ -58,24 +58,20 @@ export async function POST(req: NextRequest) {
 
     // Analyze achievements
     const achievements: string[] = [];
-    const successLogs = workLogs.filter(log => log.status === 'success');
-    
-    if (successLogs.length > 0) {
-      achievements.push(`Completed ${successLogs.length} tasks successfully`);
+    // All workLogs are completed (have completedAt), so just count them
+    if (workLogs.length > 0) {
+      achievements.push(`Completed ${workLogs.length} tasks successfully`);
     }
     
-    const uniqueTypes = new Set(workLogs.map(log => log.type));
-    if (uniqueTypes.size > 0) {
-      achievements.push(`Worked on ${uniqueTypes.size} different types of tasks`);
+    const uniqueCategories = new Set(workLogs.map(log => log.category).filter(Boolean));
+    if (uniqueCategories.size > 0) {
+      achievements.push(`Worked on ${uniqueCategories.size} different types of tasks`);
     }
 
     // Identify improvements
     const improvements: string[] = [];
-    const failedLogs = workLogs.filter(log => log.status === 'error');
-    
-    if (failedLogs.length > 0) {
-      improvements.push(`${failedLogs.length} tasks encountered errors - needs better error handling`);
-    }
+    // WorkLog model doesn't track success/failure status
+    // Improvements based on duration and patterns
     
     const avgDuration = workLogs.length > 0
       ? workLogs.reduce((sum, log) => sum + (log.duration || 0), 0) / workLogs.length
@@ -87,7 +83,7 @@ export async function POST(req: NextRequest) {
 
     // Extract insights from experiences
     const insights: string[] = [];
-    const learnings = experiences.flatMap(e => e.learnings || []);
+    const learnings = experiences.flatMap(e => e.lessons || []);
     if (learnings.length > 0) {
       insights.push(`Learned ${learnings.length} new things from experiences`);
     }
@@ -105,13 +101,9 @@ export async function POST(req: NextRequest) {
         insights: insights.length > 0 ? insights.join('; ') : 'Continuing to learn and adapt',
         summary: {
           totalTasks: workLogs.length,
-          successfulTasks: successLogs.length,
-          failedTasks: failedLogs.length,
           activitiesRecorded: recentActivities.length,
           experiencesGained: experiences.length,
-          successRate: workLogs.length > 0 
-            ? Math.round((successLogs.length / workLogs.length) * 100) 
-            : 0
+          avgTaskDuration: Math.round(avgDuration)
         }
       },
       timestamp: new Date().toISOString()
