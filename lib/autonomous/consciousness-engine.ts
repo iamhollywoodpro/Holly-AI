@@ -9,7 +9,7 @@
  */
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '../../src/lib/db';
 
 export interface EmotionalAnalysis {
   primaryEmotion: string;
@@ -203,7 +203,12 @@ Respond in JSON format:
       
       // Extract JSON from response
       const jsonMatch = text.match(/\{[\s\S]*\}/);
-      return jsonMatch ? JSON.parse(jsonMatch[0]) : {};
+      return jsonMatch ? JSON.parse(jsonMatch[0]) : {
+        insights: [],
+        patterns: [],
+        learnings: [],
+        selfAwareness: 'Unable to reflect at this time'
+      };
     } catch (error) {
       console.error('[ConsciousnessEngine] Error reflecting:', error);
       return {

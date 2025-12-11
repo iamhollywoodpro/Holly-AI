@@ -10,7 +10,7 @@
 import { Octokit } from '@octokit/rest';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { rootCauseAnalyzer, type RootCause } from './root-cause-analyzer';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '../../src/lib/db';
 
 export interface FixResult {
   success: boolean;
@@ -387,15 +387,22 @@ Before merging, please verify:
     try {
       await prisma.selfHealingAction.create({
         data: {
-          issue: issue.message,
-          rootCause: rootCause.cause,
-          solution: rootCause.suggestedFix,
+          issueType: rootCause.category || 'unknown',
+          severity: rootCause.impact || 'medium',
+          description: issue.message,
+          affectedFiles: rootCause.affectedFiles || [],
+          healingType: 'autonomous_fix',
+          actionTaken: rootCause.suggestedFix,
+          changes: {
+            rootCause: rootCause.cause,
+            confidence: rootCause.confidence,
+            impact: rootCause.impact,
+            category: rootCause.category,
+            triggeredAt: new Date().toISOString()
+          },
           status,
-          confidence: rootCause.confidence,
           prUrl: prUrl || null,
-          impact: rootCause.impact,
-          category: rootCause.category,
-          triggeredAt: new Date()
+          detectedAt: new Date()
         }
       });
     } catch (error) {

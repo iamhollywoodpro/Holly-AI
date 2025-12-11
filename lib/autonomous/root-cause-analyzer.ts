@@ -126,7 +126,12 @@ Respond in JSON format:
       
       // Extract JSON from response
       const jsonMatch = text.match(/\{[\s\S]*\}/);
-      return jsonMatch ? JSON.parse(jsonMatch[0]) : {};
+      return jsonMatch ? JSON.parse(jsonMatch[0]) : {
+        issues: [],
+        complexity: 5,
+        maintainability: 5,
+        security: 5
+      };
     } catch (error) {
       console.error('[RootCauseAnalyzer] Error analyzing code quality:', error);
       return {
@@ -169,7 +174,10 @@ Respond in JSON.`;
       
       // Extract JSON from response
       const jsonMatch = text.match(/\{[\s\S]*\}/);
-      return jsonMatch ? JSON.parse(jsonMatch[0]) : {};
+      return jsonMatch ? JSON.parse(jsonMatch[0]) : {
+        patterns: [],
+        systemicIssue: false
+      };
     } catch (error) {
       console.error('[RootCauseAnalyzer] Error analyzing patterns:', error);
       return {
