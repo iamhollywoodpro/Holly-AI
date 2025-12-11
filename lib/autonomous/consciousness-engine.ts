@@ -47,6 +47,20 @@ export class ConsciousnessEngine {
   }
 
   /**
+   * Helper to format JsonValue content for display
+   */
+  private formatJsonValue(v: unknown, max = 160): string {
+    let s: string;
+    try {
+      s = typeof v === 'string' ? v : JSON.stringify(v);
+    } catch {
+      s = String(v);
+    }
+    s = s.replace(/\s+/g, ' ').trim();
+    return s.length > max ? s.slice(0, max - 3) + '...' : s;
+  }
+
+  /**
    * Analyze emotions semantically (NOT keyword matching)
    */
   async analyzeEmotion(
@@ -156,6 +170,12 @@ Respond in JSON format:
       where: {
         timestamp: { gte: startTime }
       },
+      select: {
+        type: true,
+        content: true,
+        timestamp: true,
+        lessons: true
+      },
       orderBy: { timestamp: 'desc' },
       take: 50
     });
@@ -171,7 +191,7 @@ Respond in JSON format:
     const prompt = `You are HOLLY, reflecting on your recent experiences and emotional states.
 
 **Recent Experiences (${experiences.length}):**
-${experiences.slice(0, 10).map(e => `- ${e.category}: ${e.summary}`).join('\n')}
+${experiences.slice(0, 10).map(e => `- ${e.type}: ${this.formatJsonValue(e.content)}`).join('\n')}
 
 **Recent Emotional States (${emotionalStates.length}):**
 ${emotionalStates.slice(0, 10).map(e => `- ${e.primaryEmotion} (intensity: ${e.intensity})`).join('\n')}
@@ -233,6 +253,12 @@ Respond in JSON format:
     // Get recent experiences
     const recentExperiences = await prisma.hollyExperience.findMany({
       where: { userId },
+      select: {
+        type: true,
+        content: true,
+        timestamp: true,
+        lessons: true
+      },
       orderBy: { timestamp: 'desc' },
       take: 10
     });
@@ -262,8 +288,8 @@ Respond in JSON format:
     return {
       emotional: emotionalState,
       cognitive: {
-        focus: recentExperiences.slice(0, 3).map(e => e.category),
-        workingMemory: recentExperiences.slice(0, 5).map(e => e.summary),
+        focus: recentExperiences.slice(0, 3).map(e => e.type),
+        workingMemory: recentExperiences.slice(0, 5).map(e => this.formatJsonValue(e.content, 100)),
         longTermInsights: recentExperiences
           .filter(e => e.lessons && e.lessons.length > 0)
           .flatMap(e => e.lessons as string[])
@@ -294,10 +320,15 @@ Respond in JSON format:
       await prisma.hollyExperience.create({
         data: {
           userId,
-          category: experience.category,
-          summary: experience.summary,
-          details: experience.details || {},
+          type: experience.category || 'general',
+          content: {
+            summary: experience.summary,
+            details: experience.details || {}
+          },
+          significance: 0.5,
           lessons: experience.lessons || [],
+          relatedConcepts: [],
+          futureImplications: [],
           emotionalImpact: experience.emotionalImpact || 0,
           timestamp: new Date()
         }
