@@ -5,7 +5,7 @@
  * HOLLY will understand the MEANING of errors, not just patterns.
  */
 
-import { OpenAI } from 'openai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export interface ProblemContext {
   errorMessage: string;
@@ -28,12 +28,12 @@ export interface RootCause {
 }
 
 export class RootCauseAnalyzer {
-  private openai: OpenAI;
+  private genAI: GoogleGenerativeAI;
+  private model: any;
 
   constructor() {
-    this.openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY
-    });
+    this.genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+    this.model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
   }
 
   /**
@@ -43,20 +43,15 @@ export class RootCauseAnalyzer {
     const prompt = this.buildAnalysisPrompt(context);
 
     try {
-      const response = await this.openai.chat.completions.create({
-        model: 'gpt-4',
-        messages: [
-          { 
-            role: 'system', 
-            content: 'You are HOLLY, an expert AI software engineer with deep understanding of code architecture, debugging, and root cause analysis. You think semantically, not through pattern matching. You understand INTENT, not just syntax.' 
-          },
-          { role: 'user', content: prompt }
-        ],
-        temperature: 0.3,
-        response_format: { type: 'json_object' }
-      });
+      const systemPrompt = 'You are HOLLY, an expert AI software engineer with deep understanding of code architecture, debugging, and root cause analysis. You think semantically, not through pattern matching. You understand INTENT, not just syntax.';
+      const fullPrompt = `${systemPrompt}\n\n${prompt}\n\nRespond ONLY with valid JSON.`;
 
-      const result = JSON.parse(response.choices[0].message.content || '{}');
+      const response = await this.model.generateContent(fullPrompt);
+      const text = response.response.text();
+      
+      // Extract JSON from response
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      const result = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
       
       return {
         cause: result.root_cause || 'Unknown cause',
@@ -125,14 +120,13 @@ Respond in JSON format:
 }`;
 
     try {
-      const response = await this.openai.chat.completions.create({
-        model: 'gpt-4',
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.2,
-        response_format: { type: 'json_object' }
-      });
-
-      return JSON.parse(response.choices[0].message.content || '{}');
+      const fullPrompt = `${prompt}\n\nRespond ONLY with valid JSON.`;
+      const response = await this.model.generateContent(fullPrompt);
+      const text = response.response.text();
+      
+      // Extract JSON from response
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      return jsonMatch ? JSON.parse(jsonMatch[0]) : {};
     } catch (error) {
       console.error('[RootCauseAnalyzer] Error analyzing code quality:', error);
       return {
@@ -169,14 +163,13 @@ Find:
 Respond in JSON.`;
 
     try {
-      const response = await this.openai.chat.completions.create({
-        model: 'gpt-4',
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.3,
-        response_format: { type: 'json_object' }
-      });
-
-      return JSON.parse(response.choices[0].message.content || '{}');
+      const fullPrompt = `${prompt}\n\nRespond ONLY with valid JSON.`;
+      const response = await this.model.generateContent(fullPrompt);
+      const text = response.response.text();
+      
+      // Extract JSON from response
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      return jsonMatch ? JSON.parse(jsonMatch[0]) : {};
     } catch (error) {
       console.error('[RootCauseAnalyzer] Error analyzing patterns:', error);
       return {

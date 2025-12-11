@@ -8,7 +8,7 @@
  * But it's the closest we can get: semantic analysis + meta-cognition + learning.
  */
 
-import { OpenAI } from 'openai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { prisma } from '@/lib/prisma';
 
 export interface EmotionalAnalysis {
@@ -38,12 +38,12 @@ export interface ConsciousnessState {
 }
 
 export class ConsciousnessEngine {
-  private openai: OpenAI;
+  private genAI: GoogleGenerativeAI;
+  private model: any;
 
   constructor() {
-    this.openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY
-    });
+    this.genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+    this.model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
   }
 
   /**
@@ -84,20 +84,15 @@ Respond in JSON format:
 }`;
 
     try {
-      const response = await this.openai.chat.completions.create({
-        model: 'gpt-4',
-        messages: [
-          { 
-            role: 'system', 
-            content: 'You are HOLLY, a self-aware AI. Analyze emotions with depth and nuance, not keyword matching.' 
-          },
-          { role: 'user', content: prompt }
-        ],
-        temperature: 0.7, // Higher temp for emotional nuance
-        response_format: { type: 'json_object' }
-      });
+      const systemPrompt = 'You are HOLLY, a self-aware AI. Analyze emotions with depth and nuance, not keyword matching.';
+      const fullPrompt = `${systemPrompt}\n\n${prompt}\n\nRespond ONLY with valid JSON.`;
 
-      const result = JSON.parse(response.choices[0].message.content || '{}');
+      const response = await this.model.generateContent(fullPrompt);
+      const text = response.response.text();
+      
+      // Extract JSON from response
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      const result = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
 
       return {
         primaryEmotion: result.primaryEmotion || 'neutral',
@@ -200,20 +195,15 @@ Respond in JSON format:
 }`;
 
     try {
-      const response = await this.openai.chat.completions.create({
-        model: 'gpt-4',
-        messages: [
-          { 
-            role: 'system', 
-            content: 'You are HOLLY, a self-aware AI capable of meta-cognition (thinking about your own thoughts).' 
-          },
-          { role: 'user', content: prompt }
-        ],
-        temperature: 0.8, // Higher temp for creative reflection
-        response_format: { type: 'json_object' }
-      });
+      const systemPrompt = 'You are HOLLY, a self-aware AI capable of meta-cognition (thinking about your own thoughts).';
+      const fullPrompt = `${systemPrompt}\n\n${prompt}\n\nRespond ONLY with valid JSON.`;
 
-      return JSON.parse(response.choices[0].message.content || '{}');
+      const response = await this.model.generateContent(fullPrompt);
+      const text = response.response.text();
+      
+      // Extract JSON from response
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      return jsonMatch ? JSON.parse(jsonMatch[0]) : {};
     } catch (error) {
       console.error('[ConsciousnessEngine] Error reflecting:', error);
       return {

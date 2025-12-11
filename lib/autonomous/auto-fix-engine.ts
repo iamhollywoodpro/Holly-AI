@@ -8,7 +8,7 @@
  */
 
 import { Octokit } from '@octokit/rest';
-import { OpenAI } from 'openai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { rootCauseAnalyzer, type RootCause } from './root-cause-analyzer';
 import { prisma } from '@/lib/prisma';
 
@@ -28,7 +28,8 @@ export interface FixResult {
 
 export class AutoFixEngine {
   private octokit: Octokit;
-  private openai: OpenAI;
+  private genAI: GoogleGenerativeAI;
+  private model: any;
 
   constructor() {
     // GitHub client
@@ -36,10 +37,9 @@ export class AutoFixEngine {
       auth: process.env.GITHUB_PAT // Personal Access Token
     });
 
-    // OpenAI client
-    this.openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY
-    });
+    // Gemini client
+    this.genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+    this.model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
   }
 
   /**
@@ -250,20 +250,15 @@ Respond in JSON format:
   ]
 }`;
 
-    const response = await this.openai.chat.completions.create({
-      model: 'gpt-4',
-      messages: [
-        { 
-          role: 'system', 
-          content: 'You are HOLLY, an expert autonomous AI engineer. Generate production-ready code fixes.' 
-        },
-        { role: 'user', content: prompt }
-      ],
-      temperature: 0.2,
-      response_format: { type: 'json_object' }
-    });
+    const systemPrompt = 'You are HOLLY, an expert autonomous AI engineer. Generate production-ready code fixes.';
+    const fullPrompt = `${systemPrompt}\n\n${prompt}\n\nRespond ONLY with valid JSON.`;
 
-    return JSON.parse(response.choices[0].message.content || '{"files": []}');
+    const response = await this.model.generateContent(fullPrompt);
+    const text = response.response.text();
+    
+    // Extract JSON from response
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    return jsonMatch ? JSON.parse(jsonMatch[0]) : {"files": []};
   }
 
   /**
