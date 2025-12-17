@@ -1,4 +1,4 @@
 import { NextResponse } from "next/server";
 export async function POST() {
-  return NextResponse.json({ suggestions: ["Tell me about your features", "Analyze my music", "Show me your vision"] });
+  return NextResponse.json({ suggestions: ["How are you feeling?", "Analyze my music", "Fix my code"] });
 }
