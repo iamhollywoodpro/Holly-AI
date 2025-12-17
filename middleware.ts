@@ -1,49 +1,26 @@
-/**
- * HOLLY v2.0.0 Middleware
- * 
- * Clerk v5 authentication middleware
- * Protects routes and handles authentication
- */
-
-import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
-import { NextResponse } from 'next/server'
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
 const isPublicRoute = createRouteMatcher([
-  '/sign-in(.*)',
-  '/sign-up(.*)',
-  '/api(.*)',  // API routes handle their own authentication internally
-  '/status(.*)',  // Public status monitoring
-  '/test-image-gen(.*)',  // Public diagnostic tool
-])
+  "/",
+  "/sign-in(.*)",
+  "/sign-up(.*)",
+  "/api/webhook",
+  "/api/chat(.*)",        
+  "/api/settings",        
+  "/api/suggestions/(.*)",
+  "/api/conversations/(.*)",
+  "/api/tts(.*)"
+]);
 
-export default clerkMiddleware(async (auth, request) => {
-  // Clerk v5 syntax: auth() returns the authentication object directly
-  const { userId } = await auth()
-  
-  // Protect non-public routes
+export default clerkMiddleware((auth, request) => {
   if (!isPublicRoute(request)) {
-    if (!userId) {
-      // Redirect to sign-in if not authenticated
-      const signInUrl = new URL('/sign-in', request.url)
-      signInUrl.searchParams.set('redirect_url', request.url)
-      return NextResponse.redirect(signInUrl)
-    }
+    auth().protect();
   }
-  
-  // Add user ID to headers for server components to access
-  const response = NextResponse.next()
-  if (userId) {
-    response.headers.set('X-User-Id', userId)
-  }
-  
-  return response
-})
+});
 
 export const config = {
   matcher: [
-    // Skip Next.js internals and all static files
     '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
-    // Always run for API routes
     '/(api|trpc)(.*)',
   ],
-}
+};
