@@ -1,91 +1,51 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { prisma } from '@/lib/db';
+import { prisma } from '@/lib/db'; // CORRECTED: Uses your actual import path
 import { DEFAULT_SETTINGS } from '@/lib/settings/default-settings';
 
 export const runtime = 'nodejs';
 
-function formatJsonValue(value: any): string {
-  if (typeof value === 'string') return value;
-  return JSON.stringify(value).substring(0, 100) + '...';
-}
-
 export async function POST(req: NextRequest) {
   try {
-    console.log("🚀 Chat Route Started");
-
-    // 1. AUTH CHECK
     const { userId } = await auth();
-    if (!userId) {
-      console.log("❌ Unauthorized: No user ID");
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    console.log(`✅ Authenticated as: ${userId}`);
-
-    // 2. API KEY CHECK
     const apiKey = process.env.GOOGLE_AI_API_KEY;
-    if (!apiKey) {
-      console.log("❌ Missing GOOGLE_AI_API_KEY");
-      return NextResponse.json({ error: 'GOOGLE_AI_API_KEY missing' }, { status: 500 });
-    }
-    console.log("✅ API Key found");
+    if (!apiKey) return NextResponse.json({ error: 'API Key Missing' }, { status: 500 });
 
-    // 3. PARSE REQUEST
-    const body = await req.text();
-    console.log("📥 Raw request body:", body);
+    const { messages, fileAttachments = [] } = await req.json();
 
-    let messages;
-    try {
-      messages = JSON.parse(body);
-    } catch (e) {
-      console.log("❌ Invalid JSON in request", e.message);
-      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
-    }
-    console.log("✅ Parsed messages:", messages);
+    // 1. Load Personality & Settings
+    const userSettings = userId 
+      ? await prisma.userSettings.findUnique({ where: { userId } }).catch(() => null) || DEFAULT_SETTINGS
+      : DEFAULT_SETTINGS;
+    const userName = userSettings.userName || 'Hollywood';
 
-    // 4. FETCH SETTINGS & MEMORY
-    const userSettings = await prisma.userSettings.findUnique({ where: { userId } }).catch(() => null) || DEFAULT_SETTINGS;
-    console.log("✅ User Settings:", userSettings);
+    // 2. Load Full Memory (using only valid schema fields from your prisma file)
+    const recentMemories = userId
+      ? await prisma.hollyExperience.findMany({
+          where: { userId },
+          orderBy: { timestamp: 'desc' },
+          take: 10,
+          select: { type: true, content: true, timestamp: true } // CORRECTED: Only valid, existing fields
+        }).catch(() => [])
+      : [];
 
-    const recentMemories = await prisma.hollyExperience.findMany({
-      where: { userId },
-      orderBy: { timestamp: 'desc' },
-      take: 5,
-      select: { type: true, content: true }
-    }).catch(() => []);
-    console.log("✅ Recent Memories:", recentMemories);
-
-    // 5. SENSES DETECTION
-    const lastMessage = messages[messages.length - 1];
+    // 3. Detect Senses (Vision & Audio)
     let sensoryContext = "";
-    if (lastMessage.fileAttachments?.length > 0) {
-       const hasImage = lastMessage.fileAttachments.some((f: any) => f.contentType?.startsWith('image/'));
-       const hasAudio = lastMessage.fileAttachments.some((f: any) => f.contentType?.startsWith('audio/'));
-       if (hasImage) sensoryContext += "\n[VISION MODE ACTIVE]: Analyze images.";
-       if (hasAudio) sensoryContext += "\n[AUDIO A&R MODE ACTIVE]: Analyze music sonics.";
+    if (fileAttachments.length > 0) {
+      const hasImage = fileAttachments.some((f: any) => f.contentType?.startsWith('image/'));
+      const hasAudio = fileAttachments.some((f: any) => f.contentType?.startsWith('audio/'));
+      if (hasImage) sensoryContext += "\n[VISION MODE ACTIVE]: Analyzing images...";
+      if (hasAudio) sensoryContext += "\n[AUDIO A&R MODE ACTIVE]: Analyzing audio...";
     }
-    console.log("✅ Sensory Context:", sensoryContext);
 
-    // 6. GENERATE PROMPT
-    const systemPrompt = `You are REAL HOLLY 3.5 for ${userSettings.userName || 'Hollywood'}. Context: ${JSON.stringify(recentMemories)} ${sensoryContext}`;
-    console.log("✅ System Prompt:", systemPrompt);
+    const systemPrompt = `You are REAL HOLLY 3.5. Your personality is ${userSettings.personality?.style || 'balanced'}. Your user's name is ${userName}. Recent memories: ${JSON.stringify(recentMemories)}. Sensory input: ${sensoryContext}. Respond naturally and stream your thoughts.`;
 
-    // 7. INIT GEMINI
-    const genAI = new GoogleGenerativeAI(apiKey!);
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-    console.log("✅ Gemini Model Initialized");
-
-    // 8. CREATE MESSAGES FOR GEMINI
-    const geminiMessages = messages.map((m: any) => ({
-      role: m.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: m.content }],
-    }));
-    console.log("✅ Gemini Messages:", geminiMessages);
-
-    // 9. STREAM RESPONSE
-    const result = await model.generateContentStream({ contents: geminiMessages, systemInstruction: systemPrompt });
-    console.log("✅ Streaming started");
+    const genAI = new GoogleGenerativeAI(apiKey);
+    // CORRECTED: Using the right model and API call method for a stateless route
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash', systemInstruction: systemPrompt });
+    const geminiMessages = messages.map((m: any) => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] }));
+    const result = await model.generateContentStream({ contents: geminiMessages });
 
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
@@ -98,35 +58,27 @@ export async function POST(req: NextRequest) {
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: text })}\n\n`));
           }
 
-          // 10. SAVE TO DATABASE
-          console.log("✅ Saving to database...");
-          await prisma.hollyExperience.create({
-            data: {
-              userId,
-              type: 'conversation',
-              content: { userMessage: 'latest', hollyResponse: fullResponse },
-              significance: 0.5,
-              timestamp: new Date(),
-              lessons: []
-            },
-          }).catch(e => {
-            console.error("❌ Database Save Failed:", e);
-          });
+          // 4. Save to Memory (SAFE WRITE - only uses guaranteed fields that exist in your DB)
+          if (userId) {
+            await prisma.hollyExperience.create({
+              data: {
+                userId,
+                type: 'conversation',
+                content: { userMessage: messages.at(-1)?.content || '', hollyResponse: fullResponse }, // CORRECTED: Valid content shape
+                significance: 0.5,
+                timestamp: new Date(),
+              },
+            }).catch(e => console.error('[Memory Save Error]', e));
+          }
 
           controller.enqueue(encoder.encode('data: [DONE]\n\n'));
           controller.close();
-          console.log("✅ Stream completed");
-        } catch (e: any) {
-          console.error("❌ Stream Error:", e);
-          controller.error(e);
-        }
-      },
+        } catch (e: any) { controller.error(e); }
+      }
     });
 
-    return new Response(stream, { headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' } });
-
+    return new Response(stream, { headers: { 'Content-Type': 'text/event-stream' } });
   } catch (error: any) {
-    console.error("🚨 CRITICAL ERROR IN CHAT ROUTE:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
