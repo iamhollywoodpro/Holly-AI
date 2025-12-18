@@ -105,9 +105,17 @@ export async function POST(req: NextRequest) {
             data: {
               userId,
               type: 'conversation',
-              content: { userMessage: lastUserMessage.parts[0].text, hollyResponse: fullResponse, hasVision: visionContext.length > 0, hasAudio: audioContext.length > 0 },
-              timestamp: new Date(),
+              content: { 
+                userMessage: lastUserMessage.parts[0].text, 
+                hollyResponse: fullResponse, 
+                hasVision: visionContext.length > 0, 
+                hasAudio: audioContext.length > 0 
+              },
+              significance: 0.5,
+              relatedConcepts: [],
+              futureImplications: [],
               lessons: [],
+              timestamp: new Date(),
             },
           }).catch((err) => console.error('[HOLLY] Failed to record experience:', err));
 
