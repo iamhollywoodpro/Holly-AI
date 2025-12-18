@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { prisma } from '../../../src/lib/db';
+import { prisma } from '@/lib/db';
 import { DEFAULT_SETTINGS } from '../../../src/lib/settings/default-settings';
 
 export const runtime = 'nodejs';
