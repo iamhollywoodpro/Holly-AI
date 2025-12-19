@@ -6,7 +6,7 @@ export const runtime = 'nodejs';
 
 // Google Gemini via OpenAI-compatible endpoint
 const gemini = new OpenAI({
-  apiKey: process.env.GOOGLE_AI_API_KEY || '',
+  apiKey: process.env.GOOGLE_API_KEY || '',
   baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
 });
 
@@ -78,10 +78,14 @@ Title:`;
     console.error('[Title Generation] Error:', error);
     
     // Fallback to simple title generation on error
-    const { firstMessage } = await request.json();
-    const fallbackTitle = generateFallbackTitle(firstMessage || 'New Conversation');
+    // Don't try to parse JSON again - body already consumed
+    const fallbackTitle = 'New Conversation';
     
-    return NextResponse.json({ title: fallbackTitle });
+    return NextResponse.json({ 
+      title: fallbackTitle,
+      error: 'Failed to generate title',
+      details: error.message 
+    });
   }
 }
 
