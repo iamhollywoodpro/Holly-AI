@@ -56,7 +56,13 @@ export interface HollySettings {
   };
 }
 
-export const DEFAULT_SETTINGS: HollySettings = {
+export const DEFAULT_SETTINGS: any = {
+  // Core identity
+  userName: 'Hollywood',
+  responseStyle: 'energetic', // Was 'casual' - now MORE personality
+  creativityLevel: 0.8, // Was 0.7 - bump up for more personality
+  
+  // Original settings
   appearance: {
     theme: 'dark',
     colorScheme: 'purple-pink',
