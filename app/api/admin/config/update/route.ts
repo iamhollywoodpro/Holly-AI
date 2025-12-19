@@ -3,6 +3,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 
+export const runtime = 'nodejs';
+
+
 const prisma = new PrismaClient();
 
 // Configuration model (will add to Prisma schema if doesn't exist)

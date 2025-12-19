@@ -7,6 +7,9 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { applyLearning } from '@/lib/intelligence/learning-engine';
 
+export const runtime = 'nodejs';
+
+
 export async function POST(req: Request) {
   try {
     const { userId } = await auth();

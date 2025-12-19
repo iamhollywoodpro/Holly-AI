@@ -5,6 +5,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@clerk/nextjs/server';
 import { FinanceManager } from '@/lib/finance/finance-manager';
 
+export const runtime = 'nodejs';
+
+
 export async function POST(req: NextRequest) {
   try {
     const user = await currentUser();

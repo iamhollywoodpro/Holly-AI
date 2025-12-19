@@ -9,6 +9,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { updateTool, unregisterTool } from '@/lib/system/tool-registry';
 
+export const runtime = 'nodejs';
+
+
 interface RouteParams {
   params: {
     toolName: string;

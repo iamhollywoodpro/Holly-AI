@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@clerk/nextjs/server';
 
+export const runtime = 'nodejs';
+
+
 const VERCEL_TOKEN = process.env.VERCEL_TOKEN || '2J6oCY1sGTAEtuJs1DuOzA8j';
 const VERCEL_PROJECT_ID = 'prj_uVVYfz9ltTSboB7LCSmyIXoa5fST';
 

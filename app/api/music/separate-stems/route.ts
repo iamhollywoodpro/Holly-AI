@@ -4,6 +4,9 @@ import { promisify } from 'util'
 import * as fs from 'fs/promises'
 import * as path from 'path'
 
+export const runtime = 'nodejs';
+
+
 const execAsync = promisify(exec)
 
 interface StemSeparationRequest {

@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 
+export const runtime = 'nodejs';
+
+
 /**
  * HOLLY Tool: optimize_database
  * Optimizes database performance and indexes

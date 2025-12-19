@@ -3,6 +3,9 @@ import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
 import { GitHubAPIService } from '@/lib/github/github-api';
 
+export const runtime = 'nodejs';
+
+
 /**
  * GitHub File Browser API Route
  * 

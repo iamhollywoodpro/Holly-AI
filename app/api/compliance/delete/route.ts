@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { deleteUserData } from '@/lib/security/compliance-manager';
 
+export const runtime = 'nodejs';
+
+
 // POST /api/compliance/delete - Delete user data (GDPR/CCPA)
 export async function POST(req: NextRequest) {
   try {

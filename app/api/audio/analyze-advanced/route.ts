@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { advancedAudioAnalyzer } from '@/lib/audio/advanced-audio-analyzer';
 
+export const runtime = 'nodejs';
+
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();

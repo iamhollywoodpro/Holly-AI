@@ -3,6 +3,9 @@ import { currentUser } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
 import { Octokit } from '@octokit/rest';
 
+export const runtime = 'nodejs';
+
+
 /**
  * GET /api/github/commits
  * Fetch recent commit history for a repository

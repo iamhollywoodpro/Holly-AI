@@ -7,6 +7,9 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { queryKnowledge } from '@/lib/intelligence/knowledge-graph';
 
+export const runtime = 'nodejs';
+
+
 export async function GET(req: Request) {
   try {
     const { userId } = await auth();

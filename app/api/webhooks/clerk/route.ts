@@ -4,6 +4,9 @@ import { WebhookEvent } from '@clerk/nextjs/server'
 import { prisma } from '@/lib/db'
 import { NextResponse } from 'next/server'
 
+export const runtime = 'nodejs';
+
+
 export async function POST(req: Request) {
   const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET
 

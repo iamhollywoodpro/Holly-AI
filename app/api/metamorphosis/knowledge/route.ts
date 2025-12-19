@@ -19,6 +19,9 @@ import { getAuth } from '@clerk/nextjs/server';
 import type { NextRequest } from 'next/server';
 import { prisma } from '@/lib/db';
 
+export const runtime = 'nodejs';
+
+
 // ============================================================================
 // KNOWLEDGE API ENDPOINT
 // ============================================================================

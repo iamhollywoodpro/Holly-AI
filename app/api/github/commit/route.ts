@@ -4,6 +4,9 @@ import { prisma } from '@/lib/prisma';
 import { GitHubAPIService } from '@/lib/github/github-api';
 import { generateCommitMessage } from '@/lib/github/commit-message-generator';
 
+export const runtime = 'nodejs';
+
+
 /**
  * GitHub Commit API Route
  * 

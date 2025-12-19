@@ -10,6 +10,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { codeGenerator, type CodeGenerationRequest } from '@/lib/code-generation/code-generator';
 
+export const runtime = 'nodejs';
+
+
 export async function POST(req: NextRequest) {
   try {
     // Verify authentication (admin only)

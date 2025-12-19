@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getMetrics, createMetric } from '@/lib/analytics/metrics-aggregator';
 
+export const runtime = 'nodejs';
+
+
 // GET /api/analytics/metrics - List metrics with filters
 export async function GET(req: NextRequest) {
   try {

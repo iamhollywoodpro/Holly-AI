@@ -2,6 +2,9 @@
 // Automatically detects and fixes system issues
 import { NextRequest, NextResponse } from 'next/server';
 
+export const runtime = 'nodejs';
+
+
 export async function POST(req: NextRequest) {
   try {
     const { issueType, autoFix = true, userId } = await req.json();

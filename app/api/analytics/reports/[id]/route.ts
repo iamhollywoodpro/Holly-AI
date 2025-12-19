@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getReport, updateReport, deleteReport } from '@/lib/analytics/report-generator';
 
+export const runtime = 'nodejs';
+
+
 // GET /api/analytics/reports/[id] - Get single report
 export async function GET(
   req: NextRequest,

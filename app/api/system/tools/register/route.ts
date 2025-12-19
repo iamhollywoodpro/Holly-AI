@@ -8,6 +8,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { registerTool, validateToolSchema } from '@/lib/system/tool-registry';
 
+export const runtime = 'nodejs';
+
+
 export async function POST(request: NextRequest) {
   try {
     // Authenticate

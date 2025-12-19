@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getMetric } from '@/lib/analytics/metrics-aggregator';
 
+export const runtime = 'nodejs';
+
+
 // GET /api/analytics/metrics/[id] - Get single metric
 export async function GET(
   req: NextRequest,

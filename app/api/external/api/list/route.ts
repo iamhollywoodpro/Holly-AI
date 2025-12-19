@@ -8,6 +8,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { listAPIs } from '@/lib/external/api-hub';
 
+export const runtime = 'nodejs';
+
+
 export async function GET(request: NextRequest) {
   try {
     // Authenticate

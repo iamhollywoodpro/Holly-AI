@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { executeWorkflow } from '@/lib/orchestration/workflow-engine';
 
+export const runtime = 'nodejs';
+
+
 // POST /api/orchestration/workflows/[id]/execute - Execute workflow
 export async function POST(
   req: NextRequest,

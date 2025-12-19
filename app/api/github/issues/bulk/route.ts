@@ -3,6 +3,9 @@ import { currentUser } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
 import { Octokit } from '@octokit/rest';
 
+export const runtime = 'nodejs';
+
+
 /**
  * POST /api/github/issues/bulk
  * Perform bulk operations on multiple issues

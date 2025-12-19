@@ -7,6 +7,9 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getAccuracyMetrics } from '@/lib/intelligence/predictive-intelligence';
 
+export const runtime = 'nodejs';
+
+
 export async function GET(req: Request) {
   try {
     const { userId } = await auth();

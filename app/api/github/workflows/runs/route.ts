@@ -3,6 +3,9 @@ import { auth } from '@clerk/nextjs/server';
 
 import { Octokit } from '@octokit/rest';
 
+export const runtime = 'nodejs';
+
+
 /**
  * GET /api/github/workflows/runs
  * List workflow runs for a repository or specific workflow

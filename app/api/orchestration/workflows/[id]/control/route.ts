@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { pauseWorkflow, resumeWorkflow, cancelWorkflow } from '@/lib/orchestration/workflow-engine';
 
+export const runtime = 'nodejs';
+
+
 // POST /api/orchestration/workflows/[id]/control - Control workflow (pause/resume/cancel)
 export async function POST(
   req: NextRequest,

@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { generateComplianceReport } from '@/lib/security/compliance-manager';
 
+export const runtime = 'nodejs';
+
+
 // GET /api/compliance/report - Generate compliance report
 export async function GET(req: NextRequest) {
   try {

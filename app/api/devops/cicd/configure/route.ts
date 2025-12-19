@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+export const runtime = 'nodejs';
+
+
 export async function POST(req: NextRequest) {
   try {
     const { provider = 'github-actions', steps, userId } = await req.json();

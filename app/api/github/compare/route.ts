@@ -3,6 +3,9 @@ import { currentUser } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
 import { compareBranches, getCommits } from '@/lib/github-api';
 
+export const runtime = 'nodejs';
+
+
 /**
  * GET /api/github/compare
  * Compare two branches to get commits and file changes for PR template generation

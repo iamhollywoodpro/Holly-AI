@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+
+export const runtime = 'nodejs';
+
 export async function POST(req: NextRequest) {
   try {
     const { title, artist, style = 'modern', userId } = await req.json();

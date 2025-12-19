@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { PrismaClient } from '@prisma/client';
 
+export const runtime = 'nodejs';
+
+
 const prisma = new PrismaClient();
 
 // GET /api/projects - List all projects

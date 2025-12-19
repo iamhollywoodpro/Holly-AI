@@ -6,6 +6,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 
+export const runtime = 'nodejs';
+
+
 // GET: Retrieve generated documentation
 export async function GET(req: NextRequest) {
   try {

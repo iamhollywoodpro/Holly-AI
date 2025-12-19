@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 
+export const runtime = 'nodejs';
+
+
 /**
  * Migration endpoint to add conversation_summaries table
  * Run once: https://holly.nexamusicgroup.com/api/migrate-summaries

@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getTask, updateTaskStatus } from '@/lib/orchestration/task-scheduler';
 
+export const runtime = 'nodejs';
+
+
 // GET /api/orchestration/tasks/[id] - Get task
 export async function GET(
   req: NextRequest,

@@ -21,6 +21,9 @@ import { arabicConfig } from '@/lib/music/languages/arabic/arabic-config';
 import { frenchConfig } from '@/lib/music/languages/french/french-config';
 import { germanConfig } from '@/lib/music/languages/german/german-config';
 
+export const runtime = 'nodejs';
+
+
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });

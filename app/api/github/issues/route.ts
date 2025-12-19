@@ -3,6 +3,9 @@ import { auth } from '@clerk/nextjs/server';
 
 import { Octokit } from '@octokit/rest';
 
+export const runtime = 'nodejs';
+
+
 /**
  * GET /api/github/issues
  * List issues for a repository with filtering

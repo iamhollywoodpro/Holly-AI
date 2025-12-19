@@ -3,6 +3,9 @@ import { auth } from '@clerk/nextjs/server';
 
 import { Octokit } from '@octokit/rest';
 
+export const runtime = 'nodejs';
+
+
 /**
  * GET /api/github/pull-requests/[pr_number]/reviews
  * Get review requests and reviews for a pull request

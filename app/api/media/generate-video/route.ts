@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+export const runtime = 'nodejs';
+
+
 /**
  * Video Generation API
  * Generates videos using AI (concept videos, lyric videos, visualizers)

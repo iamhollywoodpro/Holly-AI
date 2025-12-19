@@ -5,6 +5,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { DetectLanguageRequest, DetectLanguageResponse, Language } from '@/types/music';
 
+export const runtime = 'nodejs';
+
+
 // Language keywords and patterns
 const LANGUAGE_PATTERNS: Record<Language, RegExp[]> = {
   'en': [/\b(the|and|is|are|was|were|will|have|has|had|do|does|did|can|could|would|should|may|might)\b/gi],

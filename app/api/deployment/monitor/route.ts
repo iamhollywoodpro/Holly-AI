@@ -10,6 +10,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { deploymentMonitor } from '@/lib/deployment/deployment-monitor';
 
+export const runtime = 'nodejs';
+
+
 export async function GET(req: NextRequest) {
   try {
     // Verify authentication

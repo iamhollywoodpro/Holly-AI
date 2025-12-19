@@ -7,6 +7,9 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getPreferencesByCategory } from '@/lib/interaction/user-preferences';
 
+export const runtime = 'nodejs';
+
+
 export async function GET(
   req: Request,
   { params }: { params: { category: string } }

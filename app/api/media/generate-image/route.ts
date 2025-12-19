@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+export const runtime = 'nodejs';
+
+
 /**
  * Image Generation API
  * Generates images using AI providers (DALL-E, Midjourney, Stable Diffusion)

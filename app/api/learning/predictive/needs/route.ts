@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@clerk/nextjs/server';
 import { PredictiveEngine } from '@/lib/creativity/predictive-engine';
 
+export const runtime = 'nodejs';
+
+
 export async function GET(req: NextRequest) {
   try {
     const user = await currentUser();

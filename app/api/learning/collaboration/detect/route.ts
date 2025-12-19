@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@clerk/nextjs/server';
 
+export const runtime = 'nodejs';
+
+
 export async function GET(req: NextRequest) {
   const user = await currentUser();
   const userId = user?.id;

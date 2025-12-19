@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getAuditLogs } from '@/lib/security/audit-logger';
 
+export const runtime = 'nodejs';
+
+
 // GET /api/audit/logs - Get audit logs with filters
 export async function GET(req: NextRequest) {
   try {

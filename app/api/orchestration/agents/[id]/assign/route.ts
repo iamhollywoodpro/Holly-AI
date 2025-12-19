@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { assignTask } from '@/lib/orchestration/agent-coordinator';
 
+export const runtime = 'nodejs';
+
+
 // POST /api/orchestration/agents/[id]/assign - Assign task to agent
 export async function POST(
   req: NextRequest,

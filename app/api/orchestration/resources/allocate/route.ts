@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { allocateResources } from '@/lib/orchestration/resource-allocator';
 
+export const runtime = 'nodejs';
+
+
 // POST /api/orchestration/resources/allocate - Allocate resources
 export async function POST(req: NextRequest) {
   try {

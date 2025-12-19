@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@clerk/nextjs/server';
 import { TasteLearner } from '@/lib/learning/taste-learner';
 
+export const runtime = 'nodejs';
+
+
 export async function POST(req: NextRequest) {
   try {
     const user = await currentUser();

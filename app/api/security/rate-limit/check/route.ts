@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { checkRateLimit } from '@/lib/security/security-monitor';
 
+export const runtime = 'nodejs';
+
+
 // POST /api/security/rate-limit/check - Check rate limit
 export async function POST(req: NextRequest) {
   try {

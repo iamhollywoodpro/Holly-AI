@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getReports, createReport } from '@/lib/analytics/report-generator';
 
+export const runtime = 'nodejs';
+
+
 // GET /api/analytics/reports - List reports with filters
 export async function GET(req: NextRequest) {
   try {

@@ -24,6 +24,9 @@ import {
   type PerformanceSnapshot
 } from '@/lib/metamorphosis/performance-metrics';
 import { 
+
+export const runtime = 'nodejs';
+
   generateFeedbackInsights,
   getFeedbackStats,
   type FeedbackInsight

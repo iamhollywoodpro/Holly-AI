@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { scheduleTask, listTasks } from '@/lib/orchestration/task-scheduler';
 
+export const runtime = 'nodejs';
+
+
 // POST /api/orchestration/tasks - Schedule task
 export async function POST(req: NextRequest) {
   try {

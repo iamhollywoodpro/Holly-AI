@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getModerationQueue } from '@/lib/security/content-moderator';
 
+export const runtime = 'nodejs';
+
+
 // GET /api/moderation/queue - Get moderation queue
 export async function GET(req: NextRequest) {
   try {

@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { detectAnomalies } from '@/lib/security/security-monitor';
 
+export const runtime = 'nodejs';
+
+
 // GET /api/security/anomalies - Get anomalies for user
 export async function GET(req: NextRequest) {
   try {

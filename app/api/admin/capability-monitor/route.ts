@@ -7,6 +7,9 @@ import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 
+export const runtime = 'nodejs';
+
+
 const EXPECTED_TOOL_COUNTS = {
   'Creative': 7,
   'Code Generation': 5,

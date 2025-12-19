@@ -5,6 +5,9 @@ import { Octokit } from '@octokit/rest';
 import { reviewCode } from '@/lib/code-reviewer';
 import type { GitHubFile } from '@/lib/github-api';
 
+export const runtime = 'nodejs';
+
+
 /**
  * POST /api/github/review
  * Perform AI-powered code review on files or PR

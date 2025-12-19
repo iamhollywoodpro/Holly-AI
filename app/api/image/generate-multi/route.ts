@@ -6,6 +6,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
+export const runtime = 'nodejs';
+
+
 interface ImageGenerationOptions {
   prompt: string;
   negativePrompt?: string;

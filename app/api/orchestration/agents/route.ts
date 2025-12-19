@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { createAgent, listAgents } from '@/lib/orchestration/agent-coordinator';
 
+export const runtime = 'nodejs';
+
+
 // POST /api/orchestration/agents - Create agent
 export async function POST(req: NextRequest) {
   try {

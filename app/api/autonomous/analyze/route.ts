@@ -11,6 +11,9 @@ import { auth } from '@clerk/nextjs/server';
 import { rootCauseAnalyzer } from '@/lib/autonomous/root-cause-analyzer';
 import type { SystemIssue } from '@/lib/autonomous/self-diagnosis';
 
+export const runtime = 'nodejs';
+
+
 export async function POST(req: NextRequest) {
   try {
     // Verify authentication (admin only)

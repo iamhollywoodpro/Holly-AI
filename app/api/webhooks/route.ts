@@ -8,6 +8,9 @@ import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/db';
 import crypto from 'crypto';
 
+export const runtime = 'nodejs';
+
+
 export const dynamic = 'force-dynamic';
 
 /**

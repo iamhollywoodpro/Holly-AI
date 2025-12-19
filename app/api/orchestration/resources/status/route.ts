@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getResourceUtilization } from '@/lib/orchestration/resource-allocator';
 
+export const runtime = 'nodejs';
+
+
 // GET /api/orchestration/resources/status - Get resource utilization
 export async function GET(req: NextRequest) {
   try {

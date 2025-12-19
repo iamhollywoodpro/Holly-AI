@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { listTemplates } from '@/lib/creative/template-manager';
 
+export const runtime = 'nodejs';
+
+
 export async function GET(req: NextRequest) {
   try {
     const { userId } = await auth();

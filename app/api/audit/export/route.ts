@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { exportAuditLogs } from '@/lib/security/audit-logger';
 
+export const runtime = 'nodejs';
+
+
 // POST /api/audit/export - Export audit logs
 export async function POST(req: NextRequest) {
   try {

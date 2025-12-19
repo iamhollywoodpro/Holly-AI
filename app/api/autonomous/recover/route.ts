@@ -10,6 +10,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { errorRecovery } from '@/lib/autonomous/error-recovery';
 
+export const runtime = 'nodejs';
+
+
 export async function POST(req: NextRequest) {
   try {
     // Verify authentication (admin only)

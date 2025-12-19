@@ -11,6 +11,9 @@ import { auth } from '@clerk/nextjs/server';
 import { autoFixEngine } from '@/lib/autonomous/auto-fix-engine';
 import type { SystemIssue } from '@/lib/autonomous/self-diagnosis';
 
+export const runtime = 'nodejs';
+
+
 export async function POST(req: NextRequest) {
   try {
     // Verify authentication (admin only)

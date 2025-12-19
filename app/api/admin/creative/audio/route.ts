@@ -17,6 +17,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { PrismaClient } from '@prisma/client';
 
+export const runtime = 'nodejs';
+
+
 const prisma = new PrismaClient();
 
 export const maxDuration = 300; // 5 minutes for audio generation

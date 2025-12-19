@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 
+export const runtime = 'nodejs';
+
+
 /**
  * HOLLY Tool: run_code_tests
  * Runs automated tests on code

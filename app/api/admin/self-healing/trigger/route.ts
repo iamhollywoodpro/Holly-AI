@@ -11,6 +11,9 @@ import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
 import { Octokit } from '@octokit/rest';
 
+export const runtime = 'nodejs';
+
+
 // GitHub configuration
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const REPO_OWNER = 'iamhollywoodpro';

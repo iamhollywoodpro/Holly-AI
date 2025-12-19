@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse} from 'next/server';
+
+export const runtime = 'nodejs';
+
 export async function POST(req: NextRequest) {
   try {
     const { audioUrl, stems = ['vocals', 'drums', 'bass', 'other'], userId } = await req.json();

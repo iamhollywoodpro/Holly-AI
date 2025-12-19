@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { regenerateImage } from '@/lib/creative/image-generator';
 
+export const runtime = 'nodejs';
+
+
 export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } }

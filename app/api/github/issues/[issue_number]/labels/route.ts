@@ -3,6 +3,9 @@ import { auth } from '@clerk/nextjs/server';
 
 import { Octokit } from '@octokit/rest';
 
+export const runtime = 'nodejs';
+
+
 /**
  * POST /api/github/issues/[issue_number]/labels
  * Add labels to an issue

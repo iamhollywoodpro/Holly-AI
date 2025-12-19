@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { generateInsights, getInsights } from '@/lib/analytics/insights-engine';
 
+export const runtime = 'nodejs';
+
+
 // GET /api/analytics/insights - Get insights with filters
 export async function GET(req: NextRequest) {
   try {

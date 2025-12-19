@@ -6,6 +6,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateSpeech, testConnection, validateOracleConfig } from '@/lib/oracle';
 
+export const runtime = 'nodejs';
+
+
 export async function POST(request: NextRequest) {
   try {
     // Validate Oracle configuration

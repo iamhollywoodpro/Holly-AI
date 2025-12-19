@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getAuditSummary } from '@/lib/security/audit-logger';
 
+export const runtime = 'nodejs';
+
+
 // GET /api/audit/summary - Get audit summary
 export async function GET(req: NextRequest) {
   try {

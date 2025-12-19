@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { runReport } from '@/lib/analytics/report-generator';
 
+export const runtime = 'nodejs';
+
+
 // POST /api/analytics/reports/[id]/run - Execute report
 export async function POST(
   req: NextRequest,

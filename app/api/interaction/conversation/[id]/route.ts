@@ -10,6 +10,9 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getConversation, deleteConversation } from '@/lib/interaction/conversation-manager';
 
+export const runtime = 'nodejs';
+
+
 export async function GET(
   req: Request,
   { params }: { params: { id: string } }

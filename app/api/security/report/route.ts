@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getSecurityReport } from '@/lib/security/security-monitor';
 
+export const runtime = 'nodejs';
+
+
 // GET /api/security/report - Get security report
 export async function GET(req: NextRequest) {
   try {

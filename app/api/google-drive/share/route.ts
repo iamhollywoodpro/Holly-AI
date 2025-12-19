@@ -2,6 +2,9 @@
 // Creates shareable download links for Google Drive files
 import { NextRequest, NextResponse } from 'next/server';
 
+export const runtime = 'nodejs';
+
+
 export async function POST(req: NextRequest) {
   try {
     const { fileId, fileName, userId } = await req.json();

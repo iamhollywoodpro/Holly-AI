@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
 
+export const runtime = 'nodejs';
+
+
 // GET /api/usage - Get user's usage statistics
 export async function GET() {
   try {

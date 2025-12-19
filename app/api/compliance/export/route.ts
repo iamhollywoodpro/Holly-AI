@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { exportUserData } from '@/lib/security/compliance-manager';
 
+export const runtime = 'nodejs';
+
+
 // POST /api/compliance/export - Export user data (GDPR/CCPA)
 export async function POST(req: NextRequest) {
   try {

@@ -3,6 +3,9 @@ import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
 import { getRepository } from '@/lib/github-api';
 
+export const runtime = 'nodejs';
+
+
 export async function GET(request: NextRequest) {
   try {
     const { userId } = await auth();

@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getImageStatus } from '@/lib/creative/image-generator';
 
+export const runtime = 'nodejs';
+
+
 export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }

@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ComputerVision } from '@/lib/vision/computer-vision';
 
+export const runtime = 'nodejs';
+
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json() as any;

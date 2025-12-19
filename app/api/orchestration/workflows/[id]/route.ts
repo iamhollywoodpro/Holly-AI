@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getWorkflow } from '@/lib/orchestration/workflow-engine';
 
+export const runtime = 'nodejs';
+
+
 // GET /api/orchestration/workflows/[id] - Get workflow
 export async function GET(
   req: NextRequest,

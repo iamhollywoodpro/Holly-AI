@@ -3,6 +3,9 @@ import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/db'; // CORRECTED: Uses your actual import path
 import { DEFAULT_SETTINGS } from '@/lib/settings/default-settings';
 
+export const runtime = 'nodejs';
+
+
 export async function GET() {
   try {
     const { userId } = await auth();

@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { calculateMetric } from '@/lib/analytics/metrics-aggregator';
 
+export const runtime = 'nodejs';
+
+
 // POST /api/analytics/metrics/calculate - Calculate metric value
 export async function POST(req: NextRequest) {
   try {

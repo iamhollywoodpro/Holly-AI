@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getPrivacyConsent, updatePrivacyConsent } from '@/lib/security/compliance-manager';
 
+export const runtime = 'nodejs';
+
+
 // GET /api/compliance/consent - Get privacy consent
 export async function GET(req: NextRequest) {
   try {

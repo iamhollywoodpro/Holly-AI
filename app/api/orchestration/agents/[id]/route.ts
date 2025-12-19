@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getAgentStatus } from '@/lib/orchestration/agent-coordinator';
 
+export const runtime = 'nodejs';
+
+
 // GET /api/orchestration/agents/[id] - Get agent status
 export async function GET(
   req: NextRequest,

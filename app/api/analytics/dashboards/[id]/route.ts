@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getDashboard, updateDashboard, deleteDashboard } from '@/lib/analytics/dashboard-builder';
 
+export const runtime = 'nodejs';
+
+
 // GET /api/analytics/dashboards/[id] - Get single dashboard
 export async function GET(
   req: NextRequest,

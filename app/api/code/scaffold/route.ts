@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 
+export const runtime = 'nodejs';
+
+
 /**
  * HOLLY Tool: scaffold_component
  * Scaffolds React components, API routes, or other code structures

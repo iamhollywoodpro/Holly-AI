@@ -3,6 +3,9 @@ import { currentUser } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
 import { put } from '@vercel/blob';
 
+export const runtime = 'nodejs';
+
+
 /**
  * POST /api/music/upload
  * Upload audio file for A&R analysis

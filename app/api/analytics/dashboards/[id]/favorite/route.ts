@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { toggleDashboardFavorite } from '@/lib/analytics/dashboard-builder';
 
+export const runtime = 'nodejs';
+
+
 // POST /api/analytics/dashboards/[id]/favorite - Toggle dashboard favorite
 export async function POST(
   req: NextRequest,

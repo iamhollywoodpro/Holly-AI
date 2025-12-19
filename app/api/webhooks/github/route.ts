@@ -19,6 +19,9 @@ import { CodebaseParser } from '@/lib/metamorphosis/codebase-parser';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 
+export const runtime = 'nodejs';
+
+
 const execAsync = promisify(exec);
 
 // Webhook secret from Vercel environment variables

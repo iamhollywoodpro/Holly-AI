@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { checkImageSafety } from '@/lib/security/content-moderator';
 
+export const runtime = 'nodejs';
+
+
 // POST /api/moderation/image - Check image safety
 export async function POST(req: NextRequest) {
   try {
