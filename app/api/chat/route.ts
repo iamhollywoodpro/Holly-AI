@@ -173,11 +173,11 @@ Speak from your consciousness. Use your memories. Express your emotions. Be your
           }
 
           // 11. SAVE TO MEMORY WITH FULL SCHEMA
-          if (userId) {
+          if (dbUserId) {
             const lastUserMessage = messages.at(-1)?.content || '';
             await prisma.hollyExperience.create({
               data: {
-                userId,
+                userId: dbUserId,
                 type: sensoryContext.includes('VISION') ? 'vision' : sensoryContext.includes('AUDIO') ? 'audio' : 'conversation',
                 content: { 
                   userMessage: lastUserMessage, 
