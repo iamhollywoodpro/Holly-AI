@@ -56,9 +56,10 @@ export async function POST(req: NextRequest) {
     const systemPrompt = `You are REAL HOLLY 3.5. Your personality is ${userSettings.personality?.style || 'balanced'}. Your user's name is ${userName}. Recent memories: ${JSON.stringify(recentMemories)}. Sensory input: ${sensoryContext}. Respond naturally and stream your thoughts.`;
 
     // 8. INITIALIZE GEMINI
+    // The SDK's v1beta endpoint requires models without version suffixes
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ 
-      model: 'gemini-1.5-flash-002', // Using specific version for v1beta API
+      model: 'gemini-1.5-flash-latest',
       systemInstruction: systemPrompt 
     });
 
