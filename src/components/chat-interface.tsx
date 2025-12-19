@@ -373,6 +373,9 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
           await addMessage('assistant', fullResponse, 'confident', 'gpt-4', conversationToUse.id);
         }
         
+        // Clear streaming message after save
+        setStreamingMessage('');
+        
         return; // Exit early after fallback
       }
       
@@ -429,6 +432,9 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
         await addMessage('assistant', fullResponse, 'confident', 'gpt-4', conversationToUse.id);
       }
 
+      // Clear streaming message AFTER the message is saved
+      setStreamingMessage('');
+
       // Update title for new conversations
       if (isNewConversation && conversationToUse?.id) {
         const smartTitle = generateSmartTitle(userMessage);
@@ -438,10 +444,11 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
     } catch (err) {
       console.error('Error sending message:', err);
       setCurrentEmotion('curious');
+      setStreamingMessage(''); // Clear on error
       alert(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
       setIsStreaming(false);
-      setStreamingMessage('');
+      // Don't clear streamingMessage here - it's cleared after save or on error
     }
   };
 
