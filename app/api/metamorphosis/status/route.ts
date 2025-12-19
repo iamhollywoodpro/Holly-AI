@@ -24,13 +24,12 @@ import {
   type PerformanceSnapshot
 } from '@/lib/metamorphosis/performance-metrics';
 import { 
-
-export const runtime = 'nodejs';
-
   generateFeedbackInsights,
   getFeedbackStats,
   type FeedbackInsight
 } from '@/lib/metamorphosis/feedback-system';
+
+export const runtime = 'nodejs';
 
 // ============================================================================
 // STATUS RESPONSE STRUCTURE
