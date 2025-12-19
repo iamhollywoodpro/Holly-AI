@@ -56,7 +56,7 @@ class ComputerVision {
   private model: any;
 
   constructor() {
-    const apiKey = process.env.GOOGLE_AI_API_KEY;
+    const apiKey = process.env.GOOGLE_API_KEY;
     
     if (!apiKey) {
       throw new Error('Google AI API key not configured');
@@ -346,7 +346,7 @@ class ComputerVision {
     cost: number;
   }> {
     return {
-      available: !!process.env.GOOGLE_AI_API_KEY,
+      available: !!process.env.GOOGLE_API_KEY,
       provider: 'Google Gemini 2.0 Flash',
       dailyLimit: 1500, // 1500 requests/day FREE
       cost: 0, // 100% FREE ✅

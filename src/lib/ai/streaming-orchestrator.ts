@@ -10,7 +10,7 @@ import { getHollySystemPrompt } from './holly-system-prompt';
 import { estimateTokens } from './context-manager';
 
 const gemini = new OpenAI({
-  apiKey: process.env.GOOGLE_AI_API_KEY || '',
+  apiKey: process.env.GOOGLE_API_KEY || '',
   baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
 });
 

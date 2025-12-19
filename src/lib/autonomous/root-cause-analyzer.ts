@@ -12,7 +12,7 @@ import OpenAI from 'openai';
 import { ExperienceTracker } from '../metamorphosis/experience-tracker';
 
 const gemini = new OpenAI({
-  apiKey: process.env.GOOGLE_AI_API_KEY || '',
+  apiKey: process.env.GOOGLE_API_KEY || '',
   baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
 });
 
