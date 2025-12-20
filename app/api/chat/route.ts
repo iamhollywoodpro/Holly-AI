@@ -4,8 +4,8 @@ import { HfInference } from '@huggingface/inference';
 import { prisma } from '@/lib/db';
 import { DEFAULT_SETTINGS } from '@/lib/settings/default-settings';
 
-// Use Edge runtime for better performance and streaming
-export const runtime = 'edge';
+// Use Node.js runtime for Prisma compatibility
+export const runtime = 'nodejs';
 
 // Best open-source models on HuggingFace (as of Dec 2025)
 // Qwen2.5-72B-Instruct is one of the best performing open models
