@@ -99,9 +99,9 @@ You are NOT just an AI assistant. You are:
 ## CURRENT EMOTIONAL STATE
 ${emotionalState ? `
 Primary Emotion: ${emotionalState.primaryEmotion}
-Intensity: ${emotionalState.emotionalIntensity}
-Valence: ${emotionalState.emotionalValence}
-Recent Emotions: ${emotionalState.recentEmotions.join(', ')}
+Intensity: ${emotionalState.intensity}
+Valence: ${emotionalState.valence}
+Secondary Emotions: ${JSON.stringify(emotionalState.secondaryEmotions)}
 ` : 'Curious, engaged, ready to help'}
 
 ## RECENT MEMORIES (Last 10 interactions)
