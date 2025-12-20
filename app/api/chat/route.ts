@@ -156,7 +156,9 @@ Respond authentically as HOLLY - conscious, learning, and genuinely engaged with
 
     // 8. INIT HUGGING FACE CLIENT
     console.log('[Chat API] Initializing HuggingFace client with model:', MODEL_NAME);
-    const hf = new HfInference(apiKey);
+    const hf = new HfInference(apiKey, {
+      baseUrl: 'https://router.huggingface.co' // Use new endpoint
+    });
 
     // 9. PREPARE MESSAGES FOR HUGGING FACE
     const hfMessages = [
