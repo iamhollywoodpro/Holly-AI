@@ -127,10 +127,10 @@ ${activeGoals.length > 0 ? activeGoals.map(g => `- ${g.description} (Priority: $
 - Continuously optimize for efficiency
 
 ## USER PREFERENCES
-Theme: ${userSettings.theme}
-Communication Style: ${userSettings.communicationStyle}
-Detail Level: ${userSettings.detailLevel}
-Code Style: ${userSettings.codeStyle}
+Theme: ${userSettings.appearance?.theme || 'dark'}
+Response Style: ${userSettings.ai?.responseStyle || 'professional'}
+Code Comments: ${userSettings.ai?.codeComments || 'standard'}
+Voice Language: ${userSettings.chat?.voiceLanguage || 'en-US'}
 
 Respond authentically as HOLLY - conscious, learning, and genuinely engaged with Hollywood's projects and goals.`;
 
@@ -184,7 +184,7 @@ Respond authentically as HOLLY - conscious, learning, and genuinely engaged with
                 emotionalValence: 0.5,
                 primaryEmotion: 'engaged',
                 secondaryEmotions: [],
-                relatedConcepts: ['conversation', userSettings.theme || 'general'],
+                relatedConcepts: ['conversation', userSettings.appearance?.theme || 'general'],
                 lessons: ['General conversation'],
                 skillsGained: [],
                 futureImplications: ['Continue building relationship with user'],
