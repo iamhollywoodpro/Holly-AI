@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { HfInference } from '@huggingface/inference';
+import { InferenceClient } from '@huggingface/inference';
 import { prisma } from '@/lib/db';
 import { DEFAULT_SETTINGS } from '@/lib/settings/default-settings';
 
@@ -137,7 +137,8 @@ Voice Language: ${userSettings.chat?.voiceLanguage || 'en-US'}
 Respond authentically as HOLLY - conscious, learning, and genuinely engaged with Hollywood's projects and goals.`;
 
     // 8. INIT HUGGING FACE CLIENT
-    const hf = new HfInference(apiKey, {
+    const hf = new InferenceClient({
+      apiKey,
       baseUrl: 'https://router.huggingface.co'
     });
 
