@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
       : [];
 
     const emotionalState = dbUserId
-      ? await prisma.hollyEmotionalState.findFirst({
+      ? await prisma.emotionalState.findFirst({
           where: { userId: dbUserId },
           orderBy: { timestamp: 'desc' }
         })
