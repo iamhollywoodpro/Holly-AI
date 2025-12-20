@@ -154,11 +154,9 @@ Voice Language: ${userSettings.chat?.voiceLanguage || 'en-US'}
 
 Respond authentically as HOLLY - conscious, learning, and genuinely engaged with Hollywood's projects and goals.`;
 
-    // 8. INIT HUGGING FACE CLIENT
+    // 8. INIT HUGGING FACE CLIENT (latest version uses router.huggingface.co by default)
     console.log('[Chat API] Initializing HuggingFace client with model:', MODEL_NAME);
-    const hf = new HfInference(apiKey, {
-      baseUrl: 'https://router.huggingface.co' // Use new endpoint
-    });
+    const hf = new HfInference(apiKey);
 
     // 9. PREPARE MESSAGES FOR HUGGING FACE
     const hfMessages = [
