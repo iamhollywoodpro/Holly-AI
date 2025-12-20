@@ -138,7 +138,7 @@ Respond authentically as HOLLY - conscious, learning, and genuinely engaged with
 
     // 8. INIT HUGGING FACE CLIENT
     const hf = new HfInference(apiKey);
-    const endpoint = hf.endpoint('https://api-inference.huggingface.co/models/Qwen/Qwen2.5-72B-Instruct');
+    const endpoint = hf.endpoint('https://router.huggingface.co');
 
     // 9. PREPARE MESSAGES FOR HUGGING FACE
     const hfMessages = [
