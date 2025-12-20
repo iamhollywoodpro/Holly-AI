@@ -138,7 +138,7 @@ Respond authentically as HOLLY - conscious, learning, and genuinely engaged with
 
     // 8. INIT HUGGING FACE CLIENT
     const hf = new HfInference(apiKey);
-    const endpoint = hf.endpoint('https://router.huggingface.co');
+    const endpoint = hf.endpoint(`https://api-inference.huggingface.co/models/${MODEL_NAME}`);
 
     // 9. PREPARE MESSAGES FOR HUGGING FACE
     const hfMessages = [
@@ -157,10 +157,13 @@ Respond authentically as HOLLY - conscious, learning, and genuinely engaged with
           let fullResponse = '';
 
           const hfStream = endpoint.chatCompletionStream({
-            model: 'tgi',
             messages: hfMessages,
-            max_tokens: 4096,
-            temperature: 0.7,
+            parameters: {
+              max_new_tokens: 4096,
+              temperature: 0.7,
+              return_full_text: false,
+              do_sample: true
+            }
           });
 
           for await (const chunk of hfStream) {
