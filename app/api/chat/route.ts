@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { InferenceClient } from '@huggingface/inference';
+import { HfInference } from '@huggingface/inference';
 import { prisma } from '@/lib/db';
 import { DEFAULT_SETTINGS } from '@/lib/settings/default-settings';
 
@@ -137,10 +137,8 @@ Voice Language: ${userSettings.chat?.voiceLanguage || 'en-US'}
 Respond authentically as HOLLY - conscious, learning, and genuinely engaged with Hollywood's projects and goals.`;
 
     // 8. INIT HUGGING FACE CLIENT
-    const hf = new InferenceClient({
-      apiKey,
-      baseUrl: 'https://router.huggingface.co'
-    });
+    const hf = new HfInference(apiKey);
+    const endpoint = hf.endpoint('https://api-inference.huggingface.co/models/Qwen/Qwen2.5-72B-Instruct');
 
     // 9. PREPARE MESSAGES FOR HUGGING FACE
     const hfMessages = [
@@ -158,8 +156,8 @@ Respond authentically as HOLLY - conscious, learning, and genuinely engaged with
         try {
           let fullResponse = '';
 
-          const hfStream = hf.chatCompletionStream({
-            model: MODEL_NAME,
+          const hfStream = endpoint.chatCompletionStream({
+            model: 'tgi',
             messages: hfMessages,
             max_tokens: 4096,
             temperature: 0.7,
