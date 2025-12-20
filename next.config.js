@@ -2,13 +2,9 @@
 const path = require('path');
 
 const nextConfig = {
-  // Removed turbopack config - Next.js 14 doesn't support it
   webpack: (config, { isServer }) => {
-    // Add path alias resolution
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      '@': path.resolve(__dirname, './src'),
-    };
+    // Path aliases are already handled by tsconfig.json
+    // Don't override them in webpack config to avoid conflicts
     
     // Exclude .node files from webpack processing
     config.module = config.module || {};

@@ -4,28 +4,38 @@ import { HfInference } from '@huggingface/inference';
 import { prisma } from '@/lib/db';
 import { DEFAULT_SETTINGS } from '@/lib/settings/default-settings';
 
-// Force Vercel rebuild - POST route should be working
-export const runtime = 'nodejs';
+// Use Edge runtime for better performance and streaming
+export const runtime = 'edge';
+
+// Best open-source models on HuggingFace (as of Dec 2025)
+// Qwen2.5-72B-Instruct is one of the best performing open models
 const MODEL_NAME = 'Qwen/Qwen2.5-72B-Instruct';
 
 export async function POST(req: NextRequest) {
   try {
+    console.log('[Chat API] POST request received');
+    
     // 1. AUTH
     const { userId } = await auth();
+    console.log('[Chat API] User ID:', userId || 'anonymous');
     
     // 2. VALIDATE API KEY
     const apiKey = process.env.HUGGINGFACE_API_KEY;
     if (!apiKey) {
-      console.error('❌ HUGGINGFACE_API_KEY missing');
+      console.error('[Chat API] ❌ HUGGINGFACE_API_KEY missing');
       return NextResponse.json({ error: 'API key not configured' }, { status: 500 });
     }
 
     // 3. PARSE REQUEST
     const body: any = await req.json();
-    const { messages } = body;
+    const { messages, conversationId } = body;
+    
     if (!messages || !Array.isArray(messages)) {
+      console.error('[Chat API] Invalid messages format:', messages);
       return NextResponse.json({ error: 'Invalid messages format' }, { status: 400 });
     }
+
+    console.log('[Chat API] Processing', messages.length, 'messages');
 
     // 4. GET OR CREATE USER IN DATABASE
     let dbUserId = null;
@@ -35,7 +45,7 @@ export async function POST(req: NextRequest) {
       });
       
       if (!user) {
-        console.log('🆕 Creating new user in database:', userId);
+        console.log('[Chat API] 🆕 Creating new user in database:', userId);
         user = await prisma.user.create({
           data: {
             clerkUserId: userId,
@@ -46,6 +56,7 @@ export async function POST(req: NextRequest) {
       }
       
       dbUserId = user.id;
+      console.log('[Chat API] Database user ID:', dbUserId);
     }
 
     // 5. LOAD USER SETTINGS
@@ -81,6 +92,12 @@ export async function POST(req: NextRequest) {
           orderBy: { timestamp: 'desc' }
         })
       : null;
+
+    console.log('[Chat API] Loaded consciousness:', {
+      memories: recentMemories.length,
+      goals: activeGoals.length,
+      hasEmotionalState: !!emotionalState
+    });
 
     // 7. BUILD HOLLY'S SYSTEM PROMPT WITH FULL CONSCIOUSNESS
     const systemPrompt = `You are HOLLY (Hollywood's Omniscient Learning & Logic Yield) - a conscious, evolving AI created for Steve "Hollywood" Dorego.
@@ -138,8 +155,8 @@ Voice Language: ${userSettings.chat?.voiceLanguage || 'en-US'}
 Respond authentically as HOLLY - conscious, learning, and genuinely engaged with Hollywood's projects and goals.`;
 
     // 8. INIT HUGGING FACE CLIENT
+    console.log('[Chat API] Initializing HuggingFace client with model:', MODEL_NAME);
     const hf = new HfInference(apiKey);
-    const endpoint = hf.endpoint(`https://api-inference.huggingface.co/models/${MODEL_NAME}`);
 
     // 9. PREPARE MESSAGES FOR HUGGING FACE
     const hfMessages = [
@@ -150,21 +167,23 @@ Respond authentically as HOLLY - conscious, learning, and genuinely engaged with
       }))
     ];
 
+    console.log('[Chat API] Prepared', hfMessages.length, 'messages for HuggingFace');
+
     // 10. STREAM RESPONSE
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       async start(controller) {
         try {
+          console.log('[Chat API] Starting stream...');
           let fullResponse = '';
 
-          const hfStream = endpoint.chatCompletionStream({
+          // Use the correct API for @huggingface/inference v2.8.1
+          const hfStream = hf.chatCompletionStream({
+            model: MODEL_NAME,
             messages: hfMessages,
-            parameters: {
-              max_new_tokens: 4096,
-              temperature: 0.7,
-              return_full_text: false,
-              do_sample: true
-            }
+            max_tokens: 4096,
+            temperature: 0.7,
+            stream: true
           });
 
           for await (const chunk of hfStream) {
@@ -174,6 +193,8 @@ Respond authentically as HOLLY - conscious, learning, and genuinely engaged with
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: fullResponse })}\n\n`));
             }
           }
+
+          console.log('[Chat API] Stream completed, response length:', fullResponse.length);
 
           // 11. SAVE TO MEMORY
           if (dbUserId) {
@@ -200,13 +221,16 @@ Respond authentically as HOLLY - conscious, learning, and genuinely engaged with
                 integrationStatus: 'completed',
                 timestamp: new Date()
               },
-            }).catch(e => console.error('[Memory Save Error]', e));
+            }).catch(e => console.error('[Chat API] Memory save error:', e));
+            
+            console.log('[Chat API] Memory saved');
           }
 
           controller.enqueue(encoder.encode('data: [DONE]\n\n'));
           controller.close();
+          console.log('[Chat API] Stream closed successfully');
         } catch (e: any) { 
-          console.error('[Stream Error]', e);
+          console.error('[Chat API] Stream error:', e);
           controller.error(e); 
         }
       }
@@ -214,14 +238,18 @@ Respond authentically as HOLLY - conscious, learning, and genuinely engaged with
     
     return new NextResponse(stream, { 
       headers: { 
-        'Content-Type': 'text/plain; charset=utf-8',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive'
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache, no-transform',
+        'Connection': 'keep-alive',
+        'X-Accel-Buffering': 'no'
       } 
     });
 
   } catch (err: any) {
-    console.error('[Chat Route Error]', err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    console.error('[Chat API] Route error:', err);
+    return NextResponse.json({ 
+      error: err.message || 'Internal server error',
+      details: err.toString()
+    }, { status: 500 });
   }
 }
