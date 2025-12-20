@@ -48,9 +48,11 @@ export async function POST(req: NextRequest) {
     }
 
     // 5. LOAD USER SETTINGS
-    const userSettings = dbUserId 
-      ? await prisma.userSettings.findUnique({ where: { userId: dbUserId } }) || DEFAULT_SETTINGS
-      : DEFAULT_SETTINGS;
+    const dbSettings = dbUserId 
+      ? await prisma.userSettings.findUnique({ where: { userId: dbUserId } })
+      : null;
+    
+    const userSettings: any = dbSettings?.settings || DEFAULT_SETTINGS;
 
     // 6. LOAD HOLLY'S CONSCIOUSNESS (Recent memories, goals, emotional state)
     const recentMemories = dbUserId 
