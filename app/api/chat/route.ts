@@ -4,6 +4,7 @@ import { HfInference } from '@huggingface/inference';
 import { prisma } from '@/lib/db';
 import { DEFAULT_SETTINGS } from '@/lib/settings/default-settings';
 
+// Force Vercel rebuild - POST route should be working
 export const runtime = 'nodejs';
 const MODEL_NAME = 'Qwen/Qwen2.5-72B-Instruct';
 
