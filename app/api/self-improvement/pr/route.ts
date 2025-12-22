@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Initialize GitHub client
-    const githubToken = process.env.GITHUB_TOKEN;
+    const githubToken = process.env.HOLLY_GITHUB_TOKEN;
     if (!githubToken) {
       return NextResponse.json(
         { error: 'GitHub token not configured' },
@@ -67,8 +67,8 @@ export async function POST(req: NextRequest) {
     }
 
     const octokit = new Octokit({ auth: githubToken });
-    const owner = process.env.GITHUB_OWNER || 'iamhollywoodpro';
-    const repo = process.env.GITHUB_REPO || 'Holly-AI';
+    const owner = process.env.HOLLY_GITHUB_OWNER || 'iamhollywoodpro';
+    const repo = process.env.HOLLY_GITHUB_REPO || 'Holly-AI';
 
     // Create the pull request
     const { data: pr } = await octokit.pulls.create({
