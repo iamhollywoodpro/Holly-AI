@@ -1,0 +1,270 @@
+name: 🚀 HOLLY CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+env:
+  NODE_VERSION: '20'
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+jobs:
+  # ============================================
+  # JOB 1: Run Tests
+  # ============================================
+  test:
+    name: 🧪 Run Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: 📚 Install dependencies
+        run: npm ci
+        
+      - name: 🧪 Run Jest tests
+        run: npm test
+        env:
+          CI: true
+          
+      - name: 📊 Generate coverage report
+        run: npm run test:coverage
+        continue-on-error: true
+        
+      - name: 📤 Upload coverage to artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 30
+
+  # ============================================
+  # JOB 2: Validate HOLLY Capabilities
+  # ============================================
+  validate-capabilities:
+    name: 🛡️ Validate HOLLY Capabilities
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          
+      - name: 🔍 Check tool count
+        run: |
+          echo "🔍 Checking HOLLY tool count..."
+          
+          TOOL_COUNT=$(grep -o "name: '" src/lib/ai/ai-orchestrator.ts | wc -l)
+          
+          echo "📊 Found $TOOL_COUNT tools"
+          
+          if [ $TOOL_COUNT -lt 60 ]; then
+            echo "❌ CRITICAL: Tool count ($TOOL_COUNT) is below minimum threshold (60)"
+            echo "🚨 This indicates a potential capability loss!"
+            exit 1
+          fi
+          
+          echo "✅ Tool count validation passed ($TOOL_COUNT >= 60)"
+          
+      - name: 🔍 Validate orchestrator structure
+        run: |
+          echo "🔍 Validating orchestrator structure..."
+          
+          if ! grep -q "const HOLLY_TOOLS" src/lib/ai/ai-orchestrator.ts; then
+            echo "❌ HOLLY_TOOLS array not found!"
+            exit 1
+          fi
+          
+          if ! grep -q "executeTool" src/lib/ai/ai-orchestrator.ts; then
+            echo "❌ executeTool function not found!"
+            exit 1
+          fi
+          
+          echo "✅ Structure validation passed"
+
+  # ============================================
+  # JOB 3: Build Application
+  # ============================================
+  build:
+    name: 🏗️ Build Application
+    runs-on: ubuntu-latest
+    needs: [test, validate-capabilities]
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: 📚 Install dependencies
+        run: npm ci
+        
+      - name: 🔨 Build Next.js application
+        run: npm run build
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
+          HUGGINGFACE_API_KEY: ${{ secrets.HUGGINGFACE_API_KEY }}
+          
+      - name: 📤 Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: .next/
+          retention-days: 7
+
+  # ============================================
+  # JOB 4: Deploy to Vercel (Production)
+  # ============================================
+  deploy-production:
+    name: 🚀 Deploy to Production
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment:
+      name: production
+      url: https://holly.nexamusicgroup.com
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          
+      - name: 📦 Install Vercel CLI
+        run: npm install --global vercel@latest
+        
+      - name: 🔗 Pull Vercel environment
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+        
+      - name: 🏗️ Build with Vercel
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+        
+      - name: 🚀 Deploy to Vercel
+        id: deploy
+        run: |
+          DEPLOYMENT_URL=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
+          echo "deployment_url=$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
+          echo "✅ Deployed to: $DEPLOYMENT_URL"
+          
+      - name: 📝 Comment deployment URL on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `🚀 **Production Deployment Successful!**\n\n✅ URL: ${{ steps.deploy.outputs.deployment_url }}`
+            })
+
+  # ============================================
+  # JOB 5: Deploy to Vercel (Preview)
+  # ============================================
+  deploy-preview:
+    name: 🔍 Deploy Preview
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'pull_request'
+    environment:
+      name: preview
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          
+      - name: 📦 Install Vercel CLI
+        run: npm install --global vercel@latest
+        
+      - name: 🔗 Pull Vercel environment
+        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+        
+      - name: 🏗️ Build with Vercel
+        run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
+        
+      - name: 🚀 Deploy preview to Vercel
+        id: deploy
+        run: |
+          DEPLOYMENT_URL=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})
+          echo "deployment_url=$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
+          echo "✅ Preview deployed to: $DEPLOYMENT_URL"
+          
+      - name: 📝 Comment preview URL on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `🔍 **Preview Deployment Ready!**\n\n✅ URL: ${{ steps.deploy.outputs.deployment_url }}\n\nTest your changes before merging.`
+            })
+
+  # ============================================
+  # JOB 6: Notify on Success
+  # ============================================
+  notify-success:
+    name: ✅ Pipeline Success
+    runs-on: ubuntu-latest
+    needs: [deploy-production]
+    if: success() && github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: 🎉 Success notification
+        run: |
+          echo "🎉 ================================"
+          echo "✅ HOLLY CI/CD Pipeline Successful!"
+          echo "🚀 Production deployment complete"
+          echo "================================"
+
+  # ============================================
+  # JOB 7: Notify on Failure
+  # ============================================
+  notify-failure:
+    name: ❌ Pipeline Failure
+    runs-on: ubuntu-latest
+    needs: [test, validate-capabilities, build]
+    if: failure()
+    
+    steps:
+      - name: 🚨 Failure notification
+        run: |
+          echo "🚨 ================================"
+          echo "❌ HOLLY CI/CD Pipeline Failed!"
+          echo "🔍 Check the logs above for details"
+          echo "================================"
+          exit 1
