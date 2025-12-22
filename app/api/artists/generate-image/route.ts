@@ -3,11 +3,6 @@ import OpenAI from 'openai';
 
 export const runtime = 'nodejs';
 
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
 interface GenerateArtistImageRequest {
   artist_id: string;
   prompt?: string;
@@ -16,6 +11,10 @@ interface GenerateArtistImageRequest {
 
 export async function POST(request: NextRequest) {
   try {
+    // Lazy-load OpenAI client to avoid build-time initialization
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
     const body = await request.json() as any;
     const { artist_id, prompt, use_artist_style = true } = body as GenerateArtistImageRequest;
 
