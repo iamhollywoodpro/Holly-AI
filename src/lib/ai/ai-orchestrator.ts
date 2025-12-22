@@ -1170,6 +1170,122 @@ export const HOLLY_TOOLS = [
       required: ['configKey', 'value']
     }
   },
+
+  // ============================================================================
+  // 🔄 SELF-IMPROVEMENT TOOLS (Phase 2)
+  // ============================================================================
+  {
+    type: 'function',
+    function: {
+      name: 'plan_self_improvement',
+      description: 'Create a plan to improve HOLLY\'s own codebase. Use when you identify a bug, error, or opportunity to improve yourself. This is the first step in the self-improvement workflow.',
+      parameters: {
+        type: 'object',
+        properties: {
+          triggerType: {
+            type: 'string',
+            enum: ['error', 'feedback', 'audit', 'metric', 'reflection'],
+            description: 'What triggered this improvement idea'
+          },
+          triggerData: {
+            type: 'object',
+            description: 'Additional context about the trigger (error message, feedback text, etc.)'
+          },
+          problemStatement: {
+            type: 'string',
+            description: 'Clear description of the problem or opportunity'
+          },
+          solutionApproach: {
+            type: 'string',
+            description: 'Proposed solution and implementation approach'
+          },
+          riskLevel: {
+            type: 'string',
+            enum: ['low', 'medium', 'high'],
+            description: 'Risk level of this change'
+          },
+          filesChanged: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'List of files that will be modified'
+          }
+        },
+        required: ['triggerType', 'problemStatement', 'solutionApproach', 'riskLevel']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'implement_improvement',
+      description: 'Write code to implement a planned self-improvement. Use after plan_self_improvement to actually write the code changes.',
+      parameters: {
+        type: 'object',
+        properties: {
+          improvementId: {
+            type: 'string',
+            description: 'ID of the improvement plan (from plan_self_improvement)'
+          },
+          codeChanges: {
+            type: 'object',
+            description: 'Object mapping file paths to new file contents. Example: {"app/api/chat/route.ts": "...code..."}'
+          },
+          commitMessage: {
+            type: 'string',
+            description: 'Git commit message describing the changes'
+          }
+        },
+        required: ['improvementId', 'codeChanges', 'commitMessage']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'create_improvement_pr',
+      description: 'Create a GitHub pull request for a self-improvement. Use after implement_improvement to request human review.',
+      parameters: {
+        type: 'object',
+        properties: {
+          improvementId: {
+            type: 'string',
+            description: 'ID of the improvement'
+          },
+          title: {
+            type: 'string',
+            description: 'PR title (should be concise and descriptive)'
+          },
+          description: {
+            type: 'string',
+            description: 'Detailed PR description including problem, solution, testing, and risk assessment'
+          },
+          labels: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'PR labels (e.g., ["holly-self-improvement", "bug-fix"])'
+          }
+        },
+        required: ['improvementId', 'title', 'description']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'monitor_improvement',
+      description: 'Check the status of a self-improvement (PR status, deployment status, metrics). Use to track progress and outcome.',
+      parameters: {
+        type: 'object',
+        properties: {
+          improvementId: {
+            type: 'string',
+            description: 'ID of the improvement to monitor'
+          }
+        },
+        required: ['improvementId']
+      }
+    }
+  },
 ];
 
 export async function executeTool(toolName: string, toolInput: any, userId: string, conversationId?: string) {
@@ -1371,11 +1487,47 @@ export async function executeTool(toolName: string, toolInput: any, userId: stri
       update_system_config: '/api/admin/config/update'
   };
 
+  // Self-Improvement Tools (Phase 2)
+  if (toolName === 'plan_self_improvement') {
+    return await fetch(`${baseUrl}/api/self-improvement/plan`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...toolInput, userId })
+    }).then(r => r.json());
+  }
+  
+  if (toolName === 'implement_improvement') {
+    return await fetch(`${baseUrl}/api/self-improvement/code`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...toolInput, userId })
+    }).then(r => r.json());
+  }
+  
+  if (toolName === 'create_improvement_pr') {
+    return await fetch(`${baseUrl}/api/self-improvement/pr`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...toolInput, userId })
+    }).then(r => r.json());
+  }
+  
+  if (toolName === 'monitor_improvement') {
+    return await fetch(`${baseUrl}/api/self-improvement/status/${toolInput.improvementId}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' }
+    }).then(r => r.json());
+  }
+
   // Log tool execution start
   const toolDisplayNames: Record<string, string> = {
     generate_music: 'Music Generation',
     generate_image: 'Image Generation',
     generate_video: 'Video Generation',
+    plan_self_improvement: 'Self-Improvement Planning',
+    implement_improvement: 'Self-Improvement Implementation',
+    create_improvement_pr: 'Self-Improvement PR Creation',
+    monitor_improvement: 'Self-Improvement Monitoring',
   };
   
   // Work log disabled - will be enabled only for explicit creation requests
