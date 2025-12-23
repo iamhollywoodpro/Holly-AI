@@ -92,7 +92,7 @@ export async function POST(
 
         await sendEmail({
           to: userEmail,
-          subject: `✅ Improvement Approved: ${improvement.title}`,
+          subject: `✅ Improvement Approved: ${improvement.problemStatement.substring(0, 50)}`,
           html: emailHtml,
         });
 
