@@ -107,3 +107,11 @@ class Logger {
 }
 
 export const logger = new Logger();
+
+  // Self-healing specific logging
+  selfHealing(context: { anomaly: string; proposedFix: string; priority: string; autoFixable?: boolean }) {
+    this.info("Self-healing action proposed", {
+      ...context,
+      category: "self-healing",
+    });
+  }
