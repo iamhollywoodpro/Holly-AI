@@ -99,7 +99,7 @@ export async function POST(req: NextRequest) {
 
     // Log decision (metadata field doesn't exist in schema, so just log it)
     // If decision is to auto-approve and confidence is high enough, skip human review
-    if (decision.action === 'approve' && confidence.confidenceScore >= 85) {
+    if (decision.action === 'auto_approve' && confidence.confidenceScore >= 85) {
       logger.info('Auto-approving high-confidence improvement', { improvementId });
       // Auto-merge will be handled by the approve endpoint
     }
