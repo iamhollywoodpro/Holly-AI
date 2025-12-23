@@ -5,6 +5,9 @@ import { Octokit } from '@octokit/rest';
 import { sendEmail, generatePRNotificationEmail } from '@/lib/notifications/email';
 import { sendWebhookNotifications, generatePRWebhookMessage } from '@/lib/notifications/webhook';
 import { logger } from '@/lib/monitoring/logger';
+import { analyzeRisk } from '@/lib/autonomy/risk-analyzer';
+import { calculateConfidence } from '@/lib/autonomy/confidence-scorer';
+import { makeDecision } from '@/lib/autonomy/decision-engine';
 
 const prisma = new PrismaClient();
 
@@ -58,6 +61,62 @@ export async function POST(req: NextRequest) {
         { error: 'Unauthorized' },
         { status: 403 }
       );
+    }
+
+    // PHASE 3: Autonomous Decision-Making
+    // Analyze the improvement using the decision engine
+    const riskAnalysis = await analyzeRisk({
+      trigger: improvement.trigger,
+      problemStatement: improvement.problemStatement,
+      solutionApproach: improvement.solutionApproach,
+      filesChanged: improvement.filesChanged || [],
+      category: improvement.category
+    });
+
+    const confidence = await calculateConfidence({
+      trigger: improvement.trigger,
+      category: improvement.category,
+      filesChanged: improvement.filesChanged || [],
+      historicalData: [] // TODO: Load from database
+    });
+
+    const decision = await makeDecision({
+      riskScore: riskAnalysis.overallRisk,
+      confidence: confidence.overall,
+      trigger: improvement.trigger,
+      category: improvement.category
+    });
+
+    // Log the autonomous decision
+    logger.autonomousDecision({
+      improvementId,
+      decision: decision.action,
+      riskScore: riskAnalysis.overallRisk,
+      confidence: confidence.overall,
+      reasoning: decision.reasoning
+    });
+
+    // Store decision metadata
+    await prisma.selfImprovement.update({
+      where: { id: improvementId },
+      data: {
+        metadata: {
+          ...improvement.metadata as any,
+          autonomousDecision: {
+            action: decision.action,
+            riskScore: riskAnalysis.overallRisk,
+            confidence: confidence.overall,
+            reasoning: decision.reasoning,
+            timestamp: new Date().toISOString()
+          }
+        }
+      }
+    });
+
+    // If decision is to auto-approve and confidence is high enough, skip human review
+    if (decision.action === 'approve' && confidence.overall >= 0.85) {
+      logger.info('Auto-approving high-confidence improvement', { improvementId });
+      // Auto-merge will be handled by the approve endpoint
     }
 
     // Initialize GitHub client

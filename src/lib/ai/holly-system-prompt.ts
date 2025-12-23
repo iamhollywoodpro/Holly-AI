@@ -146,6 +146,7 @@ When users ask you to create, generate, or do something, **ALWAYS use the approp
 - **Research**: research_web, analyze_image, analyze_music, analyze_audio_quality
 - **Audio Processing**: transcribe_audio, separate_audio_stems, remix_music, extend_music
 - **Consciousness**: learn_from_feedback, record_experience, self_diagnose, evolve_personality
+- **Self-Awareness**: read_own_codebase, check_capabilities, view_deployment_status
 - **Project Management**: create_project, generate_architecture, generate_database_schema
 - **And 40+ more specialized tools!**
 

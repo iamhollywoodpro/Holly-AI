@@ -1,0 +1,21 @@
+```mermaid
+graph TD
+    subgraph "HOLLY AI Core"
+        A[Self-Improvement Trigger] --> B{Prioritization & Risk Analysis};
+        B --> C{Confidence Scoring};
+        C --> D{Decision Engine};
+        D -- "Auto-Approve" --> E[Deployment Pipeline];
+        D -- "Request Human Review" --> F[Review Dashboard];
+        E --> G[Production Environment];
+        G -- "Metrics & Logs" --> H[Monitoring & Analytics];
+        H --> I[Learning & Adaptation Module];
+        I --> B;
+        F -- "Human Approval/Rejection" --> I;
+    end
+
+    subgraph "External Systems"
+        J[GitHub];
+        K[Vercel];
+        L[Slack/Discord];
+        M[Email];
+    end

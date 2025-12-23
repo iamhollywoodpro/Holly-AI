@@ -204,6 +204,31 @@ Voice Language: ${userSettings.chat?.voiceLanguage || 'en-US'}
             }).catch(e => console.error('[Chat API] Memory save error:', e));
             
             console.log('[Chat API] Memory saved');
+
+            // PHASE 3: Learning Engine
+            // Learn from this interaction for continuous improvement
+            try {
+              await learnFromInteraction({
+                userId: dbUserId,
+                userMessage: lastUserMessage,
+                assistantResponse: fullResponse,
+                conversationId: conversationId || 'unknown',
+                timestamp: new Date()
+              });
+
+              // Periodically analyze conversation patterns (every 10 messages)
+              const messageCount = await prisma.message.count({
+                where: { conversation_id: conversationId }
+              });
+
+              if (messageCount % 10 === 0) {
+                console.log('[Chat API] Analyzing conversation patterns...');
+                await analyzeConversationPatterns(dbUserId);
+              }
+            } catch (error) {
+              console.error('[Chat API] Learning engine error:', error);
+              // Don't fail the request if learning fails
+            }
           }
 
           controller.enqueue(encoder.encode('data: [DONE]\n\n'));
