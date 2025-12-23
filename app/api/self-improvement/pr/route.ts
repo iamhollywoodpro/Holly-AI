@@ -66,25 +66,21 @@ export async function POST(req: NextRequest) {
     // PHASE 3: Autonomous Decision-Making
     // Analyze the improvement using the decision engine
     const riskAnalysis = await analyzeRisk({
-      trigger: improvement.trigger,
+      trigger: improvement.triggerType,
       problemStatement: improvement.problemStatement,
       solutionApproach: improvement.solutionApproach,
-      filesChanged: improvement.filesChanged || [],
-      category: improvement.category
+      filesChanged: improvement.filesChanged || []
     });
 
     const confidence = await calculateConfidence({
-      trigger: improvement.trigger,
-      category: improvement.category,
-      filesChanged: improvement.filesChanged || [],
-      historicalData: [] // TODO: Load from database
+      trigger: improvement.triggerType,
+      filesChanged: improvement.filesChanged || []
     });
 
     const decision = await makeDecision({
       riskScore: riskAnalysis.overallRisk,
       confidence: confidence.overall,
-      trigger: improvement.trigger,
-      category: improvement.category
+      trigger: improvement.triggerType
     });
 
     // Log the autonomous decision
@@ -96,23 +92,7 @@ export async function POST(req: NextRequest) {
       reasoning: decision.reasoning
     });
 
-    // Store decision metadata
-    await prisma.selfImprovement.update({
-      where: { id: improvementId },
-      data: {
-        metadata: {
-          ...improvement.metadata as any,
-          autonomousDecision: {
-            action: decision.action,
-            riskScore: riskAnalysis.overallRisk,
-            confidence: confidence.overall,
-            reasoning: decision.reasoning,
-            timestamp: new Date().toISOString()
-          }
-        }
-      }
-    });
-
+    // Log decision (metadata field doesn't exist in schema, so just log it)
     // If decision is to auto-approve and confidence is high enough, skip human review
     if (decision.action === 'approve' && confidence.overall >= 0.85) {
       logger.info('Auto-approving high-confidence improvement', { improvementId });

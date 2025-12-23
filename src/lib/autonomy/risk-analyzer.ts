@@ -237,7 +237,7 @@ export const riskAnalyzer = new RiskAnalyzer();
 export async function analyzeRisk(input: any) {
   // Convert the input to match RiskAnalysisInput interface
   const riskInput: RiskAnalysisInput = {
-    triggerType: input.trigger as TriggerType || TriggerType.ROUTINE_AUDIT,
+    triggerType: input.triggerType as TriggerType || TriggerType.ROUTINE_AUDIT,
     filesChanged: input.filesChanged || [],
     linesChanged: input.filesChanged?.length * 50 || 0, // Estimate
     affectedModules: input.filesChanged?.map((f: string) => f.split('/')[0]) || [],

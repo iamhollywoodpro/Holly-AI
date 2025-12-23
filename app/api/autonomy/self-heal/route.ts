@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
       // Log each proposed improvement
       for (const improvement of improvements) {
         logger.selfHealing({
-          anomaly: improvement.trigger,
+          anomaly: improvement.triggerType,
           proposedFix: improvement.solution,
           priority: improvement.priority,
           autoFixable: improvement.autoFixable
