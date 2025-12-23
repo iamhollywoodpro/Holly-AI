@@ -105,6 +105,14 @@ class Logger {
     });
   }
 
+  // Autonomous decision logging
+  autonomousDecision(context: { improvementId: string; decision: string; riskScore: number; confidenceScore: number; reasoning: string }) {
+    this.info("Autonomous decision made", {
+      ...context,
+      category: "autonomy",
+    });
+  }
+
   // Self-healing specific logging
   selfHealing(context: { anomaly: string; proposedFix: string; priority: string; autoFixable?: boolean }) {
     this.info("Self-healing action proposed", {
