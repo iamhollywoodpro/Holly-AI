@@ -78,23 +78,23 @@ export async function POST(req: NextRequest) {
     });
 
     const decision = await makeDecision({
-      riskScore: riskAnalysis.overallRisk,
-      confidence: confidence.overall,
-      trigger: improvement.triggerType
+      improvementId,
+      riskAnalysis,
+      confidenceScore: confidence
     });
 
     // Log the autonomous decision
     logger.autonomousDecision({
       improvementId,
       decision: decision.action,
-      riskScore: riskAnalysis.overallRisk,
-      confidenceScore: confidence.overall,
+      riskScore: riskAnalysis.riskScore,
+      confidenceScore: confidence.confidenceScore,
       reasoning: decision.reasoning
     });
 
     // Log decision (metadata field doesn't exist in schema, so just log it)
     // If decision is to auto-approve and confidence is high enough, skip human review
-    if (decision.action === 'approve' && confidence.overall >= 0.85) {
+    if (decision.action === 'approve' && confidence.confidenceScore >= 85) {
       logger.info('Auto-approving high-confidence improvement', { improvementId });
       // Auto-merge will be handled by the approve endpoint
     }
