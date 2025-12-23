@@ -1,9 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { HfInference } from '@huggingface/inference';
 import { prisma } from '@/lib/db';
 import { DEFAULT_SETTINGS } from '@/lib/settings/default-settings';
 import { getHollySystemPrompt } from '@/lib/ai/holly-system-prompt';
+import { learnFromInteraction, analyzeConversationPatterns } from '@/lib/autonomy/learning-engine';
 
 // Use Node.js runtime for Prisma compatibility
 export const runtime = 'nodejs';
