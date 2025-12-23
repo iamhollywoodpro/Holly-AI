@@ -66,15 +66,20 @@ export async function POST(req: NextRequest) {
     // PHASE 3: Autonomous Decision-Making
     // Analyze the improvement using the decision engine
     const riskAnalysis = await analyzeRisk({
-      trigger: improvement.triggerType,
-      problemStatement: improvement.problemStatement,
-      solutionApproach: improvement.solutionApproach,
-      filesChanged: improvement.filesChanged || []
+      triggerType: improvement.triggerType,
+      filesChanged: improvement.filesChanged || [],
+      linesChanged: (improvement.filesChanged || []).length * 50, // Estimate
+      affectedModules: (improvement.filesChanged || []).map(f => f.split('/')[1] || f.split('/')[0])
     });
 
     const confidence = await calculateConfidence({
-      trigger: improvement.triggerType,
-      filesChanged: improvement.filesChanged || []
+      // Use defaults for now - could be enhanced with actual metrics
+      llmConfidence: 0.75, // Default moderate confidence
+      predictedTestCoverage: 80,
+      historicalData: {
+        similarImprovementsCount: 0,
+        successRate: 0.8
+      }
     });
 
     const decision = await makeDecision({
