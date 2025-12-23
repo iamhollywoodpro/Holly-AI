@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { auth, clerkClient } from '@clerk/nextjs/server';
 import { PrismaClient } from '@prisma/client';
 import { Octokit } from '@octokit/rest';
+import { sendEmail, generatePRNotificationEmail } from '@/lib/notifications/email';
+import { sendWebhookNotifications, generatePRWebhookMessage } from '@/lib/notifications/webhook';
+import { logger } from '@/lib/monitoring/logger';
 
 const prisma = new PrismaClient();
 
@@ -91,7 +94,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Update the improvement record
-    await prisma.selfImprovement.update({
+    const updatedImprovement = await prisma.selfImprovement.update({
       where: { id: improvementId },
       data: {
         status: 'pr_created',
@@ -100,6 +103,61 @@ export async function POST(req: NextRequest) {
         updatedAt: new Date()
       }
     });
+
+    // Send email notification
+    try {
+      const client = await clerkClient();
+      const user = await client.users.getUser(userId);
+      const userEmail = user.emailAddresses.find(e => e.id === user.primaryEmailAddressId)?.emailAddress;
+      const userName = user.firstName || 'there';
+
+      if (userEmail) {
+        const dashboardUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://holly.nexamusicgroup.com'}/self-improvement`;
+        const emailHtml = generatePRNotificationEmail(
+          userName,
+          title,
+          description,
+          pr.html_url,
+          dashboardUrl
+        );
+
+        await sendEmail({
+          to: userEmail,
+          subject: `🧠 HOLLY created a new improvement: ${title}`,
+          html: emailHtml,
+        });
+
+        logger.info('PR notification email sent', {
+          improvementId,
+          userId,
+        });
+      }
+    } catch (emailError) {
+      // Don't fail the entire request if email fails
+      logger.error('Failed to send PR notification email', {
+        improvementId,
+        error: emailError instanceof Error ? emailError.message : 'Unknown error',
+      });
+    }
+
+    // Send webhook notifications (Slack/Discord)
+    try {
+      const webhookMessage = generatePRWebhookMessage(
+        title,
+        description,
+        pr.html_url,
+        improvement.riskLevel
+      );
+      await sendWebhookNotifications(webhookMessage);
+    } catch (webhookError) {
+      // Don't fail the entire request if webhook fails
+      logger.error('Failed to send webhook notifications', {
+        improvementId,
+        error: webhookError instanceof Error ? webhookError.message : 'Unknown error',
+      });
+    }
+
+    logger.improvementCreated(improvementId, title, improvement.riskLevel);
 
     return NextResponse.json({
       improvementId,
@@ -111,6 +169,10 @@ export async function POST(req: NextRequest) {
 
   } catch (error) {
     console.error('Error creating pull request:', error);
+    logger.error('Failed to create pull request', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+    
     return NextResponse.json(
       { error: 'Failed to create pull request', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
