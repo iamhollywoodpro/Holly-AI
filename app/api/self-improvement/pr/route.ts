@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
       improvementId,
       decision: decision.action,
       riskScore: riskAnalysis.overallRisk,
-      confidence: confidence.overall,
+      confidenceScore: confidence.overall,
       reasoning: decision.reasoning
     });
 
