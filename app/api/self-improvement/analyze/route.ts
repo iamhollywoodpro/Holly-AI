@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Get historical data for similar improvements
-    const historicalData = await this.getHistoricalData(
+    const historicalData = await getHistoricalData(
       triggerType,
       affectedModules
     );

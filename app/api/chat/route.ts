@@ -219,7 +219,7 @@ Voice Language: ${userSettings.chat?.voiceLanguage || 'en-US'}
 
               // Periodically analyze conversation patterns (every 10 messages)
               const messageCount = await prisma.message.count({
-                where: { conversation_id: conversationId }
+                where: { conversationId: conversationId }
               });
 
               if (messageCount % 10 === 0) {
