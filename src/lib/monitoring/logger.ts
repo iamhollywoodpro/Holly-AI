@@ -104,9 +104,6 @@ class Logger {
       category: "self-improvement",
     });
   }
-}
-
-export const logger = new Logger();
 
   // Self-healing specific logging
   selfHealing(context: { anomaly: string; proposedFix: string; priority: string; autoFixable?: boolean }) {
@@ -115,3 +112,6 @@ export const logger = new Logger();
       category: "self-healing",
     });
   }
+}
+
+export const logger = new Logger();
