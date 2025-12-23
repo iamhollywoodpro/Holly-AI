@@ -300,3 +300,27 @@ export class SelfHealingEngine {
 }
 
 export const selfHealingEngine = new SelfHealingEngine();
+
+// Export convenience functions for API endpoints
+export async function monitorSystem() {
+  return await selfHealingEngine.performHealthCheck();
+}
+
+export async function detectAnomalies(healthMetrics: HealthCheckResult) {
+  return healthMetrics.issues;
+}
+
+export async function proposeImprovements(anomalies: HealthIssue[]) {
+  const improvements = [];
+  
+  for (const anomaly of anomalies) {
+    improvements.push({
+      trigger: anomaly.type,
+      solution: anomaly.suggestedAction || 'Manual investigation required',
+      priority: anomaly.severity,
+      autoFixable: anomaly.severity !== 'critical'
+    });
+  }
+  
+  return improvements;
+}

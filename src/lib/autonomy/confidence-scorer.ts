@@ -220,3 +220,9 @@ export class ConfidenceScorer {
 }
 
 export const confidenceScorer = new ConfidenceScorer();
+
+// Export convenience function for API endpoints
+export async function calculateConfidence(input: any) {
+  const result = await confidenceScorer.calculateConfidence(input);
+  return result;
+}

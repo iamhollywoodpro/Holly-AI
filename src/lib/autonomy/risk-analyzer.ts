@@ -232,3 +232,28 @@ export class RiskAnalyzer {
 }
 
 export const riskAnalyzer = new RiskAnalyzer();
+
+// Export convenience function for API endpoints
+export async function analyzeRisk(input: any) {
+  // Convert the input to match RiskAnalysisInput interface
+  const riskInput: RiskAnalysisInput = {
+    triggerType: input.trigger as TriggerType || TriggerType.ROUTINE_AUDIT,
+    filesChanged: input.filesChanged || [],
+    linesChanged: input.filesChanged?.length * 50 || 0, // Estimate
+    affectedModules: input.filesChanged?.map((f: string) => f.split('/')[0]) || [],
+    testCoverage: 80, // Default assumption
+    historicalData: {
+      similarImprovementsCount: 0,
+      successRate: 0.8
+    }
+  };
+  
+  const result = await riskAnalyzer.analyzeRisk(riskInput);
+  
+  return {
+    overallRisk: result.riskScore / 100, // Convert to 0-1 scale
+    riskLevel: result.riskLevel,
+    factors: result.factors,
+    reasoning: result.reasoning
+  };
+}
