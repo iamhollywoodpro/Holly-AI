@@ -329,3 +329,26 @@ export class LearningEngine {
 }
 
 export const learningEngine = new LearningEngine();
+
+// Convenience functions for easy import
+export async function learnFromInteraction(context: {
+  userId: string | null;
+  userMessage: string;
+  assistantResponse: string;
+  conversationId: string;
+  timestamp: Date;
+}) {
+  // Store interaction for future learning
+  logger.info("Learning from interaction", {
+    userId: context.userId,
+    conversationId: context.conversationId,
+    category: "learning",
+  });
+  
+  // This could be enhanced to store interactions in a separate table
+  // for more sophisticated learning in the future
+}
+
+export async function analyzeConversationPatterns(conversationId: string) {
+  return learningEngine.analyzePatterns();
+}
