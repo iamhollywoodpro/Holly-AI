@@ -45,12 +45,12 @@ export async function POST(
     const repo = process.env.HOLLY_GITHUB_REPO!;
 
     // Merge the pull request if it exists
-    if (improvement.pullRequestId) {
+    if (improvement.prNumber) {
       try {
         await octokit.pulls.merge({
           owner,
           repo,
-          pull_number: parseInt(improvement.pullRequestId),
+          pull_number: improvement.prNumber,
           commit_title: `✅ Approved: ${improvement.title}`,
           commit_message: `Approved by ${userId} via HOLLY's self-improvement dashboard`,
           merge_method: "squash",

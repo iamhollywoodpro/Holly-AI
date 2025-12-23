@@ -45,12 +45,12 @@ export async function POST(
     const repo = process.env.HOLLY_GITHUB_REPO!;
 
     // Close the pull request if it exists
-    if (improvement.pullRequestId) {
+    if (improvement.prNumber) {
       try {
         await octokit.pulls.update({
           owner,
           repo,
-          pull_number: parseInt(improvement.pullRequestId),
+          pull_number: improvement.prNumber,
           state: "closed",
         });
 
@@ -58,7 +58,7 @@ export async function POST(
         await octokit.issues.createComment({
           owner,
           repo,
-          issue_number: parseInt(improvement.pullRequestId),
+          issue_number: improvement.prNumber,
           body: `❌ This improvement was rejected by ${userId} via HOLLY's self-improvement dashboard.`,
         });
       } catch (error: any) {
