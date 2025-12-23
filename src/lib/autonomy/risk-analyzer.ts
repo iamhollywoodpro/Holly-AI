@@ -248,7 +248,7 @@ export async function analyzeRisk(input: any) {
     }
   };
   
-  const result = await riskAnalyzer.analyzeRisk(riskInput);
+  const result = riskAnalyzer.analyze(riskInput);
   
   return {
     overallRisk: result.riskScore / 100, // Convert to 0-1 scale

@@ -178,6 +178,6 @@ export const decisionEngine = new DecisionEngine();
 
 // Export convenience function for API endpoints
 export async function makeDecision(input: any) {
-  const result = await decisionEngine.makeDecision(input);
+  const result = decisionEngine.decide(input);
   return result;
 }
