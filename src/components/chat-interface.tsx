@@ -179,6 +179,9 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
           
           if (fileExtension && audioExtensions.includes(fileExtension)) {
             try {
+              // Show analysis progress
+              setStreamingMessage(`🎵 Analyzing ${file.name}...`);
+              
               // Analyze music file with feedback
               const analysisResult = await analyzeAudioComplete(file, uploadResult.publicUrl, true);
               
@@ -207,9 +210,17 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
           messageContent += '\n\n**Uploaded Files:**\n' + uploadedUrls.map(url => `- ${url}`).join('\n');
         }
         await addMessage('user', messageContent, undefined, undefined, currentConversation.id);
+        
+        // Clear upload progress indicator
+        setStreamingMessage('');
+        
+        // AUTOMATICALLY TRIGGER HOLLY'S RESPONSE
+        // This ensures HOLLY reviews the files and provides feedback immediately
+        await triggerHollyResponse(messageContent, currentConversation.id);
       }
     } catch (error) {
       console.error('Upload error:', error);
+      setStreamingMessage('');
       alert('Failed to upload files. Please try again.');
     } finally {
       setIsUploading(false);
@@ -232,6 +243,76 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
     if (title.length > 60) title = title.substring(0, 57) + '...';
     
     return title;
+  };
+
+  // Automatically trigger HOLLY's response after file upload
+  const triggerHollyResponse = async (userMessage: string, conversationId: string) => {
+    setIsStreaming(true);
+    setStreamingMessage('');
+    setCurrentEmotion('thoughtful');
+
+    try {
+      // Show progress indicator
+      setStreamingMessage('📝 Reviewing your upload...');
+
+      // Use new streaming endpoint
+      const useNewStreaming = process.env.NEXT_PUBLIC_ENABLE_TRUE_STREAMING !== 'false';
+      const chatEndpoint = useNewStreaming ? '/api/chat-stream' : '/api/chat';
+      
+      console.log(`🌊 [AUTO-RESPONSE] Using ${chatEndpoint}`);
+      
+      const response = await fetch(chatEndpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [
+            ...messages.map(m => ({ role: m.role, content: m.content })),
+            { role: 'user', content: userMessage },
+          ],
+          conversationId,
+          userId,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to get response');
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error('No reader available');
+
+      const decoder = new TextDecoder();
+      let fullResponse = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        fullResponse += chunk;
+        setStreamingMessage(fullResponse);
+      }
+
+      // Add HOLLY's response to conversation
+      if (fullResponse.trim()) {
+        await addMessage('assistant', fullResponse.trim(), currentEmotion, undefined, conversationId);
+      }
+
+      setStreamingMessage('');
+    } catch (error) {
+      console.error('Auto-response error:', error);
+      setStreamingMessage('');
+      await addMessage(
+        'assistant',
+        'I apologize, but I encountered an error while reviewing your upload. Please try asking me about it directly.',
+        'curious',
+        undefined,
+        conversationId
+      );
+    } finally {
+      setIsStreaming(false);
+      setCurrentEmotion('confident');
+    }
   };
 
   // FIXED: Conversation state handling
