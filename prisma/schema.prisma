@@ -2,7 +2,7 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
   binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
@@ -108,7 +108,11 @@ model User {
   codePatterns       CodePattern[]
 
   // Phase 2: Human-in-the-Loop Self-Improvement
-  selfImprovements   SelfImprovement[]
+  selfImprovements SelfImprovement[]
+
+  // Sprint 2: Creative Core - AURA & Library
+  auraAnalyses AuraAnalysis[]
+  collections  Collection[]
 
   @@map("users")
 }
@@ -166,24 +170,35 @@ model FileUpload {
 }
 
 model Project {
-  id            String            @id @default(cuid())
+  id            String    @id @default(cuid())
   userId        String
-  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   name          String
-  description   String?           @db.Text
+  description   String?   @db.Text
   category      String?
-  technologies  String[]          @default([])
-  color         String            @default("#a855f7")
+  technologies  String[]  @default([])
+  color         String    @default("#a855f7")
   icon          String?
-  status        String            @default("active") // active, completed, archived
-  progress      Float             @default(0)
-  startDate     DateTime          @default(now())
+  status        String    @default("active") // active, completed, archived
+  progress      Float     @default(0)
+  startDate     DateTime  @default(now())
   targetEndDate DateTime?
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
-  activities    ProjectActivity[]
-  deployments   Deployment[]
-  milestones    Milestone[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Sprint 2: Creative Core additions
+  thumbnail  String? @db.Text
+  type       String  @default("development") // development, creative, campaign, etc.
+  isFavorite Boolean @default(false)
+  isArchived Boolean @default(false)
+
+  activities  ProjectActivity[]
+  deployments Deployment[]
+  milestones  Milestone[]
+
+  // Sprint 2: Library relations
+  assets          ProjectAsset[]
+  collectionItems CollectionItem[]
 
   @@index([userId])
   @@index([startDate])
@@ -2808,9 +2823,16 @@ model CreativeAsset {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Sprint 2: Creative Core additions
+  isArchived Boolean @default(false)
+
   // Relations
   user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   generationJob GenerationJob? @relation(fields: [generationId], references: [id])
+
+  // Sprint 2: Library relations
+  projectAssets   ProjectAsset[]
+  collectionItems CollectionItem[]
 
   @@index([userId])
   @@index([clerkUserId])
@@ -3442,55 +3464,202 @@ model TaskAnalysis {
   @@map("task_analyses")
 }
 
-
 // Phase 2: Human-in-the-Loop Self-Improvement
 model SelfImprovement {
-  id                String   @id @default(cuid())
-  userId            String
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   // Trigger information
-  triggerType       String   // 'error', 'feedback', 'audit', 'metric', 'reflection'
-  triggerData       Json?    @default("{}")
-  
+  triggerType String // 'error', 'feedback', 'audit', 'metric', 'reflection'
+  triggerData Json?  @default("{}")
+
   // Problem and solution
-  problemStatement  String   @db.Text
-  solutionApproach  String   @db.Text
-  riskLevel         String   // 'low', 'medium', 'high'
-  
+  problemStatement String @db.Text
+  solutionApproach String @db.Text
+  riskLevel        String // 'low', 'medium', 'high'
+
   // Git and PR information
-  branchName        String
-  prNumber          Int?
-  prUrl             String?
-  
+  branchName String
+  prNumber   Int?
+  prUrl      String?
+
   // Status tracking
-  status            String   // 'planned', 'coding', 'pr_created', 'approved', 'merged', 'deployed', 'failed', 'rolled_back'
-  
+  status String // 'planned', 'coding', 'pr_created', 'approved', 'merged', 'deployed', 'failed', 'rolled_back'
+
   // Code changes
-  filesChanged      String[]
-  codeChanges       Json?    @default("{}")
-  
+  filesChanged String[]
+  codeChanges  Json?    @default("{}")
+
   // Testing and quality
-  testCoverage      Float?
-  testsAdded        Int      @default(0)
-  lintingPassed     Boolean  @default(false)
-  
+  testCoverage  Float?
+  testsAdded    Int     @default(0)
+  lintingPassed Boolean @default(false)
+
   // Deployment
-  deploymentUrl     String?
-  deployedAt        DateTime?
-  
+  deploymentUrl String?
+  deployedAt    DateTime?
+
   // Outcome and learning
-  outcome           String?  // 'success', 'failure', 'rolled_back', 'pending'
-  metricsImproved   Json?    @default("{}")
-  learnings         String?  @db.Text
-  
+  outcome         String? // 'success', 'failure', 'rolled_back', 'pending'
+  metricsImproved Json?   @default("{}")
+  learnings       String? @db.Text
+
   // Timestamps
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([userId])
   @@index([status])
   @@index([triggerType])
   @@index([createdAt])
   @@map("self_improvements")
+}
+
+// ============================================
+// SPRINT 2: CREATIVE CORE
+// AURA A&R Integration & Library Features
+// ============================================
+
+// AURA A&R Analysis Results
+model AuraAnalysis {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Job Info
+  jobId    String @unique
+  status   String // queued, processing, completed, failed
+  progress Int    @default(0) // 0-100
+
+  // Track Info
+  trackTitle     String
+  artistName     String
+  genre          String?
+  audioUrl       String  @db.Text
+  lyricsText     String? @db.Text
+  artworkUrl     String? @db.Text
+  referenceTrack String? // Optional reference track for comparison
+
+  // Analysis Results
+  hitFactor   Float? // 0-100
+  audioScore  Float? // 0-100
+  lyricsScore Float? // 0-100
+  brandScore  Float? // 0-100
+  marketScore Float? // 0-100
+
+  // Detailed Results (JSON)
+  recommendations Json? // Array of { type, note, priority }
+  similarHits     Json? // Array of { song, artist, year, similarity }
+  fullReport      Json? // Complete analysis data
+
+  // Metadata
+  modelVersion   String?
+  processingTime Int? // milliseconds
+  errorMessage   String? @db.Text
+
+  // Organization
+  isFavorite Boolean  @default(false)
+  isArchived Boolean  @default(false)
+  tags       String[] @default([])
+  notes      String?  @db.Text
+
+  // Timestamps
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  completedAt DateTime?
+
+  // Relations
+  collectionItems CollectionItem[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([isFavorite])
+  @@index([isArchived])
+  @@map("aura_analyses")
+}
+
+// User Collections (for organizing items)
+model Collection {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Collection Info
+  name        String
+  description String? @db.Text
+  icon        String? // Lucide icon name
+  color       String? // Hex color code
+
+  // Organization
+  isFavorite Boolean @default(false)
+  isArchived Boolean @default(false)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  items CollectionItem[]
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("collections")
+}
+
+// Collection Items (polymorphic - can be projects, assets, or analyses)
+model CollectionItem {
+  id           String     @id @default(cuid())
+  collectionId String
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+
+  // Polymorphic reference
+  itemType String // project, asset, analysis
+  itemId   String
+
+  // Direct relations (optional, for easier queries)
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  assetId String?
+  asset   CreativeAsset? @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  analysisId String?
+  analysis   AuraAnalysis? @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+
+  // Ordering
+  order Int @default(0)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+
+  @@index([collectionId])
+  @@index([itemType, itemId])
+  @@index([projectId])
+  @@index([assetId])
+  @@index([analysisId])
+  @@map("collection_items")
+}
+
+// Project Assets (link projects to creative assets)
+model ProjectAsset {
+  id        String  @id @default(cuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  assetId String
+  asset   CreativeAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  // Metadata
+  role  String? // e.g., "hero-image", "background-music", "logo"
+  order Int     @default(0)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+
+  @@unique([projectId, assetId])
+  @@index([projectId])
+  @@index([assetId])
+  @@map("project_assets")
 }
