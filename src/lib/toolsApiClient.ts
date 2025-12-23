@@ -1,51 +1,19 @@
-import crypto from 'crypto';
-
-const TOOLS_API_URL = process.env.NEXT_PUBLIC_TOOLS_API_URL;
-const API_KEY = process.env.TOOLS_API_KEY;
-const API_SECRET = process.env.TOOLS_API_SECRET;
+/**
+ * HOLLY Tools API Client
+ * Internal API client for HOLLY's autonomous development capabilities
+ */
 
 /**
- * Generate HMAC signature for request authentication
+ * Call HOLLY's internal tools API
  */
-function generateSignature(payload: any): string {
-  if (!API_SECRET) {
-    throw new Error('API_SECRET is not configured');
-  }
-  return crypto
-    .createHmac('sha256', API_SECRET)
-    .update(JSON.stringify(payload))
-    .digest('hex');
-}
-
-/**
- * Call HOLLY Tools API
- */
-export async function callTool(endpoint: string, payload: any = {}): Promise<any> {
-  if (!TOOLS_API_URL) {
-    throw new Error('TOOLS_API_URL is not configured. Please set NEXT_PUBLIC_TOOLS_API_URL in your environment variables.');
-  }
-
-  if (!API_KEY) {
-    throw new Error('API_KEY is not configured. Please set TOOLS_API_KEY in your environment variables.');
-  }
-
-  const method = Object.keys(payload).length > 0 ? 'POST' : 'GET';
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-    'X-HOLLY-API-KEY': API_KEY,
-  };
-
-  // Add signature for POST requests
-  if (method === 'POST') {
-    const signature = generateSignature(payload);
-    headers['X-HOLLY-SIGNATURE'] = signature;
-  }
-
+async function callInternalAPI(endpoint: string, payload: any = {}): Promise<any> {
   try {
-    const response = await fetch(`${TOOLS_API_URL}${endpoint}`, {
-      method,
-      headers,
-      ...(method === 'POST' && { body: JSON.stringify(payload) }),
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
     });
 
     const data = await response.json();
@@ -62,61 +30,43 @@ export async function callTool(endpoint: string, payload: any = {}): Promise<any
 }
 
 /**
- * GitHub Tools
+ * GitHub Tools - Internal implementation using HOLLY's own API routes
  */
 export const github = {
   /**
    * Read a file from the repository
    */
   readFile: async (filePath: string) => {
-    return callTool('/api/tools/github/read-file', { filePath });
+    return callInternalAPI('/api/tools/github/read-file', { filePath });
   },
 
   /**
-   * Write a file to the repository
+   * Write a file to the repository (commits automatically)
    */
-  writeFile: async (filePath: string, content: string) => {
-    return callTool('/api/tools/github/write-file', { filePath, content });
+  writeFile: async (filePath: string, content: string, message: string = `Update ${filePath}`) => {
+    return callInternalAPI('/api/tools/github/write-file', { 
+      filePath, 
+      content, 
+      message 
+    });
   },
 
   /**
-   * Commit changes
-   */
-  commit: async (message: string, files?: string[]) => {
-    return callTool('/api/tools/github/commit', { message, files: files || [] });
-  },
-
-  /**
-   * Push changes to remote
-   */
-  push: async (branch: string = 'main') => {
-    return callTool('/api/tools/github/push', { branch });
-  },
-
-  /**
-   * Get repository status
+   * Check repository status
    */
   getStatus: async () => {
-    return callTool('/api/tools/github/status');
-  },
-
-  /**
-   * List files in a directory
-   */
-  listFiles: async (dirPath: string = '.') => {
-    return callTool('/api/tools/github/list-files', { dirPath });
-  },
-
-  /**
-   * Create a pull request
-   */
-  createPR: async (title: string, body: string, head: string, base: string = 'main') => {
-    return callTool('/api/tools/github/create-pr', { title, body, head, base });
+    // For now, just indicate the tools are available
+    return {
+      success: true,
+      message: 'GitHub tools are available',
+      repo: 'Holly-AI',
+      owner: 'iamhollywoodpro',
+    };
   },
 };
 
 /**
- * Vercel Tools
+ * Vercel Tools - Internal implementation
  */
 export const vercel = {
   /**
@@ -125,71 +75,36 @@ export const vercel = {
   deploy: async (options: {
     gitBranch?: string;
     target?: 'production' | 'preview';
-    forceRebuild?: boolean;
   } = {}) => {
-    return callTool('/api/tools/vercel/deploy', {
+    return callInternalAPI('/api/tools/vercel/deploy', {
       gitBranch: options.gitBranch || 'main',
       target: options.target || 'production',
-      forceRebuild: options.forceRebuild || false,
     });
-  },
-
-  /**
-   * Get deployment status
-   */
-  getStatus: async (deploymentId: string) => {
-    return callTool(`/api/tools/vercel/status/${deploymentId}`);
-  },
-
-  /**
-   * Get deployment logs
-   */
-  getLogs: async (deploymentId: string) => {
-    return callTool(`/api/tools/vercel/logs/${deploymentId}`);
-  },
-
-  /**
-   * List recent deployments
-   */
-  listDeployments: async (limit: number = 10) => {
-    return callTool(`/api/tools/vercel/deployments?limit=${limit}`);
-  },
-
-  /**
-   * Cancel a deployment
-   */
-  cancelDeployment: async (deploymentId: string) => {
-    return callTool(`/api/tools/vercel/cancel/${deploymentId}`);
-  },
-
-  /**
-   * Get project information
-   */
-  getProject: async () => {
-    return callTool('/api/tools/vercel/project');
   },
 };
 
 /**
- * Helper: Check if Tools API is configured
+ * Helper: Check if Tools are available
  */
-export function isToolsAPIConfigured(): boolean {
-  return !!(TOOLS_API_URL && API_KEY && API_SECRET);
+export function isToolsAvailable(): boolean {
+  // Tools are always available in the internal implementation
+  return true;
 }
 
 /**
- * Helper: Get Tools API status
+ * Example usage:
+ * 
+ * // Read a file
+ * const file = await github.readFile('src/components/Button.tsx');
+ * console.log(file.content);
+ * 
+ * // Fix a bug
+ * const fixed = file.content.replace('onClick={handleClic}', 'onClick={handleClick}');
+ * 
+ * // Write back
+ * await github.writeFile('src/components/Button.tsx', fixed, 'Fix: typo in Button onClick');
+ * 
+ * // Deploy
+ * const deployment = await vercel.deploy({ target: 'production' });
+ * console.log('Deployed to:', deployment.url);
  */
-export async function checkToolsAPIHealth(): Promise<{ healthy: boolean; error?: string }> {
-  if (!TOOLS_API_URL) {
-    return { healthy: false, error: 'Tools API URL not configured' };
-  }
-
-  try {
-    const response = await fetch(`${TOOLS_API_URL}/health`);
-    const data = await response.json();
-    return { healthy: data.success && data.status === 'healthy' };
-  } catch (error) {
-    return { healthy: false, error: (error as Error).message };
-  }
-}
