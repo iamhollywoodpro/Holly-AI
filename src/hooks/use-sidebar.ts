@@ -52,7 +52,7 @@ export const useSidebar = create<SidebarStore>()(
     }),
     {
       name: 'holly-sidebar',
-      partialPersist: (state) => ({
+      partialize: (state) => ({
         isCollapsed: state.isCollapsed,
         expandedSections: state.expandedSections,
       }),
