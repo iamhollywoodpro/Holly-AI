@@ -1,0 +1,53 @@
+// Add this model to the existing schema.prisma file
+// Insert it after the User model and before the Conversation model
+
+model SelfImprovement {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Trigger information
+  triggerType       String   // 'error', 'feedback', 'audit', 'metric', 'reflection'
+  triggerData       Json?    @default("{}")
+  
+  // Problem and solution
+  problemStatement  String   @db.Text
+  solutionApproach  String   @db.Text
+  riskLevel         String   // 'low', 'medium', 'high'
+  
+  // Git and PR information
+  branchName        String
+  prNumber          Int?
+  prUrl             String?
+  
+  // Status tracking
+  status            String   // 'planned', 'coding', 'pr_created', 'approved', 'merged', 'deployed', 'failed', 'rolled_back'
+  
+  // Code changes
+  filesChanged      String[]
+  codeChanges       Json?    @default("{}")
+  
+  // Testing and quality
+  testCoverage      Float?
+  testsAdded        Int      @default(0)
+  lintingPassed     Boolean  @default(false)
+  
+  // Deployment
+  deploymentUrl     String?
+  deployedAt        DateTime?
+  
+  // Outcome and learning
+  outcome           String?  // 'success', 'failure', 'rolled_back', 'pending'
+  metricsImproved   Json?    @default("{}")
+  learnings         String?  @db.Text
+  
+  // Timestamps
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([status])
+  @@index([triggerType])
+  @@index([createdAt])
+  @@map("self_improvements")
+}

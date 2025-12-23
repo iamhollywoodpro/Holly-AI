@@ -5,12 +5,13 @@ import { useUser } from "@clerk/nextjs";
 
 interface SelfImprovement {
   id: string;
-  title: string;
-  description: string;
+  problemStatement: string;
+  solutionApproach: string;
   status: string;
   riskLevel: string;
-  branchName: string | null;
-  pullRequestId: string | null;
+  branchName: string;
+  prNumber: number | null;
+  prUrl: string | null;
   createdAt: string;
 }
 
@@ -145,7 +146,7 @@ export default function SelfImprovementDashboard() {
                 >
                   <div className="flex items-start justify-between mb-3">
                     <h3 className="text-lg font-semibold text-gray-900">
-                      {improvement.title}
+                      {improvement.problemStatement}
                     </h3>
                     <span
                       className={`px-2 py-1 rounded-full text-xs font-medium ${getRiskColor(
@@ -156,7 +157,7 @@ export default function SelfImprovementDashboard() {
                     </span>
                   </div>
                   <p className="text-gray-600 text-sm mb-3 line-clamp-2">
-                    {improvement.description}
+                    {improvement.solutionApproach}
                   </p>
                   <div className="flex items-center justify-between">
                     <span
@@ -181,7 +182,7 @@ export default function SelfImprovementDashboard() {
                   <div className="mb-6">
                     <div className="flex items-start justify-between mb-4">
                       <h2 className="text-2xl font-bold text-gray-900">
-                        {selectedImprovement.title}
+                        {selectedImprovement.problemStatement}
                       </h2>
                       <span
                         className={`px-3 py-1 rounded-full text-sm font-medium ${getRiskColor(
@@ -192,7 +193,7 @@ export default function SelfImprovementDashboard() {
                       </span>
                     </div>
                     <p className="text-gray-700 whitespace-pre-wrap">
-                      {selectedImprovement.description}
+                      {selectedImprovement.solutionApproach}
                     </p>
                   </div>
 
@@ -221,10 +222,10 @@ export default function SelfImprovementDashboard() {
                       </div>
                     )}
 
-                    {selectedImprovement.pullRequestId && (
+                    {selectedImprovement.prUrl && (
                       <div>
                         <a
-                          href={`https://github.com/${process.env.NEXT_PUBLIC_GITHUB_OWNER}/${process.env.NEXT_PUBLIC_GITHUB_REPO}/pull/${selectedImprovement.pullRequestId}`}
+                          href={selectedImprovement.prUrl}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center text-purple-600 hover:text-purple-700 text-sm font-medium"

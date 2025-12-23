@@ -90,7 +90,7 @@ export async function POST(
         const dashboardUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://holly.nexamusicgroup.com'}/self-improvement`;
         const emailHtml = generateStatusUpdateEmail(
           userName,
-          improvement.title,
+          improvement.problemStatement.substring(0, 100),
           'rejected',
           'This improvement has been rejected. The pull request has been closed and the branch will be deleted.',
           dashboardUrl

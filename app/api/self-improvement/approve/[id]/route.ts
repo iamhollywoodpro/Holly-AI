@@ -51,7 +51,7 @@ export async function POST(
           owner,
           repo,
           pull_number: improvement.prNumber,
-          commit_title: `✅ Approved: ${improvement.title}`,
+          commit_title: `✅ Approved: ${improvement.problemStatement.substring(0, 50)}`,
           commit_message: `Approved by ${userId} via HOLLY's self-improvement dashboard`,
           merge_method: "squash",
         });
@@ -84,7 +84,7 @@ export async function POST(
         const dashboardUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://holly.nexamusicgroup.com'}/self-improvement`;
         const emailHtml = generateStatusUpdateEmail(
           userName,
-          improvement.title,
+          improvement.problemStatement.substring(0, 100),
           'approved',
           'Your approval has been recorded. The changes have been merged and will be deployed automatically via CI/CD.',
           dashboardUrl
