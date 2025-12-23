@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useState } from 'react';
 import { Sparkles, History, ArrowLeft } from 'lucide-react';
 import { UploadForm } from '@/components/aura/UploadForm';

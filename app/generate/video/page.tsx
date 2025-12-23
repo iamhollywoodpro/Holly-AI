@@ -1,6 +1,8 @@
 import { Video } from 'lucide-react';
 import { ComingSoon } from '@/components/ComingSoon';
 
+export const dynamic = 'force-dynamic';
+
 export default function VideoGeneratorPage() {
   return (
     <ComingSoon
