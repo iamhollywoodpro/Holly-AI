@@ -9,6 +9,7 @@ import MessageBubble from '@/components/chat/MessageBubble';
 import ChatInputControls from '@/components/chat/ChatInputControls';
 import { WorkLogFeed } from '@/components/work-log';
 import BrainConsciousnessIndicator from '@/components/consciousness/BrainConsciousnessIndicator';
+import { Sidebar2 } from '@/components/navigation/Sidebar2';
 import ChatHistoryRevamped from '@/components/chat/ChatHistoryRevamped';
 import MemoryTimeline from '@/components/consciousness/MemoryTimeline';
 import { useUser } from '@clerk/nextjs';
@@ -758,7 +759,10 @@ export default function ChatPage() {
 
       {/* Main Container */}
       <div className="relative z-10 flex h-full" style={{ height: '100%' }}>
-        {/* Chat History Sidebar - Left - REPLACES GOALS */}
+        {/* NEW Sidebar2 - Navigation */}
+        <Sidebar2 />
+
+        {/* Chat History Sidebar - Conversations */}
         <AnimatePresence>
           {showChatHistory && (
             <motion.div
