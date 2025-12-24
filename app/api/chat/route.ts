@@ -9,11 +9,6 @@ import { learnFromInteraction } from '@/lib/autonomy/learning-engine';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-// Groq client
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
-});
-
 // Model: Mistral Large 2 on Groq (FREE + Function Calling)
 const MODEL_NAME = 'mixtral-8x7b-32768'; // Using Mixtral which supports function calling
 
@@ -151,12 +146,17 @@ export async function POST(req: NextRequest) {
     const { userId } = await auth();
     console.log('[Chat API] User ID:', userId || 'anonymous');
 
-    // 2. VALIDATE API KEY
+    // 2. VALIDATE API KEY AND INITIALIZE GROQ CLIENT
     const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) {
       console.error('[Chat API] ❌ GROQ_API_KEY missing');
       return NextResponse.json({ error: 'API key not configured' }, { status: 500 });
     }
+    
+    // Initialize Groq client at runtime (not build time)
+    const groq = new Groq({
+      apiKey: apiKey,
+    });
 
     // 3. PARSE REQUEST
     const body = await req.json();
