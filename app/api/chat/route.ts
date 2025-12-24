@@ -7,6 +7,7 @@ import { learnFromInteraction } from '@/lib/autonomy/learning-engine';
 
 // Use Node.js runtime for Prisma compatibility
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 // Groq client
 const groq = new Groq({
