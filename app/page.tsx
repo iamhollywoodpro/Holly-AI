@@ -10,7 +10,6 @@ import ChatInputControls from '@/components/chat/ChatInputControls';
 import { WorkLogFeed } from '@/components/work-log';
 import BrainConsciousnessIndicator from '@/components/consciousness/BrainConsciousnessIndicator';
 import { Sidebar2 } from '@/components/navigation/Sidebar2';
-import ChatHistoryRevamped from '@/components/chat/ChatHistoryRevamped';
 import MemoryTimeline from '@/components/consciousness/MemoryTimeline';
 import { useUser } from '@clerk/nextjs';
 import { getVoiceInput, getVoiceOutput, isSpeechRecognitionAvailable, isSpeechSynthesisAvailable } from '@/lib/voice/voice-handler';
@@ -759,183 +758,15 @@ export default function ChatPage() {
 
       {/* Main Container */}
       <div className="relative z-10 flex h-full" style={{ height: '100%' }}>
-        {/* NEW Sidebar2 - Navigation */}
-        <Sidebar2 />
-
-        {/* Chat History Sidebar - Conversations */}
-        <AnimatePresence>
-          {showChatHistory && (
-            <motion.div
-              initial={{ x: -300, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: -300, opacity: 0 }}
-              transition={{ type: 'spring', damping: 25 }}
-              className="hidden md:block w-80 border-r border-gray-800/50"
-            >
-              <ChatHistoryRevamped
-                key={currentConversationId || 'no-conversation'}
-                currentConversationId={currentConversationId || undefined}
-                onSelectConversation={loadConversation}
-                onNewConversation={createNewConversation}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* NEW Sidebar2 - Navigation + Chat History */}
+        <Sidebar2 
+          currentConversationId={currentConversationId || undefined}
+          onSelectConversation={loadConversation}
+          onNewConversation={createNewConversation}
+        />
 
         {/* Main Chat Area */}
-        <div className="flex-1 flex flex-col min-w-0">
-          {/* Removed Drive banner - duplicated with dropdown */}
-          {/* Header - MOBILE OPTIMIZED */}
-          <motion.div 
-            className="relative z-50 px-3 sm:px-6 md:px-8 py-3 sm:py-4 md:py-6 border-b border-gray-800/50 bg-gray-900/30 backdrop-blur-xl"
-            initial={{ y: -50, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.2 }}
-          >
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2 sm:gap-3 md:gap-4 min-w-0">
-                {/* HOLLY Logo - SMALLER ON MOBILE */}
-                <motion.div
-                  className="relative w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 flex-shrink-0"
-                  animate={{
-                    scale: [1, 1.05, 1],
-                  }}
-                  transition={{
-                    duration: 2,
-                    repeat: Infinity,
-                    ease: 'easeInOut'
-                  }}
-                >
-                  <div className="absolute inset-0 bg-gradient-to-br from-purple-500 via-pink-500 to-blue-500 rounded-xl sm:rounded-2xl blur-lg sm:blur-xl opacity-50" />
-                  <div className="relative w-full h-full bg-gradient-to-br from-purple-600 via-pink-600 to-blue-600 rounded-xl sm:rounded-2xl flex items-center justify-center border border-white/20">
-                    <Brain className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-white" />
-                  </div>
-                </motion.div>
-
-                {/* Title - RESPONSIVE WITH STATUS */}
-                <div className="min-w-0 flex-1">
-                  <h1 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent truncate">
-                    HOLLY
-                  </h1>
-                  <div className="text-xs sm:text-sm text-gray-400 truncate">
-                    <DynamicLogoGreeting />
-                  </div>
-                </div>
-              </div>
-
-              {/* Right Side: Action Buttons + Consciousness */}
-              <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 flex-shrink-0">
-                {/* Mobile Hamburger Menu - ONLY ON MOBILE */}
-                <button
-                  onClick={() => setShowMobileMenu(true)}
-                  className="lg:hidden p-2 rounded-lg bg-gray-800/50 hover:bg-gray-700/50 border border-gray-700/50 text-gray-400 hover:text-white transition-colors"
-                  aria-label="Open menu"
-                >
-                  <Bars3Icon className="w-5 h-5" />
-                </button>
-                {/* Toggle Buttons - HIDDEN ON MOBILE */}
-                <motion.button
-                  onClick={() => setShowChatHistory(!showChatHistory)}
-                  className="hidden md:flex px-3 sm:px-4 py-1.5 sm:py-2 bg-gray-800/50 hover:bg-gray-700/50 rounded-lg border border-gray-700/50 text-xs sm:text-sm text-gray-300 items-center gap-2 transition-colors"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  aria-label="Toggle chat history"
-                >
-                  <Target className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  <span className="hidden sm:inline">History</span>
-                </motion.button>
-                <motion.button
-                  onClick={() => setShowMemory(!showMemory)}
-                  className="hidden md:flex px-3 sm:px-4 py-1.5 sm:py-2 bg-gray-800/50 hover:bg-gray-700/50 rounded-lg border border-gray-700/50 text-xs sm:text-sm text-gray-300 items-center gap-2 transition-colors"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  aria-label="Toggle memory"
-                >
-                  <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  <span className="hidden sm:inline">Memory</span>
-                </motion.button>
-
-
-
-                {/* Brain Consciousness Indicator - DESKTOP ONLY */}
-                <div className="hidden lg:block">
-                  <BrainConsciousnessIndicator state={consciousnessState} />
-                </div>
-                
-                {/* Timeline Link - DESKTOP ONLY */}
-                <a
-                  href="/timeline"
-                  className="hidden lg:block p-2 rounded-lg bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700 transition-all"
-                  title="Project Timeline"
-                >
-                  <Calendar className="w-5 h-5" />
-                </a>
-                
-                {/* View Summary Button - DESKTOP ONLY */}
-                {currentConversationId && (
-                  <motion.button
-                    onClick={() => {
-                      if (!summary.summary) {
-                        summary.generateSummary();
-                      }
-                      summary.openFullPanel();
-                    }}
-                    disabled={summary.isLoading}
-                    className="hidden lg:flex p-2 rounded-lg bg-gradient-to-r from-purple-600/20 to-pink-600/20 text-purple-400 hover:text-purple-300 hover:from-purple-600/30 hover:to-pink-600/30 border border-purple-500/30 transition-all disabled:opacity-50"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    title="View Conversation Summary"
-                  >
-                    {summary.isLoading ? (
-                      <div className="w-5 h-5 animate-spin rounded-full border-2 border-purple-400 border-t-transparent" />
-                    ) : (
-                      <FileText className="w-5 h-5" />
-                    )}
-                  </motion.button>
-                )}
-                
-                {/* Removed standalone Drive indicator - using dropdown */}
-                
-                {/* GitHub Connection Dropdown - DESKTOP ONLY */}
-                <div className="hidden lg:block">
-                  {githubUsername ? (
-                    <GitHubConnectionDropdown
-                      username={githubUsername}
-                      repoCount={githubRepoCount}
-                      onOpenRepoSelector={() => commandHandlerRef.current?.executeCommand('/repos')}
-                    />
-                  ) : (
-                    <button
-                      onClick={() => window.location.href = '/api/github/connect'}
-                      className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-800/50 hover:bg-gray-800 border border-gray-700/50 transition-all"
-                    >
-                      <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
-                        <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" />
-                      </svg>
-                      <span className="text-sm text-gray-300">Connect GitHub</span>
-                    </button>
-                  )}
-                </div>
-                
-                {/* Drive Connection Dropdown - DESKTOP ONLY */}
-                <div className="hidden lg:block">
-                  <DriveConnectionDropdown />
-                </div>
-                
-                {/* Profile Dropdown - DESKTOP ONLY */}
-                <div className="hidden lg:block">
-                  <ProfileDropdown
-                    onOpenMemory={() => setShowMemory(true)}
-                    onOpenSettings={() => window.location.href = '/settings/integrations'}
-                    onOpenKeyboardShortcuts={() => setShowKeyboardShortcuts(true)}
-                    onToggleDebug={() => setDebugMode(!debugMode)}
-                    debugMode={debugMode}
-                  />
-                </div>
-              </div>
-            </div>
-          </motion.div>
-
+        <div className="flex-1 flex flex-col min-w-0" style={{ marginLeft: 'var(--sidebar-width, 256px)' }}>
           {/* Messages Area - MOBILE OPTIMIZED */}
           <div className="flex-1 overflow-y-auto px-3 sm:px-6 md:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6">
             {isLoadingConversation ? (
