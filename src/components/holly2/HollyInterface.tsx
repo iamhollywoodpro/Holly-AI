@@ -6,7 +6,7 @@ import { ChatMessage } from './ChatMessage';
 import { ActionButtons } from './ActionButtons';
 import { ToolExecutionPanel } from './ToolExecutionPanel';
 import { SidebarCollapsible } from './SidebarCollapsible';
-import { ConsciousnessIndicator } from './ConsciousnessIndicator';
+import { CleanHeader } from './CleanHeader';
 import { FileUploadInline } from './FileUploadInline';
 import { cyberpunkTheme } from '@/styles/themes/cyberpunk';
 
@@ -259,54 +259,10 @@ export function HollyInterface() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
         {/* Header */}
-        <header 
-          className="flex items-center justify-between px-6 py-4 border-b"
-          style={{ 
-            backgroundColor: cyberpunkTheme.colors.background.secondary,
-            borderColor: cyberpunkTheme.colors.border.primary,
-          }}
-        >
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="p-2 rounded-lg hover:bg-white/5 transition-colors"
-            >
-              {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
-            
-            <div className="flex items-center gap-3">
-              <div 
-                className="w-10 h-10 rounded-lg flex items-center justify-center"
-                style={{ background: cyberpunkTheme.colors.gradients.primary }}
-              >
-                <span className="text-white font-bold text-lg">H</span>
-              </div>
-              <div>
-                <h1 
-                  className="text-lg font-bold"
-                  style={{ 
-                    background: cyberpunkTheme.colors.gradients.holographic,
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                  }}
-                >
-                  HOLLY
-                </h1>
-                <p 
-                  className="text-xs"
-                  style={{ color: cyberpunkTheme.colors.text.secondary }}
-                >
-                  AI Development Partner
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <ConsciousnessIndicator />
-            <button className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-pink-500" />
-          </div>
-        </header>
+        <CleanHeader 
+          onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+          chatTitle="New Chat"
+        />
 
         {/* Messages Area */}
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
