@@ -7,7 +7,7 @@
   "scripts": {
     "postinstall": "prisma generate",
     "dev": "next dev",
-    "build": "prisma db push --accept-data-loss && next build",
+    "build": "prisma generate && next build",
     "vercel-build": "prisma generate && next build",
     "vercel-build-with-architecture": "prisma db push --accept-data-loss && prisma generate && npx ts-node --transpile-only scripts/generate-architecture.ts && next build",
     "generate-architecture": "npx ts-node --transpile-only scripts/generate-architecture.ts",
