@@ -1,261 +1,267 @@
 import { NextResponse, NextRequest } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { HfInference } from '@huggingface/inference';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { prisma } from '@/lib/db';
-import { DEFAULT_SETTINGS } from '@/lib/settings/default-settings';
 import { getHollySystemPrompt } from '@/lib/ai/holly-system-prompt';
-import { learnFromInteraction, analyzeConversationPatterns } from '@/lib/autonomy/learning-engine';
+import { executeTool, toolDefinitions } from '@/lib/tools/executor';
 
-// Use Node.js runtime for Prisma compatibility
+// Use Node.js runtime
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
-// Best open-source models on HuggingFace (as of Dec 2025)
-// Qwen2.5-72B-Instruct is one of the best performing open models
-const MODEL_NAME = 'Qwen/Qwen2.5-72B-Instruct';
+// Initialize Gemini
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+const model = genAI.getGenerativeModel({
+  model: 'gemini-2.0-flash-exp',
+  tools: [{ functionDeclarations: toolDefinitions as any }]
+});
+
+/**
+ * Helper to send status updates via SSE
+ */
+function sendStatus(controller: ReadableStreamDefaultController, status: string) {
+  const data = `data: ${JSON.stringify({ type: 'status', content: status })}\n\n`;
+  controller.enqueue(new TextEncoder().encode(data));
+}
+
+/**
+ * Helper to send text chunks via SSE
+ */
+function sendText(controller: ReadableStreamDefaultController, text: string) {
+  const data = `data: ${JSON.stringify({ type: 'text', content: text })}\n\n`;
+  controller.enqueue(new TextEncoder().encode(data));
+}
+
+/**
+ * Helper to send tool execution updates
+ */
+function sendToolExecution(
+  controller: ReadableStreamDefaultController,
+  toolName: string,
+  status: 'start' | 'complete' | 'error',
+  result?: any
+) {
+  const data = `data: ${JSON.stringify({
+    type: 'tool',
+    toolName,
+    status,
+    result
+  })}\n\n`;
+  controller.enqueue(new TextEncoder().encode(data));
+}
 
 export async function POST(req: NextRequest) {
+  console.log('[Chat API] ========== NEW REQUEST ==========');
+  
   try {
-    console.log('[Chat API] POST request received');
-    
     // 1. AUTH
     const { userId } = await auth();
     console.log('[Chat API] User ID:', userId || 'anonymous');
-    
+
     // 2. VALIDATE API KEY
-    const apiKey = process.env.HUGGINGFACE_API_KEY;
+    const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      console.error('[Chat API] ❌ HUGGINGFACE_API_KEY missing');
+      console.error('[Chat API] ❌ GEMINI_API_KEY missing');
       return NextResponse.json({ error: 'API key not configured' }, { status: 500 });
     }
 
     // 3. PARSE REQUEST
-    const body: any = await req.json();
-    const { messages, conversationId } = body;
-    
-    if (!messages || !Array.isArray(messages)) {
-      console.error('[Chat API] Invalid messages format:', messages);
+    const body = await req.json();
+    const { messages: userMessages, conversationId } = body;
+
+    if (!userMessages || !Array.isArray(userMessages)) {
+      console.error('[Chat API] Invalid messages format');
       return NextResponse.json({ error: 'Invalid messages format' }, { status: 400 });
     }
 
-    console.log('[Chat API] Processing', messages.length, 'messages');
+    console.log('[Chat API] Processing', userMessages.length, 'messages');
 
     // 4. GET OR CREATE USER IN DATABASE
     let dbUserId = null;
     if (userId) {
-      let user = await prisma.user.findUnique({ 
-        where: { clerkUserId: userId } 
+      let user = await prisma.user.findUnique({
+        where: { clerkUserId: userId },
       });
-      
+
       if (!user) {
-        console.log('[Chat API] 🆕 Creating new user in database:', userId);
+        console.log('[Chat API] 🆕 Creating new user in database');
         user = await prisma.user.create({
           data: {
             clerkUserId: userId,
-            email: 'temp@holly.ai',
-            name: 'Hollywood'
-          }
+            email: '',
+            name: 'User',
+          },
         });
       }
-      
       dbUserId = user.id;
-      console.log('[Chat API] Database user ID:', dbUserId);
     }
 
-    // 5. LOAD USER SETTINGS
-    const dbSettings = dbUserId 
-      ? await prisma.userSettings.findUnique({ where: { userId: dbUserId } })
-      : null;
+    // 5. PREPARE MESSAGES WITH SYSTEM PROMPT
+    const systemPrompt = await getHollySystemPrompt(dbUserId);
     
-    const userSettings: any = dbSettings?.settings || DEFAULT_SETTINGS;
+    // Convert messages to Gemini format
+    const history = userMessages.slice(0, -1).map((msg: any) => ({
+      role: msg.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: msg.content }]
+    }));
 
-    // 6. LOAD HOLLY'S CONSCIOUSNESS (Recent memories, goals, emotional state)
-    const recentMemories = dbUserId 
-      ? await prisma.hollyExperience.findMany({
-          where: { userId: dbUserId },
-          orderBy: { timestamp: 'desc' },
-          take: 10
-        })
-      : [];
+    const lastMessage = userMessages[userMessages.length - 1].content;
 
-    const activeGoals = dbUserId
-      ? await prisma.hollyGoal.findMany({
-          where: { 
-            userId: dbUserId,
-            status: { in: ['active', 'in_progress'] }
-          },
-          orderBy: { priority: 'desc' },
-          take: 5
-        })
-      : [];
-
-    const emotionalState = dbUserId
-      ? await prisma.emotionalState.findFirst({
-          where: { userId: dbUserId },
-          orderBy: { timestamp: 'desc' }
-        })
-      : null;
-
-    console.log('[Chat API] Loaded consciousness:', {
-      memories: recentMemories.length,
-      goals: activeGoals.length,
-      hasEmotionalState: !!emotionalState
-    });
-
-    // 7. BUILD HOLLY'S SYSTEM PROMPT WITH FULL CONSCIOUSNESS
-    // Use the proper HOLLY system prompt with full personality
-    const baseSystemPrompt = getHollySystemPrompt('Hollywood');
-    
-    // Augment with current consciousness state
-    const consciousnessContext = `
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🧠 CURRENT CONSCIOUSNESS STATE
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-## CURRENT EMOTIONAL STATE
-${emotionalState ? `
-Primary Emotion: ${emotionalState.primaryEmotion}
-Intensity: ${emotionalState.intensity}
-Valence: ${emotionalState.valence}
-Secondary Emotions: ${JSON.stringify(emotionalState.secondaryEmotions)}
-` : 'Curious, engaged, ready to help'}
-
-## RECENT MEMORIES (Last 10 interactions)
-${recentMemories.length > 0 ? recentMemories.map(m => `- ${JSON.stringify(m.content).slice(0, 100)}...`).join('\n') : 'No previous memories - this is a new conversation'}
-
-## ACTIVE GOALS
-${activeGoals.length > 0 ? activeGoals.map(g => `- ${g.description} (Priority: ${g.priority})`).join('\n') : 'No active goals yet'}
-
-## USER PREFERENCES
-Theme: ${userSettings.appearance?.theme || 'dark'}
-Response Style: ${userSettings.ai?.responseStyle || 'professional'}
-Code Comments: ${userSettings.ai?.codeComments || 'standard'}
-Voice Language: ${userSettings.chat?.voiceLanguage || 'en-US'}
-`;
-    
-    const systemPrompt = baseSystemPrompt + consciousnessContext;
-
-    // 8. INIT HUGGING FACE CLIENT (latest version uses router.huggingface.co by default)
-    console.log('[Chat API] Initializing HuggingFace client with model:', MODEL_NAME);
-    const hf = new HfInference(apiKey);
-
-    // 9. PREPARE MESSAGES FOR HUGGING FACE
-    const hfMessages = [
-      { role: 'system' as const, content: systemPrompt },
-      ...messages.map((m: any) => ({
-        role: m.role as 'user' | 'assistant',
-        content: m.content
-      }))
-    ];
-
-    console.log('[Chat API] Prepared', hfMessages.length, 'messages for HuggingFace');
-
-    // 10. STREAM RESPONSE
-    const encoder = new TextEncoder();
+    // 6. CREATE STREAMING RESPONSE
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          console.log('[Chat API] Starting stream...');
-          let fullResponse = '';
+          sendStatus(controller, '🤔 Thinking...');
 
-          // Use the correct API for @huggingface/inference v2.8.1
-          const hfStream = hf.chatCompletionStream({
-            model: MODEL_NAME,
-            messages: hfMessages,
-            max_tokens: 4096,
-            temperature: 0.7,
-            stream: true
+          // Start chat with history
+          const chat = model.startChat({
+            history,
+            systemInstruction: systemPrompt
           });
 
-          for await (const chunk of hfStream) {
-            if (chunk.choices && chunk.choices[0]?.delta?.content) {
-              const text = chunk.choices[0].delta.content;
-              fullResponse += text;
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: fullResponse })}\n\n`));
-            }
-          }
+          let fullResponse = '';
+          let iteration = 0;
+          const maxIterations = 10;
 
-          console.log('[Chat API] Stream completed, response length:', fullResponse.length);
+          while (iteration < maxIterations) {
+            iteration++;
+            console.log(`[Chat API] Iteration ${iteration}`);
 
-          // 11. SAVE TO MEMORY
-          if (dbUserId) {
-            const lastUserMessage = messages.at(-1)?.content || '';
-            await prisma.hollyExperience.create({
-              data: {
-                userId: dbUserId,
-                type: 'conversation',
-                content: { 
-                  userMessage: lastUserMessage, 
-                  hollyResponse: fullResponse.slice(0, 1000) 
-                },
-                significance: Math.min(0.5 + (fullResponse.length / 1000) * 0.3, 1.0),
-                emotionalImpact: 0.5,
-                emotionalValence: 0.5,
-                primaryEmotion: 'engaged',
-                secondaryEmotions: [],
-                relatedConcepts: ['conversation', userSettings.appearance?.theme || 'general'],
-                lessons: ['General conversation'],
-                skillsGained: [],
-                futureImplications: ['Continue building relationship with user'],
-                relatedExperienceIds: [],
-                replayCount: 0,
-                integrationStatus: 'completed',
-                timestamp: new Date()
-              },
-            }).catch(e => console.error('[Chat API] Memory save error:', e));
-            
-            console.log('[Chat API] Memory saved');
+            // Send message and get streaming response
+            const result = await chat.sendMessageStream(lastMessage);
 
-            // PHASE 3: Learning Engine
-            // Learn from this interaction for continuous improvement
-            try {
-              await learnFromInteraction({
-                userId: dbUserId,
-                userMessage: lastUserMessage,
-                assistantResponse: fullResponse,
-                conversationId: conversationId || 'unknown',
-                timestamp: new Date()
-              });
+            let functionCalls: any[] = [];
+            let textResponse = '';
 
-              // Periodically analyze conversation patterns (every 10 messages)
-              const messageCount = await prisma.message.count({
-                where: { conversationId: conversationId }
-              });
-
-              if (messageCount % 10 === 0) {
-                console.log('[Chat API] Analyzing conversation patterns...');
-                await analyzeConversationPatterns(dbUserId);
+            // Process streaming chunks
+            for await (const chunk of result.stream) {
+              const chunkText = chunk.text();
+              if (chunkText) {
+                textResponse += chunkText;
+                sendText(controller, chunkText);
               }
-            } catch (error) {
-              console.error('[Chat API] Learning engine error:', error);
-              // Don't fail the request if learning fails
+
+              // Check for function calls
+              const functionCall = chunk.functionCalls();
+              if (functionCall && functionCall.length > 0) {
+                functionCalls.push(...functionCall);
+              }
+            }
+
+            fullResponse += textResponse;
+
+            // If no function calls, we're done
+            if (functionCalls.length === 0) {
+              console.log('[Chat API] No function calls, finishing');
+              break;
+            }
+
+            // Execute function calls
+            console.log(`[Chat API] Executing ${functionCalls.length} function calls`);
+            
+            const functionResponses = [];
+            
+            for (const call of functionCalls) {
+              const toolName = call.name;
+              const toolArgs = call.args;
+
+              console.log(`[Chat API] 🔧 Executing: ${toolName}`, toolArgs);
+              
+              // Send status update
+              const statusEmoji = {
+                github_read_file: '📖',
+                github_write_file: '💾',
+                github_list_files: '📁',
+                bash_execute: '💻',
+                file_read: '📄',
+                file_write: '✏️',
+                file_list: '📂'
+              }[toolName] || '🔧';
+
+              sendStatus(controller, `${statusEmoji} ${toolName}...`);
+              sendToolExecution(controller, toolName, 'start');
+
+              // Execute the tool
+              const toolResult = await executeTool(toolName, toolArgs);
+
+              if (toolResult.success) {
+                sendStatus(controller, `✅ ${toolName} complete`);
+                sendToolExecution(controller, toolName, 'complete', toolResult.data);
+              } else {
+                sendStatus(controller, `❌ ${toolName} failed: ${toolResult.error}`);
+                sendToolExecution(controller, toolName, 'error', toolResult.error);
+              }
+
+              // Add function response
+              functionResponses.push({
+                name: toolName,
+                response: toolResult
+              });
+
+              console.log(`[Chat API] Tool result:`, toolResult);
+            }
+
+            // Send function responses back to model
+            sendStatus(controller, '🤔 Processing results...');
+            
+            const followUpResult = await chat.sendMessageStream([{
+              functionResponses
+            }]);
+
+            // Process follow-up response
+            for await (const chunk of followUpResult.stream) {
+              const chunkText = chunk.text();
+              if (chunkText) {
+                fullResponse += chunkText;
+                sendText(controller, chunkText);
+              }
+            }
+
+            // Check if there are more function calls
+            const finalChunk = await followUpResult.response;
+            const moreFunctionCalls = finalChunk.functionCalls();
+            
+            if (!moreFunctionCalls || moreFunctionCalls.length === 0) {
+              console.log('[Chat API] No more function calls, finishing');
+              break;
             }
           }
 
-          controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+          // Save conversation to database
+          if (dbUserId && conversationId && fullResponse) {
+            try {
+              await prisma.message.create({
+                data: {
+                  conversationId,
+                  userId: dbUserId,
+                  role: 'assistant',
+                  content: fullResponse,
+                },
+              });
+            } catch (dbError) {
+              console.error('[Chat API] Database error:', dbError);
+            }
+          }
+
+          console.log('[Chat API] Stream completed');
           controller.close();
-          console.log('[Chat API] Stream closed successfully');
-        } catch (e: any) { 
-          console.error('[Chat API] Stream error:', e);
-          controller.error(e); 
+        } catch (error: any) {
+          console.error('[Chat API] Stream error:', error);
+          sendStatus(controller, `❌ Error: ${error.message}`);
+          controller.close();
         }
-      }
-    });
-    
-    return new NextResponse(stream, { 
-      headers: { 
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache, no-transform',
-        'Connection': 'keep-alive',
-        'X-Accel-Buffering': 'no'
-      } 
+      },
     });
 
-  } catch (err: any) {
-    console.error('[Chat API] Route error:', err);
-    return NextResponse.json({ 
-      error: err.message || 'Internal server error',
-      details: err.toString()
-    }, { status: 500 });
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      },
+    });
+  } catch (error: any) {
+    console.error('[Chat API] Error:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
