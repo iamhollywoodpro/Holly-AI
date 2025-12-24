@@ -55,7 +55,7 @@ export function CleanHeader({ onToggleSidebar, chatTitle = "New Chat" }: CleanHe
             width: '32px',
             height: '32px',
             borderRadius: '8px',
-            background: `linear-gradient(135deg, ${cyberpunkTheme.colors.primary}, ${cyberpunkTheme.colors.secondary})`,
+            background: `linear-gradient(135deg, ${cyberpunkTheme.colors.primary.purple}, ${cyberpunkTheme.colors.primary.cyan})`,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -122,7 +122,7 @@ export function CleanHeader({ onToggleSidebar, chatTitle = "New Chat" }: CleanHe
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.background = cyberpunkTheme.colors.background.secondary;
-            e.currentTarget.style.color = cyberpunkTheme.colors.text;
+            e.currentTarget.style.color = cyberpunkTheme.colors.text.primary;
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.background = 'transparent';
@@ -150,7 +150,7 @@ export function CleanHeader({ onToggleSidebar, chatTitle = "New Chat" }: CleanHe
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.background = cyberpunkTheme.colors.background.secondary;
-            e.currentTarget.style.color = cyberpunkTheme.colors.text;
+            e.currentTarget.style.color = cyberpunkTheme.colors.text.primary;
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.background = 'transparent';
@@ -178,7 +178,7 @@ export function CleanHeader({ onToggleSidebar, chatTitle = "New Chat" }: CleanHe
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.background = cyberpunkTheme.colors.background.secondary;
-            e.currentTarget.style.color = cyberpunkTheme.colors.text;
+            e.currentTarget.style.color = cyberpunkTheme.colors.text.primary;
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.background = 'transparent';
@@ -206,7 +206,7 @@ export function CleanHeader({ onToggleSidebar, chatTitle = "New Chat" }: CleanHe
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = cyberpunkTheme.colors.background.secondary;
-              e.currentTarget.style.color = cyberpunkTheme.colors.text;
+              e.currentTarget.style.color = cyberpunkTheme.colors.text.primary;
             }}
             onMouseLeave={(e) => {
               if (!showMoreMenu) {
@@ -225,7 +225,7 @@ export function CleanHeader({ onToggleSidebar, chatTitle = "New Chat" }: CleanHe
               top: 'calc(100% + 0.5rem)',
               right: 0,
               background: cyberpunkTheme.colors.background.secondary,
-              border: `1px solid ${cyberpunkTheme.colors.border}`,
+              border: `1px solid ${cyberpunkTheme.colors.border.primary}`,
               borderRadius: '12px',
               boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
               minWidth: '200px',
@@ -233,9 +233,9 @@ export function CleanHeader({ onToggleSidebar, chatTitle = "New Chat" }: CleanHe
               overflow: 'hidden',
             }}>
               {[
-                { icon: Edit3, label: 'Rename', color: cyberpunkTheme.colors.text },
-                { icon: FileText, label: 'Task Details', color: cyberpunkTheme.colors.text },
-                { icon: Star, label: 'Add to Favorites', color: cyberpunkTheme.colors.accent },
+                { icon: Edit3, label: 'Rename', color: cyberpunkTheme.colors.text.primary },
+                { icon: FileText, label: 'Task Details', color: cyberpunkTheme.colors.text.primary },
+                { icon: Star, label: 'Add to Favorites', color: cyberpunkTheme.colors.primary.pink },
                 { icon: Trash2, label: 'Delete', color: '#ef4444' },
               ].map((item, i) => (
                 <button
