@@ -766,7 +766,7 @@ export default function ChatPage() {
         />
 
         {/* Main Chat Area */}
-        <div className="flex-1 flex flex-col min-w-0" style={{ marginLeft: 'var(--sidebar-width, 256px)' }}>
+        <div className="flex-1 flex flex-col min-w-0 md:ml-64 transition-all duration-300">
           {/* Messages Area - MOBILE OPTIMIZED */}
           <div className="flex-1 overflow-y-auto px-3 sm:px-6 md:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6">
             {isLoadingConversation ? (
