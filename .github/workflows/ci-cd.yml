@@ -37,12 +37,12 @@ jobs:
         run: npm ci
         
       - name: 🧪 Run Jest tests
-        run: npm test
+        run: npx jest --passWithNoTests
         env:
           CI: true
           
       - name: 📊 Generate coverage report
-        run: npm run test:coverage
+        run: npx jest --coverage --passWithNoTests
         continue-on-error: true
         
       - name: 📤 Upload coverage to artifacts

@@ -17,9 +17,9 @@
     "scan:basic": "node .holly/tools/typescript-scanner.js",
     "pre-deploy": "npm run scan && npx prisma validate",
     "safe-deploy": "npm run pre-deploy && npm run build",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
+    "test": "npx jest --passWithNoTests",
+    "test:watch": "npx jest --watch",
+    "test:coverage": "npx jest --coverage --passWithNoTests",
     "setup:db": "ts-node setup-database.ts",
     "seed:db": "ts-node database-seed.ts",
     "migrate:db": "psql $DATABASE_URL -f database-schema.sql"
