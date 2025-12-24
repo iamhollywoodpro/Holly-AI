@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
+import '@/styles/holly2.css';
 import { ClerkProvider } from '@clerk/nextjs';
 import { Providers } from '@/components/Providers';
 import { SettingsProvider } from './providers';
