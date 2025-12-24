@@ -204,9 +204,15 @@ export async function POST(req: NextRequest) {
             // Send function responses back to model
             sendStatus(controller, '🤔 Processing results...');
             
-            const followUpResult = await chat.sendMessageStream([{
-              functionResponses
-            }]);
+            // Format function responses for Gemini API
+            const formattedResponses = functionResponses.map(fr => ({
+              functionResponse: {
+                name: fr.name,
+                response: fr.response
+              }
+            }));
+            
+            const followUpResult = await chat.sendMessageStream(formattedResponses);
 
             // Process follow-up response
             for await (const chunk of followUpResult.stream) {
