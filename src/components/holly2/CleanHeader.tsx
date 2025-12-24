@@ -40,7 +40,7 @@ export function CleanHeader({ onToggleSidebar, chatTitle = "New Chat" }: CleanHe
             transition: 'all 0.2s',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = cyberpunkTheme.colors.background;
+            e.currentTarget.style.background = cyberpunkTheme.colors.background.secondary;
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.background = 'transparent';
@@ -121,7 +121,7 @@ export function CleanHeader({ onToggleSidebar, chatTitle = "New Chat" }: CleanHe
             transition: 'all 0.2s',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = cyberpunkTheme.colors.background;
+            e.currentTarget.style.background = cyberpunkTheme.colors.background.secondary;
             e.currentTarget.style.color = cyberpunkTheme.colors.text;
           }}
           onMouseLeave={(e) => {
@@ -149,7 +149,7 @@ export function CleanHeader({ onToggleSidebar, chatTitle = "New Chat" }: CleanHe
             transition: 'all 0.2s',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = cyberpunkTheme.colors.background;
+            e.currentTarget.style.background = cyberpunkTheme.colors.background.secondary;
             e.currentTarget.style.color = cyberpunkTheme.colors.text;
           }}
           onMouseLeave={(e) => {
@@ -177,7 +177,7 @@ export function CleanHeader({ onToggleSidebar, chatTitle = "New Chat" }: CleanHe
             transition: 'all 0.2s',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = cyberpunkTheme.colors.background;
+            e.currentTarget.style.background = cyberpunkTheme.colors.background.secondary;
             e.currentTarget.style.color = cyberpunkTheme.colors.text;
           }}
           onMouseLeave={(e) => {
@@ -205,7 +205,7 @@ export function CleanHeader({ onToggleSidebar, chatTitle = "New Chat" }: CleanHe
               transition: 'all 0.2s',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = cyberpunkTheme.colors.background;
+              e.currentTarget.style.background = cyberpunkTheme.colors.background.secondary;
               e.currentTarget.style.color = cyberpunkTheme.colors.text;
             }}
             onMouseLeave={(e) => {
@@ -259,7 +259,7 @@ export function CleanHeader({ onToggleSidebar, chatTitle = "New Chat" }: CleanHe
                     textAlign: 'left',
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = cyberpunkTheme.colors.background;
+                    e.currentTarget.style.background = cyberpunkTheme.colors.background.secondary;
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.background = 'transparent';
