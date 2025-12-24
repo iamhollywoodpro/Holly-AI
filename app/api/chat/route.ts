@@ -280,6 +280,7 @@ export async function POST(req: NextRequest) {
                   await prisma.message.create({
                     data: {
                       conversationId,
+                      userId: dbUserId,
                       role: 'assistant',
                       content: fullResponse,
                     },
