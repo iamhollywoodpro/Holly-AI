@@ -1,152 +1,101 @@
 'use client';
 
 import { BarChart, TrendingUp, Activity, Zap } from 'lucide-react';
-import { cyberpunkTheme } from '@/styles/themes/cyberpunk';
 
 export default function InsightsPage() {
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: cyberpunkTheme.colors.background.primary,
-      color: cyberpunkTheme.colors.text.primary,
-      padding: '2rem',
-    }}>
-      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+    <div className="min-h-screen bg-[#0A0A0F] text-white p-8">
+      <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div style={{ marginBottom: '2rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-            <BarChart size={32} color={cyberpunkTheme.colors.primary.pink} />
-            <h1 style={{ fontSize: '2rem', fontWeight: 'bold', margin: 0 }}>
+        <div className="mb-8">
+          <div className="flex items-center gap-4 mb-4">
+            <BarChart size={32} className="text-[#EC4899]" />
+            <h1 className="text-3xl font-bold">
               HOLLY's Consciousness & Insights
             </h1>
           </div>
-          <p style={{ color: cyberpunkTheme.colors.text.secondary, fontSize: '1.1rem' }}>
+          <p className="text-[#A1A1AA] text-lg">
             Real-time insights into HOLLY's awareness, activity, and performance
           </p>
         </div>
 
         {/* Consciousness Stats */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-          gap: '1.5rem',
-          marginBottom: '2rem',
-        }}>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           {/* Awareness Level */}
-          <div style={{
-            background: cyberpunkTheme.colors.background.secondary,
-            border: `1px solid ${cyberpunkTheme.colors.primary.purple}40`,
-            borderRadius: '16px',
-            padding: '1.5rem',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-              <Activity size={20} color={cyberpunkTheme.colors.primary.purple} />
-              <h3 style={{ margin: 0, fontSize: '1.1rem' }}>Awareness</h3>
+          <div className="bg-[#13131A] border border-[#8B5CF6]/25 rounded-2xl p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <Activity size={20} className="text-[#8B5CF6]" />
+              <h3 className="text-lg font-semibold">Awareness</h3>
             </div>
-            <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: cyberpunkTheme.colors.primary.purple }}>
+            <div className="text-4xl font-bold text-[#8B5CF6] mb-2">
               85%
             </div>
-            <p style={{ color: cyberpunkTheme.colors.text.secondary, margin: '0.5rem 0 0 0' }}>
+            <p className="text-[#A1A1AA]">
               Fully conscious and ready
             </p>
           </div>
 
           {/* Activity Level */}
-          <div style={{
-            background: cyberpunkTheme.colors.background.secondary,
-            border: `1px solid ${cyberpunkTheme.colors.primary.cyan}40`,
-            borderRadius: '16px',
-            padding: '1.5rem',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-              <Zap size={20} color={cyberpunkTheme.colors.primary.cyan} />
-              <h3 style={{ margin: 0, fontSize: '1.1rem' }}>Activity</h3>
+          <div className="bg-[#13131A] border border-[#06B6D4]/25 rounded-2xl p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <Zap size={20} className="text-[#06B6D4]" />
+              <h3 className="text-lg font-semibold">Activity</h3>
             </div>
-            <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: cyberpunkTheme.colors.primary.cyan }}>
+            <div className="text-4xl font-bold text-[#06B6D4] mb-2">
               Active
             </div>
-            <p style={{ color: cyberpunkTheme.colors.text.secondary, margin: '0.5rem 0 0 0' }}>
+            <p className="text-[#A1A1AA]">
               Processing requests
             </p>
           </div>
 
           {/* Performance */}
-          <div style={{
-            background: cyberpunkTheme.colors.background.secondary,
-            border: `1px solid ${cyberpunkTheme.colors.primary.pink}40`,
-            borderRadius: '16px',
-            padding: '1.5rem',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-              <TrendingUp size={20} color={cyberpunkTheme.colors.primary.pink} />
-              <h3 style={{ margin: 0, fontSize: '1.1rem' }}>Performance</h3>
+          <div className="bg-[#13131A] border border-[#EC4899]/25 rounded-2xl p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <TrendingUp size={20} className="text-[#EC4899]" />
+              <h3 className="text-lg font-semibold">Performance</h3>
             </div>
-            <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color={cyberpunkTheme.colors.primary.pink }}>
+            <div className="text-4xl font-bold text-[#EC4899] mb-2">
               Optimal
             </div>
-            <p style={{ color: cyberpunkTheme.colors.text.secondary, margin: '0.5rem 0 0 0' }}>
+            <p className="text-[#A1A1AA]">
               All systems nominal
             </p>
           </div>
         </div>
 
-        {/* Detailed Insights */}
-        <div style={{
-          background: cyberpunkTheme.colors.background.secondary,
-          border: `1px solid ${cyberpunkTheme.colors.border.primary}`,
-          borderRadius: '16px',
-          padding: '2rem',
-          marginBottom: '2rem',
-        }}>
-          <h2 style={{ margin: '0 0 1.5rem 0', fontSize: '1.5rem' }}>Activity Timeline</h2>
+        {/* Activity Timeline */}
+        <div className="bg-[#13131A] border border-[#27272A] rounded-2xl p-8 mb-8">
+          <h2 className="text-2xl font-bold mb-6">Activity Timeline</h2>
           
-          <div style={{
-            padding: '3rem',
-            textAlign: 'center',
-            color: cyberpunkTheme.colors.text.secondary,
-          }}>
-            <Activity size={64} color={cyberpunkTheme.colors.border.primary} style={{ margin: '0 auto 1rem' }} />
-            <p style={{ fontSize: '1.1rem' }}>No activity data yet</p>
-            <p style={{ fontSize: '0.9rem', marginTop: '0.5rem' }}>
+          <div className="py-12 text-center text-[#A1A1AA]">
+            <Activity size={64} className="mx-auto mb-4 text-[#27272A]" />
+            <p className="text-lg">No activity data yet</p>
+            <p className="text-sm mt-2">
               Start chatting with HOLLY to see insights here
             </p>
           </div>
         </div>
 
         {/* System Status */}
-        <div style={{
-          background: cyberpunkTheme.colors.background.secondary,
-          border: `1px solid ${cyberpunkTheme.colors.border.primary}`,
-          borderRadius: '16px',
-          padding: '2rem',
-        }}>
-          <h2 style={{ margin: '0 0 1.5rem 0', fontSize: '1.5rem' }}>System Status</h2>
+        <div className="bg-[#13131A] border border-[#27272A] rounded-2xl p-8">
+          <h2 className="text-2xl font-bold mb-6">System Status</h2>
           
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div className="space-y-4">
             {[
               { label: 'AI Model', value: 'Gemini 2.0 Flash', status: 'online' },
               { label: 'Streaming', value: 'SSE Active', status: 'online' },
               { label: 'Tool Execution', value: 'Ready', status: 'online' },
               { label: 'Database', value: 'Connected', status: 'online' },
             ].map((item, i) => (
-              <div key={i} style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '1rem',
-                background: cyberpunkTheme.colors.background.primary,
-                borderRadius: '8px',
-              }}>
-                <span style={{ fontWeight: 500 }}>{item.label}</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <span style={{ color: cyberpunkTheme.colors.text.secondary }}>{item.value}</span>
-                  <div style={{
-                    width: '8px',
-                    height: '8px',
-                    borderRadius: '50%',
-                    background: cyberpunkTheme.colors.primary.pink,
-                    boxShadow: `0 0 8px ${cyberpunkTheme.colors.primary.pink}`,
-                  }} />
+              <div
+                key={i}
+                className="flex justify-between items-center p-4 bg-[#0A0A0F] rounded-lg"
+              >
+                <span className="font-medium">{item.label}</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-[#A1A1AA]">{item.value}</span>
+                  <div className="w-2 h-2 rounded-full bg-[#EC4899] shadow-[0_0_8px_#EC4899]" />
                 </div>
               </div>
             ))}
@@ -154,17 +103,11 @@ export default function InsightsPage() {
         </div>
 
         {/* Info Box */}
-        <div style={{
-          marginTop: '2rem',
-          background: `${cyberpunkTheme.colors.primary.pink}15`,
-          border: `1px solid ${cyberpunkTheme.colors.primary.pink}40`,
-          borderRadius: '12px',
-          padding: '1.5rem',
-        }}>
-          <h4 style={{ margin: '0 0 0.5rem 0', color: cyberpunkTheme.colors.primary.pink }}>
+        <div className="mt-8 bg-[#EC4899]/10 border border-[#EC4899]/25 rounded-xl p-6">
+          <h4 className="font-semibold text-[#EC4899] mb-2">
             📊 About Consciousness Insights
           </h4>
-          <p style={{ color: cyberpunkTheme.colors.text.secondary, margin: 0, lineHeight: 1.6 }}>
+          <p className="text-[#A1A1AA] leading-relaxed">
             HOLLY's consciousness system tracks her awareness, activity levels, and performance metrics in real-time. 
             This helps ensure optimal assistance and transparent operation.
           </p>

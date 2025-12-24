@@ -1,147 +1,88 @@
 'use client';
 
 import { Brain, Clock, Tag, Search } from 'lucide-react';
-import { cyberpunkTheme } from '@/styles/themes/cyberpunk';
 
 export default function MemoryPage() {
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: cyberpunkTheme.colors.background.primary,
-      color: cyberpunkTheme.colors.text.primary,
-      padding: '2rem',
-    }}>
-      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+    <div className="min-h-screen bg-[#0A0A0F] text-white p-8">
+      <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div style={{ marginBottom: '2rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-            <Brain size={32} color={cyberpunkTheme.colors.primary.purple} />
-            <h1 style={{ fontSize: '2rem', fontWeight: 'bold', margin: 0 }}>
+        <div className="mb-8">
+          <div className="flex items-center gap-4 mb-4">
+            <Brain size={32} className="text-[#8B5CF6]" />
+            <h1 className="text-3xl font-bold">
               HOLLY's Memory
             </h1>
           </div>
-          <p style={{ color: cyberpunkTheme.colors.text.secondary, fontSize: '1.1rem' }}>
+          <p className="text-[#A1A1AA] text-lg">
             Everything HOLLY remembers about your conversations, preferences, and work together
           </p>
         </div>
 
         {/* Search Bar */}
-        <div style={{
-          background: cyberpunkTheme.colors.background.secondary,
-          border: `1px solid ${cyberpunkTheme.colors.border.primary}`,
-          borderRadius: '12px',
-          padding: '1rem',
-          marginBottom: '2rem',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.75rem',
-        }}>
-          <Search size={20} color={cyberpunkTheme.colors.text.secondary} />
+        <div className="bg-[#13131A] border border-[#27272A] rounded-xl p-4 mb-8 flex items-center gap-3">
+          <Search size={20} className="text-[#A1A1AA]" />
           <input
             type="text"
             placeholder="Search memories..."
-            style={{
-              flex: 1,
-              background: 'transparent',
-              border: 'none',
-              outline: 'none',
-              color: cyberpunkTheme.colors.text.primary,
-              fontSize: '1rem',
-            }}
+            className="flex-1 bg-transparent border-none outline-none text-white"
           />
         </div>
 
         {/* Memory Categories */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-          gap: '1.5rem',
-        }}>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Recent Conversations */}
-          <div style={{
-            background: cyberpunkTheme.colors.background.secondary,
-            border: `1px solid ${cyberpunkTheme.colors.border.primary}`,
-            borderRadius: '16px',
-            padding: '1.5rem',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-              <Clock size={20} color={cyberpunkTheme.colors.primary.pink} />
-              <h3 style={{ margin: 0, fontSize: '1.2rem' }}>Recent Conversations</h3>
+          <div className="bg-[#13131A] border border-[#27272A] rounded-2xl p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <Clock size={20} className="text-[#EC4899]" />
+              <h3 className="text-lg font-semibold">Recent Conversations</h3>
             </div>
-            <p style={{ color: cyberpunkTheme.colors.text.secondary, marginBottom: '1rem' }}>
+            <p className="text-[#A1A1AA] mb-4">
               Your latest interactions with HOLLY
             </p>
-            <div style={{
-              padding: '2rem',
-              textAlign: 'center',
-              color: cyberpunkTheme.colors.text.secondary,
-            }}>
-              <Clock size={48} color={cyberpunkTheme.colors.border.primary} style={{ margin: '0 auto 1rem' }} />
+            <div className="py-8 text-center text-[#A1A1AA]">
+              <Clock size={48} className="mx-auto mb-4 text-[#27272A]" />
               <p>No recent memories yet</p>
             </div>
           </div>
 
           {/* Topics & Interests */}
-          <div style={{
-            background: cyberpunkTheme.colors.background.secondary,
-            border: `1px solid ${cyberpunkTheme.colors.border.primary}`,
-            borderRadius: '16px',
-            padding: '1.5rem',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-              <Tag size={20} color={cyberpunkTheme.colors.primary.cyan} />
-              <h3 style={{ margin: 0, fontSize: '1.2rem' }}>Topics & Interests</h3>
+          <div className="bg-[#13131A] border border-[#27272A] rounded-2xl p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <Tag size={20} className="text-[#06B6D4]" />
+              <h3 className="text-lg font-semibold">Topics & Interests</h3>
             </div>
-            <p style={{ color: cyberpunkTheme.colors.text.secondary, marginBottom: '1rem' }}>
+            <p className="text-[#A1A1AA] mb-4">
               Things you've discussed with HOLLY
             </p>
-            <div style={{
-              padding: '2rem',
-              textAlign: 'center',
-              color: cyberpunkTheme.colors.text.secondary,
-            }}>
-              <Tag size={48} color={cyberpunkTheme.colors.border.primary} style={{ margin: '0 auto 1rem' }} />
+            <div className="py-8 text-center text-[#A1A1AA]">
+              <Tag size={48} className="mx-auto mb-4 text-[#27272A]" />
               <p>No topics tracked yet</p>
             </div>
           </div>
 
           {/* Preferences */}
-          <div style={{
-            background: cyberpunkTheme.colors.background.secondary,
-            border: `1px solid ${cyberpunkTheme.colors.border.primary}`,
-            borderRadius: '16px',
-            padding: '1.5rem',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-              <Brain size={20} color={cyberpunkTheme.colors.primary.purple} />
-              <h3 style={{ margin: 0, fontSize: '1.2rem' }}>Your Preferences</h3>
+          <div className="bg-[#13131A] border border-[#27272A] rounded-2xl p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <Brain size={20} className="text-[#8B5CF6]" />
+              <h3 className="text-lg font-semibold">Your Preferences</h3>
             </div>
-            <p style={{ color: cyberpunkTheme.colors.text.secondary, marginBottom: '1rem' }}>
+            <p className="text-[#A1A1AA] mb-4">
               How you like to work with HOLLY
             </p>
-            <div style={{
-              padding: '2rem',
-              textAlign: 'center',
-              color: cyberpunkTheme.colors.text.secondary,
-            }}>
-              <Brain size={48} color={cyberpunkTheme.colors.border.primary} style={{ margin: '0 auto 1rem' }} />
+            <div className="py-8 text-center text-[#A1A1AA]">
+              <Brain size={48} className="mx-auto mb-4 text-[#27272A]" />
               <p>No preferences set yet</p>
             </div>
           </div>
         </div>
 
         {/* Info Box */}
-        <div style={{
-          marginTop: '2rem',
-          background: `${cyberpunkTheme.colors.primary.purple}15`,
-          border: `1px solid ${cyberpunkTheme.colors.primary.purple}40`,
-          borderRadius: '12px',
-          padding: '1.5rem',
-        }}>
-          <h4 style={{ margin: '0 0 0.5rem 0', color: cyberpunkTheme.colors.primary.purple }}>
+        <div className="mt-8 bg-[#8B5CF6]/10 border border-[#8B5CF6]/25 rounded-xl p-6">
+          <h4 className="font-semibold text-[#8B5CF6] mb-2">
             🧠 How HOLLY's Memory Works
           </h4>
-          <p style={{ color: cyberpunkTheme.colors.text.secondary, margin: 0, lineHeight: 1.6 }}>
+          <p className="text-[#A1A1AA] leading-relaxed">
             HOLLY remembers your conversations, preferences, and work patterns to provide better assistance over time. 
             Your memories are private and only used to improve your experience with HOLLY.
           </p>
