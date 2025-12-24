@@ -48,7 +48,7 @@ def fetch_queued_job(conn) -> Optional[Dict[str, Any]]:
     """Fetch the oldest queued job"""
     with conn.cursor() as cur:
         cur.execute("""
-            SELECT * FROM "AuraAnalysis"
+            SELECT * FROM "aura_analyses"
             WHERE status = 'queued'
             ORDER BY "createdAt" ASC
             LIMIT 1
@@ -71,7 +71,7 @@ def update_job_status(conn, job_id: str, status: str, progress: int = 0, **kwarg
     
     with conn.cursor() as cur:
         query = f"""
-            UPDATE "AuraAnalysis"
+            UPDATE "aura_analyses"
             SET {', '.join(set_clauses)}
             WHERE "jobId" = %s
         """
