@@ -35,6 +35,9 @@ interface ToolCall {
   name: string;
   status: 'pending' | 'running' | 'success' | 'error';
   result?: any;
+  error?: string;
+  startTime?: Date;
+  endTime?: Date;
 }
 
 export function HollyInterface() {
