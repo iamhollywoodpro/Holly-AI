@@ -20,6 +20,7 @@ import { UserButton } from '@clerk/nextjs';
 import { useSidebar } from '@/hooks/use-sidebar';
 import { NewTaskMenu } from './NewTaskMenu';
 import { LibrarySection } from './LibrarySection';
+import { ChatHistorySection } from '@/components/chat/ChatHistorySection';
 
 export function Sidebar2({ 
   currentConversationId,
@@ -144,82 +145,41 @@ export function Sidebar2({
           {!isCollapsed && <span className="text-sm">Search</span>}
         </button>
 
+        {/* AURA */}
+        <NavLink href="/aura" icon={Sparkles} label="AURA" />
+
         {/* Library */}
         <LibrarySection isCollapsed={isCollapsed} />
 
-        {/* All Chats - Collapsible with conversation list */}
-        {!isCollapsed && (
-          <div className="space-y-1">
-            <button
-              onClick={() => setShowAllChats(!showAllChats)}
-              className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-all duration-200"
-            >
-              <div className="flex items-center gap-3">
-                <MessageSquare className="w-5 h-5" />
-                <span className="text-sm">All Chats</span>
-              </div>
-              {showAllChats ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-            </button>
-            
-            {showAllChats && (
-              <div className="ml-4 space-y-1 max-h-64 overflow-y-auto">
-                {/* New Conversation Button */}
-                <button
-                  onClick={() => {
-                    onNewConversation?.();
-                    if (isMobileOpen) closeAll();
-                  }}
-                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-gray-800 transition-all"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>New Chat</span>
-                </button>
-                
-                {/* Conversation List */}
-                {conversations.map((conv) => (
-                  <button
-                    key={conv.id}
-                    onClick={() => {
-                      onSelectConversation?.(conv.id);
-                      if (isMobileOpen) closeAll();
-                    }}
-                    className={`
-                      w-full flex items-start gap-2 px-3 py-2 rounded-lg text-sm
-                      transition-all duration-200 text-left
-                      ${
-                        conv.id === currentConversationId
-                          ? 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30 text-white'
-                          : 'text-gray-400 hover:text-white hover:bg-gray-800'
-                      }
-                    `}
-                  >
-                    <MessageSquare className={`w-4 h-4 mt-0.5 flex-shrink-0 ${
-                      conv.id === currentConversationId ? 'text-purple-400' : ''
-                    }`} />
-                    <span className="truncate">
-                      {conv.title || `Chat ${new Date(conv.createdAt).toLocaleDateString()}`}
-                    </span>
-                  </button>
-                ))}
-                
-                {conversations.length === 0 && (
-                  <p className="px-3 py-2 text-xs text-gray-500">No conversations yet</p>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-        
-        {/* Collapsed: Just show icon */}
-        {isCollapsed && (
-          <Link
-            href="/"
-            className="flex items-center justify-center px-3 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-all duration-200"
-            title="All Chats"
-          >
-            <MessageSquare className="w-5 h-5" />
-          </Link>
-        )}
+        {/* Chat History with Delete */}
+        <ChatHistorySection
+          conversations={conversations}
+          currentConversationId={currentConversationId}
+          isCollapsed={isCollapsed}
+          onSelectConversation={(id) => {
+            onSelectConversation?.(id);
+            if (isMobileOpen) closeAll();
+          }}
+          onNewConversation={() => {
+            onNewConversation?.();
+            if (isMobileOpen) closeAll();
+          }}
+          onRefresh={() => {
+            // Reload conversations
+            const loadConversations = async () => {
+              try {
+                const response = await fetch('/api/conversations');
+                if (response.ok) {
+                  const data = await response.json();
+                  setConversations(data.conversations || []);
+                }
+              } catch (error) {
+                console.error('Failed to load conversations:', error);
+              }
+            };
+            loadConversations();
+          }}
+        />
       </nav>
 
       {/* Bottom Navigation */}
