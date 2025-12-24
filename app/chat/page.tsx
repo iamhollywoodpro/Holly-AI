@@ -1,4 +1,4 @@
-import HollyChatInterface from "@/src/components/holly-chat-interface";
+import HollyChatInterface from "@/components/holly-chat-interface";
 
 export default function ChatPage() {
   return (

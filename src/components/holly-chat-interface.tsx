@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Send, Loader2, Sparkles } from "lucide-react";
-import ToolExecutionPanel, { ToolExecution } from "@/src/components/tool-execution-panel";
-import SandboxWindow from "@/src/components/sandbox-window";
+import ToolExecutionPanel, { ToolExecution } from "@/components/tool-execution-panel";
+import SandboxWindow from "@/components/sandbox-window";
 
 interface Message {
   id: string;
