@@ -26,6 +26,8 @@ interface UploadedFile {
   type: string;
   url: string;
   thumbnail?: string;
+  uploading?: boolean;
+  progress?: number;
 }
 
 interface ToolCall {
@@ -97,12 +99,15 @@ export function HollyInterface() {
 
       setMessages(prev => [...prev, newMessage]);
 
+      let buffer = '';
+
       while (reader) {
         const { done, value } = await reader.read();
         if (done) break;
 
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n');
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
 
         for (const line of lines) {
           if (line.startsWith('data: ')) {
@@ -110,10 +115,30 @@ export function HollyInterface() {
               const data = JSON.parse(line.slice(6));
               
               if (data.type === 'status') {
-                // Update status indicator
-              } else if (data.type === 'tool_call') {
-                setToolCalls(prev => [...prev, data.tool]);
-              } else if (data.type === 'content') {
+                // Update status indicator (could show in UI)
+                console.log('Status:', data.content);
+              } else if (data.type === 'tool') {
+                // Update tool execution panel
+                const toolCall: ToolCall = {
+                  id: Date.now().toString() + Math.random(),
+                  name: data.toolName,
+                  status: data.status === 'start' ? 'running' : 
+                          data.status === 'complete' ? 'success' : 'error',
+                  result: data.result,
+                  startTime: data.status === 'start' ? new Date() : undefined,
+                  endTime: data.status !== 'start' ? new Date() : undefined,
+                };
+                
+                setToolCalls(prev => {
+                  const existing = prev.find(t => t.name === data.toolName && t.status === 'running');
+                  if (existing && data.status !== 'start') {
+                    return prev.map(t => 
+                      t.id === existing.id ? { ...t, ...toolCall } : t
+                    );
+                  }
+                  return [...prev, toolCall];
+                });
+              } else if (data.type === 'text') {
                 assistantMessage += data.content;
                 setMessages(prev => 
                   prev.map(m => 
@@ -145,7 +170,9 @@ export function HollyInterface() {
         name: file.name,
         size: file.size,
         type: file.type,
-        url: '', // Will be set after upload
+        url: '',
+        uploading: true,
+        progress: 0,
       };
 
       // Generate thumbnail for images
@@ -153,30 +180,58 @@ export function HollyInterface() {
         const reader = new FileReader();
         reader.onload = (e) => {
           uploadedFile.thumbnail = e.target?.result as string;
-          setUploadedFiles(prev => [...prev, uploadedFile]);
         };
         reader.readAsDataURL(file);
-      } else {
-        setUploadedFiles(prev => [...prev, uploadedFile]);
       }
+
+      // Add file to list immediately
+      setUploadedFiles(prev => [...prev, uploadedFile]);
 
       // Upload file to server
       const formData = new FormData();
       formData.append('file', file);
 
       try {
+        // Simulate progress (real progress would need XHR)
+        const progressInterval = setInterval(() => {
+          setUploadedFiles(prev => 
+            prev.map(f => 
+              f.id === uploadedFile.id && f.progress! < 90
+                ? { ...f, progress: f.progress! + 10 }
+                : f
+            )
+          );
+        }, 200);
+
         const response = await fetch('/api/upload/client', {
           method: 'POST',
           body: formData,
         });
 
+        clearInterval(progressInterval);
+
         if (response.ok) {
           const data = await response.json();
-          uploadedFile.url = data.url;
+          setUploadedFiles(prev => 
+            prev.map(f => 
+              f.id === uploadedFile.id
+                ? { ...f, url: data.url, uploading: false, progress: 100 }
+                : f
+            )
+          );
+        } else {
+          throw new Error('Upload failed');
         }
       } catch (error) {
         console.error('Upload error:', error);
+        // Remove failed upload
+        setUploadedFiles(prev => prev.filter(f => f.id !== uploadedFile.id));
       }
+    }
+
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
