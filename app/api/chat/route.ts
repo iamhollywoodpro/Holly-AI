@@ -142,6 +142,7 @@ interface Message {
 }
 
 export async function POST(req: NextRequest) {
+  console.log('[Chat API] ========== NEW REQUEST ==========');
   try {
     console.log('[Chat API] POST request received');
 
@@ -213,15 +214,22 @@ export async function POST(req: NextRequest) {
             iteration++;
             console.log(`[Chat API] Iteration ${iteration}`);
 
-            // Call Groq
-            const response = await groq.chat.completions.create({
-              model: MODEL_NAME,
-              messages: conversationMessages as any,
-              tools: tools as any,
-              tool_choice: 'auto',
-              temperature: 0.7,
-              max_tokens: 2048,
-            });
+            // Call Groq with timeout
+            console.log('[Chat API] Calling Groq API...');
+            const response = await Promise.race([
+              groq.chat.completions.create({
+                model: MODEL_NAME,
+                messages: conversationMessages as any,
+                tools: tools as any,
+                tool_choice: 'auto',
+                temperature: 0.7,
+                max_tokens: 2048,
+              }),
+              new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Groq API timeout after 30s')), 30000)
+              )
+            ]) as any;
+            console.log('[Chat API] Groq response received');
 
             const assistantMessage = response.choices[0].message;
 
