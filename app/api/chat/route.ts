@@ -288,7 +288,13 @@ export async function POST(req: NextRequest) {
 
                   // Learn from interaction
                   const lastUserMessage = userMessages[userMessages.length - 1]?.content || '';
-                  await learnFromInteraction(dbUserId, lastUserMessage, fullResponse);
+                  await learnFromInteraction({
+                    userId: dbUserId,
+                    userMessage: lastUserMessage,
+                    assistantResponse: fullResponse,
+                    conversationId,
+                    timestamp: new Date(),
+                  });
                 } catch (dbError) {
                   console.error('[Chat API] Database error:', dbError);
                 }
