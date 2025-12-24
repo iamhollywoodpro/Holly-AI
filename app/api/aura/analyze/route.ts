@@ -1,7 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { uploadFile } from '@/lib/file-storage';
+
 
 export async function POST(req: NextRequest) {
   try {
@@ -26,21 +26,23 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Parse form data
-    const formData = await req.formData();
+    // Parse JSON body (files already uploaded client-side)
+    const body = await req.json();
     
-    const trackTitle = formData.get('trackTitle') as string;
-    const artistName = formData.get('artistName') as string;
-    const genre = formData.get('genre') as string | null;
-    const audioFile = formData.get('audioFile') as File;
-    const lyricsText = formData.get('lyricsText') as string | null;
-    const artworkFile = formData.get('artworkFile') as File | null;
-    const referenceTrack = formData.get('referenceTrack') as string | null;
+    const { 
+      trackTitle, 
+      artistName, 
+      genre, 
+      audioUrl, 
+      lyricsText, 
+      artworkUrl, 
+      referenceTrack 
+    } = body;
 
     // Validate required fields
-    if (!trackTitle || !artistName || !audioFile) {
+    if (!trackTitle || !artistName || !audioUrl) {
       return NextResponse.json(
-        { error: 'Missing required fields: trackTitle, artistName, audioFile' },
+        { error: 'Missing required fields: trackTitle, artistName, audioUrl' },
         { status: 400 }
       );
     }
@@ -49,34 +51,6 @@ export async function POST(req: NextRequest) {
     const timestamp = Date.now();
     const randomString = Math.random().toString(36).substring(2, 10);
     const jobId = `aura_${timestamp}_${randomString}`;
-
-    // Upload audio file to Vercel Blob
-    const audioUploadResult = await uploadFile(audioFile, 'audio', {
-      userId: user.id,
-      metadata: { jobId, trackTitle, artistName }
-    });
-
-    if (!audioUploadResult.success || !audioUploadResult.url) {
-      return NextResponse.json(
-        { error: 'Failed to upload audio file' },
-        { status: 500 }
-      );
-    }
-
-    const audioUrl = audioUploadResult.url;
-
-    // Upload artwork if provided
-    let artworkUrl: string | null = null;
-    if (artworkFile) {
-      const artworkUploadResult = await uploadFile(artworkFile, 'images', {
-        userId: user.id,
-        metadata: { jobId, trackTitle, artistName }
-      });
-      
-      if (artworkUploadResult.success && artworkUploadResult.url) {
-        artworkUrl = artworkUploadResult.url;
-      }
-    }
 
     // Create analysis job in database
     const analysis = await prisma.auraAnalysis.create({

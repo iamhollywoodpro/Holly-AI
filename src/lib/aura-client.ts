@@ -9,24 +9,50 @@ import {
   AnalysisStatusResponse, 
   AnalysisResult 
 } from '@/types/aura';
+import { uploadFileToBlob } from './client-upload';
 
 /**
  * Submit track for analysis
  */
-export async function submitAnalysis(data: TrackUploadRequest): Promise<AnalysisJobResponse> {
-  const formData = new FormData();
-  
-  formData.append('trackTitle', data.trackTitle);
-  formData.append('artistName', data.artistName);
-  if (data.genre) formData.append('genre', data.genre);
-  formData.append('audioFile', data.audioFile);
-  if (data.lyricsText) formData.append('lyricsText', data.lyricsText);
-  if (data.artworkFile) formData.append('artworkFile', data.artworkFile);
-  if (data.referenceTrack) formData.append('referenceTrack', data.referenceTrack);
+export async function submitAnalysis(
+  data: TrackUploadRequest,
+  onUploadProgress?: (percentage: number) => void
+): Promise<AnalysisJobResponse> {
+  // Upload audio file first (client-side)
+  const audioUpload = await uploadFileToBlob(data.audioFile, 'audio', (progress) => {
+    if (onUploadProgress) {
+      onUploadProgress(progress.percentage);
+    }
+  });
 
+  if (!audioUpload.success || !audioUpload.url) {
+    throw new Error(audioUpload.error || 'Failed to upload audio file');
+  }
+
+  // Upload artwork if provided
+  let artworkUrl: string | undefined;
+  if (data.artworkFile) {
+    const artworkUpload = await uploadFileToBlob(data.artworkFile, 'images');
+    if (artworkUpload.success && artworkUpload.url) {
+      artworkUrl = artworkUpload.url;
+    }
+  }
+
+  // Submit analysis with URLs instead of files
   const response = await fetch('/api/aura/analyze', {
     method: 'POST',
-    body: formData,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      trackTitle: data.trackTitle,
+      artistName: data.artistName,
+      genre: data.genre,
+      audioUrl: audioUpload.url,
+      lyricsText: data.lyricsText,
+      artworkUrl,
+      referenceTrack: data.referenceTrack,
+    }),
   });
 
   if (!response.ok) {
