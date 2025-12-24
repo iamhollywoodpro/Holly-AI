@@ -270,6 +270,9 @@ export async function POST(req: NextRequest) {
             }
 
             // No more tool calls, stream final response
+            console.log('[Chat API] Assistant message content:', assistantMessage.content ? 'EXISTS' : 'NULL/EMPTY');
+            console.log('[Chat API] Full assistant message:', JSON.stringify(assistantMessage, null, 2));
+            
             if (assistantMessage.content) {
               console.log('[Chat API] Streaming final response');
               
@@ -307,6 +310,11 @@ export async function POST(req: NextRequest) {
                   console.error('[Chat API] Database error:', dbError);
                 }
               }
+            } else {
+              // No content returned - send error message
+              console.error('[Chat API] ❌ No content in assistant message!');
+              const errorMsg = 'I apologize, but I encountered an issue generating a response. Please try again.';
+              controller.enqueue(encoder.encode(errorMsg));
             }
 
             break; // Exit loop
