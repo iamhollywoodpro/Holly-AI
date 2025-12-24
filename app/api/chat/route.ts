@@ -116,7 +116,10 @@ export async function POST(req: NextRequest) {
           // Start chat with history
           const chat = model.startChat({
             history,
-            systemInstruction: systemPrompt
+            systemInstruction: {
+              parts: [{ text: systemPrompt }],
+              role: 'user'
+            }
           });
 
           let fullResponse = '';
