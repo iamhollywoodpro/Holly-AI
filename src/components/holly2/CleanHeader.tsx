@@ -15,8 +15,8 @@ export function CleanHeader({ onToggleSidebar, chatTitle = "New Chat" }: CleanHe
 
   return (
     <header style={{
-      background: cyberpunkTheme.colors.surface,
-      borderBottom: `1px solid ${cyberpunkTheme.colors.border}`,
+      background: cyberpunkTheme.colors.background.secondary,
+      borderBottom: `1px solid ${cyberpunkTheme.colors.border.primary}`,
       padding: '0.75rem 1.5rem',
       display: 'flex',
       alignItems: 'center',
@@ -30,7 +30,7 @@ export function CleanHeader({ onToggleSidebar, chatTitle = "New Chat" }: CleanHe
           style={{
             background: 'transparent',
             border: 'none',
-            color: cyberpunkTheme.colors.text,
+            color: cyberpunkTheme.colors.text.primary,
             cursor: 'pointer',
             padding: '0.5rem',
             borderRadius: '8px',
@@ -74,13 +74,13 @@ export function CleanHeader({ onToggleSidebar, chatTitle = "New Chat" }: CleanHe
             <div style={{ 
               fontWeight: 600, 
               fontSize: '0.95rem',
-              color: cyberpunkTheme.colors.text,
+              color: cyberpunkTheme.colors.text.primary,
             }}>
               HOLLY
             </div>
             <div style={{ 
               fontSize: '0.75rem',
-              color: cyberpunkTheme.colors.textSecondary,
+              color: cyberpunkTheme.colors.text.secondary,
               marginTop: '-2px',
             }}>
               AI Partner
@@ -95,7 +95,7 @@ export function CleanHeader({ onToggleSidebar, chatTitle = "New Chat" }: CleanHe
         textAlign: 'center',
         fontSize: '0.95rem',
         fontWeight: 500,
-        color: cyberpunkTheme.colors.text,
+        color: cyberpunkTheme.colors.text.primary,
         overflow: 'hidden',
         textOverflow: 'ellipsis',
         whiteSpace: 'nowrap',
@@ -110,7 +110,7 @@ export function CleanHeader({ onToggleSidebar, chatTitle = "New Chat" }: CleanHe
           style={{
             background: 'transparent',
             border: 'none',
-            color: cyberpunkTheme.colors.textSecondary,
+            color: cyberpunkTheme.colors.text.secondary,
             cursor: 'pointer',
             padding: '0.5rem 0.75rem',
             borderRadius: '8px',
@@ -126,7 +126,7 @@ export function CleanHeader({ onToggleSidebar, chatTitle = "New Chat" }: CleanHe
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.background = 'transparent';
-            e.currentTarget.style.color = cyberpunkTheme.colors.textSecondary;
+            e.currentTarget.style.color = cyberpunkTheme.colors.text.secondary;
           }}
         >
           <Users size={16} />
@@ -138,7 +138,7 @@ export function CleanHeader({ onToggleSidebar, chatTitle = "New Chat" }: CleanHe
           style={{
             background: 'transparent',
             border: 'none',
-            color: cyberpunkTheme.colors.textSecondary,
+            color: cyberpunkTheme.colors.text.secondary,
             cursor: 'pointer',
             padding: '0.5rem 0.75rem',
             borderRadius: '8px',
@@ -154,7 +154,7 @@ export function CleanHeader({ onToggleSidebar, chatTitle = "New Chat" }: CleanHe
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.background = 'transparent';
-            e.currentTarget.style.color = cyberpunkTheme.colors.textSecondary;
+            e.currentTarget.style.color = cyberpunkTheme.colors.text.secondary;
           }}
         >
           <Share2 size={16} />
@@ -166,7 +166,7 @@ export function CleanHeader({ onToggleSidebar, chatTitle = "New Chat" }: CleanHe
           style={{
             background: 'transparent',
             border: 'none',
-            color: cyberpunkTheme.colors.textSecondary,
+            color: cyberpunkTheme.colors.text.secondary,
             cursor: 'pointer',
             padding: '0.5rem 0.75rem',
             borderRadius: '8px',
@@ -182,7 +182,7 @@ export function CleanHeader({ onToggleSidebar, chatTitle = "New Chat" }: CleanHe
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.background = 'transparent';
-            e.currentTarget.style.color = cyberpunkTheme.colors.textSecondary;
+            e.currentTarget.style.color = cyberpunkTheme.colors.text.secondary;
           }}
         >
           <FolderOpen size={16} />
@@ -196,7 +196,7 @@ export function CleanHeader({ onToggleSidebar, chatTitle = "New Chat" }: CleanHe
             style={{
               background: 'transparent',
               border: 'none',
-              color: cyberpunkTheme.colors.textSecondary,
+              color: cyberpunkTheme.colors.text.secondary,
               cursor: 'pointer',
               padding: '0.5rem',
               borderRadius: '8px',
@@ -211,7 +211,7 @@ export function CleanHeader({ onToggleSidebar, chatTitle = "New Chat" }: CleanHe
             onMouseLeave={(e) => {
               if (!showMoreMenu) {
                 e.currentTarget.style.background = 'transparent';
-                e.currentTarget.style.color = cyberpunkTheme.colors.textSecondary;
+                e.currentTarget.style.color = cyberpunkTheme.colors.text.secondary;
               }
             }}
           >
@@ -224,7 +224,7 @@ export function CleanHeader({ onToggleSidebar, chatTitle = "New Chat" }: CleanHe
               position: 'absolute',
               top: 'calc(100% + 0.5rem)',
               right: 0,
-              background: cyberpunkTheme.colors.surface,
+              background: cyberpunkTheme.colors.background.secondary,
               border: `1px solid ${cyberpunkTheme.colors.border}`,
               borderRadius: '12px',
               boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
