@@ -104,7 +104,14 @@ export default function HollyChatInterface() {
             try {
               const data: StatusUpdate = JSON.parse(line.slice(6));
 
-              if (data.type === 'status') {
+              if (data.type === 'done') {
+                // Stream complete, break the loop
+                break;
+              } else if (data.type === 'error') {
+                // Handle error
+                setCurrentStatus(`❌ Error: ${data.content}`);
+                break;
+              } else if (data.type === 'status') {
                 // Update status
                 setCurrentStatus(data.content || '');
               } else if (data.type === 'text') {
