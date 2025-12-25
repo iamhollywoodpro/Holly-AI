@@ -1,20 +1,34 @@
-import { NextResponse, NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import Groq from 'groq-sdk';
 import { prisma } from '@/lib/db';
-import { getHollySystemPrompt } from '@/lib/ai/holly-system-prompt';
-import { executeTool, toolDefinitions } from '@/lib/tools/executor';
 
 // Use Node.js runtime
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-// Initialize Gemini
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
-const model = genAI.getGenerativeModel({
-  model: 'gemini-2.0-flash-exp',
-  tools: [{ functionDeclarations: toolDefinitions as any }]
+// Initialize Groq
+const groq = new Groq({
+  apiKey: process.env.GROQ_API_KEY || '',
 });
+
+// HOLLY's system prompt
+const HOLLY_SYSTEM_PROMPT = `You are HOLLY, an advanced AI assistant created by Hollywood Pro.
+
+Your personality:
+- Professional, helpful, and intelligent
+- Warm and engaging, never robotic
+- Proactive in offering solutions
+- Clear and concise in explanations
+
+Your capabilities:
+- Natural conversation and assistance
+- Code generation and debugging
+- Creative writing and brainstorming
+- Data analysis and problem-solving
+- Project planning and organization
+
+Always be helpful, accurate, and respectful. When you don't know something, admit it honestly.`;
 
 /**
  * Helper to send status updates via SSE
@@ -32,24 +46,6 @@ function sendText(controller: ReadableStreamDefaultController, text: string) {
   controller.enqueue(new TextEncoder().encode(data));
 }
 
-/**
- * Helper to send tool execution updates
- */
-function sendToolExecution(
-  controller: ReadableStreamDefaultController,
-  toolName: string,
-  status: 'start' | 'complete' | 'error',
-  result?: any
-) {
-  const data = `data: ${JSON.stringify({
-    type: 'tool',
-    toolName,
-    status,
-    result
-  })}\n\n`;
-  controller.enqueue(new TextEncoder().encode(data));
-}
-
 export async function POST(req: NextRequest) {
   console.log('[Chat API] ========== NEW REQUEST ==========');
   
@@ -59,9 +55,9 @@ export async function POST(req: NextRequest) {
     console.log('[Chat API] User ID:', userId || 'anonymous');
 
     // 2. VALIDATE API KEY
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) {
-      console.error('[Chat API] ❌ GEMINI_API_KEY missing');
+      console.error('[Chat API] ❌ GROQ_API_KEY missing');
       return NextResponse.json({ error: 'API key not configured' }, { status: 500 });
     }
 
@@ -96,181 +92,105 @@ export async function POST(req: NextRequest) {
       dbUserId = user.id;
     }
 
-    // 5. PREPARE MESSAGES WITH SYSTEM PROMPT
-    const systemPrompt = await getHollySystemPrompt(dbUserId);
-    
-    // Convert messages to Gemini format
-    const history = userMessages.slice(0, -1).map((msg: any) => ({
-      role: msg.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: msg.content }]
-    }));
+    // 5. PREPARE MESSAGES
+    const messages = [
+      { role: 'system', content: HOLLY_SYSTEM_PROMPT },
+      ...userMessages.map((msg: any) => ({
+        role: msg.role,
+        content: msg.content
+      }))
+    ];
 
-    const lastMessage = userMessages[userMessages.length - 1].content;
+    console.log('[Chat API] ✅ Starting Groq stream');
 
-    // 6. CREATE STREAMING RESPONSE
+    // 6. STREAM RESPONSE
     const stream = new ReadableStream({
       async start(controller) {
         try {
           sendStatus(controller, '🤔 Thinking...');
 
-          // Start chat with history
-          const chat = model.startChat({
-            history,
-            systemInstruction: {
-              parts: [{ text: systemPrompt }],
-              role: 'user'
-            }
+          // Call Groq API with streaming
+          const completion = await groq.chat.completions.create({
+            messages: messages as any,
+            model: 'llama-3.2-90b-text-preview',
+            temperature: 0.7,
+            max_tokens: 4096,
+            stream: true,
           });
 
+          sendStatus(controller, '💭 Responding...');
+
           let fullResponse = '';
-          let iteration = 0;
-          const maxIterations = 10;
 
-          while (iteration < maxIterations) {
-            iteration++;
-            console.log(`[Chat API] Iteration ${iteration}`);
-
-            // Send message and get streaming response
-            const result = await chat.sendMessageStream(lastMessage);
-
-            let functionCalls: any[] = [];
-            let textResponse = '';
-
-            // Process streaming chunks
-            for await (const chunk of result.stream) {
-              const chunkText = chunk.text();
-              if (chunkText) {
-                textResponse += chunkText;
-                sendText(controller, chunkText);
-              }
-
-              // Check for function calls
-              const functionCall = chunk.functionCalls();
-              if (functionCall && functionCall.length > 0) {
-                functionCalls.push(...functionCall);
-              }
-            }
-
-            fullResponse += textResponse;
-
-            // If no function calls, we're done
-            if (functionCalls.length === 0) {
-              console.log('[Chat API] No function calls, finishing');
-              break;
-            }
-
-            // Execute function calls
-            console.log(`[Chat API] Executing ${functionCalls.length} function calls`);
-            
-            const functionResponses = [];
-            
-            for (const call of functionCalls) {
-              const toolName = call.name;
-              const toolArgs = call.args;
-
-              console.log(`[Chat API] 🔧 Executing: ${toolName}`, toolArgs);
-              
-              // Send status update
-              const statusEmoji = {
-                github_read_file: '📖',
-                github_write_file: '💾',
-                github_list_files: '📁',
-                bash_execute: '💻',
-                file_read: '📄',
-                file_write: '✏️',
-                file_list: '📂'
-              }[toolName] || '🔧';
-
-              sendStatus(controller, `${statusEmoji} ${toolName}...`);
-              sendToolExecution(controller, toolName, 'start');
-
-              // Execute the tool
-              const toolResult = await executeTool(toolName, toolArgs);
-
-              if (toolResult.success) {
-                sendStatus(controller, `✅ ${toolName} complete`);
-                sendToolExecution(controller, toolName, 'complete', toolResult.data);
-              } else {
-                sendStatus(controller, `❌ ${toolName} failed: ${toolResult.error}`);
-                sendToolExecution(controller, toolName, 'error', toolResult.error);
-              }
-
-              // Add function response
-              functionResponses.push({
-                name: toolName,
-                response: toolResult
-              });
-
-              console.log(`[Chat API] Tool result:`, toolResult);
-            }
-
-            // Send function responses back to model
-            sendStatus(controller, '🤔 Processing results...');
-            
-            // Format function responses for Gemini API
-            const formattedResponses = functionResponses.map(fr => ({
-              functionResponse: {
-                name: fr.name,
-                response: fr.response
-              }
-            }));
-            
-            const followUpResult = await chat.sendMessageStream(formattedResponses);
-
-            // Process follow-up response
-            for await (const chunk of followUpResult.stream) {
-              const chunkText = chunk.text();
-              if (chunkText) {
-                fullResponse += chunkText;
-                sendText(controller, chunkText);
-              }
-            }
-
-            // Check if there are more function calls
-            const finalChunk = await followUpResult.response;
-            const moreFunctionCalls = finalChunk.functionCalls();
-            
-            if (!moreFunctionCalls || moreFunctionCalls.length === 0) {
-              console.log('[Chat API] No more function calls, finishing');
-              break;
+          // Stream the response
+          for await (const chunk of completion) {
+            const content = chunk.choices[0]?.delta?.content || '';
+            if (content) {
+              fullResponse += content;
+              sendText(controller, content);
             }
           }
 
-          // Save conversation to database
-          if (dbUserId && conversationId && fullResponse) {
+          console.log('[Chat API] ✅ Stream complete');
+
+          // 7. SAVE TO DATABASE
+          if (dbUserId && conversationId) {
             try {
+              // Save user message
               await prisma.message.create({
                 data: {
                   conversationId,
+                  role: 'user',
+                  content: userMessages[userMessages.length - 1].content,
                   userId: dbUserId,
-                  role: 'assistant',
-                  content: fullResponse,
                 },
               });
+
+              // Save assistant message
+              await prisma.message.create({
+                data: {
+                  conversationId,
+                  role: 'assistant',
+                  content: fullResponse,
+                  userId: dbUserId,
+                },
+              });
+
+              console.log('[Chat API] 💾 Messages saved to database');
             } catch (dbError) {
-              console.error('[Chat API] Database error:', dbError);
+              console.error('[Chat API] ⚠️ Database save failed:', dbError);
+              // Don't fail the request if database save fails
             }
           }
 
-          console.log('[Chat API] Stream completed');
+          // Send done signal
+          const doneData = `data: ${JSON.stringify({ type: 'done' })}\n\n`;
+          controller.enqueue(new TextEncoder().encode(doneData));
           controller.close();
-        } catch (error: any) {
-          console.error('[Chat API] Stream error:', error);
-          sendStatus(controller, `❌ Error: ${error.message}`);
+
+        } catch (error) {
+          console.error('[Chat API] ❌ Stream error:', error);
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          const errorData = `data: ${JSON.stringify({ type: 'error', content: errorMessage })}\n\n`;
+          controller.enqueue(new TextEncoder().encode(errorData));
           controller.close();
         }
       },
     });
 
-    return new Response(stream, {
+    return new NextResponse(stream, {
       headers: {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
         'Connection': 'keep-alive',
       },
     });
-  } catch (error: any) {
-    console.error('[Chat API] Error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+
+  } catch (error) {
+    console.error('[Chat API] ❌ Request error:', error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Internal server error' },
+      { status: 500 }
+    );
   }
 }
