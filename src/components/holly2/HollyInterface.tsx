@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Send, Paperclip, Mic, Menu, X } from 'lucide-react';
+import { Send, Paperclip, Mic, Menu, X, Volume2, VolumeX } from 'lucide-react';
 import { ChatMessage } from './ChatMessage';
 import { ActionButtons } from './ActionButtons';
 import { ToolExecutionPanel } from './ToolExecutionPanel';
@@ -11,6 +11,7 @@ import { FileUploadInline } from './FileUploadInline';
 import { cyberpunkTheme } from '@/styles/themes/cyberpunk';
 import { createConversation, getConversationMessages } from '@/lib/conversation-manager';
 import type { Conversation } from '@/types/conversation';
+import { getVoiceService } from '@/lib/voice-service';
 
 interface Message {
   id: string;
@@ -52,9 +53,11 @@ export function HollyInterface() {
   const [showToolPanel, setShowToolPanel] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [isLoadingConversation, setIsLoadingConversation] = useState(false);
+  const [voiceEnabled, setVoiceEnabled] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const sidebarRef = useRef<any>(null);
+  const voiceService = useRef(getVoiceService());
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -218,11 +221,24 @@ export function HollyInterface() {
           }
         }
       }
+      // Speak the response if voice is enabled
+      if (voiceEnabled && assistantMessage) {
+        try {
+          await voiceService.current.speak(assistantMessage);
+        } catch (voiceError) {
+          console.error('[Voice] Playback error:', voiceError);
+        }
+      }
     } catch (error) {
       console.error('Send error:', error);
     } finally {
       setIsStreaming(false);
     }
+  };
+
+  const toggleVoice = () => {
+    const newState = voiceService.current.toggle();
+    setVoiceEnabled(newState);
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -421,10 +437,14 @@ export function HollyInterface() {
             </button>
 
             <button
+              onClick={toggleVoice}
               className="p-2 rounded-lg hover:bg-white/5 transition-colors"
-              style={{ color: cyberpunkTheme.colors.text.secondary }}
+              style={{ 
+                color: voiceEnabled ? cyberpunkTheme.colors.primary.purple : cyberpunkTheme.colors.text.secondary 
+              }}
+              title={voiceEnabled ? 'Voice enabled - HOLLY will speak' : 'Voice disabled'}
             >
-              <Mic className="w-5 h-5" />
+              {voiceEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
             </button>
 
             <input
