@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
 
     // 3. PARSE REQUEST
     const body = await req.json();
-    const { messages: userMessages, conversationId } = body;
+    const { messages: userMessages, conversationId, files } = body;
 
     if (!userMessages || !Array.isArray(userMessages)) {
       console.error('[Chat API] Invalid messages format');
@@ -129,7 +129,7 @@ export async function POST(req: NextRequest) {
           if (dbUserId && conversationId) {
             try {
               // Save user message
-              await prisma.message.create({
+              const userMessage = await prisma.message.create({
                 data: {
                   conversationId,
                   role: 'user',
@@ -137,6 +137,28 @@ export async function POST(req: NextRequest) {
                   userId: dbUserId,
                 },
               });
+
+              // Save files attached to user message
+              if (files && Array.isArray(files) && files.length > 0) {
+                for (const file of files) {
+                  await prisma.fileUpload.create({
+                    data: {
+                      userId: dbUserId,
+                      conversationId,
+                      messageId: userMessage.id,
+                      fileName: file.fileName,
+                      fileSize: file.fileSize,
+                      fileType: file.fileType,
+                      blobUrl: file.blobUrl,
+                      storagePath: file.storagePath || file.blobUrl,
+                      publicUrl: file.publicUrl || file.blobUrl,
+                      mimeType: file.mimeType,
+                      metadata: file.metadata || {},
+                    },
+                  });
+                }
+                console.log('[Chat API] 📎 Saved', files.length, 'file(s) to database');
+              }
 
               // Save assistant message
               await prisma.message.create({

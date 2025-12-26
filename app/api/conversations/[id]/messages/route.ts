@@ -51,7 +51,7 @@ export async function GET(
       );
     }
 
-    // Get messages
+    // Get messages with files
     const messages = await prisma.message.findMany({
       where: { conversationId },
       orderBy: { createdAt: 'asc' },
@@ -64,7 +64,28 @@ export async function GET(
       },
     });
 
-    return NextResponse.json({ messages });
+    // Get files for this conversation
+    const files = await prisma.fileUpload.findMany({
+      where: { conversationId },
+      select: {
+        id: true,
+        messageId: true,
+        fileName: true,
+        fileSize: true,
+        fileType: true,
+        publicUrl: true,
+        mimeType: true,
+        uploadedAt: true,
+      },
+    });
+
+    // Attach files to their respective messages
+    const messagesWithFiles = messages.map(message => ({
+      ...message,
+      files: files.filter(file => file.messageId === message.id),
+    }));
+
+    return NextResponse.json({ messages: messagesWithFiles });
   } catch (error) {
     console.error('Messages API error:', error);
     return NextResponse.json(

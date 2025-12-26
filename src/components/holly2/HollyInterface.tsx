@@ -140,13 +140,25 @@ export function HollyInterface() {
         console.log('[HollyInterface] ✅ Conversation created:', currentConversationId);
       }
 
+      // Map files to backend format
+      const mappedFiles = userMessage.files?.map(f => ({
+        fileName: f.name,
+        fileSize: f.size,
+        fileType: f.type,
+        blobUrl: f.url,
+        publicUrl: f.url,
+        mimeType: f.type,
+        storagePath: f.url,
+        metadata: {},
+      }));
+
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages: [...messages, userMessage],
           conversationId: currentConversationId,
-          files: userMessage.files,
+          files: mappedFiles,
         }),
       });
 

@@ -153,6 +153,7 @@ model FileUpload {
   userId         String
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   conversationId String?
+  messageId      String?  // Link file to specific message
   fileName       String
   fileSize       Int
   fileType       String
@@ -166,6 +167,7 @@ model FileUpload {
 
   @@index([userId])
   @@index([conversationId])
+  @@index([messageId])
   @@map("file_uploads")
 }
 
