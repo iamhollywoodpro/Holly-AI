@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
@@ -9,13 +9,17 @@ import {
 } from 'lucide-react';
 import { cyberpunkTheme } from '@/styles/themes/cyberpunk';
 import { formatDistanceToNow } from 'date-fns';
+import { getConversations, deleteConversation } from '@/lib/conversation-manager';
+import type { Conversation } from '@/types/conversation';
 
 interface SidebarCollapsibleProps {
   isOpen: boolean;
   onToggle: () => void;
+  currentConversationId?: string | null;
 }
 
-export function SidebarCollapsible({ isOpen, onToggle }: SidebarCollapsibleProps) {
+export const SidebarCollapsible = forwardRef<any, SidebarCollapsibleProps>(
+  function SidebarCollapsible({ isOpen, onToggle, currentConversationId }, ref) {
   const pathname = usePathname();
   const [conversations, setConversations] = useState<any[]>([]);
   const [showChats, setShowChats] = useState(true);
@@ -26,15 +30,19 @@ export function SidebarCollapsible({ isOpen, onToggle }: SidebarCollapsibleProps
 
   const loadConversations = async () => {
     try {
-      const response = await fetch('/api/conversations');
-      if (response.ok) {
-        const data = await response.json();
-        setConversations(data.conversations || []);
-      }
+      console.log('[Sidebar] Loading conversations...');
+      const convs = await getConversations();
+      setConversations(convs);
+      console.log('[Sidebar] ✅ Loaded', convs.length, 'conversations');
     } catch (error) {
-      console.error('Failed to load conversations:', error);
+      console.error('[Sidebar] ❌ Failed to load conversations:', error);
     }
   };
+
+  // Expose refresh method to parent
+  useImperativeHandle(ref, () => ({
+    refreshConversations: loadConversations,
+  }));
 
   const handleDeleteConversation = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -42,15 +50,19 @@ export function SidebarCollapsible({ isOpen, onToggle }: SidebarCollapsibleProps
     if (!confirm('Delete this conversation?')) return;
 
     try {
-      const response = await fetch(`/api/conversations/${id}`, {
-        method: 'DELETE',
-      });
-
-      if (response.ok) {
+      console.log('[Sidebar] Deleting conversation:', id);
+      await deleteConversation(id);
+      
+      // If we deleted the current conversation, redirect to home
+      if (id === currentConversationId) {
+        window.location.href = '/';
+      } else {
         loadConversations();
       }
+      
+      console.log('[Sidebar] ✅ Conversation deleted');
     } catch (error) {
-      console.error('Delete error:', error);
+      console.error('[Sidebar] ❌ Delete error:', error);
     }
   };
 
@@ -220,4 +232,4 @@ export function SidebarCollapsible({ isOpen, onToggle }: SidebarCollapsibleProps
       </div>
     </aside>
   );
-}
+});

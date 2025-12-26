@@ -9,6 +9,8 @@ import { SidebarCollapsible } from './SidebarCollapsible';
 import { CleanHeader } from './CleanHeader';
 import { FileUploadInline } from './FileUploadInline';
 import { cyberpunkTheme } from '@/styles/themes/cyberpunk';
+import { createConversation, getConversationMessages } from '@/lib/conversation-manager';
+import type { Conversation } from '@/types/conversation';
 
 interface Message {
   id: string;
@@ -48,8 +50,11 @@ export function HollyInterface() {
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [toolCalls, setToolCalls] = useState<ToolCall[]>([]);
   const [showToolPanel, setShowToolPanel] = useState(false);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [isLoadingConversation, setIsLoadingConversation] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const sidebarRef = useRef<any>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -58,6 +63,41 @@ export function HollyInterface() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Load conversation from URL parameter
+  useEffect(() => {
+    const loadConversationFromUrl = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const convId = params.get('conversation');
+      
+      if (convId && convId !== conversationId) {
+        console.log('[HollyInterface] Loading conversation from URL:', convId);
+        setIsLoadingConversation(true);
+        
+        try {
+          const loadedMessages = await getConversationMessages(convId);
+          
+          // Convert to Message format
+          const formattedMessages: Message[] = loadedMessages.map(m => ({
+            id: m.id,
+            role: m.role,
+            content: m.content,
+            timestamp: new Date(m.createdAt),
+          }));
+          
+          setMessages(formattedMessages);
+          setConversationId(convId);
+          console.log('[HollyInterface] ✅ Loaded', formattedMessages.length, 'messages');
+        } catch (error) {
+          console.error('[HollyInterface] ❌ Failed to load conversation:', error);
+        } finally {
+          setIsLoadingConversation(false);
+        }
+      }
+    };
+    
+    loadConversationFromUrl();
+  }, []);
 
   const handleSend = async () => {
     if (!input.trim() && uploadedFiles.length === 0) return;
@@ -77,11 +117,32 @@ export function HollyInterface() {
     setShowToolPanel(true);
 
     try {
+      // Create conversation if this is the first message
+      let currentConversationId = conversationId;
+      if (!currentConversationId) {
+        console.log('[HollyInterface] Creating new conversation...');
+        const newConversation = await createConversation(userMessage.content);
+        currentConversationId = newConversation.id;
+        setConversationId(currentConversationId);
+        
+        // Update URL without page reload
+        const newUrl = `${window.location.pathname}?conversation=${currentConversationId}`;
+        window.history.pushState({}, '', newUrl);
+        
+        // Refresh sidebar to show new conversation
+        if (sidebarRef.current?.refreshConversations) {
+          sidebarRef.current.refreshConversations();
+        }
+        
+        console.log('[HollyInterface] ✅ Conversation created:', currentConversationId);
+      }
+
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages: [...messages, userMessage],
+          conversationId: currentConversationId,
           files: userMessage.files,
         }),
       });
@@ -252,8 +313,10 @@ export function HollyInterface() {
     >
       {/* Sidebar */}
       <SidebarCollapsible 
+        ref={sidebarRef}
         isOpen={sidebarOpen}
         onToggle={() => setSidebarOpen(!sidebarOpen)}
+        currentConversationId={conversationId}
       />
 
       {/* Main Content */}
@@ -266,7 +329,14 @@ export function HollyInterface() {
 
         {/* Messages Area */}
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-          {messages.length === 0 ? (
+          {isLoadingConversation ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
+                <p style={{ color: cyberpunkTheme.colors.text.secondary }}>Loading conversation...</p>
+              </div>
+            </div>
+          ) : messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center">
               <div 
                 className="w-20 h-20 rounded-2xl flex items-center justify-center mb-6"
