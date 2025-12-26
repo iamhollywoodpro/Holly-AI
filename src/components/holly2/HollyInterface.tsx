@@ -12,6 +12,7 @@ import { cyberpunkTheme } from '@/styles/themes/cyberpunk';
 import { createConversation, getConversationMessages } from '@/lib/conversation-manager';
 import type { Conversation } from '@/types/conversation';
 import { getVoiceService } from '@/lib/voice-service';
+import { getErrorMessage, isRetryableError, ErrorMessages } from '@/lib/error-handler';
 
 interface Message {
   id: string;
@@ -54,6 +55,8 @@ export function HollyInterface() {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [isLoadingConversation, setIsLoadingConversation] = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const sidebarRef = useRef<any>(null);
@@ -243,6 +246,19 @@ export function HollyInterface() {
       }
     } catch (error) {
       console.error('Send error:', error);
+      const errorMsg = getErrorMessage(error);
+      setError(errorMsg);
+      
+      // Show error message in chat
+      setMessages(prev => [...prev, {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: `❌ ${errorMsg}\n\n${isRetryableError(error) ? 'You can try sending your message again.' : 'Please refresh the page and try again.'}`,
+        timestamp: new Date(),
+      }]);
+      
+      // Auto-clear error after 5 seconds
+      setTimeout(() => setError(null), 5000);
     } finally {
       setIsStreaming(false);
     }

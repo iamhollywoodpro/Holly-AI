@@ -11,6 +11,7 @@ import { cyberpunkTheme } from '@/styles/themes/cyberpunk';
 import { formatDistanceToNow } from 'date-fns';
 import { getConversations, deleteConversation } from '@/lib/conversation-manager';
 import type { Conversation } from '@/types/conversation';
+import { ConversationSearch } from './ConversationSearch';
 
 interface SidebarCollapsibleProps {
   isOpen: boolean;
@@ -22,7 +23,9 @@ export const SidebarCollapsible = forwardRef<any, SidebarCollapsibleProps>(
   function SidebarCollapsible({ isOpen, onToggle, currentConversationId }, ref) {
   const pathname = usePathname();
   const [conversations, setConversations] = useState<any[]>([]);
+  const [filteredConversations, setFilteredConversations] = useState<any[]>([]);
   const [showChats, setShowChats] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     loadConversations();
@@ -33,10 +36,29 @@ export const SidebarCollapsible = forwardRef<any, SidebarCollapsibleProps>(
       console.log('[Sidebar] Loading conversations...');
       const convs = await getConversations();
       setConversations(convs);
+      setFilteredConversations(convs);
       console.log('[Sidebar] ✅ Loaded', convs.length, 'conversations');
     } catch (error) {
       console.error('[Sidebar] ❌ Failed to load conversations:', error);
     }
+  };
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    if (!query.trim()) {
+      setFilteredConversations(conversations);
+      return;
+    }
+    
+    const filtered = conversations.filter(conv =>
+      conv.title?.toLowerCase().includes(query.toLowerCase())
+    );
+    setFilteredConversations(filtered);
+  };
+
+  const handleClearSearch = () => {
+    setSearchQuery('');
+    setFilteredConversations(conversations);
   };
 
   // Expose refresh method to parent
@@ -163,7 +185,7 @@ export const SidebarCollapsible = forwardRef<any, SidebarCollapsibleProps>(
           </button>
 
           {showChats && (
-            <div className="mt-1 space-y-1 max-h-64 overflow-y-auto">
+            <div className="mt-1 space-y-1">
               <button
                 onClick={() => window.location.href = '/'}
                 className="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/5 transition-colors text-sm"
@@ -173,7 +195,21 @@ export const SidebarCollapsible = forwardRef<any, SidebarCollapsibleProps>(
                 <span>New Chat</span>
               </button>
 
-              {conversations.map((conv) => (
+              <ConversationSearch
+                onSearch={handleSearch}
+                onClear={handleClearSearch}
+              />
+
+              <div className="max-h-64 overflow-y-auto space-y-1">
+                {filteredConversations.length === 0 && searchQuery && (
+                  <div 
+                    className="px-3 py-4 text-sm text-center"
+                    style={{ color: cyberpunkTheme.colors.text.tertiary }}
+                  >
+                    No conversations found
+                  </div>
+                )}
+                {filteredConversations.map((conv) => (
                 <div
                   key={conv.id}
                   className="group relative flex items-start gap-2 px-3 py-2 rounded-lg hover:bg-white/5 transition-colors"
@@ -205,6 +241,7 @@ export const SidebarCollapsible = forwardRef<any, SidebarCollapsibleProps>(
                   </button>
                 </div>
               ))}
+              </div>
             </div>
           )}
         </div>
