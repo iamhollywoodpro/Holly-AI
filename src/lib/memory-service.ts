@@ -57,8 +57,14 @@ Keep each item concise (1-2 sentences max).`,
     const response = completion.choices[0]?.message?.content;
     if (!response) return;
 
+    // Strip markdown code blocks if present
+    let jsonText = response.trim();
+    if (jsonText.startsWith('```')) {
+      jsonText = jsonText.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
+    }
+
     // Parse extracted memories
-    const memories: Memory = JSON.parse(response);
+    const memories: Memory = JSON.parse(jsonText);
 
     // Get user from conversation
     const conversation = await prisma.conversation.findUnique({
