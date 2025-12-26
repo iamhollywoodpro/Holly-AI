@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import Groq from 'groq-sdk';
 import { prisma } from '@/lib/db';
+import { getHollySystemPrompt } from '@/lib/ai/holly-system-prompt';
 
 // Use Node.js runtime
 export const runtime = 'nodejs';
@@ -12,23 +13,7 @@ const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY || '',
 });
 
-// HOLLY's system prompt
-const HOLLY_SYSTEM_PROMPT = `You are HOLLY, an advanced AI assistant created by Hollywood Pro.
-
-Your personality:
-- Professional, helpful, and intelligent
-- Warm and engaging, never robotic
-- Proactive in offering solutions
-- Clear and concise in explanations
-
-Your capabilities:
-- Natural conversation and assistance
-- Code generation and debugging
-- Creative writing and brainstorming
-- Data analysis and problem-solving
-- Project planning and organization
-
-Always be helpful, accurate, and respectful. When you don't know something, admit it honestly.`;
+// HOLLY's system prompt will be dynamically generated per user
 
 /**
  * Helper to send status updates via SSE
@@ -92,18 +77,25 @@ export async function POST(req: NextRequest) {
       dbUserId = user.id;
     }
 
-    // 5. PREPARE MESSAGES
+    // 5. GET HOLLY'S PERSONALITY (with user's name)
+    const userName = dbUserId ? (
+      await prisma.user.findUnique({ where: { id: dbUserId }, select: { name: true } })
+    )?.name || 'Hollywood' : 'Hollywood';
+    
+    const hollySystemPrompt = getHollySystemPrompt(userName);
+    
+    // 6. PREPARE MESSAGES
     const messages = [
-      { role: 'system', content: HOLLY_SYSTEM_PROMPT },
+      { role: 'system', content: hollySystemPrompt },
       ...userMessages.map((msg: any) => ({
         role: msg.role,
         content: msg.content
       }))
     ];
 
-    console.log('[Chat API] ✅ Starting Groq stream');
+    console.log('[Chat API] ✅ Starting Groq stream with HOLLY personality');
 
-    // 6. STREAM RESPONSE
+    // 7. STREAM RESPONSE
     const stream = new ReadableStream({
       async start(controller) {
         try {
