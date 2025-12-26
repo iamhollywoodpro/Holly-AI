@@ -13,7 +13,7 @@ interface Message {
 }
 
 interface StatusUpdate {
-  type: 'status' | 'text' | 'tool';
+  type: 'status' | 'text' | 'tool' | 'done' | 'error';
   content?: string;
   toolName?: string;
   status?: 'start' | 'complete' | 'error';
