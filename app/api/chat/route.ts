@@ -112,7 +112,7 @@ export async function POST(req: NextRequest) {
           // Call Groq API with streaming
           const completion = await groq.chat.completions.create({
             messages: messages as any,
-            model: 'llama-3.2-90b-text-preview',
+            model: 'llama-3.3-70b-versatile',
             temperature: 0.7,
             max_tokens: 4096,
             stream: true,
