@@ -3,6 +3,7 @@ import { auth } from '@clerk/nextjs/server';
 import Groq from 'groq-sdk';
 import { prisma } from '@/lib/db';
 import { getHollySystemPrompt } from '@/lib/ai/holly-system-prompt';
+import { getRelevantMemories, extractMemories } from '@/lib/memory-service';
 
 // Use Node.js runtime
 export const runtime = 'nodejs';
@@ -77,12 +78,15 @@ export async function POST(req: NextRequest) {
       dbUserId = user.id;
     }
 
-    // 5. GET HOLLY'S PERSONALITY (with user's name)
+    // 5. GET HOLLY'S PERSONALITY (with user's name and memories)
     const userName = dbUserId ? (
       await prisma.user.findUnique({ where: { id: dbUserId }, select: { name: true } })
     )?.name || 'Hollywood' : 'Hollywood';
     
-    const hollySystemPrompt = getHollySystemPrompt(userName);
+    // Retrieve relevant memories
+    const memoryContext = dbUserId ? await getRelevantMemories(dbUserId) : '';
+    
+    const hollySystemPrompt = getHollySystemPrompt(userName, memoryContext);
     
     // 6. PREPARE MESSAGES
     const messages = [
@@ -171,6 +175,12 @@ export async function POST(req: NextRequest) {
               });
 
               console.log('[Chat API] 💾 Messages saved to database');
+
+              // Extract memories asynchronously (don't await - let it run in background)
+              extractMemories(conversationId, [
+                ...messages.slice(1), // Skip system prompt
+                { role: 'assistant', content: fullResponse },
+              ]).catch(err => console.error('[Chat API] Memory extraction failed:', err));
             } catch (dbError) {
               console.error('[Chat API] ⚠️ Database save failed:', dbError);
               // Don't fail the request if database save fails
