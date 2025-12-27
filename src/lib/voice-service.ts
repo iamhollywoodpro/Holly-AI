@@ -112,26 +112,55 @@ export class VoiceService {
 
   /**
    * Speak text using browser's speech synthesis
+   * Splits long text into chunks to avoid browser limitations
    */
-  speak(text: string): Promise<void> {
+  async speak(text: string): Promise<void> {
+    if (!this.synthesis || !this.isEnabled) {
+      return;
+    }
+
+    // Stop any ongoing speech
+    this.stop();
+
+    // Clean text (remove markdown, emojis, etc.)
+    const cleanText = this.cleanText(text);
+
+    if (!cleanText.trim()) {
+      return;
+    }
+
+    // Split text into chunks (sentences or paragraphs)
+    const chunks = this.splitIntoChunks(cleanText);
+    
+    console.log(`[VoiceService] Speaking ${chunks.length} chunks...`);
+
+    // Speak each chunk sequentially
+    for (let i = 0; i < chunks.length; i++) {
+      const chunk = chunks[i];
+      if (!chunk.trim()) continue;
+
+      await this.speakChunk(chunk);
+      
+      // Small pause between chunks for natural flow
+      if (i < chunks.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
+
+    console.log('[VoiceService] All chunks completed');
+  }
+
+  /**
+   * Speak a single chunk of text
+   */
+  private speakChunk(text: string): Promise<void> {
     return new Promise((resolve, reject) => {
-      if (!this.synthesis || !this.isEnabled) {
+      if (!this.synthesis) {
         resolve();
         return;
       }
 
-      // Stop any ongoing speech
-      this.stop();
-
-      // Clean text (remove markdown, emojis, etc.)
-      const cleanText = this.cleanText(text);
-
-      if (!cleanText.trim()) {
-        resolve();
-        return;
-      }
-
-      const utterance = new SpeechSynthesisUtterance(cleanText);
+      const utterance = new SpeechSynthesisUtterance(text);
 
       // Set voice
       if (this.voice) {
@@ -145,19 +174,57 @@ export class VoiceService {
 
       // Event handlers
       utterance.onend = () => {
-        console.log('[VoiceService] Speech completed');
         resolve();
       };
 
       utterance.onerror = (event) => {
         console.error('[VoiceService] Speech error:', event.error);
-        reject(new Error(event.error));
+        // Don't reject, just resolve to continue with next chunk
+        resolve();
       };
 
       // Speak
-      console.log('[VoiceService] Speaking:', cleanText.substring(0, 50) + '...');
       this.synthesis.speak(utterance);
     });
+  }
+
+  /**
+   * Split text into manageable chunks for speech synthesis
+   * Splits on sentence boundaries to maintain natural flow
+   */
+  private splitIntoChunks(text: string, maxChunkLength: number = 200): string[] {
+    const chunks: string[] = [];
+    
+    // First split by paragraphs
+    const paragraphs = text.split(/\n\n+/);
+    
+    for (const paragraph of paragraphs) {
+      if (paragraph.length <= maxChunkLength) {
+        chunks.push(paragraph);
+        continue;
+      }
+      
+      // Split long paragraphs by sentences
+      const sentences = paragraph.match(/[^.!?]+[.!?]+/g) || [paragraph];
+      let currentChunk = '';
+      
+      for (const sentence of sentences) {
+        if ((currentChunk + sentence).length <= maxChunkLength) {
+          currentChunk += sentence;
+        } else {
+          if (currentChunk) {
+            chunks.push(currentChunk.trim());
+          }
+          currentChunk = sentence;
+        }
+      }
+      
+      if (currentChunk) {
+        chunks.push(currentChunk.trim());
+      }
+    }
+    
+    return chunks.filter(chunk => chunk.trim().length > 0);
   }
 
   /**
