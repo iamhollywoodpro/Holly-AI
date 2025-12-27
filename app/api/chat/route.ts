@@ -118,46 +118,26 @@ export async function POST(req: NextRequest) {
         try {
           sendStatus(controller, '🤔 Thinking...');
 
-          // Detect task type and select best model
-          const userMessage = userMessages[userMessages.length - 1].content;
-          const taskType = detectTaskType(userMessage);
-          const modelInfo = getModelInfo(taskType);
-          
-          console.log(`[Chat API] Task type: ${taskType}`);
-          console.log(`[Chat API] Using model: ${modelInfo.model} (${modelInfo.provider})`);
-
           let fullResponse = '';
 
-          // Route to appropriate model
-          if (modelInfo.provider === 'groq') {
-            // Use Groq with streaming (llama-3.3-70b)
-            const completion = await groq.chat.completions.create({
-              messages: messages as any,
-              model: modelInfo.model,
-              temperature: 0.7,
-              max_tokens: 4096,
-              stream: true,
-            });
+          // Use Groq with streaming (llama-3.3-70b)
+          const completion = await groq.chat.completions.create({
+            messages: messages as any,
+            model: 'llama-3.3-70b-versatile',
+            temperature: 0.7,
+            max_tokens: 4096,
+            stream: true,
+          });
 
-            sendStatus(controller, '💭 Responding...');
+          sendStatus(controller, '💭 Responding...');
 
-            // Stream the response
-            for await (const chunk of completion) {
-              const content = chunk.choices[0]?.delta?.content || '';
-              if (content) {
-                fullResponse += content;
-                sendText(controller, content);
-              }
+          // Stream the response
+          for await (const chunk of completion) {
+            const content = chunk.choices[0]?.delta?.content || '';
+            if (content) {
+              fullResponse += content;
+              sendText(controller, content);
             }
-          } else {
-            // Use Bytez (GLM models) - no streaming support yet
-            sendStatus(controller, `🧠 Using ${modelInfo.model}...`);
-            
-            const response = await routeToModel(messages, taskType, false);
-            fullResponse = response;
-            
-            // Send full response at once
-            sendText(controller, fullResponse);
           }
 
           console.log('[Chat API] ✅ Stream complete');
