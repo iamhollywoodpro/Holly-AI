@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { 
   Code, FolderTree, FileCode, Search, Play, Save, Download,
-  GitBranch, History, Loader2, AlertCircle, CheckCircle, Eye
+  GitBranch, History, Loader2, AlertCircle, CheckCircle, Eye, ArrowLeft
 } from 'lucide-react';
 import { cyberpunkTheme } from '@/styles/themes/cyberpunk';
 
@@ -126,6 +126,25 @@ export default function CodeWorkshopPage() {
       }}>
         <div style={{ maxWidth: '1600px', margin: '0 auto' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem' }}>
+            <button
+              onClick={() => window.location.href = '/'}
+              style={{
+                padding: '0.5rem',
+                borderRadius: '8px',
+                border: `1px solid ${cyberpunkTheme.colors.border.primary}`,
+                background: cyberpunkTheme.colors.background.tertiary,
+                color: cyberpunkTheme.colors.text.primary,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                transition: 'all 0.2s',
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = cyberpunkTheme.colors.background.elevated}
+              onMouseLeave={(e) => e.currentTarget.style.background = cyberpunkTheme.colors.background.tertiary}
+              title="Back to HOLLY Chat"
+            >
+              <ArrowLeft size={20} />
+            </button>
             <Code size={32} style={{ color: cyberpunkTheme.colors.primary.cyan }} />
             <h1 style={{
               fontSize: '2rem',

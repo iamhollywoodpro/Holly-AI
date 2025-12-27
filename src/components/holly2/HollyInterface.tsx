@@ -412,6 +412,22 @@ export function HollyInterface() {
       className="flex h-screen overflow-hidden"
       style={{ backgroundColor: cyberpunkTheme.colors.background.primary }}
     >
+      {/* Restore Sidebar Button (when closed) */}
+      {!sidebarOpen && (
+        <button
+          onClick={() => setSidebarOpen(true)}
+          className="fixed left-4 top-4 z-50 p-2 rounded-lg hover:bg-white/10 transition-colors"
+          style={{ 
+            backgroundColor: cyberpunkTheme.colors.background.secondary,
+            border: `1px solid ${cyberpunkTheme.colors.border.primary}`,
+            color: cyberpunkTheme.colors.text.primary,
+          }}
+          title="Open sidebar"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+      )}
+
       {/* Sidebar */}
       <SidebarCollapsible 
         ref={sidebarRef}

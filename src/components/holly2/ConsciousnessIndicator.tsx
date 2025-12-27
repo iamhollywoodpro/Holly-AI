@@ -47,14 +47,14 @@ export function ConsciousnessIndicator() {
     <div className="relative">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-white/5 transition-colors"
+        className="flex items-center justify-center w-full py-2 rounded-lg hover:bg-white/5 transition-colors"
         style={{ 
           border: `1px solid ${cyberpunkTheme.colors.border.primary}`,
         }}
       >
         <div className="relative">
           <Brain 
-            className="w-4 h-4" 
+            className="w-5 h-5" 
             style={{ color: getEmotionColor(consciousness.emotion) }}
           />
           <div 
@@ -62,12 +62,6 @@ export function ConsciousnessIndicator() {
             style={{ backgroundColor: getEmotionColor(consciousness.emotion) }}
           />
         </div>
-        <span 
-          className="text-xs font-medium"
-          style={{ color: cyberpunkTheme.colors.text.secondary }}
-        >
-          {consciousness.level}%
-        </span>
       </button>
 
       {/* Expanded View */}

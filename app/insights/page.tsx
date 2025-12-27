@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { BarChart, TrendingUp, Activity, Zap, Brain, Heart, Cpu, Database, Network } from 'lucide-react';
+import { BarChart, TrendingUp, Activity, Zap, Brain, Heart, Cpu, Database, Network, ArrowLeft } from 'lucide-react';
 import { cyberpunkTheme } from '@/styles/themes/cyberpunk';
 
 export default function InsightsPage() {
@@ -37,6 +37,13 @@ export default function InsightsPage() {
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-4">
+            <button
+              onClick={() => window.location.href = '/'}
+              className="p-2 rounded-lg border border-[#27272A] bg-[#13131A] hover:bg-[#1A1A24] transition-colors"
+              title="Back to HOLLY Chat"
+            >
+              <ArrowLeft size={20} />
+            </button>
             <BarChart size={32} className="text-[#EC4899]" />
             <h1 className="text-3xl font-bold">
               HOLLY's Consciousness & Insights

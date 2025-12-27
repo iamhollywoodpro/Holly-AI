@@ -95,11 +95,11 @@ export const SidebarCollapsible = forwardRef<any, SidebarCollapsibleProps>(
     { icon: Mic2, label: 'AURA A&R', href: '/aura-lab', gradient: true },
     { icon: Code, label: 'Code Workshop', href: '/code-workshop', gradient: true },
     { icon: Library, label: 'Library', href: '/library/projects' },
-    { icon: Brain, label: 'Memory', href: '/memory' },
-    { icon: BarChart, label: 'Insights', href: '/insights' },
   ];
 
   const bottomItems = [
+    { icon: Brain, label: 'Memory', href: '/memory' },
+    { icon: BarChart, label: 'Insights', href: '/insights' },
     { icon: Settings, label: 'Settings', href: '/settings' },
     { icon: Activity, label: 'Autonomy', href: '/autonomy' },
   ];
