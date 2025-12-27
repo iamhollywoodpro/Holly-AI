@@ -1,17 +1,42 @@
 'use client';
 
 import { useState } from 'react';
-import { Menu, Share2, Users, FolderOpen, MoreVertical, Star, Trash2, FileText, Edit3 } from 'lucide-react';
+import { 
+  Share2, Users, FolderOpen, MoreVertical, Star, Trash2, FileText, Edit3,
+  User, Settings, LogOut, Zap
+} from 'lucide-react';
 import { cyberpunkTheme } from '@/styles/themes/cyberpunk';
-import { ConsciousnessIndicator } from './ConsciousnessIndicator';
+import { useUser, useClerk } from '@clerk/nextjs';
 
 interface CleanHeaderProps {
   onToggleSidebar: () => void;
   chatTitle?: string;
+  activeMode?: string;
 }
 
-export function CleanHeader({ onToggleSidebar, chatTitle = "New Chat" }: CleanHeaderProps) {
+export function CleanHeader({ 
+  onToggleSidebar, 
+  chatTitle = "New Chat",
+  activeMode = "default"
+}: CleanHeaderProps) {
   const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const { user } = useUser();
+  const { signOut } = useClerk();
+
+  // Mode display names and colors
+  const modeConfig: Record<string, { name: string; color: string; icon: string }> = {
+    'default': { name: 'HOLLY', color: cyberpunkTheme.colors.primary.cyan, icon: '🤖' },
+    'full-stack': { name: 'Full-Stack Dev', color: cyberpunkTheme.colors.primary.purple, icon: '💻' },
+    'magic-design': { name: 'Magic Design', color: cyberpunkTheme.colors.primary.pink, icon: '🎨' },
+    'write-code': { name: 'Code Expert', color: cyberpunkTheme.colors.primary.cyan, icon: '⚡' },
+    'aura-ar': { name: 'AURA A&R', color: cyberpunkTheme.colors.primary.pink, icon: '🎵' },
+    'deep-research': { name: 'Deep Research', color: cyberpunkTheme.colors.primary.purple, icon: '🔍' },
+    'music-generation': { name: 'Music Studio', color: cyberpunkTheme.colors.primary.pink, icon: '🎼' },
+    'self-coding': { name: 'Self-Coding', color: cyberpunkTheme.colors.primary.cyan, icon: '🔧' },
+  };
+
+  const currentMode = modeConfig[activeMode] || modeConfig['default'];
 
   return (
     <header style={{
@@ -23,87 +48,47 @@ export function CleanHeader({ onToggleSidebar, chatTitle = "New Chat" }: CleanHe
       justifyContent: 'space-between',
       gap: '1rem',
     }}>
-      {/* Left: Menu + Logo + Consciousness */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-        <button
-          onClick={onToggleSidebar}
-          style={{
-            background: 'transparent',
-            border: 'none',
-            color: cyberpunkTheme.colors.text.primary,
-            cursor: 'pointer',
-            padding: '0.5rem',
-            borderRadius: '8px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transition: 'all 0.2s',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = cyberpunkTheme.colors.background.secondary;
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'transparent';
-          }}
-        >
-          <Menu size={20} />
-        </button>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          {/* HOLLY Logo */}
+      {/* Left: Chat Title + Mode Indicator */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1, minWidth: 0 }}>
+        {/* Chat Title */}
+        <div style={{
+          flex: 1,
+          minWidth: 0,
+        }}>
           <div style={{
-            width: '32px',
-            height: '32px',
-            borderRadius: '8px',
-            background: `linear-gradient(135deg, ${cyberpunkTheme.colors.primary.purple}, ${cyberpunkTheme.colors.primary.cyan})`,
+            fontSize: '0.95rem',
+            fontWeight: 600,
+            color: cyberpunkTheme.colors.text.primary,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}>
+            {chatTitle}
+          </div>
+          
+          {/* Mode Indicator */}
+          <div style={{
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            fontWeight: 'bold',
-            fontSize: '1.1rem',
-            color: '#fff',
+            gap: '0.5rem',
+            marginTop: '2px',
           }}>
-            H
-          </div>
-
-          {/* Consciousness Brain Icon */}
-          <ConsciousnessIndicator />
-
-          {/* HOLLY AI Partner Text */}
-          <div>
-            <div style={{ 
-              fontWeight: 600, 
-              fontSize: '0.95rem',
-              color: cyberpunkTheme.colors.text.primary,
-            }}>
-              HOLLY
-            </div>
-            <div style={{ 
+            <Zap 
+              size={12} 
+              style={{ color: currentMode.color }}
+            />
+            <span style={{
               fontSize: '0.75rem',
-              color: cyberpunkTheme.colors.text.secondary,
-              marginTop: '-2px',
+              color: currentMode.color,
+              fontWeight: 500,
             }}>
-              AI Partner
-            </div>
+              {currentMode.icon} {currentMode.name} Mode
+            </span>
           </div>
         </div>
       </div>
 
-      {/* Center: Chat Title */}
-      <div style={{
-        flex: 1,
-        textAlign: 'center',
-        fontSize: '0.95rem',
-        fontWeight: 500,
-        color: cyberpunkTheme.colors.text.primary,
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-        whiteSpace: 'nowrap',
-      }}>
-        {chatTitle}
-      </div>
-
-      {/* Right: Action Buttons */}
+      {/* Right: Action Buttons + User Profile */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
         {/* Collaborate */}
         <button
@@ -121,7 +106,7 @@ export function CleanHeader({ onToggleSidebar, chatTitle = "New Chat" }: CleanHe
             transition: 'all 0.2s',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = cyberpunkTheme.colors.background.secondary;
+            e.currentTarget.style.background = cyberpunkTheme.colors.background.tertiary;
             e.currentTarget.style.color = cyberpunkTheme.colors.text.primary;
           }}
           onMouseLeave={(e) => {
@@ -149,7 +134,7 @@ export function CleanHeader({ onToggleSidebar, chatTitle = "New Chat" }: CleanHe
             transition: 'all 0.2s',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = cyberpunkTheme.colors.background.secondary;
+            e.currentTarget.style.background = cyberpunkTheme.colors.background.tertiary;
             e.currentTarget.style.color = cyberpunkTheme.colors.text.primary;
           }}
           onMouseLeave={(e) => {
@@ -177,7 +162,7 @@ export function CleanHeader({ onToggleSidebar, chatTitle = "New Chat" }: CleanHe
             transition: 'all 0.2s',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = cyberpunkTheme.colors.background.secondary;
+            e.currentTarget.style.background = cyberpunkTheme.colors.background.tertiary;
             e.currentTarget.style.color = cyberpunkTheme.colors.text.primary;
           }}
           onMouseLeave={(e) => {
@@ -205,7 +190,7 @@ export function CleanHeader({ onToggleSidebar, chatTitle = "New Chat" }: CleanHe
               transition: 'all 0.2s',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = cyberpunkTheme.colors.background.secondary;
+              e.currentTarget.style.background = cyberpunkTheme.colors.background.tertiary;
               e.currentTarget.style.color = cyberpunkTheme.colors.text.primary;
             }}
             onMouseLeave={(e) => {
@@ -259,7 +244,7 @@ export function CleanHeader({ onToggleSidebar, chatTitle = "New Chat" }: CleanHe
                     textAlign: 'left',
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = cyberpunkTheme.colors.background.secondary;
+                    e.currentTarget.style.background = cyberpunkTheme.colors.background.tertiary;
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.background = 'transparent';
@@ -269,6 +254,141 @@ export function CleanHeader({ onToggleSidebar, chatTitle = "New Chat" }: CleanHe
                   <span>{item.label}</span>
                 </button>
               ))}
+            </div>
+          )}
+        </div>
+
+        {/* User Profile */}
+        <div style={{ position: 'relative', marginLeft: '0.5rem' }}>
+          <button
+            onClick={() => setShowProfileMenu(!showProfileMenu)}
+            style={{
+              background: cyberpunkTheme.colors.gradients.primary,
+              border: 'none',
+              cursor: 'pointer',
+              width: '36px',
+              height: '36px',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'all 0.2s',
+              overflow: 'hidden',
+            }}
+          >
+            {user?.imageUrl ? (
+              <img 
+                src={user.imageUrl} 
+                alt={user.firstName || 'User'}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+            ) : (
+              <User size={20} style={{ color: '#fff' }} />
+            )}
+          </button>
+
+          {/* Profile Dropdown */}
+          {showProfileMenu && (
+            <div style={{
+              position: 'absolute',
+              top: 'calc(100% + 0.5rem)',
+              right: 0,
+              background: cyberpunkTheme.colors.background.secondary,
+              border: `1px solid ${cyberpunkTheme.colors.border.primary}`,
+              borderRadius: '12px',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+              minWidth: '220px',
+              zIndex: 1000,
+              overflow: 'hidden',
+            }}>
+              {/* User Info */}
+              <div style={{
+                padding: '1rem',
+                borderBottom: `1px solid ${cyberpunkTheme.colors.border.primary}`,
+              }}>
+                <div style={{
+                  fontWeight: 600,
+                  color: cyberpunkTheme.colors.text.primary,
+                  marginBottom: '0.25rem',
+                }}>
+                  {user?.firstName || 'User'}
+                </div>
+                <div style={{
+                  fontSize: '0.85rem',
+                  color: cyberpunkTheme.colors.text.tertiary,
+                }}>
+                  {user?.primaryEmailAddress?.emailAddress || 'No email'}
+                </div>
+              </div>
+
+              {/* Menu Items */}
+              {[
+                { icon: User, label: 'Profile', href: '/profile' },
+                { icon: Settings, label: 'Settings', href: '/settings' },
+              ].map((item, i) => (
+                <button
+                  key={i}
+                  onClick={() => {
+                    setShowProfileMenu(false);
+                    window.location.href = item.href;
+                  }}
+                  style={{
+                    width: '100%',
+                    background: 'transparent',
+                    border: 'none',
+                    color: cyberpunkTheme.colors.text.primary,
+                    cursor: 'pointer',
+                    padding: '0.75rem 1rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.75rem',
+                    fontSize: '0.9rem',
+                    transition: 'all 0.2s',
+                    textAlign: 'left',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = cyberpunkTheme.colors.background.tertiary;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent';
+                  }}
+                >
+                  <item.icon size={16} />
+                  <span>{item.label}</span>
+                </button>
+              ))}
+
+              {/* Sign Out */}
+              <button
+                onClick={() => {
+                  setShowProfileMenu(false);
+                  signOut();
+                }}
+                style={{
+                  width: '100%',
+                  background: 'transparent',
+                  border: 'none',
+                  borderTop: `1px solid ${cyberpunkTheme.colors.border.primary}`,
+                  color: cyberpunkTheme.colors.accent.error,
+                  cursor: 'pointer',
+                  padding: '0.75rem 1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  fontSize: '0.9rem',
+                  transition: 'all 0.2s',
+                  textAlign: 'left',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
+                }}
+              >
+                <LogOut size={16} />
+                <span>Sign Out</span>
+              </button>
             </div>
           )}
         </div>

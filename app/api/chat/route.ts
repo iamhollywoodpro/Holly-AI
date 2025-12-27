@@ -2,9 +2,8 @@ import { NextResponse, NextRequest } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import Groq from 'groq-sdk';
 import { prisma } from '@/lib/db';
-import { getHollySystemPrompt } from '@/lib/ai/holly-system-prompt';
 import { getRelevantMemories, extractMemories } from '@/lib/memory-service';
-import { routeToModel, detectTaskType, getModelInfo } from '@/lib/model-router';
+import { detectMode, getSystemPromptForMode, HOLLY_MODES } from '@/lib/holly-modes';
 
 // Use Node.js runtime
 export const runtime = 'nodejs';
@@ -79,15 +78,28 @@ export async function POST(req: NextRequest) {
       dbUserId = user.id;
     }
 
-    // 5. GET HOLLY'S PERSONALITY (with user's name and memories)
+    // 5. GET HOLLY'S PERSONALITY (with user's name, mode, and memories)
     const userName = dbUserId ? (
       await prisma.user.findUnique({ where: { id: dbUserId }, select: { name: true } })
     )?.name || 'Hollywood' : 'Hollywood';
     
+    // Detect which mode to use based on latest user message
+    const latestUserMessage = userMessages[userMessages.length - 1]?.content || '';
+    const detectedMode = detectMode(latestUserMessage);
+    const currentMode = HOLLY_MODES[detectedMode];
+    
+    console.log('[Chat API] 🎯 Mode detected:', currentMode.name);
+    
     // Retrieve relevant memories
     const memoryContext = dbUserId ? await getRelevantMemories(dbUserId) : '';
     
-    const hollySystemPrompt = getHollySystemPrompt(userName, memoryContext);
+    // Get system prompt for detected mode
+    let hollySystemPrompt = getSystemPromptForMode(detectedMode, userName);
+    
+    // Append memory context if available
+    if (memoryContext) {
+      hollySystemPrompt += `\n\n## Your Memories\nHere's what you remember about ${userName}:\n${memoryContext}`;
+    }
     
     // 6. PREPARE MESSAGES
     const messages = [
