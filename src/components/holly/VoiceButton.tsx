@@ -2,11 +2,12 @@
 
 /**
  * HOLLY Voice Button Component
- * Allows text-to-speech using MAYA1 voice
+ * Allows text-to-speech using Kokoro TTS (free, open-source)
  */
 
 import { useState } from 'react';
 import { Volume2, VolumeX, Loader2 } from 'lucide-react';
+import { speak } from '@/lib/kokoro-tts';
 
 interface VoiceButtonProps {
   text: string;
@@ -31,23 +32,11 @@ export function VoiceButton({ text, autoPlay = false, className = '' }: VoiceBut
         audio.currentTime = 0;
       }
 
-      // Call speech API
-      const response = await fetch('/api/speech', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ text }),
+      // Generate and play speech using Kokoro TTS
+      const audioElement = await speak(text, {
+        voice: 'af_heart', // Warm, professional female voice
+        speed: 1.0,
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to generate speech');
-      }
-
-      const data = await response.json();
-
-      // Create audio element
-      const audioElement = new Audio(`data:${data.contentType};base64,${data.audioContent}`);
       
       audioElement.onplay = () => setIsPlaying(true);
       audioElement.onended = () => {
@@ -60,7 +49,6 @@ export function VoiceButton({ text, autoPlay = false, className = '' }: VoiceBut
       };
 
       setAudio(audioElement);
-      await audioElement.play();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
       setIsPlaying(false);
