@@ -3,7 +3,7 @@
  * Multi-language support system
  */
 
-export type Language = 'en' | 'es' | 'fr' | 'de' | 'it' | 'pt' | 'ja' | 'ko' | 'zh' | 'ar';
+export type Language = 'en' | 'es' | 'fr' | 'de' | 'it' | 'pt' | 'ja' | 'ko' | 'zh' | 'ar' | 'ml';
 
 export interface Translations {
   common: {
@@ -511,6 +511,52 @@ const translations: Record<Language, Translations> = {
       analytics: 'تحليلات',
       templates: 'قوالب',
       files: 'ملفات',
+    },
+  },
+  ml: {
+    common: {
+      back: 'തിരികെ',
+      save: 'സേവ് ചെയ്യുക',
+      cancel: 'റദ്ദാക്കുക',
+      delete: 'ഇല്ലാതാക്കുക',
+      edit: 'എഡിറ്റ് ചെയ്യുക',
+      search: 'തിരയുക',
+      loading: 'ലോഡ് ചെയ്യുന്നു...',
+      error: 'പിശക്',
+      success: 'വിജയം',
+    },
+    sidebar: {
+      musicStudio: 'സംഗീത സ്റ്റുഡിയോ',
+      auraLab: 'AURA A&R',
+      codeWorkshop: 'കോഡ് വർക്ക്ഷോപ്പ്',
+      library: 'ലൈബ്രറി',
+      memory: 'മെമ്മറി',
+      insights: 'ഇൻസൈറ്റുകൾ',
+      settings: 'ക്രമീകരണങ്ങൾ',
+      autonomy: 'സ്വയംഭരണം',
+      newChat: 'പുതിയ ചാറ്റ്',
+      searchConversations: 'സംഭാഷണങ്ങൾ തിരയുക...',
+    },
+    chat: {
+      typeMessage: 'നിങ്ങളുടെ സന്ദേശം ടൈപ്പ് ചെയ്യുക...',
+      sendMessage: 'അയയ്ക്കുക',
+      voiceInput: 'വോയ്സ് ഇൻപുട്ട്',
+      uploadFile: 'ഫയൽ അപ്ലോഡ് ചെയ്യുക',
+      regenerate: 'വീണ്ടും സൃഷ്ടിക്കുക',
+      copy: 'പകർത്തുക',
+      copySuccess: 'പകർത്തി!',
+    },
+    features: {
+      export: 'എക്സ്പോർട്ട്',
+      share: 'പങ്കിടുക',
+      pin: 'പിൻ ചെയ്യുക',
+      unpin: 'പിൻ നീക്കം ചെയ്യുക',
+      archive: 'ആർക്കൈവ്',
+      organize: 'ഓർഗനൈസ് ചെയ്യുക',
+      customize: 'കസ്റ്റമൈസ് ചെയ്യുക',
+      analytics: 'അനലിറ്റിക്സ്',
+      templates: 'ടെംപ്ലേറ്റുകൾ',
+      files: 'ഫയലുകൾ',
     },
   },
 };

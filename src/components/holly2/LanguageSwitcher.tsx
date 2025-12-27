@@ -16,6 +16,7 @@ const languages: { code: Language; name: string; flag: string }[] = [
   { code: 'ko', name: '한국어', flag: '🇰🇷' },
   { code: 'zh', name: '中文', flag: '🇨🇳' },
   { code: 'ar', name: 'العربية', flag: '🇸🇦' },
+  { code: 'ml', name: 'മലയാളം', flag: '🇮🇳' },
 ];
 
 export function LanguageSwitcher() {
