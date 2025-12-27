@@ -115,3 +115,12 @@ export async function getVoices() {
     return { voices: [] };
   }
 }
+
+// Export alias for backward compatibility
+export const generateVoice = async (
+  text: string,
+  voice: string = 'af_heart',
+  speed: number = 1.0
+): Promise<Blob> => {
+  return generateSpeech(text, { voice: voice as any, speed });
+};
