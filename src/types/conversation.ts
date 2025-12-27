@@ -10,6 +10,7 @@ export interface Conversation {
   lastMessagePreview: string | null;
   createdAt: Date;
   updatedAt: Date;
+  pinned?: boolean;
 }
 
 export interface Message {
