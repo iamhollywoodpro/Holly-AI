@@ -3,7 +3,7 @@
  * Uses SunoAPI.org (third-party API service)
  */
 
-const SUNO_API_KEY = process.env.SUNO_API_KEY;
+const SUNO_API_KEY = process.env.SUNOAPI_KEY || process.env.SUNO_API_KEY;
 const SUNO_BASE_URL = process.env.SUNO_BASE_URL || 'https://api.sunoapi.org/api/v1';
 
 export interface SunoGenerateRequest {
