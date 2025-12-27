@@ -32,6 +32,11 @@
   ],
   "exclude": [
     "node_modules",
-    "_ORGANIZED"
+    "_ORGANIZED",
+    "browser-extension",
+    "mobile-app",
+    ".next",
+    "out",
+    "dist"
   ]
 }
