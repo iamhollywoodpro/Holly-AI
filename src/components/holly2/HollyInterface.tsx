@@ -683,7 +683,7 @@ export function HollyInterface() {
           id: m.id,
           role: m.role,
           content: m.content,
-          createdAt: m.timestamp.toISOString(),
+          createdAt: m.timestamp,
         }))}
         title={conversationId ? `Conversation ${conversationId}` : 'HOLLY Conversation'}
       />
