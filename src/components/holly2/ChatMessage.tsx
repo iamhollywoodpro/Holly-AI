@@ -3,6 +3,7 @@
 import { formatDistanceToNow } from 'date-fns';
 import { User, Sparkles, FileText, Image as ImageIcon, Film, Music, File } from 'lucide-react';
 import { cyberpunkTheme } from '@/styles/themes/cyberpunk';
+import HollyVoicePlayer from '@/components/ui/HollyVoicePlayer';
 
 interface Message {
   id: string;
@@ -31,9 +32,10 @@ interface ToolCall {
 
 interface ChatMessageProps {
   message: Message;
+  autoPlayVoice?: boolean;
 }
 
-export function ChatMessage({ message }: ChatMessageProps) {
+export function ChatMessage({ message, autoPlayVoice = false }: ChatMessageProps) {
   const isUser = message.role === 'user';
 
   const getFileIcon = (type: string) => {
@@ -140,19 +142,30 @@ export function ChatMessage({ message }: ChatMessageProps) {
 
         {/* Text Content */}
         {message.content && (
-          <div 
-            className="rounded-lg px-4 py-3 whitespace-pre-wrap"
-            style={{
-              backgroundColor: isUser 
-                ? cyberpunkTheme.colors.background.tertiary
-                : cyberpunkTheme.colors.background.elevated,
-              color: cyberpunkTheme.colors.text.primary,
-              border: isUser 
-                ? `1px solid ${cyberpunkTheme.colors.border.primary}`
-                : `1px solid ${cyberpunkTheme.colors.primary.purple}33`,
-            }}
-          >
-            {message.content}
+          <div className="space-y-2">
+            <div 
+              className="rounded-lg px-4 py-3 whitespace-pre-wrap"
+              style={{
+                backgroundColor: isUser 
+                  ? cyberpunkTheme.colors.background.tertiary
+                  : cyberpunkTheme.colors.background.elevated,
+                color: cyberpunkTheme.colors.text.primary,
+                border: isUser 
+                  ? `1px solid ${cyberpunkTheme.colors.border.primary}`
+                  : `1px solid ${cyberpunkTheme.colors.primary.purple}33`,
+              }}
+            >
+              {message.content}
+            </div>
+            
+            {/* Voice Player for HOLLY's messages */}
+            {!isUser && (
+              <HollyVoicePlayer
+                text={message.content}
+                autoPlay={autoPlayVoice}
+                showControls={true}
+              />
+            )}
           </div>
         )}
 

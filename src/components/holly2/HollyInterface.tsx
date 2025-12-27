@@ -55,7 +55,10 @@ export function HollyInterface() {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [isLoadingConversation, setIsLoadingConversation] = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(false);
+  const [isVoiceInput, setIsVoiceInput] = useState(false); // Track if user is using voice input
+  const [isRecording, setIsRecording] = useState(false); // Track if currently recording
   const [error, setError] = useState<string | null>(null);
+  const recognitionRef = useRef<any>(null);
   const [retryCount, setRetryCount] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -269,6 +272,60 @@ export function HollyInterface() {
     setVoiceEnabled(newState);
   };
 
+  // Initialize speech recognition
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        recognitionRef.current = new SpeechRecognition();
+        recognitionRef.current.continuous = false;
+        recognitionRef.current.interimResults = false;
+        recognitionRef.current.lang = 'en-US';
+
+        recognitionRef.current.onresult = (event: any) => {
+          const transcript = event.results[0][0].transcript;
+          console.log('[Voice Input] Recognized:', transcript);
+          setInput(transcript);
+          setIsVoiceInput(true);
+          setIsRecording(false);
+          
+          // Auto-send after voice input
+          setTimeout(() => {
+            if (transcript.trim()) {
+              handleSend();
+            }
+          }, 500);
+        };
+
+        recognitionRef.current.onerror = (event: any) => {
+          console.error('[Voice Input] Error:', event.error);
+          setIsRecording(false);
+          setError('Voice recognition failed. Please try again.');
+        };
+
+        recognitionRef.current.onend = () => {
+          setIsRecording(false);
+        };
+      }
+    }
+  }, []);
+
+  const toggleRecording = () => {
+    if (!recognitionRef.current) {
+      setError('Voice input not supported in this browser');
+      return;
+    }
+
+    if (isRecording) {
+      recognitionRef.current.stop();
+      setIsRecording(false);
+    } else {
+      setIsRecording(true);
+      setIsVoiceInput(true);
+      recognitionRef.current.start();
+    }
+  };
+
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     
@@ -404,8 +461,12 @@ export function HollyInterface() {
             </div>
           ) : (
             <>
-              {messages.map((message) => (
-                <ChatMessage key={message.id} message={message} />
+              {messages.map((message, index) => (
+                <ChatMessage 
+                  key={message.id} 
+                  message={message}
+                  autoPlayVoice={isVoiceInput && index === messages.length - 1 && message.role === 'assistant'}
+                />
               ))}
               {isStreaming && (
                 <div className="flex items-center gap-2">
@@ -462,6 +523,19 @@ export function HollyInterface() {
               style={{ color: cyberpunkTheme.colors.text.secondary }}
             >
               <Paperclip className="w-5 h-5" />
+            </button>
+
+            <button
+              onClick={toggleRecording}
+              className={`p-2 rounded-lg hover:bg-white/5 transition-colors ${
+                isRecording ? 'animate-pulse' : ''
+              }`}
+              style={{ 
+                color: isRecording ? cyberpunkTheme.colors.accent.error : cyberpunkTheme.colors.text.secondary 
+              }}
+              title={isRecording ? 'Recording... Click to stop' : 'Click to speak'}
+            >
+              <Mic className="w-5 h-5" />
             </button>
 
             <button

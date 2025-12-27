@@ -1,0 +1,9 @@
+Fetching conversation messages...
+
+(node:118950) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+Found 2 messages
+
+Calling Groq API for memory extraction...
+
+❌ Error: 401 {"error":{"message":"Invalid API Key","type":"invalid_request_error","code":"invalid_api_key"}}

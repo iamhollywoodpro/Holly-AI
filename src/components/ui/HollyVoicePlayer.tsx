@@ -1,12 +1,13 @@
 /**
  * HOLLY Voice Player Component
- * Uses Fish-Speech-1.5 TTS backend ONLY
+ * Uses Kokoro TTS API for high-quality, free voice generation
  */
 
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Volume2, VolumeX, Loader2 } from 'lucide-react';
+import { generateVoice } from '@/lib/kokoro-tts';
 
 interface HollyVoicePlayerProps {
   text: string;
@@ -32,7 +33,7 @@ export default function HollyVoicePlayer({
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
   
-  // Generate and play audio using Fish-Speech
+  // Generate and play audio using Kokoro TTS
   const generateAndPlay = async () => {
     if (!text || text.trim().length === 0) {
       setError('No text to speak');
@@ -43,25 +44,16 @@ export default function HollyVoicePlayer({
     setError(null);
     
     try {
-      const response = await fetch('/api/tts/generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          text: text,
-          voice: 'holly'
-        })
-      });
+      console.log('[HOLLY Voice] Generating voice with Kokoro...');
       
-      if (!response.ok) {
-        throw new Error(`TTS generation failed: ${response.status}`);
-      }
+      // Generate voice using Kokoro API
+      const audioBlob = await generateVoice(text, 'af_heart', 1.0);
       
-      // Create audio blob
-      const audioBlob = await response.blob();
+      // Create audio URL
       const url = URL.createObjectURL(audioBlob);
       setAudioUrl(url);
+      
+      console.log('[HOLLY Voice] Voice generated successfully');
       
       // Play audio
       if (audioRef.current) {
@@ -112,6 +104,7 @@ export default function HollyVoicePlayer({
   // Auto-play if requested
   useEffect(() => {
     if (autoPlay && text) {
+      console.log('[HOLLY Voice] Auto-playing voice...');
       generateAndPlay();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -173,7 +166,7 @@ export default function HollyVoicePlayer({
       {/* Status/Error text */}
       {(isLoading || error) && (
         <span className="text-xs text-gray-500">
-          {isLoading && 'Generating...'}
+          {isLoading && 'Generating voice...'}
           {error && <span className="text-red-500">{error}</span>}
         </span>
       )}

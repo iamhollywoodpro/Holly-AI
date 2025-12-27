@@ -29,9 +29,10 @@ interface MessageBubbleProps {
   message: Message;
   index: number;
   conversationId?: string; // For feedback tracking
+  autoPlayVoice?: boolean; // Auto-play voice for this message
 }
 
-export default function MessageBubble({ message, index, conversationId }: MessageBubbleProps) {
+export default function MessageBubble({ message, index, conversationId, autoPlayVoice = false }: MessageBubbleProps) {
   const isUser = message.role === 'user';
   const isThinking = message.thinking;
   const [isPlayingVoice, setIsPlayingVoice] = useState(false);
@@ -298,11 +299,11 @@ export default function MessageBubble({ message, index, conversationId }: Messag
               )}
             </div>
             
-            {/* HOLLY Voice Player with Fish-Speech */}
+            {/* HOLLY Voice Player with Kokoro TTS */}
             {!isUser && (
               <HollyVoicePlayer
                 text={message.content}
-                autoPlay={false}
+                autoPlay={autoPlayVoice}
                 showControls={true}
                 onPlayStart={handleVoicePlayStart}
                 onPlayEnd={handleVoicePlayEnd}
