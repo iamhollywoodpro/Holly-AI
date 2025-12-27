@@ -139,3 +139,47 @@ export function generateConversationTitle(message: string): string {
   
   return cleaned || 'New Conversation';
 }
+
+/**
+ * Pin a conversation
+ */
+export async function pinConversation(conversationId: string): Promise<void> {
+  try {
+    console.log('[ConversationManager] Pinning conversation:', conversationId);
+    
+    const response = await fetch(`/api/conversations/${conversationId}/pin`, {
+      method: 'POST',
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to pin conversation: ${response.statusText}`);
+    }
+
+    console.log('[ConversationManager] ✅ Conversation pinned');
+  } catch (error) {
+    console.error('[ConversationManager] ❌ Pin conversation error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Unpin a conversation
+ */
+export async function unpinConversation(conversationId: string): Promise<void> {
+  try {
+    console.log('[ConversationManager] Unpinning conversation:', conversationId);
+    
+    const response = await fetch(`/api/conversations/${conversationId}/unpin`, {
+      method: 'POST',
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to unpin conversation: ${response.statusText}`);
+    }
+
+    console.log('[ConversationManager] ✅ Conversation unpinned');
+  } catch (error) {
+    console.error('[ConversationManager] ❌ Unpin conversation error:', error);
+    throw error;
+  }
+}

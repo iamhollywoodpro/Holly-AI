@@ -6,6 +6,7 @@ import { ChatMessage } from './ChatMessage';
 import { ActionButtons } from './ActionButtons';
 import { ToolExecutionPanel } from './ToolExecutionPanel';
 import { SidebarCollapsible } from './SidebarCollapsible';
+import { MobileSidebar } from './MobileSidebar';
 import { CleanHeader } from './CleanHeader';
 import { FileUploadInline } from './FileUploadInline';
 import { cyberpunkTheme } from '@/styles/themes/cyberpunk';
@@ -49,6 +50,7 @@ export function HollyInterface() {
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [toolCalls, setToolCalls] = useState<ToolCall[]>([]);
   const [showToolPanel, setShowToolPanel] = useState(false);
@@ -412,11 +414,32 @@ export function HollyInterface() {
       className="flex h-screen overflow-hidden"
       style={{ backgroundColor: cyberpunkTheme.colors.background.primary }}
     >
-      {/* Restore Sidebar Button (when closed) */}
+      {/* Mobile Hamburger Menu */}
+      <button
+        onClick={() => setMobileSidebarOpen(true)}
+        className="lg:hidden fixed left-4 top-4 z-50 p-2 rounded-lg hover:bg-white/10 transition-colors"
+        style={{ 
+          backgroundColor: cyberpunkTheme.colors.background.secondary,
+          border: `1px solid ${cyberpunkTheme.colors.border.primary}`,
+          color: cyberpunkTheme.colors.text.primary,
+        }}
+        title="Open menu"
+      >
+        <Menu className="w-5 h-5" />
+      </button>
+
+      {/* Mobile Sidebar */}
+      <MobileSidebar
+        isOpen={mobileSidebarOpen}
+        onClose={() => setMobileSidebarOpen(false)}
+        currentConversationId={conversationId}
+      />
+
+      {/* Restore Sidebar Button (when closed on desktop) */}
       {!sidebarOpen && (
         <button
           onClick={() => setSidebarOpen(true)}
-          className="fixed left-4 top-4 z-50 p-2 rounded-lg hover:bg-white/10 transition-colors"
+          className="hidden lg:block fixed left-4 top-4 z-50 p-2 rounded-lg hover:bg-white/10 transition-colors"
           style={{ 
             backgroundColor: cyberpunkTheme.colors.background.secondary,
             border: `1px solid ${cyberpunkTheme.colors.border.primary}`,
@@ -428,7 +451,7 @@ export function HollyInterface() {
         </button>
       )}
 
-      {/* Sidebar */}
+      {/* Desktop Sidebar */}
       <SidebarCollapsible 
         ref={sidebarRef}
         isOpen={sidebarOpen}

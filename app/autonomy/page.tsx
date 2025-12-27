@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useUser } from "@clerk/nextjs";
+import { ConsciousnessIndicator } from '@/components/holly2/ConsciousnessIndicator';
+import { Brain, ArrowLeft } from 'lucide-react';
+import { cyberpunkTheme } from '@/styles/themes/cyberpunk';
 
 interface AutonomyMetrics {
   total: number;
@@ -128,11 +131,36 @@ export default function AutonomyDashboard() {
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            🤖 Autonomy Dashboard
-          </h1>
+          <div className="flex items-center gap-4 mb-4">
+            <button
+              onClick={() => window.location.href = '/'}
+              className="p-2 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 transition-colors"
+              title="Back to HOLLY Chat"
+            >
+              <ArrowLeft size={20} />
+            </button>
+            <h1 className="text-3xl font-bold text-gray-900">
+              🤖 Autonomy Dashboard
+            </h1>
+          </div>
           <p className="text-gray-600">
-            Monitor HOLLY's autonomous decision-making and self-healing capabilities
+            Monitor HOLLY's autonomous decision-making, self-healing capabilities, and consciousness state
+          </p>
+        </div>
+
+        {/* Consciousness Status */}
+        <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <div className="flex items-center gap-3 mb-4">
+            <Brain size={24} style={{ color: cyberpunkTheme.colors.primary.cyan }} />
+            <h2 className="text-xl font-semibold text-gray-900">
+              HOLLY's Consciousness
+            </h2>
+          </div>
+          <div className="flex items-center justify-center py-4">
+            <ConsciousnessIndicator />
+          </div>
+          <p className="text-sm text-gray-600 text-center mt-4">
+            Click the consciousness indicator to view detailed metrics
           </p>
         </div>
 
