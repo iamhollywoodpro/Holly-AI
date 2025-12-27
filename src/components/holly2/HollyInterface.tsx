@@ -9,6 +9,10 @@ import { SidebarCollapsible } from './SidebarCollapsible';
 import { MobileSidebar } from './MobileSidebar';
 import { CleanHeader } from './CleanHeader';
 import { FileUploadInline } from './FileUploadInline';
+import { KeyboardShortcutsModal } from './KeyboardShortcutsModal';
+import { ExportConversationModal } from './ExportConversationModal';
+import { GlobalSearchModal } from './GlobalSearchModal';
+import { QuickActionsBar } from './QuickActionsBar';
 import { cyberpunkTheme } from '@/styles/themes/cyberpunk';
 import { createConversation, getConversationMessages } from '@/lib/conversation-manager';
 import type { Conversation } from '@/types/conversation';
@@ -62,6 +66,9 @@ export function HollyInterface() {
   const [error, setError] = useState<string | null>(null);
   const recognitionRef = useRef<any>(null);
   const [retryCount, setRetryCount] = useState(0);
+  const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [showGlobalSearch, setShowGlobalSearch] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const sidebarRef = useRef<any>(null);
@@ -109,6 +116,52 @@ export function HollyInterface() {
     
     loadConversationFromUrl();
   }, []);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+      const modifier = isMac ? e.metaKey : e.ctrlKey;
+
+      // ? - Show keyboard shortcuts
+      if (e.key === '?' && !e.shiftKey && !modifier) {
+        e.preventDefault();
+        setShowKeyboardShortcuts(true);
+        return;
+      }
+
+      if (!modifier) return;
+
+      // Ctrl/Cmd + K - Global search
+      if (e.key === 'k') {
+        e.preventDefault();
+        setShowGlobalSearch(true);
+      }
+      // Ctrl/Cmd + E - Export conversation
+      else if (e.key === 'e' && messages.length > 0) {
+        e.preventDefault();
+        setShowExportModal(true);
+      }
+      // Ctrl/Cmd + M - Toggle sidebar
+      else if (e.key === 'm') {
+        e.preventDefault();
+        setSidebarOpen(prev => !prev);
+      }
+      // Ctrl/Cmd + B - Toggle voice
+      else if (e.key === 'b') {
+        e.preventDefault();
+        setVoiceEnabled(prev => !prev);
+      }
+      // Ctrl/Cmd + / - Focus input
+      else if (e.key === '/') {
+        e.preventDefault();
+        document.querySelector('textarea')?.focus();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [messages.length]);
 
   const handleSend = async () => {
     if (!input.trim() && uploadedFiles.length === 0) return;
@@ -616,6 +669,49 @@ export function HollyInterface() {
           </div>
         </div>
       </div>
+
+      {/* Modals */}
+      <KeyboardShortcutsModal 
+        isOpen={showKeyboardShortcuts} 
+        onClose={() => setShowKeyboardShortcuts(false)} 
+      />
+      
+      <ExportConversationModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        messages={messages.map(m => ({
+          id: m.id,
+          role: m.role,
+          content: m.content,
+          createdAt: m.timestamp.toISOString(),
+        }))}
+        title={conversationId ? `Conversation ${conversationId}` : 'HOLLY Conversation'}
+      />
+      
+      <GlobalSearchModal
+        isOpen={showGlobalSearch}
+        onClose={() => setShowGlobalSearch(false)}
+      />
+
+      {/* Quick Actions Bar */}
+      <QuickActionsBar
+        voiceEnabled={voiceEnabled}
+        onToggleVoice={() => setVoiceEnabled(prev => !prev)}
+        onExport={() => setShowExportModal(true)}
+        onClearChat={() => {
+          if (confirm('Clear this conversation?')) {
+            setMessages([]);
+            setConversationId(null);
+            window.history.pushState({}, '', window.location.pathname);
+          }
+        }}
+        onNewChat={() => {
+          setMessages([]);
+          setConversationId(null);
+          window.history.pushState({}, '', window.location.pathname);
+        }}
+        onSettings={() => window.location.href = '/settings'}
+      />
     </div>
   );
 }
