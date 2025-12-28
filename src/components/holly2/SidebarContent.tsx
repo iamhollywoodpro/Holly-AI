@@ -5,8 +5,9 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
   Library, MessageSquare, Brain, BarChart, Settings, Activity, 
-  ChevronRight, Plus, Trash2, Music, Mic2, Code, Pin
+  ChevronRight, Plus, Trash2, Music, Mic2, Code, Pin, User, LogOut, ChevronDown
 } from 'lucide-react';
+import { useUser, useClerk } from '@clerk/nextjs';
 import { cyberpunkTheme } from '@/styles/themes/cyberpunk';
 import { formatDistanceToNow } from 'date-fns';
 import { getConversations, deleteConversation, pinConversation, unpinConversation } from '@/lib/conversation-manager';
@@ -20,10 +21,13 @@ interface SidebarContentProps {
 
 export function SidebarContent({ currentConversationId, onNavigate }: SidebarContentProps) {
   const pathname = usePathname();
+  const { user } = useUser();
+  const { signOut } = useClerk();
   const [conversations, setConversations] = useState<any[]>([]);
   const [filteredConversations, setFilteredConversations] = useState<any[]>([]);
   const [showChats, setShowChats] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showUserMenu, setShowUserMenu] = useState(false);
 
   useEffect(() => {
     loadConversations();
@@ -188,12 +192,7 @@ export function SidebarContent({ currentConversationId, onNavigate }: SidebarCon
                 <span>New Chat</span>
               </button>
 
-              <ConversationSearch
-                onSearch={handleSearch}
-                onClear={handleClearSearch}
-              />
-
-              <div className="max-h-64 overflow-y-auto space-y-1">
+              <div className="max-h-48 overflow-y-auto space-y-1">
                 {filteredConversations.length === 0 && searchQuery && (
                   <div 
                     className="px-3 py-4 text-sm text-center"
@@ -261,6 +260,14 @@ export function SidebarContent({ currentConversationId, onNavigate }: SidebarCon
             </div>
           )}
         </div>
+
+        {/* Search moved here - below chats */}
+        <div className="px-3 mb-3">
+          <ConversationSearch
+            onSearch={handleSearch}
+            onClear={handleClearSearch}
+          />
+        </div>
       </nav>
 
       {/* Bottom Navigation */}
@@ -283,6 +290,79 @@ export function SidebarContent({ currentConversationId, onNavigate }: SidebarCon
             </Link>
           );
         })}
+      </div>
+
+      {/* User Profile at Bottom */}
+      <div className="border-t" style={{ borderColor: cyberpunkTheme.colors.border.primary }}>
+        <div className="relative">
+          <button
+            onClick={() => setShowUserMenu(!showUserMenu)}
+            className="w-full p-3 flex items-center gap-3 hover:bg-white/5 transition-colors"
+          >
+            <div 
+              className="w-9 h-9 rounded-full flex items-center justify-center overflow-hidden"
+              style={{ background: cyberpunkTheme.colors.gradients.primary }}
+            >
+              {user?.imageUrl ? (
+                <img 
+                  src={user.imageUrl} 
+                  alt={user.firstName || 'User'}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <User size={20} style={{ color: '#fff' }} />
+              )}
+            </div>
+            <div className="flex-1 text-left min-w-0">
+              <div 
+                className="text-sm font-medium truncate"
+                style={{ color: cyberpunkTheme.colors.text.primary }}
+              >
+                {user?.firstName || user?.username || 'User'}
+              </div>
+              <div 
+                className="text-xs truncate"
+                style={{ color: cyberpunkTheme.colors.text.tertiary }}
+              >
+                {user?.primaryEmailAddress?.emailAddress || 'user@email.com'}
+              </div>
+            </div>
+            <ChevronDown 
+              className={`w-4 h-4 transition-transform ${showUserMenu ? 'rotate-180' : ''}`}
+              style={{ color: cyberpunkTheme.colors.text.secondary }}
+            />
+          </button>
+
+          {/* Expandable User Menu */}
+          {showUserMenu && (
+            <div 
+              className="absolute bottom-full left-0 right-0 mb-1 rounded-lg border overflow-hidden"
+              style={{
+                backgroundColor: cyberpunkTheme.colors.background.elevated,
+                borderColor: cyberpunkTheme.colors.border.primary,
+                boxShadow: '0 -4px 12px rgba(0, 0, 0, 0.3)',
+              }}
+            >
+              <Link
+                href="/settings"
+                onClick={onNavigate}
+                className="flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors"
+                style={{ color: cyberpunkTheme.colors.text.primary }}
+              >
+                <Settings className="w-4 h-4" />
+                <span className="text-sm">Settings</span>
+              </Link>
+              <button
+                onClick={() => signOut()}
+                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors"
+                style={{ color: cyberpunkTheme.colors.accent.error }}
+              >
+                <LogOut className="w-4 h-4" />
+                <span className="text-sm">Sign Out</span>
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
