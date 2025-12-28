@@ -69,6 +69,7 @@ export function HollyInterface() {
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showGlobalSearch, setShowGlobalSearch] = useState(false);
+  const [readingMode, setReadingMode] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const sidebarRef = useRef<any>(null);
@@ -526,10 +527,12 @@ export function HollyInterface() {
               window.history.pushState({}, '', window.location.pathname);
             }
           }}
+          readingMode={readingMode}
+          onToggleReadingMode={() => setReadingMode(!readingMode)}
         />
 
         {/* Messages Area */}
-        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+        <div className={`flex-1 overflow-y-auto px-6 py-4 space-y-4 ${readingMode ? 'reading-mode' : ''}`}>
           {isLoadingConversation ? (
             <div className="flex items-center justify-center h-full">
               <div className="text-center">

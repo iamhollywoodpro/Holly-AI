@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { 
-  Share2, Users, FolderOpen, MoreVertical, Star, Trash2, FileText, Edit3, Download
+  Share2, Users, FolderOpen, MoreVertical, Star, Trash2, FileText, Edit3, Download, Eye, Brain
 } from 'lucide-react';
 import { cyberpunkTheme } from '@/styles/themes/cyberpunk';
 
@@ -12,6 +12,8 @@ interface CleanHeaderProps {
   activeMode?: string;
   onExport?: () => void;
   onClearChat?: () => void;
+  readingMode?: boolean;
+  onToggleReadingMode?: () => void;
 }
 
 export function CleanHeader({ 
@@ -19,7 +21,9 @@ export function CleanHeader({
   chatTitle = "New Chat",
   activeMode = "default",
   onExport,
-  onClearChat
+  onClearChat,
+  readingMode = false,
+  onToggleReadingMode
 }: CleanHeaderProps) {
   const [showMoreMenu, setShowMoreMenu] = useState(false);
 
@@ -65,7 +69,22 @@ export function CleanHeader({
             {chatTitle}
           </div>
           
-
+          {/* Brain State Indicator */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            marginTop: '0.25rem',
+          }}>
+            <Brain size={14} style={{ color: currentMode.color }} />
+            <span style={{
+              fontSize: '0.75rem',
+              color: currentMode.color,
+              fontWeight: 500,
+            }}>
+              {currentMode.icon} {currentMode.name}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -236,6 +255,41 @@ export function CleanHeader({
           >
             <Trash2 size={16} />
             <span className="mobile-hide">Clear</span>
+          </button>
+        )}
+
+        {/* Reading Mode Toggle */}
+        {onToggleReadingMode && (
+          <button
+            onClick={onToggleReadingMode}
+            title={readingMode ? 'Disable Reading Mode' : 'Enable Reading Mode (High Contrast)'}
+            style={{
+              background: readingMode ? `${cyberpunkTheme.colors.primary.cyan}20` : 'transparent',
+              border: readingMode ? `1px solid ${cyberpunkTheme.colors.primary.cyan}` : 'none',
+              color: readingMode ? cyberpunkTheme.colors.primary.cyan : cyberpunkTheme.colors.text.secondary,
+              cursor: 'pointer',
+              padding: '0.5rem 0.75rem',
+              borderRadius: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              fontSize: '0.85rem',
+              transition: 'all 0.3s',
+              boxShadow: readingMode ? `0 0 15px ${cyberpunkTheme.colors.primary.cyan}40` : '0 0 0 rgba(0, 240, 255, 0)',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = `${cyberpunkTheme.colors.background.tertiary}80`;
+              e.currentTarget.style.color = cyberpunkTheme.colors.primary.cyan;
+              e.currentTarget.style.boxShadow = `0 0 15px ${cyberpunkTheme.colors.primary.cyan}60`;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = readingMode ? `${cyberpunkTheme.colors.primary.cyan}20` : 'transparent';
+              e.currentTarget.style.color = readingMode ? cyberpunkTheme.colors.primary.cyan : cyberpunkTheme.colors.text.secondary;
+              e.currentTarget.style.boxShadow = readingMode ? `0 0 15px ${cyberpunkTheme.colors.primary.cyan}40` : '0 0 0 rgba(0, 240, 255, 0)';
+            }}
+          >
+            <Eye size={16} />
+            <span className="mobile-hide">{readingMode ? 'Reading' : 'Read'}</span>
           </button>
         )}
 
