@@ -12,10 +12,11 @@ import { ThemeProvider } from '@/components/providers/ThemeProvider';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'HOLLY - AI Development Partner',
-  description: 'Your autonomous AI developer, designer, and creative strategist',
+  title: 'HOLLY AI - Self-Evolving Intelligence',
+  description: 'Advanced AI agent with music generation, self-coding, voice interaction, and multi-modal capabilities',
   icons: {
-    icon: '/favicon.svg',
+    icon: '/favicon.png',
+    apple: '/favicon.png',
   },
 };
 
