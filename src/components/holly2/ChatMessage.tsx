@@ -155,22 +155,17 @@ export function ChatMessage({ message, autoPlayVoice = false }: ChatMessageProps
                   : `1px solid ${cyberpunkTheme.colors.primary.purple}33`,
               }}
             >
-              <div className="flex items-start gap-2">
-                <div className="flex-1">
-                  {message.content}
-                </div>
-                {/* Inline Voice Player for HOLLY's messages */}
-                {!isUser && (
-                  <div className="flex-shrink-0 mt-1">
-                    <HollyVoicePlayer
-                      text={message.content}
-                      autoPlay={autoPlayVoice}
-                      showControls={true}
-                    />
-                  </div>
-                )}
-              </div>
+              {message.content}
             </div>
+            
+            {/* Voice Player for HOLLY's messages */}
+            {!isUser && (
+              <HollyVoicePlayer
+                text={message.content}
+                autoPlay={autoPlayVoice}
+                showControls={true}
+              />
+            )}
           </div>
         )}
 

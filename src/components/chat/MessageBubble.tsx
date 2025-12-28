@@ -253,25 +253,9 @@ export default function MessageBubble({ message, index, conversationId, autoPlay
             </div>
           )}
 
-          {/* Message Text with inline Voice Player */}
+          {/* Message Text */}
           <div className={`text-base leading-relaxed ${isUser ? 'text-white' : 'text-gray-100'}`}>
-            <div className="flex items-start gap-2">
-              <div className="flex-1">
-                <MarkdownRenderer content={message.content} />
-              </div>
-              {/* Inline Voice Player for HOLLY messages */}
-              {!isUser && (
-                <div className="flex-shrink-0 mt-1">
-                  <HollyVoicePlayer
-                    text={message.content}
-                    autoPlay={autoPlayVoice}
-                    showControls={true}
-                    onPlayStart={handleVoicePlayStart}
-                    onPlayEnd={handleVoicePlayEnd}
-                  />
-                </div>
-              )}
-            </div>
+            <MarkdownRenderer content={message.content} />
           </div>
 
           {/* Footer with Timestamp, Feedback, and Voice Button */}
@@ -314,7 +298,17 @@ export default function MessageBubble({ message, index, conversationId, autoPlay
                 </div>
               )}
             </div>
-
+            
+            {/* HOLLY Voice Player with Kokoro TTS */}
+            {!isUser && (
+              <HollyVoicePlayer
+                text={message.content}
+                autoPlay={autoPlayVoice}
+                showControls={true}
+                onPlayStart={handleVoicePlayStart}
+                onPlayEnd={handleVoicePlayEnd}
+              />
+            )}
           </div>
 
           {/* Decorative Glow */}

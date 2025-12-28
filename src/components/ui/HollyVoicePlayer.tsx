@@ -1,14 +1,13 @@
 /**
  * HOLLY Voice Player Component
- * Uses browser's Web Speech API for free multilingual TTS
- * Supports 100+ languages including Malayalam with proper dialects
+ * Uses Kokoro TTS API for high-quality, free voice generation
  */
 
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Volume2, VolumeX, Loader2 } from 'lucide-react';
-import { speak, stop, isSupported, waitForVoices } from '@/lib/web-speech-tts';
+import { generateVoice } from '@/lib/kokoro-tts';
 
 interface HollyVoicePlayerProps {
   text: string;
@@ -30,35 +29,13 @@ export default function HollyVoicePlayer({
   const [isLoading, setIsLoading] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [supported, setSupported] = useState(true);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
   
-  const hasPlayedRef = useRef(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   
-  // Check browser support
-  useEffect(() => {
-    setSupported(isSupported());
-    if (isSupported()) {
-      // Load voices
-      waitForVoices().then(voices => {
-        console.log('[HOLLY Voice] Available voices:', voices.length);
-      });
-    }
-  }, []);
-  
-  // Clean text for TTS: strip markdown, emojis, and format properly
-  const cleanTextForTTS = (text: string): string => {
+  // Strip emojis from text for cleaner TTS
+  const stripEmojis = (text: string): string => {
     return text
-      // Remove markdown formatting
-      .replace(/\*\*(.+?)\*\*/g, '$1') // Bold
-      .replace(/\*(.+?)\*/g, '$1') // Italic
-      .replace(/\[(.+?)\]\(.+?\)/g, '$1') // Links
-      .replace(/`{1,3}[^`]+`{1,3}/g, '') // Code blocks
-      .replace(/^#{1,6}\s+/gm, '') // Headers
-      .replace(/^[-*+]\s+/gm, '') // List items
-      .replace(/^\d+\.\s+/gm, '') // Numbered lists
-      .replace(/^>\s+/gm, '') // Blockquotes
-      .replace(/---+/g, '') // Horizontal rules
-      // Remove emojis
       .replace(/[\u{1F600}-\u{1F64F}]/gu, '') // Emoticons
       .replace(/[\u{1F300}-\u{1F5FF}]/gu, '') // Misc Symbols and Pictographs
       .replace(/[\u{1F680}-\u{1F6FF}]/gu, '') // Transport and Map
@@ -70,21 +47,13 @@ export default function HollyVoicePlayer({
       .replace(/[\u{1FA70}-\u{1FAFF}]/gu, '') // Symbols and Pictographs Extended-A
       .replace(/[\u{FE00}-\u{FE0F}]/gu, '')   // Variation Selectors
       .replace(/[\u{200D}]/gu, '')            // Zero Width Joiner
-      // Clean up whitespace
-      .replace(/\n{3,}/g, '\n\n') // Max 2 newlines
-      .replace(/\s{2,}/g, ' ') // Multiple spaces to single
       .trim();
   };
 
-  // Generate and play audio using Web Speech API
+  // Generate and play audio using Kokoro TTS
   const generateAndPlay = async () => {
     if (!text || text.trim().length === 0) {
       setError('No text to speak');
-      return;
-    }
-    
-    if (!supported) {
-      setError('Web Speech API not supported in this browser');
       return;
     }
     
@@ -92,100 +61,134 @@ export default function HollyVoicePlayer({
     setError(null);
     
     try {
-      // Clean text for TTS (remove markdown, emojis, etc.)
-      const cleanText = cleanTextForTTS(text);
-      console.log('[HOLLY Voice] Speaking with Web Speech API...');
+      // Strip emojis from text before TTS
+      const cleanText = stripEmojis(text);
+      console.log('[HOLLY Voice] Generating voice with Kokoro...');
       console.log('[HOLLY Voice] Original text:', text);
       console.log('[HOLLY Voice] Clean text:', cleanText);
       
-      // Notify play start
-      setIsPlaying(true);
-      onPlayStart?.();
+      // Generate voice using Kokoro API
+      const audioBlob = await generateVoice(cleanText, 'af_heart', 1.0);
       
-      // Speak using Web Speech API
-      await speak(cleanText, {
-        rate: 1.0,
-        pitch: 1.0,
-        volume: 1.0,
-      });
+      // Create audio URL
+      const url = URL.createObjectURL(audioBlob);
+      setAudioUrl(url);
       
-      // Speech completed
-      setIsPlaying(false);
-      onPlayEnd?.();
-      console.log('[HOLLY Voice] Speech completed');
+      console.log('[HOLLY Voice] Voice generated successfully');
+      
+      // Play audio
+      if (audioRef.current) {
+        audioRef.current.src = url;
+        await audioRef.current.play();
+        setIsPlaying(true);
+        
+        if (onPlayStart) {
+          onPlayStart();
+        }
+      }
       
     } catch (err) {
-      console.error('[HOLLY Voice] Error:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Voice generation failed';
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      console.error('[HOLLY Voice] Error:', errorMessage);
       setError(errorMessage);
-      setIsPlaying(false);
-      onError?.(err instanceof Error ? err : new Error(errorMessage));
+      
+      if (onError && err instanceof Error) {
+        onError(err);
+      }
     } finally {
       setIsLoading(false);
     }
   };
-
-  // Auto-play on mount if enabled
-  useEffect(() => {
-    if (autoPlay && !hasPlayedRef.current && text && supported) {
-      hasPlayedRef.current = true;
-      generateAndPlay();
+  
+  // Handle audio end
+  const handleAudioEnd = () => {
+    setIsPlaying(false);
+    
+    if (onPlayEnd) {
+      onPlayEnd();
     }
-  }, [autoPlay, text, supported]);
-
-  // Handle play/pause click
+  };
+  
+  // Handle play button click
   const handlePlayClick = () => {
     if (isPlaying) {
-      // Stop current speech
-      stop();
+      audioRef.current?.pause();
       setIsPlaying(false);
-      onPlayEnd?.();
+    } else if (audioUrl) {
+      audioRef.current?.play();
+      setIsPlaying(true);
     } else {
-      // Start new speech
       generateAndPlay();
     }
   };
-
+  
+  // Auto-play if requested
+  useEffect(() => {
+    if (autoPlay && text) {
+      console.log('[HOLLY Voice] Auto-playing voice...');
+      generateAndPlay();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoPlay, text]);
+  
+  // Cleanup audio URL
+  useEffect(() => {
+    return () => {
+      if (audioUrl) {
+        URL.revokeObjectURL(audioUrl);
+      }
+    };
+  }, [audioUrl]);
+  
   if (!showControls) {
-    return null;
+    return (
+      <audio
+        ref={audioRef}
+        onEnded={handleAudioEnd}
+        onError={(e) => {
+          console.error('[HOLLY Voice] Audio playback error:', e);
+          setError('Audio playback failed');
+          setIsPlaying(false);
+        }}
+      />
+    );
   }
-
-  if (!supported) {
-    return null; // Hide if not supported
-  }
-
+  
   return (
     <div className="flex items-center gap-2">
-      {/* Hidden audio element for compatibility */}
+      {/* Audio element */}
       <audio
-        ref={(el) => {
-          if (el) {
-            el.style.display = 'none';
-          }
+        ref={audioRef}
+        onEnded={handleAudioEnd}
+        onError={(e) => {
+          console.error('[HOLLY Voice] Audio playback error:', e);
+          setError('Audio playback failed');
+          setIsPlaying(false);
         }}
       />
       
       {/* Play/Pause Button */}
       <button
         onClick={handlePlayClick}
-        disabled={isLoading || !text}
-        className="group relative w-6 h-6 flex items-center justify-center rounded-full bg-gradient-to-r from-purple-500/80 to-indigo-500/80 hover:from-purple-600 hover:to-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-110 active:scale-95 shadow-sm"
+        disabled={isLoading || (!text && !audioUrl)}
+        className="group relative w-10 h-10 sm:w-8 sm:h-8 flex items-center justify-center rounded-full bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-105 active:scale-95"
         aria-label={isPlaying ? 'Pause' : 'Play HOLLY voice'}
         title={isPlaying ? 'Pause' : 'Play HOLLY voice'}
       >
         {isLoading ? (
-          <Loader2 className="w-3 h-3 text-white animate-spin" />
+          <Loader2 className="w-5 h-5 sm:w-4 sm:h-4 text-white animate-spin" />
         ) : isPlaying ? (
-          <VolumeX className="w-3 h-3 text-white" />
+          <VolumeX className="w-5 h-5 sm:w-4 sm:h-4 text-white" />
         ) : (
-          <Volume2 className="w-3 h-3 text-white" />
+          <Volume2 className="w-5 h-5 sm:w-4 sm:h-4 text-white" />
         )}
       </button>
       
       {/* Status/Error text */}
       {(isLoading || error) && (
         <span className="text-xs text-gray-500">
-          {error || 'Loading...'}
+          {isLoading && 'Generating voice...'}
+          {error && <span className="text-red-500">{error}</span>}
         </span>
       )}
     </div>
