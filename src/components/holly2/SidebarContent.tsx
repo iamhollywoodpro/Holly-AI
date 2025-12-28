@@ -154,6 +154,14 @@ export function SidebarContent({ currentConversationId, onNavigate }: SidebarCon
           })}
         </div>
 
+        {/* Search - moved above Chats */}
+        <div className="px-3 mb-3">
+          <ConversationSearch
+            onSearch={handleSearch}
+            onClear={handleClearSearch}
+          />
+        </div>
+
         {/* Chats Section */}
         <div className="mb-4">
           <button
@@ -259,14 +267,6 @@ export function SidebarContent({ currentConversationId, onNavigate }: SidebarCon
               </div>
             </div>
           )}
-        </div>
-
-        {/* Search moved here - below chats */}
-        <div className="px-3 mb-3">
-          <ConversationSearch
-            onSearch={handleSearch}
-            onClear={handleClearSearch}
-          />
         </div>
       </nav>
 

@@ -35,12 +35,12 @@ export const SidebarCollapsible = forwardRef<any, SidebarCollapsibleProps>(
       {/* Header with Minimize Button */}
       <div className="p-4 border-b flex items-center justify-between" style={{ borderColor: cyberpunkTheme.colors.border.primary }}>
         <div className="flex items-center gap-2 flex-1">
-          <div className="relative w-full max-w-[180px]">
+          <div className="relative w-full max-w-[140px]">
             <Image
               src="/assets/holly-logo-full.png"
               alt="HOLLY AI"
-              width={180}
-              height={60}
+              width={140}
+              height={47}
               className="w-full h-auto"
               priority
             />

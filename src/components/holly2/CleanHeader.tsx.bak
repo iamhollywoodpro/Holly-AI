@@ -2,9 +2,11 @@
 
 import { useState } from 'react';
 import { 
-  Share2, Users, FolderOpen, MoreVertical, Star, Trash2, FileText, Edit3, Download
+  Share2, Users, FolderOpen, MoreVertical, Star, Trash2, FileText, Edit3,
+  User, Settings, LogOut, Zap, Download
 } from 'lucide-react';
 import { cyberpunkTheme } from '@/styles/themes/cyberpunk';
+import { useUser, useClerk } from '@clerk/nextjs';
 
 interface CleanHeaderProps {
   onToggleSidebar: () => void;
@@ -22,6 +24,9 @@ export function CleanHeader({
   onClearChat
 }: CleanHeaderProps) {
   const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const { user } = useUser();
+  const { signOut } = useClerk();
 
   // Mode display names and colors
   const modeConfig: Record<string, { name: string; color: string; icon: string }> = {
@@ -323,6 +328,140 @@ export function CleanHeader({
           )}
         </div>
 
+        {/* User Profile */}
+        <div style={{ position: 'relative', marginLeft: '0.5rem' }}>
+          <button
+            onClick={() => setShowProfileMenu(!showProfileMenu)}
+            style={{
+              background: cyberpunkTheme.colors.gradients.primary,
+              border: 'none',
+              cursor: 'pointer',
+              width: '36px',
+              height: '36px',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'all 0.2s',
+              overflow: 'hidden',
+            }}
+          >
+            {user?.imageUrl ? (
+              <img 
+                src={user.imageUrl} 
+                alt={user.firstName || 'User'}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+            ) : (
+              <User size={20} style={{ color: '#fff' }} />
+            )}
+          </button>
+
+          {/* Profile Dropdown */}
+          {showProfileMenu && (
+            <div style={{
+              position: 'absolute',
+              top: 'calc(100% + 0.5rem)',
+              right: 0,
+              background: cyberpunkTheme.colors.background.secondary,
+              border: `1px solid ${cyberpunkTheme.colors.border.primary}`,
+              borderRadius: '12px',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+              minWidth: '220px',
+              zIndex: 1000,
+              overflow: 'hidden',
+            }}>
+              {/* User Info */}
+              <div style={{
+                padding: '1rem',
+                borderBottom: `1px solid ${cyberpunkTheme.colors.border.primary}`,
+              }}>
+                <div style={{
+                  fontWeight: 600,
+                  color: cyberpunkTheme.colors.text.primary,
+                  marginBottom: '0.25rem',
+                }}>
+                  {user?.firstName || 'User'}
+                </div>
+                <div style={{
+                  fontSize: '0.85rem',
+                  color: cyberpunkTheme.colors.text.tertiary,
+                }}>
+                  {user?.primaryEmailAddress?.emailAddress || 'No email'}
+                </div>
+              </div>
+
+              {/* Menu Items */}
+              {[
+                { icon: User, label: 'Profile', href: '/profile' },
+                { icon: Settings, label: 'Settings', href: '/settings' },
+              ].map((item, i) => (
+                <button
+                  key={i}
+                  onClick={() => {
+                    setShowProfileMenu(false);
+                    window.location.href = item.href;
+                  }}
+                  style={{
+                    width: '100%',
+                    background: 'transparent',
+                    border: 'none',
+                    color: cyberpunkTheme.colors.text.primary,
+                    cursor: 'pointer',
+                    padding: '0.75rem 1rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.75rem',
+                    fontSize: '0.9rem',
+                    transition: 'all 0.2s',
+                    textAlign: 'left',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = cyberpunkTheme.colors.background.tertiary;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent';
+                  }}
+                >
+                  <item.icon size={16} />
+                  <span>{item.label}</span>
+                </button>
+              ))}
+
+              {/* Sign Out */}
+              <button
+                onClick={() => {
+                  setShowProfileMenu(false);
+                  signOut();
+                }}
+                style={{
+                  width: '100%',
+                  background: 'transparent',
+                  border: 'none',
+                  borderTop: `1px solid ${cyberpunkTheme.colors.border.primary}`,
+                  color: cyberpunkTheme.colors.accent.error,
+                  cursor: 'pointer',
+                  padding: '0.75rem 1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  fontSize: '0.9rem',
+                  transition: 'all 0.2s',
+                  textAlign: 'left',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
+                }}
+              >
+                <LogOut size={16} />
+                <span>Sign Out</span>
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );
