@@ -12,7 +12,7 @@ import { FileUploadInline } from './FileUploadInline';
 import { KeyboardShortcutsModal } from './KeyboardShortcutsModal';
 import { ExportConversationModal } from './ExportConversationModal';
 import { GlobalSearchModal } from './GlobalSearchModal';
-import { QuickActionsBar } from './QuickActionsBar';
+
 import { cyberpunkTheme } from '@/styles/themes/cyberpunk';
 import { createConversation, getConversationMessages } from '@/lib/conversation-manager';
 import type { Conversation } from '@/types/conversation';
@@ -518,6 +518,14 @@ export function HollyInterface() {
         <CleanHeader 
           onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
           chatTitle="New Chat"
+          onExport={() => setShowExportModal(true)}
+          onClearChat={() => {
+            if (confirm('Clear this conversation?')) {
+              setMessages([]);
+              setConversationId(null);
+              window.history.pushState({}, '', window.location.pathname);
+            }
+          }}
         />
 
         {/* Messages Area */}
@@ -611,19 +619,49 @@ export function HollyInterface() {
             
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="p-2 rounded-lg hover:bg-white/5 transition-colors"
-              style={{ color: cyberpunkTheme.colors.text.secondary }}
+              className="p-2 rounded-xl hover:bg-white/5 transition-all"
+              style={{ 
+                color: cyberpunkTheme.colors.text.secondary,
+                transition: 'all 0.3s',
+                boxShadow: '0 0 0 rgba(0, 240, 255, 0)',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = cyberpunkTheme.colors.primary.cyan;
+                e.currentTarget.style.boxShadow = `0 0 15px ${cyberpunkTheme.colors.primary.cyan}60`;
+                e.currentTarget.style.background = `${cyberpunkTheme.colors.background.tertiary}80`;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = cyberpunkTheme.colors.text.secondary;
+                e.currentTarget.style.boxShadow = '0 0 0 rgba(0, 240, 255, 0)';
+                e.currentTarget.style.background = 'transparent';
+              }}
             >
               <Paperclip className="w-5 h-5" />
             </button>
 
             <button
               onClick={toggleRecording}
-              className={`p-2 rounded-lg hover:bg-white/5 transition-colors ${
+              className={`p-2 rounded-xl hover:bg-white/5 transition-all ${
                 isRecording ? 'animate-pulse' : ''
               }`}
               style={{ 
-                color: isRecording ? cyberpunkTheme.colors.accent.error : cyberpunkTheme.colors.text.secondary 
+                color: isRecording ? cyberpunkTheme.colors.accent.error : cyberpunkTheme.colors.text.secondary,
+                transition: 'all 0.3s',
+                boxShadow: isRecording ? `0 0 15px ${cyberpunkTheme.colors.accent.error}60` : '0 0 0 rgba(176, 38, 255, 0)',
+              }}
+              onMouseEnter={(e) => {
+                if (!isRecording) {
+                  e.currentTarget.style.color = cyberpunkTheme.colors.primary.purple;
+                  e.currentTarget.style.boxShadow = `0 0 15px ${cyberpunkTheme.colors.primary.purple}60`;
+                  e.currentTarget.style.background = `${cyberpunkTheme.colors.background.tertiary}80`;
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isRecording) {
+                  e.currentTarget.style.color = cyberpunkTheme.colors.text.secondary;
+                  e.currentTarget.style.boxShadow = '0 0 0 rgba(176, 38, 255, 0)';
+                  e.currentTarget.style.background = 'transparent';
+                }
               }}
               title={isRecording ? 'Recording... Click to stop' : 'Click to speak'}
             >
@@ -632,9 +670,21 @@ export function HollyInterface() {
 
             <button
               onClick={toggleVoice}
-              className="p-2 rounded-lg hover:bg-white/5 transition-colors"
+              className="p-2 rounded-xl hover:bg-white/5 transition-all"
               style={{ 
-                color: voiceEnabled ? cyberpunkTheme.colors.primary.purple : cyberpunkTheme.colors.text.secondary 
+                color: voiceEnabled ? cyberpunkTheme.colors.primary.pink : cyberpunkTheme.colors.text.secondary,
+                transition: 'all 0.3s',
+                boxShadow: voiceEnabled ? `0 0 15px ${cyberpunkTheme.colors.primary.pink}60` : '0 0 0 rgba(255, 0, 110, 0)',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = cyberpunkTheme.colors.primary.pink;
+                e.currentTarget.style.boxShadow = `0 0 15px ${cyberpunkTheme.colors.primary.pink}60`;
+                e.currentTarget.style.background = `${cyberpunkTheme.colors.background.tertiary}80`;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = voiceEnabled ? cyberpunkTheme.colors.primary.pink : cyberpunkTheme.colors.text.secondary;
+                e.currentTarget.style.boxShadow = voiceEnabled ? `0 0 15px ${cyberpunkTheme.colors.primary.pink}60` : '0 0 0 rgba(255, 0, 110, 0)';
+                e.currentTarget.style.background = 'transparent';
               }}
               title={voiceEnabled ? 'Voice enabled - HOLLY will speak' : 'Voice disabled'}
             >
@@ -693,25 +743,7 @@ export function HollyInterface() {
         onClose={() => setShowGlobalSearch(false)}
       />
 
-      {/* Quick Actions Bar */}
-      <QuickActionsBar
-        voiceEnabled={voiceEnabled}
-        onToggleVoice={() => setVoiceEnabled(prev => !prev)}
-        onExport={() => setShowExportModal(true)}
-        onClearChat={() => {
-          if (confirm('Clear this conversation?')) {
-            setMessages([]);
-            setConversationId(null);
-            window.history.pushState({}, '', window.location.pathname);
-          }
-        }}
-        onNewChat={() => {
-          setMessages([]);
-          setConversationId(null);
-          window.history.pushState({}, '', window.location.pathname);
-        }}
-        onSettings={() => window.location.href = '/settings'}
-      />
+
     </div>
   );
 }

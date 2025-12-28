@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { 
   Share2, Users, FolderOpen, MoreVertical, Star, Trash2, FileText, Edit3,
-  User, Settings, LogOut, Zap
+  User, Settings, LogOut, Zap, Download
 } from 'lucide-react';
 import { cyberpunkTheme } from '@/styles/themes/cyberpunk';
 import { useUser, useClerk } from '@clerk/nextjs';
@@ -12,12 +12,16 @@ interface CleanHeaderProps {
   onToggleSidebar: () => void;
   chatTitle?: string;
   activeMode?: string;
+  onExport?: () => void;
+  onClearChat?: () => void;
 }
 
 export function CleanHeader({ 
   onToggleSidebar, 
   chatTitle = "New Chat",
-  activeMode = "default"
+  activeMode = "default",
+  onExport,
+  onClearChat
 }: CleanHeaderProps) {
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -81,20 +85,23 @@ export function CleanHeader({
             color: cyberpunkTheme.colors.text.secondary,
             cursor: 'pointer',
             padding: '0.5rem 0.75rem',
-            borderRadius: '8px',
+            borderRadius: '12px',
             display: 'flex',
             alignItems: 'center',
             gap: '0.5rem',
             fontSize: '0.85rem',
-            transition: 'all 0.2s',
+            transition: 'all 0.3s',
+            boxShadow: '0 0 0 rgba(0, 240, 255, 0)',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = cyberpunkTheme.colors.background.tertiary;
-            e.currentTarget.style.color = cyberpunkTheme.colors.text.primary;
+            e.currentTarget.style.background = `${cyberpunkTheme.colors.background.tertiary}80`;
+            e.currentTarget.style.color = cyberpunkTheme.colors.primary.cyan;
+            e.currentTarget.style.boxShadow = `0 0 15px ${cyberpunkTheme.colors.primary.cyan}60`;
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.background = 'transparent';
             e.currentTarget.style.color = cyberpunkTheme.colors.text.secondary;
+            e.currentTarget.style.boxShadow = '0 0 0 rgba(0, 240, 255, 0)';
           }}
         >
           <Users size={16} />
@@ -114,20 +121,23 @@ export function CleanHeader({
             color: cyberpunkTheme.colors.text.secondary,
             cursor: 'pointer',
             padding: '0.5rem 0.75rem',
-            borderRadius: '8px',
+            borderRadius: '12px',
             display: 'flex',
             alignItems: 'center',
             gap: '0.5rem',
             fontSize: '0.85rem',
-            transition: 'all 0.2s',
+            transition: 'all 0.3s',
+            boxShadow: '0 0 0 rgba(176, 38, 255, 0)',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = cyberpunkTheme.colors.background.tertiary;
-            e.currentTarget.style.color = cyberpunkTheme.colors.text.primary;
+            e.currentTarget.style.background = `${cyberpunkTheme.colors.background.tertiary}80`;
+            e.currentTarget.style.color = cyberpunkTheme.colors.primary.purple;
+            e.currentTarget.style.boxShadow = `0 0 15px ${cyberpunkTheme.colors.primary.purple}60`;
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.background = 'transparent';
             e.currentTarget.style.color = cyberpunkTheme.colors.text.secondary;
+            e.currentTarget.style.boxShadow = '0 0 0 rgba(176, 38, 255, 0)';
           }}
         >
           <Share2 size={16} />
@@ -143,25 +153,96 @@ export function CleanHeader({
             color: cyberpunkTheme.colors.text.secondary,
             cursor: 'pointer',
             padding: '0.5rem 0.75rem',
-            borderRadius: '8px',
+            borderRadius: '12px',
             display: 'flex',
             alignItems: 'center',
             gap: '0.5rem',
             fontSize: '0.85rem',
-            transition: 'all 0.2s',
+            transition: 'all 0.3s',
+            boxShadow: '0 0 0 rgba(0, 240, 255, 0)',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = cyberpunkTheme.colors.background.tertiary;
-            e.currentTarget.style.color = cyberpunkTheme.colors.text.primary;
+            e.currentTarget.style.background = `${cyberpunkTheme.colors.background.tertiary}80`;
+            e.currentTarget.style.color = cyberpunkTheme.colors.primary.cyan;
+            e.currentTarget.style.boxShadow = `0 0 15px ${cyberpunkTheme.colors.primary.cyan}60`;
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.background = 'transparent';
             e.currentTarget.style.color = cyberpunkTheme.colors.text.secondary;
+            e.currentTarget.style.boxShadow = '0 0 0 rgba(0, 240, 255, 0)';
           }}
         >
           <FolderOpen size={16} />
           <span>Files</span>
         </button>
+
+        {/* Export */}
+        {onExport && (
+          <button
+            onClick={onExport}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: cyberpunkTheme.colors.text.secondary,
+              cursor: 'pointer',
+              padding: '0.5rem 0.75rem',
+              borderRadius: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              fontSize: '0.85rem',
+              transition: 'all 0.3s',
+              boxShadow: '0 0 0 rgba(176, 38, 255, 0)',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = `${cyberpunkTheme.colors.background.tertiary}80`;
+              e.currentTarget.style.color = cyberpunkTheme.colors.primary.purple;
+              e.currentTarget.style.boxShadow = `0 0 15px ${cyberpunkTheme.colors.primary.purple}60`;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+              e.currentTarget.style.color = cyberpunkTheme.colors.text.secondary;
+              e.currentTarget.style.boxShadow = '0 0 0 rgba(176, 38, 255, 0)';
+            }}
+          >
+            <Download size={16} />
+            <span>Export</span>
+          </button>
+        )}
+
+        {/* Clear Chat */}
+        {onClearChat && (
+          <button
+            onClick={onClearChat}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: cyberpunkTheme.colors.text.secondary,
+              cursor: 'pointer',
+              padding: '0.5rem 0.75rem',
+              borderRadius: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              fontSize: '0.85rem',
+              transition: 'all 0.3s',
+              boxShadow: '0 0 0 rgba(255, 0, 110, 0)',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = `${cyberpunkTheme.colors.background.tertiary}80`;
+              e.currentTarget.style.color = cyberpunkTheme.colors.primary.pink;
+              e.currentTarget.style.boxShadow = `0 0 15px ${cyberpunkTheme.colors.primary.pink}60`;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+              e.currentTarget.style.color = cyberpunkTheme.colors.text.secondary;
+              e.currentTarget.style.boxShadow = '0 0 0 rgba(255, 0, 110, 0)';
+            }}
+          >
+            <Trash2 size={16} />
+            <span>Clear</span>
+          </button>
+        )}
 
         {/* More Options */}
         <div style={{ position: 'relative' }}>

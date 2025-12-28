@@ -41,8 +41,20 @@ export function ActionButtons({ onAction, compact = false }: ActionButtonsProps)
   };
 
   const buttonClass = compact 
-    ? "p-2 rounded-lg hover:bg-white/5 transition-colors relative"
+    ? "p-2 rounded-xl hover:bg-white/5 transition-all relative"
     : "px-6 py-3 rounded-lg transition-all hover:scale-105 flex items-center gap-3 font-medium";
+
+  const compactButtonStyle = {
+    color: cyberpunkTheme.colors.text.secondary,
+    transition: 'all 0.3s',
+    boxShadow: '0 0 0 rgba(0, 240, 255, 0)',
+  };
+
+  const compactButtonHoverStyle = (color: string) => ({
+    color: color,
+    boxShadow: `0 0 15px ${color}60`,
+    background: `${cyberpunkTheme.colors.background.tertiary}80`,
+  });
 
   const iconSize = compact ? "w-5 h-5" : "w-6 h-6";
 
@@ -56,6 +68,17 @@ export function ActionButtons({ onAction, compact = false }: ActionButtonsProps)
           style={{
             background: compact ? 'transparent' : cyberpunkTheme.colors.gradients.primary,
             color: compact ? cyberpunkTheme.colors.text.secondary : 'white',
+            ...(compact ? compactButtonStyle : {}),
+          }}
+          onMouseEnter={(e) => {
+            if (compact) {
+              Object.assign(e.currentTarget.style, compactButtonHoverStyle(cyberpunkTheme.colors.primary.purple));
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (compact) {
+              Object.assign(e.currentTarget.style, compactButtonStyle);
+            }
           }}
           title="Create"
         >
@@ -96,6 +119,17 @@ export function ActionButtons({ onAction, compact = false }: ActionButtonsProps)
           style={{
             background: compact ? 'transparent' : cyberpunkTheme.colors.gradients.secondary,
             color: compact ? cyberpunkTheme.colors.text.secondary : 'white',
+            ...(compact ? compactButtonStyle : {}),
+          }}
+          onMouseEnter={(e) => {
+            if (compact) {
+              Object.assign(e.currentTarget.style, compactButtonHoverStyle(cyberpunkTheme.colors.primary.cyan));
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (compact) {
+              Object.assign(e.currentTarget.style, compactButtonStyle);
+            }
           }}
           title="Generate"
         >
@@ -136,6 +170,17 @@ export function ActionButtons({ onAction, compact = false }: ActionButtonsProps)
           style={{
             background: compact ? 'transparent' : cyberpunkTheme.colors.gradients.holographic,
             color: compact ? cyberpunkTheme.colors.text.secondary : 'white',
+            ...(compact ? compactButtonStyle : {}),
+          }}
+          onMouseEnter={(e) => {
+            if (compact) {
+              Object.assign(e.currentTarget.style, compactButtonHoverStyle(cyberpunkTheme.colors.primary.pink));
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (compact) {
+              Object.assign(e.currentTarget.style, compactButtonStyle);
+            }
           }}
           title="Analyze"
         >
