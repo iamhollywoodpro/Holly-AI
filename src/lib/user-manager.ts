@@ -21,11 +21,16 @@ export async function getOrCreateUser(clerkUserId: string): Promise<{ id: string
   try {
     console.log('👤 [UserManager] Getting/creating user for Clerk ID:', clerkUserId);
     
-    // CRITICAL: Get REAL email from Clerk
-    console.log('🔍 [UserManager] Calling clerkClient().users.getUser...');
-    const client = await clerkClient();
-    const clerkUser = await client.users.getUser(clerkUserId);
+    // CRITICAL: Get REAL email from Clerk using currentUser() (recommended for App Router)
+    console.log('🔍 [UserManager] Calling currentUser()...');
+    const clerkUser = await currentUser();
     console.log('✅ [UserManager] Got Clerk user:', clerkUser?.id || 'NULL');
+    
+    // Verify the user ID matches
+    if (clerkUser && clerkUser.id !== clerkUserId) {
+      console.error('❌ [UserManager] User ID mismatch! Expected:', clerkUserId, 'Got:', clerkUser.id);
+      throw new Error('User ID mismatch');
+    }
   
   if (!clerkUser) {
     throw new Error(`User not found in Clerk: ${clerkUserId}`);
