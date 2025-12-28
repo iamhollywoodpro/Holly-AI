@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
     const sunoRequest: any = {
       prompt,
       customMode,
-      model: 'V3.5',
+      model: 'V4_5ALL',
     };
 
     if (customMode) {
