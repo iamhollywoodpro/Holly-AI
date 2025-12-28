@@ -4,7 +4,7 @@
  */
 
 import { prisma } from '@/lib/db';
-import { currentUser } from '@clerk/nextjs/server';
+import { clerkClient } from '@clerk/nextjs/server';
 
 interface UserInfo {
   clerkUserId: string;
@@ -20,11 +20,11 @@ interface UserInfo {
 export async function getOrCreateUser(clerkUserId: string): Promise<{ id: string; clerkUserId: string; email: string }> {
   console.log('👤 [UserManager] Getting/creating user for Clerk ID:', clerkUserId);
   
-  // CRITICAL: Get REAL email from Clerk
-  const clerkUser = await currentUser();
+  // CRITICAL: Get REAL email from Clerk using clerkClient (works in API routes)
+  const clerkUser = await clerkClient.users.getUser(clerkUserId);
   
   if (!clerkUser) {
-    throw new Error('User not authenticated in Clerk');
+    throw new Error(`User not found in Clerk: ${clerkUserId}`);
   }
   
   const primaryEmail = clerkUser.primaryEmailAddress?.emailAddress;
