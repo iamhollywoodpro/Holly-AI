@@ -57,9 +57,9 @@ export default function MusicStudio() {
       console.log('Generation started:', result.data);
 
       // Add generating track to list
-      const recordId = result.data.recordId || result.data.id;
+      const taskId = result.data.taskId;
       const newTrack: GeneratedTrack = {
-        id: recordId,
+        id: taskId,
         title: title || 'Untitled Track',
         audioUrl: '',
         status: 'generating',
@@ -68,7 +68,7 @@ export default function MusicStudio() {
       setTracks(prev => [newTrack, ...prev]);
 
       // Poll for completion
-      pollTrackStatus(recordId);
+      pollTrackStatus(taskId);
 
     } catch (err: any) {
       console.error('Generation error:', err);
@@ -78,33 +78,39 @@ export default function MusicStudio() {
     }
   };
 
-  const pollTrackStatus = async (recordId: string) => {
+  const pollTrackStatus = async (taskId: string) => {
     const maxAttempts = 60; // 5 minutes max
     let attempts = 0;
 
     const poll = async () => {
       try {
-        const response = await fetch(`/api/music/status?recordId=${recordId}`);
+        const response = await fetch(`/api/music/status?taskId=${taskId}`);
         const result = await response.json();
+
+        console.log('[Poll] Status check:', result);
 
         if (result.success && result.data) {
           const data = result.data;
           
-          // Check if generation is complete
-          if (data.status === 'complete' && data.audioUrl) {
+          // Check if generation is complete (SUCCESS status from SUNO)
+          if (data.status === 'SUCCESS' && data.response?.sunoData) {
+            // Get the first track from sunoData
+            const track = data.response.sunoData[0];
+            
             setTracks(prev =>
-              prev.map(track =>
-                track.id === recordId
+              prev.map(t =>
+                t.id === taskId
                   ? {
-                      ...track,
-                      audioUrl: data.audioUrl,
-                      imageUrl: data.imageUrl,
-                      duration: data.duration,
+                      ...t,
+                      audioUrl: track.audioUrl || track.streamAudioUrl,
+                      imageUrl: track.imageUrl,
+                      duration: track.duration,
                       status: 'complete',
                     }
-                  : track
+                  : t
               )
             );
+            console.log('[Poll] Generation complete!');
             return; // Stop polling
           }
 
@@ -116,13 +122,14 @@ export default function MusicStudio() {
             // Timeout
             setTracks(prev =>
               prev.map(track =>
-                track.id === recordId ? { ...track, status: 'error' } : track
+                track.id === taskId ? { ...track, status: 'error' } : track
               )
             );
+            console.log('[Poll] Timeout after', maxAttempts, 'attempts');
           }
         }
       } catch (err) {
-        console.error('Poll error:', err);
+        console.error('[Poll] Error:', err);
       }
     };
 

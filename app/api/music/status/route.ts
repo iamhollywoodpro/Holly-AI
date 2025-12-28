@@ -24,20 +24,20 @@ export async function GET(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url);
-    const recordId = searchParams.get('recordId');
+    const taskId = searchParams.get('taskId');
 
-    if (!recordId) {
+    if (!taskId) {
       return NextResponse.json(
-        { success: false, error: 'recordId is required' },
+        { success: false, error: 'taskId is required' },
         { status: 400 }
       );
     }
 
-    console.log('[Music Status API] Querying status for:', recordId);
+    console.log('[Music Status API] Querying status for taskId:', taskId);
 
     // Call SUNO API to get status
     const response = await fetch(
-      `${SUNO_API_BASE}/api/v1/generate/record-info?recordId=${recordId}`,
+      `${SUNO_API_BASE}/api/v1/generate/record-info?taskId=${taskId}`,
       {
         headers: {
           'Authorization': `Bearer ${SUNO_API_KEY}`,
