@@ -515,24 +515,26 @@ export function HollyInterface() {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <CleanHeader 
-          onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
-          chatTitle="New Chat"
-          onExport={() => setShowExportModal(true)}
-          onClearChat={() => {
-            if (confirm('Clear this conversation?')) {
-              setMessages([]);
-              setConversationId(null);
-              window.history.pushState({}, '', window.location.pathname);
-            }
-          }}
-          readingMode={readingMode}
-          onToggleReadingMode={() => setReadingMode(!readingMode)}
-        />
+        {/* Header - Hidden on mobile, hamburger menu used instead */}
+        <div className="hidden lg:block">
+          <CleanHeader 
+            onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+            chatTitle="New Chat"
+            onExport={() => setShowExportModal(true)}
+            onClearChat={() => {
+              if (confirm('Clear this conversation?')) {
+                setMessages([]);
+                setConversationId(null);
+                window.history.pushState({}, '', window.location.pathname);
+              }
+            }}
+            readingMode={readingMode}
+            onToggleReadingMode={() => setReadingMode(!readingMode)}
+          />
+        </div>
 
         {/* Messages Area */}
-        <div className={`flex-1 overflow-y-auto px-6 py-4 space-y-4 ${readingMode ? 'reading-mode' : ''}`}>
+        <div className={`flex-1 overflow-y-auto px-4 lg:px-6 py-4 space-y-4 pt-16 lg:pt-4 ${readingMode ? 'reading-mode' : ''}`}>
           {isLoadingConversation ? (
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
@@ -594,7 +596,7 @@ export function HollyInterface() {
 
         {/* Input Area */}
         <div 
-          className="border-t px-6 py-4"
+          className="border-t px-4 lg:px-6 py-3 lg:py-4"
           style={{ 
             backgroundColor: cyberpunkTheme.colors.background.secondary,
             borderColor: cyberpunkTheme.colors.border.primary,
@@ -609,7 +611,7 @@ export function HollyInterface() {
           )}
 
           {/* Input Row */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 lg:gap-3">
             <ActionButtons onAction={(action) => setInput(action)} compact />
             
             <input
