@@ -67,9 +67,12 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    console.log('[Conversations API POST] Starting conversation creation...');
     const { userId } = await auth();
+    console.log('[Conversations API POST] Clerk userId:', userId || 'NONE');
     
     if (!userId) {
+      console.error('[Conversations API POST] No userId - unauthorized');
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
@@ -77,7 +80,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Get or create user with REAL email from Clerk
+    console.log('[Conversations API POST] Calling getOrCreateUser...');
     const user = await getOrCreateUser(userId);
+    console.log('[Conversations API POST] User retrieved:', user.id);
 
     const { title, firstMessage } = await request.json();
 
@@ -98,9 +103,15 @@ export async function POST(request: NextRequest) {
     console.log('[Conversations] ✅ Created conversation:', conversation.id);
     return NextResponse.json({ conversation });
   } catch (error) {
-    console.error('Create conversation error:', error);
+    console.error('❌ [Conversations API POST] CRITICAL ERROR:');
+    console.error('❌ [Conversations API POST] Error type:', error instanceof Error ? error.constructor.name : typeof error);
+    console.error('❌ [Conversations API POST] Error message:', error instanceof Error ? error.message : String(error));
+    console.error('❌ [Conversations API POST] Error stack:', error instanceof Error ? error.stack : 'No stack');
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { 
+        error: 'Internal server error',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      },
       { status: 500 }
     );
   }

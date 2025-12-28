@@ -18,10 +18,13 @@ interface UserInfo {
  * Always call this instead of creating users directly
  */
 export async function getOrCreateUser(clerkUserId: string): Promise<{ id: string; clerkUserId: string; email: string }> {
-  console.log('👤 [UserManager] Getting/creating user for Clerk ID:', clerkUserId);
-  
-  // CRITICAL: Get REAL email from Clerk using clerkClient (works in API routes)
-  const clerkUser = await clerkClient.users.getUser(clerkUserId);
+  try {
+    console.log('👤 [UserManager] Getting/creating user for Clerk ID:', clerkUserId);
+    
+    // CRITICAL: Get REAL email from Clerk using clerkClient (works in API routes)
+    console.log('🔍 [UserManager] Calling clerkClient.users.getUser...');
+    const clerkUser = await clerkClient.users.getUser(clerkUserId);
+    console.log('✅ [UserManager] Got Clerk user:', clerkUser?.id || 'NULL');
   
   if (!clerkUser) {
     throw new Error(`User not found in Clerk: ${clerkUserId}`);
@@ -97,6 +100,14 @@ export async function getOrCreateUser(clerkUserId: string): Promise<{ id: string
   
   console.log('✅ [UserManager] New user created:', user.id);
   return user;
+  } catch (error) {
+    console.error('❌ [UserManager] CRITICAL ERROR in getOrCreateUser:');
+    console.error('❌ [UserManager] Error type:', error instanceof Error ? error.constructor.name : typeof error);
+    console.error('❌ [UserManager] Error message:', error instanceof Error ? error.message : String(error));
+    console.error('❌ [UserManager] Error stack:', error instanceof Error ? error.stack : 'No stack');
+    console.error('❌ [UserManager] Clerk User ID:', clerkUserId);
+    throw error;
+  }
 }
 
 /**
