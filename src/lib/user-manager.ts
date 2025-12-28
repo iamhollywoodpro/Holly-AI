@@ -21,20 +21,22 @@ export async function getOrCreateUser(clerkUserId: string): Promise<{ id: string
   try {
     console.log('👤 [UserManager] Getting/creating user for Clerk ID:', clerkUserId);
     
-    // CRITICAL: Get REAL email from Clerk using currentUser() (recommended for App Router)
+    // CRITICAL: Get REAL email from Clerk using currentUser()
+    // currentUser() gets the current authenticated user from the request context
     console.log('🔍 [UserManager] Calling currentUser()...');
     const clerkUser = await currentUser();
     console.log('✅ [UserManager] Got Clerk user:', clerkUser?.id || 'NULL');
-    
-    // Verify the user ID matches
-    if (clerkUser && clerkUser.id !== clerkUserId) {
-      console.error('❌ [UserManager] User ID mismatch! Expected:', clerkUserId, 'Got:', clerkUser.id);
-      throw new Error('User ID mismatch');
-    }
   
-  if (!clerkUser) {
-    throw new Error(`User not found in Clerk: ${clerkUserId}`);
-  }
+    if (!clerkUser) {
+      console.error('❌ [UserManager] No current user found');
+      throw new Error('No authenticated user found');
+    }
+    
+    // Verify the user ID matches what was passed in
+    if (clerkUser.id !== clerkUserId) {
+      console.error('❌ [UserManager] User ID mismatch! Expected:', clerkUserId, 'Got:', clerkUser.id);
+      throw new Error('User ID mismatch - possible session hijacking attempt');
+    }
   
   const primaryEmail = clerkUser.primaryEmailAddress?.emailAddress;
   
