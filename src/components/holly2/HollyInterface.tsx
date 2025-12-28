@@ -514,7 +514,7 @@ export function HollyInterface() {
       />
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
         {/* Header - Hidden on mobile, hamburger menu used instead */}
         <div className="hidden lg:block">
           <CleanHeader 
@@ -534,7 +534,7 @@ export function HollyInterface() {
         </div>
 
         {/* Messages Area */}
-        <div className={`flex-1 overflow-y-auto px-4 lg:px-6 py-4 space-y-4 pt-16 lg:pt-4 ${readingMode ? 'reading-mode' : ''}`}>
+        <div className={`flex-1 overflow-y-auto px-4 lg:px-6 py-4 space-y-4 pt-20 sm:pt-16 lg:pt-4 ${readingMode ? 'reading-mode' : ''}`}>
           {isLoadingConversation ? (
             <div className="flex items-center justify-center h-full">
               <div className="text-center">

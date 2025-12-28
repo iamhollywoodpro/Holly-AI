@@ -1,0 +1,33 @@
+/* Mobile Viewport Height Fix */
+/* Ensures proper height calculation on mobile browsers */
+
+@supports (-webkit-touch-callout: none) {
+  /* iOS Safari */
+  .h-screen {
+    height: -webkit-fill-available;
+  }
+}
+
+/* Prevent overscroll bounce on mobile */
+body {
+  overscroll-behavior-y: none;
+  position: fixed;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh; /* Dynamic viewport height */
+}
+
+#__next {
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Ensure input fields don't zoom on focus (iOS) */
+@media screen and (max-width: 640px) {
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  textarea {
+    font-size: 16px !important;
+  }
+}

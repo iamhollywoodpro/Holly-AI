@@ -5,6 +5,7 @@ import '@/styles/holly2.css';
 import '@/styles/animations.css';
 import '@/styles/mobile-responsive.css';
 import '@/styles/mobile.css';
+import '@/styles/mobile-viewport.css';
 import '@/styles/reading-mode.css';
 import { ClerkProvider } from '@clerk/nextjs';
 import { Providers } from '@/components/Providers';
@@ -27,6 +28,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({
