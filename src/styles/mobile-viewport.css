@@ -1,6 +1,17 @@
 /* Mobile Viewport Height Fix */
 /* Ensures proper height calculation on mobile browsers */
 
+/* Safe area insets for mobile browsers */
+.pb-safe {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+}
+
+@media screen and (max-width: 640px) {
+  .pb-safe {
+    padding-bottom: max(1rem, calc(env(safe-area-inset-bottom) + 0.5rem));
+  }
+}
+
 @supports (-webkit-touch-callout: none) {
   /* iOS Safari */
   .h-screen {

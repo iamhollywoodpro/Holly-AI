@@ -598,7 +598,7 @@ export function HollyInterface() {
 
         {/* Input Area */}
         <div 
-          className="border-t px-3 sm:px-4 lg:px-6 py-2 sm:py-3 lg:py-4"
+          className="border-t px-3 sm:px-4 lg:px-6 py-2 sm:py-3 lg:py-4 pb-safe"
           style={{ 
             backgroundColor: cyberpunkTheme.colors.background.secondary,
             borderColor: cyberpunkTheme.colors.border.primary,
