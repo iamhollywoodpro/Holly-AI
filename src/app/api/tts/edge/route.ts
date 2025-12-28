@@ -1,10 +1,11 @@
 /**
- * Edge TTS API Route
- * Server-side endpoint for Microsoft Edge TTS generation
+ * Azure Speech Service TTS API Route
+ * Server-side endpoint for Microsoft Azure TTS generation
+ * Uses the same neural voices as Edge TTS but works in serverless environments
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { tts } from 'edge-tts';
+import * as sdk from 'microsoft-cognitiveservices-speech-sdk';
 
 // Language to voice mapping with proper dialects
 const VOICE_MAP: Record<string, string> = {
@@ -187,34 +188,81 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check for Azure Speech Service credentials
+    const speechKey = process.env.AZURE_SPEECH_KEY;
+    const speechRegion = process.env.AZURE_SPEECH_REGION || 'eastus';
+
+    if (!speechKey) {
+      console.error('[Azure TTS API] AZURE_SPEECH_KEY not found in environment');
+      return NextResponse.json(
+        { error: 'Azure Speech Service not configured' },
+        { status: 500 }
+      );
+    }
+
     // Detect language if not provided
     const detectedLanguage = language || detectLanguage(text);
     const selectedVoice = voice || getVoiceForLanguage(detectedLanguage);
 
-    console.log('[Edge TTS API] Detected language:', detectedLanguage);
-    console.log('[Edge TTS API] Using voice:', selectedVoice);
-    console.log('[Edge TTS API] Text length:', text.length);
+    console.log('[Azure TTS API] Detected language:', detectedLanguage);
+    console.log('[Azure TTS API] Using voice:', selectedVoice);
+    console.log('[Azure TTS API] Text length:', text.length);
 
-    // Generate speech using edge-tts
-    const audioBuffer = await tts(text, {
-      voice: selectedVoice,
-      rate: rate || '+0%',
-      pitch: pitch || '+0Hz',
-      volume: volume || '+0%',
-    });
+    // Create speech config
+    const speechConfig = sdk.SpeechConfig.fromSubscription(speechKey, speechRegion);
+    speechConfig.speechSynthesisVoiceName = selectedVoice;
+    speechConfig.speechSynthesisOutputFormat = sdk.SpeechSynthesisOutputFormat.Audio24Khz48KBitRateMonoMp3;
 
-    console.log('[Edge TTS API] Audio generated, buffer size:', audioBuffer.length);
+    // Create SSML with rate, pitch, volume
+    const ssml = `
+      <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="${detectedLanguage}">
+        <voice name="${selectedVoice}">
+          <prosody rate="${rate || '+0%'}" pitch="${pitch || '+0Hz'}" volume="${volume || '+0%'}">
+            ${text}
+          </prosody>
+        </voice>
+      </speak>
+    `.trim();
 
-    // Return audio as response (convert Buffer to Uint8Array for NextResponse)
-    return new NextResponse(new Uint8Array(audioBuffer), {
-      status: 200,
-      headers: {
-        'Content-Type': 'audio/mpeg',
-        'Content-Length': audioBuffer.length.toString(),
-      },
+    // Synthesize speech
+    const synthesizer = new sdk.SpeechSynthesizer(speechConfig);
+
+    return new Promise<NextResponse>((resolve) => {
+      synthesizer.speakSsmlAsync(
+        ssml,
+        (result) => {
+          if (result.reason === sdk.ResultReason.SynthesizingAudioCompleted) {
+            console.log('[Azure TTS API] Audio generated, buffer size:', result.audioData.byteLength);
+            
+            // Return audio as response
+            resolve(new NextResponse(result.audioData, {
+              status: 200,
+              headers: {
+                'Content-Type': 'audio/mpeg',
+                'Content-Length': result.audioData.byteLength.toString(),
+              },
+            }));
+          } else {
+            console.error('[Azure TTS API] Speech synthesis failed:', result.errorDetails);
+            resolve(NextResponse.json(
+              { error: `Speech synthesis failed: ${result.errorDetails}` },
+              { status: 500 }
+            ));
+          }
+          synthesizer.close();
+        },
+        (error) => {
+          console.error('[Azure TTS API] Error:', error);
+          synthesizer.close();
+          resolve(NextResponse.json(
+            { error: error.toString() },
+            { status: 500 }
+          ));
+        }
+      );
     });
   } catch (error) {
-    console.error('[Edge TTS API] Error:', error);
+    console.error('[Azure TTS API] Error:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'TTS generation failed' },
       { status: 500 }
@@ -227,5 +275,6 @@ export async function GET() {
   return NextResponse.json({
     languages: Object.keys(VOICE_MAP),
     voices: VOICE_MAP,
+    service: 'Azure Speech Service (same voices as Edge TTS)',
   });
 }
