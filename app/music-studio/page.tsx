@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { Music, Play, Pause, Download, Loader2, Sparkles, Mic, FileText, Wand2 } from 'lucide-react';
+import { Music, Play, Pause, Download, Loader2, Sparkles, Mic, FileText, Wand2, Image as ImageIcon, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 
 interface GeneratedTrack {
@@ -9,6 +9,7 @@ interface GeneratedTrack {
   title: string;
   audioUrl: string;
   imageUrl?: string;
+  customCoverUrl?: string;
   duration?: number;
   status: 'generating' | 'complete' | 'error';
 }
@@ -25,6 +26,8 @@ export default function MusicStudio() {
   const [tracks, setTracks] = useState<GeneratedTrack[]>([]);
   const [playingTrackId, setPlayingTrackId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [generateCover, setGenerateCover] = useState(true);
+  const [isGeneratingCover, setIsGeneratingCover] = useState(false);
 
   const handleGenerate = async () => {
     // Validation
@@ -80,6 +83,11 @@ export default function MusicStudio() {
 
       setTracks(prev => [newTrack, ...prev]);
 
+      // Generate custom cover art if enabled
+      if (generateCover) {
+        generateCustomCover(taskId);
+      }
+
       // Poll for completion
       pollTrackStatus(taskId);
 
@@ -88,6 +96,79 @@ export default function MusicStudio() {
       setError(err.message || 'Failed to generate music');
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const generateCustomCover = async (taskId: string) => {
+    try {
+      setIsGeneratingCover(true);
+      const response = await fetch('/api/music/generate-cover', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title,
+          style,
+          lyrics: useLyrics ? lyrics : prompt,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success && result.data.imageUrl) {
+        console.log('[Cover Art] Generated:', result.data.imageUrl);
+        setTracks(prev =>
+          prev.map(t =>
+            t.id === taskId
+              ? { ...t, customCoverUrl: result.data.imageUrl }
+              : t
+          )
+        );
+      } else {
+        console.error('[Cover Art] Generation failed:', result.error);
+      }
+    } catch (err) {
+      console.error('[Cover Art] Error:', err);
+    } finally {
+      setIsGeneratingCover(false);
+    }
+  };
+
+  const regenerateCover = async (trackId: string) => {
+    const track = tracks.find(t => t.id === trackId);
+    if (!track) return;
+
+    try {
+      setIsGeneratingCover(true);
+      const response = await fetch('/api/music/generate-cover', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: track.title,
+          style,
+          lyrics: useLyrics ? lyrics : prompt,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success && result.data.imageUrl) {
+        console.log('[Cover Art] Regenerated:', result.data.imageUrl);
+        setTracks(prev =>
+          prev.map(t =>
+            t.id === trackId
+              ? { ...t, customCoverUrl: result.data.imageUrl }
+              : t
+          )
+        );
+      }
+    } catch (err) {
+      console.error('[Cover Art] Regeneration error:', err);
+    } finally {
+      setIsGeneratingCover(false);
     }
   };
 
@@ -335,6 +416,23 @@ export default function MusicStudio() {
                 </>
               )}
 
+              {/* AI Cover Art Toggle */}
+              <div className="mb-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={generateCover}
+                    onChange={(e) => setGenerateCover(e.target.checked)}
+                    className="w-4 h-4 rounded border-purple-500/50 bg-purple-900/20 text-purple-500 focus:ring-purple-500"
+                  />
+                  <ImageIcon className="w-4 h-4 text-purple-400" />
+                  <span className="text-sm text-gray-300">Generate AI Cover Art</span>
+                </label>
+                <p className="text-xs text-gray-500 mt-1 ml-6">
+                  Create custom album artwork based on your song
+                </p>
+              </div>
+
               {/* Error Message */}
               {error && (
                 <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-300 text-sm">
@@ -378,6 +476,31 @@ export default function MusicStudio() {
                   key={track.id}
                   className="bg-black/40 backdrop-blur-sm border border-purple-500/30 rounded-xl p-4 hover:border-purple-500/50 transition-colors"
                 >
+                  {/* Cover Art */}
+                  {(track.customCoverUrl || track.imageUrl) && (
+                    <div className="mb-4 relative group">
+                      <img
+                        src={track.customCoverUrl || track.imageUrl}
+                        alt={track.title}
+                        className="w-full h-48 object-cover rounded-lg"
+                      />
+                      {track.customCoverUrl && track.status === 'complete' && (
+                        <button
+                          onClick={() => regenerateCover(track.id)}
+                          disabled={isGeneratingCover}
+                          className="absolute top-2 right-2 p-2 bg-black/60 hover:bg-black/80 rounded-lg backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
+                          title="Regenerate cover art"
+                        >
+                          {isGeneratingCover ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <RefreshCw className="w-4 h-4" />
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  )}
+
                   <div className="flex items-center gap-4">
                     {/* Play Button */}
                     <button
