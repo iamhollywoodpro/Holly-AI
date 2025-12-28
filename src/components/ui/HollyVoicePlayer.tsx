@@ -171,16 +171,16 @@ export default function HollyVoicePlayer({
       <button
         onClick={handlePlayClick}
         disabled={isLoading || (!text && !audioUrl)}
-        className="group relative w-8 h-8 flex items-center justify-center rounded-full bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-105 active:scale-95"
+        className="group relative w-10 h-10 sm:w-8 sm:h-8 flex items-center justify-center rounded-full bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-105 active:scale-95"
         aria-label={isPlaying ? 'Pause' : 'Play HOLLY voice'}
         title={isPlaying ? 'Pause' : 'Play HOLLY voice'}
       >
         {isLoading ? (
-          <Loader2 className="w-4 h-4 text-white animate-spin" />
+          <Loader2 className="w-5 h-5 sm:w-4 sm:h-4 text-white animate-spin" />
         ) : isPlaying ? (
-          <VolumeX className="w-4 h-4 text-white" />
+          <VolumeX className="w-5 h-5 sm:w-4 sm:h-4 text-white" />
         ) : (
-          <Volume2 className="w-4 h-4 text-white" />
+          <Volume2 className="w-5 h-5 sm:w-4 sm:h-4 text-white" />
         )}
       </button>
       

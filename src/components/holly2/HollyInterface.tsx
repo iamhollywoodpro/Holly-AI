@@ -534,7 +534,7 @@ export function HollyInterface() {
         </div>
 
         {/* Messages Area */}
-        <div className={`flex-1 overflow-y-auto px-4 lg:px-6 py-4 space-y-4 pt-20 sm:pt-16 lg:pt-4 ${readingMode ? 'reading-mode' : ''}`}>
+        <div className={`flex-1 overflow-y-auto px-4 lg:px-6 py-4 space-y-4 pt-20 sm:pt-16 lg:pt-4 pb-24 lg:pb-4 ${readingMode ? 'reading-mode' : ''}`}>
           {isLoadingConversation ? (
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
@@ -598,7 +598,7 @@ export function HollyInterface() {
 
         {/* Input Area */}
         <div 
-          className="border-t px-3 sm:px-4 lg:px-6 py-2 sm:py-3 lg:py-4 pb-safe"
+          className="border-t px-3 sm:px-4 lg:px-6 py-2 sm:py-3 lg:py-4 pb-safe fixed lg:relative bottom-0 left-0 right-0 lg:bottom-auto lg:left-auto lg:right-auto z-40"
           style={{ 
             backgroundColor: cyberpunkTheme.colors.background.secondary,
             borderColor: cyberpunkTheme.colors.border.primary,
