@@ -38,14 +38,23 @@ export default function MusicStudioPage() {
   ];
 
   const handleGenerate = async () => {
-    if (!prompt && !lyrics) {
-      alert('Please enter a prompt or lyrics');
-      return;
-    }
-
-    setIsGenerating(true);
-
     try {
+      console.log('[Music Studio] Starting generation...');
+      console.log('[Music Studio] Mode:', mode);
+      console.log('[Music Studio] Prompt:', prompt);
+      console.log('[Music Studio] Lyrics:', lyrics);
+      console.log('[Music Studio] Tags:', tags);
+      console.log('[Music Studio] Title:', title);
+
+      if (!prompt && !lyrics) {
+        alert('Please enter a prompt or lyrics');
+        return;
+      }
+
+      setIsGenerating(true);
+
+      console.log('[Music Studio] Calling API...');
+      
       const response = await fetch('/api/music/generate-ultimate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -67,9 +76,11 @@ export default function MusicStudioPage() {
       } else {
         alert(data.error || 'Failed to generate music');
       }
-    } catch (error) {
-      console.error('Generation error:', error);
-      alert('Failed to generate music');
+    } catch (error: any) {
+      console.error('[Music Studio] Generation error:', error);
+      console.error('[Music Studio] Error stack:', error?.stack);
+      console.error('[Music Studio] Error message:', error?.message);
+      alert(`Failed to generate music: ${error?.message || 'Unknown error'}`);
     } finally {
       setIsGenerating(false);
     }
