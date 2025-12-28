@@ -38,10 +38,14 @@ export async function POST(req: NextRequest) {
     }
 
     // Build request body for SUNO API
+    // Get the base URL for callbacks
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || req.headers.get('origin') || 'https://holly.nexamusicgroup.com';
+    
     const sunoRequest: any = {
       prompt,
       customMode,
       model: 'V4_5ALL',
+      callBackUrl: `${baseUrl}/api/music/callback`,
     };
 
     if (customMode) {
