@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { Music, Play, Pause, Download, Loader2, Sparkles, Mic } from 'lucide-react';
+import { Music, Play, Pause, Download, Loader2, Sparkles, Mic, FileText, Wand2 } from 'lucide-react';
 import Link from 'next/link';
 
 interface GeneratedTrack {
@@ -15,17 +15,30 @@ interface GeneratedTrack {
 
 export default function MusicStudio() {
   const [prompt, setPrompt] = useState('');
+  const [lyrics, setLyrics] = useState('');
   const [title, setTitle] = useState('');
   const [style, setStyle] = useState('');
   const [instrumental, setInstrumental] = useState(false);
   const [customMode, setCustomMode] = useState(true);
+  const [useLyrics, setUseLyrics] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [tracks, setTracks] = useState<GeneratedTrack[]>([]);
   const [playingTrackId, setPlayingTrackId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const handleGenerate = async () => {
-    if (!prompt.trim()) {
+    // Validation
+    if (customMode && useLyrics && !lyrics.trim()) {
+      setError('Please enter lyrics for your song');
+      return;
+    }
+    
+    if (customMode && !useLyrics && !prompt.trim()) {
+      setError('Please enter a description for your music');
+      return;
+    }
+
+    if (!customMode && !prompt.trim()) {
       setError('Please enter a description for your music');
       return;
     }
@@ -40,7 +53,7 @@ export default function MusicStudio() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          prompt,
+          prompt: useLyrics ? lyrics : prompt,
           title: title || undefined,
           style: style || undefined,
           instrumental,
@@ -146,6 +159,15 @@ export default function MusicStudio() {
     }
   };
 
+  const formatLyrics = () => {
+    // Basic lyrics formatting helper
+    const formatted = lyrics
+      .split('\n')
+      .map(line => line.trim())
+      .join('\n');
+    setLyrics(formatted);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-black to-blue-900 text-white">
       {/* Header */}
@@ -189,23 +211,78 @@ export default function MusicStudio() {
                 </label>
               </div>
 
-              {/* Prompt */}
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Description *
-                </label>
-                <textarea
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  placeholder="Describe the music you want to create..."
-                  className="w-full px-4 py-3 bg-purple-900/20 border border-purple-500/30 rounded-lg focus:outline-none focus:border-purple-500 text-white placeholder-gray-500 resize-none"
-                  rows={4}
-                  maxLength={customMode ? 3000 : 400}
-                />
-                <div className="text-xs text-gray-500 mt-1">
-                  {prompt.length} / {customMode ? 3000 : 400} characters
+              {/* Custom Lyrics Toggle */}
+              {customMode && !instrumental && (
+                <div className="mb-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={useLyrics}
+                      onChange={(e) => setUseLyrics(e.target.checked)}
+                      className="w-4 h-4 rounded border-purple-500/50 bg-purple-900/20 text-purple-500 focus:ring-purple-500"
+                    />
+                    <FileText className="w-4 h-4 text-purple-400" />
+                    <span className="text-sm text-gray-300">Write Custom Lyrics</span>
+                  </label>
                 </div>
-              </div>
+              )}
+
+              {/* Custom Lyrics Input */}
+              {customMode && useLyrics && !instrumental ? (
+                <div className="mb-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-medium text-gray-300">
+                      Custom Lyrics *
+                    </label>
+                    <button
+                      onClick={formatLyrics}
+                      className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1"
+                    >
+                      <Wand2 className="w-3 h-3" />
+                      Format
+                    </button>
+                  </div>
+                  <textarea
+                    value={lyrics}
+                    onChange={(e) => setLyrics(e.target.value)}
+                    placeholder="Write your song lyrics here...&#10;&#10;[Verse 1]&#10;Your lyrics here...&#10;&#10;[Chorus]&#10;Your chorus here..."
+                    className="w-full px-4 py-3 bg-purple-900/20 border border-purple-500/30 rounded-lg focus:outline-none focus:border-purple-500 text-white placeholder-gray-500 resize-none font-mono text-sm"
+                    rows={12}
+                    maxLength={5000}
+                  />
+                  <div className="flex justify-between items-center mt-1">
+                    <div className="text-xs text-gray-500">
+                      {lyrics.length} / 5000 characters
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {lyrics.split('\n').length} lines
+                    </div>
+                  </div>
+                  <div className="mt-2 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                    <p className="text-xs text-blue-300">
+                      💡 <strong>Tip:</strong> Use [Verse], [Chorus], [Bridge] tags to structure your song. The AI will follow your exact lyrics!
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                /* Description/Prompt */
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    {customMode ? 'Description' : 'Description *'}
+                  </label>
+                  <textarea
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                    placeholder={customMode ? "Describe the music style and mood..." : "Describe the music you want to create..."}
+                    className="w-full px-4 py-3 bg-purple-900/20 border border-purple-500/30 rounded-lg focus:outline-none focus:border-purple-500 text-white placeholder-gray-500 resize-none"
+                    rows={4}
+                    maxLength={customMode ? 5000 : 500}
+                  />
+                  <div className="text-xs text-gray-500 mt-1">
+                    {prompt.length} / {customMode ? 5000 : 500} characters
+                  </div>
+                </div>
+              )}
 
               {/* Custom Mode Fields */}
               {customMode && (
@@ -234,7 +311,7 @@ export default function MusicStudio() {
                       onChange={(e) => setStyle(e.target.value)}
                       placeholder="e.g., Pop, Rock, Classical, Jazz"
                       className="w-full px-4 py-2 bg-purple-900/20 border border-purple-500/30 rounded-lg focus:outline-none focus:border-purple-500 text-white placeholder-gray-500"
-                      maxLength={200}
+                      maxLength={1000}
                     />
                   </div>
 
@@ -243,7 +320,12 @@ export default function MusicStudio() {
                       <input
                         type="checkbox"
                         checked={instrumental}
-                        onChange={(e) => setInstrumental(e.target.checked)}
+                        onChange={(e) => {
+                          setInstrumental(e.target.checked);
+                          if (e.target.checked) {
+                            setUseLyrics(false);
+                          }
+                        }}
                         className="w-4 h-4 rounded border-purple-500/50 bg-purple-900/20 text-purple-500 focus:ring-purple-500"
                       />
                       <Mic className="w-4 h-4 text-gray-400" />
@@ -263,7 +345,7 @@ export default function MusicStudio() {
               {/* Generate Button */}
               <button
                 onClick={handleGenerate}
-                disabled={isGenerating || !prompt.trim()}
+                disabled={isGenerating || (useLyrics ? !lyrics.trim() : !prompt.trim())}
                 className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed rounded-lg font-semibold transition-all flex items-center justify-center gap-2"
               >
                 {isGenerating ? (
