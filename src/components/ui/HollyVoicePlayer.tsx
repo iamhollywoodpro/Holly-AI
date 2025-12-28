@@ -1,13 +1,14 @@
 /**
  * HOLLY Voice Player Component
- * Uses Kokoro TTS API for high-quality, free voice generation
+ * Uses Microsoft Edge TTS for high-quality, free multilingual voice generation
+ * Supports 140+ languages including Malayalam with proper dialects
  */
 
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Volume2, VolumeX, Loader2 } from 'lucide-react';
-import { generateVoice } from '@/lib/kokoro-tts';
+import { generateVoice } from '@/lib/edge-tts';
 
 interface HollyVoicePlayerProps {
   text: string;
@@ -33,9 +34,20 @@ export default function HollyVoicePlayer({
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
   
-  // Strip emojis from text for cleaner TTS
-  const stripEmojis = (text: string): string => {
+  // Clean text for TTS: strip markdown, emojis, and format properly
+  const cleanTextForTTS = (text: string): string => {
     return text
+      // Remove markdown formatting
+      .replace(/\*\*(.+?)\*\*/g, '$1') // Bold
+      .replace(/\*(.+?)\*/g, '$1') // Italic
+      .replace(/\[(.+?)\]\(.+?\)/g, '$1') // Links
+      .replace(/`{1,3}[^`]+`{1,3}/g, '') // Code blocks
+      .replace(/^#{1,6}\s+/gm, '') // Headers
+      .replace(/^[-*+]\s+/gm, '') // List items
+      .replace(/^\d+\.\s+/gm, '') // Numbered lists
+      .replace(/^>\s+/gm, '') // Blockquotes
+      .replace(/---+/g, '') // Horizontal rules
+      // Remove emojis
       .replace(/[\u{1F600}-\u{1F64F}]/gu, '') // Emoticons
       .replace(/[\u{1F300}-\u{1F5FF}]/gu, '') // Misc Symbols and Pictographs
       .replace(/[\u{1F680}-\u{1F6FF}]/gu, '') // Transport and Map
@@ -47,6 +59,9 @@ export default function HollyVoicePlayer({
       .replace(/[\u{1FA70}-\u{1FAFF}]/gu, '') // Symbols and Pictographs Extended-A
       .replace(/[\u{FE00}-\u{FE0F}]/gu, '')   // Variation Selectors
       .replace(/[\u{200D}]/gu, '')            // Zero Width Joiner
+      // Clean up whitespace
+      .replace(/\n{3,}/g, '\n\n') // Max 2 newlines
+      .replace(/\s{2,}/g, ' ') // Multiple spaces to single
       .trim();
   };
 
@@ -61,14 +76,14 @@ export default function HollyVoicePlayer({
     setError(null);
     
     try {
-      // Strip emojis from text before TTS
-      const cleanText = stripEmojis(text);
-      console.log('[HOLLY Voice] Generating voice with Kokoro...');
+      // Clean text for TTS (remove markdown, emojis, etc.)
+      const cleanText = cleanTextForTTS(text);
+      console.log('[HOLLY Voice] Generating voice with Edge TTS...');
       console.log('[HOLLY Voice] Original text:', text);
       console.log('[HOLLY Voice] Clean text:', cleanText);
       
-      // Generate voice using Kokoro API
-      const audioBlob = await generateVoice(cleanText, 'af_heart', 1.0);
+      // Generate voice using Edge TTS (auto-detects language)
+      const audioBlob = await generateVoice(cleanText, undefined, 1.0);
       
       // Create audio URL
       const url = URL.createObjectURL(audioBlob);
@@ -171,16 +186,16 @@ export default function HollyVoicePlayer({
       <button
         onClick={handlePlayClick}
         disabled={isLoading || (!text && !audioUrl)}
-        className="group relative w-10 h-10 sm:w-8 sm:h-8 flex items-center justify-center rounded-full bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-105 active:scale-95"
+        className="group relative w-6 h-6 flex items-center justify-center rounded-full bg-gradient-to-r from-purple-500/80 to-indigo-500/80 hover:from-purple-600 hover:to-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-110 active:scale-95 shadow-sm"
         aria-label={isPlaying ? 'Pause' : 'Play HOLLY voice'}
         title={isPlaying ? 'Pause' : 'Play HOLLY voice'}
       >
         {isLoading ? (
-          <Loader2 className="w-5 h-5 sm:w-4 sm:h-4 text-white animate-spin" />
+          <Loader2 className="w-3 h-3 text-white animate-spin" />
         ) : isPlaying ? (
-          <VolumeX className="w-5 h-5 sm:w-4 sm:h-4 text-white" />
+          <VolumeX className="w-3 h-3 text-white" />
         ) : (
-          <Volume2 className="w-5 h-5 sm:w-4 sm:h-4 text-white" />
+          <Volume2 className="w-3 h-3 text-white" />
         )}
       </button>
       
