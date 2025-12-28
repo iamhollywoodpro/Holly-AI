@@ -4,7 +4,7 @@
  */
 
 import { prisma } from '@/lib/db';
-import { clerkClient } from '@clerk/nextjs/server';
+import { clerkClient, currentUser } from '@clerk/nextjs/server';
 
 interface UserInfo {
   clerkUserId: string;
@@ -21,9 +21,10 @@ export async function getOrCreateUser(clerkUserId: string): Promise<{ id: string
   try {
     console.log('👤 [UserManager] Getting/creating user for Clerk ID:', clerkUserId);
     
-    // CRITICAL: Get REAL email from Clerk using clerkClient (works in API routes)
-    console.log('🔍 [UserManager] Calling clerkClient.users.getUser...');
-    const clerkUser = await clerkClient.users.getUser(clerkUserId);
+    // CRITICAL: Get REAL email from Clerk
+    console.log('🔍 [UserManager] Calling clerkClient().users.getUser...');
+    const client = await clerkClient();
+    const clerkUser = await client.users.getUser(clerkUserId);
     console.log('✅ [UserManager] Got Clerk user:', clerkUser?.id || 'NULL');
   
   if (!clerkUser) {
