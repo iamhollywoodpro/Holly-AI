@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { prompt, style, title, instrumental = false, customMode = false } = body;
+    const { prompt, style, title, instrumental = false, customMode = false, vocalGender, styleWeight, weirdnessConstraint } = body;
 
     console.log('[Music API] Generation request:', { prompt, style, title, instrumental, customMode });
 
@@ -52,6 +52,11 @@ export async function POST(req: NextRequest) {
       if (style) sunoRequest.style = style;
       if (title) sunoRequest.title = title;
       sunoRequest.instrumental = instrumental;
+      
+      // Add advanced parameters if provided
+      if (vocalGender) sunoRequest.vocalGender = vocalGender;
+      if (styleWeight !== undefined) sunoRequest.styleWeight = styleWeight;
+      if (weirdnessConstraint !== undefined) sunoRequest.weirdnessConstraint = weirdnessConstraint;
     }
 
     console.log('[Music API] Calling SUNO API:', sunoRequest);

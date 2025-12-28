@@ -28,6 +28,11 @@ export default function MusicStudio() {
   const [error, setError] = useState<string | null>(null);
   const [generateCover, setGenerateCover] = useState(true);
   const [isGeneratingCover, setIsGeneratingCover] = useState(false);
+  const [isGeneratingLyrics, setIsGeneratingLyrics] = useState(false);
+  const [vocalGender, setVocalGender] = useState<'m' | 'f' | ''>('');
+  const [styleWeight, setStyleWeight] = useState(0.65);
+  const [weirdness, setWeirdness] = useState(0.65);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const handleGenerate = async () => {
     // Validation
@@ -61,6 +66,9 @@ export default function MusicStudio() {
           style: style || undefined,
           instrumental,
           customMode,
+          vocalGender: vocalGender || undefined,
+          styleWeight: showAdvanced ? styleWeight : undefined,
+          weirdnessConstraint: showAdvanced ? weirdness : undefined,
         }),
       });
 
@@ -315,13 +323,54 @@ export default function MusicStudio() {
                     <label className="block text-sm font-medium text-gray-300">
                       Custom Lyrics *
                     </label>
-                    <button
-                      onClick={formatLyrics}
-                      className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1"
-                    >
-                      <Wand2 className="w-3 h-3" />
-                      Format
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={async () => {
+                          if (!title && !prompt) {
+                            setError('Please enter a title or description first');
+                            return;
+                          }
+                          setIsGeneratingLyrics(true);
+                          try {
+                            const response = await fetch('/api/music/generate-lyrics', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({
+                                theme: title || prompt,
+                                style: style || 'pop',
+                                mood: 'emotional',
+                              }),
+                            });
+                            const result = await response.json();
+                            if (result.success) {
+                              setLyrics(result.data.lyrics);
+                            } else {
+                              setError(result.error || 'Failed to generate lyrics');
+                            }
+                          } catch (err) {
+                            console.error('Lyrics generation error:', err);
+                          } finally {
+                            setIsGeneratingLyrics(false);
+                          }
+                        }}
+                        disabled={isGeneratingLyrics}
+                        className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1 disabled:opacity-50"
+                      >
+                        {isGeneratingLyrics ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <Sparkles className="w-3 h-3" />
+                        )}
+                        AI Generate
+                      </button>
+                      <button
+                        onClick={formatLyrics}
+                        className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1"
+                      >
+                        <Wand2 className="w-3 h-3" />
+                        Format
+                      </button>
+                    </div>
                   </div>
                   <textarea
                     value={lyrics}
@@ -386,6 +435,18 @@ export default function MusicStudio() {
                     <label className="block text-sm font-medium text-gray-300 mb-2">
                       Style / Genre
                     </label>
+                    {/* Style Presets */}
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      {['Lo-Fi Chill', 'Epic Cinematic', 'Acoustic Folk', 'Electronic Dance', 'Jazz Smooth', 'Rock Alternative'].map((preset) => (
+                        <button
+                          key={preset}
+                          onClick={() => setStyle(preset)}
+                          className="px-3 py-1 text-xs bg-purple-600/20 hover:bg-purple-600/40 border border-purple-500/30 rounded-full transition-colors"
+                        >
+                          {preset}
+                        </button>
+                      ))}
+                    </div>
                     <input
                       type="text"
                       value={style}
@@ -413,6 +474,100 @@ export default function MusicStudio() {
                       <span className="text-sm text-gray-300">Instrumental (no vocals)</span>
                     </label>
                   </div>
+
+                  {/* Advanced Controls */}
+                  <div className="mb-4">
+                    <button
+                      onClick={() => setShowAdvanced(!showAdvanced)}
+                      className="text-sm text-purple-400 hover:text-purple-300 flex items-center gap-1"
+                    >
+                      <Wand2 className="w-4 h-4" />
+                      {showAdvanced ? 'Hide' : 'Show'} Advanced Controls
+                    </button>
+                  </div>
+
+                  {showAdvanced && (
+                    <div className="space-y-4 mb-4 p-4 bg-purple-900/10 border border-purple-500/20 rounded-lg">
+                      {/* Vocal Gender */}
+                      {!instrumental && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-300 mb-2">
+                            Vocal Gender
+                          </label>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => setVocalGender('')}
+                              className={`flex-1 px-4 py-2 rounded-lg border transition-colors ${
+                                vocalGender === ''
+                                  ? 'bg-purple-600 border-purple-500'
+                                  : 'bg-purple-900/20 border-purple-500/30 hover:border-purple-500/50'
+                              }`}
+                            >
+                              Auto
+                            </button>
+                            <button
+                              onClick={() => setVocalGender('m')}
+                              className={`flex-1 px-4 py-2 rounded-lg border transition-colors ${
+                                vocalGender === 'm'
+                                  ? 'bg-purple-600 border-purple-500'
+                                  : 'bg-purple-900/20 border-purple-500/30 hover:border-purple-500/50'
+                              }`}
+                            >
+                              Male
+                            </button>
+                            <button
+                              onClick={() => setVocalGender('f')}
+                              className={`flex-1 px-4 py-2 rounded-lg border transition-colors ${
+                                vocalGender === 'f'
+                                  ? 'bg-purple-600 border-purple-500'
+                                  : 'bg-purple-900/20 border-purple-500/30 hover:border-purple-500/50'
+                              }`}
+                            >
+                              Female
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Style Weight */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                          Style Weight: {styleWeight.toFixed(2)}
+                        </label>
+                        <input
+                          type="range"
+                          min="0"
+                          max="1"
+                          step="0.01"
+                          value={styleWeight}
+                          onChange={(e) => setStyleWeight(parseFloat(e.target.value))}
+                          className="w-full"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          How closely to follow the specified style (0 = loose, 1 = strict)
+                        </p>
+                      </div>
+
+                      {/* Weirdness/Creativity */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                          Creativity: {weirdness.toFixed(2)}
+                        </label>
+                        <input
+                          type="range"
+                          min="0"
+                          max="1"
+                          step="0.01"
+                          value={weirdness}
+                          onChange={(e) => setWeirdness(parseFloat(e.target.value))}
+                          className="w-full"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Creative deviation (0 = traditional, 1 = experimental)
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
 
