@@ -55,7 +55,7 @@ export function QuickActionsBar({
 
   return (
     <div 
-      className="fixed bottom-6 right-6 z-40 flex items-center gap-2 p-2 rounded-full shadow-2xl backdrop-blur-md"
+      className="fixed top-20 right-6 z-40 flex items-center gap-2 p-2 rounded-full shadow-2xl backdrop-blur-md"
       style={{
         backgroundColor: `${cyberpunkTheme.colors.background.secondary}CC`,
         border: `1px solid ${cyberpunkTheme.colors.border.primary}`,

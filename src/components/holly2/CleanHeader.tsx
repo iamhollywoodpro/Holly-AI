@@ -66,25 +66,7 @@ export function CleanHeader({
             {chatTitle}
           </div>
           
-          {/* Mode Indicator */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            marginTop: '2px',
-          }}>
-            <Zap 
-              size={12} 
-              style={{ color: currentMode.color }}
-            />
-            <span style={{
-              fontSize: '0.75rem',
-              color: currentMode.color,
-              fontWeight: 500,
-            }}>
-              {currentMode.icon} {currentMode.name} Mode
-            </span>
-          </div>
+
         </div>
       </div>
 
@@ -92,6 +74,7 @@ export function CleanHeader({
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
         {/* Collaborate */}
         <button
+          onClick={() => alert('Collaboration feature coming soon!')}
           style={{
             background: 'transparent',
             border: 'none',
@@ -120,6 +103,11 @@ export function CleanHeader({
 
         {/* Share */}
         <button
+          onClick={() => {
+            const url = window.location.href;
+            navigator.clipboard.writeText(url);
+            alert('Link copied to clipboard!');
+          }}
           style={{
             background: 'transparent',
             border: 'none',
@@ -148,6 +136,7 @@ export function CleanHeader({
 
         {/* View Files */}
         <button
+          onClick={() => window.location.href = '/files'}
           style={{
             background: 'transparent',
             border: 'none',

@@ -118,38 +118,7 @@ export function SidebarContent({ currentConversationId, onNavigate }: SidebarCon
         borderRight: `1px solid ${cyberpunkTheme.colors.border.primary}`,
       }}
     >
-      {/* Header */}
-      <div className="p-4 border-b" style={{ borderColor: cyberpunkTheme.colors.border.primary }}>
-        <div className="flex items-center gap-3">
-          <div className="relative w-10 h-10">
-            <Image
-              src="/assets/logo-icon-small.png"
-              alt="HOLLY AI"
-              width={40}
-              height={40}
-              className="rounded-lg"
-            />
-          </div>
-          <div>
-            <h2 
-              className="font-bold text-base"
-              style={{ 
-                background: cyberpunkTheme.colors.gradients.holographic,
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-              }}
-            >
-              HOLLY
-            </h2>
-            <p 
-              className="text-xs"
-              style={{ color: cyberpunkTheme.colors.text.tertiary }}
-            >
-              Self-Evolving Intelligence
-            </p>
-          </div>
-        </div>
-      </div>
+
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto p-3">
