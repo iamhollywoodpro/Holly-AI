@@ -562,7 +562,9 @@ export function HollyInterface() {
               >
                 Your AI development partner. What would you like to build today?
               </p>
-              <ActionButtons onAction={(action) => setInput(action)} />
+              <div className="hidden sm:block">
+                <ActionButtons onAction={(action) => setInput(action)} />
+              </div>
             </div>
           ) : (
             <>
@@ -596,7 +598,7 @@ export function HollyInterface() {
 
         {/* Input Area */}
         <div 
-          className="border-t px-4 lg:px-6 py-3 lg:py-4"
+          className="border-t px-3 sm:px-4 lg:px-6 py-2 sm:py-3 lg:py-4"
           style={{ 
             backgroundColor: cyberpunkTheme.colors.background.secondary,
             borderColor: cyberpunkTheme.colors.border.primary,
@@ -611,8 +613,10 @@ export function HollyInterface() {
           )}
 
           {/* Input Row */}
-          <div className="flex items-center gap-2 lg:gap-3">
-            <ActionButtons onAction={(action) => setInput(action)} compact />
+          <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-3">
+            <div className="hidden sm:block">
+              <ActionButtons onAction={(action) => setInput(action)} compact />
+            </div>
             
             <input
               type="file"
@@ -624,7 +628,7 @@ export function HollyInterface() {
             
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="p-2 rounded-xl hover:bg-white/5 transition-all"
+              className="p-1.5 sm:p-2 rounded-xl hover:bg-white/5 transition-all"
               style={{ 
                 color: cyberpunkTheme.colors.text.secondary,
                 transition: 'all 0.3s',
@@ -641,12 +645,12 @@ export function HollyInterface() {
                 e.currentTarget.style.background = 'transparent';
               }}
             >
-              <Paperclip className="w-5 h-5" />
+              <Paperclip className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
 
             <button
               onClick={toggleRecording}
-              className={`p-2 rounded-xl hover:bg-white/5 transition-all ${
+              className={`p-1.5 sm:p-2 rounded-xl hover:bg-white/5 transition-all ${
                 isRecording ? 'animate-pulse' : ''
               }`}
               style={{ 
@@ -670,12 +674,12 @@ export function HollyInterface() {
               }}
               title={isRecording ? 'Recording... Click to stop' : 'Click to speak'}
             >
-              <Mic className="w-5 h-5" />
+              <Mic className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
 
             <button
               onClick={toggleVoice}
-              className="p-2 rounded-xl hover:bg-white/5 transition-all"
+              className="p-1.5 sm:p-2 rounded-xl hover:bg-white/5 transition-all"
               style={{ 
                 color: voiceEnabled ? cyberpunkTheme.colors.primary.pink : cyberpunkTheme.colors.text.secondary,
                 transition: 'all 0.3s',
@@ -693,7 +697,7 @@ export function HollyInterface() {
               }}
               title={voiceEnabled ? 'Voice enabled - HOLLY will speak' : 'Voice disabled'}
             >
-              {voiceEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
+              {voiceEnabled ? <Volume2 className="w-4 h-4 sm:w-5 sm:h-5" /> : <VolumeX className="w-4 h-4 sm:w-5 sm:h-5" />}
             </button>
 
             <input
@@ -702,7 +706,7 @@ export function HollyInterface() {
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder="Message HOLLY..."
-              className="flex-1 px-4 py-3 rounded-lg outline-none"
+              className="flex-1 px-3 py-2 sm:px-4 sm:py-3 rounded-lg outline-none text-sm sm:text-base"
               style={{
                 backgroundColor: cyberpunkTheme.colors.background.tertiary,
                 color: cyberpunkTheme.colors.text.primary,
@@ -713,13 +717,13 @@ export function HollyInterface() {
             <button
               onClick={handleSend}
               disabled={!input.trim() && uploadedFiles.length === 0}
-              className="p-3 rounded-lg transition-all disabled:opacity-50"
+              className="p-2 sm:p-3 rounded-lg transition-all disabled:opacity-50"
               style={{
                 background: cyberpunkTheme.colors.gradients.primary,
                 color: 'white',
               }}
             >
-              <Send className="w-5 h-5" />
+              <Send className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
           </div>
         </div>
