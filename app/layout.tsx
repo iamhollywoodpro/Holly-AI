@@ -4,6 +4,7 @@ import './globals.css';
 import '@/styles/holly2.css';
 import '@/styles/animations.css';
 import '@/styles/mobile-responsive.css';
+import '@/styles/mobile.css';
 import { ClerkProvider } from '@clerk/nextjs';
 import { Providers } from '@/components/Providers';
 import { SettingsProvider } from './providers';

@@ -41,12 +41,12 @@ export function CleanHeader({
     <header style={{
       background: cyberpunkTheme.colors.background.secondary,
       borderBottom: `1px solid ${cyberpunkTheme.colors.border.primary}`,
-      padding: '0.75rem 1.5rem',
+      padding: '0.5rem 1rem',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      gap: '1rem',
-    }}>
+      gap: '0.5rem',
+    }} className="clean-header">
       {/* Left: Chat Title + Mode Indicator */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1, minWidth: 0 }}>
         {/* Chat Title */}
@@ -100,7 +100,7 @@ export function CleanHeader({
           }}
         >
           <Users size={16} />
-          <span>Collaborate</span>
+          <span className="mobile-hide">Collaborate</span>
         </button>
 
         {/* Share */}
@@ -136,7 +136,7 @@ export function CleanHeader({
           }}
         >
           <Share2 size={16} />
-          <span>Share</span>
+          <span className="mobile-hide">Share</span>
         </button>
 
         {/* View Files */}
@@ -168,7 +168,7 @@ export function CleanHeader({
           }}
         >
           <FolderOpen size={16} />
-          <span>Files</span>
+          <span className="mobile-hide">Files</span>
         </button>
 
         {/* Export */}
@@ -201,7 +201,7 @@ export function CleanHeader({
             }}
           >
             <Download size={16} />
-            <span>Export</span>
+            <span className="mobile-hide">Export</span>
           </button>
         )}
 
@@ -235,7 +235,7 @@ export function CleanHeader({
             }}
           >
             <Trash2 size={16} />
-            <span>Clear</span>
+            <span className="mobile-hide">Clear</span>
           </button>
         )}
 
