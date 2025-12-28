@@ -1,41 +1,88 @@
-// Redirect route for backward compatibility
-// Old UI components call /api/music/generate
-// Redirect to new /api/music/generate-ultimate
-
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
 
-export const runtime = 'nodejs';
-
+const SUNO_API_BASE = 'https://api.sunoapi.org';
+const SUNO_API_KEY = process.env.SUNOAPI_KEY;
 
 export async function POST(req: NextRequest) {
   try {
+    // Check authentication
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    // Check API key
+    if (!SUNO_API_KEY) {
+      console.error('[Music API] SUNOAPI_KEY not configured');
+      return NextResponse.json(
+        { success: false, error: 'Music generation service not configured' },
+        { status: 500 }
+      );
+    }
+
     const body = await req.json();
-    
-    // Forward to new endpoint
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    const response = await fetch(`${baseUrl}/api/music/generate-ultimate`, {
+    const { prompt, style, title, instrumental = false, customMode = false } = body;
+
+    console.log('[Music API] Generation request:', { prompt, style, title, instrumental, customMode });
+
+    // Validate required fields
+    if (!prompt) {
+      return NextResponse.json(
+        { success: false, error: 'Prompt is required' },
+        { status: 400 }
+      );
+    }
+
+    // Build request body for SUNO API
+    const sunoRequest: any = {
+      prompt,
+      customMode,
+      model: 'V3.5',
+    };
+
+    if (customMode) {
+      if (style) sunoRequest.style = style;
+      if (title) sunoRequest.title = title;
+      sunoRequest.instrumental = instrumental;
+    }
+
+    console.log('[Music API] Calling SUNO API:', sunoRequest);
+
+    // Call SUNO API
+    const response = await fetch(`${SUNO_API_BASE}/api/v1/generate`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
+      headers: {
+        'Authorization': `Bearer ${SUNO_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(sunoRequest),
     });
 
     const data = await response.json();
-    return NextResponse.json(data);
+    console.log('[Music API] SUNO API response:', data);
+
+    if (!response.ok || data.code !== 200) {
+      console.error('[Music API] SUNO API error:', data);
+      return NextResponse.json(
+        { success: false, error: data.msg || 'Failed to generate music' },
+        { status: response.status }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: data.data,
+    });
+
   } catch (error: any) {
-    console.error('❌ Music redirect error:', error);
+    console.error('[Music API] Error:', error);
     return NextResponse.json(
-      { error: 'Music generation failed', details: error.message },
+      { success: false, error: error.message || 'Internal server error' },
       { status: 500 }
     );
   }
-}
-
-// GET endpoint for metadata
-export async function GET() {
-  return NextResponse.json({
-    message: 'This endpoint redirects to /api/music/generate-ultimate',
-    models: ['suno', 'musicgen', 'riffusion', 'audiocraft', 'audioldm'],
-    primary: 'suno',
-    status: 'active'
-  });
 }

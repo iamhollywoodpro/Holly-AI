@@ -1,550 +1,343 @@
-'use client';
+"use client";
 
 import { useState } from 'react';
-import { 
-  Music, Play, Pause, Download, RefreshCw, Sparkles, 
-  Wand2, Mic, Volume2, Clock, Loader2, ArrowLeft
-} from 'lucide-react';
-import { cyberpunkTheme } from '@/styles/themes/cyberpunk';
+import { Music, Play, Pause, Download, Loader2, Sparkles, Mic } from 'lucide-react';
+import Link from 'next/link';
 
 interface GeneratedTrack {
   id: string;
   title: string;
-  audio_url: string;
-  image_url: string;
-  status: 'submitted' | 'queued' | 'streaming' | 'complete' | 'error';
-  tags: string;
-  duration: number;
-  created_at: string;
+  audioUrl: string;
+  imageUrl?: string;
+  duration?: number;
+  status: 'generating' | 'complete' | 'error';
 }
 
-export default function MusicStudioPage() {
-  const [mode, setMode] = useState<'simple' | 'custom' | 'instrumental'>('simple');
+export default function MusicStudio() {
   const [prompt, setPrompt] = useState('');
-  const [lyrics, setLyrics] = useState('');
-  const [tags, setTags] = useState('');
   const [title, setTitle] = useState('');
+  const [style, setStyle] = useState('');
+  const [instrumental, setInstrumental] = useState(false);
+  const [customMode, setCustomMode] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [tracks, setTracks] = useState<GeneratedTrack[]>([]);
-  const [playingTrack, setPlayingTrack] = useState<string | null>(null);
-
-  const stylePresets = [
-    { name: 'Lo-Fi Chill', tags: 'lo-fi, chill, hip-hop, relaxing, beats', emoji: '🎧' },
-    { name: 'Epic Cinematic', tags: 'cinematic, orchestral, epic, dramatic, powerful', emoji: '🎬' },
-    { name: 'Synthwave', tags: 'synthwave, retro, 80s, electronic, neon', emoji: '🌆' },
-    { name: 'Acoustic Pop', tags: 'acoustic, pop, guitar, uplifting, catchy', emoji: '🎸' },
-    { name: 'Dark Trap', tags: 'trap, dark, bass, aggressive, hip-hop', emoji: '🔥' },
-    { name: 'Ambient Space', tags: 'ambient, space, atmospheric, ethereal, calm', emoji: '🌌' },
-  ];
+  const [playingTrackId, setPlayingTrackId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const handleGenerate = async () => {
+    if (!prompt.trim()) {
+      setError('Please enter a description for your music');
+      return;
+    }
+
+    setIsGenerating(true);
+    setError(null);
+
     try {
-      console.log('[Music Studio] Starting generation...');
-      console.log('[Music Studio] Mode:', mode);
-      console.log('[Music Studio] Prompt:', prompt);
-      console.log('[Music Studio] Lyrics:', lyrics);
-      console.log('[Music Studio] Tags:', tags);
-      console.log('[Music Studio] Title:', title);
-
-      if (!prompt && !lyrics) {
-        alert('Please enter a prompt or lyrics');
-        return;
-      }
-
-      setIsGenerating(true);
-
-      console.log('[Music Studio] Calling API...');
-      
-      const response = await fetch('/api/music/generate-ultimate', {
+      const response = await fetch('/api/music/generate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
-          mode,
-          prompt: mode === 'simple' || mode === 'instrumental' ? prompt : undefined,
-          lyrics: mode === 'custom' ? lyrics : undefined,
-          tags: tags || 'pop',
-          title: title || 'Untitled',
-          instrumental: mode === 'instrumental',
+          prompt,
+          title: title || undefined,
+          style: style || undefined,
+          instrumental,
+          customMode,
         }),
       });
 
-      const data = await response.json();
+      const result = await response.json();
 
-      if (data.success && data.tracks) {
-        setTracks(prev => [...data.tracks, ...prev]);
-        alert('Music generation started! Tracks will be ready in 1-2 minutes.');
-      } else {
-        alert(data.error || 'Failed to generate music');
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to generate music');
       }
-    } catch (error: any) {
-      console.error('[Music Studio] Generation error:', error);
-      console.error('[Music Studio] Error stack:', error?.stack);
-      console.error('[Music Studio] Error message:', error?.message);
-      alert(`Failed to generate music: ${error?.message || 'Unknown error'}`);
+
+      console.log('Generation started:', result.data);
+
+      // Add generating track to list
+      const recordId = result.data.recordId || result.data.id;
+      const newTrack: GeneratedTrack = {
+        id: recordId,
+        title: title || 'Untitled Track',
+        audioUrl: '',
+        status: 'generating',
+      };
+
+      setTracks(prev => [newTrack, ...prev]);
+
+      // Poll for completion
+      pollTrackStatus(recordId);
+
+    } catch (err: any) {
+      console.error('Generation error:', err);
+      setError(err.message || 'Failed to generate music');
     } finally {
       setIsGenerating(false);
     }
   };
 
-  const handleRefreshStatus = async () => {
-    const pendingTracks = tracks.filter(t => t.status !== 'complete' && t.status !== 'error');
-    if (pendingTracks.length === 0) return;
+  const pollTrackStatus = async (recordId: string) => {
+    const maxAttempts = 60; // 5 minutes max
+    let attempts = 0;
 
-    try {
-      const ids = pendingTracks.map(t => t.id).join(',');
-      const response = await fetch(`/api/music/query?ids=${ids}`);
-      const data = await response.json();
+    const poll = async () => {
+      try {
+        const response = await fetch(`/api/music/status?recordId=${recordId}`);
+        const result = await response.json();
 
-      if (data.success && data.tracks) {
-        setTracks(prev => prev.map(track => {
-          const updated = data.tracks.find((t: GeneratedTrack) => t.id === track.id);
-          return updated || track;
-        }));
+        if (result.success && result.data) {
+          const data = result.data;
+          
+          // Check if generation is complete
+          if (data.status === 'complete' && data.audioUrl) {
+            setTracks(prev =>
+              prev.map(track =>
+                track.id === recordId
+                  ? {
+                      ...track,
+                      audioUrl: data.audioUrl,
+                      imageUrl: data.imageUrl,
+                      duration: data.duration,
+                      status: 'complete',
+                    }
+                  : track
+              )
+            );
+            return; // Stop polling
+          }
+
+          // Continue polling if not complete
+          if (attempts < maxAttempts) {
+            attempts++;
+            setTimeout(poll, 5000); // Poll every 5 seconds
+          } else {
+            // Timeout
+            setTracks(prev =>
+              prev.map(track =>
+                track.id === recordId ? { ...track, status: 'error' } : track
+              )
+            );
+          }
+        }
+      } catch (err) {
+        console.error('Poll error:', err);
       }
-    } catch (error) {
-      console.error('Refresh error:', error);
+    };
+
+    poll();
+  };
+
+  const togglePlay = (trackId: string) => {
+    if (playingTrackId === trackId) {
+      setPlayingTrackId(null);
+      // Pause audio
+    } else {
+      setPlayingTrackId(trackId);
+      // Play audio
     }
   };
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: cyberpunkTheme.colors.background.primary,
-      color: cyberpunkTheme.colors.text.primary,
-    }}>
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-black to-blue-900 text-white">
       {/* Header */}
-      <div style={{
-        background: cyberpunkTheme.colors.background.secondary,
-        borderBottom: `1px solid ${cyberpunkTheme.colors.border.primary}`,
-        padding: '2rem',
-      }}>
-        <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem' }}>
-            <button
-              onClick={() => window.location.href = '/'}
-              style={{
-                padding: '0.5rem',
-                borderRadius: '8px',
-                border: `1px solid ${cyberpunkTheme.colors.border.primary}`,
-                background: cyberpunkTheme.colors.background.tertiary,
-                color: cyberpunkTheme.colors.text.primary,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                transition: 'all 0.2s',
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.background = cyberpunkTheme.colors.background.elevated}
-              onMouseLeave={(e) => e.currentTarget.style.background = cyberpunkTheme.colors.background.tertiary}
-              title="Back to HOLLY Chat"
-            >
-              <ArrowLeft size={20} />
-            </button>
-            <Music size={32} style={{ color: cyberpunkTheme.colors.primary.pink }} />
-            <h1 style={{
-              fontSize: '2rem',
-              fontWeight: 'bold',
-              background: cyberpunkTheme.colors.gradients.holographic,
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-            }}>
-              Music Generation Studio
+      <div className="border-b border-purple-500/30 bg-black/40 backdrop-blur-sm">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Music className="w-8 h-8 text-purple-400" />
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+              Music Studio
             </h1>
           </div>
-          <p style={{ color: cyberpunkTheme.colors.text.secondary, fontSize: '0.95rem' }}>
-            Create original music with SUNO AI - From simple descriptions to custom lyrics
-          </p>
+          <Link
+            href="/"
+            className="px-4 py-2 rounded-lg bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 transition-colors"
+          >
+            Back to Chat
+          </Link>
         </div>
       </div>
 
-      <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '2rem' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
-          {/* Left: Generation Controls */}
-          <div>
-            {/* Mode Selection */}
-            <div style={{ marginBottom: '1.5rem' }}>
-              <label style={{
-                display: 'block',
-                marginBottom: '0.75rem',
-                fontSize: '0.9rem',
-                fontWeight: 600,
-                color: cyberpunkTheme.colors.text.primary,
-              }}>
-                Generation Mode
-              </label>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
-                {[
-                  { value: 'simple', icon: Wand2, label: 'Simple' },
-                  { value: 'custom', icon: Mic, label: 'Custom Lyrics' },
-                  { value: 'instrumental', icon: Volume2, label: 'Instrumental' },
-                ].map((m) => (
-                  <button
-                    key={m.value}
-                    onClick={() => setMode(m.value as any)}
-                    style={{
-                      padding: '1rem',
-                      borderRadius: '12px',
-                      border: `2px solid ${mode === m.value ? cyberpunkTheme.colors.primary.cyan : cyberpunkTheme.colors.border.primary}`,
-                      background: mode === m.value ? `${cyberpunkTheme.colors.primary.cyan}15` : cyberpunkTheme.colors.background.secondary,
-                      color: mode === m.value ? cyberpunkTheme.colors.primary.cyan : cyberpunkTheme.colors.text.secondary,
-                      cursor: 'pointer',
-                      transition: 'all 0.2s',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                    }}
-                  >
-                    <m.icon size={24} />
-                    <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>{m.label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Creation Panel */}
+          <div className="space-y-6">
+            <div className="bg-black/40 backdrop-blur-sm border border-purple-500/30 rounded-xl p-6">
+              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-purple-400" />
+                Create Your Music
+              </h2>
 
-            {/* Style Presets */}
-            <div style={{ marginBottom: '1.5rem' }}>
-              <label style={{
-                display: 'block',
-                marginBottom: '0.75rem',
-                fontSize: '0.9rem',
-                fontWeight: 600,
-                color: cyberpunkTheme.colors.text.primary,
-              }}>
-                Style Presets
-              </label>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
-                {stylePresets.map((preset) => (
-                  <button
-                    key={preset.name}
-                    onClick={() => setTags(preset.tags)}
-                    style={{
-                      padding: '0.75rem',
-                      borderRadius: '8px',
-                      border: `1px solid ${cyberpunkTheme.colors.border.primary}`,
-                      background: cyberpunkTheme.colors.background.secondary,
-                      color: cyberpunkTheme.colors.text.primary,
-                      cursor: 'pointer',
-                      transition: 'all 0.2s',
-                      fontSize: '0.8rem',
-                    }}
-                  >
-                    {preset.emoji} {preset.name}
-                  </button>
-                ))}
+              {/* Mode Toggle */}
+              <div className="mb-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={customMode}
+                    onChange={(e) => setCustomMode(e.target.checked)}
+                    className="w-4 h-4 rounded border-purple-500/50 bg-purple-900/20 text-purple-500 focus:ring-purple-500"
+                  />
+                  <span className="text-sm text-gray-300">Custom Mode (more control)</span>
+                </label>
               </div>
-            </div>
 
-            {/* Input Fields */}
-            {mode !== 'custom' && (
-              <div style={{ marginBottom: '1.5rem' }}>
-                <label style={{
-                  display: 'block',
-                  marginBottom: '0.75rem',
-                  fontSize: '0.9rem',
-                  fontWeight: 600,
-                  color: cyberpunkTheme.colors.text.primary,
-                }}>
-                  {mode === 'instrumental' ? 'Music Description' : 'Song Description'}
+              {/* Prompt */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Description *
                 </label>
                 <textarea
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   placeholder="Describe the music you want to create..."
-                  style={{
-                    width: '100%',
-                    padding: '1rem',
-                    borderRadius: '12px',
-                    border: `1px solid ${cyberpunkTheme.colors.border.primary}`,
-                    background: cyberpunkTheme.colors.background.secondary,
-                    color: cyberpunkTheme.colors.text.primary,
-                    fontSize: '0.9rem',
-                    minHeight: '120px',
-                    resize: 'vertical',
-                  }}
+                  className="w-full px-4 py-3 bg-purple-900/20 border border-purple-500/30 rounded-lg focus:outline-none focus:border-purple-500 text-white placeholder-gray-500 resize-none"
+                  rows={4}
+                  maxLength={customMode ? 3000 : 400}
                 />
+                <div className="text-xs text-gray-500 mt-1">
+                  {prompt.length} / {customMode ? 3000 : 400} characters
+                </div>
               </div>
-            )}
 
-            {mode === 'custom' && (
-              <div style={{ marginBottom: '1.5rem' }}>
-                <label style={{
-                  display: 'block',
-                  marginBottom: '0.75rem',
-                  fontSize: '0.9rem',
-                  fontWeight: 600,
-                  color: cyberpunkTheme.colors.text.primary,
-                }}>
-                  Song Lyrics
-                </label>
-                <textarea
-                  value={lyrics}
-                  onChange={(e) => setLyrics(e.target.value)}
-                  placeholder="Enter your song lyrics here..."
-                  style={{
-                    width: '100%',
-                    padding: '1rem',
-                    borderRadius: '12px',
-                    border: `1px solid ${cyberpunkTheme.colors.border.primary}`,
-                    background: cyberpunkTheme.colors.background.secondary,
-                    color: cyberpunkTheme.colors.text.primary,
-                    fontSize: '0.9rem',
-                    minHeight: '200px',
-                    resize: 'vertical',
-                  }}
-                />
-              </div>
-            )}
-
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
-              <div>
-                <label style={{
-                  display: 'block',
-                  marginBottom: '0.5rem',
-                  fontSize: '0.85rem',
-                  fontWeight: 600,
-                  color: cyberpunkTheme.colors.text.primary,
-                }}>
-                  Style Tags
-                </label>
-                <input
-                  type="text"
-                  value={tags}
-                  onChange={(e) => setTags(e.target.value)}
-                  placeholder="pop, upbeat, electronic"
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem',
-                    borderRadius: '8px',
-                    border: `1px solid ${cyberpunkTheme.colors.border.primary}`,
-                    background: cyberpunkTheme.colors.background.secondary,
-                    color: cyberpunkTheme.colors.text.primary,
-                    fontSize: '0.9rem',
-                  }}
-                />
-              </div>
-              <div>
-                <label style={{
-                  display: 'block',
-                  marginBottom: '0.5rem',
-                  fontSize: '0.85rem',
-                  fontWeight: 600,
-                  color: cyberpunkTheme.colors.text.primary,
-                }}>
-                  Title
-                </label>
-                <input
-                  type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Untitled"
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem',
-                    borderRadius: '8px',
-                    border: `1px solid ${cyberpunkTheme.colors.border.primary}`,
-                    background: cyberpunkTheme.colors.background.secondary,
-                    color: cyberpunkTheme.colors.text.primary,
-                    fontSize: '0.9rem',
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* Generate Button */}
-            <button
-              onClick={handleGenerate}
-              disabled={isGenerating}
-              style={{
-                width: '100%',
-                padding: '1rem',
-                borderRadius: '12px',
-                border: 'none',
-                background: isGenerating ? cyberpunkTheme.colors.background.tertiary : cyberpunkTheme.colors.gradients.primary,
-                color: '#fff',
-                fontSize: '1rem',
-                fontWeight: 600,
-                cursor: isGenerating ? 'not-allowed' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.75rem',
-                transition: 'all 0.2s',
-              }}
-            >
-              {isGenerating ? (
+              {/* Custom Mode Fields */}
+              {customMode && (
                 <>
-                  <Loader2 size={20} className="animate-spin" />
-                  Generating Music...
-                </>
-              ) : (
-                <>
-                  <Sparkles size={20} />
-                  Generate Music
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Title
+                    </label>
+                    <input
+                      type="text"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      placeholder="Give your track a title"
+                      className="w-full px-4 py-2 bg-purple-900/20 border border-purple-500/30 rounded-lg focus:outline-none focus:border-purple-500 text-white placeholder-gray-500"
+                      maxLength={80}
+                    />
+                  </div>
+
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Style / Genre
+                    </label>
+                    <input
+                      type="text"
+                      value={style}
+                      onChange={(e) => setStyle(e.target.value)}
+                      placeholder="e.g., Pop, Rock, Classical, Jazz"
+                      className="w-full px-4 py-2 bg-purple-900/20 border border-purple-500/30 rounded-lg focus:outline-none focus:border-purple-500 text-white placeholder-gray-500"
+                      maxLength={200}
+                    />
+                  </div>
+
+                  <div className="mb-4">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={instrumental}
+                        onChange={(e) => setInstrumental(e.target.checked)}
+                        className="w-4 h-4 rounded border-purple-500/50 bg-purple-900/20 text-purple-500 focus:ring-purple-500"
+                      />
+                      <Mic className="w-4 h-4 text-gray-400" />
+                      <span className="text-sm text-gray-300">Instrumental (no vocals)</span>
+                    </label>
+                  </div>
                 </>
               )}
-            </button>
-          </div>
 
-          {/* Right: Generated Tracks */}
-          <div>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: '1rem',
-            }}>
-              <h2 style={{
-                fontSize: '1.25rem',
-                fontWeight: 600,
-                color: cyberpunkTheme.colors.text.primary,
-              }}>
-                Generated Tracks ({tracks.length})
-              </h2>
+              {/* Error Message */}
+              {error && (
+                <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-300 text-sm">
+                  {error}
+                </div>
+              )}
+
+              {/* Generate Button */}
               <button
-                onClick={handleRefreshStatus}
-                style={{
-                  padding: '0.5rem 1rem',
-                  borderRadius: '8px',
-                  border: `1px solid ${cyberpunkTheme.colors.border.primary}`,
-                  background: cyberpunkTheme.colors.background.secondary,
-                  color: cyberpunkTheme.colors.text.secondary,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  fontSize: '0.85rem',
-                }}
+                onClick={handleGenerate}
+                disabled={isGenerating || !prompt.trim()}
+                className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed rounded-lg font-semibold transition-all flex items-center justify-center gap-2"
               >
-                <RefreshCw size={16} />
-                Refresh
+                {isGenerating ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-5 h-5" />
+                    Generate Music
+                  </>
+                )}
               </button>
             </div>
+          </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {tracks.length === 0 ? (
-                <div style={{
-                  padding: '3rem',
-                  textAlign: 'center',
-                  color: cyberpunkTheme.colors.text.tertiary,
-                  background: cyberpunkTheme.colors.background.secondary,
-                  borderRadius: '12px',
-                  border: `1px dashed ${cyberpunkTheme.colors.border.primary}`,
-                }}>
-                  <Music size={48} style={{ margin: '0 auto 1rem', opacity: 0.3 }} />
-                  <p>No tracks generated yet</p>
-                  <p style={{ fontSize: '0.85rem', marginTop: '0.5rem' }}>
-                    Create your first track using the controls on the left
-                  </p>
-                </div>
-              ) : (
-                tracks.map((track) => (
-                  <div
-                    key={track.id}
-                    style={{
-                      padding: '1rem',
-                      borderRadius: '12px',
-                      background: cyberpunkTheme.colors.background.secondary,
-                      border: `1px solid ${cyberpunkTheme.colors.border.primary}`,
-                    }}
-                  >
-                    <div style={{ display: 'flex', gap: '1rem' }}>
-                      {/* Album Art */}
-                      <div style={{
-                        width: '80px',
-                        height: '80px',
-                        borderRadius: '8px',
-                        background: cyberpunkTheme.colors.background.tertiary,
-                        overflow: 'hidden',
-                      }}>
-                        {track.image_url && (
-                          <img
-                            src={track.image_url}
-                            alt={track.title}
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                          />
-                        )}
-                      </div>
-
-                      {/* Track Info */}
-                      <div style={{ flex: 1 }}>
-                        <div style={{
-                          fontWeight: 600,
-                          color: cyberpunkTheme.colors.text.primary,
-                          marginBottom: '0.25rem',
-                        }}>
-                          {track.title}
-                        </div>
-                        <div style={{
-                          fontSize: '0.8rem',
-                          color: cyberpunkTheme.colors.text.tertiary,
-                          marginBottom: '0.5rem',
-                        }}>
-                          {track.tags}
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <span style={{
-                            padding: '0.25rem 0.5rem',
-                            borderRadius: '4px',
-                            fontSize: '0.75rem',
-                            background: track.status === 'complete' ? '#10b98120' : cyberpunkTheme.colors.background.tertiary,
-                            color: track.status === 'complete' ? '#10b981' : cyberpunkTheme.colors.text.tertiary,
-                          }}>
-                            {track.status}
-                          </span>
-                          {track.duration > 0 && (
-                            <span style={{
-                              fontSize: '0.75rem',
-                              color: cyberpunkTheme.colors.text.tertiary,
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '0.25rem',
-                            }}>
-                              <Clock size={12} />
-                              {Math.floor(track.duration / 60)}:{(track.duration % 60).toString().padStart(2, '0')}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Actions */}
-                      {track.status === 'complete' && track.audio_url && (
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          <button
-                            onClick={() => setPlayingTrack(playingTrack === track.id ? null : track.id)}
-                            style={{
-                              padding: '0.5rem',
-                              borderRadius: '8px',
-                              border: 'none',
-                              background: cyberpunkTheme.colors.primary.cyan,
-                              color: '#fff',
-                              cursor: 'pointer',
-                            }}
-                          >
-                            {playingTrack === track.id ? <Pause size={16} /> : <Play size={16} />}
-                          </button>
-                          <a
-                            href={track.audio_url}
-                            download
-                            style={{
-                              padding: '0.5rem',
-                              borderRadius: '8px',
-                              border: `1px solid ${cyberpunkTheme.colors.border.primary}`,
-                              background: cyberpunkTheme.colors.background.tertiary,
-                              color: cyberpunkTheme.colors.text.primary,
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                            }}
-                          >
-                            <Download size={16} />
-                          </a>
-                        </div>
+          {/* Generated Tracks */}
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold mb-4">Your Tracks</h2>
+            
+            {tracks.length === 0 ? (
+              <div className="bg-black/40 backdrop-blur-sm border border-purple-500/30 rounded-xl p-8 text-center">
+                <Music className="w-16 h-16 text-purple-400/50 mx-auto mb-4" />
+                <p className="text-gray-400">No tracks yet. Create your first one!</p>
+              </div>
+            ) : (
+              tracks.map((track) => (
+                <div
+                  key={track.id}
+                  className="bg-black/40 backdrop-blur-sm border border-purple-500/30 rounded-xl p-4 hover:border-purple-500/50 transition-colors"
+                >
+                  <div className="flex items-center gap-4">
+                    {/* Play Button */}
+                    <button
+                      onClick={() => togglePlay(track.id)}
+                      disabled={track.status !== 'complete'}
+                      className="w-12 h-12 rounded-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed flex items-center justify-center transition-colors"
+                    >
+                      {track.status === 'generating' ? (
+                        <Loader2 className="w-6 h-6 animate-spin" />
+                      ) : playingTrackId === track.id ? (
+                        <Pause className="w-6 h-6" />
+                      ) : (
+                        <Play className="w-6 h-6 ml-1" />
                       )}
+                    </button>
+
+                    {/* Track Info */}
+                    <div className="flex-1">
+                      <h3 className="font-semibold">{track.title}</h3>
+                      <p className="text-sm text-gray-400">
+                        {track.status === 'generating' && 'Generating...'}
+                        {track.status === 'complete' && 'Ready to play'}
+                        {track.status === 'error' && 'Generation failed'}
+                      </p>
                     </div>
+
+                    {/* Download Button */}
+                    {track.status === 'complete' && track.audioUrl && (
+                      <a
+                        href={track.audioUrl}
+                        download
+                        className="p-2 rounded-lg bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 transition-colors"
+                      >
+                        <Download className="w-5 h-5" />
+                      </a>
+                    )}
                   </div>
-                ))
-              )}
-            </div>
+
+                  {/* Audio Player */}
+                  {track.status === 'complete' && track.audioUrl && (
+                    <audio
+                      src={track.audioUrl}
+                      className="w-full mt-4"
+                      controls
+                    />
+                  )}
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>
