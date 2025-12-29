@@ -21,19 +21,27 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Handle both JSON and FormData
-    const contentType = req.headers.get('content-type') || '';
-    let audioUrl, audioFile, lyrics, referenceTrack;
+    // Parse request body
+    let audioUrl: string | null = null;
+    let audioFile: File | null = null;
+    let lyrics: string | null = null;
 
-    if (contentType.includes('multipart/form-data')) {
+    try {
+      // Try to parse as FormData first
       const formData = await req.formData();
       audioUrl = formData.get('audioUrl') as string;
       audioFile = formData.get('file') as File;
       lyrics = formData.get('lyrics') as string;
-      referenceTrack = formData.get('referenceTrack') as string;
-    } else {
-      const body = await req.json();
-      ({ audioUrl, audioFile, lyrics, referenceTrack } = body);
+    } catch (e) {
+      // If FormData fails, try JSON
+      try {
+        const body = await req.json();
+        audioUrl = body.audioUrl;
+        audioFile = body.audioFile;
+        lyrics = body.lyrics;
+      } catch (jsonError) {
+        console.error('[AURA] Failed to parse request:', jsonError);
+      }
     }
 
     if (!audioUrl && !audioFile) {
@@ -45,6 +53,7 @@ export async function POST(req: NextRequest) {
 
     console.log('[AURA] Starting analysis...');
     console.log('[AURA] Audio URL:', audioUrl);
+    console.log('[AURA] Has file:', !!audioFile);
     console.log('[AURA] Has lyrics:', !!lyrics);
 
     // For now, return a mock analysis since the Python worker needs to be deployed
