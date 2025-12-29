@@ -88,15 +88,44 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Convert base64 to buffer
-    const audioBuffer = Buffer.from(audioBase64, 'base64');
+    // Convert base64 to buffer (raw PCM data from Gemini)
+    const pcmData = Buffer.from(audioBase64, 'base64');
 
-    // Return audio file
-    return new NextResponse(audioBuffer, {
+    // Add WAV header to raw PCM data for browser compatibility
+    // Gemini returns 24kHz, 16-bit, mono PCM
+    const sampleRate = 24000;
+    const numChannels = 1;
+    const bitsPerSample = 16;
+    const byteRate = sampleRate * numChannels * (bitsPerSample / 8);
+    const blockAlign = numChannels * (bitsPerSample / 8);
+    
+    const wavHeader = Buffer.alloc(44);
+    // RIFF header
+    wavHeader.write('RIFF', 0);
+    wavHeader.writeUInt32LE(36 + pcmData.length, 4);
+    wavHeader.write('WAVE', 8);
+    // fmt chunk
+    wavHeader.write('fmt ', 12);
+    wavHeader.writeUInt32LE(16, 16); // fmt chunk size
+    wavHeader.writeUInt16LE(1, 20); // audio format (1 = PCM)
+    wavHeader.writeUInt16LE(numChannels, 22);
+    wavHeader.writeUInt32LE(sampleRate, 24);
+    wavHeader.writeUInt32LE(byteRate, 28);
+    wavHeader.writeUInt16LE(blockAlign, 32);
+    wavHeader.writeUInt16LE(bitsPerSample, 34);
+    // data chunk
+    wavHeader.write('data', 36);
+    wavHeader.writeUInt32LE(pcmData.length, 40);
+    
+    // Combine header and PCM data
+    const wavBuffer = Buffer.concat([wavHeader, pcmData]);
+
+    // Return proper WAV file
+    return new NextResponse(wavBuffer, {
       status: 200,
       headers: {
         'Content-Type': 'audio/wav',
-        'Content-Length': audioBuffer.length.toString(),
+        'Content-Length': wavBuffer.length.toString(),
       },
     });
 
