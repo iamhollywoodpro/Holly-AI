@@ -1,7 +1,7 @@
 /**
  * Voice Settings Hook
  * Manages user preferences for HOLLY's voice output
- * Simplified for Fish-Speech ONLY
+ * Simplified for Gemini TTS ONLY
  */
 
 'use client';

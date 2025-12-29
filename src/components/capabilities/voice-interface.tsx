@@ -46,7 +46,7 @@ export function VoiceInterface() {
 
     setLoading(true);
     try {
-      // Use Fish-Speech TTS
+      // Use Gemini TTS TTS
       const response = await fetch('/api/tts/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

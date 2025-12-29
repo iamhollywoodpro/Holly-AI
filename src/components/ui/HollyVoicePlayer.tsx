@@ -1,13 +1,13 @@
 /**
  * HOLLY Voice Player Component
- * Uses Kokoro TTS API for high-quality, free voice generation
+ * Uses Google Gemini TTS for high-quality, free voice generation
  */
 
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Volume2, VolumeX, Loader2 } from 'lucide-react';
-import { generateVoice } from '@/lib/kokoro-tts';
+import { speakText } from '@/lib/voice/enhanced-voice-output';
 
 interface HollyVoicePlayerProps {
   text: string;
@@ -50,7 +50,7 @@ export default function HollyVoicePlayer({
       .trim();
   };
 
-  // Generate and play audio using Kokoro TTS
+  // Generate and play audio using Gemini TTS
   const generateAndPlay = async () => {
     if (!text || text.trim().length === 0) {
       setError('No text to speak');
@@ -63,29 +63,35 @@ export default function HollyVoicePlayer({
     try {
       // Strip emojis from text before TTS
       const cleanText = stripEmojis(text);
-      console.log('[HOLLY Voice] Generating voice with Kokoro...');
+      console.log('[HOLLY Voice] Generating voice with Gemini TTS...');
       console.log('[HOLLY Voice] Original text:', text);
       console.log('[HOLLY Voice] Clean text:', cleanText);
       
-      // Generate voice using Kokoro API
-      const audioBlob = await generateVoice(cleanText, 'af_heart', 1.0);
-      
-      // Create audio URL
-      const url = URL.createObjectURL(audioBlob);
-      setAudioUrl(url);
+      // Generate and play voice using Gemini TTS
+      await speakText(cleanText, {
+        onStart: () => {
+          setIsPlaying(true);
+          if (onPlayStart) {
+            onPlayStart();
+          }
+        },
+        onEnd: () => {
+          setIsPlaying(false);
+          if (onPlayEnd) {
+            onPlayEnd();
+          }
+        },
+        onError: (err) => {
+          const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+          console.error('[HOLLY Voice] Error:', errorMessage);
+          setError(errorMessage);
+          if (onError && err instanceof Error) {
+            onError(err);
+          }
+        },
+      });
       
       console.log('[HOLLY Voice] Voice generated successfully');
-      
-      // Play audio
-      if (audioRef.current) {
-        audioRef.current.src = url;
-        await audioRef.current.play();
-        setIsPlaying(true);
-        
-        if (onPlayStart) {
-          onPlayStart();
-        }
-      }
       
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';

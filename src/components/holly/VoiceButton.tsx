@@ -2,12 +2,12 @@
 
 /**
  * HOLLY Voice Button Component
- * Allows text-to-speech using Kokoro TTS (free, open-source)
+ * Allows text-to-speech using Google Gemini TTS (free)
  */
 
 import { useState } from 'react';
 import { Volume2, VolumeX, Loader2 } from 'lucide-react';
-import { speak } from '@/lib/kokoro-tts';
+import { speakText } from '@/lib/voice/enhanced-voice-output';
 
 interface VoiceButtonProps {
   text: string;
@@ -32,23 +32,19 @@ export function VoiceButton({ text, autoPlay = false, className = '' }: VoiceBut
         audio.currentTime = 0;
       }
 
-      // Generate and play speech using Kokoro TTS
-      const audioElement = await speak(text, {
-        voice: 'af_heart', // Warm, professional female voice
-        speed: 1.0,
+      // Generate and play speech using Gemini TTS
+      setIsPlaying(true);
+      await speakText(text, {
+        onStart: () => setIsPlaying(true),
+        onEnd: () => {
+          setIsPlaying(false);
+          setAudio(null);
+        },
+        onError: () => {
+          setError('Failed to play audio');
+          setIsPlaying(false);
+        },
       });
-      
-      audioElement.onplay = () => setIsPlaying(true);
-      audioElement.onended = () => {
-        setIsPlaying(false);
-        setAudio(null);
-      };
-      audioElement.onerror = () => {
-        setError('Failed to play audio');
-        setIsPlaying(false);
-      };
-
-      setAudio(audioElement);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
       setIsPlaying(false);

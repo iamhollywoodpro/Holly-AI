@@ -55,9 +55,9 @@ export default function MessageBubble({ message, index, conversationId, autoPlay
   const media = detectMedia(message.content);
   const hasMedia = media.images.length > 0 || media.videos.length > 0 || media.audios.length > 0;
 
-  // HOLLY's voice with Fish-Speech
+  // HOLLY's voice with Gemini TTS
   const handleVoicePlayStart = () => {
-    console.log('[HOLLY Voice] Playing via Fish-Speech');
+    console.log('[HOLLY Voice] Playing via Gemini TTS');
   };
 
   const handleVoicePlayEnd = () => {
@@ -299,7 +299,7 @@ export default function MessageBubble({ message, index, conversationId, autoPlay
               )}
             </div>
             
-            {/* HOLLY Voice Player with Kokoro TTS */}
+            {/* HOLLY Voice Player with Gemini TTS */}
             {!isUser && (
               <HollyVoicePlayer
                 text={message.content}

@@ -1,5 +1,5 @@
 /**
- * Voice Settings Panel (Simplified for Fish-Speech)
+ * Voice Settings Panel (Simplified for Gemini TTS)
  */
 
 'use client';
@@ -91,7 +91,7 @@ export default function VoiceSettingsPanel({ isOpen, onClose }: VoiceSettingsPan
               {/* Info */}
               <div className="mt-6 p-4 rounded-lg bg-purple-500/10 border border-purple-500/20">
                 <p className="text-xs text-gray-400">
-                  <span className="font-medium text-purple-400">Fish-Speech TTS</span>
+                  <span className="font-medium text-purple-400">Gemini TTS TTS</span>
                   <br />
                   Self-hosted voice synthesis with HOLLY's custom voice
                 </p>

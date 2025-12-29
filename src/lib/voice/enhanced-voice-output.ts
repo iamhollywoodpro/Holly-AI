@@ -1,6 +1,6 @@
 /**
  * HOLLY Voice Output System
- * Uses Fish-Speech-1.5 TTS backend ONLY
+ * Uses Google Gemini TTS (FREE) with Sulafat voice
  */
 
 export interface VoiceOutputOptions {
@@ -18,7 +18,7 @@ export class EnhancedVoiceOutput {
   private audioContext: AudioContext | null = null;
 
   constructor() {
-    // Fish-Speech TTS only - no browser TTS
+    // Gemini TTS only - no browser TTS
     // Initialize AudioContext for better browser compatibility
     if (typeof window !== 'undefined') {
       this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -29,11 +29,11 @@ export class EnhancedVoiceOutput {
    * Check if voice output is available
    */
   isAvailable(): boolean {
-    return true; // Fish-Speech is always available
+    return true; // Gemini TTS is always available
   }
 
   /**
-   * Speak text using Fish-Speech (HOLLY voice)
+   * Speak text using Google Gemini TTS (HOLLY voice - Sulafat)
    */
   async speak(text: string, options: VoiceOutputOptions = {}): Promise<void> {
     if (!text || text.trim().length === 0) return;
@@ -42,37 +42,37 @@ export class EnhancedVoiceOutput {
     const cleanedText = this.preprocessText(text);
 
     try {
-      // Call our Fish-Speech TTS API
-      const response = await fetch('/api/tts/generate', {
+      // Call our Gemini TTS API
+      const response = await fetch('/api/speech/gemini', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           text: cleanedText,
-          voice: 'holly',
+          voice: 'Sulafat', // Holly's voice: warm, caring, professional female
         }),
       });
 
       if (!response.ok) {
-        throw new Error(`Fish-Speech TTS failed: ${response.status}`);
+        throw new Error(`Gemini TTS failed: ${response.status}`);
       }
 
       // Get audio blob
       const audioBlob = await response.blob();
-      console.log('[Fish-Speech] Received blob:', {
+      console.log('[Gemini TTS] Received blob:', {
         size: audioBlob.size,
         type: audioBlob.type
       });
       
       const audioUrl = URL.createObjectURL(audioBlob);
-      console.log('[Fish-Speech] Created blob URL:', audioUrl);
+      console.log('[Gemini TTS] Created blob URL:', audioUrl);
 
       // Resume AudioContext if suspended (browser autoplay policy)
       if (this.audioContext && this.audioContext.state === 'suspended') {
-        console.log('[Fish-Speech] Resuming AudioContext...');
+        console.log('[Gemini TTS] Resuming AudioContext...');
         await this.audioContext.resume();
-        console.log('[Fish-Speech] AudioContext resumed:', this.audioContext.state);
+        console.log('[Gemini TTS] AudioContext resumed:', this.audioContext.state);
       }
 
       // Play audio
@@ -81,21 +81,21 @@ export class EnhancedVoiceOutput {
         audio.volume = options.volume || 0.9;
         this.currentAudio = audio;
         
-        console.log('[Fish-Speech] Audio object created:', {
+        console.log('[Gemini TTS] Audio object created:', {
           volume: audio.volume,
           src: audio.src,
           readyState: audio.readyState
         });
         
         audio.onloadeddata = () => {
-          console.log('[Fish-Speech] Audio data loaded:', {
+          console.log('[Gemini TTS] Audio data loaded:', {
             duration: audio.duration,
             readyState: audio.readyState
           });
         };
         
         audio.onended = () => {
-          console.log('[Fish-Speech] Audio playback ended');
+          console.log('[Gemini TTS] Audio playback ended');
           URL.revokeObjectURL(audioUrl);
           this.currentAudio = null;
           if (options.onEnd) options.onEnd();
@@ -103,7 +103,7 @@ export class EnhancedVoiceOutput {
         };
         
         audio.onerror = (error) => {
-          console.error('[Fish-Speech] Audio error:', error);
+          console.error('[Gemini TTS] Audio error:', error);
           URL.revokeObjectURL(audioUrl);
           this.currentAudio = null;
           if (options.onError) options.onError(error);
@@ -111,24 +111,24 @@ export class EnhancedVoiceOutput {
         };
         
         audio.onplay = () => {
-          console.log('[Fish-Speech] Audio started playing - you should hear sound now!');
+          console.log('[Gemini TTS] Audio started playing - you should hear sound now!');
         };
         
         audio.onpause = () => {
-          console.log('[Fish-Speech] Audio paused');
+          console.log('[Gemini TTS] Audio paused');
         };
 
-        console.log('[Fish-Speech] Attempting to play audio...');
+        console.log('[Gemini TTS] Attempting to play audio...');
         const playPromise = audio.play();
         
         if (playPromise !== undefined) {
           playPromise.then(() => {
-            console.log('[Fish-Speech] ✅ Play promise RESOLVED - Audio is playing!');
-            console.log('[Fish-Speech] Volume:', audio.volume, 'Muted:', audio.muted, 'Duration:', audio.duration);
+            console.log('[Gemini TTS] ✅ Play promise RESOLVED - Audio is playing!');
+            console.log('[Gemini TTS] Volume:', audio.volume, 'Muted:', audio.muted, 'Duration:', audio.duration);
             if (options.onStart) options.onStart();
           }).catch((error) => {
-            console.error('[Fish-Speech] ❌ Play promise REJECTED:', error);
-            console.error('[Fish-Speech] Error details:', {
+            console.error('[Gemini TTS] ❌ Play promise REJECTED:', error);
+            console.error('[Gemini TTS] Error details:', {
               name: error.name,
               message: error.message,
               audioState: {
@@ -142,14 +142,14 @@ export class EnhancedVoiceOutput {
             
             // Try to provide helpful error message
             if (error.name === 'NotAllowedError') {
-              console.error('[Fish-Speech] 🚫 Browser blocked audio playback - user interaction required first!');
+              console.error('[Gemini TTS] 🚫 Browser blocked audio playback - user interaction required first!');
             }
             reject(error);
           });
         }
       });
     } catch (error) {
-      console.error('Fish-Speech error:', error);
+      console.error('Gemini TTS error:', error);
       if (options.onError) options.onError(error);
       throw error;
     }

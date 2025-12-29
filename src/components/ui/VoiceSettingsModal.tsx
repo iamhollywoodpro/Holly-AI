@@ -1,6 +1,6 @@
 /**
  * Voice Settings Modal
- * Control HOLLY's voice output preferences (Fish-Speech only)
+ * Control HOLLY's voice output preferences (Gemini TTS only)
  */
 
 'use client';
@@ -55,7 +55,7 @@ export function VoiceSettingsModal({ isOpen, onClose }: VoiceSettingsModalProps)
                 </div>
                 <div>
                   <h2 className="text-xl font-bold text-white">Voice Settings</h2>
-                  <p className="text-sm text-gray-400">HOLLY's Fish-Speech voice</p>
+                  <p className="text-sm text-gray-400">HOLLY's Gemini TTS voice</p>
                 </div>
               </div>
               <motion.button
@@ -136,7 +136,7 @@ export function VoiceSettingsModal({ isOpen, onClose }: VoiceSettingsModalProps)
                     <div className="flex items-start gap-3">
                       <Sparkles className="w-5 h-5 text-purple-400 flex-shrink-0 mt-0.5" />
                       <div>
-                        <p className="text-sm font-medium text-white mb-1">Fish-Speech TTS</p>
+                        <p className="text-sm font-medium text-white mb-1">Gemini TTS TTS</p>
                         <p className="text-xs text-gray-400">
                           Self-hosted, high-quality neural voice synthesis with HOLLY's custom voice profile.
                         </p>
