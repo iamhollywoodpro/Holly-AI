@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import Sandbox from '@/src/components/Sandbox';
+import Sandbox from '@/components/Sandbox';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
