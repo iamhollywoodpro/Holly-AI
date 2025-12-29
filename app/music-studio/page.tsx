@@ -303,7 +303,7 @@ export default function MusicStudio() {
               </div>
 
               {/* Custom Lyrics Toggle */}
-              {customMode && !instrumental && (
+              {customMode && (
                 <div className="mb-4">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
