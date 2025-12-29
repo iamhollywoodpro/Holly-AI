@@ -1,10 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { OpenAI } from 'openai';
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
 
 export async function POST(req: NextRequest) {
   try {
@@ -53,24 +48,41 @@ Make the lyrics creative, emotional, and well-structured. Use vivid imagery and 
 
     console.log('[Lyrics API] Generating lyrics for theme:', theme);
 
-    // Call OpenAI to generate lyrics
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4.1-mini',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a professional songwriter and lyricist. Write creative, emotional, and well-structured song lyrics.',
-        },
-        {
-          role: 'user',
-          content: prompt,
-        },
-      ],
-      temperature: 0.9,
-      max_tokens: 1000,
+    // Call Llama 3.3 via OpenAI-compatible API
+    const response = await fetch('https://api.manus.im/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a professional songwriter and lyricist. Write creative, emotional, and well-structured song lyrics.',
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        temperature: 0.9,
+        max_tokens: 1000,
+      }),
     });
 
-    const lyrics = completion.choices[0].message.content;
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('[Lyrics API] Llama API error:', errorData);
+      return NextResponse.json(
+        { success: false, error: 'Failed to generate lyrics' },
+        { status: 500 }
+      );
+    }
+
+    const data = await response.json();
+    const lyrics = data.choices[0].message.content;
 
     if (!lyrics) {
       return NextResponse.json(
