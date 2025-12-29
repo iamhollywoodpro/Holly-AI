@@ -65,7 +65,9 @@ export default function MusicStudio() {
           title: title || undefined,
           style: style || undefined,
           instrumental,
-          customMode,
+          // Only use customMode when we have lyrics OR instrumental
+          // If using description with vocals, use non-custom mode so SUNO auto-generates lyrics
+          customMode: useLyrics || instrumental,
           vocalGender: vocalGender || undefined,
           styleWeight: showAdvanced ? styleWeight : undefined,
           weirdnessConstraint: showAdvanced ? weirdness : undefined,
