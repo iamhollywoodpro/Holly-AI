@@ -42,6 +42,7 @@
     "@headlessui/react": "^2.2.9",
     "@heroicons/react": "^2.2.0",
     "@huggingface/inference": "^4.13.5",
+    "@monaco-editor/react": "^4.7.0",
     "@octokit/rest": "^20.1.2",
     "@prisma/client": "^5.20.0",
     "@radix-ui/react-avatar": "1.1.10",
