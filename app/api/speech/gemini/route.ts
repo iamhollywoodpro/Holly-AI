@@ -4,10 +4,17 @@ export const runtime = 'edge';
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
+// All 30 available Gemini TTS voices
 const AVAILABLE_VOICES = [
-  'Puck', 'Charon', 'Kore', 'Fenrir', 'Aoede',
-  'Enceladus', 'Algenib', 'Arcas', 'Bellatrix', 'Capella'
+  'Zephyr', 'Puck', 'Charon', 'Kore', 'Fenrir', 'Leda',
+  'Orus', 'Aoede', 'Callirrhoe', 'Autonoe', 'Enceladus', 'Iapetus',
+  'Umbriel', 'Algieba', 'Despina', 'Erinome', 'Algenib', 'Rasalgethi',
+  'Laomedeia', 'Achernar', 'Alnilam', 'Schedar', 'Gacrux', 'Pulcherrima',
+  'Achird', 'Zubenelgenubi', 'Vindemiatrix', 'Sadachbia', 'Sadaltager', 'Sulafat'
 ];
+
+// Holly's default voice: Warm, caring, professional
+const DEFAULT_VOICE = 'Sulafat';
 
 export async function POST(req: NextRequest) {
   try {
@@ -18,7 +25,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { text, voice = 'Kore', style } = await req.json();
+    const { text, voice = DEFAULT_VOICE, style } = await req.json();
 
     if (!text) {
       return NextResponse.json(
@@ -28,7 +35,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Validate voice
-    const selectedVoice = AVAILABLE_VOICES.includes(voice) ? voice : 'Kore';
+    const selectedVoice = AVAILABLE_VOICES.includes(voice) ? voice : DEFAULT_VOICE;
 
     // Build prompt with optional style
     const prompt = style ? `Say in a ${style} way: ${text}` : text;
@@ -106,7 +113,7 @@ export async function POST(req: NextRequest) {
 export async function GET() {
   return NextResponse.json({
     voices: AVAILABLE_VOICES,
-    defaultVoice: 'Kore',
+    defaultVoice: DEFAULT_VOICE,
     model: 'gemini-2.5-flash-preview-tts',
     free: true,
     pricing: {
