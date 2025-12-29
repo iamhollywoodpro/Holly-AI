@@ -44,6 +44,7 @@ export async function POST(req: NextRequest) {
     const sunoRequest: any = {
       prompt,
       customMode,
+      instrumental, // Always required by SUNO API
       model: 'V4_5ALL',
       callBackUrl: `${baseUrl}/api/music/callback`,
     };
@@ -51,7 +52,6 @@ export async function POST(req: NextRequest) {
     if (customMode) {
       if (style) sunoRequest.style = style;
       if (title) sunoRequest.title = title;
-      sunoRequest.instrumental = instrumental;
       
       // Add advanced parameters if provided
       if (vocalGender) sunoRequest.vocalGender = vocalGender;
