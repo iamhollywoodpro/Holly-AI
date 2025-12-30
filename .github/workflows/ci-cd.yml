@@ -158,8 +158,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          
-      - name: 📦 Install Vercel CLI
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+          - name: 📦 Install Vercel CLI
         run: npm install --global vercel@latest
         
       - name: 🔗 Pull Vercel environment
