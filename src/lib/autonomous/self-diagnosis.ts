@@ -7,6 +7,9 @@
 
 import { prisma } from '@/lib/db';
 
+// Type alias for backward compatibility with API routes
+export type SystemIssue = SystemHealth['issues'][number];
+
 export interface SystemHealth {
   overall_status: 'healthy' | 'degraded' | 'critical';
   components: {
