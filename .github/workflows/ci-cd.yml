@@ -164,7 +164,7 @@ jobs:
         with:
           version: 8
 
-          - name: 📦 Install Vercel CLI
+        - name: 📦 Install Vercel CLI
         run: npm install --global vercel@latest
         
       - name: 🔗 Pull Vercel environment
