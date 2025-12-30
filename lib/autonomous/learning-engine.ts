@@ -36,14 +36,24 @@ export interface LearningInsight {
 }
 
 export class LearningEngine {
-  private groq: Groq;
+  private groq: Groq | null;
 
   constructor() {
     const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) {
-      throw new Error('[LearningEngine] GROQ_API_KEY is required');
+      // During build time (CI/CD), GROQ_API_KEY may not be available
+      // It will be available at runtime in Vercel
+      console.warn('[LearningEngine] GROQ_API_KEY not found - some features will be disabled');
+      this.groq = null;
+    } else {
+      this.groq = new Groq({ apiKey });
     }
-    this.groq = new Groq({ apiKey });
+  }
+
+  private ensureGroqInitialized(): void {
+    if (!this.groq) {
+      throw new Error('[LearningEngine] GROQ_API_KEY is required for this operation');
+    }
   }
 
   /**
@@ -53,6 +63,8 @@ export class LearningEngine {
     userId: string,
     timeframe: 'hour' | 'day' | 'week' = 'day'
   ): Promise<LearningInsight[]> {
+    this.ensureGroqInitialized();
+    
     // Get recent experiences
     const startTime = this.getTimeframeStart(timeframe);
     const experiences = await prisma.hollyExperience.findMany({
@@ -146,6 +158,8 @@ Respond in JSON format:
       comments?: string;
     }
   ): Promise<void> {
+    this.ensureGroqInitialized();
+    
     try {
       // Store feedback
       await prisma.responseFeedback.create({
@@ -231,6 +245,8 @@ Respond in JSON format:
    * Identify conversation patterns
    */
   async identifyConversationPatterns(userId: string): Promise<LearningPattern[]> {
+    this.ensureGroqInitialized();
+    
     // Get recent conversations
     const conversations = await prisma.conversation.findMany({
       where: { userId },
@@ -303,6 +319,8 @@ Respond in JSON format with patterns found.`;
     userId: string,
     insights: LearningInsight[]
   ): Promise<AdaptationStrategy[]> {
+    this.ensureGroqInitialized();
+    
     if (insights.length === 0) {
       return [];
     }
