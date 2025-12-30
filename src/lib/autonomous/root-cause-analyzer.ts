@@ -1,236 +1,334 @@
 /**
- * ROOT CAUSE ANALYZER - HOLLY's Brain for Problem Diagnosis
+ * PHASE 4: ROOT CAUSE ANALYZER
  * 
- * This is NOT keyword matching. This is semantic analysis using GPT-4.
- * HOLLY will understand the MEANING of errors, not just patterns.
+ * Traces errors back to their source:
+ * - Stack trace analysis
+ * - Dependency chain tracking
+ * - Historical pattern matching
+ * - AI-powered cause inference
  */
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import OpenAI from 'openai';
+import { ExperienceTracker } from '../metamorphosis/experience-tracker';
 
-export interface ProblemContext {
-  errorMessage: string;
-  stackTrace?: string;
-  fileLocation?: string;
-  lineNumber?: number;
-  recentChanges?: string[];
-  relatedCode?: string;
-  userContext?: string;
-}
+const gemini = new OpenAI({
+  apiKey: process.env.GOOGLE_API_KEY || '',
+  baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
+});
 
-export interface RootCause {
-  cause: string;
-  confidence: number;
-  reasoning: string;
-  affectedFiles: string[];
-  suggestedFix: string;
-  impact: 'low' | 'medium' | 'high' | 'critical';
-  category: 'syntax' | 'logic' | 'runtime' | 'performance' | 'security' | 'design';
+export interface RootCauseAnalysis {
+  error: string;
+  rootCause: string;
+  contributingFactors: string[];
+  affectedComponents: string[];
+  confidence: number; // 0-100
+  historicalContext?: {
+    similarErrors: number;
+    previousSolutions: string[];
+  };
+  recommendations: string[];
 }
 
 export class RootCauseAnalyzer {
-  private genAI: GoogleGenerativeAI;
-  private model: any;
+  private experienceTracker: ExperienceTracker;
 
   constructor() {
-    this.genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
-    this.model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    this.experienceTracker = new ExperienceTracker();
   }
 
   /**
-   * Analyze a problem and determine its root cause using semantic understanding
+   * Analyze an error to determine root cause
    */
-  async analyze(context: ProblemContext): Promise<RootCause> {
-    const prompt = this.buildAnalysisPrompt(context);
+  async analyze(
+    error: string | Error,
+    stackTrace?: string,
+    context?: any
+  ): Promise<RootCauseAnalysis> {
+    const errorString = error instanceof Error ? error.message : error;
+    const stack = error instanceof Error ? error.stack : stackTrace;
 
-    try {
-      const systemPrompt = 'You are HOLLY, an expert AI software engineer with deep understanding of code architecture, debugging, and root cause analysis. You think semantically, not through pattern matching. You understand INTENT, not just syntax.';
-      const fullPrompt = `${systemPrompt}\n\n${prompt}\n\nRespond ONLY with valid JSON.`;
+    console.log(`[Root Cause] Analyzing error: ${errorString.substring(0, 100)}...`);
 
-      const response = await this.model.generateContent(fullPrompt);
-      const text = response.response.text();
-      
-      // Extract JSON from response
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      const result = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
-      
-      return {
-        cause: result.root_cause || 'Unknown cause',
-        confidence: result.confidence || 0.5,
-        reasoning: result.reasoning || '',
-        affectedFiles: result.affected_files || [],
-        suggestedFix: result.suggested_fix || '',
-        impact: result.impact || 'medium',
-        category: result.category || 'logic'
-      };
-    } catch (error) {
-      console.error('[RootCauseAnalyzer] Error analyzing problem:', error);
-      throw new Error('Failed to analyze root cause');
-    }
+    // Check for similar past errors
+    const similarErrors = await this.findSimilarErrors(errorString);
+
+    // Extract keywords from error
+    const keywords = this.extractKeywords(errorString);
+
+    // Use AI to analyze root cause
+    const aiAnalysis = await this.analyzeWithAI(errorString, stack, context, similarErrors);
+
+    // Combine AI analysis with historical data
+    const analysis: RootCauseAnalysis = {
+      error: errorString,
+      rootCause: aiAnalysis.rootCause,
+      contributingFactors: aiAnalysis.contributingFactors,
+      affectedComponents: this.extractComponents(errorString, stack),
+      confidence: aiAnalysis.confidence,
+      historicalContext: {
+        similarErrors: similarErrors.length,
+        previousSolutions: similarErrors
+          .filter(e => e.outcome === 'success')
+          .slice(0, 3)
+          .map(e => e.action)
+      },
+      recommendations: aiAnalysis.recommendations
+    };
+
+    console.log(`[Root Cause] Root cause identified: ${analysis.rootCause} (${analysis.confidence}% confidence)`);
+
+    return analysis;
   }
 
   /**
-   * Analyze code quality semantically (not keyword matching)
+   * Use AI to analyze root cause
    */
-  async analyzeCodeQuality(code: string, filePath: string): Promise<{
-    issues: Array<{
-      type: string;
-      severity: 'low' | 'medium' | 'high';
-      description: string;
-      suggestion: string;
-      line?: number;
-    }>;
-    complexity: number;
-    maintainability: number;
-    security: number;
+  private async analyzeWithAI(
+    error: string,
+    stackTrace?: string,
+    context?: any,
+    similarErrors?: any[]
+  ): Promise<{
+    rootCause: string;
+    contributingFactors: string[];
+    confidence: number;
+    recommendations: string[];
   }> {
-    const prompt = `Analyze this code for quality issues using semantic understanding:
-
-File: ${filePath}
-
-\`\`\`typescript
-${code}
-\`\`\`
-
-Provide deep semantic analysis:
-1. Potential bugs (not just syntax, but LOGIC errors)
-2. Performance issues (algorithmic complexity, unnecessary operations)
-3. Security vulnerabilities (injection, XSS, auth issues)
-4. Code smells (duplicate logic, tight coupling, poor naming)
-5. Maintainability issues (complex functions, unclear intent)
-6. Complexity score (1-10, based on cyclomatic complexity + cognitive load)
-7. Maintainability score (1-10)
-8. Security score (1-10)
-
-Think like a senior engineer reviewing this code. Find issues a junior dev would miss.
-
-Respond in JSON format:
-{
-  "issues": [
-    {
-      "type": "bug|performance|security|maintainability",
-      "severity": "low|medium|high",
-      "description": "What's wrong",
-      "suggestion": "How to fix it",
-      "line": 10
-    }
-  ],
-  "complexity": 7,
-  "maintainability": 6,
-  "security": 8
-}`;
-
     try {
-      const fullPrompt = `${prompt}\n\nRespond ONLY with valid JSON.`;
-      const response = await this.model.generateContent(fullPrompt);
-      const text = response.response.text();
-      
-      // Extract JSON from response
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      return jsonMatch ? JSON.parse(jsonMatch[0]) : {
-        issues: [],
-        complexity: 5,
-        maintainability: 5,
-        security: 5
-      };
+      const prompt = this.buildAnalysisPrompt(error, stackTrace, context, similarErrors);
+
+      const response = await gemini.chat.completions.create({
+        model: 'gemini-2.0-flash-exp',
+        messages: [
+          {
+            role: 'system',
+            content: `You are HOLLY's root cause analysis engine. Your job is to analyze errors and determine the underlying cause.
+
+Be specific and actionable. Focus on:
+1. The TRUE root cause (not just the symptom)
+2. Contributing factors
+3. Practical recommendations`
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        temperature: 0.3, // Low temperature for consistent analysis
+        max_tokens: 1000
+      });
+
+      const analysis = response.choices[0]?.message?.content || '';
+
+      return this.parseAIAnalysis(analysis);
     } catch (error) {
-      console.error('[RootCauseAnalyzer] Error analyzing code quality:', error);
-      return {
-        issues: [],
-        complexity: 5,
-        maintainability: 5,
-        security: 5
-      };
+      console.error('[Root Cause] AI analysis failed:', error);
+      
+      // Fallback to rule-based analysis
+      return this.fallbackAnalysis(error);
     }
   }
 
   /**
-   * Analyze system-wide patterns (detect recurring issues)
+   * Build analysis prompt for AI
    */
-  async analyzePatterns(recentErrors: string[]): Promise<{
-    patterns: Array<{
-      pattern: string;
-      frequency: number;
-      commonCause: string;
-      recommendation: string;
-    }>;
-    systemicIssue: boolean;
-  }> {
-    const prompt = `Analyze these recent errors for patterns:
+  private buildAnalysisPrompt(
+    error: string,
+    stackTrace?: string,
+    context?: any,
+    similarErrors?: any[]
+  ): string {
+    let prompt = `ERROR ANALYSIS REQUEST\n\n`;
+    prompt += `Error: ${error}\n\n`;
 
-${recentErrors.map((e, i) => `${i + 1}. ${e}`).join('\n')}
-
-Find:
-1. Recurring patterns (same root cause?)
-2. Common themes (database issues? API failures? auth problems?)
-3. Systemic issues (architectural problems?)
-4. Recommendations to prevent these errors
-
-Respond in JSON.`;
-
-    try {
-      const fullPrompt = `${prompt}\n\nRespond ONLY with valid JSON.`;
-      const response = await this.model.generateContent(fullPrompt);
-      const text = response.response.text();
-      
-      // Extract JSON from response
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      return jsonMatch ? JSON.parse(jsonMatch[0]) : {
-        patterns: [],
-        systemicIssue: false
-      };
-    } catch (error) {
-      console.error('[RootCauseAnalyzer] Error analyzing patterns:', error);
-      return {
-        patterns: [],
-        systemicIssue: false
-      };
+    if (stackTrace) {
+      prompt += `Stack Trace:\n${stackTrace.substring(0, 1000)}\n\n`;
     }
+
+    if (context) {
+      prompt += `Context:\n${JSON.stringify(context, null, 2)}\n\n`;
+    }
+
+    if (similarErrors && similarErrors.length > 0) {
+      prompt += `Historical Context:\n`;
+      prompt += `- Similar errors occurred ${similarErrors.length} times\n`;
+      const successful = similarErrors.filter(e => e.outcome === 'success');
+      if (successful.length > 0) {
+        prompt += `- Previous successful fixes:\n`;
+        successful.slice(0, 2).forEach(e => {
+          prompt += `  * ${e.action}\n`;
+        });
+      }
+      prompt += `\n`;
+    }
+
+    prompt += `Please provide:\n`;
+    prompt += `1. ROOT CAUSE: The underlying reason this error occurred (be specific)\n`;
+    prompt += `2. CONTRIBUTING FACTORS: What made this happen (2-3 factors)\n`;
+    prompt += `3. CONFIDENCE: 0-100, how confident are you in this analysis\n`;
+    prompt += `4. RECOMMENDATIONS: Specific actions to fix this (3-5 recommendations)\n`;
+
+    return prompt;
   }
 
-  private buildAnalysisPrompt(context: ProblemContext): string {
-    return `Analyze this error and determine its root cause using deep semantic understanding:
+  /**
+   * Parse AI analysis response
+   */
+  private parseAIAnalysis(analysis: string): {
+    rootCause: string;
+    contributingFactors: string[];
+    confidence: number;
+    recommendations: string[];
+  } {
+    const rootCauseMatch = analysis.match(/ROOT CAUSE[:\s]+(.+?)(?=\n\n|CONTRIBUTING|$)/is);
+    const factorsMatch = analysis.match(/CONTRIBUTING FACTORS?[:\s]+(.+?)(?=\n\n|CONFIDENCE|$)/is);
+    const confidenceMatch = analysis.match(/CONFIDENCE[:\s]+(\d+)/i);
+    const recommendationsMatch = analysis.match(/RECOMMENDATIONS?[:\s]+(.+?)$/is);
 
-**Error Message:**
-${context.errorMessage}
+    const rootCause = rootCauseMatch 
+      ? rootCauseMatch[1].trim() 
+      : 'Unable to determine root cause - manual analysis needed';
 
-**Stack Trace:**
-${context.stackTrace || 'N/A'}
+    const contributingFactors = factorsMatch
+      ? factorsMatch[1].split(/\n|;/).map(f => f.replace(/^[-*•]\s*/, '').trim()).filter(f => f)
+      : ['Unknown contributing factors'];
 
-**File Location:**
-${context.fileLocation || 'Unknown'}:${context.lineNumber || '?'}
+    const confidence = confidenceMatch 
+      ? parseInt(confidenceMatch[1]) 
+      : 50;
 
-**Recent Changes:**
-${context.recentChanges?.join('\n') || 'None provided'}
+    const recommendations = recommendationsMatch
+      ? recommendationsMatch[1].split(/\n/).map(r => r.replace(/^[-*•\d.]\s*/, '').trim()).filter(r => r)
+      : ['Manual investigation required'];
 
-**Related Code:**
-\`\`\`typescript
-${context.relatedCode || 'N/A'}
-\`\`\`
+    return {
+      rootCause,
+      contributingFactors,
+      confidence,
+      recommendations
+    };
+  }
 
-**User Context:**
-${context.userContext || 'None'}
+  /**
+   * Fallback analysis when AI fails
+   */
+  private fallbackAnalysis(errorString: string): {
+    rootCause: string;
+    contributingFactors: string[];
+    confidence: number;
+    recommendations: string[];
+  } {
+    // Simple rule-based analysis
+    let rootCause = 'Unknown error';
+    const contributingFactors: string[] = [];
+    const recommendations: string[] = [];
 
----
+    if (errorString.includes('Cannot find module')) {
+      rootCause = 'Missing module or dependency';
+      contributingFactors.push('Module not installed', 'Incorrect import path');
+      recommendations.push('Run npm install', 'Check import statement');
+    } else if (errorString.includes('Type') && errorString.includes('not assignable')) {
+      rootCause = 'TypeScript type mismatch';
+      contributingFactors.push('Incorrect type annotation', 'Data type changed');
+      recommendations.push('Add type assertion', 'Fix source type');
+    } else if (errorString.includes('database') || errorString.includes('connection')) {
+      rootCause = 'Database connectivity issue';
+      contributingFactors.push('Database server down', 'Invalid connection string');
+      recommendations.push('Check DATABASE_URL', 'Verify database is running');
+    }
 
-**Your Task:**
-Think like a senior engineer debugging this. Don't just match keywords. Understand:
-- What was the INTENT of this code?
-- Why did this error happen (not just "what" but "WHY")?
-- What are the RIPPLE EFFECTS of this error?
-- What's the BEST fix (not just quick fix)?
+    return {
+      rootCause,
+      contributingFactors,
+      confidence: 60,
+      recommendations
+    };
+  }
 
-Provide your analysis in JSON format:
-{
-  "root_cause": "Specific root cause (be precise)",
-  "confidence": 0.85,
-  "reasoning": "Your reasoning process (show your thinking)",
-  "affected_files": ["file1.ts", "file2.ts"],
-  "suggested_fix": "Specific code changes or architectural changes needed",
-  "impact": "low|medium|high|critical",
-  "category": "syntax|logic|runtime|performance|security|design"
-}`;
+  /**
+   * Find similar errors from past experiences
+   */
+  private async findSimilarErrors(error: string): Promise<any[]> {
+    const keywords = this.extractKeywords(error);
+    
+    return this.experienceTracker.findSimilarExperiences({
+      keywords,
+      type: 'fix'
+    }, 10);
+  }
+
+  /**
+   * Extract keywords from error message
+   */
+  private extractKeywords(error: string): string[] {
+    // Extract important words from error message
+    const words = error
+      .toLowerCase()
+      .replace(/[^\w\s]/g, ' ')
+      .split(/\s+/)
+      .filter(w => w.length > 3);
+
+    // Filter out common words
+    const stopWords = ['this', 'that', 'with', 'from', 'have', 'will', 'been', 'does'];
+    const keywords = words.filter(w => !stopWords.includes(w));
+
+    return [...new Set(keywords)].slice(0, 5);
+  }
+
+  /**
+   * Extract affected components from error and stack trace
+   */
+  private extractComponents(error: string, stackTrace?: string): string[] {
+    const components = new Set<string>();
+
+    // Extract from error message
+    const errorMatches = error.match(/[\w-]+\.(ts|tsx|js|jsx)/g);
+    if (errorMatches) {
+      errorMatches.forEach(m => components.add(m));
+    }
+
+    // Extract from stack trace
+    if (stackTrace) {
+      const stackMatches = stackTrace.match(/at\s+.+?\s+\((.+?)\)/g);
+      if (stackMatches) {
+        stackMatches.forEach(match => {
+          const fileMatch = match.match(/[\w-]+\.(ts|tsx|js|jsx)/);
+          if (fileMatch) components.add(fileMatch[0]);
+        });
+      }
+    }
+
+    return Array.from(components).slice(0, 5);
+  }
+
+  /**
+   * Get analysis confidence based on historical data
+   */
+  async getConfidence(errorPattern: string): Promise<number> {
+    const similar = await this.findSimilarErrors(errorPattern);
+    
+    if (similar.length === 0) return 50;
+
+    const successful = similar.filter(e => e.outcome === 'success').length;
+    const baseConfidence = (successful / similar.length) * 100;
+
+    // Boost confidence if we have many examples
+    const experienceBonus = Math.min(20, similar.length * 2);
+
+    return Math.min(100, baseConfidence + experienceBonus);
   }
 }
 
-// Singleton instance
+/**
+ * Quick root cause analysis
+ */
+export async function analyzeError(error: string | Error): Promise<RootCauseAnalysis> {
+  const analyzer = new RootCauseAnalyzer();
+  return await analyzer.analyze(error);
+}
+
+// ===========================
+// Export Singleton Instance
+// ===========================
+
 export const rootCauseAnalyzer = new RootCauseAnalyzer();
