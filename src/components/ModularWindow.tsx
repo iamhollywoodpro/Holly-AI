@@ -74,8 +74,8 @@ export default function ModularWindow({
         const newY = e.clientY - dragStart.y;
         
         // Keep window within viewport
-        const maxX = window.innerWidth - 100;
-        const maxY = window.innerHeight - 100;
+        const maxX = (typeof globalThis.window !== 'undefined' ? globalThis.window.innerWidth : 1920) - 100;
+        const maxY = (typeof globalThis.window !== 'undefined' ? globalThis.window.innerHeight : 1080) - 100;
         
         onPositionChange(
           Math.max(0, Math.min(newX, maxX)),

@@ -42,10 +42,12 @@ export class Maya1Service {
   constructor() {
     const apiKey = process.env.HUGGINGFACE_API_KEY;
     if (!apiKey) {
-      throw new Error("HUGGINGFACE_API_KEY environment variable is required");
+      console.warn('[Maya1Service] HUGGINGFACE_API_KEY not found - service will be disabled');
+      // Create dummy instance during build
+      this.hf = new HfInference('');
+    } else {
+      this.hf = new HfInference(apiKey);
     }
-
-    this.hf = new HfInference(apiKey);
     
     // HOLLY's default voice
     this.defaultVoiceDescription = process.env.MAYA1_VOICE_DESCRIPTION || 
