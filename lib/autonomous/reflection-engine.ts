@@ -28,14 +28,22 @@ export interface SelfAssessment {
 }
 
 export class ReflectionEngine {
-  private groq: Groq;
+  private groq: Groq | null;
 
   constructor() {
     const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) {
-      throw new Error('[ReflectionEngine] GROQ_API_KEY is required');
+      console.warn('[ReflectionEngine] GROQ_API_KEY not found - some features will be disabled');
+      this.groq = null;
+    } else {
+      this.groq = new Groq({ apiKey });
     }
-    this.groq = new Groq({ apiKey });
+  }
+
+  private ensureGroqInitialized(): void {
+    if (!this.groq) {
+      throw new Error('[ReflectionEngine] GROQ_API_KEY is required for this operation');
+    }
   }
 
   /**
@@ -45,6 +53,8 @@ export class ReflectionEngine {
     userId: string,
     timeframe: 'hour' | 'day' | 'week' = 'day'
   ): Promise<Reflection> {
+    this.ensureGroqInitialized();
+    
     const startTime = this.getTimeframeStart(timeframe);
     
     // Get recent experiences

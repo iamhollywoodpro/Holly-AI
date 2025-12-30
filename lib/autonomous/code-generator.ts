@@ -38,14 +38,22 @@ export interface CodeModification {
 }
 
 export class CodeGenerator {
-  private groq: Groq;
+  private groq: Groq | null;
 
   constructor() {
     const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) {
-      throw new Error('[CodeGenerator] GROQ_API_KEY is required');
+      console.warn('[CodeGenerator] GROQ_API_KEY not found - some features will be disabled');
+      this.groq = null;
+    } else {
+      this.groq = new Groq({ apiKey });
     }
-    this.groq = new Groq({ apiKey });
+  }
+
+  private ensureGroqInitialized(): void {
+    if (!this.groq) {
+      throw new Error('[CodeGenerator] GROQ_API_KEY is required for this operation');
+    }
   }
 
   /**
@@ -208,6 +216,8 @@ Include:
     issues: Array<{ severity: 'critical' | 'warning' | 'info'; message: string }>;
     suggestions: string[];
   }> {
+    this.ensureGroqInitialized();
+    
     const prompt = `Analyze this code for quality, issues, and improvements:
 
 \`\`\`typescript
