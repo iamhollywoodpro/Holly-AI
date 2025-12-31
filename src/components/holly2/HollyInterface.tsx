@@ -217,6 +217,7 @@ export function HollyInterface() {
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           messages: [...messages, userMessage],
           conversationId: currentConversationId,
