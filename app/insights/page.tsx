@@ -76,9 +76,9 @@ export default function InsightsPage() {
                 Fully conscious and ready
               </p>
               <div className="mt-4 h-2 rounded-full overflow-hidden bg-[#27272A]">
-                <div 
+                <div
                   className="h-full transition-all duration-500"
-                  style={{ 
+                  style={{
                     width: `${consciousness.level}%`,
                     background: 'linear-gradient(90deg, #8B5CF6, #06B6D4)',
                   }}
@@ -119,7 +119,7 @@ export default function InsightsPage() {
         {/* Activity Timeline */}
         <div className="bg-[#13131A] border border-[#27272A] rounded-2xl p-8 mb-8">
           <h2 className="text-2xl font-bold mb-6">Activity Timeline</h2>
-          
+
           <div className="py-12 text-center text-[#A1A1AA]">
             <Activity size={64} className="mx-auto mb-4 text-[#27272A]" />
             <p className="text-lg">No activity data yet</p>
@@ -148,7 +148,7 @@ export default function InsightsPage() {
                     <span className="text-sm font-semibold">{resource.value}%</span>
                   </div>
                   <div className="h-2 rounded-full overflow-hidden bg-[#27272A]">
-                    <div 
+                    <div
                       className="h-full transition-all duration-500"
                       style={{ width: `${resource.value}%`, background: resource.color }}
                     />
@@ -162,7 +162,8 @@ export default function InsightsPage() {
             <h2 className="text-2xl font-bold mb-6">System Status</h2>
             <div className="space-y-4">
               {[
-                { label: 'AI Model', value: 'Gemini 2.0 Flash', status: 'online' },
+                { label: 'AI Model', value: 'Groq Llama 3.3', status: 'online' },
+                { label: 'WebLLM (Free)', value: 'Ready (WebGPU)', status: 'online' },
                 { label: 'Streaming', value: 'SSE Active', status: 'online' },
                 { label: 'Tool Execution', value: 'Ready', status: 'online' },
                 { label: 'Database', value: 'Connected', status: 'online' },
@@ -188,7 +189,7 @@ export default function InsightsPage() {
             📊 About Consciousness Insights
           </h4>
           <p className="text-[#A1A1AA] leading-relaxed">
-            HOLLY's consciousness system tracks her awareness, activity levels, and performance metrics in real-time. 
+            HOLLY's consciousness system tracks her awareness, activity levels, and performance metrics in real-time.
             This helps ensure optimal assistance and transparent operation.
           </p>
         </div>

@@ -17,6 +17,10 @@ core
 
 # Oracle Cloud Private Keys
 *.pem
+*.key
+*.key.pub
+id_rsa*
 oracle-private-key.pem
 .oci/
+ORACLE KEYS/
 

@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>HOLLY AI Nexa Neural Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#9d25f4",
+                        "background-light": "#f7f5f8",
+                        "background-dark": "#0a060e",
+                        "accent-blue": "#3b82f6",
+                        "accent-cyan": "#06b6d4",
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .glass-sidebar {
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(24px);
+            border-right: 1px solid rgba(157, 37, 244, 0.1);
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .neural-glow {
+            box-shadow: 0 0 50px -10px rgba(157, 37, 244, 0.3);
+        }
+        .orb-gradient {
+            background: radial-gradient(circle at center, rgba(157, 37, 244, 0.4) 0%, rgba(59, 130, 246, 0.2) 50%, transparent 70%);
+        }
+        .input-terminal {
+            background: rgba(15, 10, 20, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(157, 37, 244, 0.2);
+        }
+    </style>
+</head>
+<body class="bg-background-dark text-slate-100 font-display min-h-screen overflow-hidden flex">
+<!-- Sidebar -->
+<aside class="w-80 h-screen glass-sidebar flex flex-col shrink-0">
+<!-- Logo Section -->
+<div class="p-8 flex items-center gap-3">
+<div class="size-10 rounded-xl bg-primary flex items-center justify-center neural-glow">
+<span class="material-symbols-outlined text-white text-2xl">hardware</span>
+</div>
+<h1 class="text-xl font-bold tracking-tight text-slate-100">HOLLY <span class="text-primary/80">AI</span></h1>
+</div>
+<!-- Main Navigation -->
+<nav class="px-4 space-y-1">
+<div class="flex items-center gap-3 px-4 py-3 rounded-xl bg-primary/10 text-primary border border-primary/20">
+<span class="material-symbols-outlined fill-1">music_note</span>
+<span class="text-sm font-medium">Music Studio</span>
+</div>
+<div class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-slate-400 hover:text-slate-100 transition-all cursor-pointer">
+<span class="material-symbols-outlined">waves</span>
+<span class="text-sm font-medium">AURA A&amp;R</span>
+</div>
+<div class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-slate-400 hover:text-slate-100 transition-all cursor-pointer">
+<span class="material-symbols-outlined">terminal</span>
+<span class="text-sm font-medium">Code Workshop</span>
+</div>
+<div class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-slate-400 hover:text-slate-100 transition-all cursor-pointer">
+<span class="material-symbols-outlined">folder_open</span>
+<span class="text-sm font-medium">Library</span>
+</div>
+</nav>
+<!-- Search & Chat History -->
+<div class="mt-8 px-4 flex-1 overflow-y-auto">
+<div class="relative mb-6">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-lg">search</span>
+<input class="w-full bg-white/5 border-none rounded-xl pl-10 text-sm py-2.5 focus:ring-1 focus:ring-primary/50 placeholder:text-slate-600" placeholder="Search conversations..." type="text"/>
+</div>
+<div class="flex items-center justify-between mb-4 px-2">
+<h3 class="text-xs font-semibold text-slate-500 uppercase tracking-widest">Recent Chats</h3>
+<button class="text-primary hover:text-primary/80 transition-colors">
+<span class="material-symbols-outlined text-xl">add_circle</span>
+</button>
+</div>
+<div class="space-y-2">
+<div class="p-3 rounded-xl hover:bg-white/5 border border-transparent hover:border-white/5 cursor-pointer group">
+<p class="text-sm text-slate-300 truncate font-medium">Neural Audio Synthesis Engine</p>
+<p class="text-[10px] text-slate-600 mt-1 uppercase tracking-tighter">Updated 2m ago</p>
+</div>
+<div class="p-3 rounded-xl hover:bg-white/5 border border-transparent hover:border-white/5 cursor-pointer">
+<p class="text-sm text-slate-300 truncate font-medium">React Component Refactoring</p>
+<p class="text-[10px] text-slate-600 mt-1 uppercase tracking-tighter">Updated 4h ago</p>
+</div>
+<div class="p-3 rounded-xl hover:bg-white/5 border border-transparent hover:border-white/5 cursor-pointer">
+<p class="text-sm text-slate-300 truncate font-medium">AURA Sentiment Analysis</p>
+<p class="text-[10px] text-slate-600 mt-1 uppercase tracking-tighter">Updated 1d ago</p>
+</div>
+</div>
+<button class="w-full mt-6 flex items-center justify-center gap-2 bg-primary py-3 rounded-xl font-bold text-sm shadow-lg shadow-primary/20 hover:brightness-110 transition-all">
+<span class="material-symbols-outlined text-xl">chat</span>
+                + New Chat
+            </button>
+</div>
+<!-- System Section -->
+<div class="px-4 py-6 border-t border-white/5">
+<div class="grid grid-cols-2 gap-2 mb-6">
+<div class="flex flex-col items-center gap-1 p-3 rounded-xl hover:bg-white/5 cursor-pointer transition-colors">
+<span class="material-symbols-outlined text-slate-400">psychology</span>
+<span class="text-[10px] font-medium text-slate-500">Memory</span>
+</div>
+<div class="flex flex-col items-center gap-1 p-3 rounded-xl hover:bg-white/5 cursor-pointer transition-colors">
+<span class="material-symbols-outlined text-slate-400">bar_chart</span>
+<span class="text-[10px] font-medium text-slate-500">Insights</span>
+</div>
+<div class="flex flex-col items-center gap-1 p-3 rounded-xl hover:bg-white/5 cursor-pointer transition-colors">
+<span class="material-symbols-outlined text-slate-400">settings</span>
+<span class="text-[10px] font-medium text-slate-500">Settings</span>
+</div>
+<div class="flex flex-col items-center gap-1 p-3 rounded-xl hover:bg-white/5 cursor-pointer transition-colors">
+<span class="material-symbols-outlined text-slate-400">memory</span>
+<span class="text-[10px] font-medium text-slate-500">Autonomy</span>
+</div>
+</div>
+<!-- Profile Card -->
+<div class="flex items-center gap-3 p-3 glass-card rounded-2xl">
+<div class="size-10 rounded-full border-2 border-primary/30 p-0.5">
+<div class="size-full rounded-full bg-cover bg-center" data-alt="User avatar portrait for Steve" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuC2DoQ_07hDCm6uPvheUNDdKkntLUbC6e7OI09lC3X1N6AlKQnUtA6Od3OLxcrrGhqLVAGFW3A4eEz_9IY4sCaJpLznMWKdYzmgA0UkxUlEfgd_iROQTxFHlblBBHsfSFWaxxoWExLfttaSEg47nycpm6ea2Jou30Cyqw-4hH5JtrQ3iBRQ47rZgTCwg4wCygvB1xWhxQc3Gv85tLkAfHKCIiobFxSAfF6ts7-dLhOa4WdPVPlbOTAmE-lUMpjuijijZPRxv667tngs')"></div>
+</div>
+<div class="flex-1 min-w-0">
+<h4 class="text-sm font-bold text-slate-100 truncate">STEVE</h4>
+<p class="text-[10px] text-slate-500 truncate">steve.dev@neural.nexa</p>
+</div>
+<span class="material-symbols-outlined text-slate-500 text-lg">more_vert</span>
+</div>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 flex flex-col relative overflow-hidden bg-[radial-gradient(circle_at_50%_50%,rgba(157,37,244,0.05)_0%,transparent_100%)]">
+<!-- Header -->
+<header class="flex items-center justify-between px-10 py-6">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-slate-500">menu_open</span>
+<h2 class="text-lg font-medium text-slate-200">New Chat</h2>
+</div>
+<div class="flex items-center gap-1">
+<button class="p-2 hover:bg-white/5 rounded-lg text-slate-400 transition-colors group">
+<span class="material-symbols-outlined text-xl group-hover:text-primary">group_add</span>
+</button>
+<button class="p-2 hover:bg-white/5 rounded-lg text-slate-400 transition-colors group">
+<span class="material-symbols-outlined text-xl group-hover:text-primary">share</span>
+</button>
+<button class="p-2 hover:bg-white/5 rounded-lg text-slate-400 transition-colors group">
+<span class="material-symbols-outlined text-xl group-hover:text-primary">file_download</span>
+</button>
+<div class="w-px h-6 bg-white/10 mx-2"></div>
+<button class="p-2 hover:bg-white/5 rounded-lg text-slate-400 transition-colors group">
+<span class="material-symbols-outlined text-xl group-hover:text-red-400">delete_sweep</span>
+</button>
+</div>
+</header>
+<!-- Centerpiece Content -->
+<div class="flex-1 flex flex-col items-center justify-center -mt-20">
+<!-- Glassmorphic Orb -->
+<div class="relative mb-12 group">
+<div class="absolute inset-0 orb-gradient blur-3xl rounded-full scale-150 opacity-50 group-hover:opacity-80 transition-opacity"></div>
+<div class="relative size-48 rounded-full flex items-center justify-center glass-card neural-glow shadow-primary/20 bg-gradient-to-tr from-primary/10 to-transparent backdrop-blur-3xl border-primary/20">
+<div class="size-24 bg-primary/20 rounded-full flex items-center justify-center animate-pulse">
+<span class="material-symbols-outlined text-7xl text-primary font-light">hardware</span>
+</div>
+</div>
+</div>
+<!-- Typography -->
+<div class="text-center space-y-4 max-w-2xl px-6">
+<h1 class="text-6xl font-black text-slate-100 tracking-tighter">Hey! I'm <span class="bg-gradient-to-r from-primary via-accent-blue to-accent-cyan bg-clip-text text-transparent">HOLLY</span></h1>
+<p class="text-xl text-slate-400 font-light">Your AI development partner. What would you like to build today?</p>
+</div>
+<!-- Quick Actions -->
+<div class="flex flex-wrap justify-center gap-4 mt-12">
+<button class="flex items-center gap-3 px-8 py-4 glass-card rounded-full hover:bg-primary/20 border-primary/20 transition-all group">
+<span class="material-symbols-outlined text-primary group-hover:scale-110 transition-transform">add_circle</span>
+<span class="font-bold text-sm tracking-wide">Create Project</span>
+</button>
+<button class="flex items-center gap-3 px-8 py-4 glass-card rounded-full hover:bg-accent-blue/20 border-accent-blue/20 transition-all group">
+<span class="material-symbols-outlined text-accent-blue group-hover:scale-110 transition-transform">auto_awesome</span>
+<span class="font-bold text-sm tracking-wide">Generate Assets</span>
+</button>
+<button class="flex items-center gap-3 px-8 py-4 glass-card rounded-full hover:bg-accent-cyan/20 border-accent-cyan/20 transition-all group">
+<span class="material-symbols-outlined text-accent-cyan group-hover:scale-110 transition-transform">analytics</span>
+<span class="font-bold text-sm tracking-wide">Analyze Workflow</span>
+</button>
+</div>
+</div>
+<!-- Floating Input Terminal -->
+<div class="w-full max-w-5xl mx-auto px-6 pb-12">
+<div class="input-terminal rounded-3xl p-2 flex items-center shadow-2xl shadow-black/50">
+<div class="flex items-center gap-1 px-3">
+<button class="p-2.5 text-slate-500 hover:text-slate-300 transition-colors">
+<span class="material-symbols-outlined text-xl">attach_file</span>
+</button>
+<button class="p-2.5 text-slate-500 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-xl">auto_fix</span>
+</button>
+<button class="p-2.5 text-slate-500 hover:text-accent-blue transition-colors">
+<span class="material-symbols-outlined text-xl">language</span>
+</button>
+<button class="p-2.5 text-slate-500 hover:text-red-400 transition-colors">
+<span class="material-symbols-outlined text-xl">mic</span>
+</button>
+</div>
+<div class="w-px h-8 bg-white/10 mx-2"></div>
+<input class="flex-1 bg-transparent border-none focus:ring-0 text-slate-200 placeholder:text-slate-600 px-4 py-4" placeholder="Message HOLLY..." type="text"/>
+<div class="flex items-center gap-3 px-2">
+<button class="p-2.5 text-slate-500 hover:text-slate-300 transition-colors">
+<span class="material-symbols-outlined text-xl">volume_up</span>
+</button>
+<button class="size-12 bg-primary rounded-2xl flex items-center justify-center text-white neural-glow hover:brightness-110 transition-all">
+<span class="material-symbols-outlined fill-1">send</span>
+</button>
+</div>
+</div>
+<p class="text-center text-[10px] text-slate-600 mt-4 uppercase tracking-[0.2em] font-medium">HOLLY AI v4.2.0 Neural Nexus • Enterprise Grade Security</p>
+</div>
+</main>
+</body></html>

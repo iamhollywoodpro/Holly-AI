@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>HOLLY Agentic Chat Interface</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#9d25f4",
+                        "accent-cyan": "#22d3ee",
+                        "background-light": "#f7f5f8",
+                        "background-dark": "#080a12",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .glass-effect {
+            background: rgba(26, 16, 34, 0.4);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .gradient-border {
+            position: relative;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid transparent;
+            background-clip: padding-box;
+        }
+        .gradient-border::after {
+            content: '';
+            position: absolute;
+            top: -1px; bottom: -1px; left: -1px; right: -1px;
+            background: linear-gradient(to right, #22d3ee, #9d25f4);
+            z-index: -1;
+            border-radius: inherit;
+        }
+        .orb-glow {
+            background: radial-gradient(circle, rgba(157, 37, 244, 0.15) 0%, rgba(34, 211, 238, 0.05) 50%, transparent 70%);
+        }
+    </style>
+</head>
+<body class="bg-background-dark font-display text-slate-100 overflow-hidden">
+<div class="flex h-screen w-full relative">
+<!-- Background Radial Glow -->
+<div class="absolute inset-0 orb-glow pointer-events-none"></div>
+<!-- Left Sidebar -->
+<aside class="w-72 glass-effect flex flex-col h-full border-r border-white/5 z-20">
+<div class="p-8">
+<div class="flex items-center gap-3">
+<div class="h-8 w-8 rounded-full bg-gradient-to-tr from-accent-cyan to-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-sm">auto_awesome</span>
+</div>
+<h1 class="text-xl font-semibold tracking-widest text-white">HOLLY</h1>
+</div>
+</div>
+<div class="px-6 mb-8">
+<button class="w-full py-3 rounded-full gradient-border flex items-center justify-center gap-2 group hover:opacity-90 transition-all">
+<span class="material-symbols-outlined text-accent-cyan group-hover:text-white text-sm">add</span>
+<span class="text-sm font-medium text-slate-300 group-hover:text-white tracking-wide">New Thread</span>
+</button>
+</div>
+<nav class="flex-1 px-6 overflow-y-auto space-y-1">
+<p class="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-bold mb-4 px-2">Recent Activity</p>
+<div class="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 cursor-pointer text-slate-400 hover:text-white transition-colors">
+<span class="material-symbols-outlined text-lg">chat_bubble</span>
+<span class="text-sm truncate">Market Analysis Alpha</span>
+</div>
+<div class="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 cursor-pointer text-slate-400 hover:text-white transition-colors">
+<span class="material-symbols-outlined text-lg">code</span>
+<span class="text-sm truncate">Nexa Neural Logic</span>
+</div>
+<div class="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 cursor-pointer text-slate-400 hover:text-white transition-colors">
+<span class="material-symbols-outlined text-lg">data_exploration</span>
+<span class="text-sm truncate">User Flow Optimization</span>
+</div>
+<div class="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 cursor-pointer text-slate-400 hover:text-white transition-colors">
+<span class="material-symbols-outlined text-lg">article</span>
+<span class="text-sm truncate">Agentic Protocol Draft</span>
+</div>
+</nav>
+<div class="p-6 mt-auto">
+<div class="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/5 cursor-pointer hover:bg-white/10 transition-colors">
+<div class="h-10 w-10 rounded-full bg-slate-800 flex items-center justify-center overflow-hidden border border-white/10">
+<img class="w-full h-full object-cover" data-alt="Minimalist abstract user avatar for Steve" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBBwVDvmaMmshSXwBuUcSEQUua3a9fp8qJg1EN_RO8WmNliRsP6EjbkdpMxAALHuzlSC8FZvxtqEScrssxPTbwwUXUmMIE41Ij8gGXFUQ_yx4UdQ5-DyEEwYAb9G-r_nnFb0exvTPTXNaGtSEI5aAqLvZkv-YYXIYghNfuV-BoWHbjbyvsEVjZb1MnfWoJtIiyUEXCwSsE_tEoGKSDQkwCQaAQQDHG091T3E8XgGocM1SKQSXT8g4hLl5qrLd7xJwU0orwT-VVLA1e7"/>
+</div>
+<div class="flex flex-col">
+<span class="text-sm font-semibold text-white">STEVE</span>
+<span class="text-[10px] text-slate-500 uppercase tracking-wider">Premium Access</span>
+</div>
+<span class="material-symbols-outlined ml-auto text-slate-500 text-sm">unfold_more</span>
+</div>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col relative">
+<!-- Central Focus Area -->
+<div class="flex-1 flex flex-col items-center justify-center px-4">
+<div class="relative mb-12">
+<div class="absolute inset-0 bg-primary/20 blur-[100px] rounded-full"></div>
+<div class="absolute inset-0 bg-accent-cyan/10 blur-[60px] rounded-full translate-x-10 translate-y-10"></div>
+<div class="h-32 w-32 rounded-full border border-white/10 flex items-center justify-center relative z-10">
+<div class="h-16 w-16 rounded-full bg-gradient-to-br from-primary to-accent-cyan shadow-[0_0_40px_rgba(157,37,244,0.4)]"></div>
+</div>
+</div>
+<h2 class="text-4xl md:text-5xl font-light text-white tracking-tight text-center mb-10 max-w-2xl">
+                    What are we <span class="font-medium">building</span> today?
+                </h2>
+<div class="flex gap-4 flex-wrap justify-center">
+<button class="px-6 py-2.5 rounded-full glass-effect hover:bg-white/10 transition-all text-sm font-medium text-slate-300 hover:text-white border border-white/5">
+                        Develop App
+                    </button>
+<button class="px-6 py-2.5 rounded-full glass-effect hover:bg-white/10 transition-all text-sm font-medium text-slate-300 hover:text-white border border-white/5">
+                        Analyze Data
+                    </button>
+<button class="px-6 py-2.5 rounded-full glass-effect hover:bg-white/10 transition-all text-sm font-medium text-slate-300 hover:text-white border border-white/5">
+                        Write Script
+                    </button>
+</div>
+</div>
+<!-- Input Bar Section -->
+<div class="w-full max-w-4xl mx-auto px-6 pb-12">
+<div class="relative glass-effect rounded-full flex items-center px-6 py-4 border border-white/10 shadow-2xl">
+<div class="flex items-center gap-2 mr-4 border-r border-white/10 pr-4">
+<button class="p-2 text-slate-400 hover:text-accent-cyan transition-colors">
+<span class="material-symbols-outlined text-[22px]">attach_file</span>
+</button>
+<button class="p-2 text-slate-400 hover:text-accent-cyan transition-colors">
+<span class="material-symbols-outlined text-[22px]">mic</span>
+</button>
+</div>
+<input class="flex-1 bg-transparent border-none focus:ring-0 text-slate-200 placeholder:text-slate-500 font-light text-base" placeholder="Message HOLLY..." type="text"/>
+<button class="ml-4 h-10 w-10 rounded-full bg-gradient-to-tr from-accent-cyan to-primary flex items-center justify-center shadow-lg shadow-primary/20 hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-white text-lg">arrow_upward</span>
+</button>
+</div>
+<p class="text-center text-[10px] text-slate-600 mt-4 tracking-widest uppercase">
+                    HOLLY Neural Engine v4.0 • Secured by Nexa
+                </p>
+</div>
+</main>
+</div>
+</body></html>

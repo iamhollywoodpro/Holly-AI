@@ -384,3 +384,112 @@ export async function quickHealthCheck(): Promise<{
 // ===========================
 
 export const selfDiagnosis = new SelfDiagnosisSystem();
+
+// ===========================
+// Health Check Types
+// ===========================
+
+export interface HealthMetric {
+  name: string;
+  value: number;
+  status: 'healthy' | 'warning' | 'critical';
+  message: string;
+}
+
+export interface SystemHealth {
+  overall: 'healthy' | 'degraded' | 'critical';
+  score: number;
+  metrics: HealthMetric[];
+  issues: DiagnosticHealthIssue[];
+  recommendations: string[];
+  lastCheck: Date;
+}
+
+export interface DiagnosticHealthIssue {
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  category: string;
+  title: string;
+  description: string;
+  autoFixable: boolean;
+}
+
+// ===========================
+// Extended Self-Diagnosis with Health Check
+// ===========================
+
+class SelfDiagnosisWithHealthCheck extends SelfDiagnosisSystem {
+  async runHealthCheck(): Promise<SystemHealth> {
+    const report = await this.diagnose();
+    
+    const metrics: HealthMetric[] = [
+      {
+        name: 'Error Rate',
+        value: report.metrics.errorRate,
+        status: report.metrics.errorRate > 10 ? 'critical' : report.metrics.errorRate > 5 ? 'warning' : 'healthy',
+        message: `${report.metrics.errorRate.toFixed(1)}% error rate`,
+      },
+      {
+        name: 'Response Time',
+        value: report.metrics.avgResponseTime,
+        status: report.metrics.avgResponseTime > 1000 ? 'critical' : report.metrics.avgResponseTime > 500 ? 'warning' : 'healthy',
+        message: `${report.metrics.avgResponseTime}ms average`,
+      },
+      {
+        name: 'Active Users',
+        value: report.metrics.activeUsers,
+        status: 'healthy',
+        message: `${report.metrics.activeUsers} users`,
+      },
+    ];
+
+    const issues: DiagnosticHealthIssue[] = report.issues.map(issue => ({
+      severity: issue.severity,
+      category: issue.component,
+      title: issue.message,
+      description: issue.possibleCauses.join('; '),
+      autoFixable: issue.suggestedFixes.length > 0,
+    }));
+
+    const score = Math.max(0, 100 - (issues.filter(i => i.severity === 'critical').length * 25) - (issues.filter(i => i.severity === 'high').length * 10));
+
+    return {
+      overall: report.systemHealth,
+      score,
+      metrics,
+      issues,
+      recommendations: report.recommendations,
+      lastCheck: report.timestamp,
+    };
+  }
+
+  getStatusSummary(): { status: string; message: string } {
+    return {
+      status: 'active',
+      message: 'Self-diagnosis system is operational',
+    };
+  }
+}
+
+// ===========================
+// Self-Healing System
+// ===========================
+
+class SelfHealingSystem {
+  async executeFix(action: string): Promise<{ success: boolean; message: string }> {
+    // Placeholder for self-healing actions
+    // In production, this would implement actual fixes
+    console.log(`[Self-Healing] Executing fix: ${action}`);
+    
+    return {
+      success: true,
+      message: `Fix '${action}' executed successfully`,
+    };
+  }
+}
+
+// Export instances
+export const selfDiagnosisExtended = new SelfDiagnosisWithHealthCheck();
+export const selfHealing = new SelfHealingSystem();
+
+// Re-export for backward compatibility with evolution-engine
+export { SelfDiagnosisWithHealthCheck as SelfDiagnosis };

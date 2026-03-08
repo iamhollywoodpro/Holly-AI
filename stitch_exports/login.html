@@ -1,0 +1,116 @@
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#25d1f4",
+                        "accent-purple": "#a855f7",
+                        "background-light": "#f5f8f8",
+                        "background-dark": "#080c0d",
+                        "glass-dark": "rgba(16, 31, 34, 0.7)",
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .neural-bg {
+            background: radial-gradient(circle at 50% 50%, #101f22 0%, #080c0d 100%);
+            position: relative;
+            overflow: hidden;
+        }
+        .neural-pattern {
+            background-image: radial-gradient(circle at 2px 2px, rgba(37, 209, 244, 0.05) 1px, transparent 0);
+            background-size: 40px 40px;
+        }
+        .glass-panel {
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(37, 209, 244, 0.2);
+            box-shadow: 0 0 40px rgba(168, 85, 247, 0.1), 0 0 20px rgba(37, 209, 244, 0.1);
+        }
+        .glow-text {
+            text-shadow: 0 0 10px rgba(37, 209, 244, 0.5);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen flex items-center justify-center p-6 neural-bg">
+<!-- Decorative background elements -->
+<div class="absolute inset-0 neural-pattern pointer-events-none"></div>
+<div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/10 rounded-full blur-[120px]"></div>
+<div class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-accent-purple/10 rounded-full blur-[120px]"></div>
+<div class="relative w-full max-w-[400px] flex flex-col items-center">
+<!-- Brand Header -->
+<div class="mb-12 flex flex-col items-center">
+<div class="size-16 rounded-full border-2 border-primary/40 flex items-center justify-center mb-4 bg-primary/5">
+<span class="material-symbols-outlined text-primary text-4xl">shield_person</span>
+</div>
+<h2 class="text-primary tracking-[0.4em] font-bold text-sm uppercase glow-text">Holly</h2>
+</div>
+<!-- Glassmorphism Panel -->
+<div class="w-full glass-panel rounded-[2rem] p-8 flex flex-col gap-8 bg-glass-dark">
+<div class="text-center">
+<h1 class="text-slate-100 text-3xl font-bold tracking-tight mb-2">NEURAL INTERFACE</h1>
+<p class="text-slate-400 text-sm leading-relaxed">Initiating secure connection to elite AI super agent node.</p>
+</div>
+<!-- Input Section -->
+<div class="space-y-6">
+<div class="space-y-2">
+<label class="text-primary/70 text-[10px] font-bold tracking-widest uppercase ml-1">Access Key</label>
+<div class="relative flex items-center group">
+<input class="w-full bg-slate-900/50 border-b-2 border-primary/30 border-t-0 border-x-0 focus:border-primary focus:ring-0 text-slate-100 placeholder:text-slate-600 transition-all duration-300 py-4 px-2 font-mono text-lg" placeholder="••••••••••••" type="password"/>
+<span class="material-symbols-outlined absolute right-2 text-primary/40 group-focus-within:text-primary transition-colors">terminal</span>
+</div>
+</div>
+<!-- Bio Auth Button -->
+<div class="flex flex-col items-center justify-center py-4">
+<button class="relative size-24 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center group active:scale-95 transition-transform">
+<div class="absolute inset-0 rounded-full bg-accent-purple/20 blur-xl opacity-50 group-hover:opacity-100 transition-opacity"></div>
+<div class="relative size-20 rounded-full bg-slate-900 flex items-center justify-center border border-primary/50 shadow-[0_0_15px_rgba(37,209,244,0.3)]">
+<span class="material-symbols-outlined text-primary text-4xl group-hover:scale-110 transition-transform">fingerprint</span>
+</div>
+</button>
+<span class="mt-4 text-slate-300 font-bold text-xs tracking-widest uppercase">Neural Link</span>
+</div>
+</div>
+<button class="w-full py-4 rounded-xl bg-primary text-background-dark font-bold uppercase tracking-widest hover:bg-white transition-colors">
+                Authorize Access
+            </button>
+</div>
+<!-- Footer Info -->
+<div class="mt-12 w-full flex justify-between items-center px-4 text-[10px] font-mono tracking-tighter uppercase">
+<div class="flex items-center gap-2 text-emerald-400/80">
+<span class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+</span>
+                System Status: Optimal
+            </div>
+<div class="text-slate-500">
+                Node: v4.2.0-Alpha
+            </div>
+</div>
+</div>
+<!-- Hidden decorative images as required -->
+<div class="hidden">
+<img data-alt="Futuristic neural network pattern with glowing nodes" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBJa_ZI2cexYf66qBBdoOxyIN9BbexLxUjRbMUr7X0Z9MCjsu0aOLd4UphnxdlTg0MYMH4aa3VBkBfTigiUUXfONLGcgaOe5BQ30p61hTDonzYPhAVTSpKtAaDNlFqXhJu-no8ns0Vj2BAvo7nVqJsMuii3mJl7wITqXMYswLJacGVFXKABVzakjQwBAYdkpkjAkbjYhwtfVmr9Z2TSXAm9BGbqXScp7JZMxcCLAb3ZK8L9wJafHX542egGKZClUp6MO5gNHxh9Oe57"/>
+<img data-alt="Glowing fingerprint authentication interface graphic" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA0Ras4DfgvxTHfdb2A30Zp6eaqIh4mYcvF2NU2J5y8_z-WPfEG95R_YCcg8he7XriPo-xs4fGW3TK21bzi5bsAc7H2oR1X90WJ8_foKwypZwvHrbrPA0jMwfWyoNN0ZfpTVUmaiW8u8rJWjoUWIFqJE5aeG2K5k0rzHEc15L8btktKXyhy-AvuaflAACARsV50Jj9Ffna9fEOq8tCpfNG4O6zIu-sEJLm1gZy8IFDTwwNW08Xi7jpGM4jUpfco-T0o6g8xjC1RobPx"/>
+</div>
+
+```</body></html>

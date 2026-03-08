@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>HOLLY OS Neural Authentication</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0dccf2",
+                        "accent-purple": "#6b21a8",
+                        "background-light": "#f5f8f8",
+                        "background-dark": "#040206",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .glass-card {
+            background: rgba(16, 31, 34, 0.4);
+            backdrop-filter: blur(40px);
+            border: 0.5px solid rgba(13, 204, 242, 0.15);
+        }
+        .glow-bottom {
+            border-bottom: 1px solid rgba(13, 204, 242, 0.3);
+            transition: border-color 0.3s ease;
+        }
+        .glow-bottom:focus-within {
+            border-bottom: 1px solid #0dccf2;
+        }
+        .purple-haze {
+            background: radial-gradient(circle at bottom left, rgba(107, 33, 168, 0.15) 0%, transparent 40%),
+                        radial-gradient(circle at bottom right, rgba(107, 33, 168, 0.15) 0%, transparent 40%);
+        }
+    </style>
+</head>
+<body class="bg-background-dark font-display text-slate-100 antialiased overflow-hidden selection:bg-primary/30">
+<div class="relative min-h-screen w-full flex items-center justify-center purple-haze">
+<div class="glass-card w-full max-w-[440px] p-12 rounded-xl flex flex-col items-center shadow-2xl">
+<div class="mb-10 flex flex-col items-center">
+<div class="w-12 h-12 flex items-center justify-center rounded-full bg-primary/10 mb-6 border border-primary/20 shadow-[0_0_20px_rgba(13,204,242,0.2)]">
+<span class="text-primary text-2xl font-light tracking-tighter">H</span>
+</div>
+<h1 class="text-white text-xl font-light tracking-[0.4em] uppercase">Holly OS</h1>
+</div>
+<div class="w-full space-y-10">
+<div class="relative glow-bottom group">
+<label class="block text-[10px] uppercase tracking-[0.2em] text-primary/60 mb-1 transition-all group-focus-within:text-primary">Email</label>
+<input class="w-full bg-transparent border-none p-0 pb-3 text-white placeholder:text-slate-700 focus:ring-0 text-base font-light tracking-wide" placeholder="identity@nexa.neural" type="email"/>
+</div>
+<div class="relative glow-bottom group">
+<label class="block text-[10px] uppercase tracking-[0.2em] text-primary/60 mb-1 transition-all group-focus-within:text-primary">Access Key</label>
+<input class="w-full bg-transparent border-none p-0 pb-3 text-white placeholder:text-slate-700 focus:ring-0 text-base font-light tracking-wide" placeholder="••••••••••••" type="password"/>
+</div>
+<div class="pt-6">
+<button class="w-full h-12 rounded-lg bg-gradient-to-r from-accent-purple to-primary text-background-dark font-medium text-sm uppercase tracking-[0.2em] hover:opacity-90 transition-opacity shadow-lg shadow-primary/10">
+                        Authorize
+                    </button>
+</div>
+</div>
+<div class="mt-12 flex flex-col items-center gap-4">
+<div class="flex items-center gap-2">
+<div class="w-1 h-1 rounded-full bg-primary animate-pulse"></div>
+<p class="text-[9px] uppercase tracking-[0.3em] text-primary/40">Neural Link: Stable</p>
+</div>
+<div class="h-px w-8 bg-primary/10"></div>
+<p class="text-[8px] uppercase tracking-[0.5em] text-slate-600">Secure Terminal Access 001-X</p>
+</div>
+</div>
+<div class="absolute top-0 left-0 w-full h-full pointer-events-none overflow-hidden -z-10 opacity-30">
+<div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/5 rounded-full blur-[120px]"></div>
+</div>
+</div>
+</body></html>

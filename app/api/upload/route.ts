@@ -20,12 +20,12 @@ export async function POST(request: NextRequest) {
   // 📊 PHASE 1: Start performance tracking
   const apiTimer = startPerformanceTimer('upload_api');
   let userId = 'anonymous';
-  
+
   try {
     await logger.api.start('/api/upload', { endpoint: '/api/upload' });
-    
+
     const { userId: clerkUserId } = auth();
-    
+
     if (!clerkUserId) {
       return NextResponse.json(
         { error: 'Authentication required' },
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
         { status: 404 }
       );
     }
-    
+
     userId = user.id;
     await logger.info('file_operation', 'Upload request authenticated', { userId });
 
@@ -67,13 +67,13 @@ export async function POST(request: NextRequest) {
 
     // 📋 PHASE 1: Track file upload
     const uploadTimer = startPerformanceTimer('file_upload');
-    await logger.info('file_operation', `Uploading ${bucketType} file: ${file.name}`, { 
-      userId, 
-      fileName: file.name, 
-      fileSize: file.size, 
-      fileType: file.type 
+    await logger.info('file_operation', `Uploading ${bucketType} file: ${file.name}`, {
+      userId,
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type
     });
-    
+
     // Upload using our file-storage helper
     const result = await uploadFile(file, bucketType, {
       userId: user.id,
@@ -90,14 +90,14 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
-    
+
     const uploadDuration = await uploadTimer.end({ status: 'success' });
     await logger.info('file_operation', 'File uploaded successfully', { userId, url: result.url, duration: uploadDuration });
     console.log('[Upload] ✅ File uploaded:', result.url);
 
     // 👁️  AUTO-VISION PROCESSING - Give HOLLY eyes!
     let visionAnalysis = null;
-    
+
     // 🎵 AUTO-MUSIC ANALYSIS - Give HOLLY ears!
     let musicAnalysis = null;
     if (file.type.startsWith('image/')) {
@@ -105,16 +105,16 @@ export async function POST(request: NextRequest) {
         // 👁️ PHASE 1: Track vision processing
         const visionTimer = startPerformanceTimer('vision_analysis');
         await logger.info('ai_inference', 'Starting vision analysis', { userId, imageUrl: result.url });
-        
+
         console.log('[Upload] 👁️  Processing image with vision...');
         const vision = new MultiModelVision();
-        
+
         // Use fast BLIP for initial caption, optionally add GPT-4 for detailed analysis
         const analysis = await vision.analyzeImage(result.url, {
           taskType: 'general',
           useMultipleModels: false // Set to true for more detailed analysis
         });
-        
+
         visionAnalysis = {
           description: analysis.combined,
           summary: analysis.structured.summary,
@@ -122,18 +122,18 @@ export async function POST(request: NextRequest) {
           model: analysis.primary.model,
           processingTime: analysis.primary.processingTime
         };
-        
+
         const visionDuration = await visionTimer.end({ status: 'success' });
-        await logger.info('ai_inference', 'Vision analysis complete', { 
-          userId, 
-          model: visionAnalysis.model, 
-          duration: visionDuration 
+        await logger.info('ai_inference', 'Vision analysis complete', {
+          userId,
+          model: visionAnalysis.model,
+          duration: visionDuration
         });
         console.log('[Upload] ✅ Vision analysis complete:', visionAnalysis.summary);
       } catch (visionError) {
-        await logger.error('ai_inference', 'Vision analysis failed', { userId }, { 
-          errorCode: (visionError as any).code, 
-          stackTrace: (visionError as any).stack 
+        await logger.error('ai_inference', 'Vision analysis failed', { userId }, {
+          errorCode: (visionError as any).code,
+          stackTrace: (visionError as any).stack
         });
         console.error('[Upload] ⚠️  Vision processing failed:', visionError);
         // Continue without vision - don't fail the upload
@@ -146,12 +146,12 @@ export async function POST(request: NextRequest) {
         // 🎵 PHASE 1: Track music analysis
         const musicTimer = startPerformanceTimer('music_analysis');
         await logger.info('ai_inference', 'Starting music analysis', { userId, audioUrl: result.url });
-        
+
         console.log('[Upload] 🎵 Analyzing music with HOLLY\'s Ears...');
         const musicEngine = new MusicAnalysisEngine();
-        
+
         const analysis = await musicEngine.analyzeTrack(result.url);
-        
+
         musicAnalysis = {
           bpm: analysis.technical.bpm,
           key: `${analysis.technical.key} ${analysis.technical.mode}`,
@@ -164,18 +164,18 @@ export async function POST(request: NextRequest) {
           strengths: analysis.arNotes.strengths.slice(0, 3),
           overallAssessment: analysis.arNotes.overallAssessment.slice(0, 150) + '...'
         };
-        
+
         const musicDuration = await musicTimer.end({ status: 'success' });
-        await logger.info('ai_inference', 'Music analysis complete', { 
-          userId, 
-          hitScore: musicAnalysis.hitScore, 
-          duration: musicDuration 
+        await logger.info('ai_inference', 'Music analysis complete', {
+          userId,
+          hitScore: musicAnalysis.hitScore,
+          duration: musicDuration
         });
         console.log('[Upload] ✅ Music analysis complete - Hit Score:', musicAnalysis.hitScore);
       } catch (musicError) {
-        await logger.error('ai_inference', 'Music analysis failed', { userId }, { 
-          errorCode: (musicError as any).code, 
-          stackTrace: (musicError as any).stack 
+        await logger.error('ai_inference', 'Music analysis failed', { userId }, {
+          errorCode: (musicError as any).code,
+          stackTrace: (musicError as any).stack
         });
         console.error('[Upload] ⚠️  Music analysis failed:', musicError);
       }
@@ -184,13 +184,13 @@ export async function POST(request: NextRequest) {
     // ✅ PHASE 1: Log successful upload API response
     const totalDuration = await apiTimer.end({ status: 'success' });
     await metrics.apiResponse('/api/upload', totalDuration, 200);
-    await logger.api.success('/api/upload', totalDuration, { 
-      userId, 
-      fileName: file.name, 
-      hasVision: !!visionAnalysis, 
-      hasMusic: !!musicAnalysis 
+    await logger.api.success('/api/upload', totalDuration, {
+      userId,
+      fileName: file.name,
+      hasVision: !!visionAnalysis,
+      hasMusic: !!musicAnalysis
     });
-    
+
     return NextResponse.json({
       success: true,
       file: {
@@ -206,10 +206,10 @@ export async function POST(request: NextRequest) {
     await apiTimer.end({ status: 'error' });
     await metrics.error('upload_api', 'high');
     await logger.api.error('/api/upload', error, { userId });
-    
+
     console.error('Upload error:', error);
     return NextResponse.json(
-      { 
+      {
         error: 'Failed to upload file',
         details: error instanceof Error ? error.message : 'Unknown error'
       },

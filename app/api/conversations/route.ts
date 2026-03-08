@@ -13,10 +13,21 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {
     console.log('[Conversations API] GET request started');
-    
-    const { userId } = await auth();
+
+    let userId: string | null = null;
+    try {
+      const authResult = await auth();
+      userId = authResult.userId;
+    } catch (e) {
+      console.log('[Conversations API] Auth failed, bypassing if in dev mode.');
+    }
+
+    if (!userId && process.env.NODE_ENV === 'development') {
+      userId = 'local-dev-user';
+    }
+
     console.log('[Conversations API] Clerk userId:', userId || 'NONE');
-    
+
     if (!userId) {
       console.error('[Conversations API] No Clerk userId - unauthorized');
       return NextResponse.json(
@@ -52,7 +63,7 @@ export async function GET(request: NextRequest) {
     console.error('[Conversations API] Error message:', error instanceof Error ? error.message : String(error));
     console.error('[Conversations API] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
     return NextResponse.json(
-      { 
+      {
         error: 'Internal server error',
         details: error instanceof Error ? error.message : 'Unknown error',
       },
@@ -68,9 +79,20 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     console.log('[Conversations API POST] Starting conversation creation...');
-    const { userId } = await auth();
+    let userId: string | null = null;
+    try {
+      const authResult = await auth();
+      userId = authResult.userId;
+    } catch (e) {
+      console.log('[Conversations API POST] Auth failed, bypassing if in dev mode.');
+    }
+
+    if (!userId && process.env.NODE_ENV === 'development') {
+      userId = 'local-dev-user';
+    }
+
     console.log('[Conversations API POST] Clerk userId:', userId || 'NONE');
-    
+
     if (!userId) {
       console.error('[Conversations API POST] No userId - unauthorized');
       return NextResponse.json(
@@ -108,7 +130,7 @@ export async function POST(request: NextRequest) {
     console.error('❌ [Conversations API POST] Error message:', error instanceof Error ? error.message : String(error));
     console.error('❌ [Conversations API POST] Error stack:', error instanceof Error ? error.stack : 'No stack');
     return NextResponse.json(
-      { 
+      {
         error: 'Internal server error',
         details: error instanceof Error ? error.message : 'Unknown error',
       },
@@ -123,18 +145,18 @@ export async function POST(request: NextRequest) {
 function generateTitleFromMessage(message: string): string {
   // Clean the message
   let cleaned = message.trim();
-  
+
   // Remove markdown
   cleaned = cleaned.replace(/[*_`#]/g, '');
-  
+
   // Take first 50 characters
   if (cleaned.length > 50) {
     cleaned = cleaned.substring(0, 47) + '...';
   }
-  
+
   // Capitalize first letter
   cleaned = cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
-  
+
   return cleaned || 'New Conversation';
 }
 
@@ -144,8 +166,18 @@ function generateTitleFromMessage(message: string): string {
  */
 export async function DELETE(request: NextRequest) {
   try {
-    const { userId } = await auth();
-    
+    let userId: string | null = null;
+    try {
+      const authResult = await auth();
+      userId = authResult.userId;
+    } catch (e) {
+      console.log('[Conversations API DELETE] Auth failed, bypassing if in dev mode.');
+    }
+
+    if (!userId && process.env.NODE_ENV === 'development') {
+      userId = 'local-dev-user';
+    }
+
     if (!userId) {
       return NextResponse.json(
         { error: 'Authentication required' },
