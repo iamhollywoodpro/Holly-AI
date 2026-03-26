@@ -3766,7 +3766,8 @@ model UserLearningProfile {
 model TasteSignal {
   id         String   @id @default(cuid())
   userId     String
-  category   String   // tone, length, format, topic, style, humor
+  category   String   // tone, length, format, topic, style, humor, technical, emoji
+  item       String   @default("") // specific preference item: "formal_tone", "bullet_lists", etc.
   signal     String   // positive, negative, neutral
   context    String   @db.Text
   weight     Float    @default(1.0)
@@ -3776,6 +3777,7 @@ model TasteSignal {
   @@index([userId])
   @@index([category])
   @@index([userId, category])
+  @@index([item])
   @@map("taste_signals")
 }
 

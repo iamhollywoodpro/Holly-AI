@@ -1,6 +1,14 @@
+/**
+ * /api/autonomous/evolve — Phase 2D
+ *
+ * Extended with processEvolutionCycle() so that POST requests without a
+ * trait payload trigger a full LearningEvent → LearningPattern → EvolutionProposal
+ * processing run in addition to the existing personality evolution logic.
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/db';
+import { processEvolutionCycle } from '@/lib/autonomous/evolution-trigger';
 
 export const runtime = 'nodejs';
 
@@ -12,7 +20,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { trait, adjustment, reason } = await req.json();
+    const body = await req.json().catch(() => ({}));
+    const { trait, adjustment, reason } = body;
+
+    // Phase 2D: if no trait provided, run the evolution cycle
+    if (!trait) {
+      const cycleResult = await processEvolutionCycle();
+      return NextResponse.json({ success: true, cycle: cycleResult });
+    }
 
     // Using shared Prisma singleton
 

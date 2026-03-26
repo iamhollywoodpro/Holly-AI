@@ -107,7 +107,7 @@ export async function POST(req: NextRequest) {
     // Run memory retrieval and identity load concurrently
     const [memoryContext, identityCtx] = await Promise.all([
       dbUserId ? getRelevantMemories(dbUserId, currentTopics) : Promise.resolve(''),
-      dbUserId ? getIdentityContext(dbUserId) : Promise.resolve({ promptBlock: '', raw: { identity: null, goals: [], emotionalState: null } }),
+      dbUserId ? getIdentityContext(dbUserId) : Promise.resolve({ promptBlock: '', tasteDirectives: '', raw: { identity: null, goals: [], emotionalState: null, taste: null } }),
     ]);
 
     // 8. BUILD SYSTEM PROMPT ───────────────────────────────────────────────────
@@ -116,6 +116,11 @@ export async function POST(req: NextRequest) {
     // Phase 1C: inject live identity state
     if (identityCtx.promptBlock) {
       hollySystemPrompt += identityCtx.promptBlock;
+    }
+
+    // Phase 2C: inject taste-driven style directives
+    if (identityCtx.tasteDirectives) {
+      hollySystemPrompt += identityCtx.tasteDirectives;
     }
 
     // Phase 1F: topic-scored memory context

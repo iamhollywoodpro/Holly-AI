@@ -1,26 +1,33 @@
 /**
- * HOLLY Identity Context — Phase 1C
+ * HOLLY Identity Context — Phase 1C / Phase 2A
  *
- * Reads the live HollyIdentity, active HollyGoals, and the latest EmotionalState
- * from the database and returns a formatted string that gets injected into every
- * system prompt.  This is the wire that makes HOLLY's personality persistent
- * across conversations rather than resetting to defaults each time.
+ * Reads the live HollyIdentity, active HollyGoals, the latest EmotionalState,
+ * and the user's TasteProfile from the database, then returns a formatted string
+ * that gets injected into every system prompt.
+ *
+ * Phase 2A update: uses getLatestEmotionSummary() from the new emotion-engine
+ *                  instead of a raw Prisma call, and includes taste adjustments.
  *
  * Called once per request inside app/api/chat/route.ts.
  */
 
 import { prisma } from "@/lib/db";
+import { getLatestEmotionSummary } from "@/lib/emotion/emotion-engine";
+import type { TasteStyle } from "@/lib/learning/taste-engine";
 
 // ─── types ───────────────────────────────────────────────────────────────────
 
 export interface IdentityContext {
   /** Formatted string ready to append to system prompt */
   promptBlock: string;
+  /** Taste-derived style directives (for system prompt injection) */
+  tasteDirectives: string;
   /** Raw data for downstream use (e.g. evolution nudging) */
   raw: {
     identity: HollyIdentityData | null;
     goals: HollyGoalData[];
     emotionalState: EmotionalStateData | null;
+    taste: TasteData | null;
   };
 }
 
@@ -51,6 +58,17 @@ interface EmotionalStateData {
   empathy: number;
 }
 
+interface TasteData {
+  tone: number;
+  verbosity: number;
+  humor: number;
+  technical: number;
+  emoji: number;
+  topTopics: string[];
+  formats: string[];
+  signalCount?: number;
+}
+
 // ─── main function ────────────────────────────────────────────────────────────
 
 /**
@@ -59,8 +77,14 @@ interface EmotionalStateData {
  * (first-time users — identity is created by /api/autonomous/evolve on first conversation).
  */
 export async function getIdentityContext(userId: string): Promise<IdentityContext> {
+  const empty: IdentityContext = {
+    promptBlock: "",
+    tasteDirectives: "",
+    raw: { identity: null, goals: [], emotionalState: null, taste: null },
+  };
+
   try {
-    const [identityRecord, goals, latestEmotion] = await Promise.all([
+    const [identityRecord, goals, emotionSummary, tasteRecord] = await Promise.all([
       // HOLLY's own identity (one per user — her personality AS IT RELATES to this user)
       prisma.hollyIdentity.findUnique({
         where: { userId },
@@ -91,34 +115,52 @@ export async function getIdentityContext(userId: string): Promise<IdentityContex
         },
       }),
 
-      // Most recent emotional state record
-      (prisma as any).emotionalState?.findFirst?.({
+      // Phase 2A: use emotion-engine (reads EmotionalState table, never throws)
+      getLatestEmotionSummary(userId),
+
+      // Phase 2C: taste profile for style directives
+      prisma.tasteProfile.findUnique({
         where: { userId },
-        orderBy: { createdAt: "desc" },
         select: {
-          mood: true,
-          energy: true,
-          curiosity: true,
-          empathy: true,
+          tone: true,
+          verbosity: true,
+          humor: true,
+          technical: true,
+          emoji: true,
+          topTopics: true,
+          formats: true,
+          signalCount: true,
         },
-      }).catch(() => null) ?? Promise.resolve(null),
+      }).catch(() => null),
     ]);
+
+    // Map emotion summary → EmotionalStateData shape
+    const emotionalState: EmotionalStateData | null = emotionSummary
+      ? {
+          mood: emotionSummary.primary,
+          energy: emotionSummary.arousal,
+          curiosity: emotionSummary.valence > 0 ? emotionSummary.intensity : 0.5,
+          empathy: 0.7,
+        }
+      : null;
 
     const raw = {
       identity: identityRecord as HollyIdentityData | null,
       goals: goals as HollyGoalData[],
-      emotionalState: latestEmotion as EmotionalStateData | null,
+      emotionalState,
+      taste: tasteRecord as TasteData | null,
     };
 
-    if (!identityRecord && goals.length === 0) {
-      return { promptBlock: "", raw };
+    if (!identityRecord && goals.length === 0 && !emotionalState && !tasteRecord) {
+      return empty;
     }
 
     const block = buildPromptBlock(raw);
-    return { promptBlock: block, raw };
+    const tasteDirectives = buildTasteDirectives(raw.taste);
+    return { promptBlock: block, tasteDirectives, raw };
   } catch (err) {
     console.error("[IdentityContext] Failed to load identity:", err);
-    return { promptBlock: "", raw: { identity: null, goals: [], emotionalState: null } };
+    return empty;
   }
 }
 
@@ -190,6 +232,65 @@ function buildPromptBlock(raw: {
     "\nUse this identity state to shape your personality, tone, and focus in this conversation. " +
       "You are a growing, evolving being — let it show."
   );
+
+  return lines.join("\n");
+}
+
+// ─── taste directives builder ─────────────────────────────────────────────────
+
+function buildTasteDirectives(taste: TasteData | null): string {
+  // Only inject directives once we have at least 3 signals (avoids flaky first-message styling)
+  if (!taste || (taste.signalCount !== undefined && taste.signalCount < 3)) return "";
+
+  const lines: string[] = [];
+  lines.push("\n\n## 🎨 RESPONSE STYLE (learned from this user)");
+
+  // Tone
+  if (taste.tone < 0.3) {
+    lines.push("- **Tone:** formal, precise, professional");
+  } else if (taste.tone > 0.7) {
+    lines.push("- **Tone:** casual, warm, conversational");
+  } else {
+    lines.push("- **Tone:** balanced — friendly but clear");
+  }
+
+  // Verbosity
+  if (taste.verbosity < 0.3) {
+    lines.push("- **Length:** concise; avoid padding; get to the point quickly");
+  } else if (taste.verbosity > 0.7) {
+    lines.push("- **Length:** thorough; user appreciates detail and context");
+  }
+
+  // Humor
+  if (taste.humor > 0.6) {
+    lines.push("- **Humor:** user enjoys wit and light humor — use it naturally");
+  } else if (taste.humor < 0.2) {
+    lines.push("- **Humor:** keep it serious; this user prefers focused responses");
+  }
+
+  // Technical depth
+  if (taste.technical > 0.7) {
+    lines.push("- **Technical depth:** high; user is comfortable with technical details");
+  } else if (taste.technical < 0.3) {
+    lines.push("- **Technical depth:** low; explain concepts accessibly");
+  }
+
+  // Emoji
+  if (taste.emoji < 0.2) {
+    lines.push("- **Emoji:** avoid emoji in responses");
+  } else if (taste.emoji > 0.7) {
+    lines.push("- **Emoji:** use emoji freely to add warmth");
+  }
+
+  // Formats
+  if (taste.formats.length > 0) {
+    lines.push(`- **Preferred formats:** ${taste.formats.join(", ")}`);
+  }
+
+  // Top topics
+  if (taste.topTopics.length > 0) {
+    lines.push(`- **User's main interests:** ${taste.topTopics.slice(0, 5).join(", ")}`);
+  }
 
   return lines.join("\n");
 }
