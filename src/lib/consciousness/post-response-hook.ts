@@ -1,5 +1,5 @@
 /**
- * HOLLY Post-Response Hook — Phase 1D / Phase 2A+2B
+ * HOLLY Post-Response Hook — Phase 1D / Phase 2A+2B / Phase 3A
  *
  * Called in the background after every chat response is sent.
  * Orchestrates all background bookkeeping without blocking the user.
@@ -8,16 +8,20 @@
  *            LearningEvent written for the evolution engine
  *
  * Phase 2A:  EmotionEngine detects user emotion and persists EmotionalState
- *
  * Phase 2B:  TasteEngine detects implicit style signals and updates TasteProfile
+ *
+ * Phase 3A:  Single Groq llama-3.1-8b-instant call via MessageAnalyser replaces
+ *            all heuristics: topics, emotion, and taste signals extracted together.
+ *            Heuristic fallback preserved for API-key-missing / error cases.
  *
  * Designed to be fire-and-forget — NEVER throws to the caller.
  */
 
-import { AutoConsciousness } from "@/lib/consciousness/auto-consciousness";
-import { detectAndSaveEmotion } from "@/lib/emotion/emotion-engine";
-import { TasteEngine } from "@/lib/learning/taste-engine";
-import { prisma } from "@/lib/db";
+import { AutoConsciousness } from '@/lib/consciousness/auto-consciousness';
+import { analyseMessage } from '@/lib/intelligence/message-analyser';
+import { TasteEngine } from '@/lib/learning/taste-engine';
+import { GoalFormationSystem } from '@/lib/consciousness/goal-formation';
+import { prisma } from '@/lib/db';
 
 export interface PostResponsePayload {
   userId: string;
@@ -25,6 +29,7 @@ export interface PostResponsePayload {
   userMessage: string;
   assistantResponse: string;
   detectedMode: string;
+  /** Pre-computed topics (from chat route); will be enriched by LLM analysis */
   topics?: string[];
 }
 
@@ -33,24 +38,39 @@ export interface PostResponsePayload {
  * Call with `void recordExchange(payload)` — do NOT await in the request path.
  */
 export async function recordExchange(payload: PostResponsePayload): Promise<void> {
-  const { userId, conversationId, userMessage, assistantResponse, detectedMode, topics } = payload;
+  const { userId, conversationId, userMessage, assistantResponse, detectedMode } = payload;
 
-  // Run all bookkeeping in parallel — each step is individually try/caught
-  await Promise.allSettled([
-    // ── 1. Consciousness: experience recording ────────────────────────────
-    runConsciousness(userId, conversationId, userMessage, assistantResponse, topics ?? []),
+  try {
+    // ── Phase 3A: single LLM analysis call ─────────────────────────────────
+    // Replaces extractTopics() + EmotionalIntelligence.detectEmotion() + TasteEngine.detectImplicit()
+    const analysis = await analyseMessage(userMessage, assistantResponse);
 
-    // ── 2. LearningEvent for evolution engine ─────────────────────────────
-    runLearningEvent(userId, conversationId, detectedMode, userMessage, assistantResponse, topics ?? []),
+    const topics = analysis.topics.length > 0 ? analysis.topics : (payload.topics ?? []);
 
-    // ── 3. Phase 2A: emotion detection + persistence ──────────────────────
-    detectAndSaveEmotion(userId, userMessage, conversationId),
+    // Run all bookkeeping in parallel — each step is individually try/caught
+    await Promise.allSettled([
+      // ── 1. Consciousness: experience recording ──────────────────────────
+      runConsciousness(userId, conversationId, userMessage, assistantResponse, topics),
 
-    // ── 4. Phase 2B: taste signal detection + profile update ──────────────
-    runTasteSignals(userId, userMessage, assistantResponse),
-  ]);
+      // ── 2. LearningEvent for evolution engine ───────────────────────────
+      runLearningEvent(userId, conversationId, detectedMode, userMessage, assistantResponse, topics),
 
-  console.log(`[PostHook] ✅ Exchange recorded for user ${userId}`);
+      // ── 3. Phase 3A/2A: persist LLM-detected emotion ────────────────────
+      runEmotionPersist(userId, conversationId, analysis.emotion),
+
+      // ── 4. Phase 3A/2B: persist LLM-detected taste signals ──────────────
+      runTasteSignals(userId, analysis.tasteSignals),
+
+      // ── 5. Phase 3F: trigger goal formation every 10 events ─────────────
+      runGoalFormationMaybe(userId),
+    ]);
+
+    console.log(
+      `[PostHook] ✅ user=${userId} | emotion=${analysis.emotion.primary} | topics=${topics.slice(0, 3).join(',')} | llm=${analysis.fromLLM}`
+    );
+  } catch (err) {
+    console.error('[PostHook] ⚠️ Outer error:', err);
+  }
 }
 
 // ─── individual steps ─────────────────────────────────────────────────────────
@@ -64,18 +84,10 @@ async function runConsciousness(
 ): Promise<void> {
   try {
     const consciousness = new AutoConsciousness(userId);
-
-    await consciousness.recordFromChat(userMessage, "user", {
-      conversation_id: conversationId,
-      topics,
-    });
-
-    await consciousness.recordFromChat(assistantResponse, "assistant", {
-      conversation_id: conversationId,
-      topics,
-    });
+    await consciousness.recordFromChat(userMessage, 'user', { conversation_id: conversationId, topics });
+    await consciousness.recordFromChat(assistantResponse, 'assistant', { conversation_id: conversationId, topics });
   } catch (err) {
-    console.error("[PostHook:Consciousness] ⚠️", err);
+    console.error('[PostHook:Consciousness] ⚠️', err);
   }
 }
 
@@ -90,7 +102,7 @@ async function runLearningEvent(
   try {
     await prisma.learningEvent.create({
       data: {
-        type: "conversation",
+        type: 'conversation',
         userId,
         conversationId,
         data: {
@@ -104,44 +116,89 @@ async function runLearningEvent(
       },
     });
   } catch (err) {
-    console.error("[PostHook:LearningEvent] ⚠️", err);
+    console.error('[PostHook:LearningEvent] ⚠️', err);
+  }
+}
+
+async function runEmotionPersist(
+  userId: string,
+  conversationId: string,
+  emotion: { primary: string; valence: number; arousal: number; intensity: number }
+): Promise<void> {
+  try {
+    await prisma.emotionalState.create({
+      data: {
+        userId,
+        primaryEmotion: emotion.primary,
+        intensity: emotion.intensity,
+        valence: emotion.valence,
+        arousal: emotion.arousal,
+        secondaryEmotions: [],
+        context: { source: 'message_analyser' },
+        triggers: [],
+        cues: [],
+        conversationId,
+      },
+    });
+  } catch (err) {
+    console.error('[PostHook:Emotion] ⚠️', err);
   }
 }
 
 async function runTasteSignals(
   userId: string,
-  userMessage: string,
-  assistantResponse: string
+  signals: Array<{ category: string; item: string; signal: string }>
 ): Promise<void> {
+  if (!signals.length) return;
   try {
-    const signals = TasteEngine.detectImplicit(userMessage, assistantResponse);
-    if (signals.length > 0) {
-      const engine = new TasteEngine(userId);
-      await engine.recordSignals(signals);
-    }
+    const engine = new TasteEngine(userId);
+    await engine.recordSignals(
+      signals.map(s => ({
+        category: s.category as any,
+        item: s.item,
+        signal: s.signal as any,
+        source: 'implicit' as const,
+        weight: 0.8, // LLM-detected signals are more reliable → slightly higher weight
+      }))
+    );
   } catch (err) {
-    console.error("[PostHook:Taste] ⚠️", err);
+    console.error('[PostHook:Taste] ⚠️', err);
   }
 }
 
-// ─── helpers ─────────────────────────────────────────────────────────────────
+async function runGoalFormationMaybe(userId: string): Promise<void> {
+  try {
+    // Count total learning events for this user
+    const count = await prisma.learningEvent.count({ where: { userId } });
+    // Generate goals on every 10th event (10, 20, 30, ...)
+    if (count > 0 && count % 10 === 0) {
+      const goalSystem = new GoalFormationSystem(userId);
+      const goals = await goalSystem.generateGoals();
+      console.log(`[PostHook:Goals] Generated ${goals.length} goals for user ${userId} (event #${count})`);
+    }
+  } catch (err) {
+    console.error('[PostHook:Goals] ⚠️', err);
+  }
+}
+
+// ─── exported helper ─────────────────────────────────────────────────────────
 
 /**
- * Extract rough topic keywords from a message.
- * Simple heuristic — Phase 3 will use the LLM for richer extraction.
+ * extractTopics — kept for backward compatibility with chat route.
+ * Phase 3A: now delegates to the heuristic inside message-analyser,
+ * but the real extraction happens async in recordExchange().
  */
 export function extractTopics(text: string): string[] {
   const stopWords = new Set([
-    "the", "a", "an", "is", "it", "in", "on", "at", "to", "for", "of", "and",
-    "or", "but", "not", "with", "this", "that", "i", "you", "we", "my", "your",
-    "can", "do", "how", "what", "when", "where", "why", "please", "help",
-    "just", "like", "make", "need", "want", "would", "could", "should",
+    'the','a','an','is','it','in','on','at','to','for','of','and','or','but',
+    'not','with','this','that','i','you','we','my','your','can','do','how',
+    'what','when','where','why','please','help','just','like','make','need',
+    'want','would','could','should',
   ]);
-
   return text
     .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/[^a-z0-9\s]/g, ' ')
     .split(/\s+/)
-    .filter((w) => w.length > 4 && !stopWords.has(w))
+    .filter(w => w.length > 4 && !stopWords.has(w))
     .slice(0, 8);
 }

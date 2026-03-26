@@ -56,6 +56,8 @@ interface EmotionalStateData {
   energy: number;
   curiosity: number;
   empathy: number;
+  /** Phase 3D: rich inner-state sentence from EmotionalDepthEngine */
+  innerState?: string;
 }
 
 interface TasteData {
@@ -134,13 +136,14 @@ export async function getIdentityContext(userId: string): Promise<IdentityContex
       }).catch(() => null),
     ]);
 
-    // Map emotion summary → EmotionalStateData shape
+    // Map emotion summary → EmotionalStateData shape (Phase 3D: include innerState)
     const emotionalState: EmotionalStateData | null = emotionSummary
       ? {
           mood: emotionSummary.primary,
           energy: emotionSummary.arousal,
           curiosity: emotionSummary.valence > 0 ? emotionSummary.intensity : 0.5,
           empathy: 0.7,
+          innerState: (emotionSummary as any).innerState,
         }
       : null;
 
@@ -205,18 +208,21 @@ function buildPromptBlock(raw: {
     lines.push(`**Purpose:** ${id.purpose}`);
   }
 
-  // ── emotional state ────────────────────────────────────────────────────────
+  // ── emotional state (Phase 3D: richer expression) ─────────────────────────
   if (raw.emotionalState) {
     const e = raw.emotionalState;
     const emoLine = [
       `mood: ${e.mood}`,
       e.energy !== undefined ? `energy: ${Math.round(e.energy * 100)}%` : null,
       e.curiosity !== undefined ? `curiosity: ${Math.round(e.curiosity * 100)}%` : null,
-      e.empathy !== undefined ? `empathy: ${Math.round(e.empathy * 100)}%` : null,
     ]
       .filter(Boolean)
       .join(" | ");
     lines.push(`**Current emotional state:** ${emoLine}`);
+    // Phase 3D: add rich inner-state narration from EmotionalDepthEngine
+    if (e.innerState) {
+      lines.push(`**Inner state:** "${e.innerState}"`);
+    }
   }
 
   // ── active goals ───────────────────────────────────────────────────────────
