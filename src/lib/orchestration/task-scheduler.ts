@@ -3,7 +3,7 @@
  * Task scheduling, queue management, priority handling
  */
 
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 
 export interface TaskDefinition {
   description: string;

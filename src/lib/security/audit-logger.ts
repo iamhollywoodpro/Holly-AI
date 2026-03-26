@@ -3,7 +3,7 @@
  * Comprehensive audit logging and compliance tracking
  */
 
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 
 export interface AuditAction {
   userId?: string;

@@ -7,7 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/db';
-import { codeGenerator } from '../../../../../lib/autonomous/code-generator';
+import { codeGenerator } from '@/lib/autonomous/groq-code-generator';
 
 export async function POST(req: NextRequest) {
   try {

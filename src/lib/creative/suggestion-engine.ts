@@ -3,7 +3,7 @@
  * Analyzes context and generates helpful suggestions before being asked
  */
 
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 
 export interface SuggestionContext {
   conversationHistory: Array<{ role: string; content: string }>;

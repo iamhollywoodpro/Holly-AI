@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth, clerkClient } from '@clerk/nextjs/server';
-import { PrismaClient } from '@prisma/client';
 import { Octokit } from '@octokit/rest';
 import { sendEmail, generatePRNotificationEmail } from '@/lib/notifications/email';
 import { sendWebhookNotifications, generatePRWebhookMessage } from '@/lib/notifications/webhook';
@@ -8,8 +7,8 @@ import { logger } from '@/lib/monitoring/logger';
 import { analyzeRisk } from '@/lib/autonomy/risk-analyzer';
 import { calculateConfidence } from '@/lib/autonomy/confidence-scorer';
 import { makeDecision } from '@/lib/autonomy/decision-engine';
+import { prisma } from '@/lib/db';
 
-const prisma = new PrismaClient();
 
 export const runtime = 'nodejs';
 
@@ -222,6 +221,5 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   } finally {
-    await prisma.$disconnect();
   }
 }

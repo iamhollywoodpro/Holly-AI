@@ -1,9 +1,8 @@
 // HOLLY Predictive Engine
 // Predicts concepts based on historical patterns and preferences
 
-import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient();
+
 
 export interface PredictiveConcept {
   type: 'design' | 'code' | 'music' | 'art';

@@ -1,12 +1,11 @@
 // PHASE 3: REAL Project Creation
 // Creates actual GitHub repo and scaffolds project structure
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/db';
 
 export const runtime = 'nodejs';
 
 
-const prisma = new PrismaClient();
 
 export async function POST(req: NextRequest) {
   try {
@@ -131,6 +130,5 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   } finally {
-    await prisma.$disconnect();
   }
 }

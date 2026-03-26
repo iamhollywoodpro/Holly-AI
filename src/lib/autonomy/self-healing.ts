@@ -5,11 +5,11 @@
  * triggers self-improvements to resolve them.
  */
 
-import { PrismaClient } from "@prisma/client";
+
+import { prisma } from '@/lib/db';
 import { logger } from "../monitoring/logger";
 import { errorTracker } from "../monitoring/error-tracker";
 
-const prisma = new PrismaClient();
 
 export interface HealthCheckResult {
   healthy: boolean;

@@ -3,7 +3,7 @@
  * Detects subtle emotional cues and tracks emotional states
  */
 
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 
 export interface EmotionDetectionResult {
   primaryEmotion: string;

@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/db';
 
 export const runtime = 'nodejs';
 
-const prisma = new PrismaClient();
 
 export async function GET(req: NextRequest) {
   try {
@@ -15,8 +14,6 @@ export async function GET(req: NextRequest) {
       ORDER BY ordinal_position
     `);
 
-    await prisma.$disconnect();
-
     return NextResponse.json({
       success: true,
       table: 'work_logs',
@@ -24,7 +21,6 @@ export async function GET(req: NextRequest) {
     });
 
   } catch (error: any) {
-    await prisma.$disconnect();
     
     return NextResponse.json(
       {

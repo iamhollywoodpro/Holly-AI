@@ -6,9 +6,8 @@
  * @author HOLLY AI System
  */
 
-import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient();
+
 
 export interface CreateLogOptions {
   userId: string;

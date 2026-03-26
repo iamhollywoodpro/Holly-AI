@@ -14,7 +14,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import crypto from 'crypto';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 import { CodebaseParser } from '@/lib/metamorphosis/codebase-parser';
 import { exec } from 'child_process';
 import { promisify } from 'util';

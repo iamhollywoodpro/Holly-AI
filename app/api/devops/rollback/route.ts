@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
+import { prisma } from '@/lib/db';
 
 export const runtime = 'nodejs';
 
@@ -74,8 +75,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Record rollback in database
-    const { PrismaClient } = await import('@prisma/client');
-    const prisma = new PrismaClient();
+    // Using shared Prisma singleton
 
     try {
       await prisma.deployment.create({
@@ -106,7 +106,6 @@ export async function POST(req: NextRequest) {
       });
 
     } finally {
-      await prisma.$disconnect();
     }
 
   } catch (error: any) {

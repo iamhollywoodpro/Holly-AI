@@ -11,10 +11,10 @@
  * @author HOLLY AI System
  */
 
-import { PrismaClient } from '@prisma/client';
+
+import { prisma } from '@/lib/db';
 import { createHash, randomBytes } from 'crypto';
 
-const prisma = new PrismaClient();
 
 // Expiration presets
 export const EXPIRATION_PRESETS = {

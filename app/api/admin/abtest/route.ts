@@ -5,12 +5,11 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/db';
 
 
 export const runtime = 'nodejs';
 
-const prisma = new PrismaClient();
 
 // POST: Create test OR handle actions (assign/expose/convert)
 export async function POST(req: NextRequest) {

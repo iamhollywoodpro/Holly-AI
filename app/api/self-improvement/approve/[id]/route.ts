@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth, clerkClient } from "@clerk/nextjs/server";
-import { PrismaClient } from "@prisma/client";
 import { Octokit } from "@octokit/rest";
 import { sendEmail, generateStatusUpdateEmail } from "@/lib/notifications/email";
 import { logger } from "@/lib/monitoring/logger";
+import { prisma } from '@/lib/db';
 
-const prisma = new PrismaClient();
 
 export async function POST(
   request: NextRequest,

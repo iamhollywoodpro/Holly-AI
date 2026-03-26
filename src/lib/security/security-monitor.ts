@@ -3,7 +3,7 @@
  * Security monitoring, threat detection, rate limiting
  */
 
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 import { logAction } from './audit-logger';
 
 export interface SecurityEvent {

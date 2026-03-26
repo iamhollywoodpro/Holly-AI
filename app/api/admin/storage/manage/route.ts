@@ -1,15 +1,14 @@
 // PHASE 2: REAL File Storage Management
 // Checks actual disk usage and manages file storage
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { prisma } from '@/lib/db';
 
 export const runtime = 'nodejs';
 
 
 const execAsync = promisify(exec);
-const prisma = new PrismaClient();
 
 export async function POST(req: NextRequest) {
   try {
@@ -124,6 +123,5 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   } finally {
-    await prisma.$disconnect();
   }
 }

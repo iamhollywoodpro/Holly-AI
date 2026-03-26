@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/db';
 
 export const runtime = 'nodejs';
 
 
-const prisma = new PrismaClient();
 
 // GET /api/projects - List all projects
 export async function GET(req: NextRequest) {
@@ -75,7 +74,6 @@ export async function GET(req: NextRequest) {
       error: error.message,
     }, { status: 500 });
   } finally {
-    await prisma.$disconnect();
   }
 }
 
@@ -143,7 +141,6 @@ export async function POST(req: NextRequest) {
       error: error.message,
     }, { status: 500 });
   } finally {
-    await prisma.$disconnect();
   }
 }
 
@@ -222,6 +219,5 @@ export async function PATCH(req: NextRequest) {
       error: error.message,
     }, { status: 500 });
   } finally {
-    await prisma.$disconnect();
   }
 }

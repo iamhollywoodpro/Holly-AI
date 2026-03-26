@@ -3,7 +3,7 @@
  * Detects and learns patterns from user conversations and behavior
  */
 
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 
 export interface DetectedPattern {
   type: 'question_pattern' | 'work_pattern' | 'time_preference' | 'response_style' | 'communication_style';

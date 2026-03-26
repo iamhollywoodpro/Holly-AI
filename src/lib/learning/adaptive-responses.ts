@@ -3,7 +3,7 @@
  * Uses learned patterns to personalize HOLLY's responses
  */
 
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 
 export interface AdaptationContext {
   userId: string;

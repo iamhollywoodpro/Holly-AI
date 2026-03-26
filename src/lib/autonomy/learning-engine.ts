@@ -5,10 +5,10 @@
  * future decision-making through continuous learning.
  */
 
-import { PrismaClient } from "@prisma/client";
+
+import { prisma } from '@/lib/db';
 import { logger } from "../monitoring/logger";
 
-const prisma = new PrismaClient();
 
 export interface Pattern {
   id: string;

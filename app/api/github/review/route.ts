@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@clerk/nextjs/server';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 import { Octokit } from '@octokit/rest';
 import { reviewCode } from '@/lib/code-reviewer';
 import type { GitHubFile } from '@/lib/github-api';

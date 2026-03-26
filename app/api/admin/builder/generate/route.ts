@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuth } from '@clerk/nextjs/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/db';
 
 export const runtime = 'nodejs';
 
 
-const prisma = new PrismaClient();
 
 // ============================================================================
 // PHASE 5A: CODE GENERATION ENGINE API

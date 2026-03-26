@@ -1,12 +1,11 @@
 // PHASE 1: REAL System Configuration Management
 // Updates actual system configuration (database-backed)
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/db';
 
 export const runtime = 'nodejs';
 
 
-const prisma = new PrismaClient();
 
 // Configuration model (will add to Prisma schema if doesn't exist)
 interface SystemConfig {
@@ -108,7 +107,6 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   } finally {
-    await prisma.$disconnect();
   }
 }
 
@@ -152,6 +150,5 @@ export async function GET(req: NextRequest) {
       { status: 500 }
     );
   } finally {
-    await prisma.$disconnect();
   }
 }

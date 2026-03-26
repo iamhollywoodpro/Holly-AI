@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { PrismaClient } from "@prisma/client";
 import { riskAnalyzer, TriggerType } from "@/lib/autonomy/risk-analyzer";
 import { confidenceScorer } from "@/lib/autonomy/confidence-scorer";
 import { decisionEngine, DecisionAction } from "@/lib/autonomy/decision-engine";
 import { logger } from "@/lib/monitoring/logger";
+import { prisma } from '@/lib/db';
 
-const prisma = new PrismaClient();
 
 export const runtime = "nodejs";
 

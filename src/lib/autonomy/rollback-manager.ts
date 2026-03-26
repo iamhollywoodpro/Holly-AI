@@ -5,12 +5,12 @@
  * canary deployment capabilities for gradual rollouts.
  */
 
-import { PrismaClient } from "@prisma/client";
+
+import { prisma } from '@/lib/db';
 import { Octokit } from "@octokit/rest";
 import { logger } from "../monitoring/logger";
 import { errorTracker } from "../monitoring/error-tracker";
 
-const prisma = new PrismaClient();
 
 export interface RollbackResult {
   success: boolean;

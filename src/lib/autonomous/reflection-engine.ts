@@ -6,7 +6,7 @@
  */
 
 import Groq from 'groq-sdk';
-import { prisma } from '../../src/lib/db';
+import { prisma } from '@/lib/db';
 
 export interface Reflection {
   topic: string;

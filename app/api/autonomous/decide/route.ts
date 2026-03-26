@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { prisma } from '@/lib/db';
 
 export const runtime = 'nodejs';
 
@@ -25,8 +26,7 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
 
-    const { PrismaClient } = await import('@prisma/client');
-    const prisma = new PrismaClient();
+    // Using shared Prisma singleton
 
     try {
       // Get user's historical preferences and patterns
@@ -129,7 +129,6 @@ BENEFITS: [Expected benefits]`;
       });
 
     } finally {
-      await prisma.$disconnect();
     }
 
   } catch (error: any) {

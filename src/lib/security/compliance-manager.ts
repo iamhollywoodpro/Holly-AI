@@ -3,7 +3,7 @@
  * Privacy compliance (GDPR, CCPA), data retention, user rights
  */
 
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 import { logAction } from './audit-logger';
 
 export interface ConsentStatus {

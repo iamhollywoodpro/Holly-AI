@@ -6,7 +6,7 @@
  */
 
 import Groq from 'groq-sdk';
-import { prisma } from '../../src/lib/db';
+import { prisma } from '@/lib/db';
 
 export interface LearningPattern {
   pattern_type: 'user_preference' | 'conversation_style' | 'problem_solving' | 'error_pattern';

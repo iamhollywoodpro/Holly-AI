@@ -1,12 +1,11 @@
 // PHASE 2: REAL Knowledge Base Search
 // Searches through stored documents and conversations
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/db';
 
 export const runtime = 'nodejs';
 
 
-const prisma = new PrismaClient();
 
 // Define explicit type for search results
 interface SearchResult {
@@ -118,6 +117,5 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   } finally {
-    await prisma.$disconnect();
   }
 }

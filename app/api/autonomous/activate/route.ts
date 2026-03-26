@@ -7,10 +7,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/db';
-import { codeGenerator } from '../../../../lib/autonomous/code-generator';
-import { learningEngine } from '../../../../lib/autonomous/learning-engine';
-import { reflectionEngine } from '../../../../lib/autonomous/reflection-engine';
-import { selfDiagnosis } from '../../../../lib/autonomous/self-diagnosis';
+import { codeGenerator } from '@/lib/autonomous/groq-code-generator';
+import { learningEngine } from '@/lib/autonomous/groq-learning-engine';
+import { reflectionEngine } from '@/lib/autonomous/reflection-engine';
+import { selfDiagnosis } from '@/lib/autonomous/self-diagnosis';
 
 export async function POST(req: NextRequest) {
   try {

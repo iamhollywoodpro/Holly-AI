@@ -3,7 +3,7 @@
  * Generates contextually appropriate empathetic responses
  */
 
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 import { EmotionDetectionResult } from './emotional-intelligence';
 
 export interface EmpathyResponse {

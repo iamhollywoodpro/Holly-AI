@@ -1,10 +1,9 @@
 // Google OAuth2 Callback - With User Check
 import { NextRequest, NextResponse } from 'next/server';
 import { auth, clerkClient } from '@clerk/nextjs/server';
-import { PrismaClient } from '@prisma/client';
 import { exchangeCodeForTokens, saveConnection } from '@/lib/google-drive/drive-service';
+import { prisma } from '@/lib/db';
 
-const prisma = new PrismaClient();
 
 export const runtime = 'nodejs';
 
@@ -158,6 +157,5 @@ export async function GET(req: NextRequest) {
       new URL(`/settings/integrations?error=unexpected: ${encodeURIComponent(error.message)}`, req.url)
     );
   } finally {
-    await prisma.$disconnect();
   }
 }

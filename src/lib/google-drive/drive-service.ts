@@ -12,12 +12,12 @@
  * @author HOLLY AI System
  */
 
+import { prisma } from '@/lib/db';
 import { google } from 'googleapis';
-import { PrismaClient } from '@prisma/client';
+
 import { OAuth2Client } from 'google-auth-library';
 import { getOrCreateUser } from '@/lib/user-manager';
 
-const prisma = new PrismaClient();
 
 // Google Drive API v3
 const drive = google.drive('v3');

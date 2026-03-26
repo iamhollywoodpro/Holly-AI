@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
+import { prisma } from '@/lib/db';
 
 export const runtime = 'nodejs';
 
@@ -24,8 +25,7 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
 
-    const { PrismaClient } = await import('@prisma/client');
-    const prisma = new PrismaClient();
+    // Using shared Prisma singleton
 
     try {
       // Get user's clerkUserId from database
@@ -95,7 +95,6 @@ export async function POST(req: NextRequest) {
       });
 
     } finally {
-      await prisma.$disconnect();
     }
 
   } catch (error: any) {
@@ -117,8 +116,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const requestId = searchParams.get('requestId');
 
-    const { PrismaClient } = await import('@prisma/client');
-    const prisma = new PrismaClient();
+    // Using shared Prisma singleton
 
     try {
       if (requestId) {
@@ -165,7 +163,6 @@ export async function GET(req: NextRequest) {
       }
 
     } finally {
-      await prisma.$disconnect();
     }
 
   } catch (error: any) {
