@@ -30,7 +30,9 @@ import {
   Globe, Code2, Brain, Image, Thermometer,
   Database, Search, Cpu, Zap, X, Bell, TrendingUp,
   ChevronRight, ExternalLink, ThumbsUp, ThumbsDown,
+  Menu, Settings, BarChart3, Bot,
 } from "lucide-react";
+import Link from "next/link";
 import SandboxWindow from "@/components/sandbox-window";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -561,6 +563,179 @@ function ScrollToBottomButton({ onClick, visible }: { onClick: () => void; visib
   );
 }
 
+// ─── Agent Mode Modal (Phase 6D) ──────────────────────────────────────────────
+
+type AgentStep = {
+  stepIndex: number;
+  toolName:  string;
+  status:    "success" | "error" | "skipped";
+  durationMs: number;
+  error?:    string;
+};
+
+function AgentModal({ onClose }: { onClose: () => void }) {
+  const [goal, setGoal]         = useState("");
+  const [running, setRunning]   = useState(false);
+  const [steps, setSteps]       = useState<AgentStep[]>([]);
+  const [summary, setSummary]   = useState("");
+  const [error, setError]       = useState("");
+  const [elapsed, setElapsed]   = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const run = async () => {
+    if (!goal.trim() || running) return;
+    setRunning(true);
+    setSteps([]);
+    setSummary("");
+    setError("");
+    setElapsed(0);
+    timerRef.current = setInterval(() => setElapsed(e => e + 1), 1000);
+
+    try {
+      const res = await fetch("/api/agent/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ goal: goal.trim(), maxSteps: 6 }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Agent run failed");
+      setSteps(data.steps || []);
+      setSummary(data.summary || "Done.");
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setRunning(false);
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
+  };
+
+  const done = summary || error;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <motion.div
+        initial={{ scale: 0.93, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.93, y: 20 }}
+        className="w-full max-w-lg bg-gray-900 border border-gray-700/60 rounded-2xl shadow-2xl overflow-hidden"
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-800">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-purple-500/20 flex items-center justify-center">
+              <Bot className="w-4 h-4 text-purple-400" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-white">HOLLY Agent Mode</p>
+              <p className="text-xs text-gray-500">Autonomous multi-step execution</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-gray-500 hover:text-white hover:bg-gray-800 transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="px-5 py-4 space-y-4">
+          {/* Goal input */}
+          <div>
+            <label className="block text-xs font-medium text-gray-400 mb-1.5">What should HOLLY do?</label>
+            <textarea
+              value={goal}
+              onChange={e => setGoal(e.target.value)}
+              disabled={running}
+              placeholder="e.g. Search GitHub for recent issues in my repo and summarise them"
+              rows={3}
+              className="w-full px-3 py-2.5 bg-gray-800 border border-gray-700/60 rounded-xl text-sm text-white placeholder-gray-600 resize-none focus:outline-none focus:border-purple-500/50 disabled:opacity-50 transition-colors"
+              onKeyDown={e => { if (e.key === "Enter" && e.metaKey) run(); }}
+            />
+            <p className="text-[10px] text-gray-600 mt-1">⌘↵ to run</p>
+          </div>
+
+          {/* Running state */}
+          {running && (
+            <div className="flex items-center gap-3 px-3 py-2.5 bg-purple-500/10 border border-purple-500/20 rounded-xl">
+              <Loader2 className="w-4 h-4 text-purple-400 animate-spin flex-shrink-0" />
+              <div className="min-w-0">
+                <p className="text-sm text-purple-300 font-medium">Planning & executing…</p>
+                <p className="text-xs text-gray-500">{elapsed}s elapsed</p>
+              </div>
+            </div>
+          )}
+
+          {/* Steps */}
+          {steps.length > 0 && (
+            <div className="space-y-1.5">
+              <p className="text-xs font-medium text-gray-400">Executed steps</p>
+              {steps.map((s, i) => (
+                <div key={i} className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs ${
+                  s.status === "success" ? "bg-green-500/10 text-green-300"
+                  : s.status === "error"   ? "bg-red-500/10 text-red-300"
+                  : "bg-gray-800 text-gray-500"
+                }`}>
+                  <span className="flex-shrink-0">{s.status === "success" ? "✓" : s.status === "error" ? "✗" : "–"}</span>
+                  <span className="font-mono truncate flex-1">{s.toolName.replace("::", " › ")}</span>
+                  <span className="flex-shrink-0 text-gray-600">{s.durationMs}ms</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Summary */}
+          {summary && (
+            <div className="px-3 py-3 bg-gray-800/60 border border-gray-700/40 rounded-xl">
+              <p className="text-xs font-medium text-gray-400 mb-1">Summary</p>
+              <p className="text-sm text-gray-200 leading-relaxed">{summary}</p>
+            </div>
+          )}
+
+          {/* Error */}
+          {error && (
+            <div className="px-3 py-2.5 bg-red-500/10 border border-red-500/20 rounded-xl">
+              <p className="text-xs text-red-400">{error}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-5 py-4 border-t border-gray-800 flex items-center justify-between gap-3">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-xs text-gray-400 hover:text-white rounded-lg hover:bg-gray-800 transition-colors"
+          >
+            {done ? "Close" : "Cancel"}
+          </button>
+          {!done && (
+            <button
+              onClick={run}
+              disabled={!goal.trim() || running}
+              className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-medium rounded-lg transition-colors"
+            >
+              {running ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
+              {running ? "Running…" : "Run Agent"}
+            </button>
+          )}
+          {done && !running && (
+            <button
+              onClick={() => { setSteps([]); setSummary(""); setError(""); setGoal(""); }}
+              className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white text-xs font-medium rounded-lg transition-colors"
+            >
+              New task
+            </button>
+          )}
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function HollyChatInterface() {
@@ -575,6 +750,8 @@ export default function HollyChatInterface() {
   const [conversationId] = useState(() => `conv-${Date.now()}`);
   const [initiatives, setInitiatives] = useState<InitiativeItem[]>([]);
   const [initiativeDismissed, setInitiativeDismissed] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
+  const [agentOpen, setAgentOpen] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -806,13 +983,30 @@ export default function HollyChatInterface() {
                 >
                   thinking…
                 </motion.span>
-              ) : "AI Life Partner • Phase 4"}
+              ) : "AI Life Partner • Phase 6"}
             </p>
           </div>
         </div>
 
         {/* Right side controls */}
         <div className="flex items-center gap-2">
+          {/* Agent Mode button */}
+          <button
+            onClick={() => setAgentOpen(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs text-purple-400 border border-purple-500/30 hover:bg-purple-500/10 hover:text-purple-300 transition-colors"
+            title="Agent Mode — autonomous multi-step tasks"
+          >
+            <Bot className="w-3.5 h-3.5" />
+            Agent
+          </button>
+          {/* Nav toggle */}
+          <button
+            onClick={() => setNavOpen(v => !v)}
+            className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
+            title="Navigation"
+          >
+            <Menu className="w-4 h-4" />
+          </button>
           {isProcessing && (
             <motion.button
               initial={{ opacity: 0, scale: 0.8 }}
@@ -835,6 +1029,76 @@ export default function HollyChatInterface() {
           )}
         </div>
       </div>
+
+      {/* ── Nav slide-over ── */}
+      <AnimatePresence>
+        {navOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setNavOpen(false)}
+              className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
+            />
+            {/* Panel */}
+            <motion.div
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              className="fixed right-0 top-0 bottom-0 z-50 w-64 bg-gray-900 border-l border-gray-800 flex flex-col shadow-2xl"
+            >
+              {/* Panel header */}
+              <div className="flex items-center justify-between px-4 py-4 border-b border-gray-800">
+                <span className="text-sm font-semibold text-white">Navigate</span>
+                <button onClick={() => setNavOpen(false)} className="p-1 rounded-md text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Nav links */}
+              <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+                {[
+                  { href: "/chat",       icon: Sparkles,  label: "Chat",            sub: "Talk to HOLLY" },
+                  { href: "/evolution",  icon: TrendingUp, label: "Evolution",       sub: "Growth & patterns" },
+                  { href: "/autonomy",   icon: Bot,        label: "Autonomy",        sub: "Self-improvement" },
+                  { href: "/settings",   icon: Settings,   label: "Settings",        sub: "Preferences" },
+                  { href: "/onboarding", icon: BarChart3,  label: "Partner Setup",   sub: "Dev / Life / Creative" },
+                ].map(({ href, icon: Icon, label, sub }) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    onClick={() => setNavOpen(false)}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-300 hover:text-white hover:bg-gray-800 transition-colors group"
+                  >
+                    <div className="w-8 h-8 rounded-md bg-gray-800 group-hover:bg-purple-500/20 flex items-center justify-center flex-shrink-0 transition-colors">
+                      <Icon className="w-4 h-4 text-gray-400 group-hover:text-purple-400" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium leading-none mb-0.5">{label}</p>
+                      <p className="text-xs text-gray-500 truncate">{sub}</p>
+                    </div>
+                  </Link>
+                ))}
+              </nav>
+
+              {/* Bottom: feedback stats teaser */}
+              <div className="px-4 py-4 border-t border-gray-800">
+                <p className="text-xs text-gray-600 text-center">
+                  Rate responses with 👍/👎 to train HOLLY
+                </p>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* ── Agent Mode modal (Phase 6D) ── */}
+      <AnimatePresence>
+        {agentOpen && <AgentModal onClose={() => setAgentOpen(false)} />}
+      </AnimatePresence>
 
       {/* ── Messages ── */}
       <div
@@ -881,6 +1145,14 @@ export default function HollyChatInterface() {
                   </button>
                 ))}
               </div>
+              {/* Agent mode CTA */}
+              <button
+                onClick={() => setAgentOpen(true)}
+                className="mt-4 flex items-center gap-2 px-4 py-2.5 bg-purple-600/20 border border-purple-500/30 rounded-xl text-sm text-purple-300 hover:bg-purple-600/30 hover:text-purple-200 transition-all"
+              >
+                <Bot className="w-4 h-4" />
+                Try Agent Mode — give me a goal, I'll handle it
+              </button>
             </motion.div>
           )}
         </AnimatePresence>
