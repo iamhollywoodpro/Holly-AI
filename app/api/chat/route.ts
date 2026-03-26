@@ -1,14 +1,13 @@
 /**
- * HOLLY Chat API Route — Phase 4A: Expanded MCP Tool Suite
+ * HOLLY Chat API Route — Phase 6A: Personalisation Wiring
  *
  * Phase 1:  Live HollyIdentity injection, AutoConsciousness, real MCP server,
  *           topic-intersection memory scoring.
  * Phase 2:  Emotion engine, Taste engine, Evolution trigger wired.
  * Phase 3:  LLM-based message analyser, Identity evolver, cron jobs.
- * Phase 4A: MCP server expanded to 15 tools across 5 groups:
- *           GitHub (read+write), Web Intelligence, Code Execution,
- *           Memory/Knowledge, Creative/Utility.
- *           Tool awareness block injected into system prompt.
+ * Phase 4A: MCP server expanded to 15 tools across 5 groups.
+ * Phase 6A: Partner directives (Dev/Life/Creative) + top LearningPatterns
+ *           now injected into every system prompt via getIdentityContext.
  */
 
 import { NextResponse, NextRequest } from 'next/server';
@@ -107,7 +106,7 @@ export async function POST(req: NextRequest) {
     // Run memory retrieval and identity load concurrently
     const [memoryContext, identityCtx] = await Promise.all([
       dbUserId ? getRelevantMemories(dbUserId, currentTopics) : Promise.resolve(''),
-      dbUserId ? getIdentityContext(dbUserId) : Promise.resolve({ promptBlock: '', tasteDirectives: '', raw: { identity: null, goals: [], emotionalState: null, taste: null } }),
+      dbUserId ? getIdentityContext(dbUserId) : Promise.resolve({ promptBlock: '', tasteDirectives: '', partnerDirectives: '', raw: { identity: null, goals: [], emotionalState: null, taste: null, patterns: [], partner: null } }),
     ]);
 
     // 8. BUILD SYSTEM PROMPT ───────────────────────────────────────────────────
@@ -121,6 +120,14 @@ export async function POST(req: NextRequest) {
     // Phase 2C: inject taste-driven style directives
     if (identityCtx.tasteDirectives) {
       hollySystemPrompt += identityCtx.tasteDirectives;
+    }
+
+    // Phase 6A: inject partner mode + LearningPattern context
+    if (identityCtx.partnerDirectives) {
+      hollySystemPrompt += identityCtx.partnerDirectives;
+      const tier = identityCtx.raw.partner?.tier;
+      const patterns = identityCtx.raw.patterns?.length ?? 0;
+      console.log(`[Chat API] 🤝 Partner: ${tier || 'none'} | 📚 Patterns: ${patterns}`);
     }
 
     // Phase 1F: topic-scored memory context
