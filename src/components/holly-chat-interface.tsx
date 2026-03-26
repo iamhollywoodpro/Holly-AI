@@ -30,7 +30,7 @@ import {
   Globe, Code2, Brain, Image, Thermometer,
   Database, Search, Cpu, Zap, X, Bell, TrendingUp,
   ChevronRight, ExternalLink, ThumbsUp, ThumbsDown,
-  Menu, Settings, BarChart3, Bot,
+  Menu, Settings, BarChart3, Bot, Key,
 } from "lucide-react";
 import Link from "next/link";
 import SandboxWindow from "@/components/sandbox-window";
@@ -1161,7 +1161,7 @@ export default function HollyChatInterface() {
                 >
                   thinking…
                 </motion.span>
-              ) : "AI Life Partner • Phase 6"}
+              ) : "AI Life Partner • Phase 7"}
             </p>
           </div>
         </div>
@@ -1239,11 +1239,12 @@ export default function HollyChatInterface() {
               {/* Nav links */}
               <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
                 {[
-                  { href: "/chat",       icon: Sparkles,  label: "Chat",            sub: "Talk to HOLLY" },
-                  { href: "/evolution",  icon: TrendingUp, label: "Evolution",       sub: "Growth & patterns" },
-                  { href: "/autonomy",   icon: Bot,        label: "Autonomy",        sub: "Self-improvement" },
-                  { href: "/settings",   icon: Settings,   label: "Settings",        sub: "Preferences" },
-                  { href: "/onboarding", icon: BarChart3,  label: "Partner Setup",   sub: "Dev / Life / Creative" },
+                  { href: "/chat",              icon: Sparkles,   label: "Chat",            sub: "Talk to HOLLY" },
+                  { href: "/evolution",         icon: TrendingUp, label: "Evolution",       sub: "Growth & patterns" },
+                  { href: "/autonomy",          icon: Bot,        label: "Autonomy",        sub: "Self-improvement" },
+                  { href: "/settings",          icon: Settings,   label: "Settings",        sub: "Preferences" },
+                  { href: "/settings/api-keys", icon: Key,        label: "API Keys",        sub: "Phase 7 — developer access" },
+                  { href: "/onboarding",        icon: BarChart3,  label: "Partner Setup",   sub: "Dev / Life / Creative" },
                 ].map(({ href, icon: Icon, label, sub }) => (
                   <Link
                     key={href}
@@ -1583,7 +1584,7 @@ export default function HollyChatInterface() {
             Evolution dashboard
           </a>
           <p className="text-[10px] text-gray-700">
-            HOLLY · Phase 6 · 15 tools · Enter sends
+            HOLLY · Phase 7 · 15 tools · Enter sends
           </p>
           <a
             href="/onboarding"

@@ -13,6 +13,7 @@ import {
   UserCircleIcon,
   CommandLineIcon,
   ArrowLeftIcon,
+  KeyIcon,
 } from '@heroicons/react/24/outline';
 import { ReactNode } from 'react';
 import { SettingsToast } from '@/components/notifications/SettingsToast';
@@ -29,6 +30,7 @@ const settingsSections = [
   { name: 'AI Behavior', href: '/settings/ai-behavior', icon: CpuChipIcon },
   { name: 'Notifications', href: '/settings/notifications', icon: BellIcon },
   { name: 'Developer Tools', href: '/settings/developer', icon: CodeBracketIcon },
+  { name: 'API Keys',        href: '/settings/api-keys', icon: KeyIcon },
   { name: 'Account & Billing', href: '/account', icon: UserCircleIcon },
   { name: 'Keyboard Shortcuts', href: '/settings/shortcuts', icon: CommandLineIcon },
 ];

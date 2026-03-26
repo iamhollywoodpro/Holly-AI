@@ -114,6 +114,9 @@ model User {
   auraAnalyses AuraAnalysis[]
   collections  Collection[]
 
+  // Phase 7: Public API Layer
+  apiKeys      ApiKey[]
+
   @@map("users")
 }
 
@@ -3803,4 +3806,57 @@ model TasteProfile {
   updatedAt  DateTime @updatedAt
 
   @@map("taste_profiles")
+}
+
+// ============================================================================
+// PHASE 7 — PUBLIC API LAYER
+// ============================================================================
+
+/// API key issued to a user for programmatic access to the HOLLY API.
+/// The `keyHash` field stores a SHA-256 hex digest of the raw key so the
+/// plaintext is never stored.  The raw key is returned ONCE at creation.
+model ApiKey {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name        String                    // human label, e.g. "My App"
+  keyHash     String    @unique         // SHA-256(rawKey) — never store plaintext
+  keyPrefix   String                    // first 8 chars of raw key for display ("holly_ab12")
+  scopes      String[]  @default([])    // e.g. ["chat", "evolution:read"]
+  isActive    Boolean   @default(true)
+  expiresAt   DateTime?                 // null = never expires
+
+  // Rate limiting (requests per minute, per day)
+  rpmLimit    Int       @default(20)
+  rpdLimit    Int       @default(1000)
+
+  lastUsedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  usageLogs   ApiKeyUsage[]
+
+  @@index([userId])
+  @@index([keyHash])
+  @@map("api_keys")
+}
+
+/// Per-request usage log for an ApiKey — used for rate limiting and analytics.
+model ApiKeyUsage {
+  id         String   @id @default(cuid())
+  apiKeyId   String
+  apiKey     ApiKey   @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+
+  endpoint   String               // e.g. "/api/v1/chat"
+  method     String   @default("POST")
+  statusCode Int      @default(200)
+  durationMs Int      @default(0)
+  tokensIn   Int      @default(0)
+  tokensOut  Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  @@index([apiKeyId])
+  @@index([apiKeyId, createdAt])
+  @@map("api_key_usage")
 }

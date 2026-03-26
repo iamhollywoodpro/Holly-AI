@@ -7,6 +7,7 @@ const isPublicRoute = createRouteMatcher([
   '/api/webhooks/(.*)',     // Clerk + GitHub webhooks must be public
   '/offline',
   '/download/(.*)',         // public download links
+  '/api/v1/(.*)',          // Phase 7: public API — uses Bearer API-key auth, NOT Clerk
 ]);
 
 export default clerkMiddleware((auth, req) => {
