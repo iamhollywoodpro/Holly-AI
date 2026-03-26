@@ -1,13 +1,25 @@
 /**
- * HOLLY Chat API Route — Phase 6A: Personalisation Wiring
+ * HOLLY Chat API Route — Phase 8A: Smart Free-Model Router
  *
  * Phase 1:  Live HollyIdentity injection, AutoConsciousness, real MCP server,
  *           topic-intersection memory scoring.
  * Phase 2:  Emotion engine, Taste engine, Evolution trigger wired.
  * Phase 3:  LLM-based message analyser, Identity evolver, cron jobs.
  * Phase 4A: MCP server expanded to 15 tools across 5 groups.
- * Phase 6A: Partner directives (Dev/Life/Creative) + top LearningPatterns
- *           now injected into every system prompt via getIdentityContext.
+ * Phase 6A: Partner directives (Dev/Life/Creative) + top LearningPatterns.
+ * Phase 8A: Smart free-model router — Kimi K2.5 (Cloudflare), Qwen3-235B
+ *           (NVIDIA NIM), Gemini 2.5 Flash, Groq Llama-3.3, OpenRouter free
+ *           pool, Ollama local — task-aware routing + cascade fallback.
+ *
+ * Routing matrix:
+ *   speed       → Groq Llama-3.3-70B (300+ tok/s)
+ *   coding      → Kimi K2.5 (CF) → Qwen3-235B (NVIDIA) → Groq
+ *   reasoning   → Qwen3-235B (NVIDIA) → DeepSeek-R1 → Kimi K2.5
+ *   long_context→ Gemini 2.5 Flash (1M ctx) → Kimi K2.5
+ *   vision      → Gemini 2.5 Flash → OpenRouter
+ *   creative    → OpenRouter free pool → Groq → Gemini
+ *   agent       → Kimi K2.5 (tool-calling) → Qwen3-235B → Groq
+ *   local       → Ollama (unlimited, zero cost)
  */
 
 import { NextResponse, NextRequest } from 'next/server';
@@ -17,20 +29,21 @@ import { prisma } from '@/lib/db';
 import { getRelevantMemories, extractMemories } from '@/lib/memory-service';
 import { detectMode, getSystemPromptForMode, HOLLY_MODES } from '@/lib/holly-modes';
 import { getOrCreateUser } from '@/lib/user-manager';
-import { ModelRouter } from '@/lib/ai/router';
-import { RAGService } from '@/lib/ai/rag-service';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { mcpManager } from '@/lib/mcp/mcp-client';
 import { getIdentityContext } from '@/lib/identity/identity-context';
 import { recordExchange, extractTopics } from '@/lib/consciousness/post-response-hook';
+import { smartRoute, classifyTask } from '@/src/lib/ai/smart-router';
+import { cascade } from '@/src/lib/ai/cascade';
+import type { ChatMessage } from '@/src/lib/ai/providers/free-providers';
 
 // ─── runtime ──────────────────────────────────────────────────────────────────
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-// ─── singletons ───────────────────────────────────────────────────────────────
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || '' });
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+// Groq client (still used for tool-calling which needs its native function API)
+const groqClient = process.env.GROQ_API_KEY
+  ? new Groq({ apiKey: process.env.GROQ_API_KEY })
+  : null;
 
 // Phase 1E: connect MCP once at module load (not per request)
 mcpManager.ensureHollyTools().catch(err =>
@@ -66,13 +79,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized: No active session' }, { status: 401 });
     }
 
-    // 2. VALIDATE API KEY ──────────────────────────────────────────────────────
-    if (!process.env.GROQ_API_KEY) {
-      console.error('[Chat API] ❌ GROQ_API_KEY missing');
-      return NextResponse.json({ error: 'API key not configured' }, { status: 500 });
-    }
-
-    // 3. PARSE REQUEST ─────────────────────────────────────────────────────────
+    // 2. PARSE REQUEST ─────────────────────────────────────────────────────────
     const body = await req.json();
     const { messages: userMessages, conversationId } = body;
 
@@ -83,7 +90,7 @@ export async function POST(req: NextRequest) {
     const latestUserMessage: string = userMessages[userMessages.length - 1]?.content || '';
     console.log('[Chat API] Processing', userMessages.length, 'messages');
 
-    // 4. USER RECORD ───────────────────────────────────────────────────────────
+    // 3. USER RECORD ───────────────────────────────────────────────────────────
     let dbUserId: string | null = null;
     let userName = 'User';
     try {
@@ -94,54 +101,50 @@ export async function POST(req: NextRequest) {
       console.warn('[Chat API] Could not load user:', e);
     }
 
-    // 5. MODE DETECTION ────────────────────────────────────────────────────────
+    // 4. MODE DETECTION ────────────────────────────────────────────────────────
     const detectedMode = detectMode(latestUserMessage);
-    const currentMode = HOLLY_MODES[detectedMode];
+    const currentMode  = HOLLY_MODES[detectedMode];
     console.log('[Chat API] 🎯 Mode:', currentMode.name);
 
-    // 6. TOPIC EXTRACTION (Phase 1F) ───────────────────────────────────────────
+    // 5. TOPIC EXTRACTION ──────────────────────────────────────────────────────
     const currentTopics = extractTopics(latestUserMessage);
 
-    // 7. PARALLEL CONTEXT FETCH ───────────────────────────────────────────────
-    // Run memory retrieval and identity load concurrently
+    // 6. PARALLEL CONTEXT FETCH ────────────────────────────────────────────────
     const [memoryContext, identityCtx] = await Promise.all([
       dbUserId ? getRelevantMemories(dbUserId, currentTopics) : Promise.resolve(''),
-      dbUserId ? getIdentityContext(dbUserId) : Promise.resolve({ promptBlock: '', tasteDirectives: '', partnerDirectives: '', raw: { identity: null, goals: [], emotionalState: null, taste: null, patterns: [], partner: null } }),
+      dbUserId
+        ? getIdentityContext(dbUserId)
+        : Promise.resolve({
+            promptBlock: '', tasteDirectives: '', partnerDirectives: '',
+            raw: { identity: null, goals: [], emotionalState: null, taste: null, patterns: [], partner: null },
+          }),
     ]);
 
-    // 8. BUILD SYSTEM PROMPT ───────────────────────────────────────────────────
+    // 7. BUILD SYSTEM PROMPT ───────────────────────────────────────────────────
     let hollySystemPrompt = getSystemPromptForMode(detectedMode, userName);
 
-    // Phase 1C: inject live identity state
-    if (identityCtx.promptBlock) {
-      hollySystemPrompt += identityCtx.promptBlock;
-    }
+    if (identityCtx.promptBlock)     hollySystemPrompt += identityCtx.promptBlock;
+    if (identityCtx.tasteDirectives) hollySystemPrompt += identityCtx.tasteDirectives;
 
-    // Phase 2C: inject taste-driven style directives
-    if (identityCtx.tasteDirectives) {
-      hollySystemPrompt += identityCtx.tasteDirectives;
-    }
-
-    // Phase 6A: inject partner mode + LearningPattern context
     if (identityCtx.partnerDirectives) {
       hollySystemPrompt += identityCtx.partnerDirectives;
-      const tier = identityCtx.raw.partner?.tier;
+      const tier     = identityCtx.raw.partner?.tier;
       const patterns = identityCtx.raw.patterns?.length ?? 0;
       console.log(`[Chat API] 🤝 Partner: ${tier || 'none'} | 📚 Patterns: ${patterns}`);
     }
 
-    // Phase 1F: topic-scored memory context
     if (memoryContext) {
       hollySystemPrompt += `\n\n## Your Memories\nHere's what you remember about ${userName}:\n${memoryContext}`;
     }
 
-    // Phase 4A: inject tool awareness so HOLLY knows what she can do
-    const mcpToolsForPrompt = await mcpManager.getAllTools();
-    if (mcpToolsForPrompt.length > 0) {
-      const toolSummary = mcpToolsForPrompt
-        .map(t => `  \u2022 **${t.name}** \u2013 ${t.description.split('.')[0]}`)
+    // 8. MCP TOOLS ─────────────────────────────────────────────────────────────
+    const mcpTools = await mcpManager.getAllTools();
+    if (mcpTools.length > 0) {
+      const toolSummary = mcpTools
+        .map(t => `  • **${t.name}** – ${t.description.split('.')[0]}`)
         .join('\n');
-      hollySystemPrompt += `\n\n## Your Active Tools (${mcpToolsForPrompt.length} tools)\nUse these proactively \u2014 don't just describe how to do something if you can actually do it:\n${toolSummary}`;
+      hollySystemPrompt += `\n\n## Your Active Tools (${mcpTools.length} tools)\nUse these proactively:\n${toolSummary}`;
+      console.log(`[Chat API] 🔧 ${mcpTools.length} MCP tools loaded`);
     }
 
     // 9. PREPARE MESSAGES ──────────────────────────────────────────────────────
@@ -150,25 +153,21 @@ export async function POST(req: NextRequest) {
       ...userMessages.map((msg: any) => ({ role: msg.role, content: msg.content })),
     ];
 
-    // 10. MODEL ROUTING ────────────────────────────────────────────────────────
-    const routing = ModelRouter.route(latestUserMessage);
-    console.log('[Chat API] 🛤️ Route:', routing.model, `(${routing.reason})`);
+    // 10. SMART MODEL ROUTING (Phase 8A) ───────────────────────────────────────
+    const taskType = classifyTask(latestUserMessage);
+    const routing  = smartRoute(latestUserMessage, { forceTask: taskType });
+    console.log(`[Chat API] 🛤️  Task: ${taskType} → ${routing.primary.displayName}`);
+    console.log(`[Chat API] 📋 Waterfall: ${routing.waterfall.map(s => s.displayName).join(' → ')}`);
 
-    // 11. MCP TOOLS ────────────────────────────────────────────────────────────
-    // Tools are loaded from the already-connected singleton — no per-request spawn
-    // (mcpToolsForPrompt already fetched above; re-use it here)
-    const mcpTools = mcpToolsForPrompt;
-    if (mcpTools.length > 0) {
-      console.log(`[Chat API] 🔧 ${mcpTools.length} MCP tools:`, mcpTools.map(t => t.name).join(', '));
-    }
+    // 11. MCP tool specs (Groq-format; used when Groq is in waterfall) ─────────
     const groqTools =
       mcpTools.length > 0
         ? mcpTools.map(t => ({
             type: 'function',
             function: {
-              name: `mcp_${t.serverId}_${t.name}`,
+              name:        `mcp_${t.serverId}_${t.name}`,
               description: t.description,
-              parameters: t.inputSchema || { type: 'object', properties: {} },
+              parameters:  t.inputSchema || { type: 'object', properties: {} },
             },
           }))
         : undefined;
@@ -177,143 +176,152 @@ export async function POST(req: NextRequest) {
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          // Local model signal
-          if (routing.model === 'web-llm' || routing.model === 'local-qwen-7b') {
-            console.log(`[Chat API] 🌐 ${routing.model} – signaling frontend`);
-            controller.enqueue(
-              new TextEncoder().encode(
-                `data: ${JSON.stringify({ type: 'signal', content: routing.model })}\n\n`
-              )
-            );
-            controller.close();
-            return;
-          }
+          const taskEmojis: Record<string, string> = {
+            speed: '⚡', coding: '💻', reasoning: '🧠',
+            long_context: '📄', vision: '👁️', creative: '✨',
+            agent: '🤖', local: '🔒',
+          };
+          sendStatus(controller, `${taskEmojis[taskType] ?? '🤔'} ${routing.reason}...`);
 
-          sendStatus(controller, '🤔 Thinking...');
           let fullResponse = '';
+          let activeModel  = routing.primary.displayName;
 
-          // ── Ollama path (Phase 4B — local LLM) ────────────────────────────
-          if (routing.model === 'ollama') {
-            const ollamaModel = (routing as any).ollamaModel || undefined;
-            sendStatus(controller, `🦙 Thinking locally (${ollamaModel || 'ollama'})...`);
-            try {
-              const ollamaMessages = messages.map((m: any) => ({
-                role: m.role as 'system' | 'user' | 'assistant',
-                content: m.content || '',
-              }));
-              for await (const token of ollamaService.chatStream(ollamaMessages, {
-                model: ollamaModel,
-                temperature: 0.7,
-                maxTokens: 4096,
-              })) {
-                fullResponse += token;
-                sendText(controller, token);
-              }
-            } catch (ollamaErr: any) {
-              // Ollama failed — fall back to Groq gracefully
-              console.warn('[Chat] Ollama stream failed, falling back to Groq:', ollamaErr.message);
-              sendStatus(controller, '⚡ Switching to cloud model...');
-              const fallback = await groq.chat.completions.create({
-                messages: messages as any,
-                model: 'llama-3.3-70b-versatile',
-                temperature: 0.7,
-                max_tokens: 4096,
-                stream: true,
-              });
-              for await (const chunk of fallback) {
-                const text = chunk.choices[0]?.delta?.content || '';
-                if (text) { fullResponse += text; sendText(controller, text); }
-              }
-            }
-
-          // ── Gemini path ────────────────────────────────────────────────────
-          } else if (routing.model === 'google-gemini-2.0') {
-            sendStatus(controller, '🔍 Searching knowledge base...');
-            const searchResults = await RAGService.queryCodebase(latestUserMessage);
-            if (searchResults.length > 0) {
-              messages[0].content += `\n\n## Additional Codebase Context\n${RAGService.formatContext(searchResults)}`;
-            }
-
-            sendStatus(controller, '💭 Gemini is responding...');
-            const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
-            const geminiMessages = messages.map(msg => ({
-              role: msg.role === 'assistant' ? 'model' : msg.role,
-              parts: [{ text: msg.content }],
+          // Normalise messages for cascade adapters (strip tool-call entries)
+          const cascadeMessages: ChatMessage[] = messages
+            .filter((m: any) => ['system', 'user', 'assistant'].includes(m.role) && m.content)
+            .map((m: any) => ({
+              role:    m.role as 'system' | 'user' | 'assistant',
+              content: String(m.content),
             }));
 
-            const result = await model.generateContentStream({
-              contents: geminiMessages as any,
-              generationConfig: { maxOutputTokens: 4096, temperature: 0.7 },
-            });
+          // ── Determine waterfall ──────────────────────────────────────────────
+          // If MCP tools are available, prefer Groq first (only provider with
+          // native function-calling); keep rest as text-only fallback.
+          let waterfall = routing.waterfall;
+          if (groqTools && groqTools.length > 0 && groqClient) {
+            const groqSpec = waterfall.find(s => s.provider === 'groq') ?? {
+              provider:    'groq'  as const,
+              model:       'llama-3.3-70b-versatile',
+              displayName: 'Llama 3.3 70B (Groq)',
+              contextK:    128,
+              streaming:   true,
+            };
+            waterfall = [groqSpec, ...waterfall.filter(s => s.provider !== 'groq')];
+          }
 
-            for await (const chunk of result.stream) {
-              const text = chunk.text();
-              if (text) { fullResponse += text; sendText(controller, text); }
-            }
+          // ── Tool-call loop (Groq only) + text cascade ────────────────────────
+          let toolLoops       = 0;
+          const MAX_TOOL_LOOPS = 5;
+          let pendingMessages  = [...cascadeMessages];
 
-          // ── Groq path (default) ────────────────────────────────────────────
-          } else {
-            let toolCallActive = true;
-            while (toolCallActive) {
-              const completion = await groq.chat.completions.create({
-                messages: messages as any,
-                model: 'llama-3.3-70b-versatile',
-                temperature: 0.7,
-                max_tokens: 4096,
-                tools: groqTools as any,
-                tool_choice: 'auto',
-                stream: true,
-              });
+          while (toolLoops < MAX_TOOL_LOOPS) {
+            toolLoops++;
+            const firstSpec   = waterfall[0];
+            const useGroqTools = firstSpec?.provider === 'groq' &&
+                                 groqTools && groqTools.length > 0 &&
+                                 groqClient;
 
+            if (useGroqTools && groqClient) {
+              // ── Groq with function-calling ──────────────────────────────────
               let isToolCall = false;
-              let toolName = '';
-              let toolArgs = '';
+              let toolName   = '';
+              let toolArgs   = '';
               let toolCallId = '';
 
-              for await (const chunk of completion) {
-                const delta = chunk.choices[0]?.delta;
-                const content = delta?.content || '';
-                if (content && !isToolCall) { fullResponse += content; sendText(controller, content); }
+              try {
+                const completion = await groqClient.chat.completions.create({
+                  messages:    pendingMessages as any,
+                  model:       'llama-3.3-70b-versatile',
+                  temperature: 0.7,
+                  max_tokens:  4096,
+                  tools:       groqTools as any,
+                  tool_choice: 'auto',
+                  stream:      true,
+                });
 
-                if (delta?.tool_calls?.length) {
-                  isToolCall = true;
-                  const tool = delta.tool_calls[0];
-                  if (tool.id) toolCallId = tool.id;
-                  if (tool.function?.name) toolName = tool.function.name;
-                  if (tool.function?.arguments) toolArgs += tool.function.arguments;
+                for await (const chunk of completion) {
+                  const delta   = chunk.choices[0]?.delta;
+                  const content = delta?.content || '';
+                  if (content && !isToolCall) {
+                    fullResponse += content;
+                    sendText(controller, content);
+                  }
+                  if (delta?.tool_calls?.length) {
+                    isToolCall = true;
+                    const tool = delta.tool_calls[0];
+                    if (tool.id)               toolCallId = tool.id;
+                    if (tool.function?.name)   toolName   = tool.function.name;
+                    if (tool.function?.arguments) toolArgs += tool.function.arguments;
+                  }
                 }
+              } catch (groqErr: any) {
+                // Groq failed — cascade to rest of waterfall (text-only)
+                console.warn('[Chat] Groq failed, cascading:', groqErr.message);
+                sendStatus(controller, '🔄 Switching model...');
+                const fallbackWaterfall = waterfall.filter(s => s.provider !== 'groq');
+                for await (const token of cascade(fallbackWaterfall, pendingMessages, {
+                  temperature: 0.7, maxTokens: 4096, sessionId: conversationId,
+                  onModelSelected: (s, i) => {
+                    activeModel = s.displayName;
+                    if (i > 0) sendStatus(controller, `🔄 Trying ${s.displayName}...`);
+                  },
+                  onModelFailed: (s, e) => console.warn(`[Chat] ${s.displayName} failed: ${e.message}`),
+                })) {
+                  fullResponse += token;
+                  sendText(controller, token);
+                }
+                break;
               }
 
+              // Handle tool call
               if (isToolCall && toolName) {
                 sendStatus(controller, `🔧 Using ${toolName}...`);
                 try {
                   const argsParsed = JSON.parse(toolArgs || '{}');
-                  const matches = toolName.match(/^mcp_([^_]+)_(.+)$/);
-                  if (matches) {
-                    const [, serverId, realToolName] = matches;
+                  const toolMatch  = toolName.match(/^mcp_([^_]+)_(.+)$/);
+                  if (toolMatch) {
+                    const [, serverId, realToolName] = toolMatch;
                     const result = await mcpManager.callTool(serverId, realToolName, argsParsed);
-                    messages.push({
-                      role: 'assistant',
-                      content: null,
-                      tool_calls: [{ id: toolCallId, type: 'function', function: { name: toolName, arguments: toolArgs } }],
-                    } as any);
-                    messages.push({ role: 'tool', tool_call_id: toolCallId, name: toolName, content: JSON.stringify(result) } as any);
+                    // Inject tool result as user message for next loop (compatible with all providers)
+                    pendingMessages.push({
+                      role:    'assistant',
+                      content: `I'll use the ${toolName} tool now.`,
+                    });
+                    pendingMessages.push({
+                      role:    'user',
+                      content: `Tool result for ${toolName}:\n${JSON.stringify(result, null, 2)}`,
+                    });
                   } else {
-                    toolCallActive = false;
+                    break;
                   }
-                } catch (err) {
-                  console.error('[Chat API] Tool execution failed', err);
-                  toolCallActive = false;
+                } catch (toolErr) {
+                  console.error('[Chat API] Tool execution failed', toolErr);
+                  break;
                 }
               } else {
-                toolCallActive = false;
+                break; // no more tool calls
               }
+
+            } else {
+              // ── Pure text cascade (no tool-calling) ──────────────────────────
+              for await (const token of cascade(waterfall, pendingMessages, {
+                temperature: 0.7, maxTokens: 4096, sessionId: conversationId,
+                onModelSelected: (s, attempt) => {
+                  activeModel = s.displayName;
+                  if (attempt > 0) sendStatus(controller, `🔄 Trying ${s.displayName}...`);
+                },
+                onModelFailed: (s, e) => console.warn(`[Chat] ${s.displayName} failed: ${e.message}`),
+              })) {
+                fullResponse += token;
+                sendText(controller, token);
+              }
+              break;
             }
           }
 
-          console.log('[Chat API] ✅ Stream complete');
+          console.log(`[Chat API] ✅ Completed via ${activeModel}`);
 
-          // 13. SAVE TO DATABASE ───────────────────────────────────────────────
+          // 13. SAVE TO DATABASE ──────────────────────────────────────────────────
           if (dbUserId && conversationId) {
             try {
               await prisma.message.create({
@@ -325,7 +333,7 @@ export async function POST(req: NextRequest) {
               await prisma.conversation.update({
                 where: { id: conversationId },
                 data: {
-                  messageCount: { increment: 2 },
+                  messageCount:      { increment: 2 },
                   lastMessagePreview: fullResponse.substring(0, 100) + (fullResponse.length > 100 ? '...' : ''),
                 },
               });
@@ -335,26 +343,24 @@ export async function POST(req: NextRequest) {
             }
           }
 
-          // 14. BACKGROUND WORK (fire-and-forget) ────────────────────────────
+          // 14. BACKGROUND WORK (fire-and-forget) ───────────────────────────────
           if (dbUserId && conversationId && fullResponse) {
-            // Extract LLM memories
             extractMemories(conversationId, [
-              ...messages.slice(1).filter(m => m.role !== 'tool'),
+              ...messages.slice(1).filter((m: any) => m.role !== 'tool'),
               { role: 'assistant', content: fullResponse },
             ]).catch(err => console.error('[Chat API] Memory extraction failed:', err));
 
-            // Phase 1D: record exchange in consciousness system
             void recordExchange({
-              userId: dbUserId,
+              userId:            dbUserId,
               conversationId,
-              userMessage: latestUserMessage,
+              userMessage:       latestUserMessage,
               assistantResponse: fullResponse,
               detectedMode,
-              topics: currentTopics,
+              topics:            currentTopics,
             });
           }
 
-          // Done signal
+          // Done
           controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ type: 'done' })}\n\n`));
           controller.close();
 
@@ -373,7 +379,7 @@ export async function POST(req: NextRequest) {
       headers: {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
+        'Connection':    'keep-alive',
       },
     });
 

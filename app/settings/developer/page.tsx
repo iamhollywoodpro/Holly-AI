@@ -1,18 +1,70 @@
 'use client';
 
 import { useSettings } from '@/lib/settings/settings-store';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { ArrowDownTrayIcon, DocumentDuplicateIcon } from '@heroicons/react/24/outline';
+
+// ── AI Router status types ────────────────────────────────────────────────────
+
+interface ProviderInfo {
+  id:          string;
+  name:        string;
+  configured:  boolean;
+  models:      string[];
+  tasks:       string[];
+  freeQuota:   string;
+  signupUrl:   string;
+}
+
+interface RouterStatus {
+  phase:             string;
+  status:            'healthy' | 'partial' | 'degraded';
+  providers_total:   number;
+  providers_active:  number;
+  providers:         ProviderInfo[];
+  routing_matrix:    Record<string, string[]>;
+  note:              string;
+}
+
+// ─── Provider icons ───────────────────────────────────────────────────────────
+
+const PROVIDER_ICONS: Record<string, string> = {
+  groq:       '⚡',
+  gemini:     '✨',
+  cf_workers: '☁️',
+  nvidia_nim: '🟩',
+  openrouter: '🔀',
+  ollama:     '🖥️',
+};
+
+const TASK_EMOJIS: Record<string, string> = {
+  speed: '⚡', coding: '💻', reasoning: '🧠',
+  long_context: '📄', vision: '👁️', creative: '✨',
+  agent: '🤖', local: '🔒',
+};
 
 export default function DeveloperPage() {
   const { settings, updateSettings, loadSettings, isSaving, exportSettings, resetToDefaults } =
     useSettings();
   const [exportedJson, setExportedJson] = useState('');
+  const [routerStatus, setRouterStatus] = useState<RouterStatus | null>(null);
+  const [routerLoading, setRouterLoading] = useState(false);
+  const [showRouting, setShowRouting] = useState(false);
+
+  const loadRouterStatus = useCallback(async () => {
+    setRouterLoading(true);
+    try {
+      const res = await fetch('/api/v1/status');
+      if (res.ok) setRouterStatus(await res.json());
+    } catch {}
+    setRouterLoading(false);
+  }, []);
   const [showExport, setShowExport] = useState(false);
 
   useEffect(() => {
     loadSettings();
-  }, []);
+    loadRouterStatus();
+  }, [loadRouterStatus]);
 
   const handleExport = () => {
     const json = exportSettings();
@@ -196,6 +248,136 @@ export default function DeveloperPage() {
           </div>
         </div>
       )}
+
+      {/* ── AI Model Router Status (Phase 8A) ── */}
+      <div className="space-y-4 pt-6 border-t border-gray-800">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+              🛤️ AI Model Router
+              <span className="text-xs font-normal px-2 py-0.5 bg-purple-500/20 text-purple-300 rounded-full border border-purple-500/30">
+                Phase 8A
+              </span>
+            </h3>
+            <p className="text-xs text-gray-400 mt-0.5">
+              Task-aware routing across 6 free providers with cascade fallback
+            </p>
+          </div>
+          <button
+            onClick={loadRouterStatus}
+            disabled={routerLoading}
+            className="text-xs px-3 py-1.5 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg text-gray-300 transition-colors flex items-center gap-1.5"
+          >
+            {routerLoading ? (
+              <span className="inline-block w-3 h-3 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <span>↻</span>
+            )}
+            Refresh
+          </button>
+        </div>
+
+        {routerStatus && (
+          <div className="space-y-3">
+            {/* Summary bar */}
+            <div className={`flex items-center gap-3 px-4 py-3 rounded-lg border ${
+              routerStatus.status === 'healthy'  ? 'bg-green-500/10 border-green-500/30' :
+              routerStatus.status === 'partial'  ? 'bg-yellow-500/10 border-yellow-500/30' :
+                                                   'bg-red-500/10 border-red-500/30'
+            }`}>
+              <span className="text-lg">
+                {routerStatus.status === 'healthy' ? '✅' : routerStatus.status === 'partial' ? '⚠️' : '❌'}
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className={`text-sm font-medium ${
+                  routerStatus.status === 'healthy' ? 'text-green-300' :
+                  routerStatus.status === 'partial' ? 'text-yellow-300' : 'text-red-300'
+                }`}>
+                  {routerStatus.providers_active}/{routerStatus.providers_total} providers active
+                </p>
+                <p className="text-xs text-gray-400 truncate">{routerStatus.note}</p>
+              </div>
+            </div>
+
+            {/* Provider cards */}
+            <div className="grid grid-cols-1 gap-2">
+              {routerStatus.providers.map(p => (
+                <div
+                  key={p.id}
+                  className={`flex items-start gap-3 px-4 py-3 rounded-lg border ${
+                    p.configured
+                      ? 'bg-gray-800/60 border-gray-700'
+                      : 'bg-gray-900/40 border-gray-800 opacity-60'
+                  }`}
+                >
+                  <span className="text-xl mt-0.5 shrink-0">{PROVIDER_ICONS[p.id] ?? '🤖'}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-medium text-white">{p.name}</span>
+                      <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
+                        p.configured
+                          ? 'bg-green-500/20 text-green-300 border border-green-500/30'
+                          : 'bg-gray-700 text-gray-500 border border-gray-600'
+                      }`}>
+                        {p.configured ? 'Active' : 'Not configured'}
+                      </span>
+                      {p.tasks.map(t => (
+                        <span key={t} className="text-xs text-gray-500">
+                          {TASK_EMOJIS[t] ?? ''} {t}
+                        </span>
+                      ))}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-0.5 truncate">{p.freeQuota}</p>
+                    {!p.configured && (
+                      <a
+                        href={p.signupUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-purple-400 hover:text-purple-300 underline mt-0.5 inline-block"
+                      >
+                        Get free key →
+                      </a>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Routing matrix toggle */}
+            <button
+              onClick={() => setShowRouting(v => !v)}
+              className="w-full text-left px-4 py-2 bg-gray-800/50 hover:bg-gray-800 border border-gray-700 rounded-lg text-xs text-gray-400 transition-colors flex items-center justify-between"
+            >
+              <span>🗺️ View routing matrix (task → model waterfall)</span>
+              <span>{showRouting ? '▲' : '▼'}</span>
+            </button>
+
+            {showRouting && (
+              <div className="bg-gray-900 border border-gray-800 rounded-lg p-4 space-y-2">
+                {Object.entries(routerStatus.routing_matrix).map(([task, models]) => (
+                  <div key={task} className="flex items-start gap-2">
+                    <span className="text-xs font-mono text-purple-400 w-20 shrink-0 pt-0.5">
+                      {TASK_EMOJIS[task] ?? ''} {task}
+                    </span>
+                    <div className="flex flex-wrap gap-1">
+                      {models.map((m, i) => (
+                        <span key={i} className="text-xs px-2 py-0.5 bg-gray-800 border border-gray-700 rounded text-gray-300 flex items-center gap-1">
+                          {i > 0 && <span className="text-gray-600">→</span>}
+                          {m}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {!routerStatus && !routerLoading && (
+          <p className="text-xs text-gray-500 italic">Click Refresh to load router status</p>
+        )}
+      </div>
 
       {/* Warning Box */}
       <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
