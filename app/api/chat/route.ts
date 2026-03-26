@@ -1,14 +1,14 @@
 /**
- * HOLLY Chat API Route — Phase 1 Foundation
+ * HOLLY Chat API Route — Phase 4A: Expanded MCP Tool Suite
  *
- * What changed in Phase 1:
- *  1C – Live HollyIdentity, active HollyGoals, and EmotionalState injected
- *       into every system prompt via getIdentityContext().
- *  1D – AutoConsciousness wired post-response: every exchange is recorded as
- *       a HollyExperience and a LearningEvent via recordExchange().
- *  1E – Real MCP tool server (holly-tools) replaces the mock weather server.
- *       Connection is established once at module load via ensureHollyTools().
- *  1F – getRelevantMemories now uses topic-intersection scoring.
+ * Phase 1:  Live HollyIdentity injection, AutoConsciousness, real MCP server,
+ *           topic-intersection memory scoring.
+ * Phase 2:  Emotion engine, Taste engine, Evolution trigger wired.
+ * Phase 3:  LLM-based message analyser, Identity evolver, cron jobs.
+ * Phase 4A: MCP server expanded to 15 tools across 5 groups:
+ *           GitHub (read+write), Web Intelligence, Code Execution,
+ *           Memory/Knowledge, Creative/Utility.
+ *           Tool awareness block injected into system prompt.
  */
 
 import { NextResponse, NextRequest } from 'next/server';
@@ -128,6 +128,15 @@ export async function POST(req: NextRequest) {
       hollySystemPrompt += `\n\n## Your Memories\nHere's what you remember about ${userName}:\n${memoryContext}`;
     }
 
+    // Phase 4A: inject tool awareness so HOLLY knows what she can do
+    const mcpToolsForPrompt = await mcpManager.getAllTools();
+    if (mcpToolsForPrompt.length > 0) {
+      const toolSummary = mcpToolsForPrompt
+        .map(t => `  \u2022 **${t.name}** \u2013 ${t.description.split('.')[0]}`)
+        .join('\n');
+      hollySystemPrompt += `\n\n## Your Active Tools (${mcpToolsForPrompt.length} tools)\nUse these proactively \u2014 don't just describe how to do something if you can actually do it:\n${toolSummary}`;
+    }
+
     // 9. PREPARE MESSAGES ──────────────────────────────────────────────────────
     const messages: any[] = [
       { role: 'system', content: hollySystemPrompt },
@@ -140,7 +149,11 @@ export async function POST(req: NextRequest) {
 
     // 11. MCP TOOLS ────────────────────────────────────────────────────────────
     // Tools are loaded from the already-connected singleton — no per-request spawn
-    const mcpTools = await mcpManager.getAllTools();
+    // (mcpToolsForPrompt already fetched above; re-use it here)
+    const mcpTools = mcpToolsForPrompt;
+    if (mcpTools.length > 0) {
+      console.log(`[Chat API] 🔧 ${mcpTools.length} MCP tools:`, mcpTools.map(t => t.name).join(', '));
+    }
     const groqTools =
       mcpTools.length > 0
         ? mcpTools.map(t => ({
