@@ -1,3 +1,16 @@
+/**
+ * HOLLY Chat API Route — Phase 1 Foundation
+ *
+ * What changed in Phase 1:
+ *  1C – Live HollyIdentity, active HollyGoals, and EmotionalState injected
+ *       into every system prompt via getIdentityContext().
+ *  1D – AutoConsciousness wired post-response: every exchange is recorded as
+ *       a HollyExperience and a LearningEvent via recordExchange().
+ *  1E – Real MCP tool server (holly-tools) replaces the mock weather server.
+ *       Connection is established once at module load via ensureHollyTools().
+ *  1F – getRelevantMemories now uses topic-intersection scoring.
+ */
+
 import { NextResponse, NextRequest } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import Groq from 'groq-sdk';
@@ -9,144 +22,144 @@ import { ModelRouter } from '@/lib/ai/router';
 import { RAGService } from '@/lib/ai/rag-service';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { mcpManager } from '@/lib/mcp/mcp-client';
-import path from 'path';
+import { getIdentityContext } from '@/lib/identity/identity-context';
+import { recordExchange, extractTopics } from '@/lib/consciousness/post-response-hook';
 
-// Use Node.js runtime
+// ─── runtime ──────────────────────────────────────────────────────────────────
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-// Initialize Groq
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY || '',
-});
-
-// Initialize Gemini
+// ─── singletons ───────────────────────────────────────────────────────────────
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || '' });
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
-/**
- * Helper to send status updates via SSE
- */
-function sendStatus(controller: ReadableStreamDefaultController, status: string) {
-  const data = `data: ${JSON.stringify({ type: 'status', content: status })}\n\n`;
-  controller.enqueue(new TextEncoder().encode(data));
+// Phase 1E: connect MCP once at module load (not per request)
+mcpManager.ensureHollyTools().catch(err =>
+  console.warn('[Chat] MCP init warning:', err.message)
+);
+
+// ─── SSE helpers ──────────────────────────────────────────────────────────────
+function sendStatus(c: ReadableStreamDefaultController, s: string) {
+  c.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ type: 'status', content: s })}\n\n`));
+}
+function sendText(c: ReadableStreamDefaultController, t: string) {
+  c.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ type: 'text', content: t })}\n\n`));
 }
 
-/**
- * Helper to send text chunks via SSE
- */
-function sendText(controller: ReadableStreamDefaultController, text: string) {
-  const data = `data: ${JSON.stringify({ type: 'text', content: text })}\n\n`;
-  controller.enqueue(new TextEncoder().encode(data));
-}
-
+// ─── POST handler ─────────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
   console.log('[Chat API] ========== NEW REQUEST ==========');
 
   try {
-    // 1. AUTH
+    // 1. AUTH ──────────────────────────────────────────────────────────────────
     let userId: string | null = null;
     try {
       const authResult = await auth();
       userId = authResult.userId;
-    } catch (e) {
+    } catch {
       console.log('[Chat API] Auth failed, bypassing if in dev mode.');
     }
 
     if (!userId && process.env.NODE_ENV === 'development') {
       userId = 'local-dev-user';
     }
-
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized: No active session' }, { status: 401 });
     }
 
-    console.log('[Chat API] User ID:', userId);
-
-    // 2. VALIDATE API KEY
-    const groqKey = process.env.GROQ_API_KEY;
-    if (!groqKey) {
+    // 2. VALIDATE API KEY ──────────────────────────────────────────────────────
+    if (!process.env.GROQ_API_KEY) {
       console.error('[Chat API] ❌ GROQ_API_KEY missing');
       return NextResponse.json({ error: 'API key not configured' }, { status: 500 });
     }
 
-    // 3. PARSE REQUEST
+    // 3. PARSE REQUEST ─────────────────────────────────────────────────────────
     const body = await req.json();
-    const { messages: userMessages, conversationId, files } = body;
+    const { messages: userMessages, conversationId } = body;
 
     if (!userMessages || !Array.isArray(userMessages)) {
-      console.error('[Chat API] Invalid messages format');
       return NextResponse.json({ error: 'Invalid messages format' }, { status: 400 });
     }
 
+    const latestUserMessage: string = userMessages[userMessages.length - 1]?.content || '';
     console.log('[Chat API] Processing', userMessages.length, 'messages');
 
-    // 4. GET OR CREATE USER IN DATABASE
-    let dbUserId = null;
+    // 4. USER RECORD ───────────────────────────────────────────────────────────
+    let dbUserId: string | null = null;
     let userName = 'User';
-
-    if (userId) {
+    try {
       const user = await getOrCreateUser(userId);
       dbUserId = user.id;
       userName = user.name || 'User';
+    } catch (e) {
+      console.warn('[Chat API] Could not load user:', e);
     }
 
-    // Detect which mode to use based on latest user message
-    const latestUserMessage = userMessages[userMessages.length - 1]?.content || '';
+    // 5. MODE DETECTION ────────────────────────────────────────────────────────
     const detectedMode = detectMode(latestUserMessage);
     const currentMode = HOLLY_MODES[detectedMode];
+    console.log('[Chat API] 🎯 Mode:', currentMode.name);
 
-    console.log('[Chat API] 🎯 Mode detected:', currentMode.name);
+    // 6. TOPIC EXTRACTION (Phase 1F) ───────────────────────────────────────────
+    const currentTopics = extractTopics(latestUserMessage);
 
-    // Retrieve relevant memories
-    const memoryContext = dbUserId ? await getRelevantMemories(dbUserId) : '';
+    // 7. PARALLEL CONTEXT FETCH ───────────────────────────────────────────────
+    // Run memory retrieval and identity load concurrently
+    const [memoryContext, identityCtx] = await Promise.all([
+      dbUserId ? getRelevantMemories(dbUserId, currentTopics) : Promise.resolve(''),
+      dbUserId ? getIdentityContext(dbUserId) : Promise.resolve({ promptBlock: '', raw: { identity: null, goals: [], emotionalState: null } }),
+    ]);
 
-    // Get system prompt for detected mode
+    // 8. BUILD SYSTEM PROMPT ───────────────────────────────────────────────────
     let hollySystemPrompt = getSystemPromptForMode(detectedMode, userName);
 
-    // Append memory context if available
+    // Phase 1C: inject live identity state
+    if (identityCtx.promptBlock) {
+      hollySystemPrompt += identityCtx.promptBlock;
+    }
+
+    // Phase 1F: topic-scored memory context
     if (memoryContext) {
       hollySystemPrompt += `\n\n## Your Memories\nHere's what you remember about ${userName}:\n${memoryContext}`;
     }
 
-    // 5. PREPARE MESSAGES
-    const messages = [
+    // 9. PREPARE MESSAGES ──────────────────────────────────────────────────────
+    const messages: any[] = [
       { role: 'system', content: hollySystemPrompt },
-      ...userMessages.map((msg: any) => ({
-        role: msg.role,
-        content: msg.content
-      }))
+      ...userMessages.map((msg: any) => ({ role: msg.role, content: msg.content })),
     ];
 
-    // 6. MULTI-MODEL ROUTING
+    // 10. MODEL ROUTING ────────────────────────────────────────────────────────
     const routing = ModelRouter.route(latestUserMessage);
-    console.log('[Chat API] 🛤️ Route assigned:', routing.model, `(${routing.reason})`);
+    console.log('[Chat API] 🛤️ Route:', routing.model, `(${routing.reason})`);
 
-    // 6a. CONNECT MCP
-    try {
-      const mockServerPath = path.resolve(process.cwd(), 'scripts', 'mock-mcp-server.js');
-      await mcpManager.connectStdio('mock-server', 'node', [mockServerPath]);
-    } catch (e) {
-      console.warn('[Chat API] Failed to connect to mock MCP server', e);
-    }
+    // 11. MCP TOOLS ────────────────────────────────────────────────────────────
+    // Tools are loaded from the already-connected singleton — no per-request spawn
     const mcpTools = await mcpManager.getAllTools();
-    const groqTools = mcpTools.length > 0 ? mcpTools.map(t => ({
-      type: 'function',
-      function: {
-        name: `mcp_${t.serverId}_${t.name}`,
-        description: t.description,
-        parameters: t.inputSchema || { type: 'object', properties: {} }
-      }
-    })) : undefined;
+    const groqTools =
+      mcpTools.length > 0
+        ? mcpTools.map(t => ({
+            type: 'function',
+            function: {
+              name: `mcp_${t.serverId}_${t.name}`,
+              description: t.description,
+              parameters: t.inputSchema || { type: 'object', properties: {} },
+            },
+          }))
+        : undefined;
 
-    // 7. STREAM RESPONSE
+    // 12. STREAM RESPONSE ──────────────────────────────────────────────────────
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          // If the router selects web-llm or local-qwen, signal the frontend and end the backend stream early.
+          // Local model signal
           if (routing.model === 'web-llm' || routing.model === 'local-qwen-7b') {
-            console.log(`[Chat API] 🌐 ${routing.model} requested - signaling frontend`);
-            const signalData = `data: ${JSON.stringify({ type: 'signal', content: routing.model })}\n\n`;
-            controller.enqueue(new TextEncoder().encode(signalData));
+            console.log(`[Chat API] 🌐 ${routing.model} – signaling frontend`);
+            controller.enqueue(
+              new TextEncoder().encode(
+                `data: ${JSON.stringify({ type: 'signal', content: routing.model })}\n\n`
+              )
+            );
             controller.close();
             return;
           }
@@ -154,20 +167,16 @@ export async function POST(req: NextRequest) {
           sendStatus(controller, '🤔 Thinking...');
           let fullResponse = '';
 
+          // ── Gemini path ────────────────────────────────────────────────────
           if (routing.model === 'google-gemini-2.0') {
-            // Use Gemini with RAG
             sendStatus(controller, '🔍 Searching knowledge base...');
             const searchResults = await RAGService.queryCodebase(latestUserMessage);
-            const ragContext = RAGService.formatContext(searchResults);
-
             if (searchResults.length > 0) {
-              messages[0].content += `\n\n## Additional Codebase Context\n${ragContext}`;
+              messages[0].content += `\n\n## Additional Codebase Context\n${RAGService.formatContext(searchResults)}`;
             }
 
             sendStatus(controller, '💭 Gemini is responding...');
             const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
-
-            // Format Gemini messages
             const geminiMessages = messages.map(msg => ({
               role: msg.role === 'assistant' ? 'model' : msg.role,
               parts: [{ text: msg.content }],
@@ -175,21 +184,16 @@ export async function POST(req: NextRequest) {
 
             const result = await model.generateContentStream({
               contents: geminiMessages as any,
-              generationConfig: {
-                maxOutputTokens: 4096,
-                temperature: 0.7,
-              },
+              generationConfig: { maxOutputTokens: 4096, temperature: 0.7 },
             });
 
             for await (const chunk of result.stream) {
               const text = chunk.text();
-              if (text) {
-                fullResponse += text;
-                sendText(controller, text);
-              }
+              if (text) { fullResponse += text; sendText(controller, text); }
             }
+
+          // ── Groq path (default) ────────────────────────────────────────────
           } else {
-            // Use Groq (Default) - Recursive wrapper for tools
             let toolCallActive = true;
             while (toolCallActive) {
               const completion = await groq.chat.completions.create({
@@ -209,16 +213,10 @@ export async function POST(req: NextRequest) {
 
               for await (const chunk of completion) {
                 const delta = chunk.choices[0]?.delta;
-
-                // Content chunk
                 const content = delta?.content || '';
-                if (content && !isToolCall) {
-                  fullResponse += content;
-                  sendText(controller, content);
-                }
+                if (content && !isToolCall) { fullResponse += content; sendText(controller, content); }
 
-                // Tool call chunk logic
-                if (delta?.tool_calls && delta.tool_calls.length > 0) {
+                if (delta?.tool_calls?.length) {
                   isToolCall = true;
                   const tool = delta.tool_calls[0];
                   if (tool.id) toolCallId = tool.id;
@@ -228,27 +226,21 @@ export async function POST(req: NextRequest) {
               }
 
               if (isToolCall && toolName) {
-                sendStatus(controller, `🔧 Using tool ${toolName}...`);
+                sendStatus(controller, `🔧 Using ${toolName}...`);
                 try {
                   const argsParsed = JSON.parse(toolArgs || '{}');
-                  console.log(`[Chat API] Executing ${toolName} with`, argsParsed);
-
-                  // Extract serverId and underlying tool name
                   const matches = toolName.match(/^mcp_([^_]+)_(.+)$/);
                   if (matches) {
-                    const serverId = matches[1];
-                    const realToolName = matches[2];
+                    const [, serverId, realToolName] = matches;
                     const result = await mcpManager.callTool(serverId, realToolName, argsParsed);
-
                     messages.push({
-                      role: 'assistant', content: null, tool_calls: [
-                        { id: toolCallId, type: 'function', function: { name: toolName, arguments: toolArgs } }
-                      ]
+                      role: 'assistant',
+                      content: null,
+                      tool_calls: [{ id: toolCallId, type: 'function', function: { name: toolName, arguments: toolArgs } }],
                     } as any);
-
                     messages.push({ role: 'tool', tool_call_id: toolCallId, name: toolName, content: JSON.stringify(result) } as any);
                   } else {
-                    toolCallActive = false; // unknown tool
+                    toolCallActive = false;
                   }
                 } catch (err) {
                   console.error('[Chat API] Tool execution failed', err);
@@ -262,30 +254,15 @@ export async function POST(req: NextRequest) {
 
           console.log('[Chat API] ✅ Stream complete');
 
-          // 8. SAVE TO DATABASE
+          // 13. SAVE TO DATABASE ───────────────────────────────────────────────
           if (dbUserId && conversationId) {
             try {
-              // Save user message
-              const userMessage = await prisma.message.create({
-                data: {
-                  conversationId,
-                  role: 'user',
-                  content: latestUserMessage,
-                  userId: dbUserId,
-                },
-              });
-
-              // Save assistant message
               await prisma.message.create({
-                data: {
-                  conversationId,
-                  role: 'assistant',
-                  content: fullResponse,
-                  userId: dbUserId,
-                },
+                data: { conversationId, role: 'user', content: latestUserMessage, userId: dbUserId },
               });
-
-              // Update conversation stats
+              await prisma.message.create({
+                data: { conversationId, role: 'assistant', content: fullResponse, userId: dbUserId },
+              });
               await prisma.conversation.update({
                 where: { id: conversationId },
                 data: {
@@ -293,29 +270,41 @@ export async function POST(req: NextRequest) {
                   lastMessagePreview: fullResponse.substring(0, 100) + (fullResponse.length > 100 ? '...' : ''),
                 },
               });
-
               console.log('[Chat API] 💾 Messages saved');
-
-              // Extract memories in background
-              extractMemories(conversationId, [
-                ...messages.slice(1),
-                { role: 'assistant', content: fullResponse },
-              ]).catch(err => console.error('[Chat API] Memory extraction failed:', err));
-            } catch (dbError) {
-              console.error('[Chat API] ⚠️ Database save failed:', dbError);
+            } catch (dbErr) {
+              console.error('[Chat API] ⚠️ DB save failed:', dbErr);
             }
           }
 
-          // Send done signal
-          const doneData = `data: ${JSON.stringify({ type: 'done' })}\n\n`;
-          controller.enqueue(new TextEncoder().encode(doneData));
+          // 14. BACKGROUND WORK (fire-and-forget) ────────────────────────────
+          if (dbUserId && conversationId && fullResponse) {
+            // Extract LLM memories
+            extractMemories(conversationId, [
+              ...messages.slice(1).filter(m => m.role !== 'tool'),
+              { role: 'assistant', content: fullResponse },
+            ]).catch(err => console.error('[Chat API] Memory extraction failed:', err));
+
+            // Phase 1D: record exchange in consciousness system
+            void recordExchange({
+              userId: dbUserId,
+              conversationId,
+              userMessage: latestUserMessage,
+              assistantResponse: fullResponse,
+              detectedMode,
+              topics: currentTopics,
+            });
+          }
+
+          // Done signal
+          controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ type: 'done' })}\n\n`));
           controller.close();
 
         } catch (error) {
           console.error('[Chat API] ❌ Stream error:', error);
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-          const errorData = `data: ${JSON.stringify({ type: 'error', content: errorMessage })}\n\n`;
-          controller.enqueue(new TextEncoder().encode(errorData));
+          const msg = error instanceof Error ? error.message : 'Unknown error';
+          controller.enqueue(
+            new TextEncoder().encode(`data: ${JSON.stringify({ type: 'error', content: msg })}\n\n`)
+          );
           controller.close();
         }
       },

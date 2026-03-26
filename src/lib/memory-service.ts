@@ -1,6 +1,11 @@
 /**
  * Memory Service for HOLLY
- * Extracts and retrieves long-term memories across conversations
+ *
+ * Extracts and retrieves long-term memories across conversations.
+ *
+ * Phase 1F upgrade: getRelevantMemories now accepts currentTopics so it
+ * can score summaries by topic overlap (most relevant first) rather than
+ * returning the 5 most-recent regardless of relevance.
  */
 
 import { prisma } from '@/lib/db';
@@ -17,20 +22,21 @@ export interface Memory {
   context: string[];
 }
 
+// ─── extract ──────────────────────────────────────────────────────────────────
+
 /**
- * Extract key memories from a conversation
+ * Extract key memories from a conversation and persist them.
+ * Called in the background after each chat response.
  */
 export async function extractMemories(
   conversationId: string,
   messages: Array<{ role: string; content: string }>
 ): Promise<void> {
   try {
-    // Get conversation messages as text
     const conversationText = messages
       .map(m => `${m.role}: ${m.content}`)
       .join('\n');
 
-    // Use LLM to extract key information
     const completion = await groq.chat.completions.create({
       model: 'llama-3.3-70b-versatile',
       messages: [
@@ -45,10 +51,7 @@ export async function extractMemories(
 Return a JSON object with arrays: facts, preferences, projects, context.
 Keep each item concise (1-2 sentences max).`,
         },
-        {
-          role: 'user',
-          content: conversationText,
-        },
+        { role: 'user', content: conversationText },
       ],
       temperature: 0.3,
       max_tokens: 1000,
@@ -57,24 +60,19 @@ Keep each item concise (1-2 sentences max).`,
     const response = completion.choices[0]?.message?.content;
     if (!response) return;
 
-    // Strip markdown code blocks if present
     let jsonText = response.trim();
     if (jsonText.startsWith('```')) {
       jsonText = jsonText.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
     }
 
-    // Parse extracted memories
     const memories: Memory = JSON.parse(jsonText);
 
-    // Get user from conversation
     const conversation = await prisma.conversation.findUnique({
       where: { id: conversationId },
       select: { userId: true },
     });
-
     if (!conversation) return;
 
-    // Save to database
     await prisma.conversationSummary.upsert({
       where: { conversationId },
       create: {
@@ -102,45 +100,69 @@ Keep each item concise (1-2 sentences max).`,
   }
 }
 
+// ─── retrieve ─────────────────────────────────────────────────────────────────
+
 /**
- * Retrieve relevant memories for a user
+ * Retrieve the most relevant memories for a user.
+ *
+ * When currentTopics are supplied, summaries that share topic keywords with
+ * the current message are surfaced first (topic-intersection scoring).
+ * Falls back to recency ordering for non-topic-matched results.
  */
-export async function getRelevantMemories(userId: string): Promise<string> {
+export async function getRelevantMemories(
+  userId: string,
+  currentTopics: string[] = []
+): Promise<string> {
   try {
-    // Get recent conversation summaries
+    // Pull a wider pool so we can score and trim to best 5
     const summaries = await prisma.conversationSummary.findMany({
       where: { userId },
       orderBy: { updatedAt: 'desc' },
-      take: 5, // Last 5 conversations
+      take: 15,
       select: {
         summary: true,
         keyPoints: true,
         keyTopics: true,
         topics: true,
+        updatedAt: true,
       },
     });
 
-    if (summaries.length === 0) {
-      return '';
-    }
+    if (summaries.length === 0) return '';
 
-    // Format memories for system prompt
-    const memoryText = summaries
-      .map((s, i) => {
-        const parts = [];
+    // Score: +1 per topic overlap, +0.5 recency bonus for 3 most recent
+    const topicSet = new Set(currentTopics.map(t => t.toLowerCase()));
+
+    const scored = summaries.map((s, idx) => {
+      const allTopics = [...s.keyTopics, ...s.topics].map(t => t.toLowerCase());
+      const overlap = allTopics.filter(t => topicSet.has(t)).length;
+      const recency = idx < 3 ? 0.5 : 0;
+      return { s, score: overlap + recency };
+    });
+
+    const best = scored
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5)
+      .map(({ s }) => s);
+
+    const memoryText = best
+      .map(s => {
+        const parts: string[] = [];
         if (s.keyPoints.length > 0) {
-          parts.push(`Facts: ${s.keyPoints.join('; ')}`);
+          parts.push(`Facts: ${s.keyPoints.slice(0, 5).join('; ')}`);
         }
         if (s.keyTopics.length > 0) {
           parts.push(`Projects: ${s.keyTopics.join(', ')}`);
         }
         if (s.topics.length > 0) {
-          parts.push(`Context: ${s.topics.join(', ')}`);
+          parts.push(`Context: ${s.topics.slice(0, 4).join(', ')}`);
         }
         return parts.join(' | ');
       })
       .filter(Boolean)
       .join('\n');
+
+    if (!memoryText) return '';
 
     return `\n\n## MEMORY CONTEXT\nFrom previous conversations:\n${memoryText}`;
   } catch (error) {
@@ -149,14 +171,10 @@ export async function getRelevantMemories(userId: string): Promise<string> {
   }
 }
 
-/**
- * Get memory statistics for a user
- */
-export async function getMemoryStats(userId: string) {
-  const count = await prisma.conversationSummary.count({
-    where: { userId },
-  });
+// ─── stats ────────────────────────────────────────────────────────────────────
 
+export async function getMemoryStats(userId: string) {
+  const count = await prisma.conversationSummary.count({ where: { userId } });
   const recent = await prisma.conversationSummary.findMany({
     where: { userId },
     orderBy: { updatedAt: 'desc' },

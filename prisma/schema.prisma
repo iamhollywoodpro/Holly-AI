@@ -3667,3 +3667,138 @@ model ProjectAsset {
   @@index([assetId])
   @@map("project_assets")
 }
+
+// ============================================================================
+// PHASE 1 - FOUNDATION REPAIR: EVOLUTION ENGINE MODELS
+// ============================================================================
+
+model EvolutionProposal {
+  id             String    @id @default(cuid())
+  type           String    // code_improvement, model_training, api_creation, feature_addition
+  title          String
+  description    String    @db.Text
+  rationale      String    @db.Text
+  impact         String    // low, medium, high, critical
+  risk           String    // low, medium, high
+  status         String    @default("proposed") // proposed, approved, testing, deployed, rejected
+  proposedAt     DateTime  @default(now())
+  approvedBy     String?   // human, holly
+  testResults    Json?
+  deploymentDate DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([status])
+  @@index([type])
+  @@index([proposedAt])
+  @@map("evolution_proposals")
+}
+
+model EvolutionCapability {
+  name         String   @id
+  level        Int      @default(0)
+  description  String   @db.Text
+  lastImproved DateTime @default(now())
+  improvements Int      @default(0)
+  updatedAt    DateTime @updatedAt
+
+  @@map("evolution_capabilities")
+}
+
+// ============================================================================
+// PHASE 1 - FOUNDATION REPAIR: LEARNING ENGINE MODELS
+// ============================================================================
+
+model LearningEvent {
+  id             String   @id @default(cuid())
+  type           String   // conversation, feedback, error, success, correction
+  userId         String
+  conversationId String?
+  data           Json     @default("{}")
+  timestamp      DateTime @default(now())
+  processed      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  @@index([userId])
+  @@index([type])
+  @@index([processed])
+  @@index([timestamp])
+  @@map("learning_events")
+}
+
+model LearningPattern {
+  id         String   @id @default(cuid())
+  pattern    String   @db.Text
+  category   String   // user_preference, common_query, error_pattern, success_pattern
+  frequency  Int      @default(1)
+  lastSeen   DateTime @default(now())
+  confidence Float    @default(0)
+  action     String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([category])
+  @@index([frequency])
+  @@map("learning_patterns")
+}
+
+model UserLearningProfile {
+  id                      String   @id @default(cuid())
+  userId                  String   @unique
+  preferences             Json     @default("{}")
+  commonTopics            String[] @default([])
+  communicationStyle      String   @default("casual")
+  preferredResponseLength String   @default("medium")
+  interests               String[] @default([])
+  expertise               Json     @default("{}")
+  lastUpdated             DateTime @default(now())
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  @@index([userId])
+  @@map("user_learning_profiles")
+}
+
+// ============================================================================
+// PHASE 1 - FOUNDATION REPAIR: TASTE ENGINE MODELS
+// ============================================================================
+
+model TasteSignal {
+  id         String   @id @default(cuid())
+  userId     String
+  category   String   // tone, length, format, topic, style, humor
+  signal     String   // positive, negative, neutral
+  context    String   @db.Text
+  weight     Float    @default(1.0)
+  source     String   @default("implicit") // implicit, explicit, feedback
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([category])
+  @@index([userId, category])
+  @@map("taste_signals")
+}
+
+model TasteProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  // Tone preferences: formal=1.0, casual=0.0
+  tone      Float    @default(0.5)
+  // Response length: concise=0.0, detailed=1.0
+  verbosity Float    @default(0.5)
+  // Humor level: 0.0=serious, 1.0=very playful
+  humor     Float    @default(0.3)
+  // Technical depth: 0.0=simple, 1.0=expert
+  technical Float    @default(0.5)
+  // Emoji usage: 0.0=none, 1.0=heavy
+  emoji     Float    @default(0.4)
+  // Top interests derived from signals
+  topTopics String[] @default([])
+  // Preferred formats (bullets, prose, code, tables)
+  formats   String[] @default([])
+  signalCount Int    @default(0)
+  lastUpdated DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("taste_profiles")
+}
