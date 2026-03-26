@@ -166,7 +166,7 @@ export default function EvolutionDashboard() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/evolution/dashboard");
+      const res = await fetch("/api/evolution/dashboard", { credentials: "include" });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
       setData(json);

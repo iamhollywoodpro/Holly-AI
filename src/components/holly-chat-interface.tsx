@@ -513,12 +513,14 @@ export default function HollyChatInterface() {
         const res = await fetch("/api/initiative", { credentials: "include" });
         if (res.ok) {
           const data = await res.json();
-          if (Array.isArray(data.pending) && data.pending.length > 0) {
-            setInitiatives(data.pending.map((p: any) => ({
-              id: p.id,
-              type: p.action_type || "start_conversation",
-              content: p.content?.message || p.content?.topic || "HOLLY has something to share with you.",
-              motivation: p.content?.reasoning,
+          // API returns { initiatives: [...] } (Phase 4E shape)
+          const list = data.initiatives || data.pending || [];
+          if (Array.isArray(list) && list.length > 0) {
+            setInitiatives(list.map((p: any, i: number) => ({
+              id: p.id || `init-${i}`,
+              type: p.trigger || p.action_type || "start_conversation",
+              content: p.content || p.message || p.content?.message || "HOLLY has something to share with you.",
+              motivation: p.reasoning || p.content?.reasoning,
             })));
           }
         }

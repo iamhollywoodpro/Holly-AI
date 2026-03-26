@@ -15,6 +15,7 @@ import {
   ChevronDown,
   ChevronRight,
   Plus,
+  TrendingUp,
 } from 'lucide-react';
 import { UserButton } from '@clerk/nextjs';
 import { useSidebar } from '@/hooks/use-sidebar';
@@ -184,6 +185,7 @@ export function Sidebar2({
 
       {/* Bottom Navigation */}
       <div className="p-3 border-t border-gray-800 space-y-1">
+        <NavLink href="/evolution" icon={TrendingUp} label="Evolution" />
         <NavLink href="/settings" icon={Settings} label="Settings" />
         <NavLink href="/autonomy" icon={Activity} label="Autonomy" />
         <NavLink href="/help" icon={HelpCircle} label="Help & Docs" />
