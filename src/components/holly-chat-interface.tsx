@@ -563,32 +563,47 @@ function ScrollToBottomButton({ onClick, visible }: { onClick: () => void; visib
   );
 }
 
-// ─── Agent Mode Modal (Phase 6D) ──────────────────────────────────────────────
+// ─── Agent Mode Modal (Phase 6D — live SSE streaming) ─────────────────────────
 
-type AgentStep = {
+type AgentStepState = {
   stepIndex: number;
   toolName:  string;
-  status:    "success" | "error" | "skipped";
-  durationMs: number;
+  reason?:   string;
+  status:    "running" | "success" | "error" | "skipped";
+  durationMs?: number;
   error?:    string;
 };
 
+type AgentPhase = "idle" | "planning" | "executing" | "summarising" | "done";
+
 function AgentModal({ onClose }: { onClose: () => void }) {
-  const [goal, setGoal]         = useState("");
-  const [running, setRunning]   = useState(false);
-  const [steps, setSteps]       = useState<AgentStep[]>([]);
-  const [summary, setSummary]   = useState("");
-  const [error, setError]       = useState("");
-  const [elapsed, setElapsed]   = useState(0);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [goal, setGoal]       = useState("");
+  const [phase, setPhase]     = useState<AgentPhase>("idle");
+  const [statusText, setStatusText] = useState("");
+  const [steps, setSteps]     = useState<AgentStepState[]>([]);
+  const [summary, setSummary] = useState("");
+  const [error, setError]     = useState("");
+  const [elapsed, setElapsed] = useState(0);
+  const timerRef   = useRef<ReturnType<typeof setInterval> | null>(null);
+  const abortRef   = useRef<AbortController | null>(null);
+  const bodyRef    = useRef<HTMLDivElement>(null);
+
+  // auto-scroll body when steps/summary grow
+  useEffect(() => {
+    if (bodyRef.current) bodyRef.current.scrollTop = bodyRef.current.scrollHeight;
+  }, [steps, summary]);
+
+  const reset = () => {
+    setGoal(""); setPhase("idle"); setStatusText("");
+    setSteps([]); setSummary(""); setError(""); setElapsed(0);
+  };
 
   const run = async () => {
-    if (!goal.trim() || running) return;
-    setRunning(true);
-    setSteps([]);
-    setSummary("");
-    setError("");
-    setElapsed(0);
+    if (!goal.trim() || phase !== "idle") return;
+    abortRef.current = new AbortController();
+    setPhase("planning");
+    setSteps([]); setSummary(""); setError(""); setElapsed(0);
+    setStatusText("Planning steps…");
     timerRef.current = setInterval(() => setElapsed(e => e + 1), 1000);
 
     try {
@@ -596,103 +611,264 @@ function AgentModal({ onClose }: { onClose: () => void }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
+        signal: abortRef.current.signal,
         body: JSON.stringify({ goal: goal.trim(), maxSteps: 6 }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Agent run failed");
-      setSteps(data.steps || []);
-      setSummary(data.summary || "Done.");
-    } catch (err) {
-      setError(String(err));
+
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error((j as { error?: string }).error || `HTTP ${res.status}`);
+      }
+      if (!res.body) throw new Error("No response body");
+
+      const reader  = res.body.getReader();
+      const decoder = new TextDecoder();
+      let   buf     = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+
+        // parse complete SSE messages from buffer
+        const parts = buf.split("\n\n");
+        buf = parts.pop() ?? "";
+
+        for (const part of parts) {
+          const eventMatch = part.match(/^event: (\S+)/m);
+          const dataMatch  = part.match(/^data: (.+)/m);
+          if (!eventMatch || !dataMatch) continue;
+
+          const evt  = eventMatch[1];
+          let   data: Record<string, unknown> = {};
+          try { data = JSON.parse(dataMatch[1]); } catch { continue; }
+
+          switch (evt) {
+            case "status":
+              setStatusText((data.text as string) || "");
+              if ((data.text as string)?.includes("Writing")) setPhase("summarising");
+              break;
+
+            case "plan":
+              setPhase("executing");
+              setStatusText("Executing…");
+              // seed steps as "running" placeholders from the plan
+              if (Array.isArray(data.steps)) {
+                setSteps((data.steps as Array<{ step: number; tool: string; reason: string }>).map(s => ({
+                  stepIndex: s.step,
+                  toolName:  s.tool,
+                  reason:    s.reason,
+                  status:    "running",
+                })));
+              }
+              break;
+
+            case "step_start":
+              // mark the matching step as running (already seeded above, but handles no-plan case)
+              setSteps(prev => {
+                const idx = prev.findIndex(s => s.stepIndex === (data.stepIndex as number));
+                if (idx === -1) {
+                  return [...prev, {
+                    stepIndex: data.stepIndex as number,
+                    toolName:  data.toolName as string,
+                    reason:    data.reason as string,
+                    status:    "running",
+                  }];
+                }
+                const next = [...prev];
+                next[idx] = { ...next[idx], status: "running" };
+                return next;
+              });
+              break;
+
+            case "step_done":
+              setSteps(prev => {
+                const idx = prev.findIndex(s => s.stepIndex === (data.stepIndex as number));
+                const updated: AgentStepState = {
+                  stepIndex:  data.stepIndex  as number,
+                  toolName:   data.toolName   as string,
+                  status:     data.status     as AgentStepState["status"],
+                  durationMs: data.durationMs as number,
+                  error:      data.error      as string | undefined,
+                };
+                if (idx === -1) return [...prev, updated];
+                const next = [...prev];
+                next[idx] = updated;
+                return next;
+              });
+              break;
+
+            case "summary_token":
+              setPhase("summarising");
+              setSummary(prev => prev + ((data.token as string) || ""));
+              break;
+
+            case "done":
+              setPhase("done");
+              setStatusText("");
+              break;
+
+            case "error":
+              throw new Error((data.message as string) || "Agent error");
+          }
+        }
+      }
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === "AbortError") {
+        setError("Cancelled.");
+      } else {
+        setError(String(err));
+      }
+      setPhase("done");
     } finally {
-      setRunning(false);
       if (timerRef.current) clearInterval(timerRef.current);
     }
   };
 
-  const done = summary || error;
+  const cancel = () => {
+    abortRef.current?.abort();
+    if (timerRef.current) clearInterval(timerRef.current);
+    setPhase("done");
+    setError("Cancelled.");
+  };
+
+  const isRunning = phase === "planning" || phase === "executing" || phase === "summarising";
+  const isDone    = phase === "done";
+
+  // step icon
+  const stepIcon = (s: AgentStepState) => {
+    if (s.status === "running")  return <Loader2 className="w-3 h-3 animate-spin text-purple-400 flex-shrink-0" />;
+    if (s.status === "success")  return <Check className="w-3 h-3 text-green-400 flex-shrink-0" />;
+    if (s.status === "error")    return <X className="w-3 h-3 text-red-400 flex-shrink-0" />;
+    return <span className="w-3 h-3 flex-shrink-0 text-gray-600 text-center">–</span>;
+  };
 
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-black/70 backdrop-blur-sm"
+      onClick={e => { if (e.target === e.currentTarget && !isRunning) onClose(); }}
     >
       <motion.div
         initial={{ scale: 0.93, y: 20 }}
         animate={{ scale: 1, y: 0 }}
         exit={{ scale: 0.93, y: 20 }}
-        className="w-full max-w-lg bg-gray-900 border border-gray-700/60 rounded-2xl shadow-2xl overflow-hidden"
+        className="w-full sm:max-w-lg bg-gray-900 border border-gray-700/60 sm:rounded-2xl rounded-t-2xl shadow-2xl flex flex-col max-h-[90vh] sm:max-h-[85vh]"
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-800">
+        {/* ── Header ── */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-800 flex-shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-purple-500/20 flex items-center justify-center">
-              <Bot className="w-4 h-4 text-purple-400" />
+            <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${
+              isRunning ? "bg-purple-500/30" : "bg-purple-500/20"
+            }`}>
+              {isRunning
+                ? <Loader2 className="w-4 h-4 text-purple-400 animate-spin" />
+                : <Bot className="w-4 h-4 text-purple-400" />
+              }
             </div>
             <div>
               <p className="text-sm font-semibold text-white">HOLLY Agent Mode</p>
-              <p className="text-xs text-gray-500">Autonomous multi-step execution</p>
+              <p className="text-xs text-gray-500">
+                {isRunning ? statusText || "Working…" : "Autonomous multi-step execution"}
+              </p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-gray-500 hover:text-white hover:bg-gray-800 transition-colors">
-            <X className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-2">
+            {isRunning && (
+              <span className="text-xs text-gray-500 tabular-nums">{elapsed}s</span>
+            )}
+            <button
+              onClick={() => isRunning ? cancel() : onClose()}
+              className="p-1.5 rounded-lg text-gray-500 hover:text-white hover:bg-gray-800 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
-        {/* Body */}
-        <div className="px-5 py-4 space-y-4">
-          {/* Goal input */}
-          <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1.5">What should HOLLY do?</label>
-            <textarea
-              value={goal}
-              onChange={e => setGoal(e.target.value)}
-              disabled={running}
-              placeholder="e.g. Search GitHub for recent issues in my repo and summarise them"
-              rows={3}
-              className="w-full px-3 py-2.5 bg-gray-800 border border-gray-700/60 rounded-xl text-sm text-white placeholder-gray-600 resize-none focus:outline-none focus:border-purple-500/50 disabled:opacity-50 transition-colors"
-              onKeyDown={e => { if (e.key === "Enter" && e.metaKey) run(); }}
-            />
-            <p className="text-[10px] text-gray-600 mt-1">⌘↵ to run</p>
-          </div>
-
-          {/* Running state */}
-          {running && (
-            <div className="flex items-center gap-3 px-3 py-2.5 bg-purple-500/10 border border-purple-500/20 rounded-xl">
-              <Loader2 className="w-4 h-4 text-purple-400 animate-spin flex-shrink-0" />
-              <div className="min-w-0">
-                <p className="text-sm text-purple-300 font-medium">Planning & executing…</p>
-                <p className="text-xs text-gray-500">{elapsed}s elapsed</p>
-              </div>
+        {/* ── Body (scrollable) ── */}
+        <div ref={bodyRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-4 min-h-0">
+          {/* Goal input — hide once running */}
+          {phase === "idle" && (
+            <div>
+              <label className="block text-xs font-medium text-gray-400 mb-1.5">
+                What should HOLLY do?
+              </label>
+              <textarea
+                value={goal}
+                onChange={e => setGoal(e.target.value)}
+                autoFocus
+                placeholder="e.g. Search GitHub for recent issues in my repo and summarise them"
+                rows={3}
+                className="w-full px-3 py-2.5 bg-gray-800 border border-gray-700/60 rounded-xl text-sm text-white placeholder-gray-600 resize-none focus:outline-none focus:border-purple-500/50 transition-colors"
+                onKeyDown={e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) run(); }}
+              />
+              <p className="text-[10px] text-gray-600 mt-1">⌘↵ / Ctrl↵ to run</p>
             </div>
           )}
 
-          {/* Steps */}
+          {/* Goal echo during run */}
+          {phase !== "idle" && (
+            <div className="px-3 py-2 bg-gray-800/50 rounded-lg">
+              <p className="text-xs text-gray-500 mb-0.5">Goal</p>
+              <p className="text-sm text-white">{goal}</p>
+            </div>
+          )}
+
+          {/* Planning pulse */}
+          {phase === "planning" && (
+            <div className="flex items-center gap-2 text-xs text-purple-300">
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              Planning steps with Groq…
+            </div>
+          )}
+
+          {/* Live steps */}
           {steps.length > 0 && (
             <div className="space-y-1.5">
-              <p className="text-xs font-medium text-gray-400">Executed steps</p>
-              {steps.map((s, i) => (
-                <div key={i} className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs ${
-                  s.status === "success" ? "bg-green-500/10 text-green-300"
-                  : s.status === "error"   ? "bg-red-500/10 text-red-300"
-                  : "bg-gray-800 text-gray-500"
-                }`}>
-                  <span className="flex-shrink-0">{s.status === "success" ? "✓" : s.status === "error" ? "✗" : "–"}</span>
-                  <span className="font-mono truncate flex-1">{s.toolName.replace("::", " › ")}</span>
-                  <span className="flex-shrink-0 text-gray-600">{s.durationMs}ms</span>
-                </div>
-              ))}
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Steps</p>
+              <AnimatePresence initial={false}>
+                {steps.map((s) => (
+                  <motion.div
+                    key={s.stepIndex}
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs border transition-colors ${
+                      s.status === "running"  ? "bg-purple-500/10 border-purple-500/20 text-purple-200"
+                      : s.status === "success" ? "bg-green-500/10  border-green-500/20  text-green-300"
+                      : s.status === "error"   ? "bg-red-500/10    border-red-500/20    text-red-300"
+                      : "bg-gray-800/60 border-gray-700/30 text-gray-500"
+                    }`}
+                  >
+                    {stepIcon(s)}
+                    <span className="font-mono truncate flex-1">
+                      {s.toolName ? s.toolName.replace("::", " › ") : `Step ${s.stepIndex}`}
+                    </span>
+                    {s.durationMs !== undefined && (
+                      <span className="flex-shrink-0 text-gray-600 tabular-nums">{s.durationMs}ms</span>
+                    )}
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             </div>
           )}
 
-          {/* Summary */}
-          {summary && (
+          {/* Streaming summary */}
+          {(summary || phase === "summarising") && (
             <div className="px-3 py-3 bg-gray-800/60 border border-gray-700/40 rounded-xl">
-              <p className="text-xs font-medium text-gray-400 mb-1">Summary</p>
-              <p className="text-sm text-gray-200 leading-relaxed">{summary}</p>
+              <p className="text-xs font-medium text-gray-400 mb-1.5">Summary</p>
+              <p className="text-sm text-gray-200 leading-relaxed whitespace-pre-wrap">
+                {summary}
+                {phase === "summarising" && (
+                  <motion.span
+                    animate={{ opacity: [1, 0] }}
+                    transition={{ duration: 0.6, repeat: Infinity }}
+                    className="inline-block w-0.5 h-3.5 bg-purple-400 ml-0.5 align-middle"
+                  />
+                )}
+              </p>
             </div>
           )}
 
@@ -704,27 +880,29 @@ function AgentModal({ onClose }: { onClose: () => void }) {
           )}
         </div>
 
-        {/* Footer */}
-        <div className="px-5 py-4 border-t border-gray-800 flex items-center justify-between gap-3">
+        {/* ── Footer ── */}
+        <div className="px-5 py-4 border-t border-gray-800 flex items-center justify-between gap-3 flex-shrink-0">
           <button
-            onClick={onClose}
+            onClick={() => isRunning ? cancel() : onClose()}
             className="px-4 py-2 text-xs text-gray-400 hover:text-white rounded-lg hover:bg-gray-800 transition-colors"
           >
-            {done ? "Close" : "Cancel"}
+            {isRunning ? "Cancel" : isDone ? "Close" : "Cancel"}
           </button>
-          {!done && (
+
+          {phase === "idle" && (
             <button
               onClick={run}
-              disabled={!goal.trim() || running}
+              disabled={!goal.trim()}
               className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-medium rounded-lg transition-colors"
             >
-              {running ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
-              {running ? "Running…" : "Run Agent"}
+              <Zap className="w-3.5 h-3.5" />
+              Run Agent
             </button>
           )}
-          {done && !running && (
+
+          {isDone && (
             <button
-              onClick={() => { setSteps([]); setSummary(""); setError(""); setGoal(""); }}
+              onClick={reset}
               className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white text-xs font-medium rounded-lg transition-colors"
             >
               New task
@@ -966,7 +1144,7 @@ export default function HollyChatInterface() {
       </AnimatePresence>
 
       {/* ── Header ── */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800/80 bg-gray-950/95 backdrop-blur-sm flex-shrink-0">
+      <div className="flex items-center justify-between px-3 sm:px-4 py-3 border-b border-gray-800/80 bg-gray-950/95 backdrop-blur-sm flex-shrink-0">
         <div className="flex items-center gap-3">
           <HollyAvatar isThinking={isProcessing} />
           <div>
@@ -997,7 +1175,7 @@ export default function HollyChatInterface() {
             title="Agent Mode — autonomous multi-step tasks"
           >
             <Bot className="w-3.5 h-3.5" />
-            Agent
+            <span className="hidden sm:inline">Agent</span>
           </button>
           {/* Nav toggle */}
           <button
@@ -1048,7 +1226,7 @@ export default function HollyChatInterface() {
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="fixed right-0 top-0 bottom-0 z-50 w-64 bg-gray-900 border-l border-gray-800 flex flex-col shadow-2xl"
+              className="fixed right-0 top-0 bottom-0 z-50 w-72 sm:w-64 bg-gray-900 border-l border-gray-800 flex flex-col shadow-2xl"
             >
               {/* Panel header */}
               <div className="flex items-center justify-between px-4 py-4 border-b border-gray-800">
@@ -1128,7 +1306,7 @@ export default function HollyChatInterface() {
                 Your conscious AI partner — I remember, evolve, and act. Ask me anything, or watch me work.
               </p>
               {/* Suggestion chips */}
-              <div className="flex flex-wrap gap-2 justify-center max-w-sm">
+              <div className="flex flex-wrap gap-2 justify-center max-w-xs sm:max-w-sm">
                 {[
                   "What can you do?",
                   "Search the web for me",
@@ -1314,7 +1492,7 @@ export default function HollyChatInterface() {
 
       {/* ── Input area ── */}
       <div className="border-t border-gray-800/80 bg-gray-950/95 backdrop-blur-sm px-4 py-3 flex-shrink-0">
-        <div className="flex items-end gap-2.5 bg-gray-900/80 border border-gray-700/60 rounded-2xl px-3 py-2.5 focus-within:border-purple-500/50 transition-colors shadow-sm">
+        <div className="flex items-end gap-2 sm:gap-2.5 bg-gray-900/80 border border-gray-700/60 rounded-2xl px-3 py-2.5 focus-within:border-purple-500/50 transition-colors shadow-sm">
 
           {/* Voice button */}
           <button
@@ -1370,7 +1548,7 @@ export default function HollyChatInterface() {
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={isListening ? "Listening…" : "Ask HOLLY anything… (Enter to send, Shift+Enter for newline)"}
+            placeholder={isListening ? "Listening…" : "Ask HOLLY anything…"}
             disabled={isProcessing}
             rows={1}
             className="flex-1 bg-transparent text-white text-sm placeholder-gray-500 resize-none focus:outline-none min-h-[24px] max-h-[140px] leading-relaxed disabled:opacity-50"
@@ -1396,7 +1574,7 @@ export default function HollyChatInterface() {
         </div>
 
         {/* Footer hint */}
-        <div className="flex items-center justify-between mt-2 px-1">
+        <div className="hidden sm:flex items-center justify-between mt-2 px-1">
           <a
             href="/evolution"
             className="flex items-center gap-1 text-[10px] text-gray-700 hover:text-purple-400 transition-colors"
@@ -1405,7 +1583,7 @@ export default function HollyChatInterface() {
             Evolution dashboard
           </a>
           <p className="text-[10px] text-gray-700">
-            HOLLY · Phase 5 · 15 tools · Enter sends
+            HOLLY · Phase 6 · 15 tools · Enter sends
           </p>
           <a
             href="/onboarding"

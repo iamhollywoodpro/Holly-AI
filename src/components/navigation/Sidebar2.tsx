@@ -9,7 +9,7 @@ import {
   MessageSquare, 
   Settings, 
   Activity, 
-  HelpCircle,
+  Users,
   Menu,
   X,
   ChevronDown,
@@ -146,6 +146,9 @@ export function Sidebar2({
           {!isCollapsed && <span className="text-sm">Search</span>}
         </button>
 
+        {/* Chat */}
+        <NavLink href="/chat" icon={MessageSquare} label="Chat" />
+
         {/* AURA */}
         <NavLink href="/aura" icon={Sparkles} label="AURA" />
 
@@ -188,7 +191,7 @@ export function Sidebar2({
         <NavLink href="/evolution" icon={TrendingUp} label="Evolution" />
         <NavLink href="/settings" icon={Settings} label="Settings" />
         <NavLink href="/autonomy" icon={Activity} label="Autonomy" />
-        <NavLink href="/help" icon={HelpCircle} label="Help & Docs" />
+        <NavLink href="/onboarding" icon={Users} label="Partner Setup" />
         
         {/* User Button (not collapsed) */}
         {!isCollapsed && (

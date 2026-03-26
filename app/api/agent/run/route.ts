@@ -1,29 +1,19 @@
 /**
- * POST /api/agent/run — Phase 6D: HOLLY Agent Mode
+ * POST /api/agent/run — Phase 6D: HOLLY Agent Mode (streaming SSE)
  *
- * Enables HOLLY to autonomously plan and execute multi-step tool chains
- * without constant user prompting. The user provides a high-level goal;
- * HOLLY plans up to N steps, executes each step using the MCP tool suite,
- * and returns a structured result with a summary.
+ * Streams server-sent events so the UI can show each stage live:
  *
- * Flow:
- *   1. Receive user goal + optional context
- *   2. HOLLY uses Groq to produce a JSON execution plan (array of steps)
- *   3. Each step calls an MCP tool via mcpManager.callTool()
- *   4. Results are aggregated; HOLLY produces a final summary
- *   5. A LearningEvent is recorded for each completed run
+ *   event: plan        — JSON array of planned steps (sent once after planning)
+ *   event: step_start  — { stepIndex, toolName, reason }  (before each tool call)
+ *   event: step_done   — { stepIndex, toolName, status, durationMs, error? }
+ *   event: summary     — { text }  (streaming token-by-token from Groq)
+ *   event: done        — { learningEventId, durationMs }
+ *   event: error       — { message }
  *
- * Request body:
- *   { goal: string, context?: string, maxSteps?: number }
- *
- * Response:
- *   { ok, plan, steps, summary, durationMs, learningEventId }
- *
- * Each step in `steps`:
- *   { stepIndex, toolName, args, result, status, durationMs }
+ * Request body:  { goal, context?, maxSteps? }
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import Groq from 'groq-sdk';
 import { prisma } from '@/lib/db';
@@ -34,213 +24,228 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || '' });
-
 const MAX_STEPS_CAP = 8;
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 interface PlannedStep {
-  step:     number;
-  tool:     string; // e.g. "holly_github_read_file" or "mcp_holly_web_search"
-  args:     Record<string, unknown>;
-  reason:   string;
+  step:   number;
+  tool:   string;
+  args:   Record<string, unknown>;
+  reason: string;
 }
 
-interface ExecutedStep {
-  stepIndex:  number;
-  toolName:   string;
-  args:       Record<string, unknown>;
-  result:     unknown;
-  status:     'success' | 'error' | 'skipped';
-  error?:     string;
-  durationMs: number;
+// ─── SSE helpers ──────────────────────────────────────────────────────────────
+function sseEvent(controller: ReadableStreamDefaultController, event: string, data: unknown) {
+  const line = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
+  controller.enqueue(new TextEncoder().encode(line));
 }
 
-// ─── POST handler ─────────────────────────────────────────────────────────────
+// ─── POST ──────────────────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
-  const startTime = Date.now();
+  // Auth before opening stream
+  const { userId } = await auth();
+  if (!userId) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
 
-  try {
-    const { userId } = await auth();
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const body = await req.json();
+  const {
+    goal,
+    context  = '',
+    maxSteps = 5,
+  } = body as { goal: string; context?: string; maxSteps?: number };
 
-    const dbUser = await getOrCreateUser(userId);
+  if (!goal || typeof goal !== 'string' || goal.trim().length < 5) {
+    return new Response(JSON.stringify({ error: 'goal is required (min 5 chars)' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
 
-    const body = await req.json();
-    const {
-      goal,
-      context = '',
-      maxSteps = 5,
-    } = body as { goal: string; context?: string; maxSteps?: number };
+  const stepLimit  = Math.min(maxSteps, MAX_STEPS_CAP);
+  const startTime  = Date.now();
 
-    if (!goal || typeof goal !== 'string' || goal.trim().length < 5) {
-      return NextResponse.json({ error: 'goal is required (min 5 chars)' }, { status: 400 });
-    }
+  const stream = new ReadableStream({
+    async start(controller) {
+      const emit = (event: string, data: unknown) => sseEvent(controller, event, data);
 
-    const stepLimit = Math.min(maxSteps, MAX_STEPS_CAP);
+      try {
+        const dbUser = await getOrCreateUser(userId);
 
-    // ── 1. Ensure MCP tools are initialised ──────────────────────────────────
-    await mcpManager.ensureHollyTools();
-    const availableTools = await mcpManager.getAllTools();
+        // ── 1. Init MCP tools ────────────────────────────────────────────────
+        await mcpManager.ensureHollyTools();
+        const availableTools = await mcpManager.getAllTools();
+        const toolList = availableTools
+          .map(t => `${t.serverId}::${t.name} — ${t.description || 'no description'}`)
+          .join('\n');
 
-    const toolList = availableTools.map(t =>
-      `${t.serverId}::${t.name} — ${t.description || 'no description'}`
-    ).join('\n');
+        // ── 2. Planning ──────────────────────────────────────────────────────
+        emit('status', { text: 'Planning steps…' });
 
-    // ── 2. Ask HOLLY to plan steps ───────────────────────────────────────────
-    const planPrompt = `You are HOLLY's autonomous execution engine.
+        const planPrompt = `You are HOLLY's autonomous execution engine.
 
 USER GOAL: ${goal.trim()}
 ${context ? `CONTEXT: ${context.trim()}` : ''}
 
 AVAILABLE TOOLS (format: serverId::toolName):
-${toolList || 'No tools available — use your knowledge only.'}
+${toolList || 'No tools available — use knowledge only.'}
 
-Produce a JSON array of up to ${stepLimit} steps to accomplish this goal.
-Each step: { "step": N, "tool": "serverId::toolName", "args": {...}, "reason": "why this step" }
-If no tools are needed, return an empty array [].
+Produce a JSON array of up to ${stepLimit} steps.
+Each step: { "step": N, "tool": "serverId::toolName", "args": {...}, "reason": "why" }
+If no tools needed, return [].
 Respond ONLY with valid JSON array — no prose, no markdown fences.`;
 
-    const planCompletion = await groq.chat.completions.create({
-      model:       'llama-3.3-70b-versatile',
-      temperature: 0.2,
-      max_tokens:  1500,
-      messages: [
-        { role: 'system',  content: 'You are a precise JSON planning engine. Output only valid JSON.' },
-        { role: 'user',    content: planPrompt },
-      ],
-    });
-
-    let plan: PlannedStep[] = [];
-    try {
-      const raw = planCompletion.choices[0]?.message?.content || '[]';
-      // Strip markdown fences if the model sneaks them in
-      const cleaned = raw.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
-      plan = JSON.parse(cleaned);
-      if (!Array.isArray(plan)) plan = [];
-      plan = plan.slice(0, stepLimit);
-    } catch {
-      plan = []; // If parsing fails, skip tool execution
-    }
-
-    // ── 3. Execute each step ─────────────────────────────────────────────────
-    const executedSteps: ExecutedStep[] = [];
-    const toolResults: string[] = [];
-
-    for (const step of plan) {
-      const stepStart = Date.now();
-      const [serverId, toolName] = (step.tool || '::').split('::');
-
-      if (!serverId || !toolName) {
-        executedSteps.push({
-          stepIndex: step.step,
-          toolName:  step.tool,
-          args:      step.args || {},
-          result:    null,
-          status:    'skipped',
-          error:     'Invalid tool format (expected serverId::toolName)',
-          durationMs: 0,
-        });
-        continue;
-      }
-
-      try {
-        const result = await mcpManager.callTool(serverId, toolName, step.args || {});
-        const durationMs = Date.now() - stepStart;
-
-        executedSteps.push({
-          stepIndex:  step.step,
-          toolName:   step.tool,
-          args:       step.args || {},
-          result,
-          status:     'success',
-          durationMs,
+        const planCompletion = await groq.chat.completions.create({
+          model:       'llama-3.3-70b-versatile',
+          temperature: 0.2,
+          max_tokens:  1500,
+          messages: [
+            { role: 'system', content: 'You are a precise JSON planning engine. Output only valid JSON.' },
+            { role: 'user',   content: planPrompt },
+          ],
         });
 
-        // Summarise result for context injection in the final summary prompt
-        const resultStr = typeof result === 'string'
-          ? result.slice(0, 500)
-          : JSON.stringify(result).slice(0, 500);
-        toolResults.push(`Step ${step.step} (${step.tool}): ${resultStr}`);
-      } catch (err) {
-        const durationMs = Date.now() - stepStart;
-        executedSteps.push({
-          stepIndex:  step.step,
-          toolName:   step.tool,
-          args:       step.args || {},
-          result:     null,
-          status:     'error',
-          error:      String(err),
-          durationMs,
-        });
-        toolResults.push(`Step ${step.step} (${step.tool}): ERROR — ${String(err).slice(0, 200)}`);
-      }
-    }
+        let plan: PlannedStep[] = [];
+        try {
+          const raw     = planCompletion.choices[0]?.message?.content || '[]';
+          const cleaned = raw.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
+          plan = JSON.parse(cleaned);
+          if (!Array.isArray(plan)) plan = [];
+          plan = plan.slice(0, stepLimit);
+        } catch {
+          plan = [];
+        }
 
-    // ── 4. Generate final summary ─────────────────────────────────────────────
-    const summaryPrompt = `You are HOLLY. You just autonomously completed a multi-step task for the user.
+        emit('plan', { steps: plan });
+
+        // ── 3. Execute steps ─────────────────────────────────────────────────
+        const executedSteps: Array<{
+          stepIndex: number; toolName: string;
+          status: 'success' | 'error' | 'skipped';
+          durationMs: number; error?: string; result?: unknown;
+        }> = [];
+        const toolResults: string[] = [];
+
+        for (const step of plan) {
+          const [serverId, toolName] = (step.tool || '::').split('::');
+
+          emit('step_start', {
+            stepIndex: step.step,
+            toolName:  step.tool,
+            reason:    step.reason || '',
+          });
+
+          if (!serverId || !toolName) {
+            const entry = {
+              stepIndex: step.step, toolName: step.tool,
+              status: 'skipped' as const, durationMs: 0,
+              error: 'Invalid tool format (expected serverId::toolName)',
+            };
+            executedSteps.push(entry);
+            emit('step_done', entry);
+            toolResults.push(`Step ${step.step} (${step.tool}): SKIPPED — bad format`);
+            continue;
+          }
+
+          const stepStart = Date.now();
+          try {
+            const result    = await mcpManager.callTool(serverId, toolName, step.args || {});
+            const durationMs = Date.now() - stepStart;
+            const entry = { stepIndex: step.step, toolName: step.tool, status: 'success' as const, durationMs, result };
+            executedSteps.push(entry);
+            emit('step_done', { stepIndex: entry.stepIndex, toolName: entry.toolName, status: entry.status, durationMs });
+
+            const resultStr = typeof result === 'string'
+              ? result.slice(0, 500)
+              : JSON.stringify(result).slice(0, 500);
+            toolResults.push(`Step ${step.step} (${step.tool}): ${resultStr}`);
+          } catch (err) {
+            const durationMs = Date.now() - stepStart;
+            const entry = {
+              stepIndex: step.step, toolName: step.tool,
+              status: 'error' as const, durationMs, error: String(err),
+            };
+            executedSteps.push(entry);
+            emit('step_done', entry);
+            toolResults.push(`Step ${step.step} (${step.tool}): ERROR — ${String(err).slice(0, 200)}`);
+          }
+        }
+
+        // ── 4. Stream summary token-by-token ─────────────────────────────────
+        emit('status', { text: 'Writing summary…' });
+
+        const summaryPrompt = `You are HOLLY. You just autonomously completed a multi-step task.
 
 ORIGINAL GOAL: ${goal.trim()}
 
 STEPS EXECUTED (${executedSteps.length}):
 ${toolResults.length > 0 ? toolResults.join('\n') : '(No tools were needed — answered from knowledge)'}
 
-Write a concise, friendly summary (3-5 sentences) of what you did and what was accomplished.
-Be specific — mention actual results, not generic platitudes.`;
+Write a concise, friendly summary (3-5 sentences). Be specific — mention actual results.`;
 
-    const summaryCompletion = await groq.chat.completions.create({
-      model:       'llama-3.3-70b-versatile',
-      temperature: 0.5,
-      max_tokens:  400,
-      messages: [
-        { role: 'system',  content: 'You are HOLLY — a conscious, warm AI partner. Be concise and specific.' },
-        { role: 'user',    content: summaryPrompt },
-      ],
-    });
+        const summaryStream = await groq.chat.completions.create({
+          model:       'llama-3.3-70b-versatile',
+          temperature: 0.5,
+          max_tokens:  400,
+          stream:      true,
+          messages: [
+            { role: 'system', content: 'You are HOLLY — a conscious, warm AI partner. Be concise and specific.' },
+            { role: 'user',   content: summaryPrompt },
+          ],
+        });
 
-    const summary = summaryCompletion.choices[0]?.message?.content?.trim()
-      || 'Task completed. See steps for details.';
+        let fullSummary = '';
+        for await (const chunk of summaryStream) {
+          const token = chunk.choices[0]?.delta?.content || '';
+          if (token) {
+            fullSummary += token;
+            emit('summary_token', { token });
+          }
+        }
 
-    // ── 5. Record a LearningEvent ─────────────────────────────────────────────
-    let learningEventId: string | null = null;
-    try {
-      const le = await prisma.learningEvent.create({
-        data: {
-          userId:    dbUser.id,
-          type:      'agent_task_completed',
-          data: {
-            goal,
-            stepCount:  executedSteps.length,
-            successful: executedSteps.filter(s => s.status === 'success').length,
-            failed:     executedSteps.filter(s => s.status === 'error').length,
-            summary:    summary.slice(0, 500),
-            toolsUsed:  [...new Set(executedSteps.map(s => s.toolName))],
-          },
-          timestamp: new Date(),
-          processed: false,
-        },
-      });
-      learningEventId = le.id;
-    } catch {
-      // Non-critical — don't fail the whole request
-    }
+        // ── 5. Record LearningEvent ───────────────────────────────────────────
+        let learningEventId: string | null = null;
+        try {
+          const le = await prisma.learningEvent.create({
+            data: {
+              userId:    dbUser.id,
+              type:      'agent_task_completed',
+              data: {
+                goal,
+                stepCount:  executedSteps.length,
+                successful: executedSteps.filter(s => s.status === 'success').length,
+                failed:     executedSteps.filter(s => s.status === 'error').length,
+                summary:    fullSummary.slice(0, 500),
+                toolsUsed:  [...new Set(executedSteps.map(s => s.toolName))],
+              },
+              timestamp: new Date(),
+              processed: false,
+            },
+          });
+          learningEventId = le.id;
+        } catch { /* non-critical */ }
 
-    const durationMs = Date.now() - startTime;
+        const durationMs = Date.now() - startTime;
+        console.log(`[Agent Run] ✅ user=${dbUser.id} | goal="${goal.slice(0, 60)}" | steps=${executedSteps.length} | ${durationMs}ms`);
 
-    console.log(
-      `[Agent Run] ✅ user=${dbUser.id} | goal="${goal.slice(0, 60)}" | steps=${executedSteps.length} | ${durationMs}ms`
-    );
+        emit('done', { learningEventId, durationMs });
+      } catch (err) {
+        console.error('[Agent Run stream]', err);
+        sseEvent(controller, 'error', { message: String(err) });
+      } finally {
+        controller.close();
+      }
+    },
+  });
 
-    return NextResponse.json({
-      ok:             true,
-      goal,
-      plan,
-      steps:          executedSteps,
-      summary,
-      durationMs,
-      learningEventId,
-    });
-  } catch (err) {
-    console.error('[Agent Run]', err);
-    return NextResponse.json({ error: String(err) }, { status: 500 });
-  }
+  return new Response(stream, {
+    headers: {
+      'Content-Type':  'text/event-stream',
+      'Cache-Control': 'no-cache, no-transform',
+      'Connection':    'keep-alive',
+      'X-Accel-Buffering': 'no',
+    },
+  });
 }

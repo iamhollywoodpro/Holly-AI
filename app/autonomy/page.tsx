@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useUser } from "@clerk/nextjs";
-import { ConsciousnessIndicator } from '@/components/holly2/ConsciousnessIndicator';
-import { Brain, ArrowLeft } from 'lucide-react';
-import { cyberpunkTheme } from '@/styles/themes/cyberpunk';
+import { useState, useEffect, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Brain, Activity, Shield, Zap, TrendingUp, TrendingDown,
+  AlertTriangle, CheckCircle, RefreshCw, Clock,
+} from "lucide-react";
 
+// ─── Types ────────────────────────────────────────────────────────────────────
 interface AutonomyMetrics {
   total: number;
   autoApproved: number;
@@ -14,11 +16,7 @@ interface AutonomyMetrics {
   autoApprovalRate: number;
   successRate: number;
   failureRate: number;
-  byRiskLevel: {
-    low: number;
-    medium: number;
-    high: number;
-  };
+  byRiskLevel: { low: number; medium: number; high: number };
 }
 
 interface HealthIssue {
@@ -29,283 +27,302 @@ interface HealthIssue {
   suggestedAction?: string;
 }
 
+type Timeframe = "24h" | "7d" | "30d";
+
+// ─── Severity styling ─────────────────────────────────────────────────────────
+const severityConfig = {
+  critical: { bg: "bg-red-500/10",    border: "border-red-500/30",    text: "text-red-400",    badge: "bg-red-500/20 text-red-300" },
+  high:     { bg: "bg-orange-500/10", border: "border-orange-500/30", text: "text-orange-400", badge: "bg-orange-500/20 text-orange-300" },
+  medium:   { bg: "bg-yellow-500/10", border: "border-yellow-500/30", text: "text-yellow-400", badge: "bg-yellow-500/20 text-yellow-300" },
+  low:      { bg: "bg-blue-500/10",   border: "border-blue-500/30",   text: "text-blue-400",   badge: "bg-blue-500/20 text-blue-300" },
+};
+
+// ─── Stat card ────────────────────────────────────────────────────────────────
+function StatCard({
+  label, value, sub, icon: Icon, color,
+}: {
+  label: string; value: string; sub: string;
+  icon: React.ComponentType<{ className?: string }>;
+  color: string;
+}) {
+  return (
+    <div className={`bg-gray-900 border border-gray-800 rounded-xl p-5 flex items-start gap-4`}>
+      <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${color}`}>
+        <Icon className="w-5 h-5" />
+      </div>
+      <div className="min-w-0">
+        <p className="text-xs text-gray-500 mb-1">{label}</p>
+        <p className="text-2xl font-bold text-white tabular-nums">{value}</p>
+        <p className="text-xs text-gray-600 mt-0.5">{sub}</p>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
 export default function AutonomyDashboard() {
-  const { user } = useUser();
   const [metrics, setMetrics] = useState<{
     last24Hours: AutonomyMetrics;
-    last7Days: AutonomyMetrics;
-    last30Days: AutonomyMetrics;
+    last7Days:   AutonomyMetrics;
+    last30Days:  AutonomyMetrics;
   } | null>(null);
   const [healthIssues, setHealthIssues] = useState<HealthIssue[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedTimeframe, setSelectedTimeframe] = useState<"24h" | "7d" | "30d">("7d");
+  const [loading, setLoading]         = useState(true);
+  const [refreshing, setRefreshing]   = useState(false);
+  const [fixingId, setFixingId]       = useState<string | null>(null);
+  const [timeframe, setTimeframe]     = useState<Timeframe>("7d");
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+  const fetchData = useCallback(async (silent = false) => {
+    if (!silent) setRefreshing(true);
+    try {
+      const [analyticsRes, healthRes] = await Promise.all([
+        fetch("/api/autonomy/analytics", { credentials: "include" }),
+        fetch("/api/autonomy/health",    { credentials: "include" }),
+      ]);
+      const [analyticsData, healthData] = await Promise.all([
+        analyticsRes.json(),
+        healthRes.json(),
+      ]);
+      if (analyticsData.success) setMetrics(analyticsData.metrics);
+      if (healthData.success)    setHealthIssues(healthData.health?.issues || []);
+      setLastUpdated(new Date());
+    } catch (err) {
+      console.error("[Autonomy] Failed to fetch:", err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
 
   useEffect(() => {
     fetchData();
-    
-    // Auto-refresh every 30 seconds for real-time updates
-    const interval = setInterval(() => {
-      fetchData();
-    }, 30000);
-    
-    return () => clearInterval(interval);
-  }, []);
-
-  const fetchData = async () => {
-    try {
-      // Fetch analytics
-      const analyticsRes = await fetch("/api/autonomy/analytics");
-      const analyticsData = await analyticsRes.json();
-
-      if (analyticsData.success) {
-        setMetrics(analyticsData.metrics);
-      }
-
-      // Fetch health status
-      const healthRes = await fetch("/api/autonomy/health");
-      const healthData = await healthRes.json();
-
-      if (healthData.success) {
-        setHealthIssues(healthData.health.issues);
-      }
-    } catch (error) {
-      console.error("Failed to fetch autonomy data:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    const iv = setInterval(() => fetchData(true), 30_000);
+    return () => clearInterval(iv);
+  }, [fetchData]);
 
   const triggerAutoFix = async (issueId: string) => {
+    setFixingId(issueId);
     try {
-      const res = await fetch("/api/autonomy/health/auto-fix", {
+      const res  = await fetch("/api/autonomy/self-heal", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ issueId }),
       });
-
       const data = await res.json();
-
       if (data.success) {
-        alert(`Auto-fix triggered! Improvement ID: ${data.improvementId}`);
-        fetchData(); // Refresh data
-      } else {
-        alert(`Failed to trigger auto-fix: ${data.error}`);
+        await fetchData();
       }
-    } catch (error) {
-      console.error("Failed to trigger auto-fix:", error);
-      alert("Failed to trigger auto-fix");
+    } catch (err) {
+      console.error("[AutoFix]", err);
+    } finally {
+      setFixingId(null);
     }
   };
 
-  const getSeverityColor = (severity: string) => {
-    switch (severity) {
-      case "critical":
-        return "bg-red-100 text-red-800 border-red-200";
-      case "high":
-        return "bg-orange-100 text-orange-800 border-orange-200";
-      case "medium":
-        return "bg-yellow-100 text-yellow-800 border-yellow-200";
-      case "low":
-        return "bg-blue-100 text-blue-800 border-blue-200";
-      default:
-        return "bg-gray-100 text-gray-800 border-gray-200";
-    }
-  };
+  const current = timeframe === "24h" ? metrics?.last24Hours
+                : timeframe === "7d"  ? metrics?.last7Days
+                : metrics?.last30Days;
 
+  // ── Loading ──
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-gray-600">Loading autonomy dashboard...</div>
+      <div className="flex items-center justify-center h-full">
+        <div className="flex flex-col items-center gap-3">
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+          >
+            <Brain className="w-8 h-8 text-purple-400" />
+          </motion.div>
+          <p className="text-sm text-gray-500">Loading autonomy data…</p>
+        </div>
       </div>
     );
   }
 
-  const currentMetrics =
-    selectedTimeframe === "24h"
-      ? metrics?.last24Hours
-      : selectedTimeframe === "7d"
-      ? metrics?.last7Days
-      : metrics?.last30Days;
-
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <div className="flex items-center gap-4 mb-4">
-            <button
-              onClick={() => window.location.href = '/'}
-              className="p-2 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 transition-colors"
-              title="Back to HOLLY Chat"
-            >
-              <ArrowLeft size={20} />
-            </button>
-            <h1 className="text-3xl font-bold text-gray-900">
-              🤖 Autonomy Dashboard
-            </h1>
-          </div>
-          <p className="text-gray-600">
-            Monitor HOLLY's autonomous decision-making, self-healing capabilities, and consciousness state
+    <div className="px-6 py-6 max-w-5xl mx-auto space-y-6">
+
+      {/* ── Page header ── */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-white flex items-center gap-2.5">
+            <Activity className="w-5 h-5 text-purple-400" />
+            Autonomy Dashboard
+          </h1>
+          <p className="text-sm text-gray-500 mt-0.5">
+            HOLLY's self-healing, decision-making, and consciousness metrics
           </p>
         </div>
-
-        {/* Consciousness Status */}
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <div className="flex items-center gap-3 mb-4">
-            <Brain size={24} style={{ color: cyberpunkTheme.colors.primary.cyan }} />
-            <h2 className="text-xl font-semibold text-gray-900">
-              HOLLY's Consciousness
-            </h2>
-          </div>
-          <div className="flex items-center justify-center py-4">
-            <ConsciousnessIndicator />
-          </div>
-          <p className="text-sm text-gray-600 text-center mt-4">
-            Click the consciousness indicator to view detailed metrics
-          </p>
-        </div>
-
-        {/* Health Status */}
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">
-            System Health
-          </h2>
-
-          {healthIssues.length === 0 ? (
-            <div className="flex items-center text-green-600">
-              <span className="text-2xl mr-2">✓</span>
-              <span className="font-medium">All systems operational</span>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {healthIssues.map((issue) => (
-                <div
-                  key={issue.id}
-                  className={`border rounded-lg p-4 ${getSeverityColor(
-                    issue.severity
-                  )}`}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center mb-2">
-                        <span className="font-semibold uppercase text-xs mr-2">
-                          {issue.severity}
-                        </span>
-                        <span className="text-sm text-gray-600">
-                          {issue.type}
-                        </span>
-                      </div>
-                      <p className="text-sm mb-2">{issue.description}</p>
-                      {issue.suggestedAction && (
-                        <p className="text-xs italic">
-                          Suggested: {issue.suggestedAction}
-                        </p>
-                      )}
-                    </div>
-                    <button
-                      onClick={() => triggerAutoFix(issue.id)}
-                      className="ml-4 px-3 py-1 bg-white border border-gray-300 rounded text-sm hover:bg-gray-50"
-                    >
-                      Auto-Fix
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+        <div className="flex items-center gap-3">
+          {lastUpdated && (
+            <span className="text-xs text-gray-600 flex items-center gap-1">
+              <Clock className="w-3 h-3" />
+              {lastUpdated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+            </span>
           )}
-        </div>
-
-        {/* Metrics */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold text-gray-900">
-              Autonomy Metrics
-            </h2>
-            <div className="flex gap-2">
-              {["24h", "7d", "30d"].map((tf) => (
-                <button
-                  key={tf}
-                  onClick={() => setSelectedTimeframe(tf as any)}
-                  className={`px-3 py-1 rounded text-sm ${
-                    selectedTimeframe === tf
-                      ? "bg-purple-600 text-white"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }`}
-                >
-                  {tf === "24h" ? "24 Hours" : tf === "7d" ? "7 Days" : "30 Days"}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {currentMetrics && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4">
-                <div className="text-sm text-purple-600 font-medium mb-1">
-                  Auto-Approval Rate
-                </div>
-                <div className="text-3xl font-bold text-purple-900">
-                  {Math.round(currentMetrics.autoApprovalRate * 100)}%
-                </div>
-                <div className="text-xs text-purple-600 mt-1">
-                  {currentMetrics.autoApproved} / {currentMetrics.total} improvements
-                </div>
-              </div>
-
-              <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4">
-                <div className="text-sm text-green-600 font-medium mb-1">
-                  Success Rate
-                </div>
-                <div className="text-3xl font-bold text-green-900">
-                  {Math.round(currentMetrics.successRate * 100)}%
-                </div>
-                <div className="text-xs text-green-600 mt-1">
-                  {currentMetrics.successful} successful deployments
-                </div>
-              </div>
-
-              <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-lg p-4">
-                <div className="text-sm text-red-600 font-medium mb-1">
-                  Failure Rate
-                </div>
-                <div className="text-3xl font-bold text-red-900">
-                  {Math.round(currentMetrics.failureRate * 100)}%
-                </div>
-                <div className="text-xs text-red-600 mt-1">
-                  {currentMetrics.failed} failed deployments
-                </div>
-              </div>
-            </div>
-          )}
-
-          {currentMetrics && (
-            <div className="mt-6 pt-6 border-t">
-              <h3 className="text-sm font-semibold text-gray-700 mb-3">
-                Improvements by Risk Level
-              </h3>
-              <div className="grid grid-cols-3 gap-4">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">
-                    {currentMetrics.byRiskLevel.low}
-                  </div>
-                  <div className="text-xs text-gray-600">Low Risk</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-yellow-600">
-                    {currentMetrics.byRiskLevel.medium}
-                  </div>
-                  <div className="text-xs text-gray-600">Medium Risk</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-red-600">
-                    {currentMetrics.byRiskLevel.high}
-                  </div>
-                  <div className="text-xs text-gray-600">High Risk</div>
-                </div>
-              </div>
-            </div>
-          )}
+          <button
+            onClick={() => fetchData()}
+            disabled={refreshing}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-400 border border-gray-700 rounded-lg hover:bg-gray-800 hover:text-white disabled:opacity-50 transition-colors"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />
+            Refresh
+          </button>
         </div>
       </div>
+
+      {/* ── Timeframe selector ── */}
+      <div className="flex gap-1 p-1 bg-gray-900 border border-gray-800 rounded-lg w-fit">
+        {(["24h", "7d", "30d"] as Timeframe[]).map(tf => (
+          <button
+            key={tf}
+            onClick={() => setTimeframe(tf)}
+            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+              timeframe === tf
+                ? "bg-purple-600 text-white"
+                : "text-gray-400 hover:text-white hover:bg-gray-800"
+            }`}
+          >
+            {tf === "24h" ? "24 hours" : tf === "7d" ? "7 days" : "30 days"}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Metrics grid ── */}
+      {current ? (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <StatCard
+            label="Auto-Approval Rate"
+            value={`${Math.round(current.autoApprovalRate * 100)}%`}
+            sub={`${current.autoApproved} / ${current.total} improvements`}
+            icon={Zap}
+            color="bg-purple-500/20 text-purple-400"
+          />
+          <StatCard
+            label="Success Rate"
+            value={`${Math.round(current.successRate * 100)}%`}
+            sub={`${current.successful} successful deployments`}
+            icon={TrendingUp}
+            color="bg-green-500/20 text-green-400"
+          />
+          <StatCard
+            label="Failure Rate"
+            value={`${Math.round(current.failureRate * 100)}%`}
+            sub={`${current.failed} failed deployments`}
+            icon={TrendingDown}
+            color="bg-red-500/20 text-red-400"
+          />
+        </div>
+      ) : (
+        <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 text-center">
+          <p className="text-sm text-gray-500">No autonomy metrics yet — HOLLY will populate this as she operates.</p>
+        </div>
+      )}
+
+      {/* ── Risk breakdown ── */}
+      {current && (
+        <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+          <h2 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+            <Shield className="w-4 h-4 text-gray-400" />
+            Improvements by Risk Level
+          </h2>
+          <div className="grid grid-cols-3 gap-4">
+            {[
+              { label: "Low Risk",    count: current.byRiskLevel.low,    color: "text-green-400",  bg: "bg-green-500/10"  },
+              { label: "Medium Risk", count: current.byRiskLevel.medium, color: "text-yellow-400", bg: "bg-yellow-500/10" },
+              { label: "High Risk",   count: current.byRiskLevel.high,   color: "text-red-400",    bg: "bg-red-500/10"    },
+            ].map(r => (
+              <div key={r.label} className={`${r.bg} rounded-lg p-4 text-center`}>
+                <p className={`text-2xl font-bold ${r.color}`}>{r.count}</p>
+                <p className="text-xs text-gray-500 mt-1">{r.label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── System Health ── */}
+      <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+        <h2 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+          <Brain className="w-4 h-4 text-gray-400" />
+          System Health
+        </h2>
+
+        {healthIssues.length === 0 ? (
+          <div className="flex items-center gap-2.5 text-green-400">
+            <CheckCircle className="w-5 h-5" />
+            <span className="text-sm font-medium">All systems operational</span>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <AnimatePresence>
+              {healthIssues.map(issue => {
+                const cfg = severityConfig[issue.severity] || severityConfig.low;
+                return (
+                  <motion.div
+                    key={issue.id}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={`${cfg.bg} border ${cfg.border} rounded-xl p-4`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <AlertTriangle className={`w-3.5 h-3.5 ${cfg.text} flex-shrink-0`} />
+                          <span className={`text-xs font-semibold px-1.5 py-0.5 rounded ${cfg.badge}`}>
+                            {issue.severity.toUpperCase()}
+                          </span>
+                          <span className="text-xs text-gray-500 truncate">{issue.type}</span>
+                        </div>
+                        <p className="text-sm text-gray-200">{issue.description}</p>
+                        {issue.suggestedAction && (
+                          <p className="text-xs text-gray-500 mt-1 italic">
+                            Suggested: {issue.suggestedAction}
+                          </p>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => triggerAutoFix(issue.id)}
+                        disabled={fixingId === issue.id}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-gray-800 border border-gray-700 text-gray-300 rounded-lg hover:bg-gray-700 hover:text-white disabled:opacity-50 transition-colors flex-shrink-0"
+                      >
+                        {fixingId === issue.id
+                          ? <RefreshCw className="w-3 h-3 animate-spin" />
+                          : <Zap className="w-3 h-3" />
+                        }
+                        {fixingId === issue.id ? "Fixing…" : "Auto-Fix"}
+                      </button>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
+          </div>
+        )}
+      </div>
+
+      {/* ── Agent Mode teaser ── */}
+      <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/20 rounded-xl p-5 flex items-center gap-4">
+        <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center flex-shrink-0">
+          <Zap className="w-5 h-5 text-purple-400" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-white">HOLLY Agent Mode</p>
+          <p className="text-xs text-gray-400 mt-0.5">
+            Give HOLLY a high-level goal and she'll plan + execute multi-step tasks autonomously using her tool suite.
+          </p>
+        </div>
+        <a
+          href="/chat"
+          className="flex-shrink-0 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-medium rounded-lg transition-colors"
+        >
+          Open Chat →
+        </a>
+      </div>
+
     </div>
   );
 }
