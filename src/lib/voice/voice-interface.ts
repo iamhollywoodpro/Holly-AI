@@ -1,90 +1,63 @@
 /**
- * Voice Interface - Transcription ONLY
- * For TTS, use enhanced-voice-output.ts
+ * Voice Interface — Phase 4C
+ *
+ * Thin wrapper around whisper-stt.ts for backward compatibility.
+ * Previous callers using voiceInterface.transcribe(buffer) continue to work.
+ *
+ * Provider chain (automatic):
+ *   1. Groq Whisper (whisper-large-v3-turbo) — free, fast
+ *   2. OpenAI Whisper (whisper-1) — fallback
+ *   3. Browser Web Speech API signal
  */
 
-'use client';
+import { transcribeAudio, getSTTStatus, type TranscriptionResult } from '@/lib/ai/whisper-stt';
 
-interface TranscriptionResult {
+interface LegacyTranscriptionResult {
   text: string;
   language: string;
+  provider?: string;
+  useBrowserSTT?: boolean;
 }
 
 class VoiceInterface {
   /**
-   * Transcribe audio buffer to text using OpenAI Whisper
+   * Transcribe audio buffer to text.
+   * Automatically selects the best available provider.
    */
-  async transcribe(audioBuffer: Buffer): Promise<TranscriptionResult> {
-    try {
-      // Use OpenAI Whisper for transcription
-      const openaiApiKey = process.env.OPENAI_API_KEY;
-      
-      if (!openaiApiKey) {
-        throw new Error('OpenAI API key not configured');
-      }
+  async transcribe(
+    audioBuffer: Buffer,
+    filename = 'audio.webm',
+    language?: string
+  ): Promise<LegacyTranscriptionResult> {
+    const result: TranscriptionResult = await transcribeAudio(audioBuffer, filename, {
+      language,
+    });
 
-      // Create form data with audio file
-      const formData = new FormData();
-      // Convert Buffer to Uint8Array for Blob compatibility
-      const uint8Array = new Uint8Array(audioBuffer);
-      const audioBlob = new Blob([uint8Array], { type: 'audio/wav' });
-      formData.append('file', audioBlob, 'audio.wav');
-      formData.append('model', 'whisper-1');
-      formData.append('language', 'en');
-
-      const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${openaiApiKey}`,
-        },
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const error = await response.text();
-        throw new Error(`Transcription failed: ${error}`);
-      }
-
-      const result = await response.json();
-      
-      return {
-        text: result.text || '',
-        language: result.language || 'en',
-      };
-    } catch (error) {
-      console.error('[Voice Interface] Transcription error:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Check if transcription is available
-   */
-  isAvailable(): boolean {
-    return !!process.env.OPENAI_API_KEY;
-  }
-
-  /**
-   * Get service status (for health checks)
-   */
-  async getStatus() {
     return {
-      transcription: {
-        available: this.isAvailable(),
-        provider: 'OpenAI Whisper',
-      },
+      text: result.text,
+      language: result.language,
+      provider: result.provider,
+      useBrowserSTT: result.useBrowserSTT,
     };
+  }
+
+  /** Check if any cloud STT provider is configured. */
+  isAvailable(): boolean {
+    return getSTTStatus().available;
+  }
+
+  /** Return full status including all providers and supported formats. */
+  async getStatus() {
+    return getSTTStatus();
   }
 }
 
 // Singleton instance
-let voiceInterfaceInstance: VoiceInterface | null = null;
+let _instance: VoiceInterface | null = null;
 
 export function getVoiceInterface(): VoiceInterface {
-  if (!voiceInterfaceInstance) {
-    voiceInterfaceInstance = new VoiceInterface();
-  }
-  return voiceInterfaceInstance;
+  if (!_instance) _instance = new VoiceInterface();
+  return _instance;
 }
 
 export const voiceInterface = getVoiceInterface();

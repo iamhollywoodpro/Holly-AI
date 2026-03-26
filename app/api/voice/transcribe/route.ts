@@ -1,39 +1,96 @@
+/**
+ * POST /api/voice/transcribe
+ *
+ * Phase 4C: Real Whisper STT endpoint.
+ * Replaces the previous OpenAI-only stub with a resilient provider chain:
+ *   1. Groq Whisper (whisper-large-v3-turbo — free, fast)
+ *   2. OpenAI Whisper (whisper-1 — free tier fallback)
+ *   3. Browser Web Speech API signal (when no cloud keys available)
+ *
+ * Accepts multipart/form-data with:
+ *   audio        File   — required, any Whisper-supported format
+ *   language     string — optional ISO-639-1 code (en, es, fr, …)
+ *   prompt       string — optional context hint
+ *   segments     string — "true" to include timestamped segments
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
-import { voiceInterface } from '@/lib/voice/voice-interface';
+import { auth } from '@clerk/nextjs/server';
+import { transcribeAudio, getSTTStatus } from '@/lib/ai/whisper-stt';
 
 export const runtime = 'nodejs';
 
-
 export async function POST(request: NextRequest) {
   try {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const formData = await request.formData();
-    const audioFile = formData.get('audio') as File;
+    const audioFile = formData.get('audio') as File | null;
 
     if (!audioFile) {
       return NextResponse.json(
-        { error: 'No audio file provided' },
+        { error: 'No audio file provided. Send multipart/form-data with field "audio".' },
         { status: 400 }
       );
     }
 
-    // Convert File to Buffer
+    const language  = (formData.get('language')  as string | null) || undefined;
+    const prompt    = (formData.get('prompt')    as string | null) || undefined;
+    const segments  = formData.get('segments') === 'true';
+
     const arrayBuffer = await audioFile.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // Transcribe the audio
-    const result = await voiceInterface.transcribe(buffer);
+    const result = await transcribeAudio(buffer, audioFile.name || 'audio.webm', {
+      language,
+      prompt,
+      includeSegments: segments,
+    });
+
+    // If no cloud providers, tell the frontend to use Web Speech API
+    if (result.useBrowserSTT) {
+      return NextResponse.json({
+        success: false,
+        useBrowserSTT: true,
+        message: 'No STT cloud providers configured. Use browser Web Speech API.',
+        setup: getSTTStatus(),
+      });
+    }
 
     return NextResponse.json({
       success: true,
       text: result.text,
       language: result.language,
+      provider: result.provider,
+      durationMs: result.durationMs,
+      ...(result.segments ? { segments: result.segments } : {}),
     });
 
   } catch (error: any) {
-    console.error('Transcription error:', error);
+    console.error('[Voice Transcribe] Error:', error);
+
+    // Return a structured error the frontend can handle
     return NextResponse.json(
-      { error: error.message || 'Transcription failed' },
-      { status: 500 }
+      {
+        error: error.message || 'Transcription failed',
+        code: error.status || 500,
+      },
+      { status: error.status || 500 }
     );
+  }
+}
+
+// GET: return STT status/health
+export async function GET() {
+  try {
+    const { userId } = await auth();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    return NextResponse.json(getSTTStatus());
+  } catch (error) {
+    return NextResponse.json({ error: String(error) }, { status: 500 });
   }
 }

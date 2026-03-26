@@ -185,8 +185,42 @@ export async function POST(req: NextRequest) {
           sendStatus(controller, '🤔 Thinking...');
           let fullResponse = '';
 
+          // ── Ollama path (Phase 4B — local LLM) ────────────────────────────
+          if (routing.model === 'ollama') {
+            const ollamaModel = (routing as any).ollamaModel || undefined;
+            sendStatus(controller, `🦙 Thinking locally (${ollamaModel || 'ollama'})...`);
+            try {
+              const ollamaMessages = messages.map((m: any) => ({
+                role: m.role as 'system' | 'user' | 'assistant',
+                content: m.content || '',
+              }));
+              for await (const token of ollamaService.chatStream(ollamaMessages, {
+                model: ollamaModel,
+                temperature: 0.7,
+                maxTokens: 4096,
+              })) {
+                fullResponse += token;
+                sendText(controller, token);
+              }
+            } catch (ollamaErr: any) {
+              // Ollama failed — fall back to Groq gracefully
+              console.warn('[Chat] Ollama stream failed, falling back to Groq:', ollamaErr.message);
+              sendStatus(controller, '⚡ Switching to cloud model...');
+              const fallback = await groq.chat.completions.create({
+                messages: messages as any,
+                model: 'llama-3.3-70b-versatile',
+                temperature: 0.7,
+                max_tokens: 4096,
+                stream: true,
+              });
+              for await (const chunk of fallback) {
+                const text = chunk.choices[0]?.delta?.content || '';
+                if (text) { fullResponse += text; sendText(controller, text); }
+              }
+            }
+
           // ── Gemini path ────────────────────────────────────────────────────
-          if (routing.model === 'google-gemini-2.0') {
+          } else if (routing.model === 'google-gemini-2.0') {
             sendStatus(controller, '🔍 Searching knowledge base...');
             const searchResults = await RAGService.queryCodebase(latestUserMessage);
             if (searchResults.length > 0) {
