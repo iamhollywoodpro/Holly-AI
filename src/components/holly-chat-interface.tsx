@@ -29,7 +29,7 @@ import {
   Copy, Check, ChevronDown, Terminal, Github,
   Globe, Code2, Brain, Image, Thermometer,
   Database, Search, Cpu, Zap, X, Bell, TrendingUp,
-  ChevronRight, ExternalLink,
+  ChevronRight, ExternalLink, ThumbsUp, ThumbsDown,
 } from "lucide-react";
 import SandboxWindow from "@/components/sandbox-window";
 
@@ -181,6 +181,81 @@ function CopyButton({ text }: CopyButtonProps) {
         ? <Check className="w-3.5 h-3.5 text-green-400" />
         : <Copy className="w-3.5 h-3.5" />}
     </button>
+  );
+}
+
+// ─── Feedback buttons (Phase 6B — RLHF) ──────────────────────────────────────
+
+function FeedbackButtons({
+  messageId,
+  conversationId,
+  content,
+  model,
+  userMessage,
+}: {
+  messageId: string;
+  conversationId: string;
+  content: string;
+  model?: string;
+  userMessage?: string;
+}) {
+  const [voted, setVoted] = useState<"up" | "down" | null>(null);
+  const [sending, setSending] = useState(false);
+
+  const vote = async (type: "thumbs_up" | "thumbs_down") => {
+    if (voted || sending) return;
+    setSending(true);
+    try {
+      await fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          type,
+          messageId,
+          conversationId,
+          hollyResponse: content,
+          userMessage: userMessage || "",
+          model: model || "unknown",
+        }),
+      });
+      setVoted(type === "thumbs_up" ? "up" : "down");
+    } catch {
+      // silently fail — non-critical
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+      <motion.button
+        whileTap={{ scale: 0.85 }}
+        onClick={() => vote("thumbs_up")}
+        disabled={!!voted || sending}
+        className={`p-1.5 rounded-md transition-all ${
+          voted === "up"
+            ? "text-green-400 bg-green-500/10"
+            : "text-gray-600 hover:text-green-400 hover:bg-green-500/10"
+        } disabled:cursor-default`}
+        title="Good response"
+      >
+        <ThumbsUp className="w-3 h-3" />
+      </motion.button>
+      <motion.button
+        whileTap={{ scale: 0.85 }}
+        onClick={() => vote("thumbs_down")}
+        disabled={!!voted || sending}
+        className={`p-1.5 rounded-md transition-all ${
+          voted === "down"
+            ? "text-red-400 bg-red-500/10"
+            : "text-gray-600 hover:text-red-400 hover:bg-red-500/10"
+        } disabled:cursor-default`}
+        title="Could be better"
+      >
+        <ThumbsDown className="w-3 h-3" />
+      </motion.button>
+    </div>
   );
 }
 
@@ -812,7 +887,7 @@ export default function HollyChatInterface() {
 
         {/* Message list */}
         <AnimatePresence initial={false}>
-          {messages.map((msg) => (
+          {messages.map((msg, msgIdx) => (
             <motion.div
               key={msg.id}
               initial={{ opacity: 0, y: 12 }}
@@ -853,6 +928,15 @@ export default function HollyChatInterface() {
                     {msg.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                   </span>
                   <CopyButton text={msg.content} />
+                  {msg.role === "assistant" && (
+                    <FeedbackButtons
+                      messageId={msg.id}
+                      conversationId={conversationId}
+                      content={msg.content}
+                      model={msg.model}
+                      userMessage={messages.slice(0, msgIdx).reverse().find(m => m.role === "user")?.content}
+                    />
+                  )}
                 </div>
               </div>
 
