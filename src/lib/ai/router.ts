@@ -1,25 +1,22 @@
 /**
- * HOLLY Multi-Model Router — Phase 4B
+ * HOLLY Multi-Model Router — Phase 4B (Gemini-free)
+ *
+ * Legacy synchronous router kept for backwards-compatibility.
+ * New code should use src/lib/ai/smart-router.ts + cascade.ts.
  *
  * Routing priority (highest → lowest):
  *  1. local-qwen-7b   — user explicitly requests unlimited/offline/Qwen
  *  2. web-llm         — user explicitly requests browser-only / private
  *  3. ollama          — Ollama is healthy AND message is local-suitable
- *                       (short general chat, privacy-first, rate-limit fallback)
- *  4. google-gemini   — complex / long / vision / architecture tasks
- *  5. groq-llama-3.3  — default: fast general chat via Groq free tier
+ *  4. groq-llama-3.3  — default: fast general chat via Groq free tier
  *
- * Ollama routing criteria:
- *   • OLLAMA_ENABLED=true is set  OR  no Groq key present
- *   • message is NOT a long/complex/vision task (those stay on Gemini)
- *   • Ollama health is cached as available (non-blocking; falls back to Groq if not)
+ * NOTE: google-gemini has been removed. All routing now uses free-only providers.
  */
 
 import { ollamaService } from './ollama-service';
 
 export type AIModel =
   | 'groq-llama-3.3'
-  | 'google-gemini-2.0'
   | 'web-llm'
   | 'local-qwen-7b'
   | 'ollama';
@@ -27,7 +24,7 @@ export type AIModel =
 export interface RoutingResult {
   model: AIModel;
   reason: string;
-  ollamaModel?: string; // populated when model === 'ollama'
+  ollamaModel?: string;
 }
 
 export class ModelRouter {
@@ -65,31 +62,11 @@ export class ModelRouter {
       };
     }
 
-    // ── 3. Complex / long / vision / architecture → Gemini ───────────────────
-    const isComplex =
-      input.includes('refactor') ||
-      input.includes('architecture') ||
-      input.includes('complex logic') ||
-      input.includes('fix these bugs') ||
-      input.includes('optimize') ||
-      input.includes('analyze') ||
-      input.includes('summarize') ||
-      input.includes('image') ||
-      message.length > 500;
-
-    if (isComplex) {
-      return {
-        model: 'google-gemini-2.0',
-        reason: 'Complex/large context task → Gemini free tier.',
-      };
-    }
-
-    // ── 4. Ollama local fallback (if enabled & healthy) ───────────────────────
+    // ── 3. Ollama local fallback (if enabled & healthy) ───────────────────────
     const ollamaEnabled =
       process.env.OLLAMA_ENABLED === 'true' || !process.env.GROQ_API_KEY;
 
     if (ollamaEnabled) {
-      // Use cached health — never blocks the hot path
       const health = ollamaService['_cachedHealth'];
       if (health?.available && health.preferredModel) {
         return {
@@ -100,7 +77,7 @@ export class ModelRouter {
       }
     }
 
-    // ── 5. Default: Groq (fast, free tier) ───────────────────────────────────
+    // ── 4. Default: Groq (fast, free tier) ───────────────────────────────────
     return {
       model: 'groq-llama-3.3',
       reason: 'General chat → Groq Llama-3.3 free tier.',
@@ -109,12 +86,10 @@ export class ModelRouter {
 
   /**
    * Async version of route() — checks Ollama health live if not cached.
-   * Use this in the chat route to get an accurate first-request Ollama result.
    */
   static async routeAsync(message: string): Promise<RoutingResult> {
     const input = message.toLowerCase();
 
-    // Same explicit overrides as synchronous route
     if (
       input.includes('unlimited') || input.includes('full ram') ||
       input.includes('qwen') || input.includes('no limits')
@@ -127,16 +102,6 @@ export class ModelRouter {
       input.includes('in-browser')
     ) {
       return { model: 'web-llm', reason: 'User requested in-browser inference.' };
-    }
-
-    const isComplex =
-      input.includes('refactor') || input.includes('architecture') ||
-      input.includes('complex logic') || input.includes('optimize') ||
-      input.includes('analyze') || input.includes('summarize') ||
-      input.includes('image') || message.length > 500;
-
-    if (isComplex) {
-      return { model: 'google-gemini-2.0', reason: 'Complex/large context → Gemini.' };
     }
 
     const ollamaEnabled =

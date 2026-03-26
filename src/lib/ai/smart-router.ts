@@ -1,54 +1,55 @@
 /**
- * HOLLY Smart Model Router — Phase 8A
+ * HOLLY Smart Model Router — Phase 8A (Gemini-free)
  *
- * Routes every chat request to the best FREE model based on task type,
- * with automatic cascade fallback if a provider is rate-limited.
+ * Routes every chat request to the best FREE, no-token-cost model based on
+ * task type, with automatic cascade fallback if a provider is rate-limited.
  *
- * ┌─────────────────────────────────────────────────────────────────────┐
- * │  Task Type    │  Primary Model                │  Why               │
- * ├─────────────────────────────────────────────────────────────────────┤
- * │  speed/chat   │  Groq → Llama-3.3-70B         │  300+ tok/s        │
- * │  coding       │  CF Workers AI → Kimi K2.5    │  Best free coder   │
- * │  reasoning    │  NVIDIA NIM → Qwen3-235B-A22B │  Deep reasoning    │
- * │  long_context │  Gemini 2.5 Flash             │  1M token window   │
- * │  vision       │  Gemini 2.5 Flash             │  Native multimodal │
- * │  creative     │  OpenRouter free pool         │  Model variety     │
- * │  agent        │  Kimi K2.5 (CF) → Qwen3-235B  │  Tool calling      │
- * │  local        │  Ollama                       │  Unlimited/offline │
- * └─────────────────────────────────────────────────────────────────────┘
+ * All providers are genuinely free tiers — no paid plans, no token billing.
  *
- * Cascade fallback order per task type:
- *   coding:   CF Kimi → NVIDIA Qwen3 → Groq Llama → OpenRouter
- *   reasoning:NVIDIA Qwen3 → CF Kimi → Gemini Flash → Groq Llama
- *   long_ctx: Gemini Flash → CF Kimi → NVIDIA Qwen3 → Groq Llama
- *   speed:    Groq Llama → OpenRouter → CF Kimi → Gemini Flash
- *   creative: OpenRouter → Groq Llama → Gemini Flash → CF Kimi
- *   agent:    CF Kimi → NVIDIA Qwen3 → Groq Llama → OpenRouter
- *   vision:   Gemini Flash → OpenRouter (vision models) → CF Kimi
- *   local:    Ollama → (never falls through to cloud)
+ * ┌──────────────────────────────────────────────────────────────────────────┐
+ * │  Task Type    │  Primary Model                 │  Why                   │
+ * ├──────────────────────────────────────────────────────────────────────────┤
+ * │  speed/chat   │  Groq → Llama 3.3 70B          │  300+ tok/s, free tier │
+ * │  coding       │  CF Workers AI → Kimi K2.5     │  Best free coder       │
+ * │  reasoning    │  NVIDIA NIM → Qwen3-235B-A22B  │  Deep reasoning, free  │
+ * │  long_context │  CF Workers AI → Kimi K2.5     │  256K ctx, free        │
+ * │  vision       │  OpenRouter → Qwen3 VL         │  Free vision models    │
+ * │  creative     │  OpenRouter → Mistral Small    │  Model variety, free   │
+ * │  agent        │  CF Workers AI → Kimi K2.5     │  Tool calling, free    │
+ * │  local        │  Ollama                        │  Unlimited/offline     │
+ * └──────────────────────────────────────────────────────────────────────────┘
+ *
+ * Cascade fallback per task:
+ *   speed:        Groq Llama-3.3 → Groq 8B → OpenRouter Llama → CF Kimi → NVIDIA Llama
+ *   coding:       CF Kimi → NVIDIA Qwen3 → OpenRouter Qwen Coder → Groq DeepSeek → Groq Llama
+ *   reasoning:    NVIDIA Qwen3 → Groq DeepSeek-R1 → NVIDIA DeepSeek-R1 → CF Kimi → OpenRouter
+ *   long_context: CF Kimi (256K) → NVIDIA Qwen3 (262K) → OpenRouter Qwen Coder → Groq Llama
+ *   vision:       OpenRouter Qwen VL → OpenRouter free → CF Kimi → Groq Llama
+ *   creative:     OpenRouter Mistral → Groq Llama → OpenRouter free → CF Kimi
+ *   agent:        CF Kimi → NVIDIA Qwen3 → Groq Llama → OpenRouter Qwen Coder
+ *   local:        Ollama (never falls through to cloud)
  */
 
 // ─── Task types ───────────────────────────────────────────────────────────────
 
 export type TaskType =
-  | 'speed'       // Fast casual chat, quick questions
-  | 'coding'      // Write / debug / review code, anything technical
-  | 'reasoning'   // Math, logic, analysis, step-by-step deduction
-  | 'long_context'// Summarise / analyse long documents, large context
-  | 'vision'      // Images, screenshots, visual content
-  | 'creative'    // Stories, poems, brainstorming, writing
-  | 'agent'       // Multi-step tool chains, autonomous tasks
-  | 'local';      // Privacy-first, offline
+  | 'speed'        // Fast casual chat, quick questions
+  | 'coding'       // Write / debug / review code, anything technical
+  | 'reasoning'    // Math, logic, analysis, step-by-step deduction
+  | 'long_context' // Summarise / analyse long documents, large context
+  | 'vision'       // Images, screenshots, visual content
+  | 'creative'     // Stories, poems, brainstorming, writing
+  | 'agent'        // Multi-step tool chains, autonomous tasks
+  | 'local';       // Privacy-first, offline
 
-// ─── Provider / model identifiers ─────────────────────────────────────────────
+// ─── Provider identifiers ─────────────────────────────────────────────────────
 
 export type ProviderId =
-  | 'groq'          // api.groq.com — Llama 3.3 70B (super fast free)
-  | 'gemini'        // generativelanguage.googleapis.com — Flash 2.5
-  | 'cf_workers'    // api.cloudflare.com — Kimi K2.5 (just launched Mar 2026)
-  | 'nvidia_nim'    // integrate.api.nvidia.com — Qwen3-235B-A22B
-  | 'openrouter'    // openrouter.ai — free model pool (27 models)
-  | 'ollama';       // localhost:11434 — any locally pulled model
+  | 'groq'          // api.groq.com — Llama 3.3 70B (300+ tok/s, 14,400 req/day FREE)
+  | 'cf_workers'    // api.cloudflare.com — Kimi K2.5 256K ctx (FREE tier)
+  | 'nvidia_nim'    // integrate.api.nvidia.com — Qwen3-235B-A22B (FREE tier)
+  | 'openrouter'    // openrouter.ai — 27 free models (20 RPM / 200 RPD FREE)
+  | 'ollama';       // localhost:11434 — unlimited, zero cost, offline
 
 export interface ModelSpec {
   provider:    ProviderId;
@@ -61,7 +62,7 @@ export interface ModelSpec {
 // ─── Model catalogue ──────────────────────────────────────────────────────────
 
 export const MODEL_CATALOGUE: Record<string, ModelSpec> = {
-  // Groq
+  // ── Groq (fastest free inference — 300+ tok/s) ────────────────────────────
   'groq:llama-3.3-70b': {
     provider: 'groq', model: 'llama-3.3-70b-versatile',
     displayName: 'Llama 3.3 70B (Groq)', contextK: 128, streaming: true,
@@ -74,24 +75,26 @@ export const MODEL_CATALOGUE: Record<string, ModelSpec> = {
     provider: 'groq', model: 'deepseek-r1-distill-llama-70b',
     displayName: 'DeepSeek R1 70B (Groq)', contextK: 128, streaming: true,
   },
-
-  // Gemini
-  'gemini:flash-2.5': {
-    provider: 'gemini', model: 'gemini-2.5-flash-preview-05-20',
-    displayName: 'Gemini 2.5 Flash', contextK: 1000, streaming: true,
-  },
-  'gemini:flash-lite': {
-    provider: 'gemini', model: 'gemini-2.5-flash-lite-preview',
-    displayName: 'Gemini 2.5 Flash-Lite', contextK: 1000, streaming: true,
+  'groq:llama-3.3-70b-specdec': {
+    provider: 'groq', model: 'llama-3.3-70b-specdec',
+    displayName: 'Llama 3.3 70B SpecDec (Groq)', contextK: 8, streaming: true,
   },
 
-  // Cloudflare Workers AI
+  // ── Cloudflare Workers AI (best free coder, 256K ctx) ─────────────────────
   'cf:kimi-k2.5': {
     provider: 'cf_workers', model: '@cf/moonshotai/kimi-k2.5',
     displayName: 'Kimi K2.5 (Cloudflare)', contextK: 256, streaming: true,
   },
+  'cf:llama-3.3-70b': {
+    provider: 'cf_workers', model: '@cf/meta/llama-3.3-70b-instruct-fp8-fast',
+    displayName: 'Llama 3.3 70B (Cloudflare)', contextK: 128, streaming: true,
+  },
+  'cf:qwen3-32b': {
+    provider: 'cf_workers', model: '@cf/qwen/qwen3-32b',
+    displayName: 'Qwen3 32B (Cloudflare)', contextK: 32, streaming: true,
+  },
 
-  // NVIDIA NIM
+  // ── NVIDIA NIM (best free reasoning — Qwen3 235B) ─────────────────────────
   'nvidia:qwen3-235b': {
     provider: 'nvidia_nim', model: 'qwen/qwen3-235b-a22b',
     displayName: 'Qwen3 235B (NVIDIA)', contextK: 262, streaming: true,
@@ -104,15 +107,15 @@ export const MODEL_CATALOGUE: Record<string, ModelSpec> = {
     provider: 'nvidia_nim', model: 'meta/llama-3.3-70b-instruct',
     displayName: 'Llama 3.3 70B (NVIDIA)', contextK: 128, streaming: true,
   },
-
-  // OpenRouter free pool
-  'openrouter:free': {
-    provider: 'openrouter', model: 'openrouter/free',
-    displayName: 'OpenRouter Free Pool', contextK: 200, streaming: true,
+  'nvidia:mistral-small': {
+    provider: 'nvidia_nim', model: 'mistralai/mistral-small-3.1-24b-instruct',
+    displayName: 'Mistral Small 3.1 24B (NVIDIA)', contextK: 128, streaming: true,
   },
+
+  // ── OpenRouter free pool (27 models, 20 RPM / 200 RPD) ───────────────────
   'openrouter:qwen3-coder': {
     provider: 'openrouter', model: 'qwen/qwen3-coder:free',
-    displayName: 'Qwen3 Coder (OpenRouter free)', contextK: 262, streaming: true,
+    displayName: 'Qwen3 Coder 480B (OpenRouter free)', contextK: 262, streaming: true,
   },
   'openrouter:llama-3.3-70b': {
     provider: 'openrouter', model: 'meta-llama/llama-3.3-70b-instruct:free',
@@ -122,8 +125,16 @@ export const MODEL_CATALOGUE: Record<string, ModelSpec> = {
     provider: 'openrouter', model: 'mistralai/mistral-small-3.1-24b-instruct:free',
     displayName: 'Mistral Small 3.1 24B (OpenRouter free)', contextK: 128, streaming: true,
   },
+  'openrouter:qwen3-vl-30b': {
+    provider: 'openrouter', model: 'qwen/qwen3-vl-30b-instruct:free',
+    displayName: 'Qwen3 VL 30B Vision (OpenRouter free)', contextK: 32, streaming: true,
+  },
+  'openrouter:free': {
+    provider: 'openrouter', model: 'openrouter/auto',
+    displayName: 'OpenRouter Auto (free pool)', contextK: 128, streaming: true,
+  },
 
-  // Ollama (local)
+  // ── Ollama (local — unlimited, zero cost) ────────────────────────────────
   'ollama:auto': {
     provider: 'ollama', model: 'auto',
     displayName: 'Ollama (local)', contextK: 32, streaming: true,
@@ -131,15 +142,19 @@ export const MODEL_CATALOGUE: Record<string, ModelSpec> = {
 };
 
 // ─── Cascade waterfall per task type ──────────────────────────────────────────
+// NO Gemini, NO paid APIs — every entry is a 100% free provider
 
 export const TASK_WATERFALLS: Record<TaskType, string[]> = {
+  // ⚡ Speed: Groq is king for fast free chat
   speed: [
     'groq:llama-3.3-70b',
     'groq:llama-3.1-8b',
     'openrouter:llama-3.3-70b',
     'cf:kimi-k2.5',
-    'gemini:flash-lite',
+    'nvidia:llama-3.3-70b',
   ],
+
+  // 💻 Coding: Kimi K2.5 is the best free coder (256K ctx + tool calling)
   coding: [
     'cf:kimi-k2.5',
     'nvidia:qwen3-235b',
@@ -147,37 +162,50 @@ export const TASK_WATERFALLS: Record<TaskType, string[]> = {
     'groq:deepseek-r1-70b',
     'groq:llama-3.3-70b',
   ],
+
+  // 🧠 Reasoning: Qwen3 235B is the best free reasoner
   reasoning: [
     'nvidia:qwen3-235b',
     'groq:deepseek-r1-70b',
     'nvidia:deepseek-r1',
     'cf:kimi-k2.5',
-    'gemini:flash-2.5',
+    'openrouter:qwen3-coder',
   ],
+
+  // 📄 Long context: Kimi 256K then Qwen3 262K — no Gemini needed
   long_context: [
-    'gemini:flash-2.5',
     'cf:kimi-k2.5',
     'nvidia:qwen3-235b',
+    'openrouter:qwen3-coder',
     'groq:llama-3.3-70b',
   ],
+
+  // 👁️ Vision: OpenRouter has free vision models (Qwen3 VL 30B)
   vision: [
-    'gemini:flash-2.5',
+    'openrouter:qwen3-vl-30b',
     'openrouter:free',
     'cf:kimi-k2.5',
+    'groq:llama-3.3-70b',
   ],
+
+  // ✨ Creative: Mistral Small is great for creative writing (free)
   creative: [
     'openrouter:mistral-small',
     'groq:llama-3.3-70b',
-    'gemini:flash-2.5',
+    'nvidia:mistral-small',
     'openrouter:free',
     'cf:kimi-k2.5',
   ],
+
+  // 🤖 Agent: Kimi K2.5 has the best tool-calling support (free)
   agent: [
     'cf:kimi-k2.5',
     'nvidia:qwen3-235b',
     'groq:llama-3.3-70b',
     'openrouter:qwen3-coder',
   ],
+
+  // 🔒 Local: Ollama only — never touches the cloud
   local: [
     'ollama:auto',
   ],
@@ -218,60 +246,44 @@ const LOCAL_PATTERNS = [
 
 /**
  * Classify a user message into a task type.
- * Checks in priority order: local > vision > agent > coding > reasoning > long_context > creative > speed
+ * Priority: local > vision > agent > coding > reasoning > long_context > creative > speed
  */
 export function classifyTask(
   message: string,
   hasImages = false,
   messageLength = message.length,
 ): TaskType {
-  // 1. Explicit local / offline request
-  if (LOCAL_PATTERNS.some(p => p.test(message))) return 'local';
-
-  // 2. Vision — image present OR explicit vision language
+  if (LOCAL_PATTERNS.some(p => p.test(message)))   return 'local';
   if (hasImages || VISION_PATTERNS.some(p => p.test(message))) return 'vision';
-
-  // 3. Agentic
-  if (AGENT_PATTERNS.some(p => p.test(message))) return 'agent';
-
-  // 4. Coding — highest-value technical tasks
-  if (CODE_PATTERNS.some(p => p.test(message))) return 'coding';
-
-  // 5. Reasoning / analysis
+  if (AGENT_PATTERNS.some(p => p.test(message)))   return 'agent';
+  if (CODE_PATTERNS.some(p => p.test(message)))    return 'coding';
   if (REASONING_PATTERNS.some(p => p.test(message))) return 'reasoning';
-
-  // 6. Long context — long message OR explicit summary/document language
   if (messageLength > 800 || LONG_CTX_PATTERNS.some(p => p.test(message))) return 'long_context';
-
-  // 7. Creative writing
   if (CREATIVE_PATTERNS.some(p => p.test(message))) return 'creative';
-
-  // 8. Default: speed
   return 'speed';
 }
 
 // ─── Router result ────────────────────────────────────────────────────────────
 
 export interface SmartRoutingResult {
-  taskType:    TaskType;
-  waterfall:   ModelSpec[];   // ordered list to try
-  primary:     ModelSpec;     // first in waterfall
-  reason:      string;
+  taskType:  TaskType;
+  waterfall: ModelSpec[];
+  primary:   ModelSpec;
+  reason:    string;
 }
 
 /**
  * Route a message to the optimal model waterfall.
- * Call this once per request; iterate through waterfall on 429/5xx.
+ * Call once per request; iterate waterfall on 429/5xx.
  */
 export function smartRoute(
   message: string,
   options: {
-    hasImages?:   boolean;
-    forceTask?:   TaskType;
-    forceModel?:  string;    // key from MODEL_CATALOGUE
+    hasImages?:  boolean;
+    forceTask?:  TaskType;
+    forceModel?: string;   // key from MODEL_CATALOGUE
   } = {},
 ): SmartRoutingResult {
-  // Hard override
   if (options.forceModel && MODEL_CATALOGUE[options.forceModel]) {
     const spec = MODEL_CATALOGUE[options.forceModel];
     return {
@@ -282,13 +294,10 @@ export function smartRoute(
     };
   }
 
-  const task = options.forceTask ?? classifyTask(message, options.hasImages);
-  const keys = TASK_WATERFALLS[task] ?? TASK_WATERFALLS.speed;
-  const waterfall = keys
-    .map(k => MODEL_CATALOGUE[k])
-    .filter(Boolean);
-
-  const primary = waterfall[0];
+  const task     = options.forceTask ?? classifyTask(message, options.hasImages);
+  const keys     = TASK_WATERFALLS[task] ?? TASK_WATERFALLS.speed;
+  const waterfall = keys.map(k => MODEL_CATALOGUE[k]).filter(Boolean);
+  const primary  = waterfall[0];
 
   const taskLabels: Record<TaskType, string> = {
     speed:        '⚡ Fast chat',
@@ -302,7 +311,7 @@ export function smartRoute(
   };
 
   return {
-    taskType:  task,
+    taskType: task,
     waterfall,
     primary,
     reason: `${taskLabels[task]} → ${primary.displayName}`,

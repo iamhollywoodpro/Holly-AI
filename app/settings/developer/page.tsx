@@ -30,7 +30,6 @@ interface RouterStatus {
 
 const PROVIDER_ICONS: Record<string, string> = {
   groq:       '⚡',
-  gemini:     '✨',
   cf_workers: '☁️',
   nvidia_nim: '🟩',
   openrouter: '🔀',

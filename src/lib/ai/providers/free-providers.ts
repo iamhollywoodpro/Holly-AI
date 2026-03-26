@@ -1,21 +1,19 @@
 /**
- * HOLLY Free Provider Adapters — Phase 8A
+ * HOLLY Free Provider Adapters — Phase 8A (Gemini-free)
  *
  * Each adapter exposes:
  *   streamChat(messages, model, options) → AsyncIterable<string>  (token chunks)
  *   isConfigured(): boolean
  *
- * Providers covered:
- *  • Groq             (GROQ_API_KEY)
- *  • Gemini 2.5       (GEMINI_API_KEY)
- *  • Cloudflare Workers AI  (CF_ACCOUNT_ID + CF_AI_TOKEN)
- *  • NVIDIA NIM       (NVIDIA_API_KEY)
- *  • OpenRouter free  (OPENROUTER_API_KEY)
- *  • Ollama           (no key — localhost)
+ * Providers (ALL are 100% free tiers — no paid plans, no token billing):
+ *  • Groq             (GROQ_API_KEY)          — 14,400 req/day, 300+ tok/s
+ *  • Cloudflare AI    (CF_ACCOUNT_ID + CF_AI_TOKEN) — Kimi K2.5 256K, free tier
+ *  • NVIDIA NIM       (NVIDIA_API_KEY)         — Qwen3-235B, DeepSeek R1, free tier
+ *  • OpenRouter free  (OPENROUTER_API_KEY)     — 27 free models, 20 RPM / 200 RPD
+ *  • Ollama           (no key — localhost)     — unlimited, zero cost, offline
  */
 
 import Groq from 'groq-sdk';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -27,13 +25,15 @@ export interface ChatMessage {
 export interface StreamOptions {
   temperature?: number;
   maxTokens?:   number;
-  tools?:       unknown[];      // Groq / OpenAI-style tools
-  sessionId?:   string;         // for CF prefix caching
+  tools?:       unknown[];   // Groq / OpenAI-style tools
+  sessionId?:   string;      // for CF prefix caching
 }
 
 export type TokenStream = AsyncGenerator<string, void, unknown>;
 
 // ─── GROQ ─────────────────────────────────────────────────────────────────────
+// Free tier: 14,400 req/day · 6,000 TPM · 300+ tok/s
+// Models: Llama 3.3 70B, Llama 3.1 8B, DeepSeek R1 70B
 
 const groqClient = process.env.GROQ_API_KEY
   ? new Groq({ apiKey: process.env.GROQ_API_KEY })
@@ -65,56 +65,10 @@ export const groqProvider = {
   },
 };
 
-// ─── GEMINI ───────────────────────────────────────────────────────────────────
-
-// Support both GEMINI_API_KEY (Phase 8A) and legacy GOOGLE_API_KEY
-const GEMINI_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || null;
-const genAI = GEMINI_KEY ? new GoogleGenerativeAI(GEMINI_KEY) : null;
-
-export const geminiProvider = {
-  isConfigured: () => !!(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY),
-
-  async *streamChat(
-    messages: ChatMessage[],
-    model: string,
-    opts: StreamOptions = {},
-  ): TokenStream {
-    if (!genAI) throw new Error('GEMINI_API_KEY not set');
-
-    const gmModel = genAI.getGenerativeModel({ model });
-
-    // Separate system prompt from conversation
-    const systemMsg = messages.find(m => m.role === 'system');
-    const history   = messages
-      .filter(m => m.role !== 'system')
-      .slice(0, -1)          // all except last
-      .map(m => ({
-        role:  m.role === 'assistant' ? 'model' : 'user',
-        parts: [{ text: m.content }],
-      }));
-
-    const lastUserMsg = messages.filter(m => m.role !== 'system').at(-1)?.content ?? '';
-
-    const chat = gmModel.startChat({
-      history,
-      systemInstruction: systemMsg ? { parts: [{ text: systemMsg.content }] } : undefined,
-      generationConfig: {
-        temperature: opts.temperature ?? 0.7,
-        maxOutputTokens: opts.maxTokens ?? 2048,
-      },
-    });
-
-    const result = await chat.sendMessageStream(lastUserMsg);
-    for await (const chunk of result.stream) {
-      const text = chunk.text();
-      if (text) yield text;
-    }
-  },
-};
-
 // ─── CLOUDFLARE WORKERS AI ────────────────────────────────────────────────────
 // Docs: https://developers.cloudflare.com/workers-ai/
-// Model: @cf/moonshotai/kimi-k2.5  (256K ctx, tool calling, prefix caching)
+// Free: ~10,000 neurons/month free · prefix caching · no credit card needed
+// Models: Kimi K2.5 (256K ctx, best free coder), Llama 3.3 70B, Qwen3 32B
 
 export const cloudflareProvider = {
   isConfigured: () => !!(process.env.CF_ACCOUNT_ID && process.env.CF_AI_TOKEN),
@@ -142,7 +96,7 @@ export const cloudflareProvider = {
 
     const body = JSON.stringify({
       messages,
-      max_tokens: opts.maxTokens ?? 2048,
+      max_tokens:  opts.maxTokens  ?? 2048,
       temperature: opts.temperature ?? 0.7,
       stream: true,
     });
@@ -183,8 +137,9 @@ export const cloudflareProvider = {
 };
 
 // ─── NVIDIA NIM ───────────────────────────────────────────────────────────────
-// Docs: https://build.nvidia.com/  (OpenAI-compatible)
-// Models: qwen/qwen3-235b-a22b, deepseek-ai/deepseek-r1, etc.
+// Docs: https://build.nvidia.com/  (OpenAI-compatible endpoint)
+// Free: ~40 RPM · generous monthly quota · no credit card for free models
+// Models: Qwen3-235B-A22B (best free reasoner), DeepSeek R1, Llama 3.3 70B
 
 export const nvidiaProvider = {
   isConfigured: () => !!process.env.NVIDIA_API_KEY,
@@ -222,9 +177,10 @@ export const nvidiaProvider = {
   },
 };
 
-// ─── OPENROUTER ───────────────────────────────────────────────────────────────
+// ─── OPENROUTER (free pool) ───────────────────────────────────────────────────
 // Docs: https://openrouter.ai/docs
-// Free models: /models?q=free — 27 models as of March 2026, 20 RPM / 200 RPD
+// Free: 20 RPM · 200 RPD · 27 free models (no credit card needed for :free models)
+// Models: Qwen3 Coder 480B, Mistral Small 3.1 24B, Qwen3 VL 30B, Llama 3.3 70B...
 
 export const openrouterProvider = {
   isConfigured: () => !!process.env.OPENROUTER_API_KEY,
@@ -265,9 +221,11 @@ export const openrouterProvider = {
 };
 
 // ─── OLLAMA (local) ───────────────────────────────────────────────────────────
+// Unlimited · zero cost · fully offline · any model you pull
+// Set OLLAMA_ENABLED=true and OLLAMA_BASE_URL=http://localhost:11434
 
 export const ollamaFreeProvider = {
-  isConfigured: () => true,  // always available if Ollama is running
+  isConfigured: () => true, // always available if Ollama is running locally
 
   async *streamChat(
     messages: ChatMessage[],
@@ -318,7 +276,6 @@ export const ollamaFreeProvider = {
 
 export const PROVIDERS = {
   groq:       groqProvider,
-  gemini:     geminiProvider,
   cf_workers: cloudflareProvider,
   nvidia_nim: nvidiaProvider,
   openrouter: openrouterProvider,

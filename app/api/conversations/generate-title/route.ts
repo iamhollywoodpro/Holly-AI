@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import OpenAI from 'openai';
+import Groq from 'groq-sdk';
 
 export const runtime = 'nodejs';
 
-// Google Gemini via OpenAI-compatible endpoint
-const gemini = new OpenAI({
-  apiKey: process.env.GOOGLE_API_KEY || '',
-  baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
-});
+// Use Groq (free tier, 14,400 req/day) — no Gemini, no paid APIs
+const groq = process.env.GROQ_API_KEY
+  ? new Groq({ apiKey: process.env.GROQ_API_KEY })
+  : null;
 
 /**
  * POST /api/conversations/generate-title
@@ -17,7 +16,7 @@ const gemini = new OpenAI({
 export async function POST(request: NextRequest) {
   try {
     const { userId } = await auth();
-    
+
     if (!userId) {
       return NextResponse.json(
         { error: 'Authentication required' },
@@ -34,8 +33,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate title using Gemini
-    const titlePrompt = `Generate a concise, descriptive title (3-6 words) for a conversation that starts with:
+    // If Groq is available, use it to generate a smart title
+    if (groq) {
+      try {
+        const titlePrompt = `Generate a concise, descriptive title (3-6 words) for a conversation that starts with:
 
 "${firstMessage}"
 
@@ -49,42 +50,41 @@ Examples:
 
 Title:`;
 
-    const completion = await gemini.chat.completions.create({
-      model: 'gemini-2.5-flash',
-      messages: [
-        { role: 'user', content: titlePrompt }
-      ],
-      temperature: 0.3,
-      max_tokens: 50,
-    });
+        const completion = await groq.chat.completions.create({
+          model: 'llama-3.1-8b-instant',   // fast 8B model — title gen doesn't need 70B
+          messages: [{ role: 'user', content: titlePrompt }],
+          temperature: 0.3,
+          max_tokens: 50,
+        });
 
-    let generatedTitle = completion.choices[0]?.message?.content?.trim() || '';
-    
-    // Clean up the title
-    generatedTitle = generatedTitle
-      .replace(/^["']|["']$/g, '') // Remove quotes
-      .replace(/^Title:\s*/i, '') // Remove "Title:" prefix
-      .trim();
+        let generatedTitle = completion.choices[0]?.message?.content?.trim() || '';
 
-    // Fallback if generation failed or is too long
-    if (!generatedTitle || generatedTitle.length > 60) {
-      generatedTitle = generateFallbackTitle(firstMessage);
+        // Clean up the title
+        generatedTitle = generatedTitle
+          .replace(/^[\"']|[\"']$/g, '')   // Remove quotes
+          .replace(/^Title:\s*/i, '')       // Remove "Title:" prefix
+          .trim();
+
+        if (generatedTitle && generatedTitle.length <= 60) {
+          console.log('[Title Generation] ✅ Generated via Groq:', generatedTitle);
+          return NextResponse.json({ title: generatedTitle });
+        }
+      } catch (groqErr: unknown) {
+        console.warn('[Title Generation] Groq failed, using fallback:', (groqErr as Error).message);
+      }
     }
 
-    console.log('[Title Generation] ✅ Generated:', generatedTitle);
-    return NextResponse.json({ title: generatedTitle });
+    // Fallback: generate title from message text directly
+    const fallbackTitle = generateFallbackTitle(firstMessage);
+    console.log('[Title Generation] ✅ Fallback title:', fallbackTitle);
+    return NextResponse.json({ title: fallbackTitle });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[Title Generation] Error:', error);
-    
-    // Fallback to simple title generation on error
-    // Don't try to parse JSON again - body already consumed
-    const fallbackTitle = 'New Conversation';
-    
-    return NextResponse.json({ 
-      title: fallbackTitle,
+    return NextResponse.json({
+      title: 'New Conversation',
       error: 'Failed to generate title',
-      details: error.message 
+      details: (error as Error).message,
     });
   }
 }
@@ -93,28 +93,19 @@ Title:`;
  * Generate a simple fallback title from the first message
  */
 function generateFallbackTitle(message: string): string {
-  // Clean the message
   let cleaned = message.trim();
-  
-  // Remove markdown and special characters
   cleaned = cleaned.replace(/[*_`#]/g, '').replace(/[^a-zA-Z0-9\s]/g, ' ');
-  
-  // Take first 6 words
+
   const words = cleaned.split(/\s+/).filter(w => w.length > 0);
   const titleWords = words.slice(0, 6);
-  
-  let title = titleWords.join(' ');
-  
-  // Capitalize first letter of each word
-  title = title
+
+  let title = titleWords
+    .join(' ')
     .split(' ')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(' ');
-  
-  // Add ellipsis if truncated
-  if (words.length > 6) {
-    title += '...';
-  }
-  
+
+  if (words.length > 6) title += '...';
+
   return title || 'New Conversation';
 }

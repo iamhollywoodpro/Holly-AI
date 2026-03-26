@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import Groq from 'groq-sdk';
 import { prisma } from '@/lib/db';
 
 export const runtime = 'nodejs';
 
+// Use Groq (free tier) — no Gemini, no paid APIs
+const groq = process.env.GROQ_API_KEY
+  ? new Groq({ apiKey: process.env.GROQ_API_KEY })
+  : null;
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,50 +17,40 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { 
-      scenario, 
+    const {
+      scenario,
       options = [],
       context = {},
-      urgency = 'MEDIUM'
+      urgency = 'MEDIUM',
     } = await req.json();
 
     if (!scenario) {
-      return NextResponse.json({ 
-        error: 'Missing scenario description' 
-      }, { status: 400 });
+      return NextResponse.json({ error: 'Missing scenario description' }, { status: 400 });
     }
 
-    // Using shared Prisma singleton
+    if (!groq) {
+      return NextResponse.json(
+        { error: 'AI decision-making requires GROQ_API_KEY' },
+        { status: 500 }
+      );
+    }
 
-    try {
-      // Get user's historical preferences and patterns
-      const [recentExperiences, userSettings] = await Promise.all([
-        prisma.hollyExperience.findMany({
-          where: { userId },
-          orderBy: { timestamp: 'desc' },
-          take: 10
-        }),
-        prisma.userSettings.findUnique({
-          where: { userId }
-        })
-      ]);
+    // Get user's historical preferences and patterns
+    const [recentExperiences] = await Promise.all([
+      prisma.hollyExperience.findMany({
+        where: { userId },
+        orderBy: { timestamp: 'desc' },
+        take: 10,
+      }),
+    ]);
 
-      // Use AI to analyze and make decision
-      const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-      if (!apiKey) {
-        return NextResponse.json({ 
-          error: 'AI decision-making requires GOOGLE_GENERATIVE_AI_API_KEY' 
-        }, { status: 500 });
-      }
-
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
-
-      const decisionPrompt = `You are HOLLY AI making an autonomous decision.
+    const decisionPrompt = `You are HOLLY AI making an autonomous decision.
 
 Scenario: ${scenario}
 
-${options.length > 0 ? `Available Options:\n${options.map((opt: any, i: number) => `${i + 1}. ${typeof opt === 'string' ? opt : opt.description || opt.name}`).join('\n')}` : ''}
+${options.length > 0
+  ? `Available Options:\n${options.map((opt: unknown, i: number) => `${i + 1}. ${typeof opt === 'string' ? opt : (opt as { description?: string; name?: string })?.description || (opt as { name?: string })?.name}`).join('\n')}`
+  : ''}
 
 Context: ${JSON.stringify(context, null, 2)}
 
@@ -73,69 +67,68 @@ Instructions:
 5. Explain your reasoning
 6. Suggest a confidence level (0-100%)
 
-Provide your decision in this format:
+Provide your decision in this exact format:
 DECISION: [Your chosen option or course of action]
 CONFIDENCE: [0-100]%
 REASONING: [Detailed explanation]
 RISKS: [Potential risks]
 BENEFITS: [Expected benefits]`;
 
-      const result = await model.generateContent(decisionPrompt);
-      const response = await result.response;
-      const decisionText = response.text();
+    const completion = await groq.chat.completions.create({
+      model:       'llama-3.3-70b-versatile',
+      messages:    [{ role: 'user', content: decisionPrompt }],
+      temperature: 0.3,
+      max_tokens:  1024,
+      stream:      false,
+    });
 
-      // Parse AI decision
-      const decisionMatch = decisionText.match(/DECISION:\s*(.+?)(?:\n|$)/);
-      const confidenceMatch = decisionText.match(/CONFIDENCE:\s*(\d+)/);
-      const reasoningMatch = decisionText.match(/REASONING:[\s\S]*?(.+?)(?=\nRISKS:|$)/);
+    const decisionText = completion.choices[0]?.message?.content ?? '';
 
-      const decision = decisionMatch ? decisionMatch[1].trim() : 'Unable to determine';
-      const confidence = confidenceMatch ? parseInt(confidenceMatch[1]) : 50;
-      const reasoning = reasoningMatch ? reasoningMatch[1].trim() : decisionText;
+    // Parse AI decision
+    const decisionMatch   = decisionText.match(/DECISION:\s*(.+?)(?:\n|$)/);
+    const confidenceMatch = decisionText.match(/CONFIDENCE:\s*(\d+)/);
+    const reasoningMatch  = decisionText.match(/REASONING:[\s\S]*?(.+?)(?=\nRISKS:|$)/);
 
-      // Record the decision
-      await prisma.hollyExperience.create({
-        data: {
-          userId,
-          type: 'AUTONOMOUS_DECISION',
-          content: JSON.stringify({
-            scenario,
-            options,
-            urgency,
-            decision,
-            confidence,
-            timestamp: new Date().toISOString()
-          }),
-          significance: confidence / 100,
-          emotionalImpact: 0.7,
-          emotionalValence: confidence > 70 ? 0.5 : 0,
-          primaryEmotion: 'determined',
-          lessons: [reasoning],
-          relatedConcepts: ['decision-making', 'autonomy', scenario.substring(0, 30)]
-        }
-      });
+    const decision   = decisionMatch   ? decisionMatch[1].trim()   : 'Unable to determine';
+    const confidence = confidenceMatch ? parseInt(confidenceMatch[1]) : 50;
+    const reasoning  = reasoningMatch  ? reasoningMatch[1].trim()  : decisionText;
 
-      return NextResponse.json({
-        success: true,
-        decision: {
-          scenario,
-          chosen: decision,
-          confidence,
-          reasoning,
-          urgency,
+    // Record the decision
+    await prisma.hollyExperience.create({
+      data: {
+        userId,
+        type:    'AUTONOMOUS_DECISION',
+        content: JSON.stringify({
+          scenario, options, urgency, decision, confidence,
           timestamp: new Date().toISOString(),
-          requiresHumanApproval: confidence < 70 || urgency === 'HIGH'
-        }
-      });
+        }),
+        significance:     confidence / 100,
+        emotionalImpact:  0.7,
+        emotionalValence: confidence > 70 ? 0.5 : 0,
+        primaryEmotion:   'determined',
+        lessons:          [reasoning],
+        relatedConcepts:  ['decision-making', 'autonomy', scenario.substring(0, 30)],
+      },
+    });
 
-    } finally {
-    }
-
-  } catch (error: any) {
-    console.error('Decision error:', error);
     return NextResponse.json({
-      error: 'Autonomous decision failed',
-      details: error.message
-    }, { status: 500 });
+      success: true,
+      decision: {
+        scenario,
+        chosen:   decision,
+        confidence,
+        reasoning,
+        urgency,
+        timestamp:             new Date().toISOString(),
+        requiresHumanApproval: confidence < 70 || urgency === 'HIGH',
+      },
+    });
+
+  } catch (error: unknown) {
+    console.error('Decision error:', error);
+    return NextResponse.json(
+      { error: 'Autonomous decision failed', details: (error as Error).message },
+      { status: 500 }
+    );
   }
 }
