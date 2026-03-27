@@ -202,7 +202,7 @@ async function maybePropose(): Promise<number> {
       });
       if (existing) continue;
 
-      const proposal = buildProposal(pat);
+      const proposal = buildProposal(pat as unknown as PatternSummary & { id: string; action: string | null });
       if (!proposal) continue;
 
       await prisma.evolutionProposal.create({ data: proposal });

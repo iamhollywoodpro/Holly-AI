@@ -37,10 +37,10 @@ export async function POST(req: NextRequest) {
       console.log('[Autonomous] Activating autonomous operation for user:', dbUserId);
 
       // Run initial system health check
-      const health = await selfDiagnosis.checkSystemHealth();
-      console.log('[Autonomous] System health:', health.overall_status);
+      const health = await selfDiagnosis.diagnose();
+      console.log('[Autonomous] System health:', health.systemHealth);
 
-      if (health.overall_status === 'critical') {
+      if (health.systemHealth === 'critical') {
         return NextResponse.json({
           error: 'Cannot activate: System health is critical',
           health
@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
           content: {
             action: 'activate',
             features: features || ['all'],
-            health: health.overall_status,
+            health: health.systemHealth,
             timestamp: new Date()
           },
           significance: 1.0,
@@ -120,7 +120,7 @@ export async function POST(req: NextRequest) {
 
     if (action === 'status') {
       // Get system health
-      const health = await selfDiagnosis.checkSystemHealth();
+      const health = await selfDiagnosis.diagnose();
 
       // Get recent autonomous activities
       const recentActivities = await prisma.hollyExperience.findMany({
@@ -138,7 +138,7 @@ export async function POST(req: NextRequest) {
         health,
         recent_activities: recentActivities.length,
         last_activity: recentActivities[0]?.timestamp || null,
-        is_active: health.overall_status !== 'critical'
+        is_active: health.systemHealth !== 'critical'
       });
     }
 
@@ -168,7 +168,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Get system health
-    const health = await selfDiagnosis.checkSystemHealth();
+    const health = await selfDiagnosis.diagnose();
 
     // Get recent autonomous activities
     const recentActivities = await prisma.hollyExperience.findMany({
@@ -189,7 +189,7 @@ export async function GET(req: NextRequest) {
         timestamp: a.timestamp,
         significance: a.significance
       })),
-      is_active: health.overall_status !== 'critical'
+      is_active: health.systemHealth !== 'critical'
     });
   } catch (error) {
     console.error('[Autonomous] Status check error:', error);

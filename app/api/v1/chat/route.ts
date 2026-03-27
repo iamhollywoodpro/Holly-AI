@@ -33,11 +33,11 @@ import { getRelevantMemories } from '@/lib/memory-service';
 import { getIdentityContext } from '@/lib/identity/identity-context';
 import { extractTopics } from '@/lib/consciousness/post-response-hook';
 import { mcpManager } from '@/lib/mcp/mcp-client';
-import { guardApiKey, isGuardSuccess } from '@/src/lib/api-v1/guard';
-import { logUsage } from '@/src/lib/api-keys';
-import { smartRoute, classifyTask, type TaskType } from '@/src/lib/ai/smart-router';
-import { cascade, cascadeCollect } from '@/src/lib/ai/cascade';
-import type { ChatMessage } from '@/src/lib/ai/providers/free-providers';
+import { guardApiKey, isGuardSuccess } from '@/lib/api-v1/guard';
+import { logUsage } from '@/lib/api-keys';
+import { smartRoute, classifyTask, type TaskType } from '@/lib/ai/smart-router';
+import { cascade, cascadeCollect } from '@/lib/ai/cascade';
+import type { ChatMessage } from '@/lib/ai/providers/free-providers';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -274,7 +274,7 @@ export async function POST(req: NextRequest) {
 // ─── GET — endpoint info / health ─────────────────────────────────────────────
 
 export async function GET() {
-  const { getConfiguredProviders } = await import('@/src/lib/ai/cascade');
+  const { getConfiguredProviders } = await import('@/lib/ai/cascade');
   const configured = getConfiguredProviders();
 
   return NextResponse.json({

@@ -1,3 +1,4 @@
+import { prisma } from '@/lib/db';
 /**
  * HOLLY Work Log Service - Simplified
  * 

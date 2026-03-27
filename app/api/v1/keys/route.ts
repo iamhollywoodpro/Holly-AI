@@ -11,7 +11,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/db';
 import { getOrCreateUser } from '@/lib/user-manager';
-import { generateRawKey, hashKey, keyPrefix } from '@/src/lib/api-keys';
+import { generateRawKey, hashKey, keyPrefix } from '@/lib/api-keys';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

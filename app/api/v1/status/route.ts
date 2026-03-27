@@ -8,8 +8,8 @@
  */
 
 import { NextResponse } from 'next/server';
-import { PROVIDERS } from '@/src/lib/ai/providers/free-providers';
-import { TASK_WATERFALLS, MODEL_CATALOGUE } from '@/src/lib/ai/smart-router';
+import { PROVIDERS } from '@/lib/ai/providers/free-providers';
+import { TASK_WATERFALLS, MODEL_CATALOGUE } from '@/lib/ai/smart-router';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -78,8 +78,8 @@ export async function GET() {
   // Build routing matrix
   const routingMatrix: Record<string, string[]> = {};
   for (const [task, keys] of Object.entries(TASK_WATERFALLS)) {
-    routingMatrix[task] = keys
-      .map(k => MODEL_CATALOGUE[k]?.displayName)
+    routingMatrix[task] = (keys as string[])
+      .map((k: string) => MODEL_CATALOGUE[k as keyof typeof MODEL_CATALOGUE]?.displayName)
       .filter(Boolean) as string[];
   }
 

@@ -150,7 +150,7 @@ async function transcribeWithGroq(
   opts: TranscribeOptions
 ): Promise<Omit<TranscriptionResult, 'durationMs'>> {
   const mimeType = getMimeType(filename);
-  const file = new File([buffer], filename, { type: mimeType });
+  const file = new File([buffer as unknown as BlobPart], filename, { type: mimeType });
 
   const transcription = await client.audio.transcriptions.create({
     file,
@@ -189,7 +189,7 @@ async function transcribeWithOpenAI(
   opts: TranscribeOptions
 ): Promise<Omit<TranscriptionResult, 'durationMs'>> {
   const mimeType = getMimeType(filename);
-  const file = new File([buffer], filename, { type: mimeType });
+  const file = new File([buffer as unknown as BlobPart], filename, { type: mimeType });
 
   const transcription = await client.audio.transcriptions.create({
     file,

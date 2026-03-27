@@ -12,7 +12,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/db';
 import { getOrCreateUser } from '@/lib/user-manager';
-import { getKeyStats } from '@/src/lib/api-keys';
+import { getKeyStats } from '@/lib/api-keys';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

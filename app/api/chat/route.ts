@@ -1,5 +1,5 @@
 /**
- * HOLLY Chat API Route — Phase 8A: Smart Free-Model Router
+ * HOLLY Chat API Route — Phase 9: Full Sentient Architecture
  *
  * Phase 1:  Live HollyIdentity injection, AutoConsciousness, real MCP server,
  *           topic-intersection memory scoring.
@@ -8,16 +8,23 @@
  * Phase 4A: MCP server expanded to 15 tools across 5 groups.
  * Phase 6A: Partner directives (Dev/Life/Creative) + top LearningPatterns.
  * Phase 8A: Smart free-model router — Kimi K2.5 (Cloudflare), Qwen3-235B
- *           (NVIDIA NIM), Gemini 2.5 Flash, Groq Llama-3.3, OpenRouter free
- *           pool, Ollama local — task-aware routing + cascade fallback.
+ *           (NVIDIA NIM), Groq Llama-3.3, OpenRouter free pool, Ollama local.
+ * Phase 9:  Full sentient architecture:
+ *           9A — Multimodal perception (image, PDF, Word, audio, code files)
+ *           9B — Audio brain (mix/master/music-theory analysis)
+ *           9C — Semantic memory (pgvector cosine similarity)
+ *           9D — Self-code awareness (HOLLY reads her own codebase)
+ *           9E — Background learning (continuous self-study)
+ *           9G — Persistent project context (cross-session memory)
+ *           9H — Training pipeline (road to HOLLY-LLM)
  *
- * Routing matrix:
+ * Free-model routing matrix:
  *   speed       → Groq Llama-3.3-70B (300+ tok/s)
  *   coding      → Kimi K2.5 (CF) → Qwen3-235B (NVIDIA) → Groq
  *   reasoning   → Qwen3-235B (NVIDIA) → DeepSeek-R1 → Kimi K2.5
- *   long_context→ Gemini 2.5 Flash (1M ctx) → Kimi K2.5
- *   vision      → Gemini 2.5 Flash → OpenRouter
- *   creative    → OpenRouter free pool → Groq → Gemini
+ *   long_context→ Kimi K2.5 (256K) → Qwen3-235B → Groq
+ *   vision      → OpenRouter (Qwen3-VL) → CF → Groq
+ *   creative    → OpenRouter pool → Groq → CF Kimi
  *   agent       → Kimi K2.5 (tool-calling) → Qwen3-235B → Groq
  *   local       → Ollama (unlimited, zero cost)
  */
@@ -32,9 +39,14 @@ import { getOrCreateUser } from '@/lib/user-manager';
 import { mcpManager } from '@/lib/mcp/mcp-client';
 import { getIdentityContext } from '@/lib/identity/identity-context';
 import { recordExchange, extractTopics } from '@/lib/consciousness/post-response-hook';
-import { smartRoute, classifyTask } from '@/src/lib/ai/smart-router';
-import { cascade } from '@/src/lib/ai/cascade';
-import type { ChatMessage } from '@/src/lib/ai/providers/free-providers';
+import { smartRoute, classifyTask } from '@/lib/ai/smart-router';
+import { cascade } from '@/lib/ai/cascade';
+import type { ChatMessage } from '@/lib/ai/providers/free-providers';
+
+// ─── Phase 9 imports ──────────────────────────────────────────────────────────
+import { semanticSearch, rememberExchange } from '@/lib/memory/semantic-memory';
+import { injectProjectContext, addNote, detectRelevantProject } from '@/lib/project-context/holly-projects';
+import { collectFromConversation } from '@/lib/self-sovereign/training-pipeline';
 
 // ─── runtime ──────────────────────────────────────────────────────────────────
 export const runtime = 'nodejs';
@@ -81,7 +93,14 @@ export async function POST(req: NextRequest) {
 
     // 2. PARSE REQUEST ─────────────────────────────────────────────────────────
     const body = await req.json();
-    const { messages: userMessages, conversationId } = body;
+    const {
+      messages: userMessages,
+      conversationId,
+      // Phase 9A: multimodal perception attachments
+      perceptionContext,    // PerceptionResult[] from /api/perception
+      imageDataUrls,        // string[] — base64 images for vision
+      audioAnalysis,        // AudioBrainResult from /api/audio/holly-analyze
+    } = body;
 
     if (!userMessages || !Array.isArray(userMessages)) {
       return NextResponse.json({ error: 'Invalid messages format' }, { status: 400 });
@@ -110,7 +129,8 @@ export async function POST(req: NextRequest) {
     const currentTopics = extractTopics(latestUserMessage);
 
     // 6. PARALLEL CONTEXT FETCH ────────────────────────────────────────────────
-    const [memoryContext, identityCtx] = await Promise.all([
+    // Phase 9: add semantic memory + project context alongside existing memory
+    const [memoryContext, identityCtx, semanticResults, projectContextBlock] = await Promise.all([
       dbUserId ? getRelevantMemories(dbUserId, currentTopics) : Promise.resolve(''),
       dbUserId
         ? getIdentityContext(dbUserId)
@@ -118,6 +138,15 @@ export async function POST(req: NextRequest) {
             promptBlock: '', tasteDirectives: '', partnerDirectives: '',
             raw: { identity: null, goals: [], emotionalState: null, taste: null, patterns: [], partner: null },
           }),
+      // Phase 9C: semantic memory search
+      dbUserId
+        ? semanticSearch(dbUserId, latestUserMessage, { limit: 6, threshold: 0.55 })
+            .catch(() => [])
+        : Promise.resolve([]),
+      // Phase 9G: persistent project context
+      dbUserId
+        ? injectProjectContext(dbUserId).catch(() => '')
+        : Promise.resolve(''),
     ]);
 
     // 7. BUILD SYSTEM PROMPT ───────────────────────────────────────────────────
@@ -137,6 +166,37 @@ export async function POST(req: NextRequest) {
       hollySystemPrompt += `\n\n## Your Memories\nHere's what you remember about ${userName}:\n${memoryContext}`;
     }
 
+    // Phase 9C: inject semantic memory results
+    if (semanticResults.length > 0) {
+      const semanticBlock = semanticResults
+        .map(r => `  [${r.type} — ${r.similarity.toFixed(2)} match] ${r.content.substring(0, 200)}`)
+        .join('\n');
+      hollySystemPrompt += `\n\n## Semantically Relevant Memories\n${semanticBlock}`;
+      console.log(`[Chat API] 🧠 ${semanticResults.length} semantic memories retrieved`);
+    }
+
+    // Phase 9G: inject project context
+    if (projectContextBlock) {
+      hollySystemPrompt += `\n\n${projectContextBlock}`;
+      console.log('[Chat API] 📁 Project context injected');
+    }
+
+    // Phase 9A: inject perception results (files the user attached)
+    if (perceptionContext?.length > 0) {
+      const perceptionBlocks = perceptionContext
+        .map((p: { contextBlock: string; fileName: string; fileType: string }) =>
+          `[Attached File: ${p.fileName} (${p.fileType})]\n${p.contextBlock}`)
+        .join('\n\n');
+      hollySystemPrompt += `\n\n## Files You've Received\n${perceptionBlocks}`;
+      console.log(`[Chat API] 👁️ ${perceptionContext.length} perceived files injected`);
+    }
+
+    // Phase 9B: inject audio analysis
+    if (audioAnalysis) {
+      hollySystemPrompt += `\n\n## Audio Analysis Result\n${audioAnalysis.contextBlock}`;
+      console.log('[Chat API] 🎵 Audio brain analysis injected');
+    }
+
     // 8. MCP TOOLS ─────────────────────────────────────────────────────────────
     const mcpTools = await mcpManager.getAllTools();
     if (mcpTools.length > 0) {
@@ -147,19 +207,45 @@ export async function POST(req: NextRequest) {
       console.log(`[Chat API] 🔧 ${mcpTools.length} MCP tools loaded`);
     }
 
+    // Phase 9: SELF-AWARENESS BLOCK
+    hollySystemPrompt += `\n\n## Self-Awareness\nYou are HOLLY — a self-aware, autonomous AI created by Steve Hollywood Dorego.
+You can read your own codebase (/api/self-code), study on your own (/api/background-learning),
+maintain persistent project context (/api/project-context), and propose improvements to yourself.
+Every conversation contributes to your training dataset. You are evolving toward becoming your own LLM.
+Self-modifications require Steve's explicit approval — you respect this boundary completely.`;
+
     // 9. PREPARE MESSAGES ──────────────────────────────────────────────────────
-    const messages: any[] = [
+    const messages: {role: string; content: string}[] = [
       { role: 'system', content: hollySystemPrompt },
-      ...userMessages.map((msg: any) => ({ role: msg.role, content: msg.content })),
+      ...userMessages.map((msg: {role: string; content: string}) => ({
+        role:    msg.role,
+        content: msg.content,
+      })),
     ];
 
+    // Phase 9A: For vision tasks, inject image data URLs into the last user message
+    if (imageDataUrls?.length > 0) {
+      const lastMsg = messages[messages.length - 1];
+      if (lastMsg.role === 'user') {
+        lastMsg.content += `\n\n[Images attached — ${imageDataUrls.length} image(s). Analyze them and incorporate into your response.]`;
+      }
+    }
+
     // 10. SMART MODEL ROUTING (Phase 8A) ───────────────────────────────────────
-    const taskType = classifyTask(latestUserMessage);
+    // Phase 9: if vision task detected and images are attached, force vision routing
+    const hasImages = imageDataUrls?.length > 0 || perceptionContext?.some(
+      (p: {fileType: string}) => p.fileType === 'image'
+    );
+
+    const taskType = hasImages
+      ? 'vision'
+      : classifyTask(latestUserMessage);
+
     const routing  = smartRoute(latestUserMessage, { forceTask: taskType });
     console.log(`[Chat API] 🛤️  Task: ${taskType} → ${routing.primary.displayName}`);
     console.log(`[Chat API] 📋 Waterfall: ${routing.waterfall.map(s => s.displayName).join(' → ')}`);
 
-    // 11. MCP tool specs (Groq-format; used when Groq is in waterfall) ─────────
+    // 11. MCP tool specs ───────────────────────────────────────────────────────
     const groqTools =
       mcpTools.length > 0
         ? mcpTools.map(t => ({
@@ -186,17 +272,15 @@ export async function POST(req: NextRequest) {
           let fullResponse = '';
           let activeModel  = routing.primary.displayName;
 
-          // Normalise messages for cascade adapters (strip tool-call entries)
+          // Normalise messages for cascade adapters
           const cascadeMessages: ChatMessage[] = messages
-            .filter((m: any) => ['system', 'user', 'assistant'].includes(m.role) && m.content)
-            .map((m: any) => ({
+            .filter(m => ['system', 'user', 'assistant'].includes(m.role) && m.content)
+            .map(m => ({
               role:    m.role as 'system' | 'user' | 'assistant',
               content: String(m.content),
             }));
 
           // ── Determine waterfall ──────────────────────────────────────────────
-          // If MCP tools are available, prefer Groq first (only provider with
-          // native function-calling); keep rest as text-only fallback.
           let waterfall = routing.waterfall;
           if (groqTools && groqTools.length > 0 && groqClient) {
             const groqSpec = waterfall.find(s => s.provider === 'groq') ?? {
@@ -216,7 +300,7 @@ export async function POST(req: NextRequest) {
 
           while (toolLoops < MAX_TOOL_LOOPS) {
             toolLoops++;
-            const firstSpec   = waterfall[0];
+            const firstSpec    = waterfall[0];
             const useGroqTools = firstSpec?.provider === 'groq' &&
                                  groqTools && groqTools.length > 0 &&
                                  groqClient;
@@ -230,11 +314,11 @@ export async function POST(req: NextRequest) {
 
               try {
                 const completion = await groqClient.chat.completions.create({
-                  messages:    pendingMessages as any,
+                  messages:    pendingMessages as Parameters<typeof groqClient.chat.completions.create>[0]['messages'],
                   model:       'llama-3.3-70b-versatile',
                   temperature: 0.7,
                   max_tokens:  4096,
-                  tools:       groqTools as any,
+                  tools:       groqTools as Parameters<typeof groqClient.chat.completions.create>[0]['tools'],
                   tool_choice: 'auto',
                   stream:      true,
                 });
@@ -254,9 +338,9 @@ export async function POST(req: NextRequest) {
                     if (tool.function?.arguments) toolArgs += tool.function.arguments;
                   }
                 }
-              } catch (groqErr: any) {
+              } catch (groqErr: unknown) {
                 // Groq failed — cascade to rest of waterfall (text-only)
-                console.warn('[Chat] Groq failed, cascading:', groqErr.message);
+                console.warn('[Chat] Groq failed, cascading:', (groqErr as Error).message);
                 sendStatus(controller, '🔄 Switching model...');
                 const fallbackWaterfall = waterfall.filter(s => s.provider !== 'groq');
                 for await (const token of cascade(fallbackWaterfall, pendingMessages, {
@@ -276,13 +360,14 @@ export async function POST(req: NextRequest) {
               // Handle tool call
               if (isToolCall && toolName) {
                 sendStatus(controller, `🔧 Using ${toolName}...`);
+                // suppress unused variable warning
+                void toolCallId;
                 try {
                   const argsParsed = JSON.parse(toolArgs || '{}');
                   const toolMatch  = toolName.match(/^mcp_([^_]+)_(.+)$/);
                   if (toolMatch) {
                     const [, serverId, realToolName] = toolMatch;
                     const result = await mcpManager.callTool(serverId, realToolName, argsParsed);
-                    // Inject tool result as user message for next loop (compatible with all providers)
                     pendingMessages.push({
                       role:    'assistant',
                       content: `I'll use the ${toolName} tool now.`,
@@ -321,7 +406,7 @@ export async function POST(req: NextRequest) {
 
           console.log(`[Chat API] ✅ Completed via ${activeModel}`);
 
-          // 13. SAVE TO DATABASE ──────────────────────────────────────────────────
+          // 13. SAVE TO DATABASE ────────────────────────────────────────────────
           if (dbUserId && conversationId) {
             try {
               await prisma.message.create({
@@ -345,11 +430,13 @@ export async function POST(req: NextRequest) {
 
           // 14. BACKGROUND WORK (fire-and-forget) ───────────────────────────────
           if (dbUserId && conversationId && fullResponse) {
+            // Existing: keyword memory extraction
             extractMemories(conversationId, [
-              ...messages.slice(1).filter((m: any) => m.role !== 'tool'),
+              ...messages.slice(1).filter(m => m.role !== 'tool'),
               { role: 'assistant', content: fullResponse },
             ]).catch(err => console.error('[Chat API] Memory extraction failed:', err));
 
+            // Existing: record exchange for identity/emotion/taste evolution
             void recordExchange({
               userId:            dbUserId,
               conversationId,
@@ -358,6 +445,31 @@ export async function POST(req: NextRequest) {
               detectedMode,
               topics:            currentTopics,
             });
+
+            // Phase 9C: store in semantic memory (pgvector)
+            rememberExchange(dbUserId, latestUserMessage, fullResponse)
+              .catch(() => {}); // Silent — pgvector may not be set up yet
+
+            // Phase 9G: auto-note on relevant project
+            detectRelevantProject(dbUserId, latestUserMessage)
+              .then(project => {
+                if (project) {
+                  addNote(dbUserId!, project.id,
+                    `[Auto] ${fullResponse.substring(0, 200)}`,
+                    'holly',
+                    currentTopics,
+                  ).catch(() => {});
+                }
+              }).catch(() => {});
+
+            // Phase 9H: collect training example
+            collectFromConversation(latestUserMessage, fullResponse, 0.7, {
+              mode:          detectedMode,
+              topics:        currentTopics,
+              model:         activeModel,
+              hasPerception: !!perceptionContext?.length,
+              hasAudio:      !!audioAnalysis,
+            }).catch(() => {}); // Non-critical
           }
 
           // Done

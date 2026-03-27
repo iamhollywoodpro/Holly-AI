@@ -14,7 +14,7 @@ import {
   checkRateLimit,
   type ValidatedKey,
   type RateLimitResult,
-} from '@/src/lib/api-keys';
+} from '@/lib/api-keys';
 import type { ApiKey } from '@prisma/client';
 
 export type GuardSuccess = {
@@ -89,19 +89,20 @@ export async function guardApiKey(
   }
 
   if (!rl.allowed) {
-    const retryAfterSec = Math.ceil(rl.retryAfterMs / 1000);
+    const blockedRl = rl as { allowed: false; reason: 'rpm' | 'rpd'; retryAfterMs: number };
+    const retryAfterSec = Math.ceil(blockedRl.retryAfterMs / 1000);
     const res = NextResponse.json(
       {
-        error:        rl.reason === 'rpm' ? 'Rate limit exceeded (per minute)' : 'Rate limit exceeded (per day)',
-        retryAfterMs: rl.retryAfterMs,
-        limit:        rl.reason === 'rpm' ? validated.apiKey.rpmLimit : validated.apiKey.rpdLimit,
-        window:       rl.reason === 'rpm' ? '60s' : '24h',
+        error:        blockedRl.reason === 'rpm' ? 'Rate limit exceeded (per minute)' : 'Rate limit exceeded (per day)',
+        retryAfterMs: blockedRl.retryAfterMs,
+        limit:        blockedRl.reason === 'rpm' ? validated.apiKey.rpmLimit : validated.apiKey.rpdLimit,
+        window:       blockedRl.reason === 'rpm' ? '60s' : '24h',
       },
       { status: 429 },
     );
     res.headers.set('Retry-After', String(retryAfterSec));
     res.headers.set('X-RateLimit-Limit', String(
-      rl.reason === 'rpm' ? validated.apiKey.rpmLimit : validated.apiKey.rpdLimit,
+      blockedRl.reason === 'rpm' ? validated.apiKey.rpmLimit : validated.apiKey.rpdLimit,
     ));
     return res;
   }
