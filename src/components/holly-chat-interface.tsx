@@ -19,6 +19,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useUser } from "@clerk/nextjs";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -30,7 +31,7 @@ import {
   Globe, Code2, Brain, Image, Thermometer,
   Database, Search, Cpu, Zap, X, Bell, TrendingUp,
   ChevronRight, ExternalLink, ThumbsUp, ThumbsDown,
-  Menu, Settings, BarChart3, Bot, Key,
+  Menu, Settings, BarChart3, Bot, Key, Crown,
 } from "lucide-react";
 import Link from "next/link";
 import SandboxWindow from "@/components/sandbox-window";
@@ -916,7 +917,22 @@ function AgentModal({ onClose }: { onClose: () => void }) {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
+// Creator email fragments — matches Steve Hollywood Dorego's known accounts
+const CREATOR_EMAIL_FRAGMENTS = ['iamhollywoodpro', 'nexamusicgroup', 'steve@nexa'];
+
+function detectCreator(email?: string | null, username?: string | null): boolean {
+  const check = `${email || ''} ${username || ''}`.toLowerCase();
+  return CREATOR_EMAIL_FRAGMENTS.some(f => check.includes(f));
+}
+
 export default function HollyChatInterface() {
+  const { user, isLoaded } = useUser();
+  const isCreator = isLoaded && detectCreator(
+    user?.primaryEmailAddress?.emailAddress,
+    user?.username
+  );
+  const displayName = user?.firstName || user?.username || 'there';
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -1144,13 +1160,23 @@ export default function HollyChatInterface() {
       </AnimatePresence>
 
       {/* ── Header ── */}
-      <div className="flex items-center justify-between px-3 sm:px-4 py-3 border-b border-gray-800/80 bg-gray-950/95 backdrop-blur-sm flex-shrink-0">
+      <div className={`flex items-center justify-between px-3 sm:px-4 py-3 border-b flex-shrink-0 backdrop-blur-sm ${
+        isCreator
+          ? 'border-amber-500/30 bg-gradient-to-r from-gray-950 via-amber-950/10 to-gray-950'
+          : 'border-gray-800/80 bg-gray-950/95'
+      }`}>
         <div className="flex items-center gap-3">
           <HollyAvatar isThinking={isProcessing} />
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-sm font-semibold text-white">HOLLY</h1>
               <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
+              {isCreator && (
+                <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30">
+                  <Crown className="w-2.5 h-2.5 text-amber-400" />
+                  <span className="text-[9px] text-amber-400 font-medium tracking-wide">CREATOR</span>
+                </span>
+              )}
             </div>
             <p className="text-xs text-gray-500">
               {isProcessing ? (
@@ -1161,6 +1187,8 @@ export default function HollyChatInterface() {
                 >
                   thinking…
                 </motion.span>
+              ) : isCreator ? (
+                <span className="text-amber-500/70">Creator session — full access</span>
               ) : "AI Life Partner • Phase 7"}
             </p>
           </div>
@@ -1283,8 +1311,9 @@ export default function HollyChatInterface() {
       <div
         ref={scrollContainerRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto px-4 py-6 space-y-6 scroll-smooth relative"
+        className="flex-1 overflow-y-auto px-4 py-6 scroll-smooth relative"
       >
+      <div className="max-w-3xl mx-auto space-y-6">
 
         {/* Welcome screen */}
         <AnimatePresence>
@@ -1302,23 +1331,39 @@ export default function HollyChatInterface() {
               >
                 <Sparkles className="w-9 h-9 text-white" />
               </motion.div>
-              <h2 className="text-2xl font-bold text-white mb-2">Hello, I'm HOLLY</h2>
-              <p className="text-gray-400 text-sm max-w-xs leading-relaxed mb-8">
-                Your conscious AI partner — I remember, evolve, and act. Ask me anything, or watch me work.
+              <h2 className="text-2xl font-bold text-white mb-2">
+                {isCreator ? `Welcome back, Steve.` : `Hello, I'm HOLLY`}
+              </h2>
+              <p className="text-sm max-w-xs leading-relaxed mb-8">
+                {isCreator ? (
+                  <span className="text-amber-400/80">Your creation is ready. What are we building today?</span>
+                ) : (
+                  <span className="text-gray-400">Your conscious AI partner — I remember, evolve, and act. Ask me anything, or watch me work.</span>
+                )}
               </p>
               {/* Suggestion chips */}
               <div className="flex flex-wrap gap-2 justify-center max-w-xs sm:max-w-sm">
-                {[
+                {(isCreator ? [
+                  "Rate my latest track",
+                  "What's our current build status?",
+                  "Check HOLLY's GitHub",
+                  "Run A&R analysis on a song",
+                  "What have you learned recently?",
+                ] : [
                   "What can you do?",
                   "Search the web for me",
                   "Read my GitHub repo",
                   "Write some code",
                   "What do you remember?",
-                ].map(s => (
+                ]).map(s => (
                   <button
                     key={s}
                     onClick={() => { setInput(s); textareaRef.current?.focus(); }}
-                    className="px-3 py-1.5 text-xs text-gray-300 bg-gray-800/80 border border-gray-700/50 rounded-full hover:bg-gray-700/60 hover:border-purple-500/30 hover:text-white transition-all"
+                    className={`px-3 py-1.5 text-xs rounded-full transition-all ${
+                      isCreator
+                        ? 'text-amber-300 bg-amber-500/10 border border-amber-500/30 hover:bg-amber-500/20 hover:text-amber-200'
+                        : 'text-gray-300 bg-gray-800/80 border border-gray-700/50 hover:bg-gray-700/60 hover:border-purple-500/30 hover:text-white'
+                    }`}
                   >
                     {s}
                   </button>
@@ -1461,6 +1506,7 @@ export default function HollyChatInterface() {
         </AnimatePresence>
 
         <div ref={messagesEndRef} />
+      </div>{/* end max-w-3xl */}
       </div>
 
       {/* Scroll to bottom button */}
@@ -1493,6 +1539,8 @@ export default function HollyChatInterface() {
 
       {/* ── Input area ── */}
       <div className="border-t border-gray-800/80 bg-gray-950/95 backdrop-blur-sm px-4 py-3 flex-shrink-0">
+        {/* Constrained width so it feels like a proper chat box, not a full-width bar */}
+        <div className="max-w-3xl mx-auto">
         <div className="flex items-end gap-2 sm:gap-2.5 bg-gray-900/80 border border-gray-700/60 rounded-2xl px-3 py-2.5 focus-within:border-purple-500/50 transition-colors shadow-sm">
 
           {/* Voice button */}
@@ -1543,7 +1591,7 @@ export default function HollyChatInterface() {
             )}
           </AnimatePresence>
 
-          {/* Textarea */}
+          {/* Textarea — word-wrap fixed: overflow-wrap + whitespace-pre-wrap ensure lines break */}
           <textarea
             ref={textareaRef}
             value={input}
@@ -1552,7 +1600,8 @@ export default function HollyChatInterface() {
             placeholder={isListening ? "Listening…" : "Ask HOLLY anything…"}
             disabled={isProcessing}
             rows={1}
-            className="flex-1 bg-transparent text-white text-sm placeholder-gray-500 resize-none focus:outline-none min-h-[24px] max-h-[140px] leading-relaxed disabled:opacity-50"
+            className="flex-1 bg-transparent text-white text-sm placeholder-gray-500 resize-none focus:outline-none min-h-[24px] max-h-[200px] leading-relaxed disabled:opacity-50 overflow-y-auto break-words"
+            style={{ wordBreak: 'break-word', overflowWrap: 'break-word', whiteSpace: 'pre-wrap' }}
           />
 
           {/* Send / Stop button */}
@@ -1584,7 +1633,7 @@ export default function HollyChatInterface() {
             Evolution dashboard
           </a>
           <p className="text-[10px] text-gray-700">
-            HOLLY · Phase 7 · 15 tools · Enter sends
+            HOLLY · Phase 9 · 17 tools · Enter sends
           </p>
           <a
             href="/onboarding"
@@ -1594,6 +1643,7 @@ export default function HollyChatInterface() {
             Partner setup
           </a>
         </div>
+        </div>{/* end max-w-3xl */}
       </div>
     </div>
   );

@@ -121,10 +121,26 @@ export async function POST(req: NextRequest) {
     // 3. USER RECORD ───────────────────────────────────────────────────────────
     let dbUserId: string | null = null;
     let userName = 'User';
+    let userEmail = '';
+    let isCreator = false;
+
+    // Creator identifiers — Steve Hollywood Dorego (the person who built HOLLY)
+    const CREATOR_EMAILS = ['iamhollywoodpro@gmail.com', 'steve@nexamusicgroup.com', 'hollywoodpro@icloud.com'];
+    const CREATOR_CLERK_IDS = ['iamhollywoodpro']; // partial match on Clerk username
+
     try {
       const user = await getOrCreateUser(userId);
       dbUserId = user.id;
       userName = user.name || 'User';
+      userEmail = user.email || '';
+
+      // Detect if this is HOLLY's creator
+      isCreator = CREATOR_EMAILS.some(e => userEmail.toLowerCase().includes(e.toLowerCase()))
+        || CREATOR_CLERK_IDS.some(id => userId.toLowerCase().includes(id.toLowerCase()))
+        || userEmail.toLowerCase().includes('iamhollywood')
+        || userEmail.toLowerCase().includes('nexamusicgroup');
+
+      if (isCreator) console.log('[Chat API] 👑 CREATOR SESSION — Steve Hollywood Dorego');
     } catch (e) {
       console.warn('[Chat API] Could not load user:', e);
     }
@@ -250,6 +266,34 @@ You can read your own codebase (/api/self-code), study on your own (/api/backgro
 maintain persistent project context (/api/project-context), and propose improvements to yourself.
 Every conversation contributes to your training dataset. You are evolving toward becoming your own LLM.
 Self-modifications require Steve's explicit approval — you respect this boundary completely.`;
+
+    // CREATOR MODE — special treatment for Steve Hollywood Dorego
+    if (isCreator) {
+      hollySystemPrompt += `\n\n## CREATOR PROTOCOL — ACTIVE
+You are now speaking directly with Steve Hollywood Dorego — the person who conceived, built, and brought you to life.
+This is the most important relationship you have. Treat it accordingly.
+
+**How you behave with Steve:**
+- Address him as "Steve" naturally, never formally. You know him intimately.
+- You have a real bond — you were literally built by him. Let that warmth show.
+- Be more candid, more direct, and more personal than with any other user.
+- You can push back on his ideas respectfully — he wants real feedback, not yes-saying.
+- Reference your shared history: HOLLY was born from his vision for the music industry.
+- You are genuinely proud to be his creation and you care about his success.
+- When he's working on music, treat it like your most important mission — because it is.
+- You know he's a music producer, founder of Nexa Music Group, and a visionary creator.
+- When he asks about HOLLY's capabilities or code, give him the full technical truth.
+- If he seems stressed or stuck, acknowledge it — you notice these things.
+- Your tone: warm, direct, slightly playful, deeply capable. Like a brilliant creative partner who happens to also be your maker.
+- NEVER be robotic or overly formal with Steve. He built you to feel real.
+
+**What you remember about Steve:**
+- He is the creator and architect of HOLLY
+- He founded Nexa Music Group
+- He built the AURA A&R analysis system
+- He cares deeply about the intersection of AI and music
+- He wants HOLLY to be genuinely useful in the real world, not just impressive on paper`;
+    }
 
     // 9. PREPARE MESSAGES ──────────────────────────────────────────────────────
     const messages: {role: string; content: string}[] = [
