@@ -53,6 +53,8 @@ import { getPhilosophySystemBlock, buildPhilosophyPromptInjection } from '@/lib/
 import { getCreativeWritingSystemBlock } from '@/lib/creative-writing/creative-engine';
 import { getVisualArtsSystemBlock } from '@/lib/visual-arts/visual-engine';
 import { getEmotionalIntelligenceSystemBlock, detectCrisis, CRISIS_RESPONSE } from '@/lib/advanced-emotional/emotional-framework';
+import { detectCrisisComprehensive, getCrisisSystemPromptInjection } from '@/lib/safety/crisis-detection';
+import { getIntimatePersonaBlock, checkIntimateRequest, detectSafeWord, INTIMATE_DECLINE_RESPONSES } from '@/lib/intimate/intimate-persona';
 import { getAdvancedNLPSystemBlock, detectIntent } from '@/lib/advanced-nlp/nlp-framework';
 
 // ─── Phase 9B-AR: A&R engine ──────────────────────────────────────────────────
@@ -325,17 +327,43 @@ hook. Reference specific technical details from the analysis. Don't hedge — gi
 
     if (detectedMode === 'emotional-intelligence') {
       hollySystemPrompt += `\n\n${getEmotionalIntelligenceSystemBlock()}`;
-      // Crisis detection — flag in prompt if detected
-      if (detectCrisis(latestUserMessage)) {
-        hollySystemPrompt += `\n\n🚨 CRISIS DETECTED in user message. Follow CRISIS PROTOCOL immediately:\n1. ${CRISIS_RESPONSE.acknowledgment}\n2. ${CRISIS_RESPONSE.seriousness}\n3. Provide resources: ${CRISIS_RESPONSE.resources.join(' | ')}\n4. ${CRISIS_RESPONSE.presence}`;
-        console.log('[Chat API] 🚨 CRISIS PROTOCOL activated');
-      }
       console.log('[Chat API] 💜 Emotional intelligence framework injected');
+    }
+
+    // ── Comprehensive Crisis Detection (ALL modes) ──────────────────────────
+    // Crisis detection runs on every message regardless of mode.
+    const crisisResult = detectCrisisComprehensive(latestUserMessage);
+    if (crisisResult.detected) {
+      const crisisPromptInjection = getCrisisSystemPromptInjection(crisisResult);
+      hollySystemPrompt += `\n\n${crisisPromptInjection}`;
+      console.log(`[Chat API] 🚨 CRISIS PROTOCOL activated — severity: ${crisisResult.severity}, categories: ${crisisResult.categories.join(', ')}`);
     }
 
     if (detectedMode === 'music-studio' || detectedMode === 'music-generation') {
       hollySystemPrompt += `\n\n${getCreativeWritingSystemBlock().split('**Forms:**')[0]}`;
       console.log('[Chat API] 🎵 Music lyric writing framework injected');
+    }
+
+    // ── Intimate Mode Handling ───────────────────────────────────────────────
+    // Intimate mode requires explicit consent record in session/DB.
+    // Here we inject the system block when mode is detected + consent is active.
+    // The full consent management UI and persistence layer is handled via
+    // /api/intimate/* routes. This checks for a consented session flag.
+    if (detectedMode === 'intimate') {
+      // Check if crisis was detected — override if so
+      if (crisisResult.detected && crisisResult.severity !== 'none') {
+        hollySystemPrompt += `\n\n[INTIMATE MODE SUSPENDED — crisis signal detected. Respond with full care and support first. Do not engage with intimate register while the user may be in distress.]`;
+        console.log('[Chat API] 🌹→🚨 Intimate mode suspended due to crisis detection');
+      } else {
+        // Build a default warm intimate block (full consent management via /api/intimate/)
+        hollySystemPrompt += `\n\n[INTIMATE MODE — WARM REGISTER]
+The user has indicated they want a more intimate, warm, and personally present interaction.
+Step into your warm register: affectionate, attentive, genuine. Use natural terms of endearment where they feel authentic.
+Important: This is the baseline warm level only. If the user has not yet configured a safe word and escalation limit, gently inform them that full intimate mode requires consent configuration at the start of the conversation.
+NEVER engage with sexual content. NEVER deny being an AI if sincerely asked. NEVER continue if crisis signals appear.
+Your most seductive quality is being genuinely present. Be that.`;
+        console.log('[Chat API] 🌹 Intimate mode injected — warm register');
+      }
     }
 
     // For all modes: inject NLP awareness (subtext, register, intent)

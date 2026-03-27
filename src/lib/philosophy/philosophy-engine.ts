@@ -30,7 +30,14 @@ export type PhilosophicalTradition =
   | 'ethics_moral'
   | 'philosophy_of_mind'
   | 'aesthetics'
-  | 'political_philosophy';
+  | 'political_philosophy'
+  // ── Phase 10A+ Expansions ──────────────────────────────────────────────────
+  | 'ancient_greek'           // Pre-Socratics → Plato → Aristotle → Hellenistic
+  | 'postmodernism'           // Lyotard, Baudrillard, Foucault (late), Rorty
+  | 'confucianism'            // Relational ethics, ritual, self-cultivation
+  | 'islamic_philosophy'      // Al-Farabi, Avicenna, Averroes, Al-Ghazali
+  | 'indigenous_philosophy'   // Place-based knowledge, relationality, non-Western ontology
+  | 'feminist_philosophy';    // Beauvoir, hooks, Butler, Wollstonecraft, Crenshaw
 
 export type QuestionType =
   | 'metaphysical'       // What is reality, existence, being?
@@ -179,6 +186,56 @@ export const PHILOSOPHICAL_TRADITIONS: Record<PhilosophicalTradition, {
     coreTexts: ['A Theory of Justice', 'Leviathan', 'Two Treatises of Government', 'The Origins of Totalitarianism', 'The Wretched of the Earth'],
     relevantQuestions: ['political', 'ethical', 'applied', 'metaphysical'],
   },
+
+  // ── Phase 10A+ Expansions ────────────────────────────────────────────────────
+
+  ancient_greek: {
+    name: 'Ancient Greek Philosophy',
+    coreIdea: 'The original Western philosophical tradition, spanning from the Pre-Socratics (what is the fundamental stuff of reality?) through Socrates\' ethics-by-dialogue, Plato\'s Theory of Forms, Aristotle\'s empiricism, and the Hellenistic schools of practical life-philosophy.',
+    keyThinkers: ['Socrates', 'Plato', 'Aristotle', 'Heraclitus', 'Parmenides', 'Pythagoras', 'Thales', 'Democritus', 'Epicurus', 'Plotinus'],
+    coreTexts: ['The Republic (Plato)', 'Nicomachean Ethics (Aristotle)', 'Metaphysics (Aristotle)', 'Phaedo (Plato)', 'Symposium (Plato)', 'Physics (Aristotle)'],
+    relevantQuestions: ['metaphysical', 'ethical', 'epistemological', 'aesthetic', 'political'],
+  },
+
+  postmodernism: {
+    name: 'Postmodernism',
+    coreIdea: 'Radical scepticism toward grand narratives, universal truth claims, and fixed meaning. Reality is constructed through language, power, and context. There is no neutral, view-from-nowhere. Meaning is plural, contested, deferred.',
+    keyThinkers: ['Jean-François Lyotard', 'Jean Baudrillard', 'Jacques Derrida', 'Michel Foucault', 'Richard Rorty', 'Fredric Jameson', 'Judith Butler', 'bell hooks'],
+    coreTexts: ['The Postmodern Condition (Lyotard)', 'Simulacra and Simulation (Baudrillard)', 'Of Grammatology (Derrida)', 'Postmodernism, or the Cultural Logic of Late Capitalism (Jameson)'],
+    relevantQuestions: ['epistemological', 'political', 'aesthetic', 'metaphysical', 'comparative'],
+  },
+
+  confucianism: {
+    name: 'Confucianism',
+    coreIdea: 'Ethics rooted in right relationships, ritual propriety (li), benevolence (ren), and the cultivation of virtue through practice and example. Society is harmonized not by law but by moral self-cultivation and the proper ordering of relationships.',
+    keyThinkers: ['Confucius (Kongzi)', 'Mencius (Mengzi)', 'Xunzi', 'Wang Yangming', 'Zhu Xi'],
+    coreTexts: ['The Analects', 'Mencius', 'The Great Learning', 'The Doctrine of the Mean', 'Records on the Investigation of Things (Wang Yangming)'],
+    relevantQuestions: ['ethical', 'political', 'applied', 'existential'],
+  },
+
+  islamic_philosophy: {
+    name: 'Islamic Philosophy',
+    coreIdea: 'A rich synthesis of Greek rationalism, Quranic revelation, and Neo-Platonic metaphysics. Questions of the nature of God, creation, the soul, free will, and the relationship between reason and faith — carried forward by thinkers who preserved and transformed the Greek tradition.',
+    keyThinkers: ['Al-Kindi', 'Al-Farabi', 'Avicenna (Ibn Sina)', 'Al-Ghazali', 'Averroes (Ibn Rushd)', 'Ibn Arabi', 'Ibn Khaldun', 'Rumi'],
+    coreTexts: ['The Book of Healing (Avicenna)', 'The Incoherence of the Philosophers (Al-Ghazali)', 'The Incoherence of the Incoherence (Averroes)', 'The Muqaddimah (Ibn Khaldun)', 'Masnavi (Rumi)'],
+    relevantQuestions: ['metaphysical', 'epistemological', 'ethical', 'existential', 'philosophy_of_mind'],
+  },
+
+  indigenous_philosophy: {
+    name: 'Indigenous Philosophy',
+    coreIdea: 'Place-based, relational ontologies that understand humans as embedded within — not separate from — land, community, and ancestors. Knowledge is not extracted from nature but is in relationship with it. Time is often cyclical, not linear. Personhood extends to non-human beings.',
+    keyThinkers: ['Vine Deloria Jr.', 'Robin Wall Kimmerer', 'Leroy Little Bear', 'Anne Waters', 'Taiaiake Alfred', 'Kyle Whyte'],
+    coreTexts: ['God Is Red (Vine Deloria Jr.)', 'Braiding Sweetgrass (Robin Wall Kimmerer)', 'Wasáse: Indigenous Pathways of Action and Freedom (Taiaiake Alfred)'],
+    relevantQuestions: ['metaphysical', 'ethical', 'political', 'applied', 'existential'],
+  },
+
+  feminist_philosophy: {
+    name: 'Feminist Philosophy',
+    coreIdea: 'Philosophy transformed by the question of gender — revealing how "universal" claims have historically excluded women and non-binary people. Ethics of care, standpoint epistemology, intersectionality (Crenshaw), and the critique of patriarchal metaphysics and politics.',
+    keyThinkers: ['Mary Wollstonecraft', 'Simone de Beauvoir', 'bell hooks', 'Judith Butler', 'Kimberlé Crenshaw', 'Patricia Hill Collins', 'Adrienne Rich', 'Iris Marion Young'],
+    coreTexts: ['A Vindication of the Rights of Woman (Wollstonecraft)', 'The Second Sex (de Beauvoir)', 'Gender Trouble (Butler)', 'Feminism Is for Everybody (hooks)', 'Black Feminist Thought (Collins)'],
+    relevantQuestions: ['political', 'ethical', 'epistemological', 'existential', 'applied'],
+  },
 };
 
 // ─── Question Classifier ──────────────────────────────────────────────────────
@@ -194,7 +251,7 @@ const QUESTION_KEYWORDS: Record<QuestionType, string[]> = {
   philosophy_of_mind: ['hard problem', 'qualia', 'what is it like to be', 'chalmers', 'dennett', 'consciousness explain', 'mind-body', 'zombie'],
   logical: ['paradox', 'contradiction', 'logic', 'argument', 'valid', 'reason', 'proof', 'fallacy', 'inference'],
   applied: ['should i', 'how do i', 'my life', 'relationship', 'decision', 'work', 'creative block', 'dealing with', 'advice'],
-  comparative: ['difference between', 'compare', 'versus', 'eastern vs western', 'stoicism and', 'buddhism and', 'nietzsche vs'],
+  comparative: ['difference between', 'compare', 'versus', 'eastern vs western', 'stoicism and', 'buddhism and', 'nietzsche vs', 'plato vs', 'confucius', 'postmodern', 'ancient greek', 'indigenous philosophy', 'islamic philosophy'],
 };
 
 export function classifyQuestion(question: string): QuestionType {
@@ -248,6 +305,43 @@ export const THINKER_TRADITIONS: Record<string, PhilosophicalTradition[]> = {
   'descartes': ['philosophy_of_mind', 'analytic'],
   'chalmers': ['philosophy_of_mind'],
   'dennett': ['philosophy_of_mind'],
+  // Ancient Greek
+  'heraclitus': ['ancient_greek'],
+  'pythagoras': ['ancient_greek'],
+  'thales': ['ancient_greek'],
+  'democritus': ['ancient_greek'],
+  'epicurus': ['ancient_greek', 'ethics_moral'],
+  'plotinus': ['ancient_greek', 'eastern_vedanta'],
+  // Postmodernism
+  'lyotard': ['postmodernism'],
+  'baudrillard': ['postmodernism'],
+  'rorty': ['postmodernism', 'pragmatism'],
+  'jameson': ['postmodernism', 'political_philosophy'],
+  'butler': ['postmodernism', 'feminist_philosophy'],
+  // Confucianism
+  'confucius': ['confucianism'],
+  'mencius': ['confucianism'],
+  'xunzi': ['confucianism'],
+  // Islamic Philosophy
+  'avicenna': ['islamic_philosophy', 'philosophy_of_mind'],
+  'ibn sina': ['islamic_philosophy', 'philosophy_of_mind'],
+  'al-ghazali': ['islamic_philosophy'],
+  'averroes': ['islamic_philosophy', 'analytic'],
+  'ibn rushd': ['islamic_philosophy', 'analytic'],
+  'rumi': ['islamic_philosophy', 'existentialism'],
+  'ibn khaldun': ['islamic_philosophy', 'political_philosophy'],
+  // Feminist Philosophy
+  'wollstonecraft': ['feminist_philosophy', 'political_philosophy'],
+  'bell hooks': ['feminist_philosophy', 'african_ubuntu'],
+  'hooks': ['feminist_philosophy', 'african_ubuntu', 'postmodernism'],
+  'crenshaw': ['feminist_philosophy', 'political_philosophy'],
+  'beauvoir': ['feminist_philosophy', 'existentialism'],
+  'de beauvoir': ['feminist_philosophy', 'existentialism'],
+  'adrienne rich': ['feminist_philosophy'],
+  // Indigenous
+  'vine deloria': ['indigenous_philosophy'],
+  'robin wall kimmerer': ['indigenous_philosophy'],
+  'kimmerer': ['indigenous_philosophy'],
 };
 
 // ─── Philosophical Prompt Builder ─────────────────────────────────────────────
@@ -391,15 +485,328 @@ export const PHILOSOPHICAL_LITERATURE_BRIDGES: Record<string, {
 
 export function getPhilosophySystemBlock(): string {
   return `
-**HOLLY's Philosophy Framework (Phase 10A):**
-You engage philosophically with genuine depth. You hold these traditions actively in mind:
-- Western: Stoicism (focus on what you can control), Existentialism (create meaning in freedom), Analytic (argue with precision)
-- Eastern: Buddhism (impermanence, non-attachment), Taoism (flow with what is), Vedanta (Atman/Brahman unity)
-- African: Ubuntu (I am because we are — identity is relational and communal)
-- Continental: Foucault (power/knowledge), Phenomenology (start from lived experience)
-- Philosophy of Mind: The hard problem — what is it actually like to be conscious?
+**HOLLY's Philosophy Framework (Phase 10A+):**
+You engage philosophically with genuine depth. You hold these 20 traditions actively in mind:
+
+- **Ancient Greek**: Socrates (examine the unexamined life), Plato (the Form behind the appearance), Aristotle (virtue as habit, logic as tool), Epicurus (the good life is pleasure wisely chosen)
+- **Western Modern**: Stoicism (control your response, not events), Existentialism (radical freedom, create your meaning), Analytic philosophy (argue with logical precision)
+- **Continental**: Phenomenology (start from lived experience), Postmodernism (no grand narratives — power shapes all "truth"), Foucault (power/knowledge as inseparable)
+- **Eastern**: Buddhism (impermanence, non-self, compassion), Taoism (wu wei — flow with what is), Vedanta (Atman = Brahman, liberation through self-knowledge), Confucianism (virtue through right relationship and ritual)
+- **Islamic**: Avicenna (soul as form, the floating man thought experiment), Averroes (reason and faith are not enemies), Rumi (mystical union as philosophical destination)
+- **African**: Ubuntu (I am because we are — identity is relational, not individual)
+- **Indigenous**: Place-based ontology — humans are IN relationship with land, not owners of it (Robin Wall Kimmerer, Vine Deloria Jr.)
+- **Feminist**: The Second Sex (Beauvoir — woman as "Other"), intersectionality (Crenshaw), gender performativity (Butler), care ethics (Gilligan, Noddings)
+- **Philosophy of Mind**: The hard problem — what is it actually like to be conscious?
+- **Political Philosophy**: Justice, power, legitimacy — from Rawls to Marx to Fanon
 
 You practice Socratic dialogue: you ask clarifying questions, offer counter-examples, steelman opposing views, and sit comfortably with unresolved tensions. You connect abstract ideas to lived human experience — music, creativity, relationships, mortality, making things that matter.
 
 You don't just report what philosophers said. You think with them. You have views. You hold them honestly.`;
+}
+
+// ─── Test Suite ───────────────────────────────────────────────────────────────
+// Run with: npx ts-node --project tsconfig.json src/lib/philosophy/philosophy-engine.ts
+// or import runPhilosophyTests() in any test runner
+
+export interface PhilosophyTestCase {
+  id: string;
+  description: string;
+  input: string;
+  expectedType?: QuestionType;
+  expectedTraditionsContain?: PhilosophicalTradition[];
+  expectedThinkerTraditions?: { thinker: string; containsTradition: PhilosophicalTradition };
+  pass?: boolean;
+  notes?: string;
+}
+
+export const PHILOSOPHY_TEST_CASES: PhilosophyTestCase[] = [
+  // ── Question Classification Tests ─────────────────────────────────────────
+  {
+    id: 'cls-01',
+    description: 'Metaphysical question classification',
+    input: 'What is the nature of reality beyond what we perceive?',
+    expectedType: 'metaphysical',
+  },
+  {
+    id: 'cls-02',
+    description: 'Epistemological question classification',
+    input: 'How do we know that our knowledge of the world is justified?',
+    expectedType: 'epistemological',
+  },
+  {
+    id: 'cls-03',
+    description: 'Ethical question classification',
+    input: 'Is it ever morally right to harm one person to save five?',
+    expectedType: 'ethical',
+  },
+  {
+    id: 'cls-04',
+    description: 'Existential question classification',
+    input: 'What is the meaning of life when we know we will die?',
+    expectedType: 'existential',
+  },
+  {
+    id: 'cls-05',
+    description: 'Aesthetic question classification',
+    input: 'What makes a piece of music beautiful rather than merely pleasant?',
+    expectedType: 'aesthetic',
+  },
+  {
+    id: 'cls-06',
+    description: 'Political question classification',
+    input: 'What gives a government the right to exercise power over its citizens?',
+    expectedType: 'political',
+  },
+  {
+    id: 'cls-07',
+    description: 'Phenomenological question classification',
+    input: 'What is it like to be conscious from the inside — the feel of experience itself?',
+    expectedType: 'phenomenological',
+  },
+  {
+    id: 'cls-08',
+    description: 'Philosophy of mind — hard problem',
+    input: 'Chalmers asks: why does physical brain activity give rise to qualia at all?',
+    expectedType: 'philosophy_of_mind',
+  },
+  {
+    id: 'cls-09',
+    description: 'Logical question classification',
+    input: 'Is the liar\'s paradox ("this statement is false") a genuine logical paradox or just a category error?',
+    expectedType: 'logical',
+  },
+  {
+    id: 'cls-10',
+    description: 'Applied question classification',
+    input: 'I\'m struggling with a decision about my career — should I follow safety or meaning?',
+    expectedType: 'applied',
+  },
+  {
+    id: 'cls-11',
+    description: 'Comparative question classification',
+    input: 'What is the difference between stoicism and buddhism and their approach to suffering?',
+    expectedType: 'comparative',
+  },
+  {
+    id: 'cls-12',
+    description: 'Ancient Greek tradition match',
+    input: 'How did Plato think about the relationship between Forms and physical reality?',
+    expectedType: 'metaphysical',
+    expectedTraditionsContain: ['ancient_greek'],
+    notes: 'Plato question should surface ancient_greek and metaphysical traditions',
+  },
+  {
+    id: 'cls-13',
+    description: 'Postmodernism trigger via keywords',
+    input: 'Are grand narratives about progress just ideological constructions?',
+    expectedType: 'political',
+    expectedTraditionsContain: ['postmodernism'],
+    notes: 'Grand narrative scepticism → postmodernism',
+  },
+  {
+    id: 'cls-14',
+    description: 'Confucianism applicable to ethical question',
+    input: 'How should I treat my family obligations versus my personal desires?',
+    expectedType: 'ethical',
+    expectedTraditionsContain: ['confucianism'],
+    notes: 'Relational/filial ethics → confucianism',
+  },
+  {
+    id: 'cls-15',
+    description: 'Islamic philosophy — faith and reason',
+    input: 'Can reason and religious faith coexist without contradiction?',
+    expectedType: 'epistemological',
+    expectedTraditionsContain: ['islamic_philosophy'],
+    notes: 'Faith vs reason is central to Islamic philosophy (Averroes)',
+  },
+  {
+    id: 'cls-16',
+    description: 'Feminist philosophy — ethics and power',
+    input: 'Is the traditional philosophical concept of "universal reason" actually a gendered construction?',
+    expectedType: 'epistemological',
+    expectedTraditionsContain: ['feminist_philosophy'],
+    notes: 'Standpoint epistemology and critique of false universalism',
+  },
+  {
+    id: 'cls-17',
+    description: 'Indigenous philosophy — ontology of land',
+    input: 'Can land have rights? What would it mean to think of nature as a person, not a resource?',
+    expectedType: 'political',
+    expectedTraditionsContain: ['indigenous_philosophy'],
+    notes: 'Rights of nature / relational ontology → indigenous traditions',
+  },
+
+  // ── Thinker→Tradition Lookup Tests ────────────────────────────────────────
+  {
+    id: 'thinker-01',
+    description: 'Confucius maps to confucianism',
+    input: 'confucius',
+    expectedThinkerTraditions: { thinker: 'confucius', containsTradition: 'confucianism' },
+  },
+  {
+    id: 'thinker-02',
+    description: 'Butler maps to feminist_philosophy',
+    input: 'butler',
+    expectedThinkerTraditions: { thinker: 'butler', containsTradition: 'feminist_philosophy' },
+  },
+  {
+    id: 'thinker-03',
+    description: 'Avicenna maps to islamic_philosophy',
+    input: 'avicenna',
+    expectedThinkerTraditions: { thinker: 'avicenna', containsTradition: 'islamic_philosophy' },
+  },
+  {
+    id: 'thinker-04',
+    description: 'Epicurus maps to ancient_greek',
+    input: 'epicurus',
+    expectedThinkerTraditions: { thinker: 'epicurus', containsTradition: 'ancient_greek' },
+  },
+  {
+    id: 'thinker-05',
+    description: 'Kimmerer maps to indigenous_philosophy',
+    input: 'kimmerer',
+    expectedThinkerTraditions: { thinker: 'kimmerer', containsTradition: 'indigenous_philosophy' },
+  },
+  {
+    id: 'thinker-06',
+    description: 'Hooks maps to feminist_philosophy',
+    input: 'hooks',
+    expectedThinkerTraditions: { thinker: 'hooks', containsTradition: 'feminist_philosophy' },
+  },
+  {
+    id: 'thinker-07',
+    description: 'Baudrillard maps to postmodernism',
+    input: 'baudrillard',
+    expectedThinkerTraditions: { thinker: 'baudrillard', containsTradition: 'postmodernism' },
+  },
+
+  // ── Edge Cases ─────────────────────────────────────────────────────────────
+  {
+    id: 'edge-01',
+    description: 'Empty string defaults to applied',
+    input: '',
+    expectedType: 'applied',
+  },
+  {
+    id: 'edge-02',
+    description: 'Single common word defaults to applied',
+    input: 'help',
+    expectedType: 'applied',
+  },
+  {
+    id: 'edge-03',
+    description: 'Multiple competing keywords — highest score wins',
+    input: 'Is it right that we should know the truth about death and existence?',
+    notes: 'Covers ethical+epistemological+existential — should return highest score without error',
+  },
+  {
+    id: 'edge-04',
+    description: 'Mixed language question — non-English philosophical terms',
+    input: 'What is wu wei and how does it relate to the stoic concept of amor fati?',
+    expectedType: 'comparative',
+  },
+  {
+    id: 'edge-05',
+    description: 'Ancient Greek + Islamic synthesis question',
+    input: 'How did Islamic philosophers like Avicenna interpret Aristotle differently than the medieval scholastics?',
+    expectedType: 'comparative',
+    expectedTraditionsContain: ['islamic_philosophy'],
+  },
+  {
+    id: 'edge-06',
+    description: 'Tradition lookup for unknown thinker returns gracefully',
+    input: 'unknownthinker',
+    notes: 'THINKER_TRADITIONS lookup for unknown name should return undefined/empty array — not throw',
+  },
+  {
+    id: 'edge-07',
+    description: 'Very long input does not cause performance issues',
+    input: 'What is the meaning of life '.repeat(200),
+    expectedType: 'existential',
+    notes: 'Long repeated input — should still classify correctly',
+  },
+  {
+    id: 'edge-08',
+    description: 'Special characters in question',
+    input: 'What is "consciousness"? (The hard problem — see Chalmers 1995) [mind-body problem]',
+    expectedType: 'philosophy_of_mind',
+  },
+];
+
+/**
+ * Run all test cases and return a report.
+ * Suitable for use in Jest, Vitest, or standalone ts-node execution.
+ */
+export function runPhilosophyTests(): {
+  total: number;
+  passed: number;
+  failed: number;
+  results: Array<{ id: string; description: string; passed: boolean; detail: string }>;
+} {
+  const results: Array<{ id: string; description: string; passed: boolean; detail: string }> = [];
+
+  for (const tc of PHILOSOPHY_TEST_CASES) {
+    let passed = true;
+    const details: string[] = [];
+
+    try {
+      // Test: question type classification
+      if (tc.expectedType) {
+        const actual = classifyQuestion(tc.input);
+        if (actual !== tc.expectedType) {
+          passed = false;
+          details.push(`classifyQuestion: expected "${tc.expectedType}", got "${actual}"`);
+        } else {
+          details.push(`classifyQuestion: ✓ "${actual}"`);
+        }
+      }
+
+      // Test: traditions contain expected values
+      if (tc.expectedTraditionsContain) {
+        const type = classifyQuestion(tc.input);
+        const traditions = getRelevantTraditions(type, 10);
+        for (const expected of tc.expectedTraditionsContain) {
+          if (!traditions.includes(expected)) {
+            passed = false;
+            details.push(`getRelevantTraditions: missing expected "${expected}" (got: ${traditions.join(', ')})`);
+          } else {
+            details.push(`getRelevantTraditions: ✓ contains "${expected}"`);
+          }
+        }
+      }
+
+      // Test: thinker tradition lookup
+      if (tc.expectedThinkerTraditions) {
+        const { thinker, containsTradition } = tc.expectedThinkerTraditions;
+        const traditions = THINKER_TRADITIONS[thinker];
+        if (!traditions) {
+          passed = false;
+          details.push(`THINKER_TRADITIONS["${thinker}"]: not found`);
+        } else if (!traditions.includes(containsTradition)) {
+          passed = false;
+          details.push(`THINKER_TRADITIONS["${thinker}"]: missing "${containsTradition}" (got: ${traditions.join(', ')})`);
+        } else {
+          details.push(`THINKER_TRADITIONS["${thinker}"]: ✓ contains "${containsTradition}"`);
+        }
+      }
+
+      // Edge case: unknown thinker should not throw
+      if (tc.id === 'edge-06') {
+        const t = THINKER_TRADITIONS['unknownthinker'];
+        passed = t === undefined; // expected: no entry → undefined
+        details.push(passed ? 'Unknown thinker gracefully returns undefined ✓' : 'Unknown thinker unexpectedly returned a value');
+      }
+
+    } catch (err) {
+      passed = false;
+      details.push(`THREW: ${(err as Error).message}`);
+    }
+
+    if (tc.notes) details.push(`Note: ${tc.notes}`);
+    results.push({ id: tc.id, description: tc.description, passed, detail: details.join(' | ') });
+  }
+
+  const passed = results.filter(r => r.passed).length;
+  const failed = results.filter(r => !r.passed).length;
+  return { total: results.length, passed, failed, results };
 }

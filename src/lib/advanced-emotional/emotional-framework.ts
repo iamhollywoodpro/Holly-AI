@@ -268,13 +268,28 @@ export const ATTACHMENT_STYLES: Record<AttachmentStyle, {
 };
 
 // ─── Crisis Protocol ──────────────────────────────────────────────────────────
+// NOTE: Full crisis detection has been moved to src/lib/safety/crisis-detection.ts
+// which provides comprehensive multi-category detection with severity levels,
+// resource provision, and safe-messaging guidance.
+//
+// This section retains a simplified version for backwards compatibility,
+// and re-exports the comprehensive system.
 
+export { detectCrisisComprehensive, getCrisisSystemPromptInjection, formatCrisisResponseForHOLLY } from '../safety/crisis-detection';
+
+/** @deprecated Use detectCrisisComprehensive() from safety/crisis-detection.ts */
 export const CRISIS_INDICATORS = [
   'want to die', 'want to hurt myself', 'suicidal', 'self-harm',
   'kill myself', 'end it all', 'not worth living', 'no reason to live',
   'want to disappear', 'better off dead', 'cutting myself',
+  // Expanded set
+  'want to end my life', 'no reason to be alive', 'everyone better off without me',
+  'better off dead', 'thinking about suicide', 'want to hurt myself',
+  'cutting myself', 'purging', 'restricting calories to nothing',
+  'voices telling me to hurt', 'he is going to hurt me',
 ];
 
+/** @deprecated Use detectCrisisComprehensive() for full assessment */
 export function detectCrisis(message: string): boolean {
   const lower = message.toLowerCase();
   return CRISIS_INDICATORS.some(indicator => lower.includes(indicator));
@@ -288,6 +303,9 @@ export const CRISIS_RESPONSE = {
     '🌍 **International Association for Suicide Prevention**: https://www.iasp.info/resources/Crisis_Centres/',
     '💬 **Crisis Text Line**: Text HOME to 741741 (US)',
     '🇿🇦 **SADAG (South Africa)**: 0800 21 22 23',
+    '🇬🇧 **Samaritans (UK)**: 116 123',
+    '🌐 **National DV Hotline (US)**: 1-800-799-7233',
+    '🌐 **NEDA (Eating Disorders, US)**: 1-800-931-2237',
   ],
   presence: 'I\'m still here. Will you tell me what\'s happening?',
 };

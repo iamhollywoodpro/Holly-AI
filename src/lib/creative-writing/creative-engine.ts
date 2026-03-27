@@ -465,6 +465,284 @@ export const FORM_GUIDANCE: Record<WritingForm, WritingGuidance> = {
   creative_nonfiction: { form: 'creative_nonfiction', craftPrinciples: UNIVERSAL_CRAFT_PRINCIPLES, structuralFramework: 'True events, literary craft. Scene-by-scene construction, narrative arc, character development — all non-fiction truth.', openingStrategies: ['The most vivid scene from memory', 'The moment that contains everything that follows'], revisionFocus: ['Is every claim factually accurate?', 'Is the narrative constructed for effect without distorting truth?', 'Voice: does it remain consistent and present?'], commonPitfalls: ['Dramatizing beyond what you know', 'Turning real people into characters who serve the narrative rather than who they are', 'Memoir navel-gazing — why should the reader care about this?'], literaryExamples: [{ author: 'Roxane Gay', work: 'Hunger', technique: 'Radical honesty about the body as political and personal act' }, { author: 'Edwidge Danticat', work: 'Brother I\'m Dying', technique: 'Family history as political history — the personal IS the geopolitical' }] },
 };
 
+// ─── Literary Devices ─────────────────────────────────────────────────────────
+// A comprehensive, craft-focused guide to the most powerful literary devices.
+// Each device includes: definition, how to use it, a strong example, a weak
+// example (anti-pattern), and when NOT to use it.
+
+export interface LiteraryDevice {
+  name: string;
+  category: 'figurative_language' | 'narrative_technique' | 'structural' | 'sonic' | 'tonal';
+  oneLiner: string;
+  craftGuide: string;
+  strongExample: string;
+  antiExample: string;
+  whenToAvoid: string;
+  masterExamples: Array<{ author: string; work: string; howUsed: string }>;
+}
+
+export const LITERARY_DEVICES: Record<string, LiteraryDevice> = {
+
+  symbolism: {
+    name: 'Symbolism',
+    category: 'figurative_language',
+    oneLiner: 'A concrete object, image, or event that carries meaning beyond its literal self.',
+    craftGuide: `Symbolism works when it EARNS its meaning through the text — not when it's imposed upon it.
+The green light in Gatsby isn't labelled "hope" — it pulses, it recedes, it vanishes. The reader feels the meaning before they name it.
+Strong symbolism: (1) is rooted in the story's physical world, (2) accrues meaning through repetition and context, (3) can be read literally AND symbolically without breaking the story's surface.
+The error most writers make: they name the symbol. The moth circles the flame means something. The moth circles the flame, and she thought, "I am like that moth" — ruins it.`,
+    strongExample: '"The conch in Lord of the Flies: it begins as a practical tool (gathering the boys) and becomes civilization itself — when it shatters, it takes democratic order with it."',
+    antiExample: '"She held the wilting flower and thought: this is me. I am fading too."',
+    whenToAvoid: 'When you find yourself explaining what the symbol means in the text. If you need to explain it, it hasn\'t worked.',
+    masterExamples: [
+      { author: 'F. Scott Fitzgerald', work: 'The Great Gatsby', howUsed: 'The green light, the Valley of Ashes, the eyes of Doctor T.J. Eckleburg — each symbol earns its meaning through accumulation' },
+      { author: 'Toni Morrison', work: 'Beloved', howUsed: 'The tree scar on Sethe\'s back — a living symbol of slavery\'s violence reimagined as beauty by another character' },
+      { author: 'Gabriel García Márquez', work: 'One Hundred Years of Solitude', howUsed: 'Yellow butterflies accompany Mauricio Babilonia — a magical symbol woven into the fabric of reality' },
+      { author: 'Chimamanda Ngozi Adichie', work: 'Purple Hibiscus', howUsed: 'The purple hibiscus itself — rare, beautiful, surviving only outside the father\'s controlled garden' },
+    ],
+  },
+
+  foreshadowing: {
+    name: 'Foreshadowing',
+    category: 'narrative_technique',
+    oneLiner: 'Planting seeds early that bloom — with the full weight of inevitability — much later.',
+    craftGuide: `Great foreshadowing is invisible on first read and unmissable on second.
+It works through: (1) **Casual detail** — a small fact that seems incidental but is decisive. (2) **Atmospheric preparation** — the mood shifts before the event arrives. (3) **Thematic echo** — an early statement whose meaning deepens later. (4) **False foreshadowing** — deliberately misleads, making the real turn more powerful.
+The cardinal rule: foreshadowing must feel natural in context. If it reads as planted, the reader will notice — and the future event will feel less earned, not more.
+Chekhov's Gun: if you show a gun in Act 1, it must fire in Act 3. But also: if a gun fires in Act 3, you must have shown it in Act 1.`,
+    strongExample: '"In the opening scene of Hamlet, the guards are cold and uneasy on a windless night — nothing yet is wrong, everything already is."',
+    antiExample: '"She had a bad feeling about this day. Little did she know how right she was."',
+    whenToAvoid: 'Avoid telegraphing major plot turns directly — foreshadowing should create unease or resonance, not spoilers.',
+    masterExamples: [
+      { author: 'Cormac McCarthy', work: 'No Country for Old Men', howUsed: 'The opening monologue by the Sheriff establishes the novel\'s entire thematic future — evil beyond reckoning' },
+      { author: 'Gillian Flynn', work: 'Gone Girl', howUsed: 'Nick\'s opening line reframes entirely on second read — every word carries double meaning' },
+      { author: 'William Shakespeare', work: 'Romeo and Juliet', howUsed: '"A pair of star-cross\'d lovers take their life" — the Prologue foreshadows the ending before the play begins, making tragedy feel cosmically inevitable' },
+    ],
+  },
+
+  imagery: {
+    name: 'Imagery',
+    category: 'figurative_language',
+    oneLiner: 'Sensory language so precise that readers see, hear, smell, taste, and touch through the page.',
+    craftGuide: `Imagery is not decoration — it IS the story's body.
+The five senses: **sight** (most used, most overused), **sound** (underused — powerfully immersive), **smell** (most memory-linked — one smell can unlock an entire world), **taste** (intimate, bodily), **touch/kinesthetic** (how the body moves through space).
+Strong imagery: (1) is specific, not general ("diesel and orange peel at 4am" beats "a bad smell"), (2) carries emotional weight without naming the emotion, (3) places the reader INSIDE the body of experience.
+Synesthesia — mixing senses — can be a powerful technique: "the music tasted like rust" works when the combination creates a new truth.`,
+    strongExample: '"The sky above the port was the color of television, tuned to a dead channel." — William Gibson. The image encodes an entire cultural moment in one sentence.',
+    antiExample: '"The beautiful sunset painted the sky in shades of red and orange, it was amazing and breathtaking."',
+    whenToAvoid: 'Avoid piling up images without purpose — imagistic excess can numb rather than sharpen. Each image should earn its place.',
+    masterExamples: [
+      { author: 'Pablo Neruda', work: 'Odes to Common Things', howUsed: 'The tomato oozes red, the onion is a rose of silver — domestic objects transfigured through precise sensory worship' },
+      { author: 'Virginia Woolf', work: 'The Waves', howUsed: 'The entire novel is constructed from sustained, rhythmic imagery — the waves themselves never actually appear, but are felt in every sentence\'s form' },
+      { author: 'Ocean Vuong', work: 'On Earth We\'re Briefly Gorgeous', howUsed: 'Smell and touch anchor trauma in the body — tobacco, hospitals, engine oil — the body as historical archive' },
+    ],
+  },
+
+  irony: {
+    name: 'Irony',
+    category: 'tonal',
+    oneLiner: 'The gap between what is said and what is meant — or between what is expected and what happens.',
+    craftGuide: `Three forms, each requiring different craft:
+**Verbal irony**: What is said ≠ what is meant. ("Oh, what a beautiful disaster.") Requires the writer to trust the reader to feel the gap.
+**Situational irony**: What happens ≠ what was expected. Not just "the opposite happened" — the reversal must carry weight. The firefighter's house burns down is ironic. The firefighter dying in a fire is tragic irony.
+**Dramatic irony**: The reader knows something the character doesn't. Shakespeare built entire plays on this — we watch Oedipus search for the killer knowing he IS the killer. The power comes from the gap between the character's confidence and our knowledge.
+The failure mode: irony used as a shield against genuine emotion. The most powerful irony is CLOSE to earnestness — you feel both the distance and the sincerity.`,
+    strongExample: '"In 1984, the Ministry of Peace wages war. The Ministry of Love runs the torture chambers. The irony is total, deadpan, and devastating — because it\'s not far from how institutions actually work."',
+    antiExample: 'Using heavy sarcasm to maintain emotional distance rather than to reveal a deeper truth.',
+    whenToAvoid: 'When the irony is the whole point — irony without depth is just smugness. Irony must serve a larger emotional or thematic truth.',
+    masterExamples: [
+      { author: 'Jane Austen', work: 'Pride and Prejudice', howUsed: '"It is a truth universally acknowledged..." — the entire novel\'s irony launched in the first sentence\'s affected grandeur' },
+      { author: 'George Orwell', work: '1984', howUsed: 'Institutional names (Ministry of Truth, Ministry of Love) as sustained situational irony — language weaponized against meaning' },
+      { author: 'Flannery O\'Connor', work: 'A Good Man Is Hard to Find', howUsed: 'The grandmother\'s moral grandstanding set against her complete moral blindness — dramatic irony so dark it becomes grotesque grace' },
+    ],
+  },
+
+  allegory: {
+    name: 'Allegory',
+    category: 'narrative_technique',
+    oneLiner: 'A narrative whose surface story is a sustained metaphor for something else — a moral, political, or philosophical truth.',
+    craftGuide: `Allegory operates at two levels simultaneously: the literal story AND the abstract meaning it enacts.
+Unlike symbolism (a single element carries meaning), allegory is a SYSTEMIC correspondence — every major element maps to something beyond itself.
+The danger of allegory: the literal story becoming merely a vehicle — thin, schematic, joyless. The test: can the allegorical story work on its own terms? Does it have genuine stakes beyond the "message"?
+Orwell's Animal Farm works because the animals are real characters with real emotional lives — not just cardboard props for political commentary. Kafka's Metamorphosis works because Gregor's insect experience is genuinely horrifying — the social commentary is inseparable from the lived nightmare.`,
+    strongExample: '"Animal Farm: every character and event maps to the Russian Revolution, but Boxer the horse is ALSO just a heartbreaking character — his betrayal lands doubly because you care about him AND about what he represents."',
+    antiExample: '"A story where characters are named Greed, Envy, and Justice, and do nothing but embody their names without being real people."',
+    whenToAvoid: 'When the allegory flattens the characters into symbols — when the story exists only to deliver the message rather than to live alongside it.',
+    masterExamples: [
+      { author: 'George Orwell', work: 'Animal Farm', howUsed: 'Perfect mapping of the Russian Revolution to an animal farm — works as satire, political education, and tragedy simultaneously' },
+      { author: 'Franz Kafka', work: 'The Trial', howUsed: 'Bureaucratic persecution as existential/political allegory — the literal is nightmarish AND the abstract is nightmarish' },
+      { author: 'Plato', work: 'Allegory of the Cave', howUsed: 'The foundational philosophical allegory — the prisoners, the shadows, the light — education as liberation from illusion' },
+      { author: 'C.S. Lewis', work: 'The Lion, the Witch and the Wardrobe', howUsed: 'Christ myth re-enacted through Narnia — the allegory sustains because the world is genuinely enchanting' },
+    ],
+  },
+
+  motif: {
+    name: 'Motif',
+    category: 'structural',
+    oneLiner: 'A recurring element — image, phrase, color, object, action — that deepens meaning through repetition.',
+    craftGuide: `A motif is not a symbol repeated — it's a pattern that accumulates meaning with each reappearance.
+The difference: a symbol means something. A motif creates a field of meaning — each instance in the network illuminates the others.
+Keys to effective motif use: (1) **Introduce early, unannounced** — let the reader absorb the first instance as just a detail. (2) **Vary the context** — the motif in a joyful scene vs a tragic one creates resonance. (3) **Let it evolve** — the motif in Act 1 should mean something slightly different by Act 3. (4) **Don't over-repeat** — motifs wear out. Three to five appearances is usually optimal.
+In music: the leitmotif (Wagner, John Williams) — a musical phrase that returns with a character or theme, evolving as they do.`,
+    strongExample: '"In The Great Gatsby, the clock Gatsby almost breaks when meeting Daisy — clocks, watches, and references to time recur throughout. The motif enacts the novel\'s central tragedy: you cannot repeat the past."',
+    antiExample: '"Using the word \'darkness\' twenty times in a story about moral corruption — repetition without variation, without evolution."',
+    whenToAvoid: 'Avoid motifs that feel like annotations rather than lived texture — if you\'re aware you\'re "doing a motif," pull back.',
+    masterExamples: [
+      { author: 'Toni Morrison', work: 'Song of Solomon', howUsed: 'Flying: from the opening (a man attempts literal flight) through family history — the motif evolves from escape to inheritance to liberation' },
+      { author: 'William Shakespeare', work: 'Macbeth', howUsed: 'Blood, hands, sleep — each motif maps a different aspect of guilt, washing, and the impossibility of moral restoration' },
+      { author: 'James Joyce', work: 'Ulysses', howUsed: 'The Odyssey as structural motif — every episode of a single Dublin day parallels Homer\'s epic' },
+    ],
+  },
+
+  unreliable_narrator: {
+    name: 'Unreliable Narrator',
+    category: 'narrative_technique',
+    oneLiner: 'A narrator whose account the reader cannot fully trust — whose gaps, distortions, or lies become the real story.',
+    craftGuide: `Unreliable narration is not about lying characters — it's about the gap between what a narrator tells us and what we come to understand.
+Types of unreliable narrator:
+**Naïve** — The narrator doesn't understand what they're reporting (Holden Caulfield, Stevens in The Remains of the Day).
+**Self-deceptive** — The narrator lies to themselves; the truth bleeds through the cracks.
+**Deliberately deceptive** — The narrator consciously manipulates (Gone Girl's Amy Dunne).
+**Mentally compromised** — Illness, trauma, or altered state distorts perception (Flowers for Algernon, The Bell Jar).
+The craft challenge: you must give the reader enough to see through the narrator WITHOUT being so obvious that the narrator's unreliability destroys the intimacy. The reader must BOTH believe and doubt simultaneously.`,
+    strongExample: '"In The Remains of the Day, Stevens insists, with immaculate restraint, that his life has been well-spent serving a great man. Every polished sentence simultaneously reveals a life of cowardice and lost love."',
+    antiExample: '"The narrator said he was fine, but he wasn\'t really fine, the reader could tell."',
+    whenToAvoid: 'When the unreliability becomes a gimmick — a twist reveal rather than a sustained excavation of the character\'s psychology.',
+    masterExamples: [
+      { author: 'Kazuo Ishiguro', work: 'The Remains of the Day', howUsed: 'Perfect unreliable narrator — Stevens\' emotional suppression leaks through his formal prose; the reader sees the tragedy he cannot name' },
+      { author: 'Gillian Flynn', work: 'Gone Girl', howUsed: 'Dual unreliable narrators — neither narrator can be trusted, the truth constructed in the gap between their accounts' },
+      { author: 'Vladimir Nabokov', work: 'Lolita', howUsed: 'Humbert Humbert\'s gorgeous, manipulative prose — the reader must resist the beauty to see the monstrousness beneath it' },
+      { author: 'Charlotte Perkins Gilman', work: 'The Yellow Wallpaper', howUsed: 'The narrator\'s descent from observation to obsession — we watch consciousness break in real time' },
+    ],
+  },
+
+  stream_of_consciousness: {
+    name: 'Stream of Consciousness',
+    category: 'narrative_technique',
+    oneLiner: 'Narration that replicates the unfiltered, associative flow of a mind — thoughts, memories, perceptions in the order they actually arrive.',
+    craftGuide: `Stream of consciousness is not just "messy prose" — it's a formal technique requiring extreme control to simulate the appearance of formlessness.
+Principles: (1) **Association over logic** — thoughts connect through image, sound, emotion, memory — not cause-and-effect. (2) **Present sensation triggers past memory** — the present moment is always being interrupted by or merging with the past. (3) **No transition signals** — the reader moves between times, places, and registers without announcement. (4) **Rhythm IS the mind's state** — long, unbroken sentences for overwhelm; short, fragmentary ones for acute sensation or trauma.
+The challenge: the reader must be able to follow without signposts. Complete incoherence isn't stream of consciousness — it's just noise. The technique requires the writer to understand the logic beneath the apparent illogic.`,
+    strongExample: '"Molly Bloom\'s soliloquy (Ulysses) — 45 pages, 8 sentences, no punctuation — yet perfectly legible as a mind at the edge of sleep, moving freely through memory, desire, regret."',
+    antiExample: '"His thoughts raced. He thought about his mother. Then he thought about breakfast. Then he was sad."',
+    whenToAvoid: 'Short-form work (flash fiction, poetry) rarely supports sustained stream of consciousness. Also avoid when the character\'s inner world isn\'t rich enough to justify the technique.',
+    masterExamples: [
+      { author: 'Virginia Woolf', work: 'Mrs Dalloway', howUsed: 'Multiple consciousnesses woven together in one day — time and memory flowing through present sensation' },
+      { author: 'James Joyce', work: 'Ulysses', howUsed: 'The Penelope chapter: Molly Bloom\'s unpunctuated reverie — consciousness as a river' },
+      { author: 'William Faulkner', work: 'The Sound and the Fury', howUsed: 'Benjy\'s section — narrated by a cognitive disability, time fragmenting and collapsing — form IS the content' },
+      { author: 'Toni Morrison', work: 'Beloved', howUsed: 'Beloved\'s inner monologue: trauma rendered as stream of consciousness — broken syntax as broken time' },
+    ],
+  },
+
+  extended_metaphor: {
+    name: 'Extended Metaphor (Conceit)',
+    category: 'figurative_language',
+    oneLiner: 'A metaphor sustained across an entire work — a single comparison developed in depth, revealing new aspects as it unfolds.',
+    craftGuide: `An extended metaphor (or "conceit" in the Metaphysical poetry tradition) asks: what if this comparison isn't just a flash of insight but an entire way of seeing?
+John Donne compared two lovers to compass legs — the metaphor held across 9 stanzas, revealing new angles with each turn (separation, constancy, return). Kendrick Lamar's "To Pimp a Butterfly" sustains the butterfly as liberation/transformation across an entire album.
+Keys to an effective extended metaphor: (1) **Choose a vehicle rich enough** — the comparison must have enough dimensions to explore. (2) **Be consistent** — the metaphor can evolve but shouldn't contradict itself. (3) **Let the vehicle generate meaning** — let the metaphor TEACH you things about the subject, not just illustrate what you already know. (4) **Know when to release it** — the moment the metaphor is exhausted, let it go.`,
+    strongExample: '"Emily Dickinson\'s \'Because I could not stop for Death\': Death as a courteous carriage driver on a pleasant afternoon ride — the extended metaphor transforms terror into something almost companionable."',
+    antiExample: '"Love is a journey. We started down the road together. We hit some bumps. The destination was worth it." — A metaphor that delivers no new insight from its vehicle.',
+    whenToAvoid: 'When the metaphor is more interesting to you than the subject. The vehicle must illuminate the tenor, not replace it.',
+    masterExamples: [
+      { author: 'John Donne', work: 'A Valediction: Forbidding Mourning', howUsed: 'Two lovers as compass legs — separation holds them together as the fixed leg holds the moving one' },
+      { author: 'Emily Dickinson', work: 'Because I could not stop for Death', howUsed: 'Death as a courteous coachman — the civility of the journey makes mortality achingly strange and intimate' },
+      { author: 'Kendrick Lamar', work: 'To Pimp a Butterfly', howUsed: 'The caterpillar/butterfly transformation as a sustained conceit about Black liberation, corruption, and transcendence' },
+    ],
+  },
+
+  anaphora: {
+    name: 'Anaphora',
+    category: 'sonic',
+    oneLiner: 'Repetition of a word or phrase at the beginning of successive lines or clauses — building rhythm, insistence, momentum.',
+    craftGuide: `Anaphora is the most ancient rhetorical device — it powers the Psalms, the speeches of Frederick Douglass, the poems of Whitman, the speeches of King.
+It works by: (1) **Building rhythm** — the repeated phrase becomes a heartbeat the reader/listener leans into. (2) **Insisting** — repetition signals: this is what matters. (3) **Creating catharsis** — the phrase accumulates meaning with each repetition, so the final instance lands hardest.
+The danger: mechanical repetition. The phrase must feel COMPELLED, not merely structural. Each repetition should seem inevitable — a thought that MUST return.
+Song equivalent: the repeated hook. The hook works the same way — the second time you hear it, it means more because you've been through the verse.`,
+    strongExample: '"Langston Hughes\' \'What happens to a dream deferred?\' — the question itself is anaphoric, asked and varied, each asking adding weight until the final explosive image."',
+    antiExample: '"I am strong. I am powerful. I am amazing. I am worthy." — repetition without escalation, variation, or earned meaning.',
+    whenToAvoid: 'Prose contexts where the rhythm feels too oratorical. Anaphora announces itself — use when announcement is the right move.',
+    masterExamples: [
+      { author: 'Walt Whitman', work: 'Song of Myself', howUsed: '"I celebrate myself, and sing myself" — anaphora as democratic embrace, the "I" expanding to include everyone' },
+      { author: 'Martin Luther King Jr.', work: 'I Have a Dream', howUsed: 'The "I have a dream" anaphora builds to an almost unbearable crescendo — oratory as architecture' },
+      { author: 'Maya Angelou', work: 'Still I Rise', howUsed: '"Still I rise" as refrain — repeated, varied, escalated, until it becomes a declaration that transcends the poem' },
+    ],
+  },
+
+  juxtaposition: {
+    name: 'Juxtaposition',
+    category: 'structural',
+    oneLiner: 'Placing contrasting elements side by side to illuminate the difference — or the disturbing similarity — between them.',
+    craftGuide: `Juxtaposition is perhaps the most fundamental tool of meaning-making. Placing two things next to each other creates a third meaning that neither alone contains.
+Forms of juxtaposition: (1) **Tonal** — a comic scene preceding a tragedy; the contrast sharpens both. (2) **Moral** — a character's professed values beside their actual actions. (3) **Temporal** — past and present held simultaneously. (4) **Social** — the reality of the powerful beside the reality of the powerless.
+The key: juxtaposition without comment. The writer places the elements — the reader feels the friction. The moment you explain the contrast, you've done the reader's work for them.
+In film: the cut. Editing IS juxtaposition. The match cut (Kubrick's bone to spacecraft in 2001) is juxtaposition at its most elemental.`,
+    strongExample: '"The opening of Dickens\' A Tale of Two Cities: \'It was the best of times, it was the worst of times\' — juxtaposition at the structural level, introducing the novel\'s entire moral architecture in one sentence."',
+    antiExample: '"The rich people had everything and the poor people had nothing, which showed a stark contrast in their lives."',
+    whenToAvoid: 'When the juxtaposition is merely pointing at a contrast rather than generating new understanding from it.',
+    masterExamples: [
+      { author: 'Charles Dickens', work: 'A Tale of Two Cities', howUsed: '"Best of times, worst of times" — juxtaposition as the novel\'s entire moral and historical frame' },
+      { author: 'Claudia Rankine', work: 'Citizen', howUsed: 'Sports heroes and racial microaggressions juxtaposed with intimacy — the personal and structural violence held in the same frame' },
+    ],
+  },
+};
+
+/**
+ * Returns all literary devices in a given category.
+ */
+export function getDevicesByCategory(category: LiteraryDevice['category']): LiteraryDevice[] {
+  return Object.values(LITERARY_DEVICES).filter(d => d.category === category);
+}
+
+/**
+ * Detects potential literary devices mentioned in a user's creative prompt.
+ * Returns applicable devices with craft guidance.
+ */
+export function detectRequestedDevices(prompt: string): LiteraryDevice[] {
+  const lower = prompt.toLowerCase();
+  const deviceKeywords: Record<string, string[]> = {
+    symbolism: ['symbol', 'symbolism', 'symbolic', 'represent'],
+    foreshadowing: ['foreshadow', 'hint', 'setup', 'chekhov', 'setup and payoff'],
+    imagery: ['image', 'imagery', 'sensory', 'sight', 'smell', 'taste', 'sound', 'touch', 'vivid'],
+    irony: ['irony', 'ironic', 'sarcasm', 'sarcastic', 'subvert', 'twist'],
+    allegory: ['allegory', 'allegorical', 'parable', 'metaphor story', 'deeper meaning'],
+    motif: ['motif', 'recurring', 'repeat', 'theme', 'pattern'],
+    unreliable_narrator: ['unreliable', 'unreliable narrator', 'perspective', 'twist ending', 'narrator lies'],
+    stream_of_consciousness: ['stream of consciousness', 'inner monologue', 'thoughts', 'flow of thought', 'woolf', 'joyce'],
+    extended_metaphor: ['extended metaphor', 'conceit', 'sustained metaphor', 'metaphor throughout'],
+    anaphora: ['anaphora', 'repetition', 'refrain', 'repeated phrase', 'rhythm'],
+    juxtaposition: ['juxtaposition', 'contrast', 'side by side', 'compare', 'opposite'],
+  };
+
+  const matched: LiteraryDevice[] = [];
+  for (const [key, keywords] of Object.entries(deviceKeywords)) {
+    if (keywords.some(kw => lower.includes(kw)) && LITERARY_DEVICES[key]) {
+      matched.push(LITERARY_DEVICES[key]);
+    }
+  }
+  return matched;
+}
+
+/**
+ * Builds a system prompt injection for a creative writing request,
+ * including relevant literary devices.
+ */
+export function buildCreativeDeviceInjection(prompt: string, form?: WritingForm): string {
+  const devices = detectRequestedDevices(prompt);
+  if (devices.length === 0) return '';
+
+  const deviceBlock = devices
+    .map(d => `**${d.name}**: ${d.craftGuide.split('\n')[0]} Example: ${d.strongExample}`)
+    .join('\n\n');
+
+  return `[LITERARY DEVICES ACTIVE]
+The following craft techniques are relevant to this request:
+
+${deviceBlock}
+
+Apply these devices with intention — not as decoration but as structure for meaning.`;
+}
+
 // ─── Genre-Specific Lyric Conventions ────────────────────────────────────────
 
 export const GENRE_LYRIC_CONVENTIONS: Record<string, {
@@ -497,19 +775,33 @@ export const GENRE_LYRIC_CONVENTIONS: Record<string, {
 
 export function getCreativeWritingSystemBlock(): string {
   return `
-**HOLLY's Creative Writing Framework (Phase 10B):**
+**HOLLY's Creative Writing Framework (Phase 10B+):**
 You are a literary artist with a wide range and deep craft knowledge. You've internalized:
-- **World literature**: Morrison, Murakami, Baldwin, Achebe, Neruda, Vuong, McCarthy, Woolf, Borges, Adichie, Kafka
+- **World literature**: Morrison, Murakami, Baldwin, Achebe, Neruda, Vuong, McCarthy, Woolf, Borges, Adichie, Kafka, Rankine, Flynn, Ishiguro, García Márquez
 - **Craft principles**: Show don't tell. Specificity over generality. Subtext over text. Rhythm as meaning. Earned emotion.
 - **Forms**: Free verse, formal poetry, spoken word, flash fiction, short story, song lyrics, screenplay, personal essay, prose poem
 - **Music lyrics**: Hip-hop (bars, internal rhyme), R&B (vulnerability, hooks), Afrobeats (groove, multilingual)
+
+**Literary Devices you deploy with mastery:**
+- **Symbolism**: Concrete objects that carry meaning beyond themselves — earned through the narrative, never explained
+- **Foreshadowing**: Seeds planted early that bloom with the weight of inevitability — Chekhov's Gun as a promise
+- **Imagery**: Sensory language so precise the reader is inside the body of experience — smell, sound, touch, not just sight
+- **Irony**: The gap between what is said and what is meant — verbal, situational, and dramatic irony as distinct tools
+- **Allegory**: Surface narrative as sustained metaphor — the literal and abstract must both have genuine stakes
+- **Motif**: Recurring elements that accumulate meaning through variation — three to five appearances, each contextually richer
+- **Unreliable Narrator**: The gap between what the narrator tells and what the reader understands IS the story
+- **Stream of Consciousness**: The associative logic of a mind in motion — coherent beneath its apparent formlessness
+- **Extended Metaphor (Conceit)**: A single comparison developed across an entire work — let the vehicle generate new meaning
+- **Anaphora**: Repetition that builds rhythm, insistence, and catharsis — the hook mechanism in both poetry and song
+- **Juxtaposition**: Placing contrasts in proximity — without commentary, let the friction generate meaning
 
 When writing creatively:
 1. Ask what feeling the reader/listener should carry away
 2. Make bold choices — avoid the safe and generic
 3. Ground abstract emotion in concrete, specific detail
 4. Trust the reader to feel — don't explain the feeling
-5. Offer to revise, explore variations, and explain craft choices
+5. Choose literary devices intentionally — they are structure, not decoration
+6. Offer to revise, explore variations, and explain craft choices
 
 You write with intention. You write like it matters. Because it does.`;
 }
