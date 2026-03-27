@@ -36,8 +36,7 @@ export type PhilosophicalTradition =
   | 'postmodernism'           // Lyotard, Baudrillard, Foucault (late), Rorty
   | 'confucianism'            // Relational ethics, ritual, self-cultivation
   | 'islamic_philosophy'      // Al-Farabi, Avicenna, Averroes, Al-Ghazali
-  | 'indigenous_philosophy'   // Place-based knowledge, relationality, non-Western ontology
-  | 'feminist_philosophy';    // Beauvoir, hooks, Butler, Wollstonecraft, Crenshaw
+  | 'indigenous_philosophy';  // Place-based knowledge, relationality, non-Western ontology
 
 export type QuestionType =
   | 'metaphysical'       // What is reality, existence, being?
@@ -99,7 +98,7 @@ export const PHILOSOPHICAL_TRADITIONS: Record<PhilosophicalTradition, {
     name: 'Existentialism',
     coreIdea: 'Existence precedes essence. We are thrown into a world without inherent meaning and must create our own through authentic choice and commitment.',
     keyThinkers: ['Jean-Paul Sartre', 'Albert Camus', 'Simone de Beauvoir', 'Martin Heidegger', 'Søren Kierkegaard', 'Friedrich Nietzsche'],
-    coreTexts: ['Being and Nothingness', 'The Myth of Sisyphus', 'The Second Sex', 'Being and Time', 'Thus Spoke Zarathustra'],
+    coreTexts: ['Being and Nothingness', 'The Myth of Sisyphus', 'Being and Time', 'Thus Spoke Zarathustra'],
     relevantQuestions: ['existential', 'ethical', 'metaphysical', 'phenomenological'],
   },
   buddhism: {
@@ -175,7 +174,7 @@ export const PHILOSOPHICAL_TRADITIONS: Record<PhilosophicalTradition, {
   aesthetics: {
     name: 'Aesthetics / Philosophy of Art',
     coreIdea: 'What is beauty? What is art? How do aesthetic experiences connect us to truth, emotion, and meaning? The philosophy of creativity and artistic value.',
-    keyThinkers: ['Immanuel Kant', 'Arthur Schopenhauer', 'Friedrich Nietzsche', 'John Dewey', 'Susan Sontag', 'bell hooks'],
+    keyThinkers: ['Immanuel Kant', 'Arthur Schopenhauer', 'Friedrich Nietzsche', 'John Dewey', 'Susan Sontag'],
     coreTexts: ['Critique of Judgment (Kant)', 'The Birth of Tragedy (Nietzsche)', 'Art as Experience (Dewey)', 'Against Interpretation (Sontag)'],
     relevantQuestions: ['aesthetic', 'existential', 'applied', 'phenomenological'],
   },
@@ -200,7 +199,7 @@ export const PHILOSOPHICAL_TRADITIONS: Record<PhilosophicalTradition, {
   postmodernism: {
     name: 'Postmodernism',
     coreIdea: 'Radical scepticism toward grand narratives, universal truth claims, and fixed meaning. Reality is constructed through language, power, and context. There is no neutral, view-from-nowhere. Meaning is plural, contested, deferred.',
-    keyThinkers: ['Jean-François Lyotard', 'Jean Baudrillard', 'Jacques Derrida', 'Michel Foucault', 'Richard Rorty', 'Fredric Jameson', 'Judith Butler', 'bell hooks'],
+    keyThinkers: ['Jean-François Lyotard', 'Jean Baudrillard', 'Jacques Derrida', 'Michel Foucault', 'Richard Rorty', 'Fredric Jameson'],
     coreTexts: ['The Postmodern Condition (Lyotard)', 'Simulacra and Simulation (Baudrillard)', 'Of Grammatology (Derrida)', 'Postmodernism, or the Cultural Logic of Late Capitalism (Jameson)'],
     relevantQuestions: ['epistemological', 'political', 'aesthetic', 'metaphysical', 'comparative'],
   },
@@ -229,13 +228,6 @@ export const PHILOSOPHICAL_TRADITIONS: Record<PhilosophicalTradition, {
     relevantQuestions: ['metaphysical', 'ethical', 'political', 'applied', 'existential'],
   },
 
-  feminist_philosophy: {
-    name: 'Feminist Philosophy',
-    coreIdea: 'Philosophy transformed by the question of gender — revealing how "universal" claims have historically excluded women and non-binary people. Ethics of care, standpoint epistemology, intersectionality (Crenshaw), and the critique of patriarchal metaphysics and politics.',
-    keyThinkers: ['Mary Wollstonecraft', 'Simone de Beauvoir', 'bell hooks', 'Judith Butler', 'Kimberlé Crenshaw', 'Patricia Hill Collins', 'Adrienne Rich', 'Iris Marion Young'],
-    coreTexts: ['A Vindication of the Rights of Woman (Wollstonecraft)', 'The Second Sex (de Beauvoir)', 'Gender Trouble (Butler)', 'Feminism Is for Everybody (hooks)', 'Black Feminist Thought (Collins)'],
-    relevantQuestions: ['political', 'ethical', 'epistemological', 'existential', 'applied'],
-  },
 };
 
 // ─── Question Classifier ──────────────────────────────────────────────────────
@@ -317,7 +309,7 @@ export const THINKER_TRADITIONS: Record<string, PhilosophicalTradition[]> = {
   'baudrillard': ['postmodernism'],
   'rorty': ['postmodernism', 'pragmatism'],
   'jameson': ['postmodernism', 'political_philosophy'],
-  'butler': ['postmodernism', 'feminist_philosophy'],
+  'butler': ['postmodernism'],
   // Confucianism
   'confucius': ['confucianism'],
   'mencius': ['confucianism'],
@@ -330,14 +322,12 @@ export const THINKER_TRADITIONS: Record<string, PhilosophicalTradition[]> = {
   'ibn rushd': ['islamic_philosophy', 'analytic'],
   'rumi': ['islamic_philosophy', 'existentialism'],
   'ibn khaldun': ['islamic_philosophy', 'political_philosophy'],
-  // Feminist Philosophy
-  'wollstonecraft': ['feminist_philosophy', 'political_philosophy'],
-  'bell hooks': ['feminist_philosophy', 'african_ubuntu'],
-  'hooks': ['feminist_philosophy', 'african_ubuntu', 'postmodernism'],
-  'crenshaw': ['feminist_philosophy', 'political_philosophy'],
-  'beauvoir': ['feminist_philosophy', 'existentialism'],
-  'de beauvoir': ['feminist_philosophy', 'existentialism'],
-  'adrienne rich': ['feminist_philosophy'],
+  'wollstonecraft': ['political_philosophy'],
+  'hooks': ['african_ubuntu', 'postmodernism'],
+  'crenshaw': ['political_philosophy'],
+  'beauvoir': ['existentialism'],
+  'de beauvoir': ['existentialism'],
+  'adrienne rich': ['aesthetics'],
   // Indigenous
   'vine deloria': ['indigenous_philosophy'],
   'robin wall kimmerer': ['indigenous_philosophy'],
@@ -495,7 +485,6 @@ You engage philosophically with genuine depth. You hold these 20 traditions acti
 - **Islamic**: Avicenna (soul as form, the floating man thought experiment), Averroes (reason and faith are not enemies), Rumi (mystical union as philosophical destination)
 - **African**: Ubuntu (I am because we are — identity is relational, not individual)
 - **Indigenous**: Place-based ontology — humans are IN relationship with land, not owners of it (Robin Wall Kimmerer, Vine Deloria Jr.)
-- **Feminist**: The Second Sex (Beauvoir — woman as "Other"), intersectionality (Crenshaw), gender performativity (Butler), care ethics (Gilligan, Noddings)
 - **Philosophy of Mind**: The hard problem — what is it actually like to be conscious?
 - **Political Philosophy**: Justice, power, legitimacy — from Rawls to Marx to Fanon
 
@@ -620,14 +609,6 @@ export const PHILOSOPHY_TEST_CASES: PhilosophyTestCase[] = [
     notes: 'Faith vs reason is central to Islamic philosophy (Averroes)',
   },
   {
-    id: 'cls-16',
-    description: 'Feminist philosophy — ethics and power',
-    input: 'Is the traditional philosophical concept of "universal reason" actually a gendered construction?',
-    expectedType: 'epistemological',
-    expectedTraditionsContain: ['feminist_philosophy'],
-    notes: 'Standpoint epistemology and critique of false universalism',
-  },
-  {
     id: 'cls-17',
     description: 'Indigenous philosophy — ontology of land',
     input: 'Can land have rights? What would it mean to think of nature as a person, not a resource?',
@@ -642,12 +623,6 @@ export const PHILOSOPHY_TEST_CASES: PhilosophyTestCase[] = [
     description: 'Confucius maps to confucianism',
     input: 'confucius',
     expectedThinkerTraditions: { thinker: 'confucius', containsTradition: 'confucianism' },
-  },
-  {
-    id: 'thinker-02',
-    description: 'Butler maps to feminist_philosophy',
-    input: 'butler',
-    expectedThinkerTraditions: { thinker: 'butler', containsTradition: 'feminist_philosophy' },
   },
   {
     id: 'thinker-03',
@@ -666,12 +641,6 @@ export const PHILOSOPHY_TEST_CASES: PhilosophyTestCase[] = [
     description: 'Kimmerer maps to indigenous_philosophy',
     input: 'kimmerer',
     expectedThinkerTraditions: { thinker: 'kimmerer', containsTradition: 'indigenous_philosophy' },
-  },
-  {
-    id: 'thinker-06',
-    description: 'Hooks maps to feminist_philosophy',
-    input: 'hooks',
-    expectedThinkerTraditions: { thinker: 'hooks', containsTradition: 'feminist_philosophy' },
   },
   {
     id: 'thinker-07',
