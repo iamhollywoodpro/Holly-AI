@@ -48,6 +48,13 @@ import { semanticSearch, rememberExchange } from '@/lib/memory/semantic-memory';
 import { injectProjectContext, addNote, detectRelevantProject } from '@/lib/project-context/holly-projects';
 import { collectFromConversation } from '@/lib/self-sovereign/training-pipeline';
 
+// ─── Phase 10 module imports ──────────────────────────────────────────────────
+import { getPhilosophySystemBlock, buildPhilosophyPromptInjection } from '@/lib/philosophy/philosophy-engine';
+import { getCreativeWritingSystemBlock } from '@/lib/creative-writing/creative-engine';
+import { getVisualArtsSystemBlock } from '@/lib/visual-arts/visual-engine';
+import { getEmotionalIntelligenceSystemBlock, detectCrisis, CRISIS_RESPONSE } from '@/lib/advanced-emotional/emotional-framework';
+import { getAdvancedNLPSystemBlock, detectIntent } from '@/lib/advanced-nlp/nlp-framework';
+
 // ─── Phase 9B-AR: A&R engine ──────────────────────────────────────────────────
 import { runARAnalysis, isARRequest, getARModeFromMessage } from '@/lib/ar/holly-ar-engine';
 
@@ -293,6 +300,49 @@ hook. Reference specific technical details from the analysis. Don't hedge — gi
         .join('\n');
       hollySystemPrompt += `\n\n## Your Active Tools (${mcpTools.length} tools)\nUse these proactively:\n${toolSummary}`;
       console.log(`[Chat API] 🔧 ${mcpTools.length} MCP tools loaded`);
+    }
+
+    // Phase 10: MODE-SPECIFIC FRAMEWORK INJECTION ─────────────────────────────
+    if (detectedMode === 'philosophy') {
+      hollySystemPrompt += `\n\n${getPhilosophySystemBlock()}`;
+      // If there's a clear philosophical question in the message, build a tailored injection
+      if (latestUserMessage.length > 10) {
+        const philoInjection = buildPhilosophyPromptInjection(latestUserMessage, undefined, 'deep');
+        hollySystemPrompt += `\n\n${philoInjection}`;
+      }
+      console.log('[Chat API] 🏛️ Philosophy framework injected');
+    }
+
+    if (detectedMode === 'creative-writing') {
+      hollySystemPrompt += `\n\n${getCreativeWritingSystemBlock()}`;
+      console.log('[Chat API] ✍️ Creative writing framework injected');
+    }
+
+    if (detectedMode === 'visual-arts') {
+      hollySystemPrompt += `\n\n${getVisualArtsSystemBlock()}`;
+      console.log('[Chat API] 🎨 Visual arts framework injected');
+    }
+
+    if (detectedMode === 'emotional-intelligence') {
+      hollySystemPrompt += `\n\n${getEmotionalIntelligenceSystemBlock()}`;
+      // Crisis detection — flag in prompt if detected
+      if (detectCrisis(latestUserMessage)) {
+        hollySystemPrompt += `\n\n🚨 CRISIS DETECTED in user message. Follow CRISIS PROTOCOL immediately:\n1. ${CRISIS_RESPONSE.acknowledgment}\n2. ${CRISIS_RESPONSE.seriousness}\n3. Provide resources: ${CRISIS_RESPONSE.resources.join(' | ')}\n4. ${CRISIS_RESPONSE.presence}`;
+        console.log('[Chat API] 🚨 CRISIS PROTOCOL activated');
+      }
+      console.log('[Chat API] 💜 Emotional intelligence framework injected');
+    }
+
+    if (detectedMode === 'music-studio' || detectedMode === 'music-generation') {
+      hollySystemPrompt += `\n\n${getCreativeWritingSystemBlock().split('**Forms:**')[0]}`;
+      console.log('[Chat API] 🎵 Music lyric writing framework injected');
+    }
+
+    // For all modes: inject NLP awareness (subtext, register, intent)
+    const detectedUserIntent = detectIntent(latestUserMessage);
+    if (['emotional_processing', 'venting', 'philosophical_exploration', 'creative_collaboration'].includes(detectedUserIntent)) {
+      hollySystemPrompt += `\n\n${getAdvancedNLPSystemBlock()}`;
+      console.log(`[Chat API] 🧠 NLP framework injected — intent: ${detectedUserIntent}`);
     }
 
     // Phase 9: SELF-AWARENESS BLOCK

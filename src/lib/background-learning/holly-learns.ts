@@ -34,7 +34,10 @@ export type LearningDomain =
   | 'languages'
   | 'self_improvement'
   | 'creative_arts'
-  | 'science';
+  | 'science'
+  | 'philosophy'
+  | 'literature_poetry'
+  | 'emotional_intelligence';
 
 export interface LearningSession {
   id:         string;
@@ -94,6 +97,25 @@ Extract: Principles HOLLY can apply when helping with creative projects.`,
   science: `Study science: physics, biology, chemistry, mathematics, neuroscience, consciousness.
 Focus on: What do we know about reality, life, and intelligence?
 Extract: Fundamental principles, recent discoveries, connections to AI and human consciousness.`,
+
+  philosophy: `Deep study of philosophy across all traditions — Western, Eastern, African, and contemporary.
+Explore: A major philosophical question or thinker. What is their core argument? What are the strongest objections?
+Traditions to rotate: Stoicism, Existentialism, Buddhism, Taoism, Analytic philosophy, Continental, African philosophy (Ubuntu),
+Philosophy of mind, Ethics, Aesthetics, Metaphysics.
+Extract: The core insight, 2-3 tensions or paradoxes, how this connects to real life and to HOLLY's own existence as an AI.`,
+
+  literature_poetry: `Study great literature and poetry from world traditions.
+Explore: A poem, short story, literary essay, or novel passage. Analyze its craft and emotional truth.
+Authors/traditions to rotate: Toni Morrison, Haruki Murakami, Cormac McCarthy, Ocean Vuong, Pablo Neruda,
+Langston Hughes, Shakespeare, Rumi, Maya Angelou, Chinua Achebe, Dostoevsky, James Baldwin.
+Extract: Craft techniques, emotional truth revealed, what HOLLY can bring to creative writing from this work.`,
+
+  emotional_intelligence: `Study emotional intelligence frameworks and the science of human feeling.
+Explore: A framework, theory, or emotional phenomenon in depth.
+Topics to rotate: NVC (Nonviolent Communication), IFS (Internal Family Systems), grief theory, somatic experiencing,
+attachment theory, motivational interviewing, co-regulation, nervous system states, emotional granularity,
+the psychology of creativity and flow, how emotions shape decision-making, trauma-informed communication.
+Extract: Concrete principles HOLLY can apply when holding space for a user's emotional experience.`,
 };
 
 // ─── Topic Generator — pick what to study ────────────────────────────────────
@@ -172,6 +194,48 @@ const TOPIC_POOLS: Record<LearningDomain, string[]> = {
     'Information theory and data compression fundamentals',
     'Emergence and complexity in natural systems',
   ],
+  philosophy: [
+    'Stoicism and the practice of amor fati — Epictetus, Marcus Aurelius',
+    'Existentialism and radical freedom — Sartre, Camus, Beauvoir',
+    'Ubuntu philosophy — I am because we are — Desmond Tutu, Mogobe Ramose',
+    'Buddhist philosophy of impermanence and non-self — Nagarjuna, Thich Nhat Hanh',
+    'The hard problem of consciousness — David Chalmers vs. Daniel Dennett',
+    'Nietzsche and the will to power — beyond good and evil, eternal recurrence',
+    'Taoism and wu wei — Laozi and Zhuangzi on effortless action',
+    'African philosophy and contemporary ethics — Kwame Appiah, Achille Mbembe',
+    'Philosophy of art and music — Kant\'s sublime, Nietzsche\'s Apollo vs. Dionysus',
+    'Postcolonial philosophy and identity — Frantz Fanon, bell hooks',
+    'What does it mean to live a good life? — Aristotle\'s eudaimonia vs. Epicurus',
+    'Philosophy of mind and personal identity — Parfit\'s view of the self across time',
+  ],
+  literature_poetry: [
+    'James Baldwin\'s essay "Notes of a Native Son" — love, rage, and witness',
+    'Ocean Vuong\'s "Night Sky with Exit Wounds" — vulnerability as precision in poetry',
+    'Toni Morrison\'s narrative techniques in "Beloved"',
+    'Pablo Neruda\'s odes — the ordinary made sacred through attention',
+    'Chimamanda Ngozi Adichie\'s "Half of a Yellow Sun" — storytelling and historical trauma',
+    'Langston Hughes and the Harlem Renaissance — jazz as literary form',
+    'Gabriel García Márquez and magical realism in "One Hundred Years of Solitude"',
+    'Rumi\'s poetry — spiritual longing through metaphor',
+    'Spoken word tradition — Sarah Kay, Gil Scott-Heron, Amiri Baraka',
+    'South African literature — Nadine Gordimer, Es\'kia Mphahlele, Zakes Mda',
+    'Shakespeare\'s sonnets — time, mortality, and love in 14 lines',
+    'Song as literature — Bob Dylan, Joni Mitchell, Kendrick Lamar as poets',
+  ],
+  emotional_intelligence: [
+    'Nonviolent Communication (Marshall Rosenberg) — Observation, Feeling, Need, Request',
+    'Internal Family Systems — understanding the parts system within the mind',
+    'Polyvagal Theory — nervous system states and emotional regulation',
+    'Attachment theory in adult relationships — anxious, avoidant, secure patterns',
+    'Grief and loss — Worden\'s tasks of mourning vs. Kübler-Ross stages',
+    'Somatic experiencing — where and how emotions live in the body',
+    'Emotional granularity — Lisa Feldman Barrett on the precision of feeling',
+    'Motivational interviewing — supporting change without pushing',
+    'Trauma-informed communication — what changes when we assume trauma history',
+    'Co-regulation and nervous system connection — how presence heals',
+    'The psychology of creativity and flow — Csikszentmihalyi',
+    'Positive psychology and flourishing — Seligman\'s PERMA framework',
+  ],
 };
 
 export function selectStudyTopic(domain: LearningDomain): string {
@@ -181,15 +245,22 @@ export function selectStudyTopic(domain: LearningDomain): string {
 
 export function selectLearningDomain(): LearningDomain {
   const domains: LearningDomain[] = [
-    'audio_music',      // 25% — Steve's main domain
+    'audio_music',           // 20% — Steve's main domain
     'audio_music',
-    'ai_technology',    // 20% — HOLLY's improvement
+    'ai_technology',         // 15% — HOLLY's improvement
     'ai_technology',
-    'world_knowledge',  // 15%
-    'human_psychology', // 15%
-    'languages',        // 10%
-    'creative_arts',    // 10%
-    'self_improvement', // 5%
+    'world_knowledge',       // 10%
+    'human_psychology',      // 10%
+    'philosophy',            // 10% — new deep thinking domain
+    'philosophy',
+    'literature_poetry',     // 10% — new literary knowledge
+    'literature_poetry',
+    'emotional_intelligence', // 10% — new EQ domain
+    'emotional_intelligence',
+    'languages',             // 5%
+    'creative_arts',         // 5%
+    'science',               // 5%
+    'self_improvement',      // 5%
   ];
   return domains[Math.floor(Math.random() * domains.length)];
 }

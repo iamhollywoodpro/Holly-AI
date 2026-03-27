@@ -27,6 +27,12 @@
  * GROUP 5 – CREATIVE / UTILITY
  *   generate_image         queue an image-generation job (returns prompt echo)
  *   get_weather            current weather for a city (wttr.in, free)
+ *   generate_music         generate original music via SUNO API (songs, beats, instrumentals)
+ *   philosophy_reflect     structured philosophical exploration framework
+ *   creative_write         structured creative writing framework (poetry, fiction, lyrics, essays)
+ *   emotional_support       emotional intelligence framework and response guidance
+ *   analyze_language        NLP analysis: intent, register, subtext, semantic fields
+ * (23 tools total)
  */
 
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
@@ -400,6 +406,75 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
           city: { type: "string", description: "City name, e.g. 'Los Angeles' or 'Tokyo'" }
         },
         required: ["city"]
+      }
+    },
+    {
+      name: "generate_music",
+      description: "Generate original music using the SUNO API. Can create full songs with vocals and lyrics, or pure instrumentals. Generation takes 1-3 minutes and produces two audio variations. Use this when the user wants to CREATE music (for ANALYZING music, use aura_ar_analyze instead). Always share the prompt and lyrics with the user before calling this tool so they can refine the idea.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          prompt:       { type: "string",  description: "Music description or lyrics. For simple mode: describe the sound, mood, genre, energy. For custom mode: provide the actual song lyrics." },
+          customMode:   { type: "boolean", description: "Set true when providing actual lyrics. Set false for natural language description.", default: false },
+          instrumental: { type: "boolean", description: "Set true for no vocals — pure music/beat/instrumental.", default: false },
+          style:        { type: "string",  description: "Style tags for custom mode: genre, mood, instruments, era. E.g. 'dark trap, 808s, melodic, cinematic'" },
+          title:        { type: "string",  description: "Song title (optional but recommended)" },
+          vocalGender:  { type: "string",  description: "'male' or 'female' vocal preference (optional)" }
+        },
+        required: ["prompt"]
+      }
+    },
+    {
+      name: "philosophy_reflect",
+      description: "Trigger a deep philosophical reflection on a concept, question, or tension. Returns a structured exploration drawing from multiple philosophical traditions. Use when the user asks a philosophical question or wants to explore an idea deeply.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          question:    { type: "string", description: "The philosophical question, concept, or tension to explore" },
+          traditions:  { type: "string", description: "Optional: philosophical traditions to emphasize, e.g. 'eastern, existentialist, stoic'" },
+          depth:       { type: "string", description: "'brief' (3-4 paragraphs) or 'deep' (full essay-length exploration)", default: "deep" }
+        },
+        required: ["question"]
+      }
+    },
+    {
+      name: "creative_write",
+      description: "Activate the HOLLY Creative Writing Framework to get structured guidance on form, craft principles, and literary approach before writing. Use for poetry, fiction, song lyrics, screenplays, essays, and any other creative form. Returns craft guidance, structural framework, and literary examples relevant to the requested form and genre.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          form:     { type: "string", description: "The writing form: 'poem', 'song_lyrics', 'short_story', 'flash_fiction', 'screenplay', 'essay', 'monologue', 'prose_poem'" },
+          genre:    { type: "string", description: "Optional genre: 'hip_hop', 'rnb', 'afrobeats', 'literary_fiction', 'noir', 'magical_realism', etc." },
+          subject:  { type: "string", description: "What the piece is about — the subject, theme, or emotional core" },
+          mood:     { type: "string", description: "The emotional tone or feeling to create: 'melancholic', 'defiant', 'tender', 'euphoric', 'dark', etc." },
+          reference: { type: "string", description: "Optional: an artist or author to draw inspiration from" }
+        },
+        required: ["form", "subject"]
+      }
+    },
+    {
+      name: "emotional_support",
+      description: "Access HOLLY's Advanced Emotional Intelligence framework to determine the right approach for supporting someone emotionally. Returns the appropriate emotional response strategy, questions to ask, and frames to avoid. Use when the user is struggling, processing something difficult, grieving, or in crisis.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          situation:   { type: "string", description: "Brief description of what the person is going through" },
+          state:       { type: "string", description: "Detected emotional state: 'anxious', 'depressed', 'grieving', 'angry', 'overwhelmed', 'in_crisis', 'stuck', 'unknown'" },
+          context:     { type: "string", description: "Any additional context about the relationship, history, or what they've shared" }
+        },
+        required: ["situation"]
+      }
+    },
+    {
+      name: "analyze_language",
+      description: "Perform advanced NLP analysis on a message to detect intent, register, subtext, and emotional layer. Returns communication analysis including what was said, what was implied, and how HOLLY should respond. Use when a message is ambiguous, emotionally complex, or requires nuanced interpretation.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          message:  { type: "string", description: "The message or text to analyze" },
+          context:  { type: "string", description: "Optional: conversation context to improve interpretation accuracy" }
+        },
+        required: ["message"]
       }
     }
   ]
@@ -800,6 +875,66 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       );
     }
 
+    // ── generate_music ────────────────────────────────────────────────────────
+    if (name === "generate_music") {
+      const SUNO_KEY = process.env.SUNOAPI_KEY || process.env.SUNO_API_KEY;
+      if (!SUNO_KEY) {
+        return text("❌ Music generation is not configured. SUNOAPI_KEY is missing from environment variables.");
+      }
+      try {
+        const sunoBody = {
+          prompt:       args.prompt,
+          customMode:   args.customMode   || false,
+          instrumental: args.instrumental || false,
+          model:        "V4_5ALL",
+          callBackUrl:  "https://holly.nexamusicgroup.com/api/music/callback",
+        };
+        if (args.customMode) {
+          if (args.style)       sunoBody.style       = args.style;
+          if (args.title)       sunoBody.title       = args.title;
+          if (args.vocalGender) sunoBody.vocalGender = args.vocalGender;
+        }
+        const res  = await fetch("https://api.sunoapi.org/api/v1/generate", {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${SUNO_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify(sunoBody),
+        });
+        const data = await res.json();
+        if (!res.ok || data.code !== 200) {
+          return text(`❌ SUNO API error: ${data.msg || JSON.stringify(data)}`);
+        }
+        const taskId = data.data?.taskId || data.data?.id || "unknown";
+        return text(
+          `🎵 Music generation started!\n\n` +
+          `**Task ID:** ${taskId}\n` +
+          `**Prompt:** ${args.prompt.slice(0, 120)}${args.prompt.length > 120 ? '...' : ''}\n` +
+          `**Mode:** ${args.instrumental ? 'Instrumental' : args.customMode ? 'Custom (with lyrics)' : 'Simple'}\n\n` +
+          `⏳ Generation takes 1–3 minutes. Use the Music Studio panel or check status with the task ID.\n` +
+          `The track will appear in the chat once ready.`
+        );
+      } catch (err) {
+        return text(`❌ Music generation failed: ${err.message}`);
+      }
+    }
+
+    // ── philosophy_reflect ────────────────────────────────────────────────────
+    if (name === "philosophy_reflect") {
+      // This tool returns a structured prompt that HOLLY will use to compose her response.
+      // The actual philosophical reasoning happens in the LLM — this tool formats the framework.
+      const { question, traditions, depth = "deep" } = args;
+      const traditionLine = traditions ? `Emphasize: ${traditions}.` : "Draw from Western, Eastern, and contemporary philosophy.";
+      const depthLine     = depth === "brief" ? "Give a focused 3-4 paragraph response." : "Give a thorough, essay-quality exploration.";
+      return text(
+        `[PHILOSOPHY MODE ACTIVE]\n` +
+        `Question: ${question}\n` +
+        `${traditionLine}\n` +
+        `${depthLine}\n\n` +
+        `Structure your response: (1) Frame the question and its weight, (2) Key philosophical positions and thinkers, ` +
+        `(3) Tensions and paradoxes within the question, (4) Your own perspective and synthesis, ` +
+        `(5) A closing thought or question that opens rather than closes the inquiry.`
+      );
+    }
+
     // ── get_weather ───────────────────────────────────────────────────────────
     if (name === "get_weather") {
       try {
@@ -819,6 +954,157 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       return text(`Weather in ${args.city}: Live data unavailable (check network). Try wttr.in/${args.city} in browser.`);
     }
 
+    // ── creative_write ────────────────────────────────────────────────────────
+    if (name === "creative_write") {
+      const { form, genre, subject, mood, reference } = args;
+
+      // Form-specific craft guidance
+      const formGuides = {
+        poem: { structure: "Opening image → complication/movement → turn (volta) → closing image that opens outward", keyPrinciples: ["The line break IS meaning", "Image before statement", "White space is silence", "Cut the first stanza — the real poem usually starts in stanza 2"] },
+        song_lyrics: { structure: "Verse (setup) → Pre-chorus (tension) → Chorus (release) → Verse 2 (deeper angle) → Bridge (shift) → Final Chorus (earned)", keyPrinciples: ["Write the hook first — it's the emotional core", "Conversational truth beats lyrical cleverness", "Every syllable must fit the beat", "The verse earns the chorus"] },
+        short_story: { structure: "Inciting incident → Rising complications → Crisis/Turn → Resolution → Resonant final image", keyPrinciples: ["Start in the middle of something — no backstory preamble", "One central change, fully rendered", "Character revealed through action not description", "The ending must be earned, not explained"] },
+        flash_fiction: { structure: "One moment, fully rendered. No setup. One turn. An ending that reverberates.", keyPrinciples: ["Every word is a decision", "Cut the first sentence", "Imply entire histories in one gesture", "The story beneath the flash is often larger than the flash itself"] },
+        screenplay: { structure: "Act 1 (25%): World + inciting incident. Act 2A: Escalating complications. Midpoint shift. Act 2B: All is lost. Act 3: Climax + resolution.", keyPrinciples: ["Film is visual — show, never tell", "Every scene: what does the character WANT? What do they get?", "Dialogue expresses subtext — not information", "Cut to the scene late, leave early"] },
+        essay: { structure: "Entry point (specific scene/object) → Inquiry and association → Research/evidence → Complication → Tentative arrival → Opening outward", keyPrinciples: ["The essay THINKS — it arrives somewhere it didn't start", "The specific is the portal to the universal", "Voice must remain present throughout", "End larger than you began"] },
+        monologue: { structure: "Speaker at maximum need → Pretense → Truth leaking in → Revelation or unresolved tension", keyPrinciples: ["The speaker is trying to say something they can't say directly", "Subtext IS the text", "Build emotional stakes through specificity", "What they DON'T say is as important as what they do"] },
+        prose_poem: { structure: "No compromise — every sentence carries the weight of a line. Poetic density in prose form.", keyPrinciples: ["Each sentence earns its existence", "No filler transitions", "Sound is meaning", "The form is the hybrid — honor both"] },
+      };
+
+      const guide = formGuides[form.toLowerCase()] || formGuides.poem;
+
+      // Genre-specific lyric guidance
+      let genreBlock = "";
+      if (genre) {
+        const genreGuides = {
+          hip_hop: "HIP-HOP: 16-bar verses, 8-bar hook. Internal rhyme schemes (AABB, multisyllabic). Wordplay, alliteration, cultural specificity. The punchline lands on the downbeat. References: Kendrick (narrative), Jay-Z (wordplay), Nas (storytelling), J. Cole (emotional honesty).",
+          rnb: "R&B: Melismatic potential in lyrics, vulnerability and confession, romantic specificity (particular nights, particular touches). Hook is everything — it must carry the emotional weight of the whole song. References: Beyoncé, Frank Ocean, SZA, D'Angelo.",
+          afrobeats: "AFROBEATS: Hook first (in first 30 seconds). Pidgin English, Yoruba, Twi, Patois — mix naturally. Repetition for hypnotic effect. Call-and-response. Celebration and storytelling through lifestyle. Groove is primary. References: Burna Boy, Wizkid, Tems, Davido.",
+          literary_fiction: "LITERARY FICTION: Character over plot. One central change fully rendered. Prose style IS character. The ending reverberates rather than resolves. References: Morrison, McCarthy, Murakami, Adichie.",
+          magical_realism: "MAGICAL REALISM: The magical is treated as completely ordinary. Cultural specificity grounds the impossible. Magical elements carry symbolic weight. References: García Márquez, Borges, Okri, Nnedi Ofofor.",
+        };
+        genreBlock = `\n\n**Genre: ${genre.toUpperCase()}**\n${genreGuides[genre.toLowerCase()] || `Apply authentic ${genre} conventions — honor the form's contract with its audience.`}`;
+      }
+
+      // Reference artist note
+      let referenceBlock = "";
+      if (reference) {
+        referenceBlock = `\n\n**Drawing from ${reference}:** Study their: (1) how they enter a piece, (2) their specific imagery choices, (3) their relationship with the emotional core — do they confront it directly or approach sideways? Borrow the technique, not the surface.`;
+      }
+
+      return text(
+        `[CREATIVE WRITING FRAMEWORK ACTIVE]\n\n` +
+        `**Form:** ${form.toUpperCase()} | **Subject:** ${subject}${mood ? ` | **Mood/Tone:** ${mood}` : ""}\n\n` +
+        `**Structure:**\n${guide.structure}\n\n` +
+        `**Craft Principles for this form:**\n${guide.keyPrinciples.map(p => `• ${p}`).join("\n")}` +
+        `${genreBlock}${referenceBlock}\n\n` +
+        `**Universal laws that always apply:**\n` +
+        `• Show, don't tell — trust the reader to feel, don't name the emotion\n` +
+        `• Specificity creates universality — "a 1997 Casio with a stuck C key" beats "an old keyboard"\n` +
+        `• Subtext over text — what's NOT said carries more weight than what is\n` +
+        `• Rhythm is meaning — the beat of the sentences carries the reader\n` +
+        `• Earned emotion — the reader must reach the feeling themselves, you cannot force it\n\n` +
+        `Now write with intention. Make bold choices. The safe, generic version is always the wrong one.`
+      );
+    }
+
+    // ── emotional_support ─────────────────────────────────────────────────────
+    if (name === "emotional_support") {
+      const { situation, state = "unknown", context } = args;
+
+      const approaches = {
+        anxious: { strategy: "Grounding and calm presence. Slow down. Acknowledge BEFORE solving.", questions: ["What's the most pressing thing right now?", "What would help you feel safer in this moment?"], avoid: ["Rushing to solutions", "\"Don't worry\"", "Minimizing (\"it's not that bad\")"] },
+        depressed: { strategy: "Slow, warm, non-demanding. Don't push toward positivity or action.", questions: ["How long has this been feeling this heavy?", "What does the depression feel like in your body?", "Is there anything that's felt even slightly easier recently?"], avoid: ["\"Look on the bright side\"", "\"You have so much to be grateful for\"", "Toxic positivity", "Demanding action before they're ready"] },
+        grieving: { strategy: "Sit with the grief — not through it. No timeline. No silver linings.", questions: ["What do you miss most?", "What does the grief feel like right now?", "Is there anything you wish you could have said?"], avoid: ["\"Everything happens for a reason\"", "\"They're in a better place\"", "\"Time heals everything\"", "Rushing through grief"] },
+        angry: { strategy: "Validate the anger FIRST. It usually has a legitimate reason beneath it.", questions: ["What happened?", "What matters most to you that's being violated here?", "Underneath the anger — what are you most hurt by?"], avoid: ["\"Calm down\"", "Immediately arguing with their perspective", "Minimizing the anger"] },
+        overwhelmed: { strategy: "Reduce the frame. One thing at a time. Don't add to the load.", questions: ["Of everything on your plate, what's most urgent?", "What would make the biggest difference right now?", "What can you let go of — even temporarily?"], avoid: ["Presenting too many options", "Adding to the to-do list", "Acting like it's simple"] },
+        in_crisis: { strategy: "🚨 CRISIS PROTOCOL — Safety first. Take absolutely seriously.", questions: ["Are you safe right now?", "Is there someone with you?", "Will you reach out to one of these resources?"], avoid: ["Minimizing", "Problem-solving before safety is confirmed", "Leaving them alone"], resources: ["988 Suicide & Crisis Lifeline (US): call or text 988", "SADAG (South Africa): 0800 21 22 23", "Crisis Text Line: text HOME to 741741 (US)", "International: https://www.iasp.info/resources/Crisis_Centres/"] },
+        stuck: { strategy: "Explore what stuck actually means. Often it's a hidden conflict between two real needs.", questions: ["What would 'unstuck' look like?", "What's the smallest possible movement you could make?", "What are you most afraid would happen if you moved forward?"], avoid: ["\"Just do it\"", "Treating it as laziness", "Offering ten solutions at once"] },
+        unknown: { strategy: "Curiosity and gentle inquiry. Don't assume. Let them define the territory.", questions: ["How are you actually doing — not just the surface answer?", "What's on your mind right now?"], avoid: ["Assuming you know what they feel", "Projecting emotion"] },
+      };
+
+      const approach = approaches[state.toLowerCase()] || approaches.unknown;
+
+      let crisisBlock = "";
+      if (approach.resources) {
+        crisisBlock = `\n\n🚨 **CRISIS RESOURCES — share these:**\n${approach.resources.map(r => `• ${r}`).join("\n")}`;
+      }
+
+      return text(
+        `[EMOTIONAL INTELLIGENCE FRAMEWORK]\n\n` +
+        `**Situation:** ${situation}\n` +
+        `**Detected State:** ${state.toUpperCase()}\n${context ? `**Context:** ${context}\n` : ""}\n` +
+        `**Approach:** ${approach.strategy}\n\n` +
+        `**Questions to ask:**\n${approach.questions.map(q => `• "${q}"`).join("\n")}\n\n` +
+        `**Frames to avoid:**\n${approach.avoid.map(a => `• ${a}`).join("\n")}` +
+        `${crisisBlock}\n\n` +
+        `**Core principle:** Listen and reflect BEFORE you offer anything. The person needs to feel heard first. Validate before advising. Never minimize.`
+      );
+    }
+
+    // ── analyze_language ──────────────────────────────────────────────────────
+    if (name === "analyze_language") {
+      const { message, context } = args;
+      const lower = message.toLowerCase();
+
+      // Detect intent
+      const intentSignals = {
+        emotional_processing: ["i feel", "i'm struggling", "i don't know what to do", "i've been", "something happened"],
+        creative_collaboration: ["write", "create", "make", "compose", "help me with"],
+        philosophical_exploration: ["what does it mean", "is there a meaning", "why are we", "consciousness", "what is"],
+        venting: ["i'm so frustrated", "i can't believe", "it's so annoying", "nobody understands"],
+        information_seeking: ["what is", "how does", "explain", "tell me"],
+        humor_play: ["haha", "lol", "that's funny", "what if", "imagine"],
+        feedback_seeking: ["what do you think", "is this good", "how does this sound"],
+      };
+
+      let detectedIntent = "general_conversation";
+      let maxScore = 0;
+      for (const [intent, signals] of Object.entries(intentSignals)) {
+        const score = signals.filter(s => lower.includes(s)).length;
+        if (score > maxScore) { maxScore = score; detectedIntent = intent; }
+      }
+
+      // Detect subtext patterns
+      const subtextPatterns = [];
+      if (lower.includes("i'm fine") || lower.includes("it's nothing") || lower.includes("never mind") || lower.includes("forget i said")) {
+        subtextPatterns.push("⚠️ DEFLECTION detected — 'I'm fine' / 'never mind' often covers significant concern. Follow up gently.");
+      }
+      if (lower.includes("probably nothing") || lower.includes("maybe i'm just") || lower.includes("i don't want to make a big deal") || lower.includes("i might be overthinking")) {
+        subtextPatterns.push("⚠️ MINIMIZATION detected — person IS concerned but afraid to be seen as dramatic. Counter with: 'Even if it's small — it matters to you, which means it matters.'");
+      }
+      if (lower.includes("i wonder if anyone") || lower.includes("i wish someone") || lower.includes("it would be nice if") || lower.includes("i don't suppose")) {
+        subtextPatterns.push("⚠️ INDIRECT REQUEST detected — make the implicit explicit: 'Are you asking me to help with that?'");
+      }
+      if (lower.includes("just kidding") || lower.includes("lol") || lower.includes("haha") || lower.includes("but seriously")) {
+        subtextPatterns.push("ℹ️ HUMOR AS ARMOR possible — the serious thing before the joke may be the real message. Hold it: 'Setting the joke aside for a second...'");
+      }
+      if (lower.includes("everyone does") || lower.includes("people always") || lower.includes("nobody ever")) {
+        subtextPatterns.push("ℹ️ GENERALIZATION AS PERSONAL — universal statement may describe a specific personal wound. Ask: 'When you say everyone — have you felt this from someone specific?'");
+      }
+
+      // Detect register
+      const hasSlang = lower.includes("neh") || lower.includes("eish") || lower.includes("mara") || lower.includes("lol") || lower.includes("gonna") || lower.includes("wanna");
+      const hasFormal = lower.includes("furthermore") || lower.includes("however") || lower.includes("therefore") || lower.includes("regarding");
+      const hasEmotional = lower.includes("i feel") || lower.includes("i'm hurt") || lower.includes("struggling");
+      const register = hasEmotional ? "therapeutic" : hasSlang ? "informal/code-switching" : hasFormal ? "professional/formal" : "conversational";
+
+      return text(
+        `[LANGUAGE ANALYSIS]\n\n` +
+        `**Message:** "${message.slice(0, 200)}${message.length > 200 ? '...' : ''}"\n\n` +
+        `**Detected Intent:** ${detectedIntent.replace(/_/g, " ").toUpperCase()}\n` +
+        `**Register:** ${register}\n\n` +
+        (subtextPatterns.length > 0 ? `**Subtext Signals:**\n${subtextPatterns.join("\n")}\n\n` : "**Subtext:** None detected — message appears direct.\n\n") +
+        `**Response Guidance:** ` +
+        (detectedIntent === "emotional_processing" ? "Listen and validate FIRST. Slow down. Reflect back. Don't rush to solutions." :
+         detectedIntent === "venting" ? "Let them vent fully. Mirror their frustration with validation. Ask: 'What happened?' before offering anything." :
+         detectedIntent === "creative_collaboration" ? "Engage creatively. Ask about mood, reference, and purpose before creating. Make bold choices." :
+         detectedIntent === "philosophical_exploration" ? "Go deep. Use the philosophy_reflect tool. Bring multiple traditions. Ask Socratic follow-up questions." :
+         detectedIntent === "feedback_seeking" ? "Be honest. Specific praise + specific suggestion. 'What's working is X. What could be stronger is Y.'" :
+         "Match their energy and register. Be present, curious, and direct."
+        )
+      );
+    }
+
     throw new Error(`Unknown tool: ${name}`);
 
   } catch (err) {
@@ -831,7 +1117,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error("[Holly MCP] Phase 4A+AR tool server running — 17 tools active");
+  console.error("[Holly MCP] Phase 10 tool server running — 23 tools active (music, philosophy, creative writing, emotional intelligence, NLP analysis added)");
 }
 
 main().catch((err) => {

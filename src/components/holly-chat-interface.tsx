@@ -1225,7 +1225,7 @@ export default function HollyChatInterface() {
                 </motion.span>
               ) : isCreator ? (
                 <span className="text-amber-500/70">Creator session — full access</span>
-              ) : "AI Life Partner • Phase 7"}
+              ) : "AI Life Partner • Phase 10"}
             </p>
           </div>
         </div>
@@ -1669,7 +1669,7 @@ export default function HollyChatInterface() {
             Evolution dashboard
           </a>
           <p className="text-[10px] text-gray-700">
-            HOLLY · Phase 9 · 17 tools · Enter sends
+            HOLLY · Phase 10 · 23 tools · Enter sends
           </p>
           <a
             href="/onboarding"

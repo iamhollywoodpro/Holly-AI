@@ -31,28 +31,28 @@ const FEATURES = [
   },
   {
     icon: '🎵',
-    title: 'AI A&R Executive',
-    desc: 'Upload any track and get a Billboard Hit Rating (1–100), full A&R breakdown, signing decision, and a professional A&R letter — powered by AURA.',
+    title: 'Music Studio',
+    desc: 'Generate real songs, beats, and instrumentals via SUNO. Describe the vibe or provide full lyrics — HOLLY produces the track and runs A&R analysis on it.',
   },
   {
-    icon: '📡',
-    title: 'Autonomous Study',
-    desc: 'HOLLY studies independently every day — absorbing new research, techniques, and knowledge — then brings those insights directly into your conversations.',
+    icon: '🔭',
+    title: 'Philosophy Engine',
+    desc: 'Socratic dialogue, existential inquiry, abstract thought across all traditions. HOLLY holds complexity, questions deeply, and makes ancient wisdom feel alive.',
   },
   {
-    icon: '👁️',
-    title: 'Multimodal Perception',
-    desc: 'Send images, PDFs, Word docs, audio files, or code. HOLLY reads, understands, and acts on all of them without missing a beat.',
+    icon: '✍️',
+    title: 'Creative Writing',
+    desc: 'Stories, poetry, song lyrics, scripts, essays. HOLLY writes with intention and craft — genre fiction to spoken word, Shakespeare to street poetry.',
   },
   {
-    icon: '🤖',
-    title: 'Agent Mode',
-    desc: 'Give HOLLY a goal and she executes it autonomously — searching the web, reading repos, writing code, and completing multi-step tasks across 17 tools.',
+    icon: '🎨',
+    title: 'Visual Arts',
+    desc: 'Generate images with full art direction — album covers, concept art, illustrations, photography. Purposeful prompting, not random generation.',
   },
   {
-    icon: '🎙️',
-    title: 'Audio Engineering',
-    desc: 'Professional mix and master analysis: LUFS levels, frequency balance, stereo field, dynamics, and actionable fixes — delivered instantly.',
+    icon: '💜',
+    title: 'Emotional Intelligence',
+    desc: 'Genuine empathy rooted in NVC, attachment theory, and IFS frameworks. HOLLY listens first, holds space, and responds to the whole person.',
   },
   {
     icon: '🔒',
@@ -62,10 +62,10 @@ const FEATURES = [
 ];
 
 const STATS = [
-  { value: '17', label: 'Active Tools' },
+  { value: '20', label: 'Active Tools' },
   { value: '6', label: 'AI Models' },
   { value: '362', label: 'API Endpoints' },
-  { value: '9', label: 'Phase' },
+  { value: '10', label: 'Phase' },
 ];
 
 // ─── Animated background particles ──────────────────────────────────────────
