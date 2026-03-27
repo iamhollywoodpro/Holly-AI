@@ -1,12 +1,23 @@
 'use client'
 
 import { useSearchParams } from 'next/navigation'
-import { Suspense } from 'react'
+import { Suspense, useEffect } from 'react'
 import { SignIn } from '@clerk/nextjs'
+import { useAuth } from '@clerk/nextjs'
+import { useRouter } from 'next/navigation'
 
 function SignInContent() {
   const searchParams = useSearchParams()
   const error = searchParams?.get('error')
+  const { isSignedIn, isLoaded } = useAuth()
+  const router = useRouter()
+
+  // Already signed in → skip login page, go straight to chat
+  useEffect(() => {
+    if (isLoaded && isSignedIn) {
+      router.replace('/chat')
+    }
+  }, [isLoaded, isSignedIn, router])
 
   // Friendly error messages
   const errorMessages: Record<string, string> = {
@@ -77,7 +88,7 @@ function SignInContent() {
                   logoPlacement: 'inside'
                 }
               }}
-              fallbackRedirectUrl="/"
+              fallbackRedirectUrl="/chat"
               signUpUrl="/sign-up"
             />
           </div>

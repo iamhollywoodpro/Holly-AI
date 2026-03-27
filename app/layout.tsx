@@ -15,11 +15,19 @@ import { ThemeProvider } from '@/components/providers/ThemeProvider';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'HOLLY AI - Self-Evolving Intelligence',
-  description: 'Advanced AI agent with music generation, self-coding, voice interaction, and multi-modal capabilities',
+  title: 'HOLLY AI — The AI Built for Music',
+  description:
+    'HOLLY is a self-evolving AI that acts as your personal A&R executive, audio engineer, creative partner, and autonomous agent. Built for music creators.',
   icons: {
     icon: '/favicon.png',
     apple: '/favicon.png',
+  },
+  openGraph: {
+    title: 'HOLLY AI — The AI Built for Music',
+    description:
+      'Your personal A&R executive, audio engineer, and creative partner. Powered by AURA. Free to start.',
+    type: 'website',
+    url: 'https://holly.nexamusicgroup.com',
   },
 };
 
@@ -43,6 +51,19 @@ export default function RootLayout({
           <ThemeProvider>
             <Providers>
               <ClerkProvider
+                /*
+                 * SESSION PERSISTENCE:
+                 * Clerk uses secure HttpOnly cookies by default.
+                 * Sessions persist until the user explicitly clicks "Sign Out".
+                 * No manual cookie config needed — this is Clerk's default behaviour.
+                 * The afterSignOut redirect goes back to the landing page (/),
+                 * so users see the login form again only when they sign out.
+                 */
+                afterSignOutUrl="/"
+                signInUrl="/sign-in"
+                signUpUrl="/sign-up"
+                signInFallbackRedirectUrl="/chat"
+                signUpFallbackRedirectUrl="/chat"
                 appearance={{
                   baseTheme: undefined,
                   variables: {
@@ -55,7 +76,8 @@ export default function RootLayout({
                     colorNeutral: '#6b7280',
                   },
                   elements: {
-                    userButtonPopoverCard: 'bg-gray-900 border border-purple-500/20 shadow-2xl shadow-purple-500/20',
+                    userButtonPopoverCard:
+                      'bg-gray-900 border border-purple-500/20 shadow-2xl shadow-purple-500/20',
                     userButtonPopoverActionButton: 'text-white hover:bg-white/5',
                     userButtonPopoverActionButtonText: 'text-white',
                     userButtonPopoverActionButtonIcon: 'text-gray-400',
@@ -70,10 +92,6 @@ export default function RootLayout({
                     badge: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
                   },
                 }}
-                signInUrl="/sign-in"
-                signUpUrl="/sign-up"
-                signInFallbackRedirectUrl="/"
-                signUpFallbackRedirectUrl="/"
               >
                 {children}
               </ClerkProvider>

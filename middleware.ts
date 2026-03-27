@@ -1,13 +1,14 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 
 const isPublicRoute = createRouteMatcher([
+  '/',                          // Landing page — always public
   '/sign-in(.*)',
   '/sign-up(.*)',
   '/api/speech/gemini(.*)',
-  '/api/webhooks/(.*)',     // Clerk + GitHub webhooks must be public
+  '/api/webhooks/(.*)',          // Clerk + GitHub webhooks must be public
   '/offline',
-  '/download/(.*)',         // public download links
-  '/api/v1/(.*)',          // Phase 7: public API — uses Bearer API-key auth, NOT Clerk
+  '/download/(.*)',              // public download links
+  '/api/v1/(.*)',               // Phase 7: public API — Bearer API-key auth, NOT Clerk
 ]);
 
 export default clerkMiddleware((auth, req) => {

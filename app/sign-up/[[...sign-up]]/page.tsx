@@ -1,8 +1,20 @@
 'use client'
 
 import { SignUp } from '@clerk/nextjs'
+import { useAuth } from '@clerk/nextjs'
+import { useRouter } from 'next/navigation'
+import { useEffect } from 'react'
 
 export default function Page() {
+  const { isSignedIn, isLoaded } = useAuth()
+  const router = useRouter()
+
+  // Already signed in → skip sign-up, go to chat
+  useEffect(() => {
+    if (isLoaded && isSignedIn) {
+      router.replace('/chat')
+    }
+  }, [isLoaded, isSignedIn, router])
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-[#040206] font-sans overflow-hidden selection:bg-[#0dccf2]/30 relative px-4">
       {/* Background Radial Glow */}
@@ -43,7 +55,7 @@ export default function Page() {
                   logoPlacement: 'inside'
                 }
               }}
-              fallbackRedirectUrl="/"
+              fallbackRedirectUrl="/chat"
               signInUrl="/sign-in"
             />
           </div>
