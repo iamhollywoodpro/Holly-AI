@@ -18,7 +18,7 @@
  *  • Keyboard shortcuts: Enter=send, Shift+Enter=newline, Escape=stop
  */
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, memo } from "react";
 import { useUser } from "@clerk/nextjs";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
@@ -285,7 +285,8 @@ function StatusBar({ text }: { text: string }) {
 
 // ─── Markdown renderer with syntax highlighting ───────────────────────────────
 
-function MarkdownContent({ content }: { content: string }) {
+// Memoized markdown renderer — only re-renders when content changes (important for perf)
+const MarkdownContent = memo(function MarkdownContent({ content }: { content: string }) {
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
@@ -354,6 +355,12 @@ function MarkdownContent({ content }: { content: string }) {
       {content}
     </ReactMarkdown>
   );
+});
+
+// Lightweight streaming text — plain text during HOLLY's live response (no markdown parsing overhead)
+// Once streaming is complete, the message moves to the full MarkdownContent renderer
+function StreamingText({ content }: { content: string }) {
+  return <p className="whitespace-pre-wrap leading-relaxed">{content}</p>;
 }
 
 // ─── Audio Visualizer (Phase 5E) ─────────────────────────────────────────────
@@ -1004,9 +1011,27 @@ export default function HollyChatInterface() {
     setShowScrollBtn(false);
   }, []);
 
+  // Scroll on new messages (not on every streaming chunk - that's throttled below)
   useEffect(() => {
     scrollToBottom();
-  }, [messages, streamingMessage]);
+  }, [messages]);
+
+  // Throttle scroll during streaming so typing feels instant
+  const streamScrollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (!streamingMessage) return;
+    if (streamScrollRef.current) return; // already scheduled
+    streamScrollRef.current = setTimeout(() => {
+      scrollToBottom(false);
+      streamScrollRef.current = null;
+    }, 80);
+    return () => {
+      if (streamScrollRef.current) {
+        clearTimeout(streamScrollRef.current);
+        streamScrollRef.current = null;
+      }
+    };
+  }, [streamingMessage]);
 
   const handleScroll = useCallback(() => {
     const el = scrollContainerRef.current;
@@ -1015,12 +1040,23 @@ export default function HollyChatInterface() {
     setShowScrollBtn(distFromBottom > 120);
   }, []);
 
-  // ── Auto-grow textarea ─────────────────────────────────────────────────────
+  // ── Auto-grow textarea — deferred via rAF so typing never blocks ──────────
+  const rafRef = useRef<number | null>(null);
   useEffect(() => {
-    const ta = textareaRef.current;
-    if (!ta) return;
-    ta.style.height = "auto";
-    ta.style.height = Math.min(ta.scrollHeight, 140) + "px";
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    rafRef.current = requestAnimationFrame(() => {
+      const ta = textareaRef.current;
+      if (!ta) return;
+      ta.style.height = "auto";
+      ta.style.height = Math.min(ta.scrollHeight, 140) + "px";
+      rafRef.current = null;
+    });
+    return () => {
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+    };
   }, [input]);
 
   // ── Send message ───────────────────────────────────────────────────────────
@@ -1459,7 +1495,7 @@ export default function HollyChatInterface() {
                   <span className="text-xs font-medium text-purple-400">HOLLY</span>
                 </div>
                 <div className="rounded-2xl rounded-bl-sm px-4 py-3 bg-gray-900/90 border border-gray-800/60 text-gray-100 text-sm leading-relaxed">
-                  <MarkdownContent content={streamingMessage} />
+                  <StreamingText content={streamingMessage} />
                   <motion.span
                     className="inline-block w-0.5 h-4 bg-purple-400 ml-0.5 align-middle"
                     animate={{ opacity: [1, 0, 1] }}

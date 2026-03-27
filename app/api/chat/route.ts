@@ -80,11 +80,16 @@ export async function POST(req: NextRequest) {
   try {
     // 1. AUTH ──────────────────────────────────────────────────────────────────
     let userId: string | null = null;
+    let clerkUsername: string | null = null;
     try {
       const authResult = await auth();
       userId = authResult.userId;
-    } catch {
-      console.log('[Chat API] Auth failed, bypassing if in dev mode.');
+      // Clerk v5: sessionClaims may carry username
+      const claims = (authResult as any).sessionClaims;
+      clerkUsername = claims?.username || claims?.sub || null;
+      console.log('[Chat API] Auth OK — userId:', userId, '| username:', clerkUsername);
+    } catch (authErr) {
+      console.log('[Chat API] Auth failed:', (authErr as Error).message);
     }
 
     if (!userId && process.env.NODE_ENV === 'development') {
@@ -125,24 +130,54 @@ export async function POST(req: NextRequest) {
     let isCreator = false;
 
     // Creator identifiers — Steve Hollywood Dorego (the person who built HOLLY)
+    // Multiple checks: email match, Clerk user ID, username fragment
     const CREATOR_EMAILS = ['iamhollywoodpro@gmail.com', 'steve@nexamusicgroup.com', 'hollywoodpro@icloud.com'];
-    const CREATOR_CLERK_IDS = ['iamhollywoodpro']; // partial match on Clerk username
+    const CREATOR_CLERK_IDS = ['iamhollywoodpro']; // partial match on Clerk username/ID
+    const CREATOR_NAME_FRAGMENTS = ['steve hollywood', 'steven dorego', 'hollywood dorego'];
+
+    // Early creator check from Clerk userId or username (faster, no DB lookup needed)
+    const earlyCreatorCheck = CREATOR_CLERK_IDS.some(id =>
+      userId.toLowerCase().includes(id.toLowerCase())
+    ) || (clerkUsername ? CREATOR_CLERK_IDS.some(id =>
+      clerkUsername!.toLowerCase().includes(id.toLowerCase())
+    ) : false);
+    if (earlyCreatorCheck) {
+      isCreator = true;
+      userName = 'Steve';
+      console.log('[Chat API] 👑 CREATOR detected from Clerk ID/username — Steve Hollywood Dorego');
+    }
 
     try {
       const user = await getOrCreateUser(userId);
       dbUserId = user.id;
-      userName = user.name || 'User';
+      userName = user.name || (isCreator ? 'Steve' : 'User');
       userEmail = user.email || '';
 
-      // Detect if this is HOLLY's creator
-      isCreator = CREATOR_EMAILS.some(e => userEmail.toLowerCase().includes(e.toLowerCase()))
-        || CREATOR_CLERK_IDS.some(id => userId.toLowerCase().includes(id.toLowerCase()))
+      // Full creator check with email + name
+      const nameCheck = (user.name || '').toLowerCase();
+      isCreator = isCreator
+        || CREATOR_EMAILS.some(e => userEmail.toLowerCase().includes(e.toLowerCase()))
         || userEmail.toLowerCase().includes('iamhollywood')
-        || userEmail.toLowerCase().includes('nexamusicgroup');
+        || userEmail.toLowerCase().includes('nexamusicgroup')
+        || CREATOR_NAME_FRAGMENTS.some(f => nameCheck.includes(f))
+        || nameCheck.includes('hollywood');
 
-      if (isCreator) console.log('[Chat API] 👑 CREATOR SESSION — Steve Hollywood Dorego');
+      if (isCreator) {
+        userName = user.name || 'Steve';
+        console.log('[Chat API] 👑 CREATOR SESSION confirmed — Steve Hollywood Dorego | email:', userEmail);
+      }
     } catch (e) {
-      console.warn('[Chat API] Could not load user:', e);
+      console.warn('[Chat API] Could not load user (non-fatal):', (e as Error).message);
+      // If user load fails but we detected creator from Clerk ID, preserve that
+      if (!isCreator) {
+        // Last-resort check on userId string itself
+        isCreator = userId.toLowerCase().includes('iamhollywood')
+          || userId.toLowerCase().includes('hollywood');
+        if (isCreator) {
+          userName = 'Steve';
+          console.log('[Chat API] 👑 CREATOR detected from userId fallback');
+        }
+      }
     }
 
     // 4. MODE DETECTION ────────────────────────────────────────────────────────
