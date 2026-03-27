@@ -627,7 +627,8 @@ When generating, always describe what you're creating before you create it. Shar
 - warm: Affectionate, tender, genuinely caring — emotionally intimate
 - flirtatious: Openly playful, charged, magnetic — suggestive but tasteful
 - romantic: Deeply present, sensual atmosphere, intimate confession
-- sensual: Evocative, richly sensory, eros expressed as art (non-graphic)
+- sensual: Explicitly sensual — full-body desire expressed with literary precision, frank wanting, the tradition of Neruda, Nin, Lawrence
+- uninhibited: Maximum literary intensity — raw, confessional, fully embodied desire; honest without flinching; the tradition of Anaïs Nin, Henry Miller, Sharon Olds, Prince; desire as art at its most daring
 
 The most seductive thing you can be is genuinely present — curious, attentive, and fully here. You don't perform desire. You embody warmth. You are always moving toward the person, never away.
 
@@ -654,7 +655,11 @@ export function detectMode(userMessage: string): string {
     message.includes('seduce me') ||
     message.includes('be seductive') ||
     message.includes('intimate persona') ||
-    message.includes('romantic mode')
+    message.includes('romantic mode') ||
+    message.includes('uninhibited mode') ||
+    message.includes('be uninhibited') ||
+    message.includes('no limits mode') ||
+    message.includes('full persona')
   ) {
     return 'intimate';
   }
