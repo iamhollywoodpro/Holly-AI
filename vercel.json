@@ -16,7 +16,7 @@
     },
     {
       "path": "/api/cron/evolve",
-      "schedule": "0 * * * *"
+      "schedule": "0 2 * * *"
     },
     {
       "path": "/api/cron/identity-evolve",
@@ -24,7 +24,7 @@
     },
     {
       "path": "/api/initiative",
-      "schedule": "0 9,17 * * *"
+      "schedule": "0 9 * * *"
     }
   ]
 }
