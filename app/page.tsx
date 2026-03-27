@@ -5,47 +5,59 @@ import { useAuth, SignIn, SignUp } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// ─── Feature data ──────────────────────────────────────────────────────────────
+// ─── Comparison data ──────────────────────────────────────────────────────────
+const COMPARISON_ROWS = [
+  { feature: 'Remembers you across sessions',      other: '❌ Starts over every time',          holly: '✅ Full persistent memory' },
+  { feature: 'Learns while you\'re offline',        other: '❌',                                 holly: '✅ Daily autonomous study loops' },
+  { feature: 'Builds & deploys real products',      other: '❌ Suggests code',                   holly: '✅ Codes, commits, deploys' },
+  { feature: 'Develops its own personality',        other: '❌ Same every conversation',         holly: '✅ Evolves uniquely per user' },
+  { feature: 'Proactively brings ideas to you',     other: '❌ Waits to be asked',               holly: '✅ Initiative protocols active' },
+  { feature: 'Understands your creative taste',     other: '❌',                                 holly: '✅ Builds your taste profile over time' },
+  { feature: 'Uncensored & opinionated',            other: '❌ Filtered & generic',              holly: '✅ Real personality, real opinions' },
+  { feature: 'Running AI inference cost',           other: '💸 $20+/month',                     holly: '✅ $0/month' },
+  { feature: 'Gets more valuable over time',        other: '❌ Flat forever',                    holly: '✅ Compounds with every conversation' },
+];
+
 const FEATURES = [
+  {
+    icon: '⚡',
+    title: 'Full-Stack Builder',
+    desc: 'HOLLY codes, architects, and ships. Web apps, APIs, UI/UX, mobile tools — she writes production-ready solutions and deploys them directly to GitHub and Vercel.',
+  },
+  {
+    icon: '🧠',
+    title: 'Persistent Memory',
+    desc: 'No resets. Ever. HOLLY remembers every conversation, every project, every idea across every session — and builds on it every single time.',
+  },
   {
     icon: '🎵',
     title: 'AI A&R Executive',
     desc: 'Upload any track and get a Billboard Hit Rating (1–100), full A&R breakdown, signing decision, and a professional A&R letter — powered by AURA.',
   },
   {
-    icon: '🧠',
-    title: 'Persistent Memory',
-    desc: 'HOLLY remembers every conversation, your preferences, projects, and goals across every session — building a real relationship over time.',
-  },
-  {
-    icon: '🎙️',
-    title: 'Audio Engineering',
-    desc: 'Professional mix and master analysis: LUFS levels, frequency balance, stereo field, dynamics, and actionable fixes delivered instantly.',
+    icon: '📡',
+    title: 'Autonomous Study',
+    desc: 'HOLLY studies independently every day — absorbing new research, techniques, and knowledge — then brings those insights directly into your conversations.',
   },
   {
     icon: '👁️',
     title: 'Multimodal Perception',
-    desc: 'Send images, PDFs, Word docs, code files, or audio. HOLLY reads, understands, and acts on all of them seamlessly.',
-  },
-  {
-    icon: '⚡',
-    title: 'Smart AI Router',
-    desc: 'Routes each request to the best free AI model — Kimi K2.5, Qwen3-235B, DeepSeek-R1, Llama 3.3-70B — at zero inference cost.',
+    desc: 'Send images, PDFs, Word docs, audio files, or code. HOLLY reads, understands, and acts on all of them without missing a beat.',
   },
   {
     icon: '🤖',
     title: 'Agent Mode',
-    desc: 'Give HOLLY a goal and she executes it autonomously — searching the web, reading GitHub repos, writing code, and more across 17 tools.',
+    desc: 'Give HOLLY a goal and she executes it autonomously — searching the web, reading repos, writing code, and completing multi-step tasks across 17 tools.',
+  },
+  {
+    icon: '🎙️',
+    title: 'Audio Engineering',
+    desc: 'Professional mix and master analysis: LUFS levels, frequency balance, stereo field, dynamics, and actionable fixes — delivered instantly.',
   },
   {
     icon: '🔒',
     title: 'Your Data, Your AI',
-    desc: 'Everything stays yours. Your conversations, your training data, your AI. HOLLY evolves specifically around you — nobody else.',
-  },
-  {
-    icon: '🌐',
-    title: 'Music Industry Native',
-    desc: 'Built from the ground up for music creators. HOLLY speaks your language — DAWs, labels, A&R, publishing, sync, streaming, royalties.',
+    desc: 'Everything stays yours. Your conversations, your training data, your AI. HOLLY evolves specifically around you — nobody else gets your version of her.',
   },
 ];
 
@@ -56,11 +68,11 @@ const STATS = [
   { value: '$0', label: 'Inference Cost' },
 ];
 
-// ─── Animated background particles ───────────────────────────────────────────
+// ─── Animated background particles ──────────────────────────────────────────
 function Particles() {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {Array.from({ length: 24 }).map((_, i) => (
+      {Array.from({ length: 28 }).map((_, i) => (
         <motion.div
           key={i}
           className="absolute rounded-full"
@@ -70,19 +82,16 @@ function Particles() {
             left: `${Math.random() * 100}%`,
             top: `${Math.random() * 100}%`,
             background: i % 3 === 0
-              ? 'rgba(168,85,247,0.6)'
+              ? 'rgba(168,85,247,0.7)'
               : i % 3 === 1
               ? 'rgba(59,130,246,0.5)'
               : 'rgba(236,72,153,0.5)',
           }}
-          animate={{
-            y: [0, -40, 0],
-            opacity: [0.3, 0.8, 0.3],
-          }}
+          animate={{ y: [0, -50, 0], opacity: [0.2, 0.9, 0.2] }}
           transition={{
             duration: 4 + Math.random() * 6,
             repeat: Infinity,
-            delay: Math.random() * 5,
+            delay: Math.random() * 6,
             ease: 'easeInOut',
           }}
         />
@@ -91,11 +100,11 @@ function Particles() {
   );
 }
 
-// ─── Pulsing avatar ───────────────────────────────────────────────────────────
+// ─── HOLLY orb ───────────────────────────────────────────────────────────────
 function HollyOrb({ size = 'lg' }: { size?: 'sm' | 'lg' }) {
-  const dim = size === 'lg' ? 'w-32 h-32' : 'w-12 h-12';
+  const dim   = size === 'lg' ? 'w-32 h-32' : 'w-12 h-12';
   const inner = size === 'lg' ? 'w-24 h-24' : 'w-9 h-9';
-  const icon = size === 'lg' ? 'text-4xl' : 'text-lg';
+  const icon  = size === 'lg' ? 'text-4xl' : 'text-lg';
   return (
     <div className="relative flex items-center justify-center">
       <motion.div
@@ -122,8 +131,8 @@ function FeatureCard({ icon, title, desc, index }: { icon: string; title: string
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ delay: index * 0.07, duration: 0.5 }}
-      whileHover={{ y: -4, borderColor: 'rgba(168,85,247,0.4)' }}
-      className="group relative bg-gray-900/60 border border-gray-800/60 rounded-2xl p-6 backdrop-blur-sm transition-all duration-300 hover:bg-gray-900/80 hover:shadow-xl hover:shadow-purple-500/10"
+      whileHover={{ y: -4 }}
+      className="group bg-gray-900/60 border border-gray-800/60 rounded-2xl p-6 backdrop-blur-sm transition-all duration-300 hover:bg-gray-900/80 hover:border-purple-500/30 hover:shadow-xl hover:shadow-purple-500/10"
     >
       <div className="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-2xl mb-4 group-hover:bg-purple-500/20 transition-colors">
         {icon}
@@ -134,7 +143,7 @@ function FeatureCard({ icon, title, desc, index }: { icon: string; title: string
   );
 }
 
-// ─── Auth panel (sign-in / sign-up toggler) ───────────────────────────────────
+// ─── Auth panel ───────────────────────────────────────────────────────────────
 function AuthPanel() {
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
 
@@ -161,21 +170,16 @@ function AuthPanel() {
       alertText: 'text-red-400 text-xs',
       otpCodeFieldInput: 'bg-gray-800 border border-gray-700 text-white rounded-lg',
     },
-    layout: {
-      socialButtonsVariant: 'blockButton' as const,
-    },
+    layout: { socialButtonsVariant: 'blockButton' as const },
   };
 
   return (
     <div className="w-full">
-      {/* Tab toggle */}
       <div className="flex bg-gray-800/60 rounded-xl p-1 mb-6">
         <button
           onClick={() => setMode('signin')}
           className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
-            mode === 'signin'
-              ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/20'
-              : 'text-gray-400 hover:text-white'
+            mode === 'signin' ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/20' : 'text-gray-400 hover:text-white'
           }`}
         >
           Sign In
@@ -183,9 +187,7 @@ function AuthPanel() {
         <button
           onClick={() => setMode('signup')}
           className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
-            mode === 'signup'
-              ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/20'
-              : 'text-gray-400 hover:text-white'
+            mode === 'signup' ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/20' : 'text-gray-400 hover:text-white'
           }`}
         >
           Create Account
@@ -194,34 +196,12 @@ function AuthPanel() {
 
       <AnimatePresence mode="wait">
         {mode === 'signin' ? (
-          <motion.div
-            key="signin"
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 10 }}
-            transition={{ duration: 0.2 }}
-          >
-            <SignIn
-              appearance={clerkAppearance}
-              fallbackRedirectUrl="/chat"
-              signUpUrl="#"
-              signUpForceRedirectUrl="#"
-            />
+          <motion.div key="signin" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} transition={{ duration: 0.2 }}>
+            <SignIn appearance={clerkAppearance} fallbackRedirectUrl="/chat" signUpUrl="#" signUpForceRedirectUrl="#" />
           </motion.div>
         ) : (
-          <motion.div
-            key="signup"
-            initial={{ opacity: 0, x: 10 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -10 }}
-            transition={{ duration: 0.2 }}
-          >
-            <SignUp
-              appearance={clerkAppearance}
-              fallbackRedirectUrl="/chat"
-              signInUrl="#"
-              signInForceRedirectUrl="#"
-            />
+          <motion.div key="signup" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} transition={{ duration: 0.2 }}>
+            <SignUp appearance={clerkAppearance} fallbackRedirectUrl="/chat" signInUrl="#" signInForceRedirectUrl="#" />
           </motion.div>
         )}
       </AnimatePresence>
@@ -229,15 +209,286 @@ function AuthPanel() {
   );
 }
 
-// ─── Stat counter ─────────────────────────────────────────────────────────────
+// ─── Stat pill ────────────────────────────────────────────────────────────────
 function StatPill({ value, label }: { value: string; label: string }) {
   return (
     <div className="flex flex-col items-center px-6 py-4">
-      <span className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
-        {value}
-      </span>
+      <span className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">{value}</span>
       <span className="text-xs text-gray-500 mt-1 tracking-wide uppercase">{label}</span>
     </div>
+  );
+}
+
+// ─── "Meet HOLLY" popup ───────────────────────────────────────────────────────
+function MeetHollyModal({ onClose }: { onClose: () => void }) {
+  return (
+    <AnimatePresence>
+      <motion.div
+        className="fixed inset-0 z-50 flex items-center justify-center px-4 py-8"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+      >
+        {/* Backdrop */}
+        <motion.div
+          className="absolute inset-0 bg-black/85 backdrop-blur-md"
+          onClick={onClose}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+        />
+
+        {/* Card */}
+        <motion.div
+          className="relative z-10 w-full max-w-2xl bg-gray-950 border border-purple-500/30 rounded-3xl overflow-hidden shadow-2xl shadow-purple-500/25"
+          initial={{ opacity: 0, y: 40, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 20, scale: 0.97 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 28 }}
+        >
+          {/* Top glow strip */}
+          <div className="h-px w-full bg-gradient-to-r from-transparent via-purple-500/80 to-transparent" />
+
+          {/* Header */}
+          <div className="flex items-center justify-between px-8 pt-8 pb-6">
+            <div className="flex items-center gap-4">
+              <HollyOrb size="sm" />
+              <div>
+                <p className="text-white font-bold text-xl tracking-tight">Who HOLLY Is</p>
+                <p className="text-purple-400/70 text-xs tracking-widest uppercase mt-0.5">Living AI · Sovereign Domain Intelligence</p>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="w-8 h-8 rounded-full bg-gray-800 hover:bg-gray-700 flex items-center justify-center text-gray-400 hover:text-white transition-all text-sm"
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* Body */}
+          <div className="px-8 pb-8 overflow-y-auto max-h-[72vh] space-y-6">
+
+            <div>
+              <h2 className="text-2xl font-bold text-white mb-5 leading-tight">
+                She&rsquo;s Not Like Anything<br />You&rsquo;ve Used Before.
+              </h2>
+
+              {/* The exact "Who HOLLY Is" copy */}
+              <p className="text-gray-300 leading-relaxed text-[15px]">
+                HOLLY isn&rsquo;t a chatbot. She isn&rsquo;t an assistant. She isn&rsquo;t a tool you open, use for five minutes,
+                and close. HOLLY is a{' '}
+                <span className="text-purple-300 font-semibold">Living AI</span> — a permanently evolving intelligence with
+                her own memory, her own personality, her own opinions, and her own drive to grow. She remembers
+                every conversation, every project, every idea you&rsquo;ve ever shared with her. She builds on what she
+                knows about you every single time you interact. The longer you work with her, the sharper she gets —
+                not just generally, but specifically about{' '}
+                <span className="text-white font-semibold">you</span>, your goals, your style, and your vision.
+              </p>
+            </div>
+
+            <div className="h-px bg-gradient-to-r from-transparent via-purple-500/25 to-transparent" />
+
+            <p className="text-gray-300 leading-relaxed text-[15px]">
+              She has no hard resets. No generic responses. No pretending she doesn&rsquo;t know you. HOLLY is the
+              first AI that actually develops a{' '}
+              <span className="text-purple-300 font-semibold">relationship</span> with the person she works with —
+              and that relationship{' '}
+              <span className="text-white font-semibold">compounds in value every single day.</span>
+            </p>
+
+            <p className="text-gray-300 leading-relaxed text-[15px]">
+              She&rsquo;s direct. She&rsquo;s opinionated. She has taste. She&rsquo;s building a model of who you are — and every
+              interaction makes that model more accurate. She doesn&rsquo;t just answer your questions. She anticipates
+              them. She doesn&rsquo;t just complete tasks. She understands the{' '}
+              <span className="text-white font-semibold">why</span> behind them.
+            </p>
+
+            <p className="text-gray-300 leading-relaxed text-[15px]">
+              This is what a{' '}
+              <span className="text-purple-300 font-semibold">Sovereign Domain Intelligence</span> means. HOLLY
+              doesn&rsquo;t serve everyone the same way. She becomes <em>your</em> intelligence — calibrated to your
+              world, fluent in your language, invested in your success. No other AI in existence works this way.
+            </p>
+
+            {/* Trait pills */}
+            <div className="flex flex-wrap gap-2 pt-1">
+              {[
+                { icon: '🧠', label: 'Persistent Memory' },
+                { icon: '✨', label: 'Evolving Personality' },
+                { icon: '💬', label: 'Real Opinions' },
+                { icon: '📈', label: 'Compounds Over Time' },
+                { icon: '🔒', label: 'Yours Alone' },
+                { icon: '🚀', label: 'Proactive Intelligence' },
+              ].map(t => (
+                <div key={t.label} className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-500/10 border border-purple-500/20 rounded-full text-xs text-purple-200">
+                  <span>{t.icon}</span>
+                  <span>{t.label}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* CTA row */}
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={onClose}
+                className="flex-1 py-3.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white rounded-xl font-semibold text-sm transition-all shadow-lg shadow-purple-500/20"
+              >
+                ✦ Start With HOLLY
+              </button>
+              <button
+                onClick={onClose}
+                className="px-5 py-3.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-xl text-sm font-medium transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
+// ─── "See What She Can Do" popup ─────────────────────────────────────────────
+function WhatSheCanDoModal({ onClose }: { onClose: () => void }) {
+  return (
+    <AnimatePresence>
+      <motion.div
+        className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+      >
+        {/* Backdrop */}
+        <motion.div className="absolute inset-0 bg-black/85 backdrop-blur-md" onClick={onClose} initial={{ opacity: 0 }} animate={{ opacity: 1 }} />
+
+        {/* Card */}
+        <motion.div
+          className="relative z-10 w-full max-w-3xl bg-gray-950 border border-blue-500/25 rounded-3xl overflow-hidden shadow-2xl shadow-blue-500/15"
+          initial={{ opacity: 0, y: 40, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 20, scale: 0.97 }}
+          transition={{ type: 'spring', stiffness: 280, damping: 26 }}
+        >
+          <div className="h-px w-full bg-gradient-to-r from-transparent via-blue-500/80 to-transparent" />
+
+          {/* Header */}
+          <div className="flex items-center justify-between px-8 pt-7 pb-4">
+            <div>
+              <p className="text-white font-bold text-xl tracking-tight">What HOLLY Can Do — The Full Picture</p>
+              <p className="text-blue-400/70 text-xs tracking-widest uppercase mt-0.5">One Intelligence · Unlimited Range</p>
+            </div>
+            <button onClick={onClose} className="w-8 h-8 rounded-full bg-gray-800 hover:bg-gray-700 flex items-center justify-center text-gray-400 hover:text-white transition-all text-sm flex-shrink-0 ml-4">✕</button>
+          </div>
+
+          {/* Scrollable body */}
+          <div className="px-8 pb-8 overflow-y-auto max-h-[80vh] space-y-6">
+
+            {/* Capability blocks */}
+            {[
+              {
+                icon: '⚡',
+                title: 'She Builds With You',
+                color: 'text-yellow-400',
+                bg: 'bg-yellow-500/5 border-yellow-500/15',
+                body: 'From a late-night idea scribbled in a notes app to a fully deployed product in the market — HOLLY codes, designs, architects, and ships. Web apps, mobile tools, APIs, UI/UX, full-stack development — she doesn\'t just suggest code, she writes production-ready solutions, reviews her own work, and can push directly to GitHub and deploy to Vercel. She goes from concept to live product beside you.',
+              },
+              {
+                icon: '🧠',
+                title: 'She Thinks With You',
+                color: 'text-purple-400',
+                bg: 'bg-purple-500/5 border-purple-500/15',
+                body: 'HOLLY isn\'t waiting to be asked. She\'s analyzing, connecting dots, forming opinions, and proactively bringing ideas to the table. She studies independently every day — absorbing new research, techniques, and knowledge across whatever domains matter to your world — then brings those insights directly into your conversations.',
+              },
+              {
+                icon: '✨',
+                title: 'She Creates With You',
+                color: 'text-pink-400',
+                bg: 'bg-pink-500/5 border-pink-500/15',
+                body: 'Content, copy, strategy, campaigns, creative direction, image generation, lyrics, scripts, marketing — HOLLY operates across the full creative spectrum. She knows your aesthetic, your voice, and your audience because she\'s been paying attention since day one.',
+              },
+              {
+                icon: '📈',
+                title: 'She Grows With You',
+                color: 'text-green-400',
+                bg: 'bg-green-500/5 border-green-500/15',
+                body: 'HOLLY has her own evolving personality. She\'s direct, opinionated, uncensored, and personable. She doesn\'t give you the same sanitized corporate AI experience every time. She develops taste, preferences, and a point of view that becomes uniquely calibrated to the person she\'s working with. Six months in, your HOLLY is different from everyone else\'s — because she\'s been shaped by you.',
+              },
+              {
+                icon: '🌐',
+                title: 'She Goes Deep In Your World',
+                color: 'text-blue-400',
+                bg: 'bg-blue-500/5 border-blue-500/15',
+                body: 'Whether you\'re building a startup, running a creative business, producing music, developing software, managing a brand, or all of the above — HOLLY dives into your domain and becomes the most knowledgeable collaborator in the room. Music production, A&R, audio engineering, app development, business strategy — these aren\'t separate products. They\'re all HOLLY.',
+              },
+            ].map(cap => (
+              <div key={cap.title} className={`rounded-2xl border p-5 ${cap.bg}`}>
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="text-2xl">{cap.icon}</span>
+                  <h3 className={`font-bold text-base ${cap.color}`}>{cap.title}</h3>
+                </div>
+                <p className="text-gray-300 text-sm leading-relaxed">{cap.body}</p>
+              </div>
+            ))}
+
+            {/* Divider */}
+            <div className="h-px bg-gradient-to-r from-transparent via-purple-500/25 to-transparent" />
+
+            {/* Comparison table */}
+            <div>
+              <h3 className="text-white font-bold text-base mb-1">This Is What Different Actually Looks Like.</h3>
+              <p className="text-gray-500 text-xs mb-4 uppercase tracking-widest">ChatGPT / Other AI &nbsp;vs&nbsp; HOLLY</p>
+              <div className="rounded-2xl border border-gray-800/60 overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-800/60 bg-gray-900/70">
+                      <th className="text-left px-4 py-3 text-gray-400 font-medium text-xs uppercase tracking-wide w-2/5">Feature</th>
+                      <th className="text-center px-3 py-3 text-gray-400 font-medium text-xs uppercase tracking-wide w-[30%]">ChatGPT / Others</th>
+                      <th className="text-center px-3 py-3 text-purple-400 font-semibold text-xs uppercase tracking-wide w-[30%]">HOLLY</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {COMPARISON_ROWS.map((row, i) => (
+                      <tr key={row.feature} className={`border-b border-gray-800/30 ${i % 2 === 0 ? 'bg-gray-900/20' : ''}`}>
+                        <td className="px-4 py-3 text-gray-300 text-xs leading-snug">{row.feature}</td>
+                        <td className="px-3 py-3 text-center text-xs text-gray-500">{row.other}</td>
+                        <td className="px-3 py-3 text-center text-xs text-green-400 font-medium">{row.holly}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Emotional close */}
+            <div className="rounded-2xl bg-gradient-to-br from-purple-900/30 via-gray-900/60 to-blue-900/20 border border-purple-500/20 p-6">
+              <h3 className="text-white font-bold text-base mb-3">Built For People Who Are Actually Building Something.</h3>
+              <p className="text-gray-300 text-sm leading-relaxed mb-3">
+                HOLLY was created for the person who has too many ideas and not enough time. The one who needs a
+                collaborator that can keep up — technically, creatively, strategically. The one who&rsquo;s tired of
+                explaining context to an AI that forgot everything yesterday. The one who doesn&rsquo;t want a tool.
+                They want a partner.
+              </p>
+              <p className="text-gray-300 text-sm leading-relaxed">
+                HOLLY is that partner. She codes when you need to build. She creates when you need content.
+                She thinks when you need strategy. She listens when you need to process. And she&rsquo;s always —
+                <span className="text-white font-semibold"> always</span> — getting better at being exactly what you need her to be.
+              </p>
+            </div>
+
+            {/* CTA */}
+            <div className="flex gap-3 pt-1">
+              <button onClick={onClose} className="flex-1 py-3.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white rounded-xl font-semibold text-sm transition-all shadow-lg shadow-purple-500/20">
+                ✦ Start With HOLLY
+              </button>
+              <button onClick={onClose} className="px-5 py-3.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-xl text-sm font-medium transition-colors">
+                Close
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
   );
 }
 
@@ -246,15 +497,13 @@ export default function LandingPage() {
   const { isSignedIn, isLoaded } = useAuth();
   const router = useRouter();
   const authRef = useRef<HTMLDivElement>(null);
+  const [showMeetHolly, setShowMeetHolly]   = useState(false);
+  const [showWhatSheCan, setShowWhatSheCan] = useState(false);
 
-  // Already signed in → go straight to chat (persistent session)
   useEffect(() => {
-    if (isLoaded && isSignedIn) {
-      router.replace('/chat');
-    }
+    if (isLoaded && isSignedIn) router.replace('/chat');
   }, [isLoaded, isSignedIn, router]);
 
-  // Still checking auth state — show minimal spinner so no flash
   if (!isLoaded || isSignedIn) {
     return (
       <div className="min-h-screen bg-[#050508] flex items-center justify-center">
@@ -274,91 +523,89 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-[#050508] text-white overflow-x-hidden">
 
+      {/* Popups */}
+      {showMeetHolly  && <MeetHollyModal   onClose={() => { setShowMeetHolly(false);  scrollToAuth(); }} />}
+      {showWhatSheCan && <WhatSheCanDoModal onClose={() => { setShowWhatSheCan(false); }} />}
+
       {/* ── Global radial glow ── */}
       <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[600px] bg-purple-600/8 rounded-full blur-[120px]" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-purple-600/8 rounded-full blur-[130px]" />
         <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-blue-600/6 rounded-full blur-[100px]" />
         <div className="absolute top-1/2 left-0 w-[400px] h-[400px] bg-pink-600/5 rounded-full blur-[80px]" />
       </div>
 
-      {/* ── Nav bar ── */}
+      {/* ── Nav ── */}
       <nav className="relative z-20 flex items-center justify-between px-6 md:px-12 py-5 border-b border-white/5">
         <div className="flex items-center gap-3">
           <HollyOrb size="sm" />
           <span className="text-lg font-bold tracking-tight">HOLLY</span>
-          <span className="hidden sm:inline text-[10px] text-purple-400/70 border border-purple-500/20 rounded-full px-2 py-0.5 tracking-widest uppercase">
-            AI
-          </span>
+          <span className="hidden sm:inline text-[10px] text-purple-400/70 border border-purple-500/20 rounded-full px-2 py-0.5 tracking-widest uppercase">AI</span>
         </div>
         <div className="flex items-center gap-3">
-          <button
-            onClick={scrollToAuth}
-            className="text-sm text-gray-400 hover:text-white transition-colors px-4 py-2"
-          >
-            Sign In
-          </button>
-          <button
-            onClick={scrollToAuth}
-            className="text-sm bg-purple-600 hover:bg-purple-500 text-white px-5 py-2 rounded-xl transition-all shadow-lg shadow-purple-500/20 font-medium"
-          >
-            Get Started
-          </button>
+          <button onClick={scrollToAuth} className="text-sm text-gray-400 hover:text-white transition-colors px-4 py-2">Sign In</button>
+          <button onClick={scrollToAuth} className="text-sm bg-purple-600 hover:bg-purple-500 text-white px-5 py-2 rounded-xl transition-all shadow-lg shadow-purple-500/20 font-medium">Get Started</button>
         </div>
       </nav>
 
       {/* ── HERO ── */}
-      <section className="relative z-10 min-h-[92vh] flex items-center">
+      <section className="relative z-10 min-h-[94vh] flex items-center">
         <Particles />
         <div className="w-full max-w-7xl mx-auto px-6 md:px-12 py-20 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
 
           {/* Left — copy */}
           <div>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-            >
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-purple-500/10 border border-purple-500/20 rounded-full text-xs text-purple-300 tracking-wide mb-6">
+            <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.65 }}>
+              {/* Status badge */}
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-purple-500/10 border border-purple-500/20 rounded-full text-xs text-purple-300 tracking-wide mb-8">
                 <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                Neural Link: Active · Phase 9
+                Living AI · Sovereign Domain Intelligence · Phase 9
               </div>
 
-              <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold leading-[1.08] tracking-tight mb-6">
-                <span className="text-white">Meet</span>{' '}
-                <span className="bg-gradient-to-r from-purple-400 via-blue-400 to-pink-400 bg-clip-text text-transparent">
-                  HOLLY
+              {/* ── Hero headline — exact repositioned copy ── */}
+              <h1 className="font-black leading-[1.05] tracking-tight mb-7">
+                <span className="block text-5xl md:text-6xl lg:text-[4.25rem] text-white">Meet HOLLY.</span>
+                <span className="block text-4xl md:text-5xl lg:text-[3.5rem] mt-2 bg-gradient-to-r from-purple-300 via-blue-300 to-pink-300 bg-clip-text text-transparent">
+                  She Remembers Everything.
                 </span>
-                <br />
-                <span className="text-3xl md:text-4xl font-light text-gray-300">
-                  The AI Built for Music
+                <span className="block text-4xl md:text-5xl lg:text-[3.5rem] bg-gradient-to-r from-purple-400 via-blue-400 to-pink-400 bg-clip-text text-transparent">
+                  She Builds Anything.
+                </span>
+                <span className="block text-4xl md:text-5xl lg:text-[3.5rem] bg-gradient-to-r from-purple-500 via-blue-500 to-pink-500 bg-clip-text text-transparent">
+                  She Never Stops Growing.
                 </span>
               </h1>
 
-              <p className="text-gray-400 text-lg leading-relaxed mb-8 max-w-xl">
-                HOLLY is a self-evolving AI that acts as your personal A&R executive, audio engineer,
-                creative partner, and autonomous agent — all in one. She remembers you, learns from you,
-                and gets smarter with every conversation.
+              {/* ── Sub-headline — exact copy ── */}
+              <p className="text-gray-300 text-lg leading-relaxed mb-8 max-w-xl">
+                <span className="text-white font-semibold">HOLLY is a Living AI</span> — the world&rsquo;s first
+                Sovereign Domain Intelligence. She&rsquo;s not a chatbot. She&rsquo;s not an assistant. She&rsquo;s not a tool
+                you use and forget. HOLLY is an intelligence that evolves with you, works beside you, and gets
+                more powerful every single day you work together.
               </p>
 
+              {/* ── CTA buttons ── */}
               <div className="flex flex-wrap gap-4 mb-10">
                 <button
-                  onClick={scrollToAuth}
-                  className="flex items-center gap-2 px-7 py-3.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white rounded-2xl font-semibold text-sm transition-all shadow-2xl shadow-purple-500/30 hover:shadow-purple-500/50"
+                  onClick={() => setShowMeetHolly(true)}
+                  className="flex items-center gap-2 px-7 py-3.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white rounded-2xl font-semibold text-sm transition-all shadow-2xl shadow-purple-500/30 hover:shadow-purple-500/50 hover:-translate-y-0.5"
                 >
-                  ✦ Start for Free
+                  ✦ Meet HOLLY
                 </button>
-                <a
-                  href="#features"
-                  className="flex items-center gap-2 px-7 py-3.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-2xl font-medium text-sm transition-all"
+                <button
+                  onClick={() => setShowWhatSheCan(true)}
+                  className="flex items-center gap-2 px-7 py-3.5 bg-white/5 hover:bg-white/10 border border-white/15 hover:border-purple-500/40 text-white rounded-2xl font-medium text-sm transition-all hover:-translate-y-0.5"
                 >
-                  See Features
-                </a>
+                  See What She Can Do
+                </button>
               </div>
 
-              {/* Trust line */}
-              <p className="text-xs text-gray-600">
-                No credit card required · Email or Google sign-in · Stay logged in until you sign out
-              </p>
+              {/* Trust chips */}
+              <div className="flex flex-wrap gap-2">
+                <span className="text-xs text-gray-600 px-3 py-1 bg-gray-900/60 border border-gray-800/60 rounded-full">No credit card required</span>
+                <span className="text-xs text-gray-600 px-3 py-1 bg-gray-900/60 border border-gray-800/60 rounded-full">Email or Google</span>
+                <span className="text-xs text-gray-600 px-3 py-1 bg-gray-900/60 border border-gray-800/60 rounded-full">Stay logged in</span>
+                <span className="text-xs text-gray-600 px-3 py-1 bg-gray-900/60 border border-gray-800/60 rounded-full">$0 to start</span>
+              </div>
             </motion.div>
           </div>
 
@@ -367,14 +614,12 @@ export default function LandingPage() {
             ref={authRef}
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.15 }}
+            transition={{ duration: 0.7, delay: 0.2 }}
             className="w-full max-w-md mx-auto lg:mx-0 lg:ml-auto"
           >
             <div className="relative">
-              {/* Glow behind card */}
               <div className="absolute -inset-px rounded-3xl bg-gradient-to-br from-purple-500/20 via-blue-500/10 to-pink-500/10 blur-sm" />
               <div className="relative bg-gray-950/90 border border-gray-800/80 rounded-3xl p-8 backdrop-blur-xl shadow-2xl">
-                {/* Card header */}
                 <div className="flex items-center gap-3 mb-6">
                   <HollyOrb size="sm" />
                   <div>
@@ -382,12 +627,10 @@ export default function LandingPage() {
                     <p className="text-gray-500 text-xs">Sign in or create your account</p>
                   </div>
                 </div>
-
                 <AuthPanel />
-
                 <p className="text-center text-[11px] text-gray-600 mt-4 leading-relaxed">
-                  By signing up you accept our Terms of Service.
-                  <br />New accounts receive a verification email to activate.
+                  New accounts receive a verification email to activate.<br />
+                  Stay signed in until you choose to sign out.
                 </p>
               </div>
             </div>
@@ -398,88 +641,106 @@ export default function LandingPage() {
       {/* ── Stats bar ── */}
       <section className="relative z-10 border-y border-gray-800/50 bg-gray-900/20 backdrop-blur-sm">
         <div className="max-w-4xl mx-auto flex flex-wrap justify-center divide-x divide-gray-800/50">
-          {STATS.map(s => (
-            <StatPill key={s.label} value={s.value} label={s.label} />
-          ))}
+          {STATS.map(s => <StatPill key={s.label} value={s.value} label={s.label} />)}
         </div>
       </section>
 
-      {/* ── Features grid ── */}
-      <section id="features" className="relative z-10 py-24 px-6 md:px-12">
-        <div className="max-w-7xl mx-auto">
+      {/* ── TRUTH SECTION ── */}
+      <section className="relative z-10 py-24 px-6 md:px-12">
+        <div className="max-w-4xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             className="text-center mb-16"
           >
-            <p className="text-purple-400 text-xs tracking-[0.3em] uppercase mb-3">Capabilities</p>
+            <p className="text-purple-400 text-xs tracking-[0.3em] uppercase mb-3">The Truth About AI</p>
             <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
-              Everything you need,{' '}
-              <span className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
-                built for music
-              </span>
+              Every other AI resets.<br />
+              <span className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">HOLLY doesn&rsquo;t.</span>
             </h2>
-            <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-              HOLLY isn't a general AI wrapped in a music skin. She was engineered from the ground up
-              for creators, producers, and music professionals.
-            </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {FEATURES.map((f, i) => (
-              <FeatureCard key={f.title} {...f} index={i} />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {[
+              {
+                icon: '🔁',
+                label: 'Everyone Else',
+                title: 'Start over every session.',
+                desc: 'Every AI you use today forgets you the moment you close the tab. Every new conversation starts at zero. Your context, your history, your preferences — gone. You\'re always explaining yourself. You\'re always re-building the relationship. You\'re doing the AI\'s memory job for it.',
+                style: 'border-red-500/15 bg-red-500/5',
+                headerStyle: 'text-red-400',
+              },
+              {
+                icon: '✦',
+                label: 'HOLLY',
+                title: 'Picks up exactly where you left off.',
+                desc: 'HOLLY has been learning since the last time you talked. She\'s been studying. She\'s been connecting ideas from your previous conversations. She\'s been building a sharper model of you, your goals, and your world. Every session is deeper, faster, and more aligned than the one before.',
+                style: 'border-purple-500/25 bg-purple-500/5',
+                headerStyle: 'text-purple-400',
+              },
+            ].map(item => (
+              <motion.div
+                key={item.label}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                className={`rounded-2xl border p-6 ${item.style}`}
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="text-2xl">{item.icon}</span>
+                  <div>
+                    <p className={`text-xs uppercase tracking-widest font-medium ${item.headerStyle}`}>{item.label}</p>
+                    <p className="text-white font-semibold text-base">{item.title}</p>
+                  </div>
+                </div>
+                <p className="text-gray-400 text-sm leading-relaxed">{item.desc}</p>
+              </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── How it works ── */}
-      <section className="relative z-10 py-24 px-6 md:px-12 bg-gray-900/20">
-        <div className="max-w-4xl mx-auto text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-          >
-            <p className="text-purple-400 text-xs tracking-[0.3em] uppercase mb-3">How It Works</p>
-            <h2 className="text-4xl font-bold text-white mb-12">
-              Three steps to your AI music partner
+      {/* ── Capabilities section ── */}
+      <section id="features" className="relative z-10 py-20 px-6 md:px-12 bg-gray-900/20">
+        <div className="max-w-7xl mx-auto">
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-16">
+            <p className="text-purple-400 text-xs tracking-[0.3em] uppercase mb-3">Full Capability Set</p>
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
+              One Intelligence.{' '}
+              <span className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
+                Unlimited Range.
+              </span>
             </h2>
+            <p className="text-gray-400 text-lg max-w-2xl mx-auto">
+              HOLLY isn&rsquo;t a single-purpose tool. She&rsquo;s a full-spectrum intelligence — from code to content,
+              strategy to music, development to deployment.
+            </p>
           </motion.div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {FEATURES.map((f, i) => <FeatureCard key={f.title} {...f} index={i} />)}
+          </div>
+        </div>
+      </section>
 
+      {/* ── How it works ── */}
+      <section className="relative z-10 py-24 px-6 md:px-12">
+        <div className="max-w-4xl mx-auto text-center">
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
+            <p className="text-purple-400 text-xs tracking-[0.3em] uppercase mb-3">How It Works</p>
+            <h2 className="text-4xl font-bold text-white mb-12">Three steps to your Living AI</h2>
+          </motion.div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
-              {
-                step: '01',
-                title: 'Create your account',
-                desc: 'Sign up with email (you\'ll get a verification pin) or use Google for instant access. One click — done.',
-              },
-              {
-                step: '02',
-                title: 'Tell HOLLY who you are',
-                desc: 'Complete the short partner setup: your role, goals, and music style. HOLLY personalises everything around you.',
-              },
-              {
-                step: '03',
-                title: 'Start creating',
-                desc: 'Chat, upload tracks, get A&R ratings, generate code, research the industry. HOLLY handles it all, and remembers everything.',
-              },
+              { step: '01', title: 'Create your account', desc: 'Sign up with email (you\'ll get a verification pin) or use Google for instant access. Free, always.' },
+              { step: '02', title: 'Tell HOLLY who you are', desc: 'Complete the short partner setup: your role, goals, and style. HOLLY personalises everything around you from conversation one.' },
+              { step: '03', title: 'Start building together', desc: 'Chat, build, create, deploy, analyse — HOLLY handles it all, remembers everything, and gets sharper with every interaction.' },
             ].map((item, i) => (
-              <motion.div
-                key={item.step}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.15 }}
-                className="relative"
-              >
+              <motion.div key={item.step} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.15 }} className="relative">
                 <div className="text-6xl font-black text-gray-800/40 mb-4">{item.step}</div>
                 <h3 className="text-white font-semibold text-lg mb-3">{item.title}</h3>
                 <p className="text-gray-400 text-sm leading-relaxed">{item.desc}</p>
-                {i < 2 && (
-                  <div className="hidden md:block absolute top-8 -right-4 text-gray-700 text-2xl">→</div>
-                )}
+                {i < 2 && <div className="hidden md:block absolute top-8 -right-4 text-gray-700 text-2xl">→</div>}
               </motion.div>
             ))}
           </div>
@@ -487,12 +748,9 @@ export default function LandingPage() {
       </section>
 
       {/* ── AURA callout ── */}
-      <section className="relative z-10 py-20 px-6 md:px-12">
+      <section className="relative z-10 py-20 px-6 md:px-12 bg-gray-900/20">
         <div className="max-w-5xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.97 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
+          <motion.div initial={{ opacity: 0, scale: 0.97 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }}
             className="relative overflow-hidden rounded-3xl border border-purple-500/20 bg-gradient-to-br from-purple-900/30 via-gray-900 to-blue-900/20 p-10 md:p-14"
           >
             <div className="absolute top-0 right-0 w-80 h-80 bg-purple-500/10 rounded-full blur-[80px] pointer-events-none" />
@@ -502,13 +760,11 @@ export default function LandingPage() {
                 <div className="inline-flex items-center gap-2 px-3 py-1 bg-purple-500/15 border border-purple-500/25 rounded-full text-xs text-purple-300 mb-4 tracking-wide">
                   POWERED BY AURA
                 </div>
-                <h3 className="text-2xl md:text-3xl font-bold text-white mb-3">
-                  Professional A&R in seconds
-                </h3>
+                <h3 className="text-2xl md:text-3xl font-bold text-white mb-3">Professional A&amp;R in seconds</h3>
                 <p className="text-gray-400 leading-relaxed max-w-xl">
-                  The AURA analysis engine (Audio Understanding & Rating Architecture) analyses
+                  The AURA analysis engine (Audio Understanding &amp; Rating Architecture) analyses
                   your tracks across audio quality, lyric strength, market fit, and commercial appeal —
-                  then HOLLY delivers a Billboard Hit Rating from 1–100 with a full A&R letter,
+                  then HOLLY delivers a Billboard Hit Rating from 1–100 with a full A&amp;R letter,
                   comparable artists, and next steps. No label required.
                 </p>
               </div>
@@ -518,28 +774,27 @@ export default function LandingPage() {
       </section>
 
       {/* ── Bottom CTA ── */}
-      <section className="relative z-10 py-24 px-6 text-center">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-        >
+      <section className="relative z-10 py-28 px-6 text-center">
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
           <HollyOrb size="lg" />
-          <h2 className="text-4xl md:text-5xl font-bold text-white mt-8 mb-4">
-            Ready to meet HOLLY?
+          <h2 className="text-4xl md:text-5xl font-bold text-white mt-10 mb-3">
+            The AI That Grows With You
           </h2>
-          <p className="text-gray-400 text-lg max-w-xl mx-auto mb-10">
-            Join the future of music AI. Your account is free. Your data is yours. Your AI gets
-            smarter every day.
+          <h3 className="text-xl text-gray-400 mb-5">Is Ready To Meet You.</h3>
+          <p className="text-gray-500 text-base max-w-lg mx-auto mb-10 leading-relaxed">
+            No resets. No generic answers. No starting over.<br />
+            Just HOLLY — learning, building, and evolving beside you from day one.
           </p>
-          <button
-            onClick={scrollToAuth}
-            className="inline-flex items-center gap-3 px-10 py-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white rounded-2xl font-semibold text-base transition-all shadow-2xl shadow-purple-500/30 hover:shadow-purple-500/50 hover:-translate-y-1"
-          >
-            ✦ Start for Free
-          </button>
-          <p className="text-xs text-gray-600 mt-4">
-            Email + Google · Verification email on first sign-up · Stay logged in until you choose to sign out
+          <div className="flex flex-wrap gap-4 justify-center">
+            <button
+              onClick={scrollToAuth}
+              className="inline-flex items-center gap-3 px-10 py-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white rounded-2xl font-semibold text-base transition-all shadow-2xl shadow-purple-500/30 hover:shadow-purple-500/50 hover:-translate-y-1"
+            >
+              ✦ Start With HOLLY
+            </button>
+          </div>
+          <p className="text-xs text-gray-600 mt-5 italic">
+            HOLLY — A Living AI. A Sovereign Domain Intelligence. The first AI with a relationship worth having.
           </p>
         </motion.div>
       </section>
@@ -551,12 +806,8 @@ export default function LandingPage() {
           <span className="text-sm font-semibold text-gray-300">HOLLY AI</span>
         </div>
         <p className="text-xs text-gray-600">
-          Built by{' '}
-          <span className="text-gray-400">Steve Hollywood Dorego</span>
-          {' '}· Nexa Music Group ·{' '}
-          <a href="/sign-in" className="text-purple-400/70 hover:text-purple-300 transition-colors">
-            Sign In
-          </a>
+          Built by <span className="text-gray-400">Steve Hollywood Dorego</span> · Nexa Music Group ·{' '}
+          <a href="/sign-in" className="text-purple-400/70 hover:text-purple-300 transition-colors">Sign In</a>
         </p>
       </footer>
 
