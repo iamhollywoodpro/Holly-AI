@@ -37,7 +37,7 @@ export default function AccountPage() {
             <p className="text-gray-400">{user?.primaryEmailAddress?.emailAddress}</p>
             <div className="flex gap-2 mt-2">
               <span className="px-3 py-1 bg-purple-500/20 text-purple-300 text-xs rounded-full">
-                Free Plan
+                Early Access
               </span>
             </div>
           </div>

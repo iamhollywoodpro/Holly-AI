@@ -45,12 +45,12 @@ export default function AccountPage() {
     }
   };
 
-  const currentPlan = 'free' as const; // TODO: Get from database
+  const currentPlan = 'early_access' as const; // TODO: Get from database
 
   const plansData = [
     {
-      id: 'free',
-      name: 'Free Tier',
+      id: 'early_access',
+      name: 'Early Access',
       price: { monthly: 0, annually: 0 },
       features: [
         '100 AI messages per month',
@@ -105,7 +105,7 @@ export default function AccountPage() {
   const plans = plansData.map(plan => {
     let cta = 'Current Plan';
     if (currentPlan !== plan.id) {
-      if (plan.id === 'free') cta = 'Downgrade';
+      if (plan.id === 'early_access') cta = 'Downgrade';
       else if (plan.id === 'pro') cta = 'Upgrade to Pro';
       else cta = 'Contact Sales';
     }
@@ -224,8 +224,8 @@ export default function AccountPage() {
               <h3 className="text-lg font-semibold text-white">Current Plan</h3>
               <SparklesIcon className="w-6 h-6 text-purple-400" />
             </div>
-            <div className="text-3xl font-bold text-white mb-2">Free Tier</div>
-            <div className="text-gray-400 text-sm mb-4">$0/month</div>
+            <div className="text-3xl font-bold text-white mb-2">Early Access</div>
+            <div className="text-gray-400 text-sm mb-4">Beta — full access while we build</div>
             <button
               onClick={() => document.getElementById('plans')?.scrollIntoView({ behavior: 'smooth' })}
               className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg text-white font-medium transition-colors"

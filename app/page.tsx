@@ -14,7 +14,7 @@ const COMPARISON_ROWS = [
   { feature: 'Proactively brings ideas to you',     other: '❌ Waits to be asked',               holly: '✅ Initiative protocols active' },
   { feature: 'Understands your creative taste',     other: '❌',                                 holly: '✅ Builds your taste profile over time' },
   { feature: 'Uncensored & opinionated',            other: '❌ Filtered & generic',              holly: '✅ Real personality, real opinions' },
-  { feature: 'Running AI inference cost',           other: '💸 $20+/month',                     holly: '✅ $0/month' },
+  { feature: 'Running AI inference cost',           other: '💸 $20+/month',                     holly: '✅ Built-in' },
   { feature: 'Gets more valuable over time',        other: '❌ Flat forever',                    holly: '✅ Compounds with every conversation' },
 ];
 
@@ -63,9 +63,9 @@ const FEATURES = [
 
 const STATS = [
   { value: '17', label: 'Active Tools' },
-  { value: '6', label: 'Free AI Models' },
+  { value: '6', label: 'AI Models' },
   { value: '362', label: 'API Endpoints' },
-  { value: '$0', label: 'Inference Cost' },
+  { value: '9', label: 'Phase' },
 ];
 
 // ─── Animated background particles ──────────────────────────────────────────
@@ -604,7 +604,7 @@ export default function LandingPage() {
                 <span className="text-xs text-gray-600 px-3 py-1 bg-gray-900/60 border border-gray-800/60 rounded-full">No credit card required</span>
                 <span className="text-xs text-gray-600 px-3 py-1 bg-gray-900/60 border border-gray-800/60 rounded-full">Email or Google</span>
                 <span className="text-xs text-gray-600 px-3 py-1 bg-gray-900/60 border border-gray-800/60 rounded-full">Stay logged in</span>
-                <span className="text-xs text-gray-600 px-3 py-1 bg-gray-900/60 border border-gray-800/60 rounded-full">$0 to start</span>
+                <span className="text-xs text-gray-600 px-3 py-1 bg-gray-900/60 border border-gray-800/60 rounded-full">Early access</span>
               </div>
             </motion.div>
           </div>
@@ -732,7 +732,7 @@ export default function LandingPage() {
           </motion.div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
-              { step: '01', title: 'Create your account', desc: 'Sign up with email (you\'ll get a verification pin) or use Google for instant access. Free, always.' },
+              { step: '01', title: 'Create your account', desc: 'Sign up with email (you\'ll get a verification pin) or use Google for instant access.' },
               { step: '02', title: 'Tell HOLLY who you are', desc: 'Complete the short partner setup: your role, goals, and style. HOLLY personalises everything around you from conversation one.' },
               { step: '03', title: 'Start building together', desc: 'Chat, build, create, deploy, analyse — HOLLY handles it all, remembers everything, and gets sharper with every interaction.' },
             ].map((item, i) => (

@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'HOLLY AI — The AI Built for Music',
     description:
-      'Your personal A&R executive, audio engineer, and creative partner. Powered by AURA. Free to start.',
+      'Your personal A&R executive, audio engineer, and creative partner. Powered by AURA.',
     type: 'website',
     url: 'https://holly.nexamusicgroup.com',
   },
