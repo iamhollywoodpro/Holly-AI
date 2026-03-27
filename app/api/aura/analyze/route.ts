@@ -23,13 +23,22 @@ interface AnalyzeRequest {
 
 export async function POST(request: NextRequest) {
   try {
-    // Check authentication
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+    // Check authentication — allow internal server-to-server calls (e.g., from HOLLY A&R engine)
+    const internalToken = request.headers.get('x-internal-token');
+    const isInternalCall = internalToken === (process.env.INTERNAL_API_SECRET ?? 'holly-internal');
+
+    let userId: string | null = null;
+    if (!isInternalCall) {
+      const session = await auth();
+      userId = session.userId;
+      if (!userId) {
+        return NextResponse.json(
+          { error: 'Unauthorized' },
+          { status: 401 }
+        );
+      }
+    } else {
+      userId = 'holly-internal';
     }
 
     // Parse request body

@@ -48,6 +48,9 @@ import { semanticSearch, rememberExchange } from '@/lib/memory/semantic-memory';
 import { injectProjectContext, addNote, detectRelevantProject } from '@/lib/project-context/holly-projects';
 import { collectFromConversation } from '@/lib/self-sovereign/training-pipeline';
 
+// ─── Phase 9B-AR: A&R engine ──────────────────────────────────────────────────
+import { runARAnalysis, isARRequest, getARModeFromMessage } from '@/lib/ar/holly-ar-engine';
+
 // ─── runtime ──────────────────────────────────────────────────────────────────
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -100,6 +103,12 @@ export async function POST(req: NextRequest) {
       perceptionContext,    // PerceptionResult[] from /api/perception
       imageDataUrls,        // string[] — base64 images for vision
       audioAnalysis,        // AudioBrainResult from /api/audio/holly-analyze
+      // Phase 9B-AR: A&R analysis (pre-computed or trigger in chat)
+      arAnalysis,           // HollyARResult from /api/ar/analyze
+      audioUrl,             // Direct audio URL for on-the-fly A&R
+      trackTitle,           // Track metadata
+      artistName,
+      genre,
     } = body;
 
     if (!userMessages || !Array.isArray(userMessages)) {
@@ -195,6 +204,34 @@ export async function POST(req: NextRequest) {
     if (audioAnalysis) {
       hollySystemPrompt += `\n\n## Audio Analysis Result\n${audioAnalysis.contextBlock}`;
       console.log('[Chat API] 🎵 Audio brain analysis injected');
+    }
+
+    // Phase 9B-AR: A&R analysis — pre-computed or auto-triggered
+    let arResult = arAnalysis;
+    if (!arResult && audioUrl && isARRequest(latestUserMessage)) {
+      // Auto-run A&R analysis when user drops audio + asks for feedback
+      try {
+        console.log('[Chat API] 🎼 Auto-triggering A&R analysis...');
+        arResult = await runARAnalysis({
+          audioUrl,
+          fileName:    trackTitle || audioUrl.split('/').pop() || 'track.mp3',
+          trackTitle,
+          artistName,
+          genre,
+          userQuestion: latestUserMessage,
+        });
+        console.log(`[Chat API] 🎯 Billboard Rating: ${arResult.billboardRating.overall}/100`);
+      } catch (err) {
+        console.warn('[Chat API] A&R auto-trigger failed:', err);
+      }
+    }
+    if (arResult) {
+      hollySystemPrompt += `\n\n${arResult.contextBlock}`;
+      hollySystemPrompt += `\n\n## A&R Executive Instructions
+You have just received the A&R analysis above. Present it as a real, senior A&R executive would — 
+confident, specific, and honest. Lead with the Billboard Hit Rating. Use the signing decision as your 
+hook. Reference specific technical details from the analysis. Don't hedge — give your real opinion.`;
+      console.log('[Chat API] 🎬 A&R analysis injected into system prompt');
     }
 
     // 8. MCP TOOLS ─────────────────────────────────────────────────────────────

@@ -343,6 +343,39 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
       }
     },
 
+    // ── GROUP 6: AURA A&R ENGINE ──────────────────────────────────────────────
+    {
+      name: "aura_ar_analyze",
+      description: "HOLLY's A&R analysis tool. Analyzes a music track as a professional record company A&R executive. Returns a Billboard Hit Rating (1-100), score breakdown (production, songwriting, commercial appeal, originality, performance), signing decision, comparable artists, and a full A&R feedback letter. Use this when the user uploads or shares a track and wants professional music industry feedback.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          audioUrl:        { type: "string", description: "Public URL to the audio file (mp3, wav, flac, etc.)" },
+          fileName:        { type: "string", description: "The filename or track name" },
+          trackTitle:      { type: "string", description: "Song title (optional)" },
+          artistName:      { type: "string", description: "Artist name (optional)" },
+          genre:           { type: "string", description: "Genre (optional, e.g. hip-hop, pop, R&B)" },
+          lyricsText:      { type: "string", description: "Lyrics or transcript (optional)" },
+          referenceTrack:  { type: "string", description: "Comparable artist or song for reference (optional)" },
+          userQuestion:    { type: "string", description: "Specific question from the artist (optional)" }
+        },
+        required: ["audioUrl", "fileName"]
+      }
+    },
+    {
+      name: "aura_quick_rate",
+      description: "Quick A&R rating for a track. Returns just the Billboard Hit Score (1-100) and a brief 3-sentence verdict. Faster than full analysis. Use when user wants a quick gut-check on a track.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          audioUrl:   { type: "string", description: "Public URL to the audio file" },
+          trackTitle: { type: "string", description: "Track title" },
+          artistName: { type: "string", description: "Artist name" },
+          genre:      { type: "string", description: "Genre" }
+        },
+        required: ["audioUrl"]
+      }
+    },
     // ── GROUP 5: CREATIVE / UTILITY ──────────────────────────────────────────
     {
       name: "generate_image",
@@ -680,6 +713,76 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       return text(`🧠 HOLLY Memory Keys (${keys.length}):\n\n${list}`);
     }
 
+    // ══ GROUP 6: AURA A&R ENGINE ════════════════════════════════════════════════
+
+    // ── aura_ar_analyze ───────────────────────────────────────────────────────
+    if (name === "aura_ar_analyze" || name === "aura_quick_rate") {
+      const baseUrl = process.env.NEXTAUTH_URL || process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : "http://localhost:3000";
+
+      const isQuick = name === "aura_quick_rate";
+      const payload = {
+        audioUrl:    args.audioUrl,
+        fileName:    args.fileName || args.trackTitle || "track.mp3",
+        trackTitle:  args.trackTitle,
+        artistName:  args.artistName,
+        genre:       args.genre,
+        lyricsText:  args.lyricsText,
+        referenceTrack: args.referenceTrack,
+        userQuestion: isQuick ? "Quick rating please" : args.userQuestion,
+      };
+
+      try {
+        const resp = await fetchJSON(`${baseUrl}/api/ar/analyze`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-internal-token": process.env.INTERNAL_API_SECRET || "holly-internal",
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (resp.status !== 200 || !resp.body?.ok) {
+          return text(`❌ A&R analysis failed: ${JSON.stringify(resp.body)}`);
+        }
+
+        const analysis = resp.body.analysis;
+        const r = analysis.billboardRating;
+        const bar = "█".repeat(Math.round(r.overall / 10)) + "░".repeat(10 - Math.round(r.overall / 10));
+
+        if (isQuick) {
+          return text(
+            `🎵 QUICK A&R VERDICT\n\n` +
+            `Billboard Hit Rating: ${r.overall}/100  ${bar}\n` +
+            `Tier: ${r.tier}  |  Chart Potential: ${r.chartPotential}\n\n` +
+            `Signing Decision: ${analysis.signingDecision}\n\n` +
+            `${analysis.firstListen || analysis.signingReason}`
+          );
+        }
+
+        return text(
+          `🎤 HOLLY A&R ANALYSIS COMPLETE\n\n` +
+          `Billboard Hit Rating: ${r.overall}/100  ${bar}\n` +
+          `Tier: ${r.tier}  |  Chart Potential: ${r.chartPotential}\n\n` +
+          `SCORE BREAKDOWN:\n` +
+          `  🎛️  Production: ${r.breakdown.production}/100\n` +
+          `  ✍️  Songwriting: ${r.breakdown.songwriting}/100\n` +
+          `  📻 Commercial:  ${r.breakdown.commercial}/100\n` +
+          `  💡 Originality: ${r.breakdown.originality}/100\n` +
+          `  🎤 Performance: ${r.breakdown.performance}/100\n\n` +
+          `SIGNING DECISION: ${analysis.signingDecision}\n` +
+          `${analysis.signingReason}\n\n` +
+          `MARKET FIT: ${analysis.marketFit}\n\n` +
+          `COMPARABLE ACTS: ${(analysis.comparables || []).join(", ")}\n\n` +
+          `NEXT STEPS:\n${(analysis.nextSteps || []).map(s => `  • ${s}`).join("\n")}\n\n` +
+          `A&R LETTER:\n${analysis.arLetter}`
+        );
+      } catch (err) {
+        return text(`❌ A&R analysis error: ${err.message}\nTip: Make sure the audio URL is publicly accessible.`);
+      }
+    }
+
     // ══ GROUP 5: CREATIVE / UTILITY ════════════════════════════════════════════
 
     // ── generate_image ────────────────────────────────────────────────────────
@@ -728,7 +831,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error("[Holly MCP] Phase 4A tool server running — 15 tools active");
+  console.error("[Holly MCP] Phase 4A+AR tool server running — 17 tools active");
 }
 
 main().catch((err) => {
