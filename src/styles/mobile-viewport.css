@@ -13,27 +13,34 @@
 }
 
 @supports (-webkit-touch-callout: none) {
-  /* iOS Safari */
-  .h-screen {
+  /* iOS Safari — only for elements that explicitly use this class */
+  .ios-h-screen {
     height: -webkit-fill-available;
   }
 }
 
-/* Prevent overscroll bounce on mobile */
-body {
-  overscroll-behavior-y: none;
+/*
+ * NOTE: body { position: fixed } was removed — it prevented scrolling on
+ * the landing page and any non-chat page. The chat interface handles its own
+ * scroll locking via the .chat-layout class (see below).
+ */
+
+/* Chat-specific layout lock — applied only inside the chat interface */
+.chat-layout {
   position: fixed;
   width: 100%;
   height: 100vh;
-  height: 100dvh; /* Dynamic viewport height */
-}
-
-#__next {
-  height: 100%;
+  height: 100dvh;
   overflow: hidden;
 }
 
-/* Ensure input fields don't zoom on focus (iOS) */
+/* overscroll bounce prevention — scoped to chat only */
+.chat-layout,
+.chat-layout * {
+  overscroll-behavior-y: none;
+}
+
+/* Ensure input fields don't zoom on focus on iOS (safe to apply globally) */
 @media screen and (max-width: 640px) {
   input[type="text"],
   input[type="email"],

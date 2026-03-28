@@ -15,7 +15,7 @@ body {
   color: #FFFFFF;
   margin: 0;
   padding: 0;
-  overflow: hidden;
+  /* overflow: hidden was removed — it blocked scrolling on landing page and all non-chat pages */
 }
 
 /* Scrollbar Styling */
