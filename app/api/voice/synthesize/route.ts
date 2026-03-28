@@ -21,7 +21,8 @@ const HOLLY_VOICE_DESCRIPTION =
   "Confident, intelligent, warm tone with clear diction. " +
   "Professional yet friendly, conversational pacing with emotional depth.";
 
-const HOLLY_MAYA1_TTS_URL = process.env.HOLLY_MAYA1_TTS_URL || "";
+// Live Modal endpoint — deployed 2026-03-28 to iamhollywoodpro workspace
+const HOLLY_MAYA1_TTS_URL = process.env.HOLLY_MAYA1_TTS_URL || "https://iamhollywoodpro--generate.modal.run";
 const HOLLY_TTS_API_KEY   = process.env.HOLLY_TTS_API_KEY || "";
 const GEMINI_API_KEY      = process.env.GEMINI_API_KEY || "";
 
