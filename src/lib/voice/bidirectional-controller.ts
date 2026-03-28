@@ -183,7 +183,6 @@ export class BidirectionalController {
       // Stream synthesis
       for await (const chunk of maya1Service.streamSynthesize(processedContent, {
         description: options?.voiceDescription,
-        streamingEnabled: true,
       })) {
         yield chunk;
       }

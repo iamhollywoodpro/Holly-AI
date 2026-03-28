@@ -117,7 +117,6 @@ export async function POST(req: NextRequest) {
         referenceImageUrl: body.referenceImageUrl as string | undefined,
         steps: body.steps as number | undefined,
         guidance: body.guidance as number | undefined,
-        enhance: body.enhance as boolean | undefined,
       };
       result = await generateImage(imageReq);
 
@@ -131,7 +130,7 @@ export async function POST(req: NextRequest) {
         style: body.style as string | undefined,
         negativePrompt: body.negativePrompt as string | undefined,
         referenceImageUrl: body.referenceImageUrl as string | undefined,
-        cameraMovement: body.cameraMovement as string | undefined,
+        cameraMovement: body.cameraMovement as VideoGenerationRequest['cameraMovement'],
         motionIntensity: body.motionIntensity as VideoGenerationRequest['motionIntensity'],
       };
       result = await generateVideo(videoReq);

@@ -57,7 +57,7 @@ interface MusicVideoResult {
   directorNotes: string;
   scenes: MusicVideoScene[];
   generationComplete: boolean;
-  technicalSpec: { aspectRatio: string; resolution: string; colorGrade: string; editingStyle: string };
+  technicalSpec: { aspectRatio: string; resolution: string; colorGrade: string; editingStyle: string; frameRate?: number };
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
