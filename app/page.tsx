@@ -558,7 +558,7 @@ export default function LandingPage() {
               {/* Status badge */}
               <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-purple-500/10 border border-purple-500/20 rounded-full text-xs text-purple-300 tracking-wide mb-8">
                 <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                Living AI · Sovereign Domain Intelligence · Phase 9
+                Living AI · Sovereign Domain Intelligence · Phase 10
               </div>
 
               {/* ── Hero headline — exact repositioned copy ── */}
