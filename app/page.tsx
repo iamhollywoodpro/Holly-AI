@@ -196,11 +196,11 @@ function AuthPanel() {
       <AnimatePresence mode="wait">
         {mode === 'signin' ? (
           <motion.div key="signin" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} transition={{ duration: 0.2 }}>
-            <SignIn appearance={clerkAppearance} fallbackRedirectUrl="/chat" signUpUrl="#" signUpForceRedirectUrl="#" />
+            <SignIn appearance={clerkAppearance} forceRedirectUrl="/chat" fallbackRedirectUrl="/chat" />
           </motion.div>
         ) : (
           <motion.div key="signup" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} transition={{ duration: 0.2 }}>
-            <SignUp appearance={clerkAppearance} fallbackRedirectUrl="/chat" signInUrl="#" signInForceRedirectUrl="#" />
+            <SignUp appearance={clerkAppearance} forceRedirectUrl="/chat" fallbackRedirectUrl="/chat" />
           </motion.div>
         )}
       </AnimatePresence>

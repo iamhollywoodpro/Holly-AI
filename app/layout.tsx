@@ -58,10 +58,18 @@ export default function RootLayout({
                  * No manual cookie config needed — this is Clerk's default behaviour.
                  * The afterSignOut redirect goes back to the landing page (/),
                  * so users see the login form again only when they sign out.
+                 *
+                 * REDIRECT AFTER AUTH:
+                 * forceRedirectUrl takes priority over fallback — ensures /chat is
+                 * the destination after ALL auth flows including email-code MFA
+                 * (/factor-two). Without this Clerk falls through to /factor-two
+                 * which has no page in the app → 404.
                  */
                 afterSignOutUrl="/"
                 signInUrl="/sign-in"
                 signUpUrl="/sign-up"
+                signInForceRedirectUrl="/chat"
+                signUpForceRedirectUrl="/chat"
                 signInFallbackRedirectUrl="/chat"
                 signUpFallbackRedirectUrl="/chat"
                 appearance={{
