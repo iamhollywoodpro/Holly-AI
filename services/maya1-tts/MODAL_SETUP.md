@@ -45,24 +45,25 @@ modal deploy modal_deploy.py
 **First deployment takes ~5–10 minutes** (downloading Maya1 3B model).
 Subsequent cold starts take ~10–20 seconds (model loads from cached volume).
 
-### Step 5 — Get your endpoint URL
+### Step 5 — Endpoints (Already Deployed ✅)
 
-After deployment, Modal shows:
-```
-✓ Created web endpoint https://iamhollywoodpro--holly-maya1-tts-generate.modal.run
-```
+HOLLY's voice is **already live**! Your endpoints:
 
-Your endpoints:
-- `POST https://iamhollywoodpro--holly-maya1-tts-generate.modal.run` → Generate audio
-- `GET  https://iamhollywoodpro--holly-maya1-tts-health.modal.run` → Health check
-- `GET  https://iamhollywoodpro--holly-maya1-tts-voices.modal.run` → Voice info
+| Endpoint | URL |
+|----------|-----|
+| 🎤 **Generate (TTS)** | `https://iamhollywoodpro--generate.modal.run` |
+| ❤️ **Health Check** | `https://iamhollywoodpro--health.modal.run` |
+| 🎵 **Voice Info** | `https://iamhollywoodpro--voices.modal.run` |
+| 📊 **Dashboard** | https://modal.com/apps/iamhollywoodpro/main/deployed/holly-maya1-tts |
+
+> **Re-deploying** only needed if you change `modal_deploy.py`.
 
 ### Step 6 — Add to Vercel Environment Variables
 
 In your Vercel dashboard → HOLLY project → Settings → Environment Variables:
 
 ```
-HOLLY_MAYA1_TTS_URL = https://iamhollywoodpro--holly-maya1-tts-generate.modal.run
+HOLLY_MAYA1_TTS_URL = https://iamhollywoodpro--generate.modal.run
 HOLLY_TTS_API_KEY   = (your secret key from Step 3, or leave blank)
 ```
 
@@ -79,7 +80,7 @@ modal run modal_deploy.py
 
 ### Test the deployed endpoint
 ```bash
-curl -X POST https://iamhollywoodpro--holly-maya1-tts-generate.modal.run \
+curl -X POST https://iamhollywoodpro--generate.modal.run \
   -H "Content-Type: application/json" \
   -d '{"text": "Hello Hollywood! Ready to build something amazing?"}' \
   --output holly_test.wav
@@ -87,10 +88,16 @@ curl -X POST https://iamhollywoodpro--holly-maya1-tts-generate.modal.run \
 
 ### Test with emotions
 ```bash
-curl -X POST https://iamhollywoodpro--holly-maya1-tts-generate.modal.run \
+curl -X POST https://iamhollywoodpro--generate.modal.run \
   -H "Content-Type: application/json" \
   -d '{"text": "Great news! <laugh> The feature you wanted just shipped!", "temperature": 0.4}' \
   --output holly_emotion.wav
+```
+
+### Quick health check
+```bash
+curl https://iamhollywoodpro--health.modal.run
+# → {"status":"healthy","model":"maya-research/maya1","voice":"HOLLY"}
 ```
 
 ---
