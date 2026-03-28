@@ -2,44 +2,34 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';
 
-
 /**
- * Album Cover Generation API
- * Convenience endpoint specifically for album covers
+ * Album Cover Generation — 100% FREE via Pollinations AI (FLUX model)
+ * No API key. No cost. No limits.
+ * https://image.pollinations.ai
  */
+
+function buildPollinationsUrl(prompt: string, width = 1024, height = 1024): string {
+  const encoded = encodeURIComponent(prompt);
+  return `https://image.pollinations.ai/prompt/${encoded}?width=${width}&height=${height}&nologo=true&enhance=true&model=flux`;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const albumData = await request.json() as any;
-    
-    // Build prompt for album cover
     const prompt = buildAlbumCoverPrompt(albumData);
-    
-    // Call DALL-E 3
-    const response = await fetch('https://api.openai.com/v1/images/generations', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: 'dall-e-3',
-        prompt,
-        n: 1,
-        size: '1024x1024',
-        quality: 'standard'
-      })
-    });
-    
-    if (!response.ok) {
-      throw new Error('DALL-E API failed');
+    const imageUrl = buildPollinationsUrl(prompt);
+
+    // Pollinations generates synchronously — verify it's reachable
+    const check = await fetch(imageUrl, { method: 'HEAD', signal: AbortSignal.timeout(20000) });
+    if (!check.ok) {
+      throw new Error(`Image generation failed (${check.status})`);
     }
-    
-    const data = await response.json() as any;
-    
+
     return NextResponse.json({
       success: true,
-      imageUrl: data.data[0].url,
-      prompt
+      imageUrl,
+      prompt,
+      provider: 'pollinations-flux',
     });
   } catch (error) {
     console.error('Album cover generation error:', error);
@@ -51,26 +41,30 @@ export async function POST(request: NextRequest) {
 }
 
 function buildAlbumCoverPrompt(data: any): string {
-  let prompt = `Professional album cover for "${data.trackTitle}" by ${data.artist}. `;
+  let prompt = `Professional album cover art`;
   
+  if (data.trackTitle && data.artist) {
+    prompt += ` for "${data.trackTitle}" by ${data.artist}`;
+  }
+  prompt += '. ';
+
   if (data.genre) prompt += `${data.genre} music. `;
-  if (data.mood) prompt += `Mood: ${data.mood}. `;
-  
+  if (data.mood)  prompt += `Mood: ${data.mood}. `;
+
   const styleDescriptions: Record<string, string> = {
-    minimalist: 'Minimalist design, clean lines, simple composition.',
-    bold: 'Bold, striking, high contrast, dramatic.',
-    artistic: 'Artistic, creative, unique, expressive.',
+    minimalist:   'Minimalist design, clean lines, simple composition.',
+    bold:         'Bold, striking, high contrast, dramatic.',
+    artistic:     'Artistic, creative, unique, expressive.',
     photographic: 'Photographic, realistic, cinematic.',
-    abstract: 'Abstract, surreal, conceptual.',
-    retro: 'Retro, vintage, nostalgic.',
-    modern: 'Modern, contemporary, sleek.'
+    abstract:     'Abstract, surreal, conceptual.',
+    retro:        'Retro, vintage, nostalgic.',
+    modern:       'Modern, contemporary, sleek.',
   };
-  
+
   if (data.style && styleDescriptions[data.style]) {
     prompt += styleDescriptions[data.style] + ' ';
   }
-  
+
   prompt += 'High quality, 3000x3000px. NO text, NO artist name (pure visual design only).';
-  
   return prompt;
 }

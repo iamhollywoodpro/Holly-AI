@@ -11,7 +11,7 @@ export interface Message {
   timestamp: Date;
   emotion?: EmotionType;
   isStreaming?: boolean;
-  model?: 'claude-opus-4' | 'groq-llama' | 'fallback';
+  model?: 'groq-llama-3.3' | 'groq-llama' | 'openrouter' | 'ollama' | 'fallback';
   metadata?: Record<string, any>;
 }
 

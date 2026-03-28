@@ -330,7 +330,7 @@ export const COMPOSITION_PRINCIPLES = {
 
 /**
  * Builds an optimized AI image generation prompt from a visual concept.
- * Optimized for AI image generators (Pollinations/Flux, DALL-E, Midjourney style).
+ * Optimized for AI image generators (Pollinations/Flux, Stable Diffusion, HuggingFace \u2014 all free/open-source).
  */
 export function buildImagePrompt(concept: Partial<VisualConcept> & { subject: string }): ImageGenerationPrompt {
   const movement = concept.movement ? ART_MOVEMENTS[concept.movement] : null;

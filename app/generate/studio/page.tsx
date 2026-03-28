@@ -4,7 +4,7 @@
  * HOLLY Generation Studio — Phase 11
  *
  * Full multi-modal creation suite:
- *   - Image generation (FLUX, DALL-E, Pollinations)
+ *   - Image generation (FLUX via Fal.ai/HuggingFace, Pollinations — 100% free)
  *   - Video generation (Kling v2, Wan 2.5, Replicate)
  *   - Music video creation (storyboard + frame generation)
  *   - Audio-visual sync planner
@@ -18,7 +18,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Tab = 'image' | 'video' | 'music-video' | 'av-sync';
-type ImageModel = 'auto' | 'flux-1-1-pro' | 'flux-schnell' | 'flux-dev' | 'stable-diffusion-xl' | 'dalle3' | 'pollinations';
+type ImageModel = 'auto' | 'flux-1-1-pro' | 'flux-schnell' | 'flux-dev' | 'stable-diffusion-xl' | 'pollinations';
 type VideoModel = 'auto' | 'kling-v2' | 'wan-v2-5' | 'runway-gen4' | 'luma-dream-machine' | 'zeroscope';
 type AspectRatio = '16:9' | '9:16' | '1:1' | '4:3' | '3:4';
 type MusicVideoStyle = 'cinematic' | 'visualizer' | 'lyric-video' | 'performance' | 'abstract' | 'animated' | 'documentary';
@@ -290,7 +290,7 @@ export default function GenerationStudio() {
                 >
                   <SectionHeader
                     title="Image Generation"
-                    subtitle="Create stunning visuals using FLUX, DALL-E 3, Stable Diffusion, or Pollinations"
+                    subtitle="Create stunning visuals using FLUX, Stable Diffusion, or Pollinations — 100% FREE"
                     icon="🎨"
                   />
 
@@ -1034,8 +1034,7 @@ const IMAGE_MODELS = [
   { value: 'flux-schnell', label: 'FLUX Schnell — Fast' },
   { value: 'flux-dev', label: 'FLUX Dev — Balanced' },
   { value: 'stable-diffusion-xl', label: 'Stable Diffusion XL' },
-  { value: 'dalle3', label: 'DALL-E 3 — Photorealistic' },
-  { value: 'pollinations', label: 'Pollinations — Free' },
+  { value: 'pollinations', label: 'Pollinations FLUX — Free, no key' },
 ];
 
 const VIDEO_MODELS = [

@@ -177,24 +177,24 @@ export function MediaGenerator() {
           <div className="space-y-2">
             <div className="flex items-center justify-between p-2 rounded border">
               <div>
-                <p className="font-medium">DALL-E 3 (OpenAI)</p>
-                <p className="text-sm text-muted-foreground">High quality, photorealistic</p>
+                <p className="font-medium">Pollinations FLUX (Free)</p>
+                <p className="text-sm text-muted-foreground">High quality, no key needed</p>
               </div>
-              <span className="text-sm text-green-600">Active</span>
+              <span className="text-sm text-green-600">Active — Free</span>
             </div>
-            <div className="flex items-center justify-between p-2 rounded border opacity-50">
+            <div className="flex items-center justify-between p-2 rounded border">
               <div>
-                <p className="font-medium">Midjourney</p>
-                <p className="text-sm text-muted-foreground">Artistic, creative</p>
+                <p className="font-medium">FLUX via Fal.ai (Free credits)</p>
+                <p className="text-sm text-muted-foreground">Best quality, FAL_KEY required</p>
               </div>
-              <span className="text-sm text-muted-foreground">Coming Soon</span>
+              <span className="text-sm text-blue-600">Optional</span>
             </div>
-            <div className="flex items-center justify-between p-2 rounded border opacity-50">
+            <div className="flex items-center justify-between p-2 rounded border">
               <div>
-                <p className="font-medium">Stable Diffusion</p>
-                <p className="text-sm text-muted-foreground">Open source, flexible</p>
+                <p className="font-medium">Stable Diffusion XL (Free)</p>
+                <p className="text-sm text-muted-foreground">Open source, REPLICATE_API_KEY or HF</p>
               </div>
-              <span className="text-sm text-muted-foreground">Coming Soon</span>
+              <span className="text-sm text-blue-600">Optional</span>
             </div>
           </div>
         </CardContent>

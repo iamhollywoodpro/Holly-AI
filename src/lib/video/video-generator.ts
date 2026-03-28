@@ -126,23 +126,17 @@ export class VideoGenerator {
     // Generate concept
     const prompt = this.buildMusicVideoPrompt(request);
 
-    // Generate initial keyframe image using DALL-E
-    const imageResponse = await fetch('https://api.openai.com/v1/images/generations', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: 'dall-e-3',
-        prompt: `Music video keyframe for "${request.songTitle}" by ${request.artist}. ${request.mood} mood, ${request.genre} style. Cinematic, professional, high-quality.`,
-        n: 1,
-        size: '1024x1024'
-      })
-    });
+    // Generate initial keyframe image using Pollinations AI (100% free, no key needed)
+    const imagePrompt = encodeURIComponent(
+      `Music video keyframe for "${request.songTitle}" by ${request.artist}. ${request.mood} mood, ${request.genre} style. Cinematic, professional, high-quality.`
+    );
+    const imageUrl = `https://image.pollinations.ai/prompt/${imagePrompt}?width=1024&height=1024&nologo=true&enhance=true&model=flux`;
 
-    const imageData = await imageResponse.json();
-    const imageUrl = imageData.data[0].url;
+    // Verify image is reachable before animating
+    const check = await fetch(imageUrl, { method: 'HEAD', signal: AbortSignal.timeout(20000) });
+    if (!check.ok) {
+      throw new Error(`Pollinations image generation failed (${check.status})`);
+    }
 
     // Animate the image
     return this.generateImageToVideo(imageUrl, prompt, 'high');

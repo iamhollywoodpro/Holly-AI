@@ -171,10 +171,29 @@ function ToolCard({ execution }: { execution: ToolExecution }) {
 // ─── Speak Button (Maya1 TTS) ─────────────────────────────────────────────────
 
 function SpeakButton({ text, messageId }: { text: string; messageId: string }) {
-  const [loading, setLoading]   = useState(false);
-  const [playing, setPlaying]   = useState(false);
-  const [error, setError]       = useState(false);
-  const activeIdRef             = useRef<string | null>(null);
+  const [loading, setLoading]       = useState(false);
+  const [playing, setPlaying]       = useState(false);
+  const [error, setError]           = useState<string | null>(null);
+  const activeIdRef                 = useRef<string | null>(null);
+  const timeoutRef                  = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Safety: clear loading state if synthesis takes > 35s (should never happen)
+  const startLoadingGuard = () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => {
+      setLoading(false);
+      setError("Timed out — TTS service may be unavailable");
+      activeIdRef.current = null;
+      setTimeout(() => setError(null), 4000);
+    }, 35000);
+  };
+
+  const clearLoadingGuard = () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+  };
 
   const handleClick = async () => {
     // If currently playing THIS message → stop
@@ -182,19 +201,31 @@ function SpeakButton({ text, messageId }: { text: string; messageId: string }) {
       stopSpeaking();
       setPlaying(false);
       activeIdRef.current = null;
+      clearLoadingGuard();
+      return;
+    }
+
+    // If loading, cancel the in-flight request
+    if (loading) {
+      stopSpeaking();
+      setLoading(false);
+      activeIdRef.current = null;
+      clearLoadingGuard();
       return;
     }
 
     // Stop any other playing audio first
     stopSpeaking();
-    setError(false);
+    setError(null);
     setLoading(true);
     activeIdRef.current = messageId;
+    startLoadingGuard();
 
     try {
       await speakText(text, {
         temperature: 0.4,
         onStart: () => {
+          clearLoadingGuard();
           setLoading(false);
           setPlaying(true);
         },
@@ -202,20 +233,31 @@ function SpeakButton({ text, messageId }: { text: string; messageId: string }) {
           setPlaying(false);
           activeIdRef.current = null;
         },
-        onError: () => {
+        onError: (err) => {
+          clearLoadingGuard();
           setLoading(false);
           setPlaying(false);
-          setError(true);
+          // Show a short user-friendly error message
+          const msg = err?.message?.includes("503") || err?.message?.includes("No TTS provider")
+            ? "Voice not configured"
+            : err?.message?.includes("401") || err?.message?.includes("Unauthorized")
+            ? "Sign in required"
+            : "Voice unavailable";
+          setError(msg);
           activeIdRef.current = null;
-          setTimeout(() => setError(false), 3000);
+          setTimeout(() => setError(null), 4000);
         },
       });
-    } catch {
+    } catch (err: any) {
+      clearLoadingGuard();
       setLoading(false);
       setPlaying(false);
-      setError(true);
+      const msg = err?.message?.includes("503") || err?.message?.includes("No TTS provider")
+        ? "Voice not configured"
+        : "Voice unavailable";
+      setError(msg);
       activeIdRef.current = null;
-      setTimeout(() => setError(false), 3000);
+      setTimeout(() => setError(null), 4000);
     }
   };
 
@@ -223,15 +265,21 @@ function SpeakButton({ text, messageId }: { text: string; messageId: string }) {
     <motion.button
       whileTap={{ scale: 0.85 }}
       onClick={handleClick}
-      disabled={loading}
       className={`opacity-0 group-hover:opacity-100 transition-all p-1.5 rounded-md ${
         error
-          ? "text-red-400 bg-red-500/10"
+          ? "text-red-400 bg-red-500/10 opacity-100"
           : playing
           ? "text-purple-400 bg-purple-500/15 opacity-100"
+          : loading
+          ? "text-purple-400/60 opacity-100 cursor-pointer"
           : "text-gray-500 hover:text-purple-400 hover:bg-purple-500/10"
-      } disabled:cursor-not-allowed`}
-      title={playing ? "Stop speaking" : error ? "TTS unavailable" : "Hear HOLLY speak"}
+      }`}
+      title={
+        playing ? "Stop speaking"
+        : loading ? "Loading… click to cancel"
+        : error   ? error
+        : "Hear HOLLY speak"
+      }
     >
       {loading ? (
         <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -617,10 +665,10 @@ function useBrowserSpeech(onTranscript: (text: string) => void) {
 function ModelBadge({ model }: { model?: string }) {
   if (!model) return null;
   const labels: Record<string, { label: string; color: string }> = {
-    "groq-llama-3.3":    { label: "Groq",   color: "bg-orange-500/20 text-orange-300 border-orange-500/30" },
-    "google-gemini-2.0": { label: "Gemini", color: "bg-blue-500/20 text-blue-300 border-blue-500/30" },
-    "ollama":            { label: "Local",  color: "bg-green-500/20 text-green-300 border-green-500/30" },
-    "web-llm":           { label: "WebLLM", color: "bg-purple-500/20 text-purple-300 border-purple-500/30" },
+    "groq-llama-3.3":    { label: "Groq",       color: "bg-orange-500/20 text-orange-300 border-orange-500/30" },
+    "openrouter":        { label: "OpenRouter", color: "bg-cyan-500/20 text-cyan-300 border-cyan-500/30" },
+    "ollama":            { label: "Local",      color: "bg-green-500/20 text-green-300 border-green-500/30" },
+    "web-llm":           { label: "WebLLM",    color: "bg-purple-500/20 text-purple-300 border-purple-500/30" },
   };
   const meta = labels[model] || { label: model, color: "bg-gray-700/50 text-gray-400 border-gray-600/30" };
   return (

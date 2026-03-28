@@ -4,7 +4,7 @@
  * POST /api/multimodal/generate
  *
  * Unified endpoint for:
- *   - Image generation (FLUX 1.1 Pro, DALL-E 3, Stable Diffusion XL, Pollinations free)
+ *   - Image generation (FLUX 1.1 Pro via Fal.ai, Stable Diffusion XL, Pollinations free — NO paid APIs)
  *   - Video generation (Kling v2, Wan 2.5, Runway Gen-4, Replicate/Zeroscope)
  *   - Audio-visual synchronization (beat-sync, lyric-sync)
  *
@@ -184,7 +184,6 @@ export async function GET() {
         { id: 'flux-schnell', name: 'FLUX Schnell', provider: 'fal.ai', quality: 'good', speed: 'fast', cost: '$0.001/image', requiresKey: 'FAL_KEY' },
         { id: 'flux-dev', name: 'FLUX Dev', provider: 'fal.ai', quality: 'high', speed: 'medium', cost: '$0.002/image', requiresKey: 'FAL_KEY' },
         { id: 'stable-diffusion-xl', name: 'Stable Diffusion XL', provider: 'fal.ai', quality: 'good', speed: 'fast', cost: '$0.001/image', requiresKey: 'FAL_KEY' },
-        { id: 'dalle3', name: 'DALL-E 3', provider: 'openai', quality: 'best', speed: 'medium', cost: '$0.04/image', requiresKey: 'OPENAI_API_KEY' },
         { id: 'pollinations', name: 'Pollinations (FLUX)', provider: 'pollinations.ai', quality: 'good', speed: 'fast', cost: 'free', requiresKey: null },
         { id: 'auto', name: 'Auto (best available)', provider: 'varies', quality: 'best_available', speed: 'varies', cost: 'varies', requiresKey: 'any' },
       ],
@@ -275,17 +274,17 @@ function buildAVSyncPlan(concept: string, syncMode: string): Record<string, unkn
 // ─── Error helper ─────────────────────────────────────────────────────────────
 
 function getSuggestion(errorMessage: string): string {
-  if (errorMessage.includes('FAL_KEY') || errorMessage.includes('fal.ai')) {
-    return 'Add FAL_KEY to your environment variables (get one at fal.ai) for high-quality image/video generation.';
+  if (errorMessage.includes('VIDEO_KEY_REQUIRED') || (errorMessage.includes('FAL_KEY') && errorMessage.includes('video'))) {
+    return 'Video generation needs FAL_KEY. Get free starter credits at https://fal.ai/dashboard/keys — add FAL_KEY to Vercel env vars. Images always work free via Pollinations (no key needed).';
   }
-  if (errorMessage.includes('OPENAI') || errorMessage.includes('DALL-E')) {
-    return 'Add OPENAI_API_KEY to your environment for DALL-E 3 image generation.';
+  if (errorMessage.includes('FAL_KEY') || errorMessage.includes('fal.ai')) {
+    return 'Add FAL_KEY to Vercel environment variables (free starter credits at fal.ai/dashboard/keys) for FLUX and video generation.';
   }
   if (errorMessage.includes('REPLICATE')) {
-    return 'Add REPLICATE_API_KEY to your environment for video generation fallback.';
+    return 'Add REPLICATE_API_KEY to your environment for Zeroscope video fallback. Or add FAL_KEY for better quality video.';
   }
-  if (errorMessage.includes('No.*configured')) {
-    return 'Set up at least one generation API key. Images work free via Pollinations. Videos need FAL_KEY or REPLICATE_API_KEY.';
+  if (errorMessage.includes('No.*configured') || errorMessage.includes('unavailable')) {
+    return 'Images work 100% free via Pollinations (no key needed). Videos require FAL_KEY (free credits at fal.ai). Music requires SUNO_API_KEY.';
   }
   return 'Check your generation API key configuration in Vercel environment variables.';
 }

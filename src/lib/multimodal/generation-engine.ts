@@ -2,7 +2,7 @@
  * HOLLY Multi-Modal Generation Engine — Phase 11
  *
  * Unified orchestration layer for all AI generation modalities:
- *   - Image synthesis (Fal.ai FLUX, Stable Diffusion, DALL-E, Pollinations)
+ *   - Image synthesis (Fal.ai FLUX, Stable Diffusion, Pollinations — all free)
  *   - Video generation (Fal.ai, Replicate, Kling, LumaAI, Runway)
  *   - Music generation (SUNO via existing engine)
  *   - Music video synthesis (image frames + audio A/V sync)
@@ -24,8 +24,7 @@ export type ImageModel =
   | 'flux-schnell'       // Fal.ai FLUX Schnell — fast
   | 'flux-dev'           // Fal.ai FLUX Dev — balanced
   | 'stable-diffusion-xl'// Fal.ai SDXL
-  | 'dalle3'             // OpenAI DALL-E 3
-  | 'pollinations'       // Pollinations AI — free fallback
+  | 'pollinations'       // Pollinations AI — free, always available
   | 'auto';              // Engine picks best available
 
 export type VideoModel =
@@ -168,17 +167,6 @@ export function getProviderRegistry(): ProviderCapability[] {
       available: !!process.env.FAL_KEY,
     },
     {
-      name: 'openai-dalle3',
-      modalities: ['image'],
-      maxResolution: '1792x1024',
-      requiresKey: true,
-      keyEnvVar: 'OPENAI_API_KEY',
-      quality: 5,
-      speed: 'medium',
-      costTier: 'medium',
-      available: !!process.env.OPENAI_API_KEY,
-    },
-    {
       name: 'pollinations',
       modalities: ['image'],
       maxResolution: '1024x1024',
@@ -241,7 +229,6 @@ export function getProviderRegistry(): ProviderCapability[] {
 
 export async function generateImage(req: ImageGenerationRequest): Promise<GenerationResult> {
   const falKey = process.env.FAL_KEY;
-  const openaiKey = process.env.OPENAI_API_KEY;
 
   // Build enriched prompt with HOLLY art direction
   let enrichedPrompt = req.prompt;
@@ -259,28 +246,19 @@ export async function generateImage(req: ImageGenerationRequest): Promise<Genera
   }
   if (req.style) enrichedPrompt = `${enrichedPrompt}, ${req.style} style`;
 
-  // Provider waterfall: Fal.ai → DALL-E → Pollinations
+  // Provider waterfall: Fal.ai FLUX → Pollinations (both free/no-cost)
   const model = req.model || 'auto';
 
-  // 1. Fal.ai FLUX (best quality, requires FAL_KEY)
-  if (falKey && model !== 'dalle3' && model !== 'pollinations') {
+  // 1. Fal.ai FLUX (best quality, requires FAL_KEY — free starter credits)
+  if (falKey && model !== 'pollinations') {
     try {
       return await generateImageFal(enrichedPrompt, req, falKey);
     } catch (err) {
-      console.warn('[Generation] Fal.ai image failed, trying next provider:', err);
+      console.warn('[Generation] Fal.ai image failed, falling back to Pollinations:', err);
     }
   }
 
-  // 2. OpenAI DALL-E 3 (requires OPENAI_API_KEY)
-  if (openaiKey && (model === 'dalle3' || model === 'auto')) {
-    try {
-      return await generateImageDALLE(enrichedPrompt, req, openaiKey);
-    } catch (err) {
-      console.warn('[Generation] DALL-E 3 failed, falling back to Pollinations:', err);
-    }
-  }
-
-  // 3. Pollinations AI (always free, no key needed)
+  // 2. Pollinations AI — always free, no key, no limits
   return await generateImagePollinations(enrichedPrompt, req);
 }
 
@@ -339,53 +317,6 @@ async function generateImageFal(
   };
 }
 
-async function generateImageDALLE(
-  prompt: string,
-  req: ImageGenerationRequest,
-  apiKey: string
-): Promise<GenerationResult> {
-  const [w, h] = resolveImageDimensions(req);
-  const sizeMap: Record<string, string> = {
-    '1024x1024': '1024x1024',
-    '1792x1024': '1792x1024',
-    '1024x1792': '1024x1792',
-  };
-  const size = sizeMap[`${w}x${h}`] || '1024x1024';
-
-  const res = await fetch('https://api.openai.com/v1/images/generations', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'dall-e-3',
-      prompt,
-      n: 1,
-      size,
-      quality: 'hd',
-      style: 'vivid',
-    }),
-  });
-
-  if (!res.ok) throw new Error(`DALL-E error: ${res.status}`);
-
-  const data = await res.json() as { data?: Array<{ url: string }> };
-  const url = data.data?.[0]?.url;
-  if (!url) throw new Error('DALL-E returned no URL');
-
-  return {
-    success: true,
-    modality: 'image',
-    url,
-    provider: 'openai-dalle3',
-    model: 'dall-e-3',
-    prompt,
-    generatedAt: new Date(),
-    estimatedCost: 0.04,
-  };
-}
-
 async function generateImagePollinations(
   prompt: string,
   req: ImageGenerationRequest
@@ -437,9 +368,11 @@ export async function generateVideo(req: VideoGenerationRequest): Promise<Genera
     }
   }
 
+  // 3. No paid video key — return a helpful structured error
   throw new Error(
-    'Video generation unavailable: No FAL_KEY or REPLICATE_API_KEY configured. ' +
-    'Add FAL_KEY (fal.ai) or REPLICATE_API_KEY (replicate.com) to environment variables.'
+    'VIDEO_KEY_REQUIRED: Video generation needs FAL_KEY (fal.ai/dashboard/keys — free starter credits). ' +
+    'Images work 100% free via Pollinations. ' +
+    'Note: there is no truly free unlimited text-to-video API without signup.'
   );
 }
 
@@ -660,21 +593,26 @@ export function getGenerationSystemBlock(): string {
   const registry = getProviderRegistry();
   const imageProviders = registry.filter(p => p.modalities.includes('image') && p.available);
   const videoProviders = registry.filter(p => p.modalities.includes('video') && p.available);
+  const hasFalKey = !!process.env.FAL_KEY;
 
   return `
 [MULTI-MODAL GENERATION ENGINE — Phase 11]
 
 HOLLY has access to a full multi-modal generation studio. She can generate:
 
-**Images** — Available providers: ${imageProviders.map(p => p.name).join(', ') || 'Pollinations (free)'}
+**Images** (✅ FREE — works right now via Pollinations)
+  Available providers: ${imageProviders.map(p => p.name).join(', ') || 'Pollinations (free, no key needed)'}
   Trigger words: "generate an image", "create a picture", "make art", "design", "visualize"
-  Models: FLUX 1.1 Pro (best), FLUX Schnell (fast), DALL-E 3 (photorealistic), Stable Diffusion XL
+  Free model: Pollinations FLUX (1024×1024, no key needed — always available)
+  Premium (needs FAL_KEY): FLUX 1.1 Pro, FLUX Dev, FLUX Schnell, Stable Diffusion XL
 
-**Videos** — Available providers: ${videoProviders.map(p => p.name).join(', ') || 'None (add FAL_KEY)'}
+**Videos** (${hasFalKey ? '✅ ACTIVE — FAL_KEY configured' : '⚠️ NEEDS FAL_KEY — add at fal.ai/dashboard/keys (free starter credits)'})
+  Available providers: ${videoProviders.map(p => p.name).join(', ') || 'None configured yet'}
   Trigger words: "generate a video", "create a video clip", "make a short film", "animate"
-  Models: Kling v2 (cinematic), Wan 2.5 (quality), Zeroscope (free)
+  Models (all need FAL_KEY): Kling v2 (cinematic $0.15/5s), Wan 2.5 (quality $0.05/5s)
+  Note: There is no truly free unlimited text-to-video API. FAL_KEY has free starter credits.
   
-**Music Videos** — Combines SUNO music + video generation
+**Music Videos** — Combines SUNO music + image generation (both work free)
   Trigger: "make a music video", "create a visual for this song"
   
 **Audio-Visual Sync** — Beat-sync, lyric-sync, ambient sync
@@ -689,6 +627,7 @@ Always:
   2. Provide art direction — don't just pass the raw prompt
   3. Describe what you're generating and why those specific choices
   4. After generation, explain the creative decisions made
+  5. If video is requested and FAL_KEY is missing, explain this clearly and offer to generate images instead
 `;
 }
 

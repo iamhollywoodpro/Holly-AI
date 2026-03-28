@@ -1,15 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 
+/**
+ * Music Cover Art Generation — 100% FREE via Pollinations AI (FLUX)
+ * No API key. No cost. No limits.
+ */
+
+function buildPollinationsUrl(prompt: string, size = 1024): string {
+  const encoded = encodeURIComponent(prompt);
+  return `https://image.pollinations.ai/prompt/${encoded}?width=${size}&height=${size}&nologo=true&enhance=true&model=flux`;
+}
+
 export async function POST(req: NextRequest) {
   try {
-    // Check authentication
     const { userId } = await auth();
     if (!userId) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
     const body = await req.json();
@@ -22,59 +28,31 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Build a descriptive prompt for image generation
+    // Build descriptive prompt for image generation
     let imagePrompt = 'Album cover art, professional music album design, ';
-    
-    if (style) {
-      imagePrompt += `${style} music style, `;
-    }
-    
-    if (title) {
-      imagePrompt += `themed around "${title}", `;
-    }
-    
-    if (lyrics) {
-      // Extract key themes from lyrics (first 200 chars)
-      const lyricsPreview = lyrics.substring(0, 200);
-      imagePrompt += `capturing the mood and themes of: ${lyricsPreview}, `;
-    }
-    
+
+    if (style)  imagePrompt += `${style} music style, `;
+    if (title)  imagePrompt += `themed around "${title}", `;
+    if (lyrics) imagePrompt += `capturing the mood and themes of: ${lyrics.substring(0, 200)}, `;
+
     imagePrompt += 'vibrant colors, artistic, high quality, centered composition, no text';
 
     console.log('[Cover Art API] Generated prompt:', imagePrompt);
 
-    // Call Manus image generation API (free, no credits needed)
-    const imageResponse = await fetch('https://api.manus.im/v1/images/generations', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'flux-1.1-pro',
-        prompt: imagePrompt,
-        n: 1,
-        size: '1024x1024',
-      }),
-    });
+    const imageUrl = buildPollinationsUrl(imagePrompt);
 
-    const imageData = await imageResponse.json();
-
-    if (!imageResponse.ok) {
-      console.error('[Cover Art API] Image generation error:', imageData);
-      return NextResponse.json(
-        { success: false, error: imageData.error?.message || 'Failed to generate cover art' },
-        { status: imageResponse.status }
-      );
+    // Verify image is reachable
+    const check = await fetch(imageUrl, { method: 'HEAD', signal: AbortSignal.timeout(25000) });
+    if (!check.ok) {
+      throw new Error(`Image generation failed (${check.status})`);
     }
-
-    const imageUrl = imageData.data[0].url;
 
     return NextResponse.json({
       success: true,
       data: {
         imageUrl,
         prompt: imagePrompt,
+        provider: 'pollinations-flux',
       },
     });
 

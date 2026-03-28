@@ -18,8 +18,8 @@ export async function POST(req: Request) {
 
     // 2. Check API Keys
     const apiKeysStatus = {
-      gemini: !!process.env.GOOGLE_API_KEY,
       groq: !!process.env.GROQ_API_KEY,
+      openrouter: !!process.env.OPENROUTER_API_KEY,
       oracle: !!process.env.ORACLE_USER_OCID,
       github: !!process.env.GITHUB_TOKEN,
     };

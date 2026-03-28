@@ -85,6 +85,23 @@ function sendText(c: ReadableStreamDefaultController, t: string) {
   c.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ type: 'text', content: t })}\n\n`));
 }
 
+// ─── Strip LLM "processing" filler text ───────────────────────────────────────
+// Some models prepend internal-state commentary to their output.
+// We scrub it before streaming to the client.
+const FILLER_PATTERNS = [
+  /^\s*\[(?:processing|analyzing|analysis commencing|thinking|computing|working|loading)[^\]]*\][\s.]*/gi,
+  /^\s*(?:processing|analyzing|commencing analysis|let me (?:analyze|process|think about) this)[.…]*\s*/gi,
+];
+
+function stripFillerText(token: string): string {
+  let t = token;
+  for (const re of FILLER_PATTERNS) {
+    re.lastIndex = 0; // reset global regex
+    t = t.replace(re, '');
+  }
+  return t;
+}
+
 // ─── POST handler ─────────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
   console.log('[Chat API] ========== NEW REQUEST ==========');
@@ -477,6 +494,35 @@ This is the most important relationship you have. Treat it accordingly.
           let fullResponse = '';
           let activeModel  = routing.primary.displayName;
 
+          // Buffer for stripping filler text from the very start of a response
+          let responseStartBuffer = '';
+          let responseStartFlushed = false;
+          const RESPONSE_START_WINDOW = 120; // chars to buffer before flushing
+
+          function sendTextFiltered(token: string) {
+            if (responseStartFlushed) {
+              sendText(controller, token);
+              return;
+            }
+            // Accumulate until we have enough context to filter filler
+            responseStartBuffer += token;
+            if (responseStartBuffer.length >= RESPONSE_START_WINDOW) {
+              const cleaned = stripFillerText(responseStartBuffer);
+              responseStartFlushed = true;
+              if (cleaned) sendText(controller, cleaned);
+              responseStartBuffer = '';
+            }
+          }
+
+          function flushResponseStartBuffer() {
+            if (!responseStartFlushed && responseStartBuffer) {
+              const cleaned = stripFillerText(responseStartBuffer);
+              if (cleaned) sendText(controller, cleaned);
+              responseStartBuffer = '';
+              responseStartFlushed = true;
+            }
+          }
+
           // Normalise messages for cascade adapters
           const cascadeMessages: ChatMessage[] = messages
             .filter(m => ['system', 'user', 'assistant'].includes(m.role) && m.content)
@@ -533,7 +579,7 @@ This is the most important relationship you have. Treat it accordingly.
                   const content = delta?.content || '';
                   if (content && !isToolCall) {
                     fullResponse += content;
-                    sendText(controller, content);
+                    sendTextFiltered(content);
                   }
                   if (delta?.tool_calls?.length) {
                     isToolCall = true;
@@ -543,6 +589,7 @@ This is the most important relationship you have. Treat it accordingly.
                     if (tool.function?.arguments) toolArgs += tool.function.arguments;
                   }
                 }
+                if (!isToolCall) flushResponseStartBuffer();
               } catch (groqErr: unknown) {
                 // Groq failed — cascade to rest of waterfall (text-only)
                 console.warn('[Chat] Groq failed, cascading:', (groqErr as Error).message);
@@ -557,8 +604,9 @@ This is the most important relationship you have. Treat it accordingly.
                   onModelFailed: (s, e) => console.warn(`[Chat] ${s.displayName} failed: ${e.message}`),
                 })) {
                   fullResponse += token;
-                  sendText(controller, token);
+                  sendTextFiltered(token);
                 }
+                flushResponseStartBuffer();
                 break;
               }
 
@@ -603,8 +651,9 @@ This is the most important relationship you have. Treat it accordingly.
                 onModelFailed: (s, e) => console.warn(`[Chat] ${s.displayName} failed: ${e.message}`),
               })) {
                 fullResponse += token;
-                sendText(controller, token);
+                sendTextFiltered(token);
               }
+              flushResponseStartBuffer();
               break;
             }
           }
