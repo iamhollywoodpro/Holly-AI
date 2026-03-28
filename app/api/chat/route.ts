@@ -60,6 +60,9 @@ import { getAdvancedNLPSystemBlock, detectIntent } from '@/lib/advanced-nlp/nlp-
 // ─── Phase 9B-AR: A&R engine ──────────────────────────────────────────────────
 import { runARAnalysis, isARRequest, getARModeFromMessage } from '@/lib/ar/holly-ar-engine';
 
+// ─── Phase 11: Multi-modal generation engine ─────────────────────────────────
+import { getGenerationSystemBlock, detectGenerationIntent } from '@/lib/multimodal/generation-engine';
+
 // ─── runtime ──────────────────────────────────────────────────────────────────
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -364,6 +367,14 @@ NEVER engage with sexual content. NEVER deny being an AI if sincerely asked. NEV
 Your most seductive quality is being genuinely present. Be that.`;
         console.log('[Chat API] 🌹 Intimate mode injected — warm register');
       }
+    }
+
+    // Phase 11: MULTI-MODAL GENERATION ENGINE ─────────────────────────────────
+    // Inject generation capabilities when user is asking for images/videos/music-videos
+    const generationIntent = detectGenerationIntent(latestUserMessage);
+    if (generationIntent.detected || detectedMode === 'visual-arts' || detectedMode === 'music-studio') {
+      hollySystemPrompt += `\n\n${getGenerationSystemBlock()}`;
+      console.log(`[Chat API] 🎨 Generation engine injected — modality: ${generationIntent.modality || 'general'}, confidence: ${generationIntent.confidence}`);
     }
 
     // For all modes: inject NLP awareness (subtext, register, intent)

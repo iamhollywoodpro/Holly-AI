@@ -31,7 +31,7 @@ import {
   Globe, Code2, Brain, Image, Thermometer,
   Database, Search, Cpu, Zap, X, Bell, TrendingUp,
   ChevronRight, ExternalLink, ThumbsUp, ThumbsDown,
-  Menu, Settings, BarChart3, Bot, Key, Crown,
+  Menu, Settings, BarChart3, Bot, Key, Crown, Clapperboard,
 } from "lucide-react";
 import Link from "next/link";
 import SandboxWindow from "@/components/sandbox-window";
@@ -1307,6 +1307,7 @@ export default function HollyChatInterface() {
                   { href: "/evolution",         icon: TrendingUp, label: "Evolution",       sub: "Growth & patterns" },
                   { href: "/autonomy",          icon: Bot,        label: "Autonomy",        sub: "Self-improvement" },
                   { href: "/settings",          icon: Settings,   label: "Settings",        sub: "Preferences" },
+                  { href: "/generate/studio",   icon: Clapperboard, label: "Generation Studio", sub: "Images, Videos, Music Videos" },
                   { href: "/settings/api-keys", icon: Key,        label: "API Keys",        sub: "Phase 7 — developer access" },
                   { href: "/onboarding",        icon: BarChart3,  label: "Partner Setup",   sub: "Dev / Life / Creative" },
                 ].map(({ href, icon: Icon, label, sub }) => (
