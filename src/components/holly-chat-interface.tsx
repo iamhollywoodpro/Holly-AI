@@ -32,9 +32,11 @@ import {
   Database, Search, Cpu, Zap, X, Bell, TrendingUp,
   ChevronRight, ExternalLink, ThumbsUp, ThumbsDown,
   Menu, Settings, BarChart3, Bot, Key, Crown, Clapperboard,
+  Volume2, VolumeX, StopCircle,
 } from "lucide-react";
 import Link from "next/link";
 import SandboxWindow from "@/components/sandbox-window";
+import { speakText, stopSpeaking, isSpeaking } from "@/lib/voice/enhanced-voice-output";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -163,6 +165,84 @@ function ToolCard({ execution }: { execution: ToolExecution }) {
         </div>
       )}
     </motion.div>
+  );
+}
+
+// ─── Speak Button (Maya1 TTS) ─────────────────────────────────────────────────
+
+function SpeakButton({ text, messageId }: { text: string; messageId: string }) {
+  const [loading, setLoading]   = useState(false);
+  const [playing, setPlaying]   = useState(false);
+  const [error, setError]       = useState(false);
+  const activeIdRef             = useRef<string | null>(null);
+
+  const handleClick = async () => {
+    // If currently playing THIS message → stop
+    if (playing && activeIdRef.current === messageId) {
+      stopSpeaking();
+      setPlaying(false);
+      activeIdRef.current = null;
+      return;
+    }
+
+    // Stop any other playing audio first
+    stopSpeaking();
+    setError(false);
+    setLoading(true);
+    activeIdRef.current = messageId;
+
+    try {
+      await speakText(text, {
+        temperature: 0.4,
+        onStart: () => {
+          setLoading(false);
+          setPlaying(true);
+        },
+        onEnd: () => {
+          setPlaying(false);
+          activeIdRef.current = null;
+        },
+        onError: () => {
+          setLoading(false);
+          setPlaying(false);
+          setError(true);
+          activeIdRef.current = null;
+          setTimeout(() => setError(false), 3000);
+        },
+      });
+    } catch {
+      setLoading(false);
+      setPlaying(false);
+      setError(true);
+      activeIdRef.current = null;
+      setTimeout(() => setError(false), 3000);
+    }
+  };
+
+  return (
+    <motion.button
+      whileTap={{ scale: 0.85 }}
+      onClick={handleClick}
+      disabled={loading}
+      className={`opacity-0 group-hover:opacity-100 transition-all p-1.5 rounded-md ${
+        error
+          ? "text-red-400 bg-red-500/10"
+          : playing
+          ? "text-purple-400 bg-purple-500/15 opacity-100"
+          : "text-gray-500 hover:text-purple-400 hover:bg-purple-500/10"
+      } disabled:cursor-not-allowed`}
+      title={playing ? "Stop speaking" : error ? "TTS unavailable" : "Hear HOLLY speak"}
+    >
+      {loading ? (
+        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+      ) : playing ? (
+        <StopCircle className="w-3.5 h-3.5" />
+      ) : error ? (
+        <VolumeX className="w-3.5 h-3.5" />
+      ) : (
+        <Volume2 className="w-3.5 h-3.5" />
+      )}
+    </motion.button>
   );
 }
 
@@ -1462,13 +1542,16 @@ export default function HollyChatInterface() {
                   </span>
                   <CopyButton text={msg.content} />
                   {msg.role === "assistant" && (
-                    <FeedbackButtons
-                      messageId={msg.id}
-                      conversationId={conversationId}
-                      content={msg.content}
-                      model={msg.model}
-                      userMessage={messages.slice(0, msgIdx).reverse().find(m => m.role === "user")?.content}
-                    />
+                    <>
+                      <SpeakButton text={msg.content} messageId={msg.id} />
+                      <FeedbackButtons
+                        messageId={msg.id}
+                        conversationId={conversationId}
+                        content={msg.content}
+                        model={msg.model}
+                        userMessage={messages.slice(0, msgIdx).reverse().find(m => m.role === "user")?.content}
+                      />
+                    </>
                   )}
                 </div>
               </div>

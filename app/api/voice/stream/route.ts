@@ -1,19 +1,23 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { maya1Service } from "@/lib/voice/maya1-service";
+import { maya1Service, addEmotionsToText } from "@/lib/voice/maya1-service";
 import { logger } from "@/lib/monitoring/logger";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 90;
 
 /**
  * POST /api/voice/stream
- * Stream speech synthesis in real-time
+ * 
+ * Redirects to /api/voice/synthesize for now.
+ * True streaming will be available when vLLM is deployed on Modal.
+ * 
+ * For the current Maya1 Modal deployment, audio is returned as a single WAV file.
+ * The client (enhanced-voice-output.ts) streams it via HTML Audio natively.
  */
 export async function POST(req: NextRequest) {
   try {
     const { userId } = await auth();
-
     if (!userId) {
       return new Response("Unauthorized", { status: 401 });
     }
@@ -26,62 +30,55 @@ export async function POST(req: NextRequest) {
     }
 
     // Add emotions if requested
-    let processedText = text;
-    if (addEmotions && emotionContext) {
-      processedText = maya1Service.addEmotions(text, emotionContext);
-    }
+    const processedText = addEmotions && emotionContext
+      ? addEmotionsToText(text, emotionContext)
+      : text;
 
-    logger.info("Streaming voice synthesis requested", {
+    logger.info("Voice stream requested (forwarding to synthesize)", {
       userId,
-      textLength: text.length,
+      textLength: processedText.length,
       category: "voice",
     });
 
-    // Create readable stream
-    const encoder = new TextEncoder();
-    const stream = new ReadableStream({
-      async start(controller) {
-        try {
-          for await (const chunk of maya1Service.streamSynthesize(processedText, {
-            description: voiceDescription,
-            streamingEnabled: true,
-          })) {
-            // Send audio chunk
-            controller.enqueue(chunk);
-          }
-
-          controller.close();
-
-          logger.info("Streaming voice synthesis completed", {
-            userId,
-            category: "voice",
-          });
-        } catch (error: any) {
-          logger.error("Streaming voice synthesis failed", {
-            userId,
-            error: error.message,
-            category: "voice",
-          });
-
-          controller.error(error);
-        }
+    // Forward to the unified synthesize endpoint
+    const synthesizeUrl = new URL("/api/voice/synthesize", req.url);
+    const synthesizeResponse = await fetch(synthesizeUrl.toString(), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        // Forward auth headers
+        cookie: req.headers.get("cookie") || "",
       },
+      body: JSON.stringify({
+        text: processedText,
+        voiceDescription,
+      }),
     });
 
-    return new Response(stream, {
+    if (!synthesizeResponse.ok) {
+      const err = await synthesizeResponse.text();
+      return new Response(`Voice synthesis failed: ${err}`, {
+        status: synthesizeResponse.status,
+      });
+    }
+
+    const audioBuffer = await synthesizeResponse.arrayBuffer();
+
+    return new Response(audioBuffer, {
       headers: {
         "Content-Type": "audio/wav",
-        "Transfer-Encoding": "chunked",
-        "Cache-Control": "no-cache",
+        "Content-Length": audioBuffer.byteLength.toString(),
+        "Cache-Control": "private, max-age=3600",
+        "X-Voice-Provider": synthesizeResponse.headers.get("X-Voice-Provider") || "unknown",
       },
     });
   } catch (error: any) {
-    logger.error("Failed to start voice stream", {
+    logger.error("Voice stream failed", {
       error: error.message,
       category: "voice",
     });
 
-    return new Response(`Failed to start voice stream: ${error.message}`, {
+    return new Response(`Voice stream failed: ${error.message}`, {
       status: 500,
     });
   }

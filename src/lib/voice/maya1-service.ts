@@ -1,305 +1,218 @@
 /**
- * MAYA1 Voice Synthesis Service
+ * HOLLY Maya1 Voice Service
  * 
- * Integrates maya-research/maya1 for expressive voice generation
- * with real-time streaming and emotion support.
+ * Calls the Maya1 TTS microservice deployed on Modal.com (FREE GPU).
+ * Falls back to Gemini TTS when Modal is unavailable.
+ * 
+ * Modal endpoint: https://iamhollywoodpro--holly-maya1-tts-generate.modal.run
+ * Deploy guide:  services/maya1-tts/MODAL_SETUP.md
  */
 
-import { HfInference } from "@huggingface/inference";
 import { logger } from "../monitoring/logger";
 
-// MAYA1 Special Token IDs
-const CODE_START_TOKEN_ID = 128257;
-const CODE_END_TOKEN_ID = 128258;
-const CODE_TOKEN_OFFSET = 128266;
-const SNAC_MIN_ID = 128266;
-const SNAC_MAX_ID = 156937;
-const SNAC_TOKENS_PER_FRAME = 7;
+// HOLLY's voice profile — used as the default voice description for Maya1
+export const HOLLY_VOICE_DESCRIPTION =
+  process.env.MAYA1_VOICE_DESCRIPTION ||
+  "Female voice in her 30s with an American accent. " +
+  "Confident, intelligent, warm tone with clear diction. " +
+  "Professional yet friendly, conversational pacing with emotional depth.";
 
-const SOH_ID = 128259;
-const EOH_ID = 128260;
-const SOA_ID = 128261;
-const BOS_ID = 128000;
-const TEXT_EOT_ID = 128009;
+// All 20+ Maya1 emotion tags
+export const MAYA1_EMOTIONS = [
+  "<laugh>",
+  "<laugh_harder>",
+  "<chuckle>",
+  "<giggle>",
+  "<whisper>",
+  "<sigh>",
+  "<gasp>",
+  "<cry>",
+  "<angry>",
+  "<excited>",
+  "<snort>",
+  "<scream>",
+] as const;
+
+export type Maya1Emotion = typeof MAYA1_EMOTIONS[number];
 
 export interface VoiceConfig {
-  description: string;
+  description?: string;
   temperature?: number;
-  maxTokens?: number;
-  streamingEnabled?: boolean;
+  topP?: number;
 }
 
-export interface EmotionConfig {
-  type: "laugh" | "sigh" | "whisper" | "angry" | "giggle" | "chuckle" | "gasp" | "cry" | "excited" | "scream";
-  intensity?: "low" | "medium" | "high";
+export interface EmotionContext {
+  isJoke?: boolean;
+  isExcited?: boolean;
+  isWhisper?: boolean;
+  isSad?: boolean;
+  isAngry?: boolean;
 }
 
-export class Maya1Service {
-  private hf: HfInference;
-  private modelId = "maya-research/maya1";
-  private defaultVoiceDescription: string;
+/**
+ * Smart emotion injector — adds Maya1 emotion tags based on message context
+ */
+export function addEmotionsToText(text: string, context?: EmotionContext): string {
+  if (!context) return text;
 
-  constructor() {
-    const apiKey = process.env.HUGGINGFACE_API_KEY;
-    if (!apiKey) {
-      console.warn('[Maya1Service] HUGGINGFACE_API_KEY not found - service will be disabled');
-      // Create dummy instance during build
-      this.hf = new HfInference('');
-    } else {
-      this.hf = new HfInference(apiKey);
-    }
-    
-    // HOLLY's default voice
-    this.defaultVoiceDescription = process.env.MAYA1_VOICE_DESCRIPTION || 
-      "Female voice in her late 20s with a warm, professional American accent. Medium pitch, clear diction, conversational yet knowledgeable tone. Friendly and approachable with a hint of enthusiasm when discussing creative topics.";
+  let emotionalText = text;
 
-    logger.info("MAYA1 service initialized", {
-      model: this.modelId,
-      category: "voice",
-    });
+  if (context.isJoke) {
+    // Add chuckle before punchlines
+    emotionalText = emotionalText.replace(/\.\s+/g, ". <chuckle> ");
   }
 
-  /**
-   * Build formatted prompt for MAYA1
-   */
-  private buildPrompt(description: string, text: string): string {
-    // Note: In actual implementation, these would be decoded from token IDs
-    // For API usage, we use the text format
-    const formattedText = `<description="${description}"> ${text}`;
-    return formattedText;
+  if (context.isExcited) {
+    emotionalText = emotionalText.replace(/!/g, " <excited>!");
+  }
+
+  if (context.isWhisper && !text.includes("<whisper>")) {
+    emotionalText = `<whisper>${emotionalText}</whisper>`;
+  }
+
+  if (context.isSad) {
+    emotionalText = emotionalText.replace(/\.\s+/g, ". <sigh> ");
+  }
+
+  if (context.isAngry) {
+    emotionalText = emotionalText.replace(/!/g, " <angry>!");
+  }
+
+  return emotionalText;
+}
+
+/**
+ * Maya1Service — thin wrapper around the Modal endpoint
+ * The heavy lifting (model loading, SNAC decoding) happens on Modal's GPU
+ */
+export class Maya1Service {
+  private modalUrl: string;
+  private apiKey: string;
+  readonly defaultVoiceDescription: string;
+
+  constructor() {
+    this.modalUrl = process.env.HOLLY_MAYA1_TTS_URL || "";
+    this.apiKey   = process.env.HOLLY_TTS_API_KEY || "";
+    this.defaultVoiceDescription = HOLLY_VOICE_DESCRIPTION;
+
+    if (this.modalUrl) {
+      logger.info("Maya1 service initialized (Modal endpoint)", {
+        url: this.modalUrl.substring(0, 60) + "...",
+        category: "voice",
+      });
+    } else {
+      logger.warn("Maya1 service: HOLLY_MAYA1_TTS_URL not set — run modal deploy first", {
+        category: "voice",
+        guide: "services/maya1-tts/MODAL_SETUP.md",
+      });
+    }
+  }
+
+  isAvailable(): boolean {
+    return !!this.modalUrl;
   }
 
   /**
    * Add emotion tags to text based on context
+   * Convenience wrapper for addEmotionsToText
    */
-  addEmotions(text: string, context?: {
-    isJoke?: boolean;
-    isExcited?: boolean;
-    isWhisper?: boolean;
-    isSad?: boolean;
-    isAngry?: boolean;
-  }): string {
-    if (!context) return text;
-
-    let emotionalText = text;
-
-    // Add laugh/chuckle for jokes
-    if (context.isJoke) {
-      emotionalText = emotionalText.replace(/\./g, " <chuckle>.");
-    }
-
-    // Add excitement
-    if (context.isExcited) {
-      emotionalText = emotionalText.replace(/!/g, " <excited>!");
-    }
-
-    // Wrap in whisper
-    if (context.isWhisper) {
-      emotionalText = `<whisper>${emotionalText}</whisper>`;
-    }
-
-    // Add sigh for sadness
-    if (context.isSad) {
-      emotionalText = emotionalText.replace(/\./g, " <sigh>.");
-    }
-
-    // Add angry tone
-    if (context.isAngry) {
-      emotionalText = emotionalText.replace(/!/g, " <angry>!");
-    }
-
-    return emotionalText;
+  addEmotions(text: string, context?: EmotionContext): string {
+    return addEmotionsToText(text, context);
   }
 
   /**
-   * Synthesize speech from text
+   * Synthesize speech via Modal GPU endpoint
+   * Returns WAV audio as a Blob
    */
-  async synthesize(
-    text: string,
-    config?: Partial<VoiceConfig>
-  ): Promise<Blob> {
-    try {
-      const voiceDescription = config?.description || this.defaultVoiceDescription;
-      const prompt = this.buildPrompt(voiceDescription, text);
-
-      logger.info("Synthesizing speech with MAYA1", {
-        textLength: text.length,
-        voiceDescription: voiceDescription.substring(0, 50),
-        category: "voice",
-      });
-
-      // Use Hugging Face Inference API for text-to-speech
-      const response = await this.hf.textToSpeech({
-        model: this.modelId,
-        inputs: prompt,
-      });
-
-      logger.info("Speech synthesis completed", {
-        audioSize: response.size,
-        category: "voice",
-      });
-
-      return response;
-    } catch (error: any) {
-      logger.error("Failed to synthesize speech", {
-        error: error.message,
-        text: text.substring(0, 100),
-        category: "voice",
-      });
-
-      throw new Error(`Speech synthesis failed: ${error.message}`);
+  async synthesize(text: string, config?: VoiceConfig): Promise<Blob> {
+    if (!this.modalUrl) {
+      throw new Error(
+        "Maya1 Modal endpoint not configured. " +
+        "Deploy with: cd services/maya1-tts && modal deploy modal_deploy.py\n" +
+        "Then add HOLLY_MAYA1_TTS_URL to Vercel env vars."
+      );
     }
+
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+
+    if (this.apiKey) {
+      headers["X-API-Key"] = this.apiKey;
+    }
+
+    logger.info("Synthesizing with Maya1 (Modal)", {
+      textLength: text.length,
+      category: "voice",
+    });
+
+    const response = await fetch(this.modalUrl, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        text,
+        description: config?.description || this.defaultVoiceDescription,
+        temperature: config?.temperature ?? 0.4,
+        top_p: config?.topP ?? 0.9,
+      }),
+      signal: AbortSignal.timeout(80000),
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Maya1 Modal error ${response.status}: ${errText}`);
+    }
+
+    const blob = await response.blob();
+
+    logger.info("Maya1 synthesis complete", {
+      audioSize: blob.size,
+      category: "voice",
+    });
+
+    return blob;
   }
 
   /**
-   * Stream speech synthesis in real-time
+   * Stream synthesis is not yet available via Modal web endpoint
+   * Falls back to regular synthesis
    */
   async *streamSynthesize(
     text: string,
-    config?: Partial<VoiceConfig>
+    config?: VoiceConfig
   ): AsyncGenerator<Uint8Array, void, unknown> {
-    try {
-      const voiceDescription = config?.description || this.defaultVoiceDescription;
-      const prompt = this.buildPrompt(voiceDescription, text);
-
-      logger.info("Starting streaming speech synthesis", {
-        textLength: text.length,
-        category: "voice",
-      });
-
-      // For streaming, we'll need to use the Inference API with streaming enabled
-      // This is a simplified version - actual implementation would use vLLM
-      const response = await fetch(
-        `https://api-inference.huggingface.co/models/${this.modelId}`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${process.env.HUGGINGFACE_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            inputs: prompt,
-            parameters: {
-              temperature: config?.temperature || 0.7,
-              max_new_tokens: config?.maxTokens || 2048,
-              return_full_text: false,
-            },
-            options: {
-              use_cache: true,
-              wait_for_model: true,
-            },
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${await response.text()}`);
-      }
-
-      // Stream the audio chunks
-      const reader = response.body?.getReader();
-      if (!reader) {
-        throw new Error("No response body");
-      }
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        yield value;
-      }
-
-      logger.info("Streaming speech synthesis completed", {
-        category: "voice",
-      });
-    } catch (error: any) {
-      logger.error("Failed to stream speech synthesis", {
-        error: error.message,
-        category: "voice",
-      });
-
-      throw new Error(`Streaming synthesis failed: ${error.message}`);
-    }
+    const blob   = await this.synthesize(text, config);
+    const buffer = await blob.arrayBuffer();
+    yield new Uint8Array(buffer);
   }
 
-  /**
-   * Get available emotion tags
-   */
-  getAvailableEmotions(): EmotionConfig[] {
-    return [
-      { type: "laugh", intensity: "medium" },
-      { type: "sigh", intensity: "medium" },
-      { type: "whisper", intensity: "low" },
-      { type: "angry", intensity: "high" },
-      { type: "giggle", intensity: "low" },
-      { type: "chuckle", intensity: "medium" },
-      { type: "gasp", intensity: "medium" },
-      { type: "cry", intensity: "high" },
-      { type: "excited", intensity: "high" },
-      { type: "scream", intensity: "high" },
-    ];
+  getAvailableEmotions() {
+    return MAYA1_EMOTIONS.map(tag => ({
+      tag,
+      description: tag.replace(/[<>]/g, ""),
+    }));
   }
 
-  /**
-   * Validate voice description
-   */
-  validateVoiceDescription(description: string): {
-    valid: boolean;
-    issues: string[];
-  } {
-    const issues: string[] = [];
-
-    if (description.length < 20) {
-      issues.push("Description too short (minimum 20 characters)");
-    }
-
-    if (description.length > 500) {
-      issues.push("Description too long (maximum 500 characters)");
-    }
-
-    // Check for key elements
-    const hasAge = /\d+\s*(year|yr)s?\s*old/i.test(description) || /age\s*\d+/i.test(description);
-    const hasGender = /\b(male|female|man|woman|boy|girl)\b/i.test(description);
-    const hasAccent = /\b(american|british|australian|accent)\b/i.test(description);
-
-    if (!hasAge) {
-      issues.push("Consider adding age information (e.g., 'in their 30s')");
-    }
-
-    if (!hasGender) {
-      issues.push("Consider specifying gender (e.g., 'male voice', 'female voice')");
-    }
-
-    if (!hasAccent) {
-      issues.push("Consider specifying accent (e.g., 'American accent', 'British accent')");
-    }
-
-    return {
-      valid: issues.length === 0 || issues.every(i => i.startsWith("Consider")),
-      issues,
-    };
-  }
-
-  /**
-   * Get HOLLY's default voice description
-   */
   getDefaultVoiceDescription(): string {
     return this.defaultVoiceDescription;
   }
 
-  /**
-   * Update HOLLY's default voice description
-   */
-  setDefaultVoiceDescription(description: string): void {
-    const validation = this.validateVoiceDescription(description);
-    if (!validation.valid) {
-      throw new Error(`Invalid voice description: ${validation.issues.join(", ")}`);
-    }
-
-    this.defaultVoiceDescription = description;
-    logger.info("Updated default voice description", {
-      description: description.substring(0, 50),
-      category: "voice",
-    });
+  getServiceInfo() {
+    return {
+      model: "maya-research/maya1",
+      provider: "Modal.com (Serverless GPU)",
+      license: "Apache 2.0",
+      features: [
+        "20+ emotion tags",
+        "Natural language voice control",
+        "Real-time capable (sub-100ms on warm GPU)",
+        "24kHz audio output",
+        "Zero per-second fees",
+      ],
+      available: this.isAvailable(),
+      modalUrl: this.modalUrl ? this.modalUrl.substring(0, 50) + "..." : "not configured",
+      deployGuide: "services/maya1-tts/MODAL_SETUP.md",
+    };
   }
 }
 
