@@ -3,7 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { logger } from "@/lib/monitoring/logger";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 /**
  * POST /api/voice/synthesize
@@ -81,7 +81,7 @@ async function generateWithMaya1(
       temperature,
       top_p: 0.9,
     }),
-    signal: AbortSignal.timeout(30000), // 30s — Modal cold start is ~10–15s
+    signal: AbortSignal.timeout(90000), // 90s — Modal cold start can take 30–60s on first wake
   });
 
   if (!response.ok) {

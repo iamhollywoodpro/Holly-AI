@@ -141,7 +141,7 @@ class HollyTTS:
         print(f"   Loading from: {maya1_path}")
         self.model = AutoModelForCausalLM.from_pretrained(
             maya1_path,
-            torch_dtype=torch.bfloat16,
+            dtype=torch.bfloat16,      # torch_dtype was deprecated in transformers >= 4.44
             device_map="auto",
             trust_remote_code=True,
             cache_dir=MODEL_CACHE_DIR,

@@ -2,7 +2,7 @@
 
 /**
  * HOLLY Voice Button Component
- * Allows text-to-speech using Google Gemini TTS (free)
+ * Allows text-to-speech using Maya1 via Modal.com (free GPU, Apache 2.0)
  */
 
 import { useState } from 'react';
@@ -32,7 +32,7 @@ export function VoiceButton({ text, autoPlay = false, className = '' }: VoiceBut
         audio.currentTime = 0;
       }
 
-      // Generate and play speech using Gemini TTS
+      // Generate and play speech using Maya1 via Modal.com
       setIsPlaying(true);
       await speakText(text, {
         onStart: () => setIsPlaying(true),

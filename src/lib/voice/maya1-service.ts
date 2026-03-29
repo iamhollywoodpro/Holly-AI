@@ -2,10 +2,11 @@
  * HOLLY Maya1 Voice Service
  * 
  * Calls the Maya1 TTS microservice deployed on Modal.com (FREE GPU).
- * Falls back to Gemini TTS when Modal is unavailable.
+ * No paid fallback — if Modal is down, voice is unavailable (clear error returned).
  * 
- * Modal endpoint: https://iamhollywoodpro--holly-maya1-tts-generate.modal.run
- * Deploy guide:  services/maya1-tts/MODAL_SETUP.md
+ * Modal endpoint: https://iamhollywoodpro--generate.modal.run
+ * Health check:   https://iamhollywoodpro--health.modal.run
+ * Deploy guide:   services/maya1-tts/MODAL_SETUP.md
  */
 
 import { logger } from "../monitoring/logger";

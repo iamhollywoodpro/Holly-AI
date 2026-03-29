@@ -1,6 +1,6 @@
 /**
  * HOLLY Voice Player Component
- * Uses Google Gemini TTS for high-quality, free voice generation
+ * Uses Maya1 via Modal.com for high-quality, free voice generation (Apache 2.0)
  */
 
 'use client';
@@ -50,7 +50,7 @@ export default function HollyVoicePlayer({
       .trim();
   };
 
-  // Generate and play audio using Gemini TTS
+  // Generate and play audio using Maya1 via Modal.com
   const generateAndPlay = async () => {
     if (!text || text.trim().length === 0) {
       setError('No text to speak');
@@ -63,11 +63,11 @@ export default function HollyVoicePlayer({
     try {
       // Strip emojis from text before TTS
       const cleanText = stripEmojis(text);
-      console.log('[HOLLY Voice] Generating voice with Gemini TTS...');
+      console.log('[HOLLY Voice] Generating voice with Maya1 (Modal.com GPU)...');
       console.log('[HOLLY Voice] Original text:', text);
       console.log('[HOLLY Voice] Clean text:', cleanText);
       
-      // Generate and play voice using Gemini TTS
+      // Generate and play voice using Maya1 via Modal.com
       await speakText(cleanText, {
         onStart: () => {
           setIsPlaying(true);
