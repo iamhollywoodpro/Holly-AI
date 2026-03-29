@@ -1,6 +1,6 @@
-// Music Generation API - v3.0.0
-// Always generates full songs (up to 8 min) using Suno V4_5PLUS model.
-// Extend endpoint remains available for adding outro sections if desired.
+// Music Generation API - v3.1.0
+// Always generates full songs using Suno V5_5 (latest model, voice-customised).
+// Extend endpoint remains available for adding more sections if desired.
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
@@ -10,9 +10,10 @@ export const runtime = 'nodejs';
 const SUNO_API_BASE = 'https://api.sunoapi.org';
 const SUNO_API_KEY  = process.env.SUNO_API_KEY;
 
-// Default model — V4_5PLUS: richest tones, best structure, up to 8 min.
+// Default model — V5_5: Suno's newest and best model (as of 2025).
+// Voice-customised, superior quality, full song generation.
 // Users can override via body.model if desired.
-const DEFAULT_MODEL = 'V4_5PLUS';
+const DEFAULT_MODEL = 'V5_5';
 
 /**
  * Wraps a non-custom prompt into a full-song structure hint so Suno

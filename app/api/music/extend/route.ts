@@ -1,7 +1,7 @@
 /**
  * POST /api/music/extend
  *
- * Extends a Suno-generated 30-second clip into a full song (~2-4 min).
+ * Extends a Suno-generated song with additional sections.
  * Uses the Suno API "song extend" endpoint with a clipId.
  *
  * Body:
