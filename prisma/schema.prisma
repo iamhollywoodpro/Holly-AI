@@ -3842,6 +3842,22 @@ model ApiKey {
   @@map("api_keys")
 }
 
+/// Canva OAuth tokens — one row per HOLLY user, stores access + refresh tokens.
+model CanvaToken {
+  id            String   @id @default(cuid())
+  userId        String   @unique   // HOLLY user id (maps to User.id)
+  accessToken   String   @db.Text  // Canva short-lived access token
+  refreshToken  String   @db.Text  // Canva long-lived refresh token (single-use)
+  expiresAt     DateTime           // When the current access token expires
+  scope         String             // Space-separated scopes granted
+  canvaUserId   String?            // Canva user id (from /v1/users/me)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId])
+  @@map("canva_tokens")
+}
+
 /// Per-request usage log for an ApiKey — used for rate limiting and analytics.
 model ApiKeyUsage {
   id         String   @id @default(cuid())
