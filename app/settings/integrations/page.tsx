@@ -126,6 +126,8 @@ export default function IntegrationsPage() {
   const [githubUsername, setGithubUsername] = useState('');
   const [canvaConnected, setCanvaConnected] = useState(false);
   const [canvaUser, setCanvaUser]           = useState('');
+  const [spotifyConnected, setSpotifyConnected] = useState(false);
+  const [spotifyUser, setSpotifyUser]           = useState('');
   const [statusLoading, setStatusLoading]   = useState(true);
   const [activeCategory, setActiveCategory] = useState<string>('All');
 
@@ -137,10 +139,14 @@ export default function IntegrationsPage() {
 
     if (ok === 'drive_connected')   showToast('success', '🎉 Google Drive connected!');
     if (ok === 'github_connected')  showToast('success', '🎉 GitHub connected!');
+    if (ok === 'spotify_connected') showToast('success', '🎵 Spotify connected!');
     if (cv === 'connected')         showToast('success', '🎉 Canva connected!');
     if (cv === 'denied')            showToast('error',   'Canva connection cancelled.');
     if (err)                        showToast('error',   `Error: ${decodeURIComponent(err)}`);
     if (cv || ok || err) window.history.replaceState({}, '', '/settings/integrations');
+    // Spotify error param
+    const spotifyErr = searchParams.get('spotify_error');
+    if (spotifyErr) showToast('error', `Spotify error: ${spotifyErr}`);
   }, [searchParams]);
 
   // ── Fetch all statuses in parallel ────────────────────────────────────────
@@ -162,6 +168,11 @@ export default function IntegrationsPage() {
           setCanvaConnected(d.connected);
           if (d.canvaUser?.displayName) setCanvaUser(d.canvaUser.displayName);
         }),
+      fetch('/api/spotify/status', { cache: 'no-store' })
+        .then(r => r.json()).then(d => {
+          setSpotifyConnected(d.connected);
+          if (d.integration?.displayName) setSpotifyUser(d.integration.displayName);
+        }).catch(() => {}),
     ]);
     setStatusLoading(false);
   }, []);
@@ -247,7 +258,15 @@ export default function IntegrationsPage() {
       icon:         <Icons.Spotify />,
       gradient:     'from-[#1DB954] to-[#148040]',
       category:     'Music',
-      status:       'coming-soon',
+      status:       spotifyConnected ? 'connected' : 'disconnected',
+      connectedInfo: spotifyUser || 'Spotify account',
+      onConnect:    () => window.location.href = '/api/spotify/auth',
+      onDisconnect: async () => {
+        await fetch('/api/spotify/disconnect', { method: 'DELETE' });
+        setSpotifyConnected(false);
+        setSpotifyUser('');
+        showToast('success', 'Spotify disconnected.');
+      },
     },
     {
       id:           'apple-music',
@@ -396,7 +415,7 @@ export default function IntegrationsPage() {
             key={svc.id}
             integration={svc}
             index={i}
-            loading={statusLoading && (svc.id === 'canva' || svc.id === 'google-drive' || svc.id === 'github')}
+            loading={statusLoading && (svc.id === 'canva' || svc.id === 'google-drive' || svc.id === 'github' || svc.id === 'spotify')}
           />
         ))}
       </div>
