@@ -62,10 +62,10 @@ const STYLE_PRESETS = [
 ];
 
 const MODEL_OPTIONS = [
-  { value: 'V4_5PLUS', label: 'V4.5+ (Best Quality)',   desc: 'Richest tones · up to 8 min',    badge: 'Recommended' },
-  { value: 'V4_5ALL',  label: 'V4.5 All (Best Structure)', desc: 'Best song structure · up to 8 min', badge: '' },
-  { value: 'V4_5',     label: 'V4.5 (Balanced)',         desc: 'Fast & great quality · up to 8 min', badge: '' },
-  { value: 'V5',       label: 'V5 (Latest)',             desc: 'Cutting-edge quality',           badge: 'New' },
+  { value: 'V5_5',     label: 'V5.5 (Latest)',           desc: 'Newest model · voice-customised · best quality', badge: 'Default' },
+  { value: 'V5',       label: 'V5',                      desc: 'Superior expression · fast generation',          badge: '' },
+  { value: 'V4_5PLUS', label: 'V4.5+',                   desc: 'Richest tones · up to 8 min',                    badge: '' },
+  { value: 'V4_5ALL',  label: 'V4.5 All',                desc: 'Best song structure · up to 8 min',              badge: '' },
 ];
 
 // ── Main Component ────────────────────────────────────────────────────────────
@@ -78,7 +78,7 @@ export default function MusicStudio() {
   const [style, setStyle]                 = useState('');
   const [instrumental, setInstrumental]   = useState(false);
   const [useLyrics, setUseLyrics]         = useState(false);    // provide custom lyrics vs. AI auto-generates
-  const [model, setModel]                 = useState('V4_5PLUS');
+  const [model, setModel]                 = useState('V5_5');
   const [generateCover, setGenerateCover] = useState(true);
   const [showAdvanced, setShowAdvanced]   = useState(false);
   const [vocalGender, setVocalGender]     = useState<'m' | 'f' | ''>('');
@@ -322,7 +322,7 @@ export default function MusicStudio() {
               Music Studio
             </h1>
             <span className="text-xs text-purple-400/60 border border-purple-500/20 rounded-full px-2 py-0.5">
-              Full Songs · Up to 8 min
+              Suno V5.5 · Full Songs
             </span>
           </div>
           <Link href="/chat" className="px-4 py-2 rounded-lg bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 transition-colors text-sm">
@@ -540,7 +540,7 @@ export default function MusicStudio() {
               </button>
 
               <p className="text-center text-xs text-gray-600 mt-3">
-                Generates 2 song variants · Ready in ~2-3 min · Up to 8 minutes long
+                Suno V5.5 · Generates 2 song variants · Ready in ~2-3 min · Full songs
               </p>
             </div>
           </div>
