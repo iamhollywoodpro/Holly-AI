@@ -67,6 +67,14 @@ interface ToolExecution {
 // ─── Tool metadata ────────────────────────────────────────────────────────────
 
 const TOOL_META: Record<string, { label: string; icon: any; color: string }> = {
+  // GitHub tools — full MCP names
+  "mcp_github_github_read_file":            { label: "Reading file",       icon: Github,      color: "text-gray-300" },
+  "mcp_github_github_list_files":           { label: "Listing files",      icon: Github,      color: "text-gray-300" },
+  "mcp_github_github_create_or_update_file":{ label: "Writing to repo",    icon: Github,      color: "text-green-400" },
+  "mcp_github_github_create_pr":            { label: "Creating PR",        icon: Github,      color: "text-blue-400" },
+  "mcp_github_github_create_issue":         { label: "Creating issue",     icon: Github,      color: "text-yellow-400" },
+  "mcp_github_github_list_prs":             { label: "Listing PRs",        icon: Github,      color: "text-gray-300" },
+  // Short names (stripped prefix)
   github_read_file:            { label: "Reading file",       icon: Github,      color: "text-gray-300" },
   github_list_files:           { label: "Listing files",      icon: Github,      color: "text-gray-300" },
   github_create_or_update_file:{ label: "Writing to repo",    icon: Github,      color: "text-green-400" },
@@ -390,25 +398,75 @@ function FeedbackButtons({
   );
 }
 
-function StatusBar({ text }: { text: string }) {
+// ─── Action Indicator ─────────────────────────────────────────────────────────
+// Maps status text prefixes to icons and colors for rich display
+const ACTION_META: Array<{ test: RegExp; icon: any; color: string; bg: string; label?: string }> = [
+  { test: /generating image|creating image|drawing/i,   icon: Image,       color: "text-pink-400",    bg: "bg-pink-500/10 border-pink-500/30" },
+  { test: /composing music|generating music|making.*song/i, icon: Volume2,  color: "text-green-400",  bg: "bg-green-500/10 border-green-500/30" },
+  { test: /reading document|analyzing.*doc|summariz/i,  icon: Database,    color: "text-blue-400",    bg: "bg-blue-500/10 border-blue-500/30" },
+  { test: /searching.*web|searching the web|searching web/i, icon: Search,  color: "text-cyan-400",   bg: "bg-cyan-500/10 border-cyan-500/30" },
+  { test: /processing code|analyzing code|writing code/i,  icon: Code2,    color: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/30" },
+  { test: /searching memories|recall|memory/i,          icon: Brain,       color: "text-violet-400",  bg: "bg-violet-500/10 border-violet-500/30" },
+  { test: /analyzing audio|checking audio|mixing|mastering/i, icon: Volume2, color: "text-orange-400", bg: "bg-orange-500/10 border-orange-500/30" },
+  { test: /accessing github|github|repo/i,              icon: Github,      color: "text-gray-300",    bg: "bg-gray-700/40 border-gray-600/30" },
+  { test: /generating video|rendering video/i,          icon: Cpu,         color: "text-red-400",     bg: "bg-red-500/10 border-red-500/30" },
+  { test: /analyzing data|computing|calculating/i,      icon: TrendingUp,  color: "text-yellow-400",  bg: "bg-yellow-500/10 border-yellow-500/30" },
+  { test: /thinking deeply|deep reasoning|reasoning/i,  icon: Brain,       color: "text-purple-400",  bg: "bg-purple-500/10 border-purple-500/30" },
+  { test: /switching model|trying|switching/i,          icon: Zap,         color: "text-orange-400",  bg: "bg-orange-500/10 border-orange-500/30" },
+  { test: /using.*tool|tool/i,                          icon: Terminal,    color: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/30" },
+  { test: /fast chat|speed|routing/i,                   icon: Zap,         color: "text-purple-400",  bg: "bg-purple-500/10 border-purple-500/20" },
+  { test: /vision|analyzing.*image|looking at/i,        icon: Globe,       color: "text-sky-400",     bg: "bg-sky-500/10 border-sky-500/30" },
+  { test: /agent|autonomous|planning/i,                 icon: Bot,         color: "text-purple-400",  bg: "bg-purple-500/10 border-purple-500/30" },
+  { test: /creative/i,                                  icon: Sparkles,    color: "text-pink-400",    bg: "bg-pink-500/10 border-pink-500/30" },
+];
+
+function getActionMeta(text: string) {
+  for (const m of ACTION_META) {
+    if (m.test.test(text)) return m;
+  }
+  return { icon: Sparkles, color: "text-purple-400", bg: "bg-purple-500/10 border-purple-500/20" };
+}
+
+function ActionIndicator({ text }: { text: string }) {
   if (!text) return null;
+  const meta = getActionMeta(text);
+  const Icon = meta.icon;
   return (
     <motion.div
-      initial={{ opacity: 0, y: 4 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -4 }}
-      className="flex items-center justify-center gap-2.5"
+      key={text}
+      initial={{ opacity: 0, scale: 0.96, y: 6 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.94, y: -4 }}
+      transition={{ duration: 0.25 }}
+      className="flex items-center justify-center"
     >
-      <div className="flex items-center gap-2.5 px-4 py-2 bg-gray-900/90 border border-purple-500/20 rounded-full text-sm text-gray-300 shadow-sm shadow-purple-500/10">
+      <div className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border text-sm font-medium ${meta.bg} shadow-sm`}>
         <motion.div
-          className="w-1.5 h-1.5 rounded-full bg-purple-400"
-          animate={{ opacity: [0.4, 1, 0.4] }}
-          transition={{ duration: 1.2, repeat: Infinity }}
-        />
-        {text}
+          animate={{ rotate: [0, 8, -8, 0] }}
+          transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+        >
+          <Icon className={`w-4 h-4 flex-shrink-0 ${meta.color}`} />
+        </motion.div>
+        <span className={`${meta.color}`}>{text}</span>
+        {/* Pulsing dots */}
+        <span className="flex items-center gap-0.5">
+          {[0, 1, 2].map(i => (
+            <motion.span
+              key={i}
+              className={`w-1 h-1 rounded-full ${meta.color.replace('text-', 'bg-')}`}
+              animate={{ opacity: [0.2, 1, 0.2] }}
+              transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }}
+            />
+          ))}
+        </span>
       </div>
     </motion.div>
   );
+}
+
+// Legacy status bar — kept for backward compat but now delegates to ActionIndicator
+function StatusBar({ text }: { text: string }) {
+  return <ActionIndicator text={text} />;
 }
 
 // ─── Markdown renderer with syntax highlighting ───────────────────────────────
@@ -1228,26 +1286,50 @@ export default function HollyChatInterface() {
 
       let assistantContent = "";
       let detectedModel: string | undefined;
+      let sseBuffer = "";
+      let streamDone = false;
 
-      while (true) {
+      while (!streamDone) {
         const { done, value } = await reader.read();
         if (done) break;
 
-        const lines = decoder.decode(value, { stream: true }).split("\n");
-        for (const line of lines) {
-          if (!line.startsWith("data: ")) continue;
+        // Accumulate raw bytes into buffer; SSE messages are delimited by \n\n
+        sseBuffer += decoder.decode(value, { stream: true });
+
+        // Split on double-newline to get complete SSE messages
+        const parts = sseBuffer.split("\n\n");
+        // Keep the last (possibly incomplete) part in the buffer
+        sseBuffer = parts.pop() ?? "";
+
+        for (const part of parts) {
+          // Each part may have multiple lines; find the data line
+          const dataLine = part.split("\n").find(l => l.startsWith("data: "));
+          if (!dataLine) continue;
           try {
-            const data: StatusUpdate = JSON.parse(line.slice(6));
-            if (data.type === "done") break;
-            if (data.type === "error") { setCurrentStatus(`❌ ${data.content}`); break; }
-            if (data.type === "status") setCurrentStatus(data.content || "");
+            const data: StatusUpdate = JSON.parse(dataLine.slice(6));
+
+            if (data.type === "done") {
+              streamDone = true;
+              break;
+            }
+            if (data.type === "error") {
+              setCurrentStatus(`❌ ${data.content}`);
+              streamDone = true;
+              break;
+            }
+            if (data.type === "status") {
+              setCurrentStatus(data.content || "");
+            }
             if (data.type === "signal") {
               detectedModel = data.content || undefined;
-              setCurrentStatus(`🌐 Routing to ${data.content}...`);
+              setCurrentStatus(`🌐 Routing to ${data.content}…`);
             }
             if (data.type === "text") {
               assistantContent += data.content || "";
               setStreamingMessage(assistantContent);
+              // Once text starts arriving, clear the status indicator
+              // (Holly is now responding — the action is happening)
+              setCurrentStatus("");
             }
             if (data.type === "tool") {
               const ex: ToolExecution = {
@@ -1264,9 +1346,15 @@ export default function HollyChatInterface() {
                 }
                 return [...prev, ex];
               });
-              if (data.status === "start") setSandboxOpen(true);
+              // Show sandbox panel when a tool starts, update status
+              if (data.status === "start") {
+                setSandboxOpen(true);
+                setCurrentStatus(`🔧 Running: ${(data.toolName || "").replace(/^mcp_[^_]+_/, "").replace(/_/g, " ")}…`);
+              } else if (data.status === "complete") {
+                setCurrentStatus(`✅ Done: ${(data.toolName || "").replace(/^mcp_[^_]+_/, "").replace(/_/g, " ")}`);
+              }
             }
-          } catch { /* malformed line */ }
+          } catch { /* malformed line — skip */ }
         }
       }
 
@@ -1345,11 +1433,13 @@ export default function HollyChatInterface() {
             <p className="text-xs text-gray-500">
               {isProcessing ? (
                 <motion.span
-                  key="thinking"
+                  key={currentStatus || "thinking"}
                   initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                  className="text-purple-400"
+                  className="text-purple-400 truncate max-w-[180px] block"
                 >
-                  thinking…
+                  {currentStatus
+                    ? currentStatus.replace(/^[^\w]*/, "").toLowerCase()
+                    : "thinking…"}
                 </motion.span>
               ) : isCreator ? (
                 <span className="text-amber-500/70">Creator session — full access</span>
@@ -1658,7 +1748,28 @@ export default function HollyChatInterface() {
           )}
         </AnimatePresence>
 
-        {/* Typing indicator when thinking with no text yet */}
+        {/* Live action indicator — shows WHAT Holly is doing right now */}
+        <AnimatePresence>
+          {currentStatus && (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              className="flex gap-3 justify-start"
+            >
+              <HollyAvatar isThinking={true} />
+              <div className="flex flex-col gap-2 items-start max-w-[85%]">
+                <div className="flex items-center gap-2 px-1">
+                  <span className="text-xs font-medium text-purple-400">HOLLY</span>
+                  <span className="text-xs text-gray-500">is working…</span>
+                </div>
+                <ActionIndicator text={currentStatus} />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Typing indicator — only when processing with NO status and NO text yet */}
         {isProcessing && !streamingMessage && !currentStatus && (
           <div className="flex gap-3 justify-start">
             <HollyAvatar isThinking={true} />
@@ -1667,11 +1778,6 @@ export default function HollyChatInterface() {
             </div>
           </div>
         )}
-
-        {/* Status bar */}
-        <AnimatePresence>
-          {currentStatus && <StatusBar text={currentStatus} />}
-        </AnimatePresence>
 
         <div ref={messagesEndRef} />
       </div>{/* end max-w-3xl */}

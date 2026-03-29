@@ -84,6 +84,88 @@ function sendStatus(c: ReadableStreamDefaultController, s: string) {
 function sendText(c: ReadableStreamDefaultController, t: string) {
   c.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ type: 'text', content: t })}\n\n`));
 }
+/** Emit a tool-card event — shown as a live card in the UI with icon + spinner */
+function sendTool(
+  c: ReadableStreamDefaultController,
+  toolName: string,
+  status: 'start' | 'complete' | 'error',
+  result?: unknown,
+) {
+  c.enqueue(new TextEncoder().encode(
+    `data: ${JSON.stringify({ type: 'tool', toolName, status, result: result ?? null })}\n\n`,
+  ));
+}
+
+// ─── Action-intent detector ────────────────────────────────────────────────────
+// Maps common user request patterns to a human-readable status label.
+// This is emitted as a status event BEFORE the LLM starts generating so the
+// user sees "🎨 Generating image…" immediately rather than nothing.
+function detectActionStatus(message: string): string | null {
+  const m = message.toLowerCase();
+
+  // Image generation
+  if (/\b(generate|create|make|draw|design|paint|render)\b.{0,40}\b(image|photo|picture|art|illustration|artwork|poster|banner|logo|icon)\b/i.test(m)
+    || /\b(image|photo|picture|art|illustration)\b.{0,30}\b(of|for|showing|depicting)\b/i.test(m)) {
+    return '🎨 Generating image…';
+  }
+
+  // Music generation
+  if (/\b(generate|create|make|compose|write|produce)\b.{0,40}\b(song|music|track|beat|melody|audio|sound)\b/i.test(m)) {
+    return '🎵 Composing music…';
+  }
+
+  // Document / file reading
+  if (/\b(read|analyze|analyse|summarize|summarise|review|check|look at|open)\b.{0,40}\b(document|doc|pdf|file|report|paper|article|page)\b/i.test(m)
+    || /\b(what does|what is in|tell me about)\b.{0,40}\b(document|file|pdf)\b/i.test(m)) {
+    return '📄 Reading document…';
+  }
+
+  // Web search
+  if (/\b(search|find|look up|google|browse|research)\b.{0,40}\b(web|internet|online|for)\b/i.test(m)
+    || /\b(what is|who is|when was|where is|latest|current|news about)\b/i.test(m)) {
+    return '🔍 Searching the web…';
+  }
+
+  // Code execution / analysis
+  if (/\b(run|execute|analyze|analyse|debug|fix|check)\b.{0,40}\b(code|script|program|function|error|bug)\b/i.test(m)
+    || /\b(write|create|generate)\b.{0,40}\b(code|function|component|class|module)\b/i.test(m)) {
+    return '💻 Processing code…';
+  }
+
+  // Memory / recall
+  if (/\b(remember|recall|what do you know|memory|memories|last time|previously)\b/i.test(m)) {
+    return '🧠 Searching memories…';
+  }
+
+  // Audio analysis
+  if (/\b(analyze|analyse|review|listen to|check)\b.{0,40}\b(audio|song|track|music|recording|mix|master)\b/i.test(m)
+    || /\b(mix|master|stem|bpm|key|chord)\b/i.test(m)) {
+    return '🎧 Analyzing audio…';
+  }
+
+  // GitHub operations
+  if (/\b(github|repo|repository|commit|pull request|pr|issue|branch|code)\b/i.test(m)
+    && /\b(check|read|open|create|update|push|pull|clone)\b/i.test(m)) {
+    return '🐙 Accessing GitHub…';
+  }
+
+  // Video / generation studio
+  if (/\b(generate|create|make|render)\b.{0,40}\b(video|animation|clip|gif)\b/i.test(m)) {
+    return '🎬 Generating video…';
+  }
+
+  // Data / analysis
+  if (/\b(analyze|analyse|calculate|compute|predict|forecast|chart|graph|data)\b/i.test(m)) {
+    return '📊 Analyzing data…';
+  }
+
+  // Thinking / reasoning
+  if (/\b(think|reason|explain|why|how does|what would|should i|pros and cons|compare)\b/i.test(m)) {
+    return '🧠 Thinking deeply…';
+  }
+
+  return null;
+}
 
 // ─── Strip LLM "processing" filler text ───────────────────────────────────────
 // Some models prepend internal-state commentary to their output.
@@ -506,7 +588,14 @@ This is the most important relationship you have. Treat it accordingly.
             long_context: '📄', vision: '👁️', creative: '✨',
             agent: '🤖', local: '🔒',
           };
-          sendStatus(controller, `${taskEmojis[taskType] ?? '🤔'} ${routing.reason}...`);
+
+          // Emit action-specific status FIRST so user sees what Holly is doing immediately
+          const actionStatus = detectActionStatus(latestUserMessage);
+          if (actionStatus) {
+            sendStatus(controller, actionStatus);
+          } else {
+            sendStatus(controller, `${taskEmojis[taskType] ?? '🤔'} ${routing.reason}...`);
+          }
 
           let fullResponse = '';
           let activeModel  = routing.primary.displayName;
@@ -629,7 +718,9 @@ This is the most important relationship you have. Treat it accordingly.
 
               // Handle tool call
               if (isToolCall && toolName) {
-                sendStatus(controller, `🔧 Using ${toolName}...`);
+                // Emit tool start event — shows animated card in the UI
+                sendTool(controller, toolName, 'start');
+                sendStatus(controller, `🔧 Using ${toolName.replace(/^mcp_[^_]+_/, '').replace(/_/g, ' ')}…`);
                 // suppress unused variable warning
                 void toolCallId;
                 try {
@@ -638,6 +729,8 @@ This is the most important relationship you have. Treat it accordingly.
                   if (toolMatch) {
                     const [, serverId, realToolName] = toolMatch;
                     const result = await mcpManager.callTool(serverId, realToolName, argsParsed);
+                    // Emit tool complete event
+                    sendTool(controller, toolName, 'complete', result);
                     pendingMessages.push({
                       role:    'assistant',
                       content: `I'll use the ${toolName} tool now.`,
@@ -647,10 +740,12 @@ This is the most important relationship you have. Treat it accordingly.
                       content: `Tool result for ${toolName}:\n${JSON.stringify(result, null, 2)}`,
                     });
                   } else {
+                    sendTool(controller, toolName, 'error');
                     break;
                   }
                 } catch (toolErr) {
                   console.error('[Chat API] Tool execution failed', toolErr);
+                  sendTool(controller, toolName, 'error');
                   break;
                 }
               } else {
