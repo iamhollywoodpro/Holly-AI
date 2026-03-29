@@ -19,16 +19,16 @@ interface Integration {
   name: string;
   description: string;
   icon: React.ReactNode;
-  gradient: string;          // Tailwind gradient classes
+  gradient: string;
   category: string;
   status: IntegrationStatus;
-  connectedInfo?: string;    // e.g. email or username shown when connected
+  connectedInfo?: string;
   onConnect?: () => void;
   onDisconnect?: () => void;
   docsUrl?: string;
 }
 
-// ─── SVG Icons for services without Lucide equivalents ────────────────────────
+// ─── SVG Icons ────────────────────────────────────────────────────────────────
 
 const Icons = {
   GoogleDrive: () => (
@@ -101,7 +101,7 @@ const Icons = {
   ),
 };
 
-// ─── Category label colours ────────────────────────────────────────────────────
+// ─── Category colours ─────────────────────────────────────────────────────────
 
 const CATEGORY_COLORS: Record<string, string> = {
   'Design':       'bg-pink-500/20 text-pink-300',
@@ -114,39 +114,145 @@ const CATEGORY_COLORS: Record<string, string> = {
   'Video':        'bg-red-500/20 text-red-300',
 };
 
+// ─── Discord Webhook Modal ────────────────────────────────────────────────────
+
+function DiscordModal({
+  onSave,
+  onClose,
+  saving,
+}: {
+  onSave: (url: string, serverName: string) => void;
+  onClose: () => void;
+  saving: boolean;
+}) {
+  const [url,  setUrl]  = useState('');
+  const [name, setName] = useState('');
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="w-full max-w-md bg-gray-900 border border-gray-700/60 rounded-2xl p-6 shadow-2xl"
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-bold text-white flex items-center gap-2">
+            <Icons.Discord /> Connect Discord
+          </h3>
+          <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <p className="text-gray-400 text-sm mb-5 leading-relaxed">
+          Create a Discord Webhook in your server (Server Settings → Integrations → Webhooks) and paste the URL below. HOLLY will send release alerts, A&R reports, and insights to that channel.
+        </p>
+
+        <div className="space-y-3 mb-5">
+          <div>
+            <label className="block text-xs font-medium text-gray-400 mb-1.5">Server / Channel Name (optional)</label>
+            <input
+              type="text"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              placeholder="e.g. #releases"
+              className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-indigo-500 transition-colors"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-400 mb-1.5">Webhook URL *</label>
+            <input
+              type="url"
+              value={url}
+              onChange={e => setUrl(e.target.value)}
+              placeholder="https://discord.com/api/webhooks/..."
+              className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-indigo-500 transition-colors"
+            />
+          </div>
+        </div>
+
+        <div className="flex gap-3">
+          <button
+            onClick={onClose}
+            className="flex-1 px-4 py-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm font-medium transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => onSave(url, name)}
+            disabled={!url.startsWith('https://discord.com/api/webhooks/') || saving}
+            className="flex-1 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#5865F2] to-[#404EED] disabled:opacity-50 text-white text-sm font-semibold transition-all hover:opacity-90 flex items-center justify-center gap-2"
+          >
+            {saving ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Saving…</> : 'Connect Discord'}
+          </button>
+        </div>
+
+        <a
+          href="https://support.discord.com/hc/en-us/articles/228383668"
+          target="_blank" rel="noopener noreferrer"
+          className="flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-300 mt-4 transition-colors"
+        >
+          <ExternalLink className="w-3 h-3" /> How to create a Discord webhook
+        </a>
+      </motion.div>
+    </div>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function IntegrationsPage() {
   const searchParams = useSearchParams();
 
-  const [toast, setToast]                   = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
-  const [driveConnected, setDriveConnected] = useState(false);
-  const [driveEmail, setDriveEmail]         = useState('');
-  const [githubConnected, setGithubConnected] = useState(false);
-  const [githubUsername, setGithubUsername] = useState('');
-  const [canvaConnected, setCanvaConnected] = useState(false);
-  const [canvaUser, setCanvaUser]           = useState('');
-  const [spotifyConnected, setSpotifyConnected] = useState(false);
-  const [spotifyUser, setSpotifyUser]           = useState('');
-  const [statusLoading, setStatusLoading]   = useState(true);
-  const [activeCategory, setActiveCategory] = useState<string>('All');
+  const [toast, setToast]                         = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
+  const [driveConnected, setDriveConnected]       = useState(false);
+  const [driveEmail, setDriveEmail]               = useState('');
+  const [githubConnected, setGithubConnected]     = useState(false);
+  const [githubUsername, setGithubUsername]       = useState('');
+  const [canvaConnected, setCanvaConnected]       = useState(false);
+  const [canvaUser, setCanvaUser]                 = useState('');
+  const [spotifyConnected, setSpotifyConnected]   = useState(false);
+  const [spotifyUser, setSpotifyUser]             = useState('');
+  const [youtubeConnected, setYoutubeConnected]   = useState(false);
+  const [youtubeChannel, setYoutubeChannel]       = useState('');
+  const [soundcloudConnected, setSoundcloudConnected] = useState(false);
+  const [soundcloudUser, setSoundcloudUser]       = useState('');
+  const [notionConnected, setNotionConnected]     = useState(false);
+  const [notionWorkspace, setNotionWorkspace]     = useState('');
+  const [discordConnected, setDiscordConnected]   = useState(false);
+  const [discordChannel, setDiscordChannel]       = useState('');
+  const [showDiscordModal, setShowDiscordModal]   = useState(false);
+  const [discordSaving, setDiscordSaving]         = useState(false);
+  const [statusLoading, setStatusLoading]         = useState(true);
+  const [activeCategory, setActiveCategory]       = useState<string>('All');
 
-  // ── Read query params (OAuth callbacks redirect here) ──────────────────────
+  // ── Read OAuth callback query params ──────────────────────────────────────
   useEffect(() => {
-    const ok  = searchParams.get('success');
-    const err = searchParams.get('error');
-    const cv  = searchParams.get('canva');
+    const ok          = searchParams.get('success');
+    const err         = searchParams.get('error');
+    const cv          = searchParams.get('canva');
+    const notionErr   = searchParams.get('notion_error');
+    const spotifyErr  = searchParams.get('spotify_error');
+    const ytErr       = searchParams.get('youtube_error');
+    const scErr       = searchParams.get('soundcloud_error');
 
-    if (ok === 'drive_connected')   showToast('success', '🎉 Google Drive connected!');
-    if (ok === 'github_connected')  showToast('success', '🎉 GitHub connected!');
-    if (ok === 'spotify_connected') showToast('success', '🎵 Spotify connected!');
-    if (cv === 'connected')         showToast('success', '🎉 Canva connected!');
-    if (cv === 'denied')            showToast('error',   'Canva connection cancelled.');
-    if (err)                        showToast('error',   `Error: ${decodeURIComponent(err)}`);
-    if (cv || ok || err) window.history.replaceState({}, '', '/settings/integrations');
-    // Spotify error param
-    const spotifyErr = searchParams.get('spotify_error');
-    if (spotifyErr) showToast('error', `Spotify error: ${spotifyErr}`);
+    if (ok === 'drive_connected')       showToast('success', '🎉 Google Drive connected!');
+    if (ok === 'github_connected')      showToast('success', '🎉 GitHub connected!');
+    if (ok === 'spotify_connected')     showToast('success', '🎵 Spotify connected!');
+    if (ok === 'youtube_connected')     showToast('success', '▶️ YouTube connected!');
+    if (ok === 'soundcloud_connected')  showToast('success', '🎧 SoundCloud connected!');
+    if (ok === 'notion_connected')      showToast('success', '📝 Notion connected!');
+    if (cv === 'connected')             showToast('success', '🎨 Canva connected!');
+    if (cv === 'denied')                showToast('error',   'Canva connection cancelled.');
+    if (err)                            showToast('error',   `Error: ${decodeURIComponent(err)}`);
+    if (notionErr)                      showToast('error',   `Notion error: ${notionErr}`);
+    if (spotifyErr)                     showToast('error',   `Spotify error: ${spotifyErr}`);
+    if (ytErr)                          showToast('error',   `YouTube error: ${ytErr}`);
+    if (scErr)                          showToast('error',   `SoundCloud error: ${scErr}`);
+
+    if (cv || ok || err || notionErr || spotifyErr || ytErr || scErr) {
+      window.history.replaceState({}, '', '/settings/integrations');
+    }
   }, [searchParams]);
 
   // ── Fetch all statuses in parallel ────────────────────────────────────────
@@ -173,6 +279,26 @@ export default function IntegrationsPage() {
           setSpotifyConnected(d.connected);
           if (d.integration?.displayName) setSpotifyUser(d.integration.displayName);
         }).catch(() => {}),
+      fetch('/api/youtube/status', { cache: 'no-store' })
+        .then(r => r.json()).then(d => {
+          setYoutubeConnected(d.connected);
+          if (d.channelTitle) setYoutubeChannel(d.channelTitle);
+        }).catch(() => {}),
+      fetch('/api/soundcloud/status', { cache: 'no-store' })
+        .then(r => r.json()).then(d => {
+          setSoundcloudConnected(d.connected);
+          if (d.username) setSoundcloudUser(d.username);
+        }).catch(() => {}),
+      fetch('/api/notion/status', { cache: 'no-store' })
+        .then(r => r.json()).then(d => {
+          setNotionConnected(d.connected);
+          if (d.workspaceName) setNotionWorkspace(d.workspaceName);
+        }).catch(() => {}),
+      fetch('/api/discord/status', { cache: 'no-store' })
+        .then(r => r.json()).then(d => {
+          setDiscordConnected(d.connected);
+          if (d.channelName) setDiscordChannel(d.channelName);
+        }).catch(() => {}),
     ]);
     setStatusLoading(false);
   }, []);
@@ -186,177 +312,190 @@ export default function IntegrationsPage() {
 
   async function disconnectCanva() {
     await fetch('/api/canva/status', { method: 'DELETE' });
-    setCanvaConnected(false);
-    setCanvaUser('');
+    setCanvaConnected(false); setCanvaUser('');
     showToast('success', 'Canva disconnected.');
   }
 
   async function disconnectDrive() {
     await fetch('/api/google-drive/disconnect', { method: 'POST' });
-    setDriveConnected(false);
-    setDriveEmail('');
+    setDriveConnected(false); setDriveEmail('');
     showToast('success', 'Google Drive disconnected.');
   }
 
-  // ── Integration definitions ───────────────────────────────────────────────
+  async function disconnectSpotify() {
+    await fetch('/api/spotify/disconnect', { method: 'DELETE' });
+    setSpotifyConnected(false); setSpotifyUser('');
+    showToast('success', 'Spotify disconnected.');
+  }
+
+  async function disconnectYouTube() {
+    await fetch('/api/youtube/disconnect', { method: 'POST' });
+    setYoutubeConnected(false); setYoutubeChannel('');
+    showToast('success', 'YouTube disconnected.');
+  }
+
+  async function disconnectSoundCloud() {
+    await fetch('/api/soundcloud/disconnect', { method: 'POST' });
+    setSoundcloudConnected(false); setSoundcloudUser('');
+    showToast('success', 'SoundCloud disconnected.');
+  }
+
+  async function disconnectNotion() {
+    await fetch('/api/notion/disconnect', { method: 'POST' });
+    setNotionConnected(false); setNotionWorkspace('');
+    showToast('success', 'Notion disconnected.');
+  }
+
+  async function disconnectDiscord() {
+    await fetch('/api/discord/status', { method: 'DELETE' });
+    setDiscordConnected(false); setDiscordChannel('');
+    showToast('success', 'Discord disconnected.');
+  }
+
+  async function saveDiscordWebhook(url: string, serverName: string) {
+    setDiscordSaving(true);
+    try {
+      const res = await fetch('/api/discord/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ webhookUrl: url, serverName }),
+      });
+      if (res.ok) {
+        setDiscordConnected(true);
+        setDiscordChannel(serverName || 'Discord');
+        setShowDiscordModal(false);
+        showToast('success', '🎮 Discord connected!');
+        // Send test message
+        fetch('/api/discord/test', { method: 'POST' }).catch(() => {});
+      } else {
+        showToast('error', 'Failed to save Discord webhook.');
+      }
+    } catch {
+      showToast('error', 'Could not connect to Discord.');
+    } finally {
+      setDiscordSaving(false);
+    }
+  }
+
+  // ── Integration definitions ──────────────────────────────────────────────
   const integrations: Integration[] = [
-    // ── Design ──────────────────────────────────────────────────────────────
+    // Design
     {
-      id:           'canva',
-      name:         'Canva',
-      description:  'Let HOLLY create Instagram posts, YouTube thumbnails, presentations, and more using your Canva account.',
-      icon:         <Icons.Canva />,
-      gradient:     'from-[#7C3AED] to-[#4F46E5]',
-      category:     'Design',
-      status:       canvaConnected ? 'connected' : 'disconnected',
+      id: 'canva', name: 'Canva',
+      description: 'Let HOLLY create Instagram posts, YouTube thumbnails, presentations, and more using your Canva account.',
+      icon: <Icons.Canva />, gradient: 'from-[#7C3AED] to-[#4F46E5]', category: 'Design',
+      status: canvaConnected ? 'connected' : 'disconnected',
       connectedInfo: canvaUser || 'Canva account',
-      onConnect:    () => window.location.href = '/api/canva/auth',
+      onConnect: () => window.location.href = '/api/canva/auth',
       onDisconnect: disconnectCanva,
     },
-
-    // ── Storage ──────────────────────────────────────────────────────────────
+    // Storage
     {
-      id:           'google-drive',
-      name:         'Google Drive',
-      description:  'Auto-save generated music, images, and documents straight to your Google Drive.',
-      icon:         <Icons.GoogleDrive />,
-      gradient:     'from-[#4285F4] to-[#34A853]',
-      category:     'Storage',
-      status:       driveConnected ? 'connected' : 'disconnected',
+      id: 'google-drive', name: 'Google Drive',
+      description: 'Auto-save generated music, images, and documents straight to your Google Drive.',
+      icon: <Icons.GoogleDrive />, gradient: 'from-[#4285F4] to-[#34A853]', category: 'Storage',
+      status: driveConnected ? 'connected' : 'disconnected',
       connectedInfo: driveEmail,
-      onConnect:    () => window.location.href = '/api/google-drive/connect',
+      onConnect: () => window.location.href = '/api/google-drive/connect',
       onDisconnect: disconnectDrive,
     },
     {
-      id:           'dropbox',
-      name:         'Dropbox',
-      description:  'Sync generated files to your Dropbox folders automatically.',
-      icon:         <Icons.Dropbox />,
-      gradient:     'from-[#0061FF] to-[#004BA0]',
-      category:     'Storage',
-      status:       'coming-soon',
+      id: 'dropbox', name: 'Dropbox',
+      description: 'Sync generated files to your Dropbox folders automatically.',
+      icon: <Icons.Dropbox />, gradient: 'from-[#0061FF] to-[#004BA0]', category: 'Storage',
+      status: 'coming-soon',
     },
-
-    // ── Dev ───────────────────────────────────────────────────────────────────
+    // Dev
     {
-      id:           'github',
-      name:         'GitHub',
-      description:  'Access your repos, commit files, and let HOLLY write and push code on your behalf.',
-      icon:         <Icons.GitHub />,
-      gradient:     'from-[#333] to-[#111]',
-      category:     'Dev',
-      status:       githubConnected ? 'connected' : 'disconnected',
+      id: 'github', name: 'GitHub',
+      description: 'Access your repos, commit files, and let HOLLY write and push code on your behalf.',
+      icon: <Icons.GitHub />, gradient: 'from-[#333] to-[#111]', category: 'Dev',
+      status: githubConnected ? 'connected' : 'disconnected',
       connectedInfo: githubUsername ? `@${githubUsername}` : undefined,
-      onConnect:    () => window.location.href = '/api/github/connect',
+      onConnect: () => window.location.href = '/api/github/connect',
     },
-
-    // ── Music ─────────────────────────────────────────────────────────────────
+    // Music
     {
-      id:           'spotify',
-      name:         'Spotify for Artists',
-      description:  'Pull streaming stats, analyse your audience, and let HOLLY pitch to Spotify playlists.',
-      icon:         <Icons.Spotify />,
-      gradient:     'from-[#1DB954] to-[#148040]',
-      category:     'Music',
-      status:       spotifyConnected ? 'connected' : 'disconnected',
+      id: 'spotify', name: 'Spotify for Artists',
+      description: 'Pull streaming stats, analyse your audience, and let HOLLY pitch to Spotify playlists.',
+      icon: <Icons.Spotify />, gradient: 'from-[#1DB954] to-[#148040]', category: 'Music',
+      status: spotifyConnected ? 'connected' : 'disconnected',
       connectedInfo: spotifyUser || 'Spotify account',
-      onConnect:    () => window.location.href = '/api/spotify/auth',
-      onDisconnect: async () => {
-        await fetch('/api/spotify/disconnect', { method: 'DELETE' });
-        setSpotifyConnected(false);
-        setSpotifyUser('');
-        showToast('success', 'Spotify disconnected.');
-      },
+      onConnect: () => window.location.href = '/api/spotify/auth',
+      onDisconnect: disconnectSpotify,
     },
     {
-      id:           'apple-music',
-      name:         'Apple Music',
-      description:  'View Apple Music analytics and push releases through Music Connect.',
-      icon:         <Icons.AppleMusic />,
-      gradient:     'from-[#FC3C44] to-[#B71C1C]',
-      category:     'Music',
-      status:       'coming-soon',
+      id: 'soundcloud', name: 'SoundCloud',
+      description: 'Upload tracks, manage playlists, and track plays — all from HOLLY.',
+      icon: <Icons.SoundCloud />, gradient: 'from-[#FF5500] to-[#C43D00]', category: 'Music',
+      status: soundcloudConnected ? 'connected' : 'disconnected',
+      connectedInfo: soundcloudUser || 'SoundCloud account',
+      onConnect: () => window.location.href = '/api/soundcloud/auth',
+      onDisconnect: disconnectSoundCloud,
     },
     {
-      id:           'soundcloud',
-      name:         'SoundCloud',
-      description:  'Upload tracks, manage playlists, and track plays — all from HOLLY.',
-      icon:         <Icons.SoundCloud />,
-      gradient:     'from-[#FF5500] to-[#C43D00]',
-      category:     'Music',
-      status:       'coming-soon',
+      id: 'apple-music', name: 'Apple Music',
+      description: 'View Apple Music analytics and push releases through Music Connect.',
+      icon: <Icons.AppleMusic />, gradient: 'from-[#FC3C44] to-[#B71C1C]', category: 'Music',
+      status: 'coming-soon',
     },
-
-    // ── Video & Social ────────────────────────────────────────────────────────
+    // Video
     {
-      id:           'youtube',
-      name:         'YouTube',
-      description:  'Upload music videos, manage your channel, and get AI-generated titles, descriptions and tags.',
-      icon:         <Icons.YouTube />,
-      gradient:     'from-[#FF0000] to-[#B00000]',
-      category:     'Video',
-      status:       'coming-soon',
+      id: 'youtube', name: 'YouTube',
+      description: 'Upload music videos, manage your channel, and get AI-generated titles, descriptions and tags.',
+      icon: <Icons.YouTube />, gradient: 'from-[#FF0000] to-[#B00000]', category: 'Video',
+      status: youtubeConnected ? 'connected' : 'disconnected',
+      connectedInfo: youtubeChannel || 'YouTube channel',
+      onConnect: () => window.location.href = '/api/youtube/auth',
+      onDisconnect: disconnectYouTube,
     },
+    // Social
     {
-      id:           'instagram',
-      name:         'Instagram',
-      description:  'Schedule posts, reels, and stories. HOLLY generates captions and hashtags automatically.',
-      icon:         <Icons.Instagram />,
-      gradient:     'from-[#833AB4] via-[#FD1D1D] to-[#F77737]',
-      category:     'Social',
-      status:       'coming-soon',
+      id: 'instagram', name: 'Instagram',
+      description: 'Schedule posts, reels, and stories. HOLLY generates captions and hashtags automatically.',
+      icon: <Icons.Instagram />, gradient: 'from-[#833AB4] via-[#FD1D1D] to-[#F77737]', category: 'Social',
+      status: 'coming-soon',
     },
     {
-      id:           'tiktok',
-      name:         'TikTok',
-      description:  'Post clips, manage your TikTok presence, and get trending sound recommendations.',
-      icon:         <Icons.TikTok />,
-      gradient:     'from-[#010101] to-[#69C9D0]',
-      category:     'Social',
-      status:       'coming-soon',
+      id: 'tiktok', name: 'TikTok',
+      description: 'Post clips, manage your TikTok presence, and get trending sound recommendations.',
+      icon: <Icons.TikTok />, gradient: 'from-[#010101] to-[#69C9D0]', category: 'Social',
+      status: 'coming-soon',
     },
-
-    // ── Productivity ──────────────────────────────────────────────────────────
+    // Productivity
     {
-      id:           'notion',
-      name:         'Notion',
-      description:  'Save HOLLY conversations, song ideas, and project notes to Notion pages.',
-      icon:         <Icons.Notion />,
-      gradient:     'from-[#2F2F2F] to-[#000]',
-      category:     'Productivity',
-      status:       'coming-soon',
+      id: 'notion', name: 'Notion',
+      description: 'Save HOLLY conversations, song ideas, and project notes to Notion pages.',
+      icon: <Icons.Notion />, gradient: 'from-[#2F2F2F] to-[#000]', category: 'Productivity',
+      status: notionConnected ? 'connected' : 'disconnected',
+      connectedInfo: notionWorkspace || 'Notion workspace',
+      onConnect: () => window.location.href = '/api/notion/auth',
+      onDisconnect: disconnectNotion,
     },
-
-    // ── Community ─────────────────────────────────────────────────────────────
+    // Community
     {
-      id:           'slack',
-      name:         'Slack',
-      description:  'Get HOLLY notifications in Slack — new releases, milestones, and AI alerts.',
-      icon:         <Icons.Slack />,
-      gradient:     'from-[#4A154B] to-[#611f69]',
-      category:     'Community',
-      status:       'coming-soon',
+      id: 'slack', name: 'Slack',
+      description: 'Get HOLLY notifications in Slack — new releases, milestones, and AI alerts.',
+      icon: <Icons.Slack />, gradient: 'from-[#4A154B] to-[#611f69]', category: 'Community',
+      status: 'coming-soon',
     },
     {
-      id:           'discord',
-      name:         'Discord',
-      description:  'Bring HOLLY into your Discord server. Fan community Q&A, release announcements, and more.',
-      icon:         <Icons.Discord />,
-      gradient:     'from-[#5865F2] to-[#404EED]',
-      category:     'Community',
-      status:       'coming-soon',
+      id: 'discord', name: 'Discord',
+      description: 'Send A&R reports, release announcements, and AI insights to your Discord server via webhook.',
+      icon: <Icons.Discord />, gradient: 'from-[#5865F2] to-[#404EED]', category: 'Community',
+      status: discordConnected ? 'connected' : 'disconnected',
+      connectedInfo: discordChannel || 'Discord channel',
+      onConnect: () => setShowDiscordModal(true),
+      onDisconnect: disconnectDiscord,
     },
   ];
 
   const categories = ['All', ...Array.from(new Set(integrations.map(i => i.category)))];
+  const filtered   = activeCategory === 'All' ? integrations : integrations.filter(i => i.category === activeCategory);
+  const liveCount  = integrations.filter(i => i.status === 'connected' || i.status === 'disconnected').length;
 
-  const filtered = activeCategory === 'All'
-    ? integrations
-    : integrations.filter(i => i.category === activeCategory);
+  const loadingIds = new Set(['canva', 'google-drive', 'github', 'spotify', 'youtube', 'soundcloud', 'notion', 'discord']);
 
-  const liveCount = integrations.filter(i => i.status === 'connected' || i.status === 'disconnected').length;
-
-  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-6">
 
@@ -382,7 +521,9 @@ export default function IntegrationsPage() {
                 : 'bg-red-500/15 border-red-500/30 text-red-300'
             }`}
           >
-            {toast.type === 'success' ? <Check className="w-4 h-4 flex-shrink-0" /> : <AlertCircle className="w-4 h-4 flex-shrink-0" />}
+            {toast.type === 'success'
+              ? <Check className="w-4 h-4 flex-shrink-0" />
+              : <AlertCircle className="w-4 h-4 flex-shrink-0" />}
             <span className="flex-1">{toast.msg}</span>
             <button onClick={() => setToast(null)} className="opacity-60 hover:opacity-100 transition-opacity">
               <X className="w-4 h-4" />
@@ -415,7 +556,7 @@ export default function IntegrationsPage() {
             key={svc.id}
             integration={svc}
             index={i}
-            loading={statusLoading && (svc.id === 'canva' || svc.id === 'google-drive' || svc.id === 'github' || svc.id === 'spotify')}
+            loading={statusLoading && loadingIds.has(svc.id)}
           />
         ))}
       </div>
@@ -429,6 +570,17 @@ export default function IntegrationsPage() {
           </a>
         </p>
       </div>
+
+      {/* Discord modal */}
+      <AnimatePresence>
+        {showDiscordModal && (
+          <DiscordModal
+            onSave={saveDiscordWebhook}
+            onClose={() => setShowDiscordModal(false)}
+            saving={discordSaving}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -444,9 +596,9 @@ function IntegrationCard({
   index: number;
   loading: boolean;
 }) {
-  const isConnected   = svc.status === 'connected';
+  const isConnected    = svc.status === 'connected';
   const isDisconnected = svc.status === 'disconnected';
-  const isComingSoon  = svc.status === 'coming-soon';
+  const isComingSoon   = svc.status === 'coming-soon';
 
   return (
     <motion.div
