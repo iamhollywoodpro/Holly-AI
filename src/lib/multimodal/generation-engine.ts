@@ -216,11 +216,11 @@ export function getProviderRegistry(): ProviderCapability[] {
       modalities: ['music'],
       maxDuration: 240,
       requiresKey: true,
-      keyEnvVar: 'SUNOAPI_KEY',
+      keyEnvVar: 'SUNO_API_KEY',
       quality: 5,
       speed: 'slow',
       costTier: 'medium',
-      available: !!process.env.SUNOAPI_KEY,
+      available: !!process.env.SUNO_API_KEY,
     },
   ];
 }

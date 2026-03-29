@@ -22,7 +22,7 @@ export async function GET() {
     REPLICATE_API_KEY: !!process.env.REPLICATE_API_KEY,
     HUGGINGFACE_API_KEY: !!process.env.HUGGINGFACE_API_KEY,
     RUNWAY_API_KEY: !!process.env.RUNWAY_API_KEY,
-    SUNO_API_KEY: !!process.env.SUNOAPI_KEY,
+    SUNO_API_KEY: !!process.env.SUNO_API_KEY,
     GROQ_API_KEY: !!process.env.GROQ_API_KEY,
     OPENROUTER_API_KEY: !!process.env.OPENROUTER_API_KEY,
   };
@@ -153,7 +153,7 @@ function buildRecommendations(keyStatus: Record<string, boolean>): string[] {
   }
 
   if (!keyStatus.SUNO_API_KEY) {
-    recs.push('Add SUNOAPI_KEY to enable full AI music generation — complete songs with vocals, instruments, and style control.');
+    recs.push('Add SUNO_API_KEY to enable full AI music generation — complete songs with vocals, instruments, and style control.');
   }
 
   if (Object.values(keyStatus).every(v => !v)) {

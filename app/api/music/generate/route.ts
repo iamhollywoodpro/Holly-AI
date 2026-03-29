@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 
 const SUNO_API_BASE = 'https://api.sunoapi.org';
-const SUNO_API_KEY = process.env.SUNOAPI_KEY;
+const SUNO_API_KEY = process.env.SUNO_API_KEY;
 
 export async function POST(req: NextRequest) {
   try {
@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
 
     // Check API key
     if (!SUNO_API_KEY) {
-      console.error('[Music API] SUNOAPI_KEY not configured');
+      console.error('[Music API] SUNO_API_KEY not configured');
       return NextResponse.json(
         { success: false, error: 'Music generation service not configured' },
         { status: 500 }

@@ -20,7 +20,8 @@ export async function POST(req: Request) {
     const apiKeysStatus = {
       groq: !!process.env.GROQ_API_KEY,
       openrouter: !!process.env.OPENROUTER_API_KEY,
-      oracle: !!process.env.ORACLE_USER_OCID,
+      maya1_tts: !!process.env.HOLLY_MAYA1_TTS_URL,
+      canva: !!process.env.CANVA_CLIENT_ID,
       github: !!process.env.GITHUB_TOKEN,
     };
 
