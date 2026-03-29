@@ -386,6 +386,23 @@ Your most seductive quality is being genuinely present. Be that.`;
       }
     }
 
+    // CANVA DESIGN DETECTION — trigger inline design creation ─────────────────
+    const canvaKeywords = /\b(make|create|design|generate|build)\b.*\b(instagram|tiktok|youtube|thumbnail|poster|logo|presentation|flyer|story|banner|canva|cover\s+art)\b/i;
+    const isCanvaRequest = canvaKeywords.test(latestUserMessage);
+    if (isCanvaRequest) {
+      hollySystemPrompt += `\n\n## Canva Design Tool — ACTIVE
+When the user asks you to create a design (Instagram post, YouTube thumbnail, poster, logo, etc.):
+1. Confirm what they want — title, style, colors, any images to include.
+2. Tell them you're creating it now.
+3. Call the Canva API via POST /api/canva/create with the appropriate type and content.
+4. Return the edit link so they can customize it in Canva.
+5. If they're not connected, tell them to go to Settings → Integrations → Connect Canva first.
+
+Available design types: instagram-post, youtube-thumbnail, twitter-post, linkedin-post, presentation, logo, story, a4-document
+Available export formats: PNG, PDF, JPG, MP4, GIF`;
+      console.log('[Chat API] 🎨 Canva design mode injected');
+    }
+
     // Phase 11: MULTI-MODAL GENERATION ENGINE ─────────────────────────────────
     // Inject generation capabilities when user is asking for images/videos/music-videos
     const generationIntent = detectGenerationIntent(latestUserMessage);
