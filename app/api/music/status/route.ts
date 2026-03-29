@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 
 const SUNO_API_BASE = 'https://api.sunoapi.org';
-const SUNO_API_KEY = process.env.SUNOAPI_KEY;
+const SUNO_API_KEY = process.env.SUNO_API_KEY;
 
 export async function GET(req: NextRequest) {
   try {

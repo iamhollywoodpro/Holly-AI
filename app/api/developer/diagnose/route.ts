@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
         diagnostics.issue = 'System Configuration Check';
         diagnostics.findings = {
           environment: process.env.NODE_ENV,
-          oracleVoice: process.env.ORACLE_TENANCY_OCID ? 'Configured' : 'Not configured',
+          maya1Tts: process.env.HOLLY_MAYA1_TTS_URL ? 'Configured' : 'Not configured',
           database: process.env.DATABASE_URL ? 'Connected' : 'Not connected',
           authentication: process.env.CLERK_SECRET_KEY ? 'Active' : 'Inactive'
         };
