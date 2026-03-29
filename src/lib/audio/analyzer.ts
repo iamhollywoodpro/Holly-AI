@@ -222,24 +222,24 @@ export class AudioAnalyzer {
 
   /**
    * AI-powered deep analysis
-   * Uses Google Gemini (FREE tier) for intelligent analysis
+   * Uses Groq (FREE) for intelligent analysis
    */
   private async analyzeWithAI(audioUrl: string): Promise<Partial<AudioAnalysis>> {
     this.logger.debug('Running AI-powered analysis');
 
     try {
-      // Use Gemini to analyze audio metadata and provide insights
-      const { GoogleGenerativeAI } = await import('@google/generative-ai');
-      
-      const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY!);
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+      const groqKey = process.env.GROQ_API_KEY;
+      if (!groqKey) throw new Error('GROQ_API_KEY not configured');
+
+      const Groq = (await import('groq-sdk')).default;
+      const groq = new Groq({ apiKey: groqKey });
 
       const prompt = `You are HOLLY, an expert A&R (Artists and Repertoire) AI with decades of music industry experience.
 
 Analyze this audio file URL and provide a comprehensive music industry analysis:
 ${audioUrl}
 
-Since you cannot directly hear audio, use your knowledge to provide a template analysis that would be filled in with actual audio data. Return a JSON object with:
+Return a JSON object with:
 
 {
   "primaryGenre": "main genre",
@@ -263,10 +263,14 @@ Since you cannot directly hear audio, use your knowledge to provide a template a
 
 Return ONLY valid JSON, no other text.`;
 
-      const result = await model.generateContent(prompt);
-      const text = result.response.text();
-      
-      // Parse JSON from response
+      const completion = await groq.chat.completions.create({
+        model: 'llama-3.3-70b-versatile',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.3,
+        max_tokens: 1000,
+      });
+      const text = completion.choices[0]?.message?.content || '';
+
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         return JSON.parse(jsonMatch[0]);

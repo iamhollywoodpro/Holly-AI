@@ -5,7 +5,6 @@ const isPublicRoute = createRouteMatcher([
   '/sign-in(.*)',
   '/sign-up(.*)',
   '/factor-two(.*)',            // Clerk MFA second-factor verification page
-  '/api/speech/gemini(.*)',
   '/api/webhooks/(.*)',          // Clerk + GitHub webhooks must be public
   '/offline',
   '/download/(.*)',              // public download links

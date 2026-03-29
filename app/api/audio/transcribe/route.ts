@@ -5,7 +5,7 @@
  * Accepts JSON body with { audioUrl, language?, prompt?, segments? }
  * or multipart/form-data with { audio: File, ... }
  *
- * Provider chain: Groq Whisper → OpenAI Whisper → browser signal
+ * Provider chain: Groq Whisper (free) → browser Web Speech API signal
  */
 
 import { NextRequest, NextResponse } from 'next/server';

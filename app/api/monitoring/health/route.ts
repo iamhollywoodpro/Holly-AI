@@ -28,8 +28,8 @@ export async function POST(req: NextRequest) {
 
     // Check API keys
     const apiKeysStatus = {
-      gemini: !!process.env.GOOGLE_API_KEY,
       groq: !!process.env.GROQ_API_KEY,
+      openrouter: !!process.env.OPENROUTER_API_KEY,
       oracle: !!process.env.ORACLE_USER_OCID,
       github: !!process.env.GITHUB_TOKEN,
       clerk: !!process.env.CLERK_SECRET_KEY,
@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
     const criticalIssues = [];
     if (dbStatus === 'down') criticalIssues.push('Database connection failed');
     if (!apiKeysStatus.database) criticalIssues.push('DATABASE_URL not configured');
-    if (!apiKeysStatus.gemini && !apiKeysStatus.groq) criticalIssues.push('No AI API keys configured');
+    if (!apiKeysStatus.groq && !apiKeysStatus.openrouter) criticalIssues.push('No AI API keys configured');
 
     const overallStatus = criticalIssues.length === 0 ? 'healthy' : 
                          criticalIssues.length <= 2 ? 'degraded' : 'unhealthy';

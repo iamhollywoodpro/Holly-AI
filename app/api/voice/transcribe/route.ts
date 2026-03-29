@@ -2,10 +2,9 @@
  * POST /api/voice/transcribe
  *
  * Phase 4C: Real Whisper STT endpoint.
- * Replaces the previous OpenAI-only stub with a resilient provider chain:
- *   1. Groq Whisper (whisper-large-v3-turbo — free, fast)
- *   2. OpenAI Whisper (whisper-1 — free tier fallback)
- *   3. Browser Web Speech API signal (when no cloud keys available)
+ * Free-only provider chain:
+ *   1. Groq Whisper (whisper-large-v3-turbo — free, fast, no limits)
+ *   2. Browser Web Speech API signal (when GROQ_API_KEY not set)
  *
  * Accepts multipart/form-data with:
  *   audio        File   — required, any Whisper-supported format

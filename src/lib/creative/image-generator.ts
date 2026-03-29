@@ -75,7 +75,7 @@ export async function generateImage(
         priority: 'normal',
         prompt,
         negativePrompt: options.negativePrompt || null,
-        model: options.model || 'dall-e-3',
+        model: options.model || 'pollinations-flux',
         parameters: {
           width: options.width || 1024,
           height: options.height || 1024,
@@ -123,7 +123,7 @@ export async function generateImage(
       title: `Generated: ${prompt.substring(0, 50)}`,
       prompt,
       negativePrompt: options.negativePrompt,
-      model: options.model || 'dall-e-3',
+      model: options.model || 'pollinations-flux',
       generationId: job.id,
       url: mockResultUrl,
       width: options.width || 1024,
@@ -135,8 +135,8 @@ export async function generateImage(
       guidance: options.guidance,
       sampler: options.sampler,
       status: 'completed',
-      provider: 'openai',
-      cost: 0.04
+      provider: 'pollinations',
+      cost: 0
     });
 
     return {

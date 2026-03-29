@@ -451,7 +451,7 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
         }
         
         if (fullResponse) {
-          await addMessage('assistant', fullResponse, 'confident', 'gpt-4', conversationToUse.id);
+          await addMessage('assistant', fullResponse, 'confident', 'groq-llama-3.3', conversationToUse.id);
         }
         
         // Clear streaming message after save
@@ -510,7 +510,7 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
 
       // Save assistant response - pass conversationId explicitly
       if (fullResponse) {
-        await addMessage('assistant', fullResponse, 'confident', 'gpt-4', conversationToUse.id);
+        await addMessage('assistant', fullResponse, 'confident', 'groq-llama-3.3', conversationToUse.id);
       }
 
       // Clear streaming message AFTER the message is saved

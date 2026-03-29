@@ -2,9 +2,9 @@
  * HOLLY Voice Output System
  * 
  * Single voice pipeline — ONE model speaks at a time.
- * Primary:  Maya1 via Modal.com (FREE GPU, emotional, alive-sounding)
- * Fallback: Gemini TTS (free, no GPU required)
+ * Provider: Maya1 via Modal.com (FREE GPU, emotional, alive-sounding)
  * 
+ * No Google, no Gemini, no paid TTS — Maya1 only.
  * No browser speechSynthesis, no duplicate audio, no two models playing at once.
  */
 
@@ -43,7 +43,7 @@ class EnhancedVoiceOutput {
   }
 
   isAvailable(): boolean {
-    return true; // Always available (Maya1 or Gemini fallback)
+    return true; // Always available — Maya1 via /api/voice/synthesize
   }
 
   // ── Core speak ────────────────────────────────────────────────────────────
@@ -58,7 +58,7 @@ class EnhancedVoiceOutput {
     if (!cleanedText) return;
 
     try {
-      // Call /api/voice/synthesize → Maya1 (Modal) or Gemini fallback
+      // Call /api/voice/synthesize → Maya1 via Modal.com
       const response = await fetch("/api/voice/synthesize", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

@@ -1,9 +1,8 @@
 /**
- * Computer Vision System - FREE (GPT-4 Vision via OpenAI)
- * 
- * Allows HOLLY to see and understand images, designs, screenshots
- * "Holly, review this album cover design"
- * "What's wrong with this UI mockup?"
+ * HOLLY Computer Vision — FREE via OpenRouter
+ *
+ * Uses Qwen2.5-VL-72B via OpenRouter (free tier) for image understanding.
+ * No OpenAI, no Google Vision, no paid APIs.
  */
 
 export interface VisionAnalysisRequest {
@@ -19,158 +18,98 @@ export interface VisionAnalysisResult {
   timestamp: Date;
 }
 
+// OpenRouter free vision model
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
+const VISION_MODEL       = 'qwen/qwen2.5-vl-72b-instruct:free';
+
 export class ComputerVision {
-  private openaiKey: string;
-
-  constructor() {
-    this.openaiKey = process.env.OPENAI_API_KEY || '';
-  }
-
   /**
-   * Analyze an image using GPT-4 Vision
+   * Analyze an image using a free vision model via OpenRouter
    */
   async analyzeImage(request: VisionAnalysisRequest): Promise<VisionAnalysisResult> {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    if (!OPENROUTER_API_KEY) {
+      return {
+        analysis: 'Vision analysis unavailable — OPENROUTER_API_KEY not configured.',
+        timestamp: new Date(),
+      };
+    }
+
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.openaiKey}`
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'HTTP-Referer': 'https://holly.nexamusicgroup.com',
+        'X-Title': 'HOLLY AI',
       },
       body: JSON.stringify({
-        model: 'gpt-4-vision-preview',
+        model: VISION_MODEL,
         messages: [
           {
             role: 'user',
             content: [
-              {
-                type: 'text',
-                text: request.prompt
-              },
-              {
-                type: 'image_url',
-                image_url: {
-                  url: request.imageUrl,
-                  detail: request.detail || 'auto'
-                }
-              }
-            ]
-          }
+              { type: 'text', text: request.prompt },
+              { type: 'image_url', image_url: { url: request.imageUrl } },
+            ],
+          },
         ],
-        max_tokens: 1000
-      })
+        max_tokens: 1200,
+      }),
     });
 
     if (!response.ok) {
-      throw new Error('Vision analysis failed');
+      const err = await response.text().catch(() => '');
+      throw new Error(`Vision analysis failed (${response.status}): ${err}`);
     }
 
     const data = await response.json();
-    const analysis = data.choices[0].message.content;
+    const analysis = data.choices?.[0]?.message?.content || 'No analysis returned.';
 
-    return {
-      analysis,
-      timestamp: new Date()
-    };
+    return { analysis, timestamp: new Date() };
   }
 
-  /**
-   * Review design work (album covers, UI mockups, etc.)
-   */
+  /** Review design work (album covers, UI mockups, etc.) */
   async reviewDesign(imageUrl: string, designType: string): Promise<VisionAnalysisResult> {
-    const prompt = `You are HOLLY, an expert creative AI. Review this ${designType} design critically and professionally.
-
-Analyze:
-1. Visual hierarchy and composition
-2. Color theory and palette effectiveness
-3. Typography and readability
-4. Brand consistency and aesthetic appeal
-5. Technical quality and resolution
-6. Emotional impact and messaging
-7. Areas for improvement
-
+    const prompt = `You are HOLLY, an expert creative AI. Review this ${designType} design critically.
+Analyze: visual hierarchy, color theory, typography, brand consistency, emotional impact, and areas for improvement.
 Provide honest, constructive feedback with specific suggestions.`;
-
-    return this.analyzeImage({ imageUrl, prompt, detail: 'high' });
-  }
-
-  /**
-   * Analyze UI/UX designs
-   */
-  async analyzeUI(imageUrl: string): Promise<VisionAnalysisResult> {
-    const prompt = `You are HOLLY, a UI/UX expert. Analyze this interface design:
-
-1. User experience and navigation flow
-2. Visual design and aesthetics
-3. Accessibility considerations
-4. Responsive design elements
-5. Information architecture
-6. Call-to-action effectiveness
-7. Specific improvement recommendations
-
-Be detailed and actionable.`;
-
-    return this.analyzeImage({ imageUrl, prompt, detail: 'high' });
-  }
-
-  /**
-   * Understand what's in an image (general purpose)
-   */
-  async describeImage(imageUrl: string): Promise<VisionAnalysisResult> {
-    const prompt = `Describe this image in detail. What do you see? What's the context? What stands out?`;
-
     return this.analyzeImage({ imageUrl, prompt });
   }
 
-  /**
-   * Compare two images
-   */
-  async compareImages(imageUrl1: string, imageUrl2: string, context: string): Promise<string> {
-    // Analyze both images
-    const analysis1 = await this.analyzeImage({
-      imageUrl: imageUrl1,
-      prompt: `Analyze this image in the context of: ${context}. Focus on key visual elements, style, and composition.`
-    });
-
-    const analysis2 = await this.analyzeImage({
-      imageUrl: imageUrl2,
-      prompt: `Analyze this image in the context of: ${context}. Focus on key visual elements, style, and composition.`
-    });
-
-    // Compare results
-    return `IMAGE 1 ANALYSIS:\n${analysis1.analysis}\n\nIMAGE 2 ANALYSIS:\n${analysis2.analysis}\n\nCOMPARISON:\nThese images differ in style, composition, and approach. Image 1 appears to focus on [specific elements], while Image 2 emphasizes [different elements]. Consider which approach better serves your creative goals.`;
+  /** Analyze UI/UX designs */
+  async analyzeUI(imageUrl: string): Promise<VisionAnalysisResult> {
+    const prompt = `You are HOLLY, a UI/UX expert. Analyze this interface: UX flow, visual design, accessibility, information architecture, CTAs, and specific improvement recommendations.`;
+    return this.analyzeImage({ imageUrl, prompt });
   }
 
-  /**
-   * Extract text from images (OCR)
-   */
+  /** General image description */
+  async describeImage(imageUrl: string): Promise<VisionAnalysisResult> {
+    return this.analyzeImage({ imageUrl, prompt: 'Describe this image in detail. What do you see? Context? What stands out?' });
+  }
+
+  /** Compare two images */
+  async compareImages(imageUrl1: string, imageUrl2: string, context: string): Promise<string> {
+    const [a1, a2] = await Promise.all([
+      this.analyzeImage({ imageUrl: imageUrl1, prompt: `Analyze in context of: ${context}. Key visual elements, style, composition.` }),
+      this.analyzeImage({ imageUrl: imageUrl2, prompt: `Analyze in context of: ${context}. Key visual elements, style, composition.` }),
+    ]);
+    return `IMAGE 1:\n${a1.analysis}\n\nIMAGE 2:\n${a2.analysis}`;
+  }
+
+  /** Extract text (OCR) */
   async extractText(imageUrl: string): Promise<string> {
     const result = await this.analyzeImage({
       imageUrl,
-      prompt: 'Extract and transcribe ALL text visible in this image. Include labels, captions, titles, body text, and any other readable content.'
+      prompt: 'Extract and transcribe ALL visible text in this image: labels, captions, titles, body text, anything readable.',
     });
-
     return result.analysis;
   }
 
-  /**
-   * Analyze artistic style
-   */
+  /** Analyze artistic style */
   async analyzeArtStyle(imageUrl: string): Promise<VisionAnalysisResult> {
-    const prompt = `You are HOLLY, an art and design expert. Analyze the artistic style of this image:
-
-1. Art style/genre (e.g., minimalist, photorealistic, abstract, etc.)
-2. Color palette and mood
-3. Composition techniques
-4. Influences and similar artists/styles
-5. Technical execution
-6. Emotional impact
-7. How to recreate or adapt this style
-
-Be specific and insightful.`;
-
-    return this.analyzeImage({ imageUrl, prompt, detail: 'high' });
+    const prompt = `You are HOLLY, an art expert. Analyze: art style/genre, color palette, composition, influences, technical execution, emotional impact, how to recreate this style.`;
+    return this.analyzeImage({ imageUrl, prompt });
   }
 }
 
-// Export singleton instance
 export const computerVision = new ComputerVision();

@@ -68,7 +68,7 @@ export default function CreativeDashboardPage() {
 function GenerateTab() {
   const { generate, loading: generating, error: genError } = useImageGeneration();
   const [imagePrompt, setImagePrompt] = useState('');
-  const [imageModel, setImageModel] = useState('dall-e-3');
+  const [imageModel, setImageModel] = useState('pollinations-flux');
   const [imageSize, setImageSize] = useState('1024x1024');
   const [contentTopic, setContentTopic] = useState('');
   const [contentType, setContentType] = useState('blog');
@@ -149,8 +149,9 @@ function GenerateTab() {
                   onChange={(e) => setImageModel(e.target.value)}
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
                 >
-                  <option value="dall-e-3">DALL-E 3</option>
-                  <option value="stable-diffusion">Stable Diffusion</option>
+                  <option value="pollinations-flux">FLUX via Pollinations (FREE, no key)</option>
+                  <option value="flux">FLUX via Fal.ai (FREE credits)</option>
+                  <option value="sdxl">Stable Diffusion XL (FREE)</option>
                 </select>
               </div>
               <div>

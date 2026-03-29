@@ -46,7 +46,7 @@ export type TaskType =
 
 export type ProviderId =
   | 'groq'          // api.groq.com — Llama 3.3 70B (300+ tok/s, 14,400 req/day FREE)
-  | 'cf_workers'    // api.cloudflare.com — Kimi K2.5 256K ctx (FREE tier)
+  | 'cf_workers'    // api.cloudflare.com — Kimi K2.5 256K ctx (FREE tier, needs CF_ACCOUNT_ID_CF_AI_TOKEN="accountId|token")
   | 'nvidia_nim'    // integrate.api.nvidia.com — Qwen3-235B-A22B (FREE tier)
   | 'openrouter'    // openrouter.ai — 27 free models (20 RPM / 200 RPD FREE)
   | 'ollama';       // localhost:11434 — unlimited, zero cost, offline

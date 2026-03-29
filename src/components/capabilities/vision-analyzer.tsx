@@ -62,7 +62,7 @@ export function VisionAnalyzer() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold">👁️ Vision Analyzer</h2>
-          <Badge variant="outline">GPT-4 Vision</Badge>
+          <Badge variant="outline">Qwen2.5-VL + BLIP (Free)</Badge>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>

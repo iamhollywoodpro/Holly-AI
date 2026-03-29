@@ -70,9 +70,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       status: 'online',
       models: [
-        'gpt-4o-vision',
-        'blip-large',
-        'google-vision'
+        'qwen2.5-vl-72b (OpenRouter, free)',
+        'blip-large (HuggingFace, free)',
+        'moondream2 (HuggingFace, free)',
+        'vit-gpt2 (HuggingFace, free)',
       ],
       capabilities: [
         'image-analysis',

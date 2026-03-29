@@ -10,12 +10,11 @@
  */
 
 import { prisma } from '@/lib/db';
-import OpenAI from 'openai';
+import Groq from 'groq-sdk';
 
-const gemini = new OpenAI({
-  apiKey: process.env.GOOGLE_API_KEY || '',
-  baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
-});
+const groqClient = process.env.GROQ_API_KEY
+  ? new Groq({ apiKey: process.env.GROQ_API_KEY })
+  : null;
 
 export interface HypothesisData {
   problemId: string;
@@ -79,8 +78,9 @@ export class HypothesisGenerator {
     try {
       const prompt = this.buildSolutionPrompt(problem);
 
-      const response = await gemini.chat.completions.create({
-        model: 'gemini-2.0-flash-exp',
+      if (!groqClient) throw new Error('GROQ_API_KEY not configured');
+      const response = await groqClient.chat.completions.create({
+        model: 'llama-3.3-70b-versatile',
         messages: [
           {
             role: 'system',

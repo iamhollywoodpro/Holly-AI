@@ -6,13 +6,15 @@
  * Phase 5: Code Generation & Modification
  */
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import Groq from 'groq-sdk';
 import { safeCodeModifier, type CodeModification, type CodeChange } from './safe-code-modifier';
 import { automatedTesting } from './automated-testing';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+const groqClient = process.env.GROQ_API_KEY
+  ? new Groq({ apiKey: process.env.GROQ_API_KEY })
+  : null;
 
 // ===========================
 // Types & Interfaces
@@ -49,11 +51,6 @@ export interface CodeGenerationResult {
 // ===========================
 
 export class CodeGenerator {
-  private model: any;
-
-  constructor() {
-    this.model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
-  }
 
   /**
    * Generate code based on request
@@ -115,12 +112,17 @@ export class CodeGenerator {
    * Generate code using AI
    */
   private async generateWithAI(request: CodeGenerationRequest): Promise<GeneratedCode[]> {
+    if (!groqClient) throw new Error('GROQ_API_KEY not configured for code generation');
     const prompt = this.buildGenerationPrompt(request);
 
-    const response = await this.model.generateContent(prompt);
-    const text = response.response.text();
+    const response = await groqClient.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.2,
+      max_tokens: 4096,
+    });
+    const text = response.choices[0]?.message?.content || '';
 
-    // Parse AI response to extract code blocks
     return this.parseAIResponse(text, request);
   }
 

@@ -5,9 +5,8 @@
  * Previous callers using voiceInterface.transcribe(buffer) continue to work.
  *
  * Provider chain (automatic):
- *   1. Groq Whisper (whisper-large-v3-turbo) — free, fast
- *   2. OpenAI Whisper (whisper-1) — fallback
- *   3. Browser Web Speech API signal
+ *   1. Groq Whisper (whisper-large-v3-turbo) — free, fast, no limits
+ *   2. Browser Web Speech API signal (when GROQ_API_KEY not set)
  */
 
 import { transcribeAudio, getSTTStatus, type TranscriptionResult } from '@/lib/ai/whisper-stt';

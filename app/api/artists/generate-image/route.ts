@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import OpenAI from 'openai';
 
 export const runtime = 'nodejs';
+
+/**
+ * Artist Image Generation — 100% FREE via Pollinations AI
+ * No API key needed. No limits. MIT-friendly.
+ * https://image.pollinations.ai/prompt/{prompt}
+ */
 
 interface GenerateArtistImageRequest {
   artist_id: string;
@@ -9,14 +14,15 @@ interface GenerateArtistImageRequest {
   use_artist_style?: boolean;
 }
 
+function buildPollinationsUrl(prompt: string, width = 1024, height = 1024): string {
+  const encoded = encodeURIComponent(prompt);
+  return `https://image.pollinations.ai/prompt/${encoded}?width=${width}&height=${height}&nologo=true&enhance=true&model=flux`;
+}
+
 export async function POST(request: NextRequest) {
   try {
-    // Lazy-load OpenAI client to avoid build-time initialization
-    const openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    });
     const body = await request.json() as any;
-    const { artist_id, prompt, use_artist_style = true } = body as GenerateArtistImageRequest;
+    const { artist_id, prompt } = body as GenerateArtistImageRequest;
 
     if (!artist_id) {
       return NextResponse.json(
@@ -25,23 +31,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate artist image using DALL-E 3
-    const imagePrompt = prompt || `A professional music artist portrait in high quality, photorealistic style`;
-    
-    const response = await openai.images.generate({
-      model: "dall-e-3",
-      prompt: imagePrompt,
-      n: 1,
-      size: "1024x1024",
-      quality: "hd",
-    });
+    const imagePrompt = prompt || `A professional music artist portrait, photorealistic, studio lighting, high quality`;
+    const imageUrl = buildPollinationsUrl(imagePrompt);
 
-    const imageUrl = response.data[0]?.url;
+    // Verify the URL is reachable (Pollinations generates synchronously)
+    const check = await fetch(imageUrl, { method: 'HEAD', signal: AbortSignal.timeout(15000) });
+    if (!check.ok) {
+      throw new Error(`Pollinations returned ${check.status}`);
+    }
 
     return NextResponse.json({
       success: true,
       image_url: imageUrl,
       artist_id,
+      provider: 'pollinations-flux',
     });
 
   } catch (error: any) {

@@ -7,7 +7,7 @@
  *
  * Providers (ALL are 100% free tiers — no paid plans, no token billing):
  *  • Groq             (GROQ_API_KEY)          — 14,400 req/day, 300+ tok/s
- *  • Cloudflare AI    (CF_ACCOUNT_ID + CF_AI_TOKEN) — Kimi K2.5 256K, free tier
+ *  • Cloudflare AI    (CF_ACCOUNT_ID_CF_AI_TOKEN = "accountId|token") — Kimi K2.5 256K, free tier
  *  • NVIDIA NIM       (NVIDIA_API_KEY)         — Qwen3-235B, DeepSeek R1, free tier
  *  • OpenRouter free  (OPENROUTER_API_KEY)     — 27 free models, 20 RPM / 200 RPD
  *  • Ollama           (no key — localhost)     — unlimited, zero cost, offline
@@ -69,18 +69,35 @@ export const groqProvider = {
 // Docs: https://developers.cloudflare.com/workers-ai/
 // Free: ~10,000 neurons/month free · prefix caching · no credit card needed
 // Models: Kimi K2.5 (256K ctx, best free coder), Llama 3.3 70B, Qwen3 32B
+//
+// Vercel env var: CF_ACCOUNT_ID_CF_AI_TOKEN
+//   Format: "<accountId>|<apiToken>"
+//   Example: "abc123def456|your-cloudflare-api-token"
+//   Get accountId from: https://dash.cloudflare.com → right sidebar
+//   Get token from: Workers AI → API Tokens → Create Token
+
+function parseCFCredentials(): { accountId: string; token: string } | null {
+  const combined = process.env.CF_ACCOUNT_ID_CF_AI_TOKEN;
+  if (!combined) return null;
+  const pipe = combined.indexOf('|');
+  if (pipe === -1) return null; // must contain '|'
+  return {
+    accountId: combined.slice(0, pipe).trim(),
+    token:     combined.slice(pipe + 1).trim(),
+  };
+}
 
 export const cloudflareProvider = {
-  isConfigured: () => !!(process.env.CF_ACCOUNT_ID && process.env.CF_AI_TOKEN),
+  isConfigured: () => parseCFCredentials() !== null,
 
   async *streamChat(
     messages: ChatMessage[],
     model: string,
     opts: StreamOptions = {},
   ): TokenStream {
-    const accountId = process.env.CF_ACCOUNT_ID;
-    const token     = process.env.CF_AI_TOKEN;
-    if (!accountId || !token) throw new Error('CF_ACCOUNT_ID or CF_AI_TOKEN not set');
+    const creds = parseCFCredentials();
+    if (!creds) throw new Error('CF_ACCOUNT_ID_CF_AI_TOKEN not set. Format: "accountId|apiToken"');
+    const { accountId, token } = creds;
 
     const url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${model}`;
 

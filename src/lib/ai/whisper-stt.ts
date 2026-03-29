@@ -1,33 +1,26 @@
 /**
- * HOLLY Whisper STT Service — Phase 4C
+ * HOLLY Whisper STT Service
  *
- * Speech-to-text with a free-first provider chain:
+ * Speech-to-text — free-only provider chain:
  *
- *  1. Groq Whisper  (groq-sdk — free tier, ~250 req/day, extremely fast)
- *  2. OpenAI Whisper (openai — free tier with $5 credit, accurate)
- *  3. Browser Web Speech API signal (returned as { useBrowserSTT: true })
+ *  1. Groq Whisper (whisper-large-v3-turbo — free tier, extremely fast)
+ *  2. Browser Web Speech API (signal returned as { useBrowserSTT: true })
  *
- * The service auto-selects the best available provider on each call and
- * degrades gracefully if a provider is missing or rate-limited.
+ * No OpenAI. No paid APIs. No limits beyond Groq's generous free tier.
  *
- * Supported audio formats: mp3, mp4, mpeg, mpga, m4a, wav, webm, ogg
- * Max file size: 25 MB (Groq) / 25 MB (OpenAI)
- *
- * Usage:
- *   import { transcribeAudio } from '@/lib/ai/whisper-stt';
- *   const result = await transcribeAudio(audioBuffer, 'audio.webm');
+ * Supported audio formats: mp3, mp4, mpeg, mpga, m4a, wav, webm, ogg, flac
+ * Max file size: 25 MB
  */
 
 import Groq from 'groq-sdk';
-import OpenAI from 'openai';
 
 export interface TranscriptionResult {
   text: string;
   language: string;
-  provider: 'groq-whisper' | 'openai-whisper' | 'browser';
+  provider: 'groq-whisper' | 'browser';
   durationMs?: number;
   confidence?: number;
-  useBrowserSTT?: boolean; // signals frontend to use Web Speech API
+  useBrowserSTT?: boolean;
   segments?: TranscriptionSegment[];
 }
 
@@ -38,10 +31,10 @@ export interface TranscriptionSegment {
 }
 
 export interface TranscribeOptions {
-  language?: string;       // ISO-639-1 code e.g. 'en', 'es', 'fr'
-  prompt?: string;         // Optional context hint to improve accuracy
+  language?: string;
+  prompt?: string;
   responseFormat?: 'json' | 'verbose_json' | 'text' | 'srt' | 'vtt';
-  temperature?: number;    // 0-1
+  temperature?: number;
   includeSegments?: boolean;
 }
 
@@ -53,25 +46,14 @@ function getGroqClient(): Groq | null {
   return new Groq({ apiKey: key });
 }
 
-function getOpenAIClient(): OpenAI | null {
-  const key = process.env.OPENAI_API_KEY;
-  if (!key) return null;
-  return new OpenAI({ apiKey: key });
-}
-
-export function getAvailableProviders(): Array<'groq-whisper' | 'openai-whisper'> {
-  const providers: Array<'groq-whisper' | 'openai-whisper'> = [];
+export function getAvailableProviders(): Array<'groq-whisper'> {
+  const providers: Array<'groq-whisper'> = [];
   if (process.env.GROQ_API_KEY) providers.push('groq-whisper');
-  if (process.env.OPENAI_API_KEY) providers.push('openai-whisper');
   return providers;
 }
 
 // ─── Core transcription ───────────────────────────────────────────────────────
 
-/**
- * Transcribe audio from a Buffer.
- * Tries Groq Whisper first, then OpenAI Whisper, then signals browser fallback.
- */
 export async function transcribeAudio(
   audioBuffer: Buffer,
   filename: string = 'audio.webm',
@@ -79,12 +61,10 @@ export async function transcribeAudio(
 ): Promise<TranscriptionResult> {
   const t0 = Date.now();
 
-  // Validate size (25 MB limit)
   const MAX_BYTES = 25 * 1024 * 1024;
   if (audioBuffer.length > MAX_BYTES) {
-    throw new Error(`Audio file too large (${Math.round(audioBuffer.length / 1024 / 1024)}MB). Maximum is 25MB.`);
+    throw new Error(`Audio file too large (${Math.round(audioBuffer.length / 1024 / 1024)}MB). Max 25MB.`);
   }
-
   if (audioBuffer.length === 0) {
     throw new Error('Audio buffer is empty.');
   }
@@ -97,23 +77,12 @@ export async function transcribeAudio(
       return { ...result, durationMs: Date.now() - t0 };
     } catch (err: any) {
       const isRateLimit = err.status === 429 || err.message?.includes('rate') || err.message?.includes('quota');
-      console.warn(`[Whisper STT] Groq failed (${isRateLimit ? 'rate-limited' : err.message}), trying OpenAI...`);
-    }
-  }
-
-  // ── Try OpenAI Whisper ────────────────────────────────────────────────────
-  const openaiClient = getOpenAIClient();
-  if (openaiClient) {
-    try {
-      const result = await transcribeWithOpenAI(openaiClient, audioBuffer, filename, opts);
-      return { ...result, durationMs: Date.now() - t0 };
-    } catch (err: any) {
-      console.warn(`[Whisper STT] OpenAI failed (${err.message}), signaling browser STT...`);
+      console.warn(`[Whisper STT] Groq failed (${isRateLimit ? 'rate-limited' : err.message}), falling back to browser STT`);
     }
   }
 
   // ── Signal browser Web Speech API ─────────────────────────────────────────
-  console.log('[Whisper STT] No cloud providers available — signaling browser STT');
+  console.log('[Whisper STT] No cloud provider available — signaling browser STT');
   return {
     text: '',
     language: opts.language || 'en',
@@ -123,9 +92,6 @@ export async function transcribeAudio(
   };
 }
 
-/**
- * Transcribe from a URL (downloads the file first).
- */
 export async function transcribeFromUrl(
   url: string,
   filename?: string,
@@ -154,7 +120,7 @@ async function transcribeWithGroq(
 
   const transcription = await client.audio.transcriptions.create({
     file,
-    model: 'whisper-large-v3-turbo',  // Fast + accurate, free on Groq
+    model: 'whisper-large-v3-turbo',
     language: opts.language || undefined,
     prompt: opts.prompt || undefined,
     response_format: (opts.includeSegments ? 'verbose_json' : 'json') as any,
@@ -180,42 +146,7 @@ async function transcribeWithGroq(
   };
 }
 
-// ─── OpenAI Whisper ───────────────────────────────────────────────────────────
-
-async function transcribeWithOpenAI(
-  client: OpenAI,
-  buffer: Buffer,
-  filename: string,
-  opts: TranscribeOptions
-): Promise<Omit<TranscriptionResult, 'durationMs'>> {
-  const mimeType = getMimeType(filename);
-  const file = new File([buffer as unknown as BlobPart], filename, { type: mimeType });
-
-  const transcription = await client.audio.transcriptions.create({
-    file,
-    model: 'whisper-1',
-    language: opts.language || undefined,
-    prompt: opts.prompt || undefined,
-    response_format: opts.includeSegments ? 'verbose_json' : 'json',
-    temperature: opts.temperature ?? 0,
-  });
-
-  const segments: TranscriptionSegment[] = [];
-  if (opts.includeSegments && (transcription as any).segments) {
-    for (const seg of (transcription as any).segments) {
-      segments.push({ start: seg.start, end: seg.end, text: seg.text });
-    }
-  }
-
-  return {
-    text: transcription.text.trim(),
-    language: (transcription as any).language || opts.language || 'en',
-    provider: 'openai-whisper',
-    ...(segments.length > 0 ? { segments } : {}),
-  };
-}
-
-// ─── helpers ──────────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function getMimeType(filename: string): string {
   const ext = filename.split('.').pop()?.toLowerCase() || '';
@@ -233,19 +164,15 @@ function getMimeType(filename: string): string {
   return mimes[ext] || 'audio/webm';
 }
 
-/**
- * Get STT service status (for health checks and dashboards).
- */
 export function getSTTStatus() {
   const providers = getAvailableProviders();
   return {
-    available: providers.length > 0,
+    available: providers.length > 0 || true, // browser STT always available
     providers,
     primaryProvider: providers[0] || 'browser',
     browserFallback: true,
     models: {
       groq: 'whisper-large-v3-turbo (free, ~250 req/day)',
-      openai: 'whisper-1 (free tier / pay-as-you-go $0.006/min)',
     },
     supportedFormats: ['mp3', 'mp4', 'm4a', 'mpeg', 'mpga', 'wav', 'webm', 'ogg', 'flac'],
     maxFileSizeMB: 25,

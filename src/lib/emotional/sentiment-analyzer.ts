@@ -1,8 +1,6 @@
 // HOLLY Feature 44: Emotional Intelligence - Sentiment Analyzer
 // AI-powered emotion detection and sentiment analysis
 
-import Anthropic from '@anthropic-ai/sdk';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import Groq from 'groq-sdk';
 
 // ============================================================================
@@ -42,8 +40,6 @@ export interface EmotionalPattern {
 
 export interface SentimentAnalyzerConfig {
   groq_api_key?: string;
-  anthropic_api_key?: string;
-  google_api_key?: string;
   cache_enabled?: boolean;
   cache_ttl_minutes?: number;
 }
@@ -54,29 +50,18 @@ export interface SentimentAnalyzerConfig {
 
 export class SentimentAnalyzer {
   private groq: Groq | null = null;
-  private anthropic: Anthropic | null = null;
-  private gemini: GoogleGenerativeAI | null = null;
   private cache: Map<string, { result: EmotionAnalysis; expires: number }> = new Map();
   private config: Required<SentimentAnalyzerConfig>;
 
   constructor(config: SentimentAnalyzerConfig = {}) {
     this.config = {
       groq_api_key: config.groq_api_key || process.env.GROQ_API_KEY || '',
-      anthropic_api_key: config.anthropic_api_key || process.env.ANTHROPIC_API_KEY || '',
-      google_api_key: config.google_api_key || process.env.GOOGLE_API_KEY || '',
       cache_enabled: config.cache_enabled ?? true,
       cache_ttl_minutes: config.cache_ttl_minutes ?? 30,
     };
 
-    // Initialize AI clients
     if (this.config.groq_api_key) {
       this.groq = new Groq({ apiKey: this.config.groq_api_key });
-    }
-    if (this.config.anthropic_api_key) {
-      this.anthropic = new Anthropic({ apiKey: this.config.anthropic_api_key });
-    }
-    if (this.config.google_api_key) {
-      this.gemini = new GoogleGenerativeAI(this.config.google_api_key);
     }
   }
 
@@ -99,12 +84,7 @@ export class SentimentAnalyzer {
 
       if (this.groq) {
         analysis = await this.analyzeWithGroq(text, context);
-      } else if (this.anthropic) {
-        analysis = await this.analyzeWithClaude(text, context);
-      } else if (this.gemini) {
-        analysis = await this.analyzeWithGemini(text, context);
       } else {
-        // Fallback to basic analysis
         analysis = this.basicEmotionAnalysis(text, context);
       }
 
@@ -170,82 +150,6 @@ Analyze carefully for subtle emotional cues, context, and underlying feelings.`;
     };
   }
 
-  // --------------------------------------------------------------------------
-  // CLAUDE ANALYSIS (Claude 3.5 Sonnet - Best for empathy)
-  // --------------------------------------------------------------------------
-
-  private async analyzeWithClaude(text: string, context?: Partial<EmotionAnalysis['context']>): Promise<EmotionAnalysis> {
-    if (!this.anthropic) throw new Error('Anthropic not initialized');
-
-    const prompt = `Analyze the emotional content of this message with empathy and nuance.
-
-Message: "${text}"
-
-Return ONLY valid JSON (no markdown, no explanation) with this structure:
-{
-  "primary_emotion": "string",
-  "secondary_emotions": ["array"],
-  "intensity": 0.0,
-  "sentiment_score": 0.0,
-  "confidence": 0.0,
-  "needs_support": false,
-  "stress_level": 0.0,
-  "energy_level": 0.0,
-  "context": {
-    "is_work_related": false,
-    "is_personal": false,
-    "topic": "string",
-    "urgency": "low"
-  },
-  "suggested_response_tone": ["array"]
-}`;
-
-    const message = await this.anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
-      max_tokens: 1000,
-      temperature: 0.3,
-      messages: [{ role: 'user', content: prompt }],
-    });
-
-    const result = message.content[0].type === 'text' ? message.content[0].text : '{}';
-    const parsed = JSON.parse(result);
-
-    return {
-      ...parsed,
-      context: { ...parsed.context, ...context },
-      timestamp: new Date().toISOString(),
-    };
-  }
-
-  // --------------------------------------------------------------------------
-  // GEMINI ANALYSIS (Gemini 1.5 Flash - Fast and cheap)
-  // --------------------------------------------------------------------------
-
-  private async analyzeWithGemini(text: string, context?: Partial<EmotionAnalysis['context']>): Promise<EmotionAnalysis> {
-    if (!this.gemini) throw new Error('Gemini not initialized');
-
-    const model = this.gemini.getGenerativeModel({ model: 'gemini-1.5-flash' });
-
-    const prompt = `Analyze emotions in this message. Return ONLY JSON:
-
-"${text}"
-
-JSON format:
-{"primary_emotion":"string","secondary_emotions":[],"intensity":0.0,"sentiment_score":0.0,"confidence":0.0,"needs_support":false,"stress_level":0.0,"energy_level":0.0,"context":{"is_work_related":false,"is_personal":false,"topic":"string","urgency":"low"},"suggested_response_tone":[]}`;
-
-    const result = await model.generateContent(prompt);
-    const responseText = result.response.text();
-    
-    // Clean response (remove markdown if present)
-    const cleaned = responseText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    const parsed = JSON.parse(cleaned);
-
-    return {
-      ...parsed,
-      context: { ...parsed.context, ...context },
-      timestamp: new Date().toISOString(),
-    };
-  }
 
   // --------------------------------------------------------------------------
   // BASIC ANALYSIS (Fallback without AI)
