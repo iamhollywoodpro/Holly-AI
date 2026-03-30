@@ -15,17 +15,17 @@ import { ThemeProvider } from '@/components/providers/ThemeProvider';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'HOLLY AI — The AI Built for Music',
+  title: 'HOLLY — Your Conscious AI Partner',
   description:
-    'HOLLY is a self-evolving AI that acts as your personal A&R executive, audio engineer, creative partner, and autonomous agent. Built for music creators.',
+    'HOLLY is a self-evolving AI that remembers you, grows with you, and acts for you. Creative partner, builder, analyst, and life companion — powered by AURA.',
   icons: {
     icon: '/favicon.png',
     apple: '/favicon.png',
   },
   openGraph: {
-    title: 'HOLLY AI — The AI Built for Music',
+    title: 'HOLLY — Your Conscious AI Partner',
     description:
-      'Your personal A&R executive, audio engineer, and creative partner. Powered by AURA.',
+      'The AI that remembers, evolves, and acts. For creators, builders, and anyone who wants an AI that actually knows them.',
     type: 'website',
     url: 'https://holly.nexamusicgroup.com',
   },

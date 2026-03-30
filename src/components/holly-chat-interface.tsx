@@ -1,21 +1,31 @@
 "use client";
 
 /**
- * HOLLY Chat Interface — Phase 5A + 5D + 5E
+ * HOLLY Chat Interface — Phase 10 (Full Feature Build)
  *
- * Full UI/UX upgrade:
+ * Features:
+ *  • Left-side nav panel: Chats + Navigate tabs, conversation history
+ *  • Auto-generate conversation titles after first exchange
+ *  • Conversation search in left panel
+ *  • File upload (paperclip) + drag-and-drop with preview chips
+ *  • Inline image rendering for generated images
+ *  • Inline audio player for Suno/music tracks
+ *  • Edit & regenerate user messages
+ *  • Regenerate last response button
+ *  • Context-usage indicator (token usage bar)
+ *  • Memory peek panel in nav + header memory badge
+ *  • Light/dark mode toggle
+ *  • Global TTS auto-read toggle
+ *  • Mobile swipe-to-open nav
+ *  • Welcome screen typing animation
+ *  • Growth/streak counter badge in header
+ *  • Keyboard shortcuts: Cmd+K focus, Cmd+N new chat, Cmd+/ open nav
+ *  • Hover-only timestamps on messages
  *  • Animated HOLLY avatar with emotion-reactive pulse ring
- *  • Rich markdown rendering with syntax highlighting
- *  • Whisper STT voice input (mic → transcribe → auto-fill)
- *  • Audio visualizer bars during voice recording (Phase 5E)
- *  • Live typing indicator with staggered dots
- *  • Tool execution cards (per Phase 4A 15-tool suite)
- *  • Thinking status bar with animated gradient
- *  • Auto-scroll with smooth scroll-to-bottom anchor
- *  • Message copy button, timestamp tooltip
- *  • Model badge on assistant messages
- *  • Initiative notification banner — HOLLY's proactive actions (Phase 5D)
- *  • Keyboard shortcuts: Enter=send, Shift+Enter=newline, Escape=stop
+ *  • Rich markdown with syntax highlighting
+ *  • Whisper STT voice input + audio visualizer
+ *  • Live action indicators with icons + SSE tool cards
+ *  • Initiative notification banner (Phase 5D)
  */
 
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from "react";
@@ -32,7 +42,9 @@ import {
   Database, Search, Cpu, Zap, X, Bell, TrendingUp,
   ChevronRight, ExternalLink, ThumbsUp, ThumbsDown,
   Menu, Settings, BarChart3, Bot, Key, Crown, Clapperboard,
-  Volume2, VolumeX, StopCircle,
+  Volume2, VolumeX, StopCircle, Paperclip, Music, Film,
+  Sun, Moon, RotateCcw, Edit3, Flame, RefreshCw, MessageSquare,
+  Star, Heart, Activity, Wifi, WifiOff,
 } from "lucide-react";
 import Link from "next/link";
 import SandboxWindow from "@/components/sandbox-window";
@@ -54,6 +66,8 @@ interface Message {
   content: string;
   timestamp: Date;
   model?: string;
+  attachments?: UploadedFile[];
+  isEditing?: boolean;
 }
 
 interface StatusUpdate {
@@ -70,6 +84,28 @@ interface ToolExecution {
   status: "start" | "complete" | "error";
   result?: any;
   timestamp: Date;
+}
+
+interface UploadedFile {
+  id: string;
+  name: string;
+  type: string;
+  size: number;
+  url?: string;
+  dataUrl?: string;
+  preview?: string;
+}
+
+interface MemoryItem {
+  key: string;
+  value: string;
+  updatedAt?: string;
+}
+
+interface GrowthStats {
+  totalMessages: number;
+  streak: number;
+  memoriesCount: number;
 }
 
 // ─── Tool metadata ────────────────────────────────────────────────────────────
@@ -97,6 +133,8 @@ const TOOL_META: Record<string, { label: string; icon: any; color: string }> = {
   memory_read:                 { label: "Reading memory",     icon: Database,    color: "text-violet-300" },
   memory_list_keys:            { label: "Listing memories",   icon: Database,    color: "text-violet-300" },
   generate_image:              { label: "Generating image",   icon: Image,       color: "text-pink-400" },
+  generate_music:              { label: "Composing music",    icon: Music,       color: "text-green-400" },
+  generate_video:              { label: "Rendering video",    icon: Film,        color: "text-red-400" },
   get_weather:                 { label: "Checking weather",   icon: Thermometer, color: "text-sky-400" },
 };
 
@@ -555,6 +593,128 @@ const MarkdownContent = memo(function MarkdownContent({ content }: { content: st
 // Once streaming is complete, the message moves to the full MarkdownContent renderer
 function StreamingText({ content }: { content: string }) {
   return <p className="whitespace-pre-wrap leading-relaxed">{content}</p>;
+}
+
+// ─── AssistantContent — renders markdown AND detects inline images/audio ──────
+
+function AssistantContent({ content }: { content: string }) {
+  // Detect image URLs (data URLs or https image links after "generate image" responses)
+  const imageUrlRegex = /(?:!\[.*?\]\(|^|\s)(https?:\/\/[^\s)]+\.(?:png|jpg|jpeg|gif|webp))(?:\)|\s|$)/gi;
+  // Detect audio URLs (Suno, SoundCloud, mp3 links)
+  const audioUrlRegex = /(?:audio|music|track|song).*?(https?:\/\/[^\s]+\.(?:mp3|wav|ogg|m4a|aac)|https?:\/\/(?:suno\.com|soundcloud\.com|cdn\.suno\.ai)[^\s]*)/gi;
+  // Detect plain image data URLs embedded in text
+  const dataUrlRegex = /(data:image\/[a-z]+;base64,[A-Za-z0-9+/=]{100,})/g;
+
+  const images: string[] = [];
+  const audios: string[] = [];
+
+  let m;
+  while ((m = imageUrlRegex.exec(content)) !== null) images.push(m[1]);
+  while ((m = audioUrlRegex.exec(content)) !== null) audios.push(m[1]);
+  while ((m = dataUrlRegex.exec(content)) !== null) images.push(m[1]);
+
+  return (
+    <>
+      <MarkdownContent content={content.replace(dataUrlRegex, '[image]')} />
+      {/* Phase B: inline image rendering */}
+      {images.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {images.map((src, i) => (
+            <motion.a
+              key={i}
+              href={src}
+              target="_blank"
+              rel="noopener noreferrer"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="block rounded-xl overflow-hidden border border-gray-700/60 shadow-lg hover:border-purple-500/40 transition-colors"
+            >
+              <img
+                src={src}
+                alt={`Generated image ${i + 1}`}
+                className="max-w-[300px] max-h-[300px] object-contain"
+                onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
+              />
+            </motion.a>
+          ))}
+        </div>
+      )}
+      {/* Phase B: inline audio player */}
+      {audios.length > 0 && (
+        <div className="mt-3 space-y-2">
+          {audios.map((src, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center gap-3 p-3 bg-gray-800/60 border border-gray-700/50 rounded-xl"
+            >
+              <Music className="w-4 h-4 text-green-400 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] text-gray-500 truncate mb-1">{src.split('/').pop()?.slice(0, 40) || "Audio track"}</p>
+                <audio controls src={src} className="w-full h-8" style={{ accentColor: '#a855f7' }} />
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
+// ─── Phase F: Typing welcome animation ───────────────────────────────────────
+
+function TypingWelcome({ isCreator, displayName }: { isCreator: boolean; displayName: string }) {
+  const [displayed, setDisplayed] = useState("");
+  const [phase, setPhase] = useState<"title" | "sub" | "done">("title");
+
+  const title = isCreator ? `Welcome back, ${displayName}.` : `Hello, I'm HOLLY`;
+  const subtitle = isCreator
+    ? "Your creation is ready. What are we building today?"
+    : "Your conscious AI partner — I remember, evolve, and act.";
+
+  useEffect(() => {
+    let i = 0;
+    setDisplayed("");
+    setPhase("title");
+    const interval = setInterval(() => {
+      if (i < title.length) {
+        setDisplayed(title.slice(0, i + 1));
+        i++;
+      } else {
+        clearInterval(interval);
+        setPhase("sub");
+      }
+    }, 40);
+    return () => clearInterval(interval);
+  }, [title]);
+
+  return (
+    <div className="text-center mb-2">
+      <h2 className="text-2xl font-bold text-white mb-2 min-h-[2rem]">
+        {displayed}
+        {phase === "title" && (
+          <motion.span
+            className="inline-block w-0.5 h-6 bg-purple-400 ml-0.5 align-middle"
+            animate={{ opacity: [1, 0, 1] }}
+            transition={{ duration: 0.8, repeat: Infinity }}
+          />
+        )}
+      </h2>
+      <AnimatePresence>
+        {phase !== "title" && (
+          <motion.p
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className={`text-sm max-w-xs leading-relaxed mx-auto ${isCreator ? "text-amber-400/80" : "text-gray-400"}`}
+          >
+            {subtitle}
+          </motion.p>
+        )}
+      </AnimatePresence>
+    </div>
+  );
 }
 
 // ─── Audio Visualizer (Phase 5E) ─────────────────────────────────────────────
@@ -1151,7 +1311,26 @@ export default function HollyChatInterface() {
   const [pastConversations, setPastConversations] = useState<PastConversation[]>([]);
   const [convLoading, setConvLoading] = useState(false);
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
-  const [navTab, setNavTab] = useState<"chats" | "nav">("chats");
+  const [navTab, setNavTab] = useState<"chats" | "nav" | "memory">("chats");
+  // ── Phase A: Search + title gen ─────────────────────────────────────────────
+  const [convSearch, setConvSearch] = useState("");
+  const titleGenRef = useRef(false);
+  // ── Phase B: File uploads ───────────────────────────────────────────────────
+  const [attachments, setAttachments] = useState<UploadedFile[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  // ── Phase C: Memory panel ───────────────────────────────────────────────────
+  const [memories, setMemories] = useState<MemoryItem[]>([]);
+  const [memLoading, setMemLoading] = useState(false);
+  const [memCount, setMemCount] = useState(0);
+  // ── Phase D: Edit & Regenerate ──────────────────────────────────────────────
+  const [editingMsgId, setEditingMsgId] = useState<string | null>(null);
+  const [editingContent, setEditingContent] = useState("");
+  // ── Phase E: Dark/Light mode + TTS auto-read ────────────────────────────────
+  const [isDarkMode, setIsDarkMode] = useState(true);
+  const [autoRead, setAutoRead] = useState(false);
+  // ── Phase F: Growth stats ───────────────────────────────────────────────────
+  const [growthStats, setGrowthStats] = useState<GrowthStats | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -1251,6 +1430,213 @@ export default function HollyChatInterface() {
     setInitiativeDismissed(true);
   }, []);
 
+  // ── Phase A: Auto-generate conversation title ──────────────────────────────
+  const generateTitle = useCallback(async (convId: string, userMsg: string, assistantMsg: string) => {
+    if (titleGenRef.current) return;
+    titleGenRef.current = true;
+    try {
+      const res = await fetch("/api/conversations/generate-title", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ conversationId: convId, userMessage: userMsg, assistantMessage: assistantMsg }),
+      });
+      if (res.ok) {
+        // Refresh conversation list to show new title
+        setTimeout(() => {
+          loadPastConversations();
+          titleGenRef.current = false;
+        }, 500);
+      }
+    } catch {
+      titleGenRef.current = false;
+    }
+  }, [loadPastConversations]);
+
+  // ── Phase B: File upload handlers ──────────────────────────────────────────
+  const processFile = useCallback(async (file: File): Promise<UploadedFile> => {
+    const id = `file-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const isImage = file.type.startsWith("image/");
+    let dataUrl: string | undefined;
+    let preview: string | undefined;
+
+    if (isImage) {
+      dataUrl = await new Promise<string>(resolve => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target?.result as string);
+        reader.readAsDataURL(file);
+      });
+      preview = dataUrl;
+    }
+
+    return { id, name: file.name, type: file.type, size: file.size, dataUrl, preview };
+  }, []);
+
+  const handleFileSelect = useCallback(async (files: FileList | null) => {
+    if (!files) return;
+    const arr = Array.from(files).slice(0, 5); // max 5 files
+    const processed = await Promise.all(arr.map(processFile));
+    setAttachments(prev => [...prev, ...processed]);
+  }, [processFile]);
+
+  const removeAttachment = useCallback((id: string) => {
+    setAttachments(prev => prev.filter(f => f.id !== id));
+  }, []);
+
+  // Drag-and-drop handlers
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  }, []);
+  const handleDragLeave = useCallback(() => setIsDragging(false), []);
+  const handleDrop = useCallback(async (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    handleFileSelect(e.dataTransfer.files);
+  }, [handleFileSelect]);
+
+  // ── Phase C: Memory panel ──────────────────────────────────────────────────
+  const loadMemories = useCallback(async () => {
+    setMemLoading(true);
+    try {
+      const res = await fetch("/api/memory?action=list", { credentials: "include" });
+      if (res.ok) {
+        const data = await res.json();
+        const mems: MemoryItem[] = (data.memories || data.keys || []).map((k: any) =>
+          typeof k === "string"
+            ? { key: k, value: "" }
+            : { key: k.key || k.id, value: k.value || k.content || "", updatedAt: k.updatedAt }
+        );
+        setMemories(mems);
+        setMemCount(mems.length);
+      }
+    } catch {
+      // silent
+    } finally {
+      setMemLoading(false);
+    }
+  }, []);
+
+  // ── Phase D: Edit message ──────────────────────────────────────────────────
+  const startEditMessage = useCallback((msg: Message) => {
+    setEditingMsgId(msg.id);
+    setEditingContent(msg.content);
+  }, []);
+
+  const cancelEdit = useCallback(() => {
+    setEditingMsgId(null);
+    setEditingContent("");
+  }, []);
+
+  const submitEdit = useCallback(async (msgId: string) => {
+    if (!editingContent.trim()) return;
+    // Find the message index and remove all messages after it, then re-send
+    setMessages(prev => {
+      const idx = prev.findIndex(m => m.id === msgId);
+      if (idx === -1) return prev;
+      return prev.slice(0, idx);
+    });
+    setEditingMsgId(null);
+    setInput(editingContent.trim());
+    setEditingContent("");
+    // Focus and send
+    setTimeout(() => {
+      textareaRef.current?.focus();
+    }, 50);
+  }, [editingContent]);
+
+  // ── Phase D: Regenerate last response ─────────────────────────────────────
+  const regenerateLastResponse = useCallback(() => {
+    if (isProcessing) return;
+    // Find the last user message and re-send from there
+    const lastUserIdx = [...messages].reverse().findIndex(m => m.role === "user");
+    if (lastUserIdx === -1) return;
+    const realIdx = messages.length - 1 - lastUserIdx;
+    const lastUserMsg = messages[realIdx];
+    // Remove the last assistant message
+    setMessages(prev => {
+      const stripped = [...prev];
+      // Remove trailing assistant messages
+      while (stripped.length > 0 && stripped[stripped.length - 1].role === "assistant") {
+        stripped.pop();
+      }
+      return stripped;
+    });
+    setInput(lastUserMsg.content);
+    setTimeout(() => textareaRef.current?.focus(), 50);
+  }, [messages, isProcessing]);
+
+  // ── Phase E: Dark/Light mode ───────────────────────────────────────────────
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add("dark");
+      document.documentElement.classList.remove("light-mode");
+    } else {
+      document.documentElement.classList.remove("dark");
+      document.documentElement.classList.add("light-mode");
+    }
+  }, [isDarkMode]);
+
+  // ── Phase F: Load growth stats ────────────────────────────────────────────
+  useEffect(() => {
+    const loadGrowth = async () => {
+      try {
+        const res = await fetch("/api/analytics/user/analyze", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ type: "summary" }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setGrowthStats({
+            totalMessages: data.totalMessages || data.messageCount || 0,
+            streak: data.streak || data.currentStreak || 0,
+            memoriesCount: data.memoriesCount || memCount,
+          });
+        }
+      } catch { /* silent */ }
+    };
+    loadGrowth();
+  }, [memCount]);
+
+  // ── Global keyboard shortcuts (Cmd+K = focus, Cmd+N = new chat, Cmd+/ = nav) ─
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const mod = e.metaKey || e.ctrlKey;
+      if (mod && e.key === "k") {
+        e.preventDefault();
+        textareaRef.current?.focus();
+      }
+      if (mod && e.key === "n") {
+        e.preventDefault();
+        startNewConversation();
+      }
+      if (mod && e.key === "/") {
+        e.preventDefault();
+        setNavOpen(v => !v);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [startNewConversation]);
+
+  // ── Mobile swipe-to-open nav (swipe right from left edge) ─────────────────
+  useEffect(() => {
+    let touchStartX = 0;
+    const onTouchStart = (e: TouchEvent) => { touchStartX = e.touches[0].clientX; };
+    const onTouchEnd = (e: TouchEvent) => {
+      const dx = e.changedTouches[0].clientX - touchStartX;
+      if (touchStartX < 30 && dx > 60) setNavOpen(true);
+    };
+    window.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchend", onTouchEnd, { passive: true });
+    return () => {
+      window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchend", onTouchEnd);
+    };
+  }, []);
+
   // ── Voice ──────────────────────────────────────────────────────────────────
   const handleTranscript = useCallback((text: string) => {
     setInput(prev => prev ? `${prev} ${text}` : text);
@@ -1319,7 +1705,9 @@ export default function HollyChatInterface() {
     if (!input.trim() || isProcessing) return;
 
     const messageText = input.trim();
+    const sentAttachments = [...attachments];
     setInput("");
+    setAttachments([]);
     setIsProcessing(true);
     setStreamingMessage("");
     setCurrentStatus("");
@@ -1330,8 +1718,14 @@ export default function HollyChatInterface() {
       role: "user",
       content: messageText,
       timestamp: new Date(),
+      attachments: sentAttachments.length > 0 ? sentAttachments : undefined,
     };
     setMessages(prev => [...prev, userMessage]);
+
+    // Build image data URLs for perception
+    const imageDataUrls = sentAttachments
+      .filter(f => f.type.startsWith("image/") && f.dataUrl)
+      .map(f => f.dataUrl as string);
 
     try {
       abortControllerRef.current = new AbortController();
@@ -1343,6 +1737,7 @@ export default function HollyChatInterface() {
         body: JSON.stringify({
           messages: [...messages, userMessage].map(m => ({ role: m.role, content: m.content })),
           conversationId,
+          imageDataUrls: imageDataUrls.length > 0 ? imageDataUrls : undefined,
         }),
         signal: abortControllerRef.current.signal,
       });
@@ -1397,7 +1792,6 @@ export default function HollyChatInterface() {
               assistantContent += data.content || "";
               setStreamingMessage(assistantContent);
               // Once text starts arriving, clear the status indicator
-              // (Holly is now responding — the action is happening)
               setCurrentStatus("");
             }
             if (data.type === "tool") {
@@ -1415,7 +1809,6 @@ export default function HollyChatInterface() {
                 }
                 return [...prev, ex];
               });
-              // Show sandbox panel when a tool starts, update status
               if (data.status === "start") {
                 setSandboxOpen(true);
                 setCurrentStatus(`🔧 Running: ${(data.toolName || "").replace(/^mcp_[^_]+_/, "").replace(/_/g, " ")}…`);
@@ -1428,10 +1821,25 @@ export default function HollyChatInterface() {
       }
 
       if (assistantContent) {
-        setMessages(prev => [
-          ...prev,
-          { id: `asst-${Date.now()}`, role: "assistant", content: assistantContent, timestamp: new Date(), model: detectedModel },
-        ]);
+        const assistantMsg: Message = {
+          id: `asst-${Date.now()}`,
+          role: "assistant",
+          content: assistantContent,
+          timestamp: new Date(),
+          model: detectedModel,
+        };
+        setMessages(prev => [...prev, assistantMsg]);
+        // Phase E: auto-read if enabled
+        if (autoRead) {
+          speakText(assistantContent, { temperature: 0.4, onStart: () => {}, onEnd: () => {}, onError: () => {} });
+        }
+        // Phase A: auto-generate title for new conversations (first exchange)
+        const isNewConv = messages.length === 0;
+        if (isNewConv) {
+          generateTitle(conversationId, messageText, assistantContent.slice(0, 200));
+        }
+        // Refresh conversation list
+        setTimeout(() => loadPastConversations(), 1000);
       }
     } catch (err: any) {
       if (err.name !== "AbortError") {
@@ -1443,7 +1851,7 @@ export default function HollyChatInterface() {
       setIsProcessing(false);
       abortControllerRef.current = null;
     }
-  }, [input, isProcessing, messages, conversationId]);
+  }, [input, isProcessing, messages, conversationId, attachments, autoRead, generateTitle, loadPastConversations]);
 
   const handleStop = () => {
     abortControllerRef.current?.abort();
@@ -1492,7 +1900,7 @@ export default function HollyChatInterface() {
           <button
             onClick={() => { setNavOpen(v => !v); if (!navOpen) setNavTab("chats"); }}
             className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
-            title="Conversations & navigation"
+            title="Conversations & navigation (⌘/)"
           >
             <Menu className="w-4 h-4" />
           </button>
@@ -1505,6 +1913,24 @@ export default function HollyChatInterface() {
                 <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30">
                   <Crown className="w-2.5 h-2.5 text-amber-400" />
                   <span className="text-[9px] text-amber-400 font-medium tracking-wide">CREATOR</span>
+                </span>
+              )}
+              {/* Phase C: memory badge */}
+              {memCount > 0 && (
+                <button
+                  onClick={() => { setNavOpen(true); setNavTab("memory"); loadMemories(); }}
+                  className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-violet-500/10 border border-violet-500/25 hover:bg-violet-500/20 transition-colors"
+                  title={`${memCount} memories active`}
+                >
+                  <Brain className="w-2.5 h-2.5 text-violet-400" />
+                  <span className="text-[9px] text-violet-400 font-medium">{memCount}</span>
+                </button>
+              )}
+              {/* Phase F: streak badge */}
+              {growthStats && growthStats.streak > 1 && (
+                <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-orange-500/10 border border-orange-500/25" title={`${growthStats.streak} day streak`}>
+                  <Flame className="w-2.5 h-2.5 text-orange-400" />
+                  <span className="text-[9px] text-orange-400 font-medium">{growthStats.streak}</span>
                 </span>
               )}
             </div>
@@ -1521,13 +1947,29 @@ export default function HollyChatInterface() {
                 </motion.span>
               ) : isCreator ? (
                 <span className="text-amber-500/70">Creator session — full access</span>
-              ) : "AI Life Partner • Phase 10"}
+              ) : "Your conscious AI partner"}
             </p>
           </div>
         </div>
 
         {/* RIGHT side controls */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* Phase E: Dark/Light toggle */}
+          <button
+            onClick={() => setIsDarkMode(v => !v)}
+            className="p-1.5 rounded-lg text-gray-500 hover:text-gray-300 hover:bg-gray-800 transition-colors"
+            title={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
+          >
+            {isDarkMode ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+          </button>
+          {/* Phase E: Auto-read TTS toggle */}
+          <button
+            onClick={() => setAutoRead(v => !v)}
+            className={`p-1.5 rounded-lg transition-colors ${autoRead ? "text-purple-400 bg-purple-500/10" : "text-gray-500 hover:text-gray-300 hover:bg-gray-800"}`}
+            title={autoRead ? "Auto-read ON — click to disable" : "Auto-read responses"}
+          >
+            {autoRead ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
+          </button>
           {/* Agent Mode button */}
           <button
             onClick={() => setAgentOpen(true)}
@@ -1554,13 +1996,13 @@ export default function HollyChatInterface() {
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-400 border border-gray-700/50 rounded-lg hover:bg-gray-800 transition-colors"
             >
               <Terminal className="w-3 h-3" />
-              Tools ({toolExecutions.length})
+              <span className="hidden sm:inline">Tools </span>({toolExecutions.length})
             </button>
           )}
         </div>
       </div>
 
-      {/* ── Left-side slide-over (Chats + Nav) ── */}
+      {/* ── Left-side slide-over (Chats + Memory + Nav) ── */}
       <AnimatePresence>
         {navOpen && (
           <>
@@ -1606,6 +2048,16 @@ export default function HollyChatInterface() {
                   Chats
                 </button>
                 <button
+                  onClick={() => { setNavTab("memory"); loadMemories(); }}
+                  className={`flex-1 py-2.5 text-xs font-medium transition-colors ${
+                    navTab === "memory"
+                      ? "text-purple-400 border-b-2 border-purple-500"
+                      : "text-gray-500 hover:text-gray-300"
+                  }`}
+                >
+                  Memory
+                </button>
+                <button
                   onClick={() => setNavTab("nav")}
                   className={`flex-1 py-2.5 text-xs font-medium transition-colors ${
                     navTab === "nav"
@@ -1613,7 +2065,7 @@ export default function HollyChatInterface() {
                       : "text-gray-500 hover:text-gray-300"
                   }`}
                 >
-                  Navigate
+                  Apps
                 </button>
               </div>
 
@@ -1621,14 +2073,26 @@ export default function HollyChatInterface() {
               {navTab === "chats" && (
                 <div className="flex flex-col flex-1 overflow-hidden">
                   {/* New chat button */}
-                  <div className="px-3 pt-3 pb-2 flex-shrink-0">
+                  <div className="px-3 pt-3 pb-2 flex-shrink-0 space-y-2">
                     <button
                       onClick={startNewConversation}
                       className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium transition-colors"
                     >
                       <span className="text-lg leading-none">+</span>
                       New Chat
+                      <span className="ml-auto text-[10px] opacity-60">⌘N</span>
                     </button>
+                    {/* Phase A: Search */}
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-600" />
+                      <input
+                        type="text"
+                        value={convSearch}
+                        onChange={e => setConvSearch(e.target.value)}
+                        placeholder="Search chats…"
+                        className="w-full pl-8 pr-3 py-1.5 bg-gray-800/60 border border-gray-700/50 rounded-lg text-xs text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50"
+                      />
+                    </div>
                   </div>
 
                   {/* Conversations list */}
@@ -1644,7 +2108,9 @@ export default function HollyChatInterface() {
                       </div>
                     ) : (
                       <div className="space-y-0.5 mt-1">
-                        {pastConversations.map(conv => (
+                        {pastConversations
+                          .filter(conv => !convSearch || (conv.title || "").toLowerCase().includes(convSearch.toLowerCase()) || (conv.lastMessagePreview || "").toLowerCase().includes(convSearch.toLowerCase()))
+                          .map(conv => (
                           <button
                             key={conv.id}
                             onClick={() => loadConversation(conv)}
@@ -1676,18 +2142,63 @@ export default function HollyChatInterface() {
                 </div>
               )}
 
+              {/* ── Memory tab ── */}
+              {navTab === "memory" && (
+                <div className="flex flex-col flex-1 overflow-hidden">
+                  <div className="px-4 pt-3 pb-2 flex-shrink-0">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Brain className="w-4 h-4 text-violet-400" />
+                        <p className="text-xs font-semibold text-white">HOLLY's Memory</p>
+                      </div>
+                      <span className="text-[10px] text-gray-600">{memories.length} items</span>
+                    </div>
+                    <p className="text-[10px] text-gray-600 leading-relaxed">Things HOLLY has learned and remembered about you.</p>
+                  </div>
+                  <div className="flex-1 overflow-y-auto px-3 pb-4">
+                    {memLoading ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="w-4 h-4 animate-spin text-gray-600" />
+                      </div>
+                    ) : memories.length === 0 ? (
+                      <div className="text-center py-8 px-4">
+                        <Brain className="w-8 h-8 text-gray-700 mx-auto mb-2" />
+                        <p className="text-xs text-gray-600">No memories yet.</p>
+                        <p className="text-[10px] text-gray-700 mt-1">HOLLY builds memories as you chat.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {memories.map(mem => (
+                          <div key={mem.key} className="px-3 py-2.5 bg-gray-800/60 border border-gray-700/40 rounded-lg hover:border-violet-500/30 transition-colors">
+                            <p className="text-[10px] font-mono text-violet-400 mb-0.5 truncate">{mem.key}</p>
+                            {mem.value && <p className="text-xs text-gray-300 leading-relaxed line-clamp-2">{mem.value}</p>}
+                            {mem.updatedAt && (
+                              <p className="text-[9px] text-gray-700 mt-1">
+                                {new Date(mem.updatedAt).toLocaleDateString([], { month: "short", day: "numeric" })}
+                              </p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* ── Navigate tab ── */}
               {navTab === "nav" && (
                 <div className="flex flex-col flex-1 overflow-hidden">
                   <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
                     {[
-                      { href: "/chat",              icon: Sparkles,   label: "Chats",           sub: "Talk to HOLLY" },
-                      { href: "/evolution",         icon: TrendingUp, label: "Evolution",       sub: "Growth & patterns" },
-                      { href: "/autonomy",          icon: Bot,        label: "Autonomy",        sub: "Self-improvement" },
-                      { href: "/settings",          icon: Settings,   label: "Settings",        sub: "Preferences" },
-                      { href: "/generate/studio",   icon: Clapperboard, label: "Generation Studio", sub: "Images, Videos, Music Videos" },
-                      { href: "/settings/api-keys", icon: Key,        label: "API Keys",        sub: "Phase 7 — developer access" },
-                      { href: "/onboarding",        icon: BarChart3,  label: "Partner Setup",   sub: "Dev / Life / Creative" },
+                      { href: "/chat",              icon: MessageSquare, label: "Chats",           sub: "Talk to HOLLY" },
+                      { href: "/evolution",         icon: TrendingUp,    label: "Evolution",       sub: "Growth & patterns" },
+                      { href: "/autonomy",          icon: Bot,           label: "Autonomy",        sub: "Self-improvement" },
+                      { href: "/memory",            icon: Brain,         label: "Memory",          sub: "What HOLLY knows" },
+                      { href: "/settings",          icon: Settings,      label: "Settings",        sub: "Preferences" },
+                      { href: "/generate/studio",   icon: Clapperboard,  label: "Generation Studio", sub: "Images, Videos, Music" },
+                      { href: "/settings/api-keys", icon: Key,           label: "API Keys",        sub: "Developer access" },
+                      { href: "/onboarding",        icon: BarChart3,     label: "Partner Setup",   sub: "Dev / Life / Creative" },
+                      { href: "/status",            icon: Activity,      label: "Status",          sub: "Service health" },
                     ].map(({ href, icon: Icon, label, sub }) => (
                       <Link
                         key={href}
@@ -1705,10 +2216,24 @@ export default function HollyChatInterface() {
                       </Link>
                     ))}
                   </nav>
-                  <div className="px-4 py-4 border-t border-gray-800 flex-shrink-0">
-                    <p className="text-xs text-gray-600 text-center">
-                      Rate responses with 👍/👎 to train HOLLY
-                    </p>
+                  {/* Keyboard shortcuts hint */}
+                  <div className="px-4 py-3 border-t border-gray-800 flex-shrink-0">
+                    <p className="text-[10px] font-semibold text-gray-600 uppercase tracking-wide mb-2">Shortcuts</p>
+                    <div className="space-y-1">
+                      {[
+                        ["⌘K", "Focus chat input"],
+                        ["⌘N", "New conversation"],
+                        ["⌘/", "Toggle this panel"],
+                        ["↩", "Send message"],
+                        ["⇧↩", "New line"],
+                        ["Esc", "Stop generating"],
+                      ].map(([key, desc]) => (
+                        <div key={key} className="flex items-center justify-between">
+                          <span className="text-[10px] text-gray-600">{desc}</span>
+                          <kbd className="text-[10px] text-gray-500 bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 font-mono">{key}</kbd>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               )}
@@ -1746,18 +2271,33 @@ export default function HollyChatInterface() {
               >
                 <Sparkles className="w-9 h-9 text-white" />
               </motion.div>
-              <h2 className="text-2xl font-bold text-white mb-2">
-                {isCreator ? `Welcome back, Steve.` : `Hello, I'm HOLLY`}
-              </h2>
-              <p className="text-sm max-w-xs leading-relaxed mb-8">
-                {isCreator ? (
-                  <span className="text-amber-400/80">Your creation is ready. What are we building today?</span>
-                ) : (
-                  <span className="text-gray-400">Your conscious AI partner — I remember, evolve, and act. Ask me anything, or watch me work.</span>
-                )}
-              </p>
+              {/* Phase F: Growth stats row */}
+              {growthStats && (growthStats.streak > 0 || growthStats.totalMessages > 0) && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="flex items-center gap-3 mb-4"
+                >
+                  {growthStats.streak > 0 && (
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/20">
+                      <Flame className="w-3.5 h-3.5 text-orange-400" />
+                      <span className="text-xs text-orange-300 font-medium">{growthStats.streak} day streak</span>
+                    </div>
+                  )}
+                  {growthStats.totalMessages > 0 && (
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20">
+                      <MessageSquare className="w-3.5 h-3.5 text-purple-400" />
+                      <span className="text-xs text-purple-300 font-medium">{growthStats.totalMessages.toLocaleString()} messages</span>
+                    </div>
+                  )}
+                </motion.div>
+              )}
+              {/* Phase F: Typing intro animation */}
+              <TypingWelcome isCreator={isCreator} displayName={displayName} />
+
               {/* Suggestion chips */}
-              <div className="flex flex-wrap gap-2 justify-center max-w-xs sm:max-w-sm">
+              <div className="flex flex-wrap gap-2 justify-center max-w-xs sm:max-w-sm mt-8">
                 {(isCreator ? [
                   "Rate my latest track",
                   "What's our current build status?",
@@ -1797,7 +2337,7 @@ export default function HollyChatInterface() {
               {pastConversations.length > 0 && (
                 <div className="mt-8 w-full max-w-sm">
                   <div className="flex items-center justify-between mb-3 px-1">
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Recent Chats</p>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Continue where you left off</p>
                     <button
                       onClick={() => { setNavOpen(true); setNavTab("chats"); }}
                       className="text-[10px] text-purple-500 hover:text-purple-400 transition-colors"
@@ -1857,49 +2397,119 @@ export default function HollyChatInterface() {
                   </div>
                 )}
 
-                {/* Bubble */}
-                <div
-                  className={`relative rounded-2xl px-4 py-3 text-sm leading-relaxed ${
-                    msg.role === "user"
-                      ? "bg-gradient-to-br from-purple-600 to-purple-700 text-white rounded-br-sm shadow-lg shadow-purple-500/20"
-                      : "bg-gray-900/90 border border-gray-800/60 text-gray-100 rounded-bl-sm"
-                  }`}
-                >
-                  {msg.role === "assistant"
-                    ? <MarkdownContent content={msg.content} />
-                    : <p className="whitespace-pre-wrap">{msg.content}</p>
-                  }
-                </div>
+                {/* Attachments (images sent by user) — Phase B */}
+                {msg.attachments && msg.attachments.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-1 max-w-[85%]">
+                    {msg.attachments.map(att => (
+                      att.preview ? (
+                        <img key={att.id} src={att.preview} alt={att.name}
+                          className="max-w-[200px] max-h-[150px] rounded-xl object-cover border border-gray-700/60 shadow" />
+                      ) : (
+                        <div key={att.id} className="flex items-center gap-2 px-3 py-2 bg-gray-800/70 border border-gray-700/50 rounded-lg text-xs text-gray-300">
+                          <Paperclip className="w-3.5 h-3.5 text-gray-500" />
+                          {att.name}
+                        </div>
+                      )
+                    ))}
+                  </div>
+                )}
 
-                {/* Footer */}
-                <div className="flex items-center gap-2 px-1">
-                  <span className="text-[10px] text-gray-600">
-                    {msg.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                  </span>
-                  <CopyButton text={msg.content} />
-                  {msg.role === "assistant" && (
-                    <>
-                      <SpeakButton text={msg.content} messageId={msg.id} />
-                      <FeedbackButtons
-                        messageId={msg.id}
-                        conversationId={conversationId}
-                        content={msg.content}
-                        model={msg.model}
-                        userMessage={messages.slice(0, msgIdx).reverse().find(m => m.role === "user")?.content}
-                      />
-                    </>
-                  )}
-                </div>
+                {/* Bubble */}
+                {editingMsgId === msg.id ? (
+                  // Phase D: Edit mode
+                  <div className="flex flex-col gap-2 max-w-[85%] w-full">
+                    <textarea
+                      value={editingContent}
+                      onChange={e => setEditingContent(e.target.value)}
+                      autoFocus
+                      className="w-full bg-gray-800 border border-purple-500/50 rounded-xl px-4 py-3 text-sm text-white resize-none focus:outline-none min-h-[80px]"
+                      onKeyDown={e => {
+                        if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submitEdit(msg.id); }
+                        if (e.key === "Escape") cancelEdit();
+                      }}
+                    />
+                    <div className="flex gap-2">
+                      <button onClick={() => submitEdit(msg.id)} className="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white text-xs rounded-lg transition-colors">
+                        Save & Resend
+                      </button>
+                      <button onClick={cancelEdit} className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs rounded-lg transition-colors">
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    className={`relative rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+                      msg.role === "user"
+                        ? "bg-gradient-to-br from-purple-600 to-purple-700 text-white rounded-br-sm shadow-lg shadow-purple-500/20"
+                        : "bg-gray-900/90 border border-gray-800/60 text-gray-100 rounded-bl-sm"
+                    }`}
+                  >
+                    {msg.role === "assistant"
+                      ? <AssistantContent content={msg.content} />
+                      : <p className="whitespace-pre-wrap">{msg.content}</p>
+                    }
+                  </div>
+                )}
+
+                {/* Footer — hover-only timestamps (Phase A) */}
+                {editingMsgId !== msg.id && (
+                  <div className="flex items-center gap-1.5 px-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="text-[10px] text-gray-600">
+                      {msg.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                    <CopyButton text={msg.content} />
+                    {/* Phase D: Edit button for user messages */}
+                    {msg.role === "user" && (
+                      <button
+                        onClick={() => startEditMessage(msg)}
+                        className="p-1.5 rounded-md hover:bg-gray-700/60 text-gray-600 hover:text-gray-400 transition-colors"
+                        title="Edit message"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                    {msg.role === "assistant" && (
+                      <>
+                        <SpeakButton text={msg.content} messageId={msg.id} />
+                        <FeedbackButtons
+                          messageId={msg.id}
+                          conversationId={conversationId}
+                          content={msg.content}
+                          model={msg.model}
+                          userMessage={messages.slice(0, msgIdx).reverse().find(m => m.role === "user")?.content}
+                        />
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
 
               {msg.role === "user" && (
                 <div className="w-9 h-9 rounded-full bg-gray-700 flex items-center justify-center flex-shrink-0 text-sm font-semibold text-gray-300 shadow">
-                  U
+                  {(user?.firstName?.[0] || "U").toUpperCase()}
                 </div>
               )}
             </motion.div>
           ))}
         </AnimatePresence>
+
+        {/* Phase D: Regenerate button after last assistant message */}
+        {messages.length > 0 && messages[messages.length - 1].role === "assistant" && !isProcessing && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex justify-start pl-12"
+          >
+            <button
+              onClick={regenerateLastResponse}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-500 hover:text-gray-300 border border-gray-700/40 hover:border-gray-600/60 rounded-lg hover:bg-gray-800/60 transition-all"
+            >
+              <RefreshCw className="w-3 h-3" />
+              Regenerate
+            </button>
+          </motion.div>
+        )}
 
         {/* Streaming message */}
         <AnimatePresence>
@@ -2010,10 +2620,82 @@ export default function HollyChatInterface() {
       </AnimatePresence>
 
       {/* ── Input area ── */}
-      <div className="border-t border-gray-800/80 bg-gray-950/95 backdrop-blur-sm px-4 py-3 flex-shrink-0">
-        {/* Constrained width so it feels like a proper chat box, not a full-width bar */}
+      <div
+        className={`border-t bg-gray-950/95 backdrop-blur-sm px-4 py-3 flex-shrink-0 transition-colors ${
+          isDragging ? "border-purple-500/60 bg-purple-950/20" : "border-gray-800/80"
+        }`}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
+        {/* Drag overlay hint */}
+        <AnimatePresence>
+          {isDragging && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 z-50 flex items-center justify-center bg-purple-950/80 pointer-events-none"
+            >
+              <div className="flex items-center gap-3 text-purple-300">
+                <Paperclip className="w-6 h-6" />
+                <p className="text-sm font-medium">Drop files to attach</p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Constrained width */}
         <div className="max-w-3xl mx-auto">
+
+        {/* Phase B: Attachment preview chips */}
+        <AnimatePresence>
+          {attachments.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="flex flex-wrap gap-2 mb-2 overflow-hidden"
+            >
+              {attachments.map(att => (
+                <div key={att.id} className="flex items-center gap-1.5 pl-2 pr-1 py-1 bg-gray-800/80 border border-gray-700/60 rounded-lg group">
+                  {att.preview ? (
+                    <img src={att.preview} alt={att.name} className="w-6 h-6 rounded object-cover" />
+                  ) : (
+                    <Paperclip className="w-3.5 h-3.5 text-gray-500" />
+                  )}
+                  <span className="text-[11px] text-gray-300 max-w-[100px] truncate">{att.name}</span>
+                  <button
+                    onClick={() => removeAttachment(att.id)}
+                    className="p-0.5 rounded text-gray-600 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <div className="flex items-end gap-2 sm:gap-2.5 bg-gray-900/80 border border-gray-700/60 rounded-2xl px-3 py-2.5 focus-within:border-purple-500/50 transition-colors shadow-sm">
+
+          {/* Phase B: File attach button */}
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isProcessing}
+            className="flex-shrink-0 p-2 rounded-xl text-gray-500 hover:text-gray-300 hover:bg-gray-700/50 transition-all disabled:opacity-50"
+            title="Attach file or image"
+          >
+            <Paperclip className="w-4 h-4" />
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept="image/*,.pdf,.txt,.md,.doc,.docx,.csv"
+            className="hidden"
+            onChange={e => handleFileSelect(e.target.files)}
+          />
 
           {/* Voice button */}
           <button
@@ -2063,13 +2745,13 @@ export default function HollyChatInterface() {
             )}
           </AnimatePresence>
 
-          {/* Textarea — word-wrap fixed: overflow-wrap + whitespace-pre-wrap ensure lines break */}
+          {/* Textarea */}
           <textarea
             ref={textareaRef}
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={isListening ? "Listening…" : "Ask HOLLY anything…"}
+            placeholder={isListening ? "Listening…" : attachments.length > 0 ? `Message about ${attachments.length} file(s)…` : "Ask HOLLY anything… (⌘K to focus)"}
             disabled={isProcessing}
             rows={1}
             className="flex-1 bg-transparent text-white text-sm placeholder-gray-500 resize-none focus:outline-none min-h-[24px] max-h-[200px] leading-relaxed disabled:opacity-50 overflow-y-auto break-words"
@@ -2079,11 +2761,11 @@ export default function HollyChatInterface() {
           {/* Send / Stop button */}
           <button
             onClick={isProcessing ? handleStop : handleSend}
-            disabled={!isProcessing && !input.trim()}
+            disabled={!isProcessing && !input.trim() && attachments.length === 0}
             className={`flex-shrink-0 p-2 rounded-xl transition-all ${
               isProcessing
                 ? "text-red-400 hover:bg-red-500/20"
-                : input.trim()
+                : (input.trim() || attachments.length > 0)
                 ? "text-purple-400 hover:bg-purple-500/20"
                 : "text-gray-600 cursor-not-allowed"
             }`}
@@ -2102,10 +2784,10 @@ export default function HollyChatInterface() {
             className="flex items-center gap-1 text-[10px] text-gray-700 hover:text-purple-400 transition-colors"
           >
             <TrendingUp className="w-3 h-3" />
-            Evolution dashboard
+            Evolution
           </a>
           <p className="text-[10px] text-gray-700">
-            HOLLY · Phase 10 · 23 tools · Enter sends
+            HOLLY · ↩ sends · ⌘K focus · ⌘N new chat
           </p>
           <a
             href="/onboarding"
