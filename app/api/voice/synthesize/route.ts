@@ -44,8 +44,10 @@ function preprocessText(text: string): string {
 
   cleaned = cleaned.replace(/\s+/g, " ").trim();
 
-  if (cleaned.length > 4000) {
-    cleaned = cleaned.substring(0, 4000) + "...";
+  // Hard cap: the enhanced-voice-output client already chunks text into ~180-char pieces
+  // before calling this endpoint. If a direct call sends something huge, truncate gracefully.
+  if (cleaned.length > 8000) {
+    cleaned = cleaned.substring(0, 8000) + "...";
   }
 
   return cleaned;
