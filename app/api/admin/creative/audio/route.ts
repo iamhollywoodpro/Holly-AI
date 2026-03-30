@@ -1,7 +1,7 @@
 /**
  * HOLLY AUDIO GENERATION API - PHASE 4C
  * 
- * Generate audio using AI models (Maya1 TTS, MusicGen, Bark, Suno, etc.)
+ * Generate audio using AI models (Kokoro TTS, MusicGen, Bark, Suno, etc.)
  * Endpoints: /api/admin/creative/audio
  * 
  * Actions:
@@ -233,7 +233,7 @@ export async function POST(request: NextRequest) {
 
       // In a real implementation, you would:
       // 1. Queue the job to a background worker
-      // 2. Call the AI provider API (Maya1 TTS, MusicGen, Bark, Suno, etc.)
+      // 2. Call the AI provider API (Kokoro TTS, MusicGen, Bark, Suno, etc.)
       // 3. Update job status and create CreativeAsset when complete
       
       // For now, return the job ID for polling

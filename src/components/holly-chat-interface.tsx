@@ -222,7 +222,7 @@ function ToolCard({ execution }: { execution: ToolExecution }) {
   );
 }
 
-// ─── Speak Button (Maya1 TTS) ─────────────────────────────────────────────────
+// ─── Speak Button (Kokoro TTS) ────────────────────────────────────────────────
 
 function SpeakButton({ text, messageId }: { text: string; messageId: string }) {
   const [loading, setLoading]       = useState(false);

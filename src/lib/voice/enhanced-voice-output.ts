@@ -1,33 +1,37 @@
 /**
- * HOLLY Voice Output System — Phase 0 Rewrite
+ * HOLLY Voice Output System — Phase 1 (Kokoro Edition)
  *
- * Strategy for near-instant playback:
+ * TTS Provider Stack (all FREE, no subscriptions, no GPU credits):
  *
- *  1. INSTANT  — Browser speechSynthesis starts within ~200ms (zero latency).
- *                Plays the first sentence immediately while Maya1 warms up.
+ *  1. KOKORO-FASTAPI  — Primary. Docker-based, Apache 2.0.
+ *                       ~300ms on CPU, ~50ms on GPU. Zero cold starts.
+ *                       Self-host: docker run -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-cpu:latest
  *
- *  2. CHUNKED  — Long messages are split into sentences so Maya1 only needs to
- *                process ~15 words at a time. First Maya1 chunk arrives in ~3-5s
- *                on a warm GPU, ~10-20s on a cold one.
+ *  2. CHATTERBOX      — Fallback. MIT license. Emotion tags: [laugh] [sigh] etc.
+ *                       Deploys free on HF Spaces (T4 GPU).
  *
- *  3. SEAMLESS — If Maya1 returns audio before the browser sentence finishes,
- *                we queue it. The experience sounds continuous.
+ *  3. BROWSER TTS     — Instant bridge. Plays the first sentence while Kokoro
+ *                       processes. ~200ms. No server needed.
  *
- *  4. KEEP-ALIVE — We ping Modal every 4 minutes so it never fully cold-boots.
+ * Playback strategy:
+ *  - Text is split into ≤180-char chunks (sentences first, then commas)
+ *  - Browser speechSynthesis starts instantly on chunk 1 (~200ms)
+ *  - Kokoro/Chatterbox audio arrives ~300ms later — replaces browser audio
+ *  - Remaining chunks play sequentially, seamlessly
+ *  - NO keep-alive pings — Kokoro runs locally, always warm, zero idle cost
  *
- *  5. FULL TEXT  — No 4000-char truncation. Messages are chunked and queued,
- *                  so the complete response is always read.
- *
- * Voice-mode rules (controlled by caller):
- *  - voiceInput = true  → auto-play Maya1 (or browser fallback) immediately
+ * Voice-mode rules:
+ *  - voiceInput = true  → auto-play immediately after AI response
  *  - voiceInput = false → only play when user clicks the speaker button
  */
 
 export interface VoiceOutputOptions {
   volume?: number;
-  temperature?: number;
-  voiceDescription?: string;
-  useBrowserFallback?: boolean; // default true — instant playback while Maya1 loads
+  temperature?: number;         // unused by Kokoro, kept for API compatibility
+  voiceDescription?: string;    // used by Chatterbox for voice style
+  voice?: string;               // Kokoro voice ID override (e.g. "af_bella")
+  speed?: number;               // speech speed multiplier (default 1.0)
+  useBrowserFallback?: boolean; // default true — instant bridge while Kokoro loads
   onStart?: () => void;
   onEnd?: () => void;
   onError?: (error: Error) => void;
@@ -37,15 +41,13 @@ export interface VoiceOutputOptions {
 // ─── Text utilities ───────────────────────────────────────────────────────────
 
 /**
- * Split text into speakable sentences (≤200 chars each for fast TTS).
- * Preserves Maya1 emotion tags across sentence boundaries.
+ * Split text into speakable sentences (≤maxChars each).
+ * Preserves Kokoro/Chatterbox emotion tags across boundaries.
  */
-function splitIntoChunks(text: string, maxChars = 200): string[] {
+function splitIntoChunks(text: string, maxChars = 180): string[] {
   if (!text.trim()) return [];
 
-  // Split on sentence-ending punctuation, keeping delimiters
   const raw = text.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [text];
-
   const chunks: string[] = [];
   let current = "";
 
@@ -57,8 +59,8 @@ function splitIntoChunks(text: string, maxChars = 200): string[] {
       current = (current + " " + s).trim();
     } else {
       if (current) chunks.push(current);
-      // If a single sentence is too long, split on commas
       if (s.length > maxChars) {
+        // Single long sentence — split on commas
         const parts = s.match(new RegExp(`.{1,${maxChars}}(?:,|$)`, "g")) || [s];
         for (const p of parts) {
           if (p.trim()) chunks.push(p.trim());
@@ -74,7 +76,8 @@ function splitIntoChunks(text: string, maxChars = 200): string[] {
 }
 
 /**
- * Strip markdown and emojis for speech — keep Maya1 emotion tags intact.
+ * Strip markdown and emojis for speech.
+ * Preserves emotion tags: [laugh] [sigh] [gasp] (Chatterbox style)
  */
 function cleanForSpeech(text: string): string {
   let t = text;
@@ -84,13 +87,13 @@ function cleanForSpeech(text: string): string {
   t = t.replace(/[*_~]/g, "");
   t = t.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");
   t = t.replace(/!\[.*?\]\([^)]*\)/g, "");
-  // Remove emojis but keep Maya1 tags
+  // Remove emojis — keep square-bracket emotion tags like [laugh]
   t = t.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F9FF}\u{2600}-\u{27BF}]/gu, "");
   t = t.replace(/\s+/g, " ").trim();
   return t;
 }
 
-// ─── Browser TTS (instant fallback) ──────────────────────────────────────────
+// ─── Browser TTS (instant bridge) ────────────────────────────────────────────
 
 function speakWithBrowser(
   text: string,
@@ -105,11 +108,10 @@ function speakWithBrowser(
     window.speechSynthesis.cancel();
 
     const utt = new SpeechSynthesisUtterance(text);
-    utt.rate = 1.0;
-    utt.pitch = 1.0;
+    utt.rate   = 1.0;
+    utt.pitch  = 1.0;
     utt.volume = options.volume ?? 0.9;
 
-    // Pick a female voice if available
     const voices = window.speechSynthesis.getVoices();
     const femaleVoice =
       voices.find(v => /samantha|karen|victoria|moira|fiona|zira|susan|female/i.test(v.name)) ||
@@ -118,8 +120,8 @@ function speakWithBrowser(
     if (femaleVoice) utt.voice = femaleVoice;
 
     utt.onstart = () => options.onStart?.();
-    utt.onend  = () => { resolve(); options.onEnd?.(); };
-    utt.onerror = () => { resolve(); }; // don't reject — just move on
+    utt.onend   = () => { resolve(); options.onEnd?.(); };
+    utt.onerror = () => resolve(); // never reject — just move on
 
     window.speechSynthesis.speak(utt);
   });
@@ -132,30 +134,10 @@ class EnhancedVoiceOutput {
   private currentBlobUrl: string | null = null;
   private _isSpeaking = false;
   private _aborted = false;
-  private _keepAliveTimer: ReturnType<typeof setInterval> | null = null;
 
-  constructor() {
-    // Keep Modal warm — ping every 4 minutes so first-use is never a cold start
-    if (typeof window !== "undefined") {
-      this._startKeepAlive();
-    }
-  }
+  // No keep-alive timer needed — Kokoro runs locally, always warm.
 
-  private _startKeepAlive() {
-    // Ping once on load (after 5s so the page settles) then every 4 minutes
-    setTimeout(() => this._pingModal(), 5000);
-    this._keepAliveTimer = setInterval(() => this._pingModal(), 4 * 60 * 1000);
-  }
-
-  private async _pingModal() {
-    try {
-      await fetch("/api/voice/synthesize", { method: "GET" });
-    } catch {
-      // silence — keep-alive pings don't need to succeed
-    }
-  }
-
-  // ── Stop ────────────────────────────────────────────────────────────────────
+  // ── Stop ─────────────────────────────────────────────────────────────────────
   stop(): void {
     this._aborted = true;
     this._isSpeaking = false;
@@ -178,7 +160,7 @@ class EnhancedVoiceOutput {
 
   isSpeaking(): boolean {
     const browserSpeaking =
-      typeof window !== "undefined" && window.speechSynthesis?.speaking;
+      typeof window !== "undefined" && !!window.speechSynthesis?.speaking;
     const audioPlaying =
       !!this.currentAudio && !this.currentAudio.paused && !this.currentAudio.ended;
     return browserSpeaking || audioPlaying || this._isSpeaking;
@@ -188,7 +170,7 @@ class EnhancedVoiceOutput {
     return true;
   }
 
-  // ── Main speak ───────────────────────────────────────────────────────────────
+  // ── Main speak ────────────────────────────────────────────────────────────────
 
   async speak(text: string, options: VoiceOutputOptions = {}): Promise<void> {
     if (!text?.trim()) return;
@@ -208,66 +190,53 @@ class EnhancedVoiceOutput {
     options.onStart?.();
 
     try {
-      // ── Strategy: try Maya1 for the whole thing first (in background),
-      //    use browser TTS for first chunk to give instant feedback.
-      //    When Maya1 audio is ready, play it.
+      // ── Chunk 0: fire Kokoro in background, play browser instantly as bridge ──
+      options.onChunkStart?.(0, chunks.length);
+      const firstChunkPromise = this._fetchTTS(chunks[0], options);
 
-      // Fire Maya1 request for the FIRST chunk immediately — fastest path
-      const firstChunkPromise = this._fetchMaya1(chunks[0], options);
-
-      // Start browser TTS instantly on the first chunk as a bridge
       if (useFallback && typeof window !== "undefined" && window.speechSynthesis) {
-        const browserPromise = speakWithBrowser(chunks[0], { volume: options.volume });
+        // Browser TTS starts in ~200ms for instant audio
+        const [ttsResult] = await Promise.allSettled([firstChunkPromise]);
 
-        // Race: if Maya1 comes back before browser TTS ends, we already have audio ready
-        const [maya1Result] = await Promise.allSettled([firstChunkPromise]);
-
-        // Stop browser before playing Maya1 (avoid overlap)
+        // Stop browser before playing Kokoro (avoid overlap)
         window.speechSynthesis.cancel();
 
-        if (!this._aborted) {
-          if (maya1Result.status === "fulfilled" && maya1Result.value) {
-            await this._playBuffer(maya1Result.value, options, false);
-          }
-          // else: browser already played chunk[0], move on
+        if (!this._aborted && ttsResult.status === "fulfilled" && ttsResult.value) {
+          await this._playBuffer(ttsResult.value, options, false);
         }
+        // else: browser already covered chunk 0 — move on
       } else {
-        // No browser fallback — wait for Maya1 directly
-        const maya1Audio = await firstChunkPromise.catch(() => null);
-        if (!this._aborted && maya1Audio) {
-          await this._playBuffer(maya1Audio, options, false);
+        // No browser fallback — wait for Kokoro directly (~300ms on warm CPU)
+        const audio = await firstChunkPromise.catch(() => null);
+        if (!this._aborted && audio) {
+          await this._playBuffer(audio, options, false);
         }
       }
 
-      // ── Play remaining chunks sequentially via Maya1 (no browser for rest)
+      // ── Remaining chunks: sequential Kokoro, browser fallback on error ────────
       for (let i = 1; i < chunks.length; i++) {
         if (this._aborted) break;
-        options.onChunkStart?.(i + 1, chunks.length);
+        options.onChunkStart?.(i, chunks.length);
 
-        const audio = await this._fetchMaya1(chunks[i], options).catch(() => null);
+        const audio = await this._fetchTTS(chunks[i], options).catch(() => null);
         if (this._aborted) break;
 
         if (audio) {
           await this._playBuffer(audio, options, false);
         } else if (useFallback) {
-          // Fallback to browser for this chunk if Maya1 failed
           await speakWithBrowser(chunks[i], { volume: options.volume });
         }
       }
     } catch (err: any) {
-      if (!this._aborted) {
-        options.onError?.(err);
-      }
+      if (!this._aborted) options.onError?.(err);
     } finally {
       this._isSpeaking = false;
-      if (!this._aborted) {
-        options.onEnd?.();
-      }
+      if (!this._aborted) options.onEnd?.();
     }
   }
 
-  // ── Fetch audio from Maya1 via our API route ─────────────────────────────────
-  private async _fetchMaya1(
+  // ── Fetch audio from /api/voice/synthesize (Kokoro → Chatterbox → error) ─────
+  private async _fetchTTS(
     text: string,
     options: VoiceOutputOptions
   ): Promise<ArrayBuffer | null> {
@@ -278,9 +247,13 @@ class EnhancedVoiceOutput {
         body: JSON.stringify({
           text,
           voiceDescription: options.voiceDescription,
-          temperature: options.temperature ?? 0.4,
+          voice:            options.voice,
+          speed:            options.speed ?? 1.0,
+          temperature:      options.temperature ?? 1.0,
         }),
-        signal: AbortSignal.timeout(45000), // 45s per chunk — generous for cold start
+        // 30s is generous for Kokoro CPU (~300ms typical).
+        // If both providers fail the API returns a 503 quickly anyway.
+        signal: AbortSignal.timeout(30000),
       });
 
       if (!res.ok) return null;
@@ -288,23 +261,23 @@ class EnhancedVoiceOutput {
       const buf = await res.arrayBuffer();
       return buf.byteLength > 0 ? buf : null;
     } catch {
-      return null; // Let caller decide whether to use browser fallback
+      return null;
     }
   }
 
-  // ── Play an ArrayBuffer as audio ─────────────────────────────────────────────
+  // ── Play an ArrayBuffer as WAV audio ─────────────────────────────────────────
   private _playBuffer(
     buffer: ArrayBuffer,
     options: VoiceOutputOptions,
     fireOnStart: boolean
   ): Promise<void> {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       if (this._aborted) { resolve(); return; }
 
-      const blob    = new Blob([buffer], { type: "audio/wav" });
-      const url     = URL.createObjectURL(blob);
-      const audio   = new Audio(url);
-      audio.volume  = Math.max(0, Math.min(1, options.volume ?? 0.9));
+      const blob   = new Blob([buffer], { type: "audio/wav" });
+      const url    = URL.createObjectURL(blob);
+      const audio  = new Audio(url);
+      audio.volume = Math.max(0, Math.min(1, options.volume ?? 0.9));
 
       this.currentBlobUrl = url;
       this.currentAudio   = audio;
@@ -329,8 +302,7 @@ class EnhancedVoiceOutput {
       const p = audio.play();
       if (p !== undefined) {
         p.catch(err => {
-          // Autoplay blocked — still resolve so remaining chunks can try
-          console.warn("[HOLLY Voice] Autoplay blocked:", err.message);
+          console.warn("[HOLLY Voice] Autoplay blocked:", err?.message ?? err);
           resolve();
         });
       }
@@ -344,10 +316,11 @@ let _instance: EnhancedVoiceOutput | null = null;
 
 function getVoiceOutput(): EnhancedVoiceOutput {
   if (typeof window === "undefined") {
+    // Server-side stub — no-ops
     return {
-      speak: async () => {},
-      stop: () => {},
-      isSpeaking: () => false,
+      speak:       async () => {},
+      stop:        () => {},
+      isSpeaking:  () => false,
       isAvailable: () => false,
     } as unknown as EnhancedVoiceOutput;
   }

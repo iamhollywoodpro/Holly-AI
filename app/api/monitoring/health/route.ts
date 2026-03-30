@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
     const apiKeysStatus = {
       groq: !!process.env.GROQ_API_KEY,
       openrouter: !!process.env.OPENROUTER_API_KEY,
-      maya1_tts: !!process.env.HOLLY_MAYA1_TTS_URL,
+      kokoro_tts: !!process.env.KOKORO_TTS_URL,
       canva: !!process.env.CANVA_CLIENT_ID,
       github: !!process.env.GITHUB_TOKEN,
       clerk: !!process.env.CLERK_SECRET_KEY,
@@ -111,7 +111,7 @@ export async function POST(req: NextRequest) {
         issues: {
           critical: criticalIssues,
           warnings: [
-            !apiKeysStatus.maya1_tts && 'Maya1 TTS (HOLLY_MAYA1_TTS_URL) not configured',
+            !apiKeysStatus.kokoro_tts && 'Kokoro TTS (KOKORO_TTS_URL) not configured — run: cd services/kokoro-tts && docker compose up',
             !apiKeysStatus.canva && 'Canva integration not configured',
             !apiKeysStatus.github && 'GitHub integration not configured'
           ].filter(Boolean)
