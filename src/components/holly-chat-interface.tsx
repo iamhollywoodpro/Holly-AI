@@ -40,6 +40,14 @@ import { speakText, stopSpeaking, isSpeaking } from "@/lib/voice/enhanced-voice-
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+interface PastConversation {
+  id: string;
+  title: string;
+  messageCount: number;
+  lastMessagePreview?: string;
+  updatedAt: string;
+}
+
 interface Message {
   id: string;
   role: "user" | "assistant";
@@ -1134,11 +1142,16 @@ export default function HollyChatInterface() {
   const [toolExecutions, setToolExecutions] = useState<ToolExecution[]>([]);
   const [sandboxOpen, setSandboxOpen] = useState(false);
   const [showScrollBtn, setShowScrollBtn] = useState(false);
-  const [conversationId] = useState(() => `conv-${Date.now()}`);
+  const [conversationId, setConversationId] = useState(() => `conv-${Date.now()}`);
   const [initiatives, setInitiatives] = useState<InitiativeItem[]>([]);
   const [initiativeDismissed, setInitiativeDismissed] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
   const [agentOpen, setAgentOpen] = useState(false);
+  // ── Past conversations ───────────────────────────────────────────────────────
+  const [pastConversations, setPastConversations] = useState<PastConversation[]>([]);
+  const [convLoading, setConvLoading] = useState(false);
+  const [activeConvId, setActiveConvId] = useState<string | null>(null);
+  const [navTab, setNavTab] = useState<"chats" | "nav">("chats");
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -1170,6 +1183,62 @@ export default function HollyChatInterface() {
     // Load after a short delay so the chat feels ready first
     const timer = setTimeout(loadInitiatives, 3000);
     return () => clearTimeout(timer);
+  }, []);
+
+  // ── Load past conversations ────────────────────────────────────────────────
+  const loadPastConversations = useCallback(async () => {
+    setConvLoading(true);
+    try {
+      const res = await fetch("/api/conversations", { credentials: "include" });
+      if (res.ok) {
+        const data = await res.json();
+        setPastConversations(data.conversations || []);
+      }
+    } catch {
+      // silent
+    } finally {
+      setConvLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { loadPastConversations(); }, [loadPastConversations]);
+
+  // ── Load a specific past conversation ───────────────────────────────────────
+  const loadConversation = useCallback(async (conv: PastConversation) => {
+    setNavOpen(false);
+    setMessages([]);
+    setStreamingMessage("");
+    setCurrentStatus("");
+    setToolExecutions([]);
+    setActiveConvId(conv.id);
+    setConversationId(conv.id);
+    try {
+      const res = await fetch(`/api/conversations/${conv.id}/messages`, { credentials: "include" });
+      if (res.ok) {
+        const data = await res.json();
+        const loaded: Message[] = (data.messages || []).map((m: any) => ({
+          id: m.id,
+          role: m.role as "user" | "assistant",
+          content: m.content,
+          timestamp: new Date(m.createdAt || Date.now()),
+        }));
+        setMessages(loaded);
+      }
+    } catch {
+      // silent
+    }
+  }, []);
+
+  // ── Start a new conversation ─────────────────────────────────────────────────
+  const startNewConversation = useCallback(() => {
+    setMessages([]);
+    setStreamingMessage("");
+    setCurrentStatus("");
+    setToolExecutions([]);
+    setActiveConvId(null);
+    setConversationId(`conv-${Date.now()}`);
+    setNavOpen(false);
+    textareaRef.current?.focus();
   }, []);
 
   const handleInitiativeAct = useCallback((content: string) => {
@@ -1417,7 +1486,16 @@ export default function HollyChatInterface() {
           ? 'border-amber-500/30 bg-gradient-to-r from-gray-950 via-amber-950/10 to-gray-950'
           : 'border-gray-800/80 bg-gray-950/95'
       }`}>
-        <div className="flex items-center gap-3">
+        {/* LEFT: hamburger + avatar + name */}
+        <div className="flex items-center gap-2">
+          {/* Nav toggle — LEFT side */}
+          <button
+            onClick={() => { setNavOpen(v => !v); if (!navOpen) setNavTab("chats"); }}
+            className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
+            title="Conversations & navigation"
+          >
+            <Menu className="w-4 h-4" />
+          </button>
           <HollyAvatar isThinking={isProcessing} />
           <div>
             <div className="flex items-center gap-2">
@@ -1448,7 +1526,7 @@ export default function HollyChatInterface() {
           </div>
         </div>
 
-        {/* Right side controls */}
+        {/* RIGHT side controls */}
         <div className="flex items-center gap-2">
           {/* Agent Mode button */}
           <button
@@ -1458,14 +1536,6 @@ export default function HollyChatInterface() {
           >
             <Bot className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Agent</span>
-          </button>
-          {/* Nav toggle */}
-          <button
-            onClick={() => setNavOpen(v => !v)}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
-            title="Navigation"
-          >
-            <Menu className="w-4 h-4" />
           </button>
           {isProcessing && (
             <motion.button
@@ -1490,7 +1560,7 @@ export default function HollyChatInterface() {
         </div>
       </div>
 
-      {/* ── Nav slide-over ── */}
+      {/* ── Left-side slide-over (Chats + Nav) ── */}
       <AnimatePresence>
         {navOpen && (
           <>
@@ -1502,56 +1572,146 @@ export default function HollyChatInterface() {
               onClick={() => setNavOpen(false)}
               className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
             />
-            {/* Panel */}
+            {/* Panel — slides from LEFT */}
             <motion.div
-              initial={{ x: "100%" }}
+              initial={{ x: "-100%" }}
               animate={{ x: 0 }}
-              exit={{ x: "100%" }}
+              exit={{ x: "-100%" }}
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="fixed right-0 top-0 bottom-0 z-50 w-72 sm:w-64 bg-gray-900 border-l border-gray-800 flex flex-col shadow-2xl"
+              className="fixed left-0 top-0 bottom-0 z-50 w-72 bg-gray-900 border-r border-gray-800 flex flex-col shadow-2xl"
             >
-              {/* Panel header */}
-              <div className="flex items-center justify-between px-4 py-4 border-b border-gray-800">
-                <span className="text-sm font-semibold text-white">Navigate</span>
-                <button onClick={() => setNavOpen(false)} className="p-1 rounded-md text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
+              {/* Panel header with tabs */}
+              <div className="flex items-center gap-0 px-4 pt-4 pb-0 border-b border-gray-800 flex-shrink-0">
+                <div className="flex items-center gap-3 flex-1 mb-3">
+                  <HollyAvatar isThinking={false} />
+                  <div>
+                    <p className="text-sm font-semibold text-white">HOLLY</p>
+                    <p className="text-[10px] text-gray-500">AI Life Partner</p>
+                  </div>
+                </div>
+                <button onClick={() => setNavOpen(false)} className="p-1.5 rounded-md text-gray-400 hover:text-white hover:bg-gray-800 transition-colors mb-3 flex-shrink-0">
                   <X className="w-4 h-4" />
                 </button>
               </div>
-
-              {/* Nav links */}
-              <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-                {[
-                  { href: "/chat",              icon: Sparkles,   label: "Chat",            sub: "Talk to HOLLY" },
-                  { href: "/evolution",         icon: TrendingUp, label: "Evolution",       sub: "Growth & patterns" },
-                  { href: "/autonomy",          icon: Bot,        label: "Autonomy",        sub: "Self-improvement" },
-                  { href: "/settings",          icon: Settings,   label: "Settings",        sub: "Preferences" },
-                  { href: "/generate/studio",   icon: Clapperboard, label: "Generation Studio", sub: "Images, Videos, Music Videos" },
-                  { href: "/settings/api-keys", icon: Key,        label: "API Keys",        sub: "Phase 7 — developer access" },
-                  { href: "/onboarding",        icon: BarChart3,  label: "Partner Setup",   sub: "Dev / Life / Creative" },
-                ].map(({ href, icon: Icon, label, sub }) => (
-                  <Link
-                    key={href}
-                    href={href}
-                    onClick={() => setNavOpen(false)}
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-300 hover:text-white hover:bg-gray-800 transition-colors group"
-                  >
-                    <div className="w-8 h-8 rounded-md bg-gray-800 group-hover:bg-purple-500/20 flex items-center justify-center flex-shrink-0 transition-colors">
-                      <Icon className="w-4 h-4 text-gray-400 group-hover:text-purple-400" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium leading-none mb-0.5">{label}</p>
-                      <p className="text-xs text-gray-500 truncate">{sub}</p>
-                    </div>
-                  </Link>
-                ))}
-              </nav>
-
-              {/* Bottom: feedback stats teaser */}
-              <div className="px-4 py-4 border-t border-gray-800">
-                <p className="text-xs text-gray-600 text-center">
-                  Rate responses with 👍/👎 to train HOLLY
-                </p>
+              {/* Tab row */}
+              <div className="flex border-b border-gray-800 flex-shrink-0">
+                <button
+                  onClick={() => setNavTab("chats")}
+                  className={`flex-1 py-2.5 text-xs font-medium transition-colors ${
+                    navTab === "chats"
+                      ? "text-purple-400 border-b-2 border-purple-500"
+                      : "text-gray-500 hover:text-gray-300"
+                  }`}
+                >
+                  Chats
+                </button>
+                <button
+                  onClick={() => setNavTab("nav")}
+                  className={`flex-1 py-2.5 text-xs font-medium transition-colors ${
+                    navTab === "nav"
+                      ? "text-purple-400 border-b-2 border-purple-500"
+                      : "text-gray-500 hover:text-gray-300"
+                  }`}
+                >
+                  Navigate
+                </button>
               </div>
+
+              {/* ── Chats tab ── */}
+              {navTab === "chats" && (
+                <div className="flex flex-col flex-1 overflow-hidden">
+                  {/* New chat button */}
+                  <div className="px-3 pt-3 pb-2 flex-shrink-0">
+                    <button
+                      onClick={startNewConversation}
+                      className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium transition-colors"
+                    >
+                      <span className="text-lg leading-none">+</span>
+                      New Chat
+                    </button>
+                  </div>
+
+                  {/* Conversations list */}
+                  <div className="flex-1 overflow-y-auto px-2 pb-4">
+                    {convLoading ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="w-4 h-4 animate-spin text-gray-600" />
+                      </div>
+                    ) : pastConversations.length === 0 ? (
+                      <div className="text-center py-8 px-4">
+                        <p className="text-xs text-gray-600">No conversations yet.</p>
+                        <p className="text-xs text-gray-700 mt-1">Start chatting and your history will appear here.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-0.5 mt-1">
+                        {pastConversations.map(conv => (
+                          <button
+                            key={conv.id}
+                            onClick={() => loadConversation(conv)}
+                            className={`w-full text-left px-3 py-2.5 rounded-lg transition-colors group ${
+                              activeConvId === conv.id
+                                ? "bg-purple-600/20 border border-purple-500/30"
+                                : "hover:bg-gray-800/80 border border-transparent"
+                            }`}
+                          >
+                            <p className={`text-xs font-medium truncate leading-snug ${
+                              activeConvId === conv.id ? "text-purple-300" : "text-gray-200 group-hover:text-white"
+                            }`}>
+                              {conv.title || "Untitled Chat"}
+                            </p>
+                            {conv.lastMessagePreview && (
+                              <p className="text-[10px] text-gray-600 truncate mt-0.5 leading-snug">
+                                {conv.lastMessagePreview}
+                              </p>
+                            )}
+                            <p className="text-[10px] text-gray-700 mt-0.5">
+                              {new Date(conv.updatedAt).toLocaleDateString([], { month: "short", day: "numeric" })}
+                              {conv.messageCount > 0 && ` · ${conv.messageCount} msgs`}
+                            </p>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* ── Navigate tab ── */}
+              {navTab === "nav" && (
+                <div className="flex flex-col flex-1 overflow-hidden">
+                  <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+                    {[
+                      { href: "/chat",              icon: Sparkles,   label: "Chats",           sub: "Talk to HOLLY" },
+                      { href: "/evolution",         icon: TrendingUp, label: "Evolution",       sub: "Growth & patterns" },
+                      { href: "/autonomy",          icon: Bot,        label: "Autonomy",        sub: "Self-improvement" },
+                      { href: "/settings",          icon: Settings,   label: "Settings",        sub: "Preferences" },
+                      { href: "/generate/studio",   icon: Clapperboard, label: "Generation Studio", sub: "Images, Videos, Music Videos" },
+                      { href: "/settings/api-keys", icon: Key,        label: "API Keys",        sub: "Phase 7 — developer access" },
+                      { href: "/onboarding",        icon: BarChart3,  label: "Partner Setup",   sub: "Dev / Life / Creative" },
+                    ].map(({ href, icon: Icon, label, sub }) => (
+                      <Link
+                        key={href}
+                        href={href}
+                        onClick={() => setNavOpen(false)}
+                        className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-300 hover:text-white hover:bg-gray-800 transition-colors group"
+                      >
+                        <div className="w-8 h-8 rounded-md bg-gray-800 group-hover:bg-purple-500/20 flex items-center justify-center flex-shrink-0 transition-colors">
+                          <Icon className="w-4 h-4 text-gray-400 group-hover:text-purple-400" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium leading-none mb-0.5">{label}</p>
+                          <p className="text-xs text-gray-500 truncate">{sub}</p>
+                        </div>
+                      </Link>
+                    ))}
+                  </nav>
+                  <div className="px-4 py-4 border-t border-gray-800 flex-shrink-0">
+                    <p className="text-xs text-gray-600 text-center">
+                      Rate responses with 👍/👎 to train HOLLY
+                    </p>
+                  </div>
+                </div>
+              )}
             </motion.div>
           </>
         )}
@@ -1632,6 +1792,44 @@ export default function HollyChatInterface() {
                 <Bot className="w-4 h-4" />
                 Try Agent Mode — give me a goal, I'll handle it
               </button>
+
+              {/* ── Recent conversations ── */}
+              {pastConversations.length > 0 && (
+                <div className="mt-8 w-full max-w-sm">
+                  <div className="flex items-center justify-between mb-3 px-1">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Recent Chats</p>
+                    <button
+                      onClick={() => { setNavOpen(true); setNavTab("chats"); }}
+                      className="text-[10px] text-purple-500 hover:text-purple-400 transition-colors"
+                    >
+                      View all
+                    </button>
+                  </div>
+                  <div className="space-y-1.5 w-full">
+                    {pastConversations.slice(0, 5).map(conv => (
+                      <button
+                        key={conv.id}
+                        onClick={() => loadConversation(conv)}
+                        className="w-full text-left px-3 py-2.5 rounded-xl bg-gray-900/80 border border-gray-800/60 hover:border-purple-500/30 hover:bg-gray-800/80 transition-all group"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="text-xs font-medium text-gray-300 group-hover:text-white truncate flex-1 leading-snug">
+                            {conv.title || "Untitled Chat"}
+                          </p>
+                          <span className="text-[10px] text-gray-600 flex-shrink-0 mt-0.5">
+                            {new Date(conv.updatedAt).toLocaleDateString([], { month: "short", day: "numeric" })}
+                          </span>
+                        </div>
+                        {conv.lastMessagePreview && (
+                          <p className="text-[10px] text-gray-600 truncate mt-0.5">
+                            {conv.lastMessagePreview}
+                          </p>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
