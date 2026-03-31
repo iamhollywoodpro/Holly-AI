@@ -222,7 +222,7 @@ function ToolCard({ execution }: { execution: ToolExecution }) {
   );
 }
 
-// ─── Speak Button (Kokoro TTS) ────────────────────────────────────────────────
+// ─── Speak Button (Browser TTS) ────────────────────────────────────────────────
 
 function SpeakButton({ text, messageId }: { text: string; messageId: string }) {
   const [loading, setLoading]       = useState(false);

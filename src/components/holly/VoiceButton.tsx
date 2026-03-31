@@ -2,7 +2,7 @@
 
 /**
  * HOLLY Voice Button Component
- * Allows text-to-speech using Kokoro TTS (self-hosted Docker, free CPU, Apache 2.0)
+ * Allows text-to-speech using browser Web Speech API (free, built-in, no server needed)
  */
 
 import { useState } from 'react';
@@ -32,7 +32,7 @@ export function VoiceButton({ text, autoPlay = false, className = '' }: VoiceBut
         audio.currentTime = 0;
       }
 
-      // Generate and play speech using Kokoro TTS (Chatterbox fallback)
+      // Generate and play speech using browser TTS (Kokoro server optional upgrade)
       setIsPlaying(true);
       await speakText(text, {
         onStart: () => setIsPlaying(true),
