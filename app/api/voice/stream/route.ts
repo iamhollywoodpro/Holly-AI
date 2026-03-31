@@ -1,19 +1,23 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { maya1Service, addEmotionsToText } from "@/lib/voice/maya1-service";
 import { logger } from "@/lib/monitoring/logger";
 
 export const runtime = "nodejs";
-export const maxDuration = 90;
+export const maxDuration = 60;
 
 /**
  * POST /api/voice/stream
- * 
- * Redirects to /api/voice/synthesize for now.
- * True streaming will be available when vLLM is deployed on Modal.
- * 
- * For the current Maya1 Modal deployment, audio is returned as a single WAV file.
- * The client (enhanced-voice-output.ts) streams it via HTML Audio natively.
+ *
+ * Thin proxy → /api/voice/synthesize (Kokoro TTS or Chatterbox fallback).
+ *
+ * The client (enhanced-voice-output.ts) already chunks text to ~180 chars and
+ * calls /api/voice/synthesize directly for each chunk. This endpoint exists as
+ * a compatibility shim for any legacy callers and for optional emotion-tagging.
+ *
+ * Provider chain (all FREE, handled in /api/voice/synthesize):
+ *   1. Kokoro-FastAPI  — Apache 2.0, self-hosted Docker, ~300ms CPU / ~50ms GPU
+ *   2. Chatterbox Turbo — MIT, HF Spaces free T4 GPU, emotion tags
+ *   3. Browser TTS     — handled client-side as instant fallback
  */
 export async function POST(req: NextRequest) {
   try {
@@ -23,20 +27,15 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { text, voiceDescription, addEmotions, emotionContext } = body;
+    const { text, voiceDescription, voice, speed } = body;
 
     if (!text) {
       return new Response("Text is required", { status: 400 });
     }
 
-    // Add emotions if requested
-    const processedText = addEmotions && emotionContext
-      ? addEmotionsToText(text, emotionContext)
-      : text;
-
     logger.info("Voice stream requested (forwarding to synthesize)", {
       userId,
-      textLength: processedText.length,
+      textLength: text.length,
       category: "voice",
     });
 
@@ -46,12 +45,13 @@ export async function POST(req: NextRequest) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        // Forward auth headers
         cookie: req.headers.get("cookie") || "",
       },
       body: JSON.stringify({
-        text: processedText,
+        text,
         voiceDescription,
+        voice,
+        speed,
       }),
     });
 

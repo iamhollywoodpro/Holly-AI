@@ -290,3 +290,15 @@ code {
 .animate-float {
   animation: float 3s ease-in-out infinite;
 }
+
+@keyframes progress-fill {
+  0%   { width: 0%; }
+  40%  { width: 45%; }
+  70%  { width: 70%; }
+  90%  { width: 88%; }
+  100% { width: 95%; }
+}
+
+.animate-progress {
+  animation: progress-fill 90s ease-out forwards;
+}

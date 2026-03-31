@@ -1,12 +1,14 @@
 /**
  * Bidirectional Voice Chat Controller
- * 
+ *
  * Manages voice input/output with automatic mode detection:
  * - If user speaks → HOLLY speaks back automatically
  * - If user types → HOLLY types back (user can click speaker to hear)
+ *
+ * TTS provider: Kokoro-FastAPI (primary) → Chatterbox Turbo (fallback)
+ * Both are FREE, self-hosted, zero cold starts. No Modal GPU credits.
  */
 
-import { maya1Service } from "./maya1-service";
 import { logger } from "../monitoring/logger";
 
 export type InputMode = "voice" | "text";
@@ -103,10 +105,10 @@ export class BidirectionalController {
         return this.audioCache.get(cacheKey)!;
       }
 
-      // Add emotions if requested
+      // Build emotion-enhanced text if requested
       let processedContent = content;
       if (options?.addEmotions && options?.emotionContext) {
-        processedContent = maya1Service.addEmotions(content, options.emotionContext);
+        processedContent = this._addEmotionTags(content, options.emotionContext);
       }
 
       logger.info("Generating voice response", {
@@ -116,10 +118,23 @@ export class BidirectionalController {
         category: "voice",
       });
 
-      // Synthesize speech
-      const audioBlob = await maya1Service.synthesize(processedContent, {
-        description: options?.voiceDescription,
+      // Call the unified TTS endpoint (Kokoro → Chatterbox fallback)
+      const response = await fetch("/api/voice/synthesize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text: processedContent,
+          voiceDescription: options?.voiceDescription,
+        }),
+        signal: AbortSignal.timeout(30_000),
       });
+
+      if (!response.ok) {
+        throw new Error(`TTS synthesis failed: HTTP ${response.status}`);
+      }
+
+      const arrayBuffer = await response.arrayBuffer();
+      const audioBlob = new Blob([arrayBuffer], { type: "audio/wav" });
 
       // Convert blob to URL
       const audioUrl = URL.createObjectURL(audioBlob);
@@ -168,10 +183,10 @@ export class BidirectionalController {
     }
   ): AsyncGenerator<Uint8Array, void, unknown> {
     try {
-      // Add emotions if requested
+      // Build emotion-enhanced text for streaming
       let processedContent = content;
       if (options?.addEmotions && options?.emotionContext) {
-        processedContent = maya1Service.addEmotions(content, options.emotionContext);
+        processedContent = this._addEmotionTags(content, options.emotionContext);
       }
 
       logger.info("Starting voice response stream", {
@@ -180,11 +195,29 @@ export class BidirectionalController {
         category: "voice",
       });
 
-      // Stream synthesis
-      for await (const chunk of maya1Service.streamSynthesize(processedContent, {
-        description: options?.voiceDescription,
-      })) {
-        yield chunk;
+      // Fetch audio from unified TTS endpoint (Kokoro → Chatterbox)
+      const response = await fetch("/api/voice/synthesize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text: processedContent,
+          voiceDescription: options?.voiceDescription,
+        }),
+        signal: AbortSignal.timeout(30_000),
+      });
+
+      if (!response.ok) {
+        throw new Error(`TTS synthesis failed: HTTP ${response.status}`);
+      }
+
+      // Stream the response body in chunks
+      const reader = response.body?.getReader();
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          if (value) yield value;
+        }
       }
 
       logger.info("Voice response stream completed", {
@@ -200,6 +233,20 @@ export class BidirectionalController {
 
       throw error;
     }
+  }
+
+  /**
+   * Add simple Chatterbox-compatible emotion tags to text based on context.
+   * Tags: [laugh] [chuckle] [sigh] [gasp] [cough] [clears throat]
+   */
+  private _addEmotionTags(
+    content: string,
+    context: { isJoke?: boolean; isExcited?: boolean; isSad?: boolean }
+  ): string {
+    if (context.isJoke) return `[chuckle] ${content}`;
+    if (context.isExcited) return `${content}`;
+    if (context.isSad) return `[sigh] ${content}`;
+    return content;
   }
 
   /**

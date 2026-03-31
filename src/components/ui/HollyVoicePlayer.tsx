@@ -1,6 +1,6 @@
 /**
  * HOLLY Voice Player Component
- * Uses Maya1 via Modal.com for high-quality, free voice generation (Apache 2.0)
+ * Uses Kokoro TTS (self-hosted Docker, Apache 2.0) for high-quality, free voice generation.
  */
 
 'use client';
@@ -50,7 +50,7 @@ export default function HollyVoicePlayer({
       .trim();
   };
 
-  // Generate and play audio using Maya1 via Modal.com
+  // Generate and play audio using Kokoro TTS (Chatterbox fallback)
   const generateAndPlay = async () => {
     if (!text || text.trim().length === 0) {
       setError('No text to speak');
@@ -63,11 +63,11 @@ export default function HollyVoicePlayer({
     try {
       // Strip emojis from text before TTS
       const cleanText = stripEmojis(text);
-      console.log('[HOLLY Voice] Generating voice with Maya1 (Modal.com GPU)...');
+      console.log('[HOLLY Voice] Generating voice with Kokoro TTS...');
       console.log('[HOLLY Voice] Original text:', text);
       console.log('[HOLLY Voice] Clean text:', cleanText);
       
-      // Generate and play voice using Maya1 via Modal.com
+      // Generate and play voice using Kokoro TTS
       await speakText(cleanText, {
         onStart: () => {
           setIsPlaying(true);

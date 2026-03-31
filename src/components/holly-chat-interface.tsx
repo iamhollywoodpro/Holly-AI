@@ -222,24 +222,40 @@ function ToolCard({ execution }: { execution: ToolExecution }) {
   );
 }
 
-// ─── Speak Button (Maya1 TTS) ─────────────────────────────────────────────────
+// ─── Speak Button (Kokoro TTS) ────────────────────────────────────────────────
 
 function SpeakButton({ text, messageId }: { text: string; messageId: string }) {
   const [loading, setLoading]       = useState(false);
   const [playing, setPlaying]       = useState(false);
   const [error, setError]           = useState<string | null>(null);
+  const [loadingDots, setLoadingDots] = useState("");
   const activeIdRef                 = useRef<string | null>(null);
   const timeoutRef                  = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dotsRef                     = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Safety: clear loading state if synthesis takes > 35s (should never happen)
+  // Animate "…" dots so user knows it's working, not frozen
+  const startDotsAnimation = () => {
+    let count = 0;
+    dotsRef.current = setInterval(() => {
+      count = (count + 1) % 4;
+      setLoadingDots(".".repeat(count));
+    }, 400);
+  };
+  const stopDotsAnimation = () => {
+    if (dotsRef.current) { clearInterval(dotsRef.current); dotsRef.current = null; }
+    setLoadingDots("");
+  };
+
+  // Safety: clear loading state if synthesis takes > 60s (cold GPU start)
   const startLoadingGuard = () => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     timeoutRef.current = setTimeout(() => {
       setLoading(false);
-      setError("Timed out — TTS service may be unavailable");
+      stopDotsAnimation();
+      setError("Voice service slow — try again");
       activeIdRef.current = null;
       setTimeout(() => setError(null), 4000);
-    }, 35000);
+    }, 60000);
   };
 
   const clearLoadingGuard = () => {
@@ -263,6 +279,7 @@ function SpeakButton({ text, messageId }: { text: string; messageId: string }) {
     if (loading) {
       stopSpeaking();
       setLoading(false);
+      stopDotsAnimation();
       activeIdRef.current = null;
       clearLoadingGuard();
       return;
@@ -272,6 +289,7 @@ function SpeakButton({ text, messageId }: { text: string; messageId: string }) {
     stopSpeaking();
     setError(null);
     setLoading(true);
+    startDotsAnimation();
     activeIdRef.current = messageId;
     startLoadingGuard();
 
@@ -280,6 +298,7 @@ function SpeakButton({ text, messageId }: { text: string; messageId: string }) {
         temperature: 0.4,
         onStart: () => {
           clearLoadingGuard();
+          stopDotsAnimation();
           setLoading(false);
           setPlaying(true);
         },
@@ -289,6 +308,7 @@ function SpeakButton({ text, messageId }: { text: string; messageId: string }) {
         },
         onError: (err) => {
           clearLoadingGuard();
+          stopDotsAnimation();
           setLoading(false);
           setPlaying(false);
           // Show a short user-friendly error message
@@ -304,6 +324,7 @@ function SpeakButton({ text, messageId }: { text: string; messageId: string }) {
       });
     } catch (err: any) {
       clearLoadingGuard();
+      stopDotsAnimation();
       setLoading(false);
       setPlaying(false);
       const msg = err?.message?.includes("503") || err?.message?.includes("No TTS provider")
@@ -330,7 +351,7 @@ function SpeakButton({ text, messageId }: { text: string; messageId: string }) {
       }`}
       title={
         playing ? "Stop speaking"
-        : loading ? "Loading… click to cancel"
+        : loading ? `Warming up voice${loadingDots} (click to cancel)`
         : error   ? error
         : "Hear HOLLY speak"
       }
@@ -1329,6 +1350,8 @@ export default function HollyChatInterface() {
   // ── Phase E: Dark/Light mode + TTS auto-read ────────────────────────────────
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [autoRead, setAutoRead] = useState(false);
+  // ── Phase 0: Voice-mode — true when the CURRENT input came from the mic ───────
+  const [isVoiceInput, setIsVoiceInput] = useState(false);
   // ── Phase F: Growth stats ───────────────────────────────────────────────────
   const [growthStats, setGrowthStats] = useState<GrowthStats | null>(null);
 
@@ -1499,14 +1522,35 @@ export default function HollyChatInterface() {
   const loadMemories = useCallback(async () => {
     setMemLoading(true);
     try {
-      const res = await fetch("/api/memory?action=list", { credentials: "include" });
+      const res = await fetch("/api/memory", { credentials: "include" });
       if (res.ok) {
         const data = await res.json();
-        const mems: MemoryItem[] = (data.memories || data.keys || []).map((k: any) =>
-          typeof k === "string"
-            ? { key: k, value: "" }
-            : { key: k.key || k.id, value: k.value || k.content || "", updatedAt: k.updatedAt }
-        );
+        // Memory API returns experiences, goals, tasteSignals — map them to MemoryItem format
+        const mems: MemoryItem[] = [];
+
+        // HOLLY's experiences (consciousness stream)
+        (data.experiences || []).slice(0, 10).forEach((e: any) => {
+          mems.push({ key: `experience: ${(e.type || "event").replace(/_/g, " ")}`, value: e.content || e.summary || "", updatedAt: e.timestamp || e.createdAt });
+        });
+
+        // Active goals
+        (data.goals || []).filter((g: any) => g.status === "active").slice(0, 5).forEach((g: any) => {
+          mems.push({ key: `goal: ${g.title || ""}`, value: g.description || "", updatedAt: g.createdAt });
+        });
+
+        // Taste signals (learning)
+        (data.tasteSignals || []).slice(0, 10).forEach((t: any) => {
+          mems.push({ key: `learned: ${t.category || "preference"}`, value: t.signal || t.content || "", updatedAt: t.createdAt });
+        });
+
+        // Taste profile fields
+        if (data.tasteProfile) {
+          const tp = data.tasteProfile;
+          if (tp.preferredTone)   mems.push({ key: "preference: tone",      value: tp.preferredTone });
+          if (tp.verbosityLevel)  mems.push({ key: "preference: verbosity", value: String(tp.verbosityLevel) });
+          if (tp.humorLevel)      mems.push({ key: "preference: humor",     value: String(tp.humorLevel) });
+        }
+
         setMemories(mems);
         setMemCount(mems.length);
       }
@@ -1600,6 +1644,11 @@ export default function HollyChatInterface() {
     loadGrowth();
   }, [memCount]);
 
+  // Load memory count on mount so badge shows up immediately
+  useEffect(() => {
+    loadMemories();
+  }, [loadMemories]);
+
   // ── Global keyboard shortcuts (Cmd+K = focus, Cmd+N = new chat, Cmd+/ = nav) ─
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -1640,6 +1689,7 @@ export default function HollyChatInterface() {
   // ── Voice ──────────────────────────────────────────────────────────────────
   const handleTranscript = useCallback((text: string) => {
     setInput(prev => prev ? `${prev} ${text}` : text);
+    setIsVoiceInput(true);  // Mark that current message came from voice
     textareaRef.current?.focus();
   }, []);
 
@@ -1706,8 +1756,10 @@ export default function HollyChatInterface() {
 
     const messageText = input.trim();
     const sentAttachments = [...attachments];
+    const wasVoiceInput = isVoiceInput;  // capture before reset
     setInput("");
     setAttachments([]);
+    setIsVoiceInput(false);  // reset for next message
     setIsProcessing(true);
     setStreamingMessage("");
     setCurrentStatus("");
@@ -1829,8 +1881,8 @@ export default function HollyChatInterface() {
           model: detectedModel,
         };
         setMessages(prev => [...prev, assistantMsg]);
-        // Phase E: auto-read if enabled
-        if (autoRead) {
+        // Phase 0: auto-play if voice input OR auto-read is enabled
+        if (wasVoiceInput || autoRead) {
           speakText(assistantContent, { temperature: 0.4, onStart: () => {}, onEnd: () => {}, onError: () => {} });
         }
         // Phase A: auto-generate title for new conversations (first exchange)
@@ -1851,7 +1903,7 @@ export default function HollyChatInterface() {
       setIsProcessing(false);
       abortControllerRef.current = null;
     }
-  }, [input, isProcessing, messages, conversationId, attachments, autoRead, generateTitle, loadPastConversations]);
+  }, [input, isProcessing, messages, conversationId, attachments, isVoiceInput, autoRead, generateTitle, loadPastConversations]);
 
   const handleStop = () => {
     abortControllerRef.current?.abort();
@@ -2195,7 +2247,8 @@ export default function HollyChatInterface() {
                       { href: "/autonomy",          icon: Bot,           label: "Autonomy",        sub: "Self-improvement" },
                       { href: "/memory",            icon: Brain,         label: "Memory",          sub: "What HOLLY knows" },
                       { href: "/settings",          icon: Settings,      label: "Settings",        sub: "Preferences" },
-                      { href: "/generate/studio",   icon: Clapperboard,  label: "Generation Studio", sub: "Images, Videos, Music" },
+                      { href: "/music-studio",      icon: Music,         label: "Music Studio",      sub: "AI Music Generation" },
+                      { href: "/generate/studio",   icon: Clapperboard,  label: "Generation Studio", sub: "Images, Videos" },
                       { href: "/settings/api-keys", icon: Key,           label: "API Keys",        sub: "Developer access" },
                       { href: "/onboarding",        icon: BarChart3,     label: "Partner Setup",   sub: "Dev / Life / Creative" },
                       { href: "/status",            icon: Activity,      label: "Status",          sub: "Service health" },
@@ -2706,9 +2759,11 @@ export default function HollyChatInterface() {
                 ? "bg-red-500/20 text-red-400 hover:bg-red-500/30"
                 : isTranscribing
                 ? "opacity-50 cursor-wait text-gray-500"
+                : isVoiceInput
+                ? "bg-purple-500/20 text-purple-400 hover:bg-purple-500/30"
                 : "text-gray-500 hover:text-gray-300 hover:bg-gray-700/50"
             }`}
-            title={isListening ? "Stop recording" : "Voice input"}
+            title={isListening ? "Stop recording" : isVoiceInput ? "Voice mode active — HOLLY will speak back" : "Voice input"}
           >
             <AnimatePresence mode="wait">
               {isTranscribing ? (
@@ -2749,9 +2804,9 @@ export default function HollyChatInterface() {
           <textarea
             ref={textareaRef}
             value={input}
-            onChange={e => setInput(e.target.value)}
+            onChange={e => { setInput(e.target.value); setIsVoiceInput(false); }}
             onKeyDown={handleKeyDown}
-            placeholder={isListening ? "Listening…" : attachments.length > 0 ? `Message about ${attachments.length} file(s)…` : "Ask HOLLY anything… (⌘K to focus)"}
+            placeholder={isListening ? "Listening…" : isVoiceInput ? "Voice message ready — press Enter to send (HOLLY will speak back)" : attachments.length > 0 ? `Message about ${attachments.length} file(s)…` : "Ask HOLLY anything… (⌘K to focus)"}
             disabled={isProcessing}
             rows={1}
             className="flex-1 bg-transparent text-white text-sm placeholder-gray-500 resize-none focus:outline-none min-h-[24px] max-h-[200px] leading-relaxed disabled:opacity-50 overflow-y-auto break-words"

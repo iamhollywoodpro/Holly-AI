@@ -1,0 +1,47 @@
+###############################################################################
+# HOLLY Kokoro TTS — Docker Compose
+#
+# Kokoro-FastAPI: Free, Apache 2.0, OpenAI-compatible TTS endpoint
+# GitHub: https://github.com/remsky/Kokoro-FastAPI
+#
+# USAGE:
+#   CPU (any machine, no GPU needed):
+#     docker compose -f docker-compose.yml up
+#
+#   GPU (NVIDIA, much faster ~50ms vs ~300ms):
+#     docker compose -f docker-compose.gpu.yml up
+#
+# After starting, set in your .env.local:
+#   KOKORO_TTS_URL=http://localhost:8880
+#   KOKORO_VOICE=af_heart
+###############################################################################
+
+services:
+  kokoro-tts:
+    image: ghcr.io/remsky/kokoro-fastapi-cpu:latest
+    container_name: holly-kokoro-tts
+    ports:
+      - "8880:8880"
+    environment:
+      # Log level: DEBUG, INFO, WARNING, ERROR
+      - API_LOG_LEVEL=WARNING
+      # Default voice (can be overridden per-request)
+      - DEFAULT_VOICE=af_heart
+      # Chunking settings — optimised for sentence-level TTS
+      - TARGET_MIN_TOKENS=100
+      - TARGET_MAX_TOKENS=200
+      - ABSOLUTE_MAX_TOKENS=450
+    volumes:
+      # Cache downloaded model weights between restarts
+      - kokoro-models:/app/api/src/models
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8880/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  kokoro-models:
+    name: holly-kokoro-models

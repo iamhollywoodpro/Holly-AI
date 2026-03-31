@@ -3,11 +3,11 @@ import { NextRequest, NextResponse } from "next/server";
 export const runtime = "nodejs";
 
 /**
- * /api/voice/chatterbox — DEPRECATED
- * 
- * Chatterbox TTS has been replaced by Maya1 (Modal.com GPU).
- * All voice requests are now handled by /api/voice/synthesize.
- * This route redirects for backwards compatibility.
+ * /api/voice/chatterbox — compatibility shim
+ *
+ * Chatterbox Turbo (MIT) is now the fallback provider in /api/voice/synthesize.
+ * Primary provider is Kokoro-FastAPI (Apache 2.0, self-hosted Docker).
+ * This route proxies to the unified endpoint for backwards compatibility.
  */
 export async function POST(req: NextRequest) {
   // Redirect to the unified voice synthesize endpoint
@@ -16,11 +16,14 @@ export async function POST(req: NextRequest) {
 
 export async function GET() {
   return NextResponse.json({
-    deprecated: true,
+    status: "active_as_fallback",
     replacement: "/api/voice/synthesize",
     message:
-      "Chatterbox TTS has been replaced by Maya1 (Modal.com GPU). " +
-      "Use POST /api/voice/synthesize instead.",
-    newVoice: "Maya1 — 20+ emotions, Apache 2.0, FREE GPU via Modal.com",
+      "Chatterbox Turbo (MIT) is now the automatic fallback in POST /api/voice/synthesize. " +
+      "Primary provider is Kokoro-FastAPI (Apache 2.0). Use /api/voice/synthesize directly.",
+    providers: {
+      primary: "Kokoro-FastAPI — Apache 2.0, self-hosted Docker, zero GPU credits",
+      fallback: "Chatterbox Turbo — MIT, HF Spaces free T4 GPU, emotion tags",
+    },
   });
 }
