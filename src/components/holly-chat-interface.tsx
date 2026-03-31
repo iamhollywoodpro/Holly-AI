@@ -44,7 +44,7 @@ import {
   Menu, Settings, BarChart3, Bot, Key, Crown, Clapperboard,
   Volume2, VolumeX, StopCircle, Paperclip, Music, Film,
   Sun, Moon, RotateCcw, Edit3, Flame, RefreshCw, MessageSquare,
-  Star, Heart, Activity, Wifi, WifiOff,
+  Star, Heart, Activity, Wifi, WifiOff, CheckCircle, AlertCircle,
 } from "lucide-react";
 import Link from "next/link";
 import SandboxWindow from "@/components/sandbox-window";
@@ -94,6 +94,9 @@ interface UploadedFile {
   url?: string;
   dataUrl?: string;
   preview?: string;
+  // Perception result — set for PDFs, docs, text files
+  perceptionResult?: { contextBlock: string; fileName: string; fileType: string; summary?: string };
+  perceptionStatus?: 'pending' | 'ready' | 'error';
 }
 
 interface MemoryItem {
@@ -1348,7 +1351,12 @@ export default function HollyChatInterface() {
   const [editingMsgId, setEditingMsgId] = useState<string | null>(null);
   const [editingContent, setEditingContent] = useState("");
   // ── Phase E: Dark/Light mode + TTS auto-read ────────────────────────────────
-  const [isDarkMode, setIsDarkMode] = useState(true);
+  // Persist to localStorage so the preference survives page refresh
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    const saved = localStorage.getItem('holly_dark_mode');
+    return saved === null ? true : saved !== 'false';
+  });
   const [autoRead, setAutoRead] = useState(false);
   // ── Phase 0: Voice-mode — true when the CURRENT input came from the mic ───────
   const [isVoiceInput, setIsVoiceInput] = useState(false);
@@ -1490,9 +1498,35 @@ export default function HollyChatInterface() {
         reader.readAsDataURL(file);
       });
       preview = dataUrl;
+      return { id, name: file.name, type: file.type, size: file.size, dataUrl, preview };
     }
 
-    return { id, name: file.name, type: file.type, size: file.size, dataUrl, preview };
+    // ── For PDFs, docs, text, code — call /api/perception ──────────────────
+    const base: UploadedFile = { id, name: file.name, type: file.type, size: file.size, perceptionStatus: 'pending' };
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch('/api/perception', { method: 'POST', body: fd, credentials: 'include' });
+      if (res.ok) {
+        const json = await res.json();
+        const p = json.perception as { contextBlock: string; summary?: string; fileType?: string };
+        if (p?.contextBlock) {
+          return {
+            ...base,
+            perceptionStatus: 'ready',
+            perceptionResult: {
+              contextBlock: p.contextBlock,
+              fileName:     file.name,
+              fileType:     p.fileType || file.type,
+              summary:      p.summary,
+            },
+          };
+        }
+      }
+    } catch {
+      // fall through to error state
+    }
+    return { ...base, perceptionStatus: 'error' };
   }, []);
 
   const handleFileSelect = useCallback(async (files: FileList | null) => {
@@ -1612,13 +1646,16 @@ export default function HollyChatInterface() {
 
   // ── Phase E: Dark/Light mode ───────────────────────────────────────────────
   useEffect(() => {
+    const root = document.documentElement;
     if (isDarkMode) {
-      document.documentElement.classList.add("dark");
-      document.documentElement.classList.remove("light-mode");
+      root.classList.add("dark");
+      root.classList.remove("light", "light-mode");
     } else {
-      document.documentElement.classList.remove("dark");
-      document.documentElement.classList.add("light-mode");
+      root.classList.remove("dark", "light-mode");
+      root.classList.add("light");
     }
+    // Persist preference
+    localStorage.setItem('holly_dark_mode', String(isDarkMode));
   }, [isDarkMode]);
 
   // ── Phase F: Load growth stats ────────────────────────────────────────────
@@ -1774,10 +1811,14 @@ export default function HollyChatInterface() {
     };
     setMessages(prev => [...prev, userMessage]);
 
-    // Build image data URLs for perception
+    // Build image data URLs + perception context for all file types
     const imageDataUrls = sentAttachments
       .filter(f => f.type.startsWith("image/") && f.dataUrl)
       .map(f => f.dataUrl as string);
+
+    const perceptionContext = sentAttachments
+      .filter(f => f.perceptionResult)
+      .map(f => f.perceptionResult!);
 
     try {
       abortControllerRef.current = new AbortController();
@@ -1789,7 +1830,8 @@ export default function HollyChatInterface() {
         body: JSON.stringify({
           messages: [...messages, userMessage].map(m => ({ role: m.role, content: m.content })),
           conversationId,
-          imageDataUrls: imageDataUrls.length > 0 ? imageDataUrls : undefined,
+          imageDataUrls:    imageDataUrls.length > 0    ? imageDataUrls    : undefined,
+          perceptionContext: perceptionContext.length > 0 ? perceptionContext : undefined,
         }),
         signal: abortControllerRef.current.signal,
       });
@@ -2711,13 +2753,27 @@ export default function HollyChatInterface() {
               className="flex flex-wrap gap-2 mb-2 overflow-hidden"
             >
               {attachments.map(att => (
-                <div key={att.id} className="flex items-center gap-1.5 pl-2 pr-1 py-1 bg-gray-800/80 border border-gray-700/60 rounded-lg group">
+                <div key={att.id} className={`flex items-center gap-1.5 pl-2 pr-1 py-1 rounded-lg group border transition-colors ${
+                  att.perceptionStatus === 'ready'   ? 'bg-purple-900/30 border-purple-500/40' :
+                  att.perceptionStatus === 'pending' ? 'bg-gray-800/80 border-yellow-500/30 animate-pulse' :
+                  att.perceptionStatus === 'error'   ? 'bg-gray-800/80 border-red-500/30' :
+                  'bg-gray-800/80 border-gray-700/60'
+                }`}>
                   {att.preview ? (
                     <img src={att.preview} alt={att.name} className="w-6 h-6 rounded object-cover" />
+                  ) : att.perceptionStatus === 'pending' ? (
+                    <Loader2 className="w-3.5 h-3.5 text-yellow-400 animate-spin" />
+                  ) : att.perceptionStatus === 'ready' ? (
+                    <CheckCircle className="w-3.5 h-3.5 text-purple-400" />
                   ) : (
                     <Paperclip className="w-3.5 h-3.5 text-gray-500" />
                   )}
-                  <span className="text-[11px] text-gray-300 max-w-[100px] truncate">{att.name}</span>
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-[11px] text-gray-300 max-w-[120px] truncate">{att.name}</span>
+                    {att.perceptionStatus === 'pending' && <span className="text-[9px] text-yellow-400">Reading…</span>}
+                    {att.perceptionStatus === 'ready'   && <span className="text-[9px] text-purple-400">Ready</span>}
+                    {att.perceptionStatus === 'error'   && <span className="text-[9px] text-red-400">Could not read</span>}
+                  </div>
                   <button
                     onClick={() => removeAttachment(att.id)}
                     className="p-0.5 rounded text-gray-600 hover:text-red-400 hover:bg-red-500/10 transition-colors"

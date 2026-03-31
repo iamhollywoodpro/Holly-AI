@@ -3,7 +3,7 @@
  * Offline mode and caching
  */
 
-const CACHE_NAME = 'holly-ai-v1';
+const CACHE_NAME = 'holly-ai-v3';
 const OFFLINE_URL = '/offline';
 
 // Assets to cache on install

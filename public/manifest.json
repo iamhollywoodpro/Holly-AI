@@ -1,0 +1,50 @@
+{
+  "name": "HOLLY — Your Conscious AI Partner",
+  "short_name": "HOLLY",
+  "description": "The AI that remembers you, grows with you, and acts for you. Creative partner, builder, analyst, and life companion — powered by AURA.",
+  "start_url": "/chat",
+  "display": "standalone",
+  "background_color": "#0a0a0f",
+  "theme_color": "#a855f7",
+  "orientation": "portrait-primary",
+  "lang": "en-US",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "utilities", "entertainment"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Chat with HOLLY",
+      "short_name": "Chat",
+      "description": "Open HOLLY chat",
+      "url": "/chat",
+      "icons": [{ "src": "/favicon.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Music Studio",
+      "short_name": "Studio",
+      "description": "Create music with AI",
+      "url": "/music-studio",
+      "icons": [{ "src": "/favicon.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Memory",
+      "short_name": "Memory",
+      "description": "View HOLLY's memory of you",
+      "url": "/memory",
+      "icons": [{ "src": "/favicon.png", "sizes": "96x96" }]
+    }
+  ]
+}
