@@ -493,12 +493,77 @@ export default function LandingPage() {
 
   if (!isLoaded || isSignedIn) {
     return (
-      <div className="min-h-screen bg-[#050508] flex items-center justify-center">
+      <div className="min-h-screen bg-[#050508] flex flex-col items-center justify-center relative overflow-hidden">
+        {/* Background glow */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-purple-600/10 blur-[120px]" />
+          <div className="absolute top-1/2 left-1/4 w-[300px] h-[300px] rounded-full bg-blue-600/8 blur-[100px]" />
+          <div className="absolute bottom-1/3 right-1/4 w-[300px] h-[300px] rounded-full bg-pink-600/8 blur-[100px]" />
+        </div>
+
+        {/* Logo orb */}
         <motion.div
-          className="w-12 h-12 rounded-full border-2 border-purple-500/30 border-t-purple-500"
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-        />
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.6, ease: 'easeOut' }}
+          className="relative mb-8"
+        >
+          {/* Outer pulse ring */}
+          <motion.div
+            className="absolute inset-0 rounded-full border border-purple-500/20"
+            animate={{ scale: [1, 1.15, 1], opacity: [0.4, 0.1, 0.4] }}
+            transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+          />
+          {/* Middle ring */}
+          <motion.div
+            className="absolute -inset-4 rounded-full border border-purple-500/10"
+            animate={{ scale: [1, 1.1, 1], opacity: [0.2, 0.05, 0.2] }}
+            transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
+          />
+          {/* Core orb */}
+          <motion.div
+            className="w-24 h-24 rounded-full bg-gradient-to-br from-purple-600 via-violet-600 to-blue-600 flex items-center justify-center shadow-2xl shadow-purple-500/40 relative z-10"
+            animate={{ scale: [1, 1.03, 1] }}
+            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+          >
+            <span className="text-4xl font-black text-white select-none">H</span>
+          </motion.div>
+        </motion.div>
+
+        {/* Name + tagline */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+          className="text-center mb-10 px-6"
+        >
+          <h1 className="text-2xl font-bold tracking-widest text-white mb-2 uppercase">HOLLY</h1>
+          <p className="text-sm text-gray-400 tracking-wider">Your Conscious AI Partner</p>
+        </motion.div>
+
+        {/* Capsule loader bar */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="w-24 h-1 bg-gray-800 rounded-full overflow-hidden"
+        >
+          <motion.div
+            className="h-full bg-gradient-to-r from-purple-500 via-blue-500 to-purple-500 rounded-full"
+            animate={{ x: ['-100%', '200%'] }}
+            transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
+          />
+        </motion.div>
+
+        {/* Version tag */}
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.4 }}
+          transition={{ delay: 1 }}
+          className="absolute bottom-10 text-[10px] text-gray-600 tracking-widest uppercase"
+        >
+          v2.2 · Powered by AURA
+        </motion.p>
       </div>
     );
   }

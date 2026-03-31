@@ -18,9 +18,21 @@ export const metadata: Metadata = {
   title: 'HOLLY — Your Conscious AI Partner',
   description:
     'HOLLY is a self-evolving AI that remembers you, grows with you, and acts for you. Creative partner, builder, analyst, and life companion — powered by AURA.',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    title: 'HOLLY',
+    statusBarStyle: 'black-translucent',
+    // Startup images cleared — iOS generates splash from manifest background_color
+  },
   icons: {
-    icon: '/favicon.png',
-    apple: '/favicon.png',
+    icon: [
+      { url: '/favicon.png', sizes: '192x192', type: 'image/png' },
+      { url: '/favicon.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/favicon.png', sizes: '180x180', type: 'image/png' },
+    ],
   },
   openGraph: {
     title: 'HOLLY — Your Conscious AI Partner',
@@ -37,6 +49,10 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: 'cover',
+  themeColor: [
+    { media: '(prefers-color-scheme: dark)',  color: '#0a0a0f' },
+    { media: '(prefers-color-scheme: light)', color: '#a855f7' },
+  ],
 };
 
 export default function RootLayout({
