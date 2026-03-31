@@ -109,7 +109,7 @@ export function VoiceInterface() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold">🎤 Voice Interface</h2>
-          <Badge variant="outline">Groq Whisper + Browser TTS (Free)</Badge>
+          <Badge variant="outline">Groq Whisper + Kokoro TTS (Free)</Badge>
         </div>
 
         <Tabs defaultValue="speak">

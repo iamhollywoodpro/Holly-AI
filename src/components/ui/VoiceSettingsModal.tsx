@@ -1,6 +1,6 @@
 /**
  * Voice Settings Modal
- * Control HOLLY's voice output preferences (Browser TTS — free, built-in, no server needed)
+ * Control HOLLY's voice output preferences (Kokoro TTS — Oracle Cloud VM, always-on, free)
  */
 
 'use client';
@@ -55,7 +55,7 @@ export function VoiceSettingsModal({ isOpen, onClose }: VoiceSettingsModalProps)
                 </div>
                 <div>
                   <h2 className="text-xl font-bold text-white">Voice Settings</h2>
-                  <p className="text-sm text-gray-400">HOLLY's voice (free, built into your browser)</p>
+                  <p className="text-sm text-gray-400">HOLLY's Kokoro voice (Oracle Cloud, free)</p>
                 </div>
               </div>
               <motion.button
@@ -136,7 +136,7 @@ export function VoiceSettingsModal({ isOpen, onClose }: VoiceSettingsModalProps)
                     <div className="flex items-start gap-3">
                       <Sparkles className="w-5 h-5 text-purple-400 flex-shrink-0 mt-0.5" />
                       <div>
-                        <p className="text-sm font-medium text-white mb-1">Browser TTS (Free, built-in)</p>
+                        <p className="text-sm font-medium text-white mb-1">Kokoro TTS (Apache 2.0, free)</p>
                         <p className="text-xs text-gray-400">
                           Self-hosted, high-quality neural voice synthesis with HOLLY's custom voice profile.
                         </p>

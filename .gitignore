@@ -24,3 +24,5 @@ oracle-private-key.pem
 .oci/
 ORACLE KEYS/
 
+services/kokoro-tts/*.onnx
+services/kokoro-tts/*.bin
