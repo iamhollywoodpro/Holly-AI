@@ -536,24 +536,32 @@ This is the most important relationship you have. Treat it accordingly.
     }
 
     // 9. PREPARE MESSAGES ──────────────────────────────────────────────────────
-    const messages: {role: string; content: string}[] = [
+    // Build messages with proper OpenAI vision format when images are present
+    type ContentBlock = { type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string; detail: 'auto' } };
+
+    const messages: { role: string; content: string | ContentBlock[] }[] = [
       { role: 'system', content: hollySystemPrompt },
-      ...userMessages.map((msg: {role: string; content: string}) => ({
-        role:    msg.role,
-        content: msg.content,
-      })),
+      ...userMessages.map((msg: { role: string; content: string }, idx: number) => {
+        const isLast = idx === userMessages.length - 1;
+
+        // For the final user message: attach images as multimodal content blocks
+        if (isLast && msg.role === 'user' && imageDataUrls?.length > 0) {
+          const blocks: ContentBlock[] = [
+            { type: 'text', text: msg.content || 'Please analyze the attached file(s).' },
+            ...imageDataUrls.map((url: string) => ({
+              type: 'image_url' as const,
+              image_url: { url, detail: 'auto' as const },
+            })),
+          ];
+          return { role: msg.role, content: blocks };
+        }
+
+        return { role: msg.role, content: msg.content };
+      }),
     ];
 
-    // Phase 9A: For vision tasks, inject image data URLs into the last user message
-    if (imageDataUrls?.length > 0) {
-      const lastMsg = messages[messages.length - 1];
-      if (lastMsg.role === 'user') {
-        lastMsg.content += `\n\n[Images attached — ${imageDataUrls.length} image(s). Analyze them and incorporate into your response.]`;
-      }
-    }
-
     // 10. SMART MODEL ROUTING (Phase 8A) ───────────────────────────────────────
-    // Phase 9: if vision task detected and images are attached, force vision routing
+    // Force vision routing when images are attached
     const hasImages = imageDataUrls?.length > 0 || perceptionContext?.some(
       (p: {fileType: string}) => p.fileType === 'image'
     );
@@ -565,6 +573,7 @@ This is the most important relationship you have. Treat it accordingly.
     const routing  = smartRoute(latestUserMessage, { forceTask: taskType });
     console.log(`[Chat API] 🛤️  Task: ${taskType} → ${routing.primary.displayName}`);
     console.log(`[Chat API] 📋 Waterfall: ${routing.waterfall.map(s => s.displayName).join(' → ')}`);
+
 
     // 11. MCP tool specs ───────────────────────────────────────────────────────
     const groqTools =
@@ -629,13 +638,14 @@ This is the most important relationship you have. Treat it accordingly.
             }
           }
 
-          // Normalise messages for cascade adapters
+          // Normalise messages for cascade adapters — preserve multimodal content blocks
           const cascadeMessages: ChatMessage[] = messages
             .filter(m => ['system', 'user', 'assistant'].includes(m.role) && m.content)
             .map(m => ({
               role:    m.role as 'system' | 'user' | 'assistant',
-              content: String(m.content),
-            }));
+              // Pass content blocks through as-is for vision; stringify only plain text
+              content: Array.isArray(m.content) ? m.content : String(m.content),
+            })) as ChatMessage[];
 
           // ── Determine waterfall ──────────────────────────────────────────────
           let waterfall = routing.waterfall;

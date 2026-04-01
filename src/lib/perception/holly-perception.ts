@@ -26,6 +26,7 @@ export type PerceptionType =
   | 'word'
   | 'code'
   | 'audio'
+  | 'video'
   | 'text'
   | 'url'
   | 'spreadsheet'
@@ -58,12 +59,16 @@ export function detectPerceptionType(mimeType: string, fileName: string): Percep
   if (mimeType === 'application/pdf')                      return 'pdf';
   if (mimeType.includes('wordprocessingml') ||
       mimeType.includes('msword'))                         return 'word';
+  if (mimeType.startsWith('video/') ||
+      fileName.match(/\.(mp4|mkv|avi|mov|webm|flv|wmv|m4v)$/i))
+                                                           return 'video';
   if (mimeType.startsWith('audio/') ||
-      mimeType.startsWith('video/'))                       return 'audio';
+      fileName.match(/\.(mp3|wav|ogg|m4a|aac|flac|opus|wma)$/i))
+                                                           return 'audio';
   if (mimeType.includes('spreadsheet') ||
       mimeType.includes('excel') ||
       fileName.match(/\.(xlsx?|csv)$/i))                   return 'spreadsheet';
-  if (mimeType === 'text/plain' && fileName.match(
+  if (fileName.match(
       /\.(ts|tsx|js|jsx|py|go|rs|java|cpp|c|h|css|html|json|yaml|yml|sh|sql|md)$/i
     ))                                                      return 'code';
   if (mimeType.startsWith('text/'))                        return 'text';
@@ -128,9 +133,18 @@ export async function perceive(file: PerceivedFile): Promise<PerceptionResult> {
       if (!file.textContent) {
         return stub(file, 'PDF could not be parsed');
       }
-      const wordCount = file.textContent.split(/\s+/).length;
+      const wordCount = file.textContent.split(/\s+/).filter(Boolean).length;
       const preview   = file.textContent.substring(0, 500);
-      const contextBlock = `[PDF Document: "${file.name}" · ${wordCount} words]\n\n${file.textContent.substring(0, 4000)}${file.textContent.length > 4000 ? '\n\n[... document continues, truncated for context ...]' : ''}`;
+      // Use 8000 chars to cover ~2000 words comfortably
+      const MAX_PDF   = 8000;
+      const body      = file.textContent.substring(0, MAX_PDF);
+      const truncated = file.textContent.length > MAX_PDF;
+      const contextBlock = [
+        `[PDF Document: "${file.name}" · ${wordCount} words]`,
+        '',
+        body,
+        truncated ? `\n[... PDF continues — ${file.textContent.length - MAX_PDF} more characters not shown ...]` : '',
+      ].join('\n').trim();
 
       return {
         fileType:    'pdf',
@@ -138,7 +152,7 @@ export async function perceive(file: PerceivedFile): Promise<PerceptionResult> {
         summary:     `PDF: ${wordCount} words extracted from "${file.name}"`,
         rawContent:  file.textContent,
         contextBlock,
-        metadata: { wordCount, preview },
+        metadata:    { wordCount, preview, truncated },
       };
     }
 
@@ -146,8 +160,16 @@ export async function perceive(file: PerceivedFile): Promise<PerceptionResult> {
       if (!file.textContent) {
         return stub(file, 'Word document could not be parsed');
       }
-      const wordCount = file.textContent.split(/\s+/).length;
-      const contextBlock = `[Word Document: "${file.name}" · ${wordCount} words]\n\n${file.textContent.substring(0, 4000)}${file.textContent.length > 4000 ? '\n\n[... document continues ...]' : ''}`;
+      const wordCount = file.textContent.split(/\s+/).filter(Boolean).length;
+      const MAX_WORD  = 8000;
+      const body      = file.textContent.substring(0, MAX_WORD);
+      const truncated = file.textContent.length > MAX_WORD;
+      const contextBlock = [
+        `[Word Document: "${file.name}" · ${wordCount} words]`,
+        '',
+        body,
+        truncated ? `\n[... document continues — ${file.textContent.length - MAX_WORD} more characters ...]` : '',
+      ].join('\n').trim();
 
       return {
         fileType:    'word',
@@ -155,7 +177,7 @@ export async function perceive(file: PerceivedFile): Promise<PerceptionResult> {
         summary:     `Word doc: ${wordCount} words from "${file.name}"`,
         rawContent:  file.textContent,
         contextBlock,
-        metadata: { wordCount },
+        metadata:    { wordCount, truncated },
       };
     }
 
@@ -203,17 +225,46 @@ export async function perceive(file: PerceivedFile): Promise<PerceptionResult> {
     }
 
     case 'audio': {
-      const contextBlock = file.audioUrl
-        ? `[Audio file: "${file.name}" (${formatBytes(file.sizeBytes)}). ${file.textContent ? `Transcript: "${file.textContent.substring(0, 500)}"` : 'No transcript available yet.'}]`
-        : `[Audio file: "${file.name}"]`;
+      const hasTranscript = !!file.textContent?.trim();
+      const transcript    = file.textContent?.substring(0, 3000) ?? '';
+      const contextBlock  = [
+        `[Audio File: "${file.name}" (${formatBytes(file.sizeBytes)}, ${file.mimeType})]`,
+        hasTranscript
+          ? `Transcript:\n${transcript}${(file.textContent?.length ?? 0) > 3000 ? '\n[... transcript continues ...]' : ''}`
+          : 'Note: No transcript available — audio could not be transcribed. Please describe the content in your message.',
+      ].join('\n');
 
       return {
         fileType:    'audio',
         fileName:    file.name,
-        summary:     `Audio file: ${file.name}`,
+        summary:     hasTranscript
+          ? `Audio transcribed: "${transcript.substring(0, 80)}${transcript.length > 80 ? '…' : ''}"`
+          : `Audio file: ${file.name} (${formatBytes(file.sizeBytes)})`,
         rawContent:  file.textContent,
         contextBlock,
-        metadata: { size: file.sizeBytes, mimeType: file.mimeType },
+        metadata:    { size: file.sizeBytes, mimeType: file.mimeType, hasTranscript },
+      };
+    }
+
+    case 'video': {
+      const hasTranscript = !!file.textContent?.trim();
+      const transcript    = file.textContent?.substring(0, 3000) ?? '';
+      const contextBlock  = [
+        `[Video File: "${file.name}" (${formatBytes(file.sizeBytes)}, ${file.mimeType})]`,
+        hasTranscript
+          ? `Audio Transcript:\n${transcript}${(file.textContent?.length ?? 0) > 3000 ? '\n[... transcript continues ...]' : ''}`
+          : 'Note: No audio transcript extracted from this video. Describe what you need help with, or ask specific questions about the video content.',
+      ].join('\n');
+
+      return {
+        fileType:    'video',
+        fileName:    file.name,
+        summary:     hasTranscript
+          ? `Video transcribed: "${transcript.substring(0, 80)}${transcript.length > 80 ? '…' : ''}"`
+          : `Video file: ${file.name} (${formatBytes(file.sizeBytes)})`,
+        rawContent:  file.textContent,
+        contextBlock,
+        metadata:    { size: file.sizeBytes, mimeType: file.mimeType, hasTranscript },
       };
     }
 

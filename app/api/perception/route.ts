@@ -84,26 +84,36 @@ export async function POST(req: NextRequest) {
     } else if (type === 'word') {
       perceivedFile.textContent = await extractWordText(buffer);
 
-    } else if (type === 'audio') {
-      // For audio: return the raw buffer as a blob URL is not possible server-side
-      // Instead we trigger a Whisper transcription if the file is small enough
-      try {
-        const whisperFormData = new FormData();
-        whisperFormData.append('file', new Blob([buffer], { type: mimeType }), fileName);
-        whisperFormData.append('model', 'whisper-1');
+    } else if (type === 'audio' || type === 'video') {
+      // Transcribe audio/video via Groq Whisper (large-v3-turbo — fastest free option)
+      // Video files: Whisper accepts the container directly and extracts audio internally
+      // Max size for Whisper: 25 MB. For larger files we skip transcription gracefully.
+      const MAX_WHISPER = 25 * 1024 * 1024;
+      if (buffer.length <= MAX_WHISPER) {
+        try {
+          const whisperFormData = new FormData();
+          // Use 'audio/mpeg' for video containers — Groq Whisper is lenient on mime type
+          const blobMime = mimeType.startsWith('video/') ? 'audio/mpeg' : mimeType;
+          whisperFormData.append('file', new Blob([buffer], { type: blobMime }), fileName);
+          whisperFormData.append('model', 'whisper-large-v3-turbo');
 
-        const transcriptRes = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${process.env.GROQ_API_KEY}` },
-          body: whisperFormData,
-        });
+          const transcriptRes = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${process.env.GROQ_API_KEY}` },
+            body: whisperFormData,
+          });
 
-        if (transcriptRes.ok) {
-          const transcriptData = await transcriptRes.json();
-          perceivedFile.textContent = transcriptData.text ?? '';
+          if (transcriptRes.ok) {
+            const transcriptData = await transcriptRes.json();
+            perceivedFile.textContent = transcriptData.text ?? '';
+          } else {
+            console.warn('[Perception] Whisper returned', transcriptRes.status, await transcriptRes.text());
+          }
+        } catch (whisperErr) {
+          console.warn('[Perception] Whisper transcription failed:', whisperErr);
         }
-      } catch (whisperErr) {
-        console.warn('[Perception] Whisper transcription failed:', whisperErr);
+      } else {
+        console.log(`[Perception] File too large for Whisper (${Math.round(buffer.length / 1024 / 1024)}MB > 25MB) — skipping transcription`);
       }
 
     } else if (type === 'code' || type === 'text' || type === 'spreadsheet') {

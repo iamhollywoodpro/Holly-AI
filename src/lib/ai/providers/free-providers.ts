@@ -17,9 +17,14 @@ import Groq from 'groq-sdk';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+// Content block types for multimodal messages (OpenAI vision format)
+export type ContentBlock =
+  | { type: 'text';      text: string }
+  | { type: 'image_url'; image_url: { url: string; detail?: 'auto' | 'low' | 'high' } };
+
 export interface ChatMessage {
   role:    'system' | 'user' | 'assistant';
-  content: string;
+  content: string | ContentBlock[];
 }
 
 export interface StreamOptions {
