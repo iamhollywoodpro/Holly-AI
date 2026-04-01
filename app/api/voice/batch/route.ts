@@ -3,7 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { logger } from "@/lib/monitoring/logger";
 
 export const runtime = "nodejs";
-export const maxDuration = 90;
+export const maxDuration = 60; // Vercel Hobby cap — use Dokploy for unlimited
 
 /**
  * POST /api/voice/batch

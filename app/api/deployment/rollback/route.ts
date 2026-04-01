@@ -11,7 +11,7 @@ import { RollbackSystem } from '@/lib/deployment/rollback-system';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-export const maxDuration = 120;
+export const maxDuration = 60; // Vercel Hobby cap — use Dokploy for unlimited
 
 /**
  * GET: Check if rollback is needed

@@ -21,7 +21,7 @@ export const runtime = 'nodejs';
 
 
 
-export const maxDuration = 300; // 5 minutes for video generation
+export const maxDuration = 60; // Vercel Hobby cap — use Dokploy for unlimited // 5 minutes for video generation
 
 export async function GET(request: NextRequest) {
   try {

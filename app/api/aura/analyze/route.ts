@@ -9,7 +9,7 @@ import { prisma } from '@/lib/db';
 import { nanoid } from 'nanoid';
 
 export const runtime = 'nodejs';
-export const maxDuration = 300; // 5 minutes
+export const maxDuration = 60; // Vercel Hobby cap — use Dokploy for unlimited // 5 minutes
 
 interface AnalyzeRequest {
   trackTitle: string;

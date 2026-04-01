@@ -12,7 +12,7 @@ import { canvaIntegration } from "@/lib/design/canva-integration";
 import { logger } from "@/lib/monitoring/logger";
 
 export const runtime = "nodejs";
-export const maxDuration = 120;
+export const maxDuration = 60; // Vercel Hobby cap — use Dokploy for unlimited
 
 export async function POST(req: NextRequest) {
   try {

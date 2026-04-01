@@ -11,7 +11,7 @@ import { PreDeploymentValidator } from '@/lib/deployment/pre-deployment-validato
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-export const maxDuration = 120; // 2 minutes for validation
+export const maxDuration = 60; // Vercel Hobby cap — use Dokploy for unlimited // 2 minutes for validation
 
 export async function POST(request: Request) {
   try {

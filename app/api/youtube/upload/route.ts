@@ -24,7 +24,7 @@ import Groq from 'groq-sdk';
 import { getValidAccessToken, uploadVideoFromUrl } from '@/lib/music/youtube/youtube-client';
 
 export const runtime  = 'nodejs';
-export const maxDuration = 300;
+export const maxDuration = 60; // Vercel Hobby cap — use Dokploy for unlimited
 
 const groq = process.env.GROQ_API_KEY ? new Groq({ apiKey: process.env.GROQ_API_KEY }) : null;
 
