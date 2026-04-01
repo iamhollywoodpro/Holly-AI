@@ -18,7 +18,7 @@ import { canvaIntegration } from "@/lib/design/canva-integration";
 import { logger } from "@/lib/monitoring/logger";
 
 export const runtime = "nodejs";
-export const maxDuration = 120; // exports can take up to 60s
+export const maxDuration = 60; // Vercel Hobby cap — use Dokploy for unlimited // exports can take up to 60s
 
 const VALID_TYPES = [
   "instagram-post", "twitter-post", "linkedin-post",

@@ -17,7 +17,7 @@ import type { GenerateCodeInput } from '@/lib/hub/types';
 
 export const runtime    = 'nodejs';
 export const dynamic    = 'force-dynamic';
-export const maxDuration = 90;
+export const maxDuration = 60; // Vercel Hobby cap — use Dokploy for unlimited
 
 export async function POST(req: NextRequest) {
   const requestId = newRequestId();

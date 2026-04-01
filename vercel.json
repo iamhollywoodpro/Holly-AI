@@ -7,32 +7,12 @@
   },
   "crons": [
     {
-      "path": "/api/admin/architecture/generate",
-      "schedule": "0 3 * * *"
-    },
-    {
-      "path": "/api/autonomy/self-heal",
-      "schedule": "0 0 * * *"
-    },
-    {
       "path": "/api/cron/evolve",
       "schedule": "0 2 * * *"
     },
     {
-      "path": "/api/cron/identity-evolve",
-      "schedule": "0 4 * * *"
-    },
-    {
-      "path": "/api/initiative",
-      "schedule": "0 9 * * *"
-    },
-    {
       "path": "/api/background-learning",
       "schedule": "0 */2 * * *"
-    },
-    {
-      "path": "/api/background-learning",
-      "schedule": "30 */2 * * *"
     }
   ]
 }

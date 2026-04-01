@@ -19,7 +19,7 @@ import { auth } from '@clerk/nextjs/server';
 import { runARAnalysis } from '@/lib/ar/holly-ar-engine';
 
 export const runtime    = 'nodejs';
-export const maxDuration = 120; // 2 minutes — AURA + LLM pass
+export const maxDuration = 60; // Vercel Hobby cap — use Dokploy for unlimited // 2 minutes — AURA + LLM pass
 
 // ─── GET ───────────────────────────────────────────────────────────────────────
 

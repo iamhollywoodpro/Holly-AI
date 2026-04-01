@@ -9,7 +9,7 @@ import { auth } from '@clerk/nextjs/server';
 import { getAccessToken, uploadTrackFromUrl } from '@/lib/music/soundcloud/soundcloud-client';
 
 export const runtime  = 'nodejs';
-export const maxDuration = 300;
+export const maxDuration = 60; // Vercel Hobby cap — use Dokploy for unlimited
 
 export async function POST(req: NextRequest) {
   try {

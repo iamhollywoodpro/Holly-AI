@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 
 export const runtime = 'nodejs';
-export const maxDuration = 300; // 5 minutes for audio analysis
+export const maxDuration = 60; // Vercel Hobby cap — use Dokploy for unlimited // 5 minutes for audio analysis
 
 export async function POST(req: NextRequest) {
   try {

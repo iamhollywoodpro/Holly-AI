@@ -38,7 +38,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 
 export const runtime = 'nodejs';
-export const maxDuration = 300; // 5 minutes max
+export const maxDuration = 60; // Vercel Hobby cap — use Dokploy for unlimited // 5 minutes max
 
 // ── Provider Clients ──────────────────────────────────────────────────────────
 
