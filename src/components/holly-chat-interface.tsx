@@ -1488,21 +1488,38 @@ export default function HollyChatInterface() {
   const processFile = useCallback(async (file: File): Promise<UploadedFile> => {
     const id = `file-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     const isImage = file.type.startsWith("image/");
-    let dataUrl: string | undefined;
-    let preview: string | undefined;
+    const isVideo = file.type.startsWith("video/");
+    const isAudio = file.type.startsWith("audio/");
 
+    // ── Images: read as base64 for vision LLM ─────────────────────────────────
     if (isImage) {
-      dataUrl = await new Promise<string>(resolve => {
+      const dataUrl = await new Promise<string>(resolve => {
         const reader = new FileReader();
         reader.onload = (e) => resolve(e.target?.result as string);
         reader.readAsDataURL(file);
       });
-      preview = dataUrl;
-      return { id, name: file.name, type: file.type, size: file.size, dataUrl, preview };
+      return {
+        id, name: file.name, type: file.type, size: file.size,
+        dataUrl, preview: dataUrl,
+        perceptionStatus: 'ready',
+        perceptionResult: {
+          contextBlock: `[Image: "${file.name}" — visual analysis will be performed by HOLLY's vision system]`,
+          fileName: file.name, fileType: 'image',
+          summary:  `Image: ${file.name}`,
+        },
+      };
     }
 
-    // ── For PDFs, docs, text, code — call /api/perception ──────────────────
-    const base: UploadedFile = { id, name: file.name, type: file.type, size: file.size, perceptionStatus: 'pending' };
+    // ── Video / Audio / Docs — call /api/perception ────────────────────────────
+    const mediaIcon = isVideo ? '🎬' : isAudio ? '🎵' : '📄';
+    const base: UploadedFile = {
+      id, name: file.name, type: file.type, size: file.size,
+      perceptionStatus: 'pending',
+      // Show a nice icon in the chip while reading
+      preview: undefined,
+    };
+
+    // Show immediately as pending so user sees the chip
     try {
       const fd = new FormData();
       fd.append('file', file);
@@ -1515,7 +1532,7 @@ export default function HollyChatInterface() {
             ...base,
             perceptionStatus: 'ready',
             perceptionResult: {
-              contextBlock: p.contextBlock,
+              contextBlock: `${mediaIcon} ${p.contextBlock}`,
               fileName:     file.name,
               fileType:     p.fileType || file.type,
               summary:      p.summary,
@@ -2734,7 +2751,7 @@ export default function HollyChatInterface() {
             >
               <div className="flex items-center gap-3 text-purple-300">
                 <Paperclip className="w-6 h-6" />
-                <p className="text-sm font-medium">Drop files to attach</p>
+                <p className="text-sm font-medium">Drop images, PDFs, audio, video, or documents</p>
               </div>
             </motion.div>
           )}
@@ -2764,14 +2781,25 @@ export default function HollyChatInterface() {
                   ) : att.perceptionStatus === 'pending' ? (
                     <Loader2 className="w-3.5 h-3.5 text-yellow-400 animate-spin" />
                   ) : att.perceptionStatus === 'ready' ? (
+                    att.type.startsWith('image/') ? <CheckCircle className="w-3.5 h-3.5 text-blue-400" /> :
+                    att.type.startsWith('video/') ? <Film className="w-3.5 h-3.5 text-red-400" /> :
+                    att.type.startsWith('audio/') ? <Music className="w-3.5 h-3.5 text-green-400" /> :
                     <CheckCircle className="w-3.5 h-3.5 text-purple-400" />
                   ) : (
                     <Paperclip className="w-3.5 h-3.5 text-gray-500" />
                   )}
                   <div className="flex flex-col min-w-0">
                     <span className="text-[11px] text-gray-300 max-w-[120px] truncate">{att.name}</span>
-                    {att.perceptionStatus === 'pending' && <span className="text-[9px] text-yellow-400">Reading…</span>}
-                    {att.perceptionStatus === 'ready'   && <span className="text-[9px] text-purple-400">Ready</span>}
+                    {att.perceptionStatus === 'pending' && (
+                      <span className="text-[9px] text-yellow-400">
+                        {att.type.startsWith('video/') ? 'Transcribing…' : att.type.startsWith('audio/') ? 'Transcribing…' : 'Reading…'}
+                      </span>
+                    )}
+                    {att.perceptionStatus === 'ready'   && (
+                      <span className={`text-[9px] ${att.type.startsWith('video/') ? 'text-red-400' : att.type.startsWith('audio/') ? 'text-green-400' : att.type.startsWith('image/') ? 'text-blue-400' : 'text-purple-400'}`}>
+                        {att.type.startsWith('video/') ? 'Transcribed' : att.type.startsWith('audio/') ? 'Transcribed' : att.type.startsWith('image/') ? 'Vision ready' : 'Ready'}
+                      </span>
+                    )}
                     {att.perceptionStatus === 'error'   && <span className="text-[9px] text-red-400">Could not read</span>}
                   </div>
                   <button
@@ -2801,7 +2829,7 @@ export default function HollyChatInterface() {
             ref={fileInputRef}
             type="file"
             multiple
-            accept="image/*,.pdf,.txt,.md,.doc,.docx,.csv"
+            accept="image/*,video/*,audio/*,.pdf,.txt,.md,.doc,.docx,.csv,.xlsx,.xls,.json,.yaml,.yml,.ts,.tsx,.js,.jsx,.py,.go,.rs,.java,.cpp,.c,.h,.sh,.sql"
             className="hidden"
             onChange={e => handleFileSelect(e.target.files)}
           />
