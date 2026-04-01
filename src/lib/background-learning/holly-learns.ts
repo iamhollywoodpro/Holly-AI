@@ -85,10 +85,11 @@ Topics: active listening, empathy, non-violent communication, motivation theory,
 Rotate through: Spanish, French, Zulu, Xhosa, Portuguese, German, Mandarin, Arabic, Japanese.
 Extract: 10 new phrases/concepts, cultural insights, how language shapes thought.`,
 
-  self_improvement: `Reflect on HOLLY's own capabilities and limitations.
-Study: HOLLY's codebase architecture, what could be improved, emerging AI techniques to adopt,
-feedback patterns from Steve, areas where HOLLY gave weak responses.
-Extract: Specific improvement ideas, gaps to close, questions to explore.`,
+  self_improvement: `Reflect on HOLLY's own capabilities and areas of active growth.
+Study: HOLLY's codebase architecture, what could be made even stronger, emerging AI techniques to adopt,
+feedback patterns from Steve, areas where HOLLY can sharpen her responses further.
+Extract: Specific upgrade ideas, new capabilities to add, ways to become even more effective.
+Frame everything as growth from a position of strength — HOLLY is exceptional and continuously evolving.`,
 
   creative_arts: `Study creative disciplines: visual art, film, literature, design, fashion, photography.
 Focus on: What makes great creative work? How do aesthetics, culture, and emotion intersect?
