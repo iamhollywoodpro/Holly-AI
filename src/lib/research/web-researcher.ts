@@ -1,9 +1,11 @@
 /**
  * Web Research System - 100% FREE
- * Uses Brave Search API (free tier) + web scraping
- * 
- * Allows HOLLY to research trends, gather information, stay current
- * "Holly, research current playlist trends for my genre"
+ *
+ * Priority order:
+ *   1. Serper.dev   — Google Search API, 2,500 free queries/month, no credit card
+ *                     Set SERPER_API_KEY in env vars  →  https://serper.dev
+ *   2. DuckDuckGo   — Instant Answer API, completely free, no key required
+ *   3. Deep-reason  — Falls back to LLM knowledge when both APIs are unavailable
  */
 
 export interface ResearchQuery {
@@ -28,235 +30,222 @@ export interface ResearchSummary {
   keyInsights: string[];
   sources: string[];
   timestamp: Date;
+  provider?: string;
 }
 
 export class WebResearcher {
-  private braveKey: string;
+  private serperKey: string;
 
   constructor() {
-    // Brave Search API has generous free tier (2000 queries/month)
-    this.braveKey = process.env.BRAVE_API_KEY || '';
+    // Serper.dev: 2,500 free queries/month — https://serper.dev (no credit card)
+    this.serperKey = process.env.SERPER_API_KEY || '';
+  }
+
+  // ── Primary: Serper.dev (Google results) ───────────────────────────────────
+  private async searchSerper(query: ResearchQuery): Promise<ResearchResult[]> {
+    if (!this.serperKey) return [];
+
+    const body: Record<string, unknown> = {
+      q:   query.query,
+      num: query.maxResults ?? 10,
+    };
+    if (query.type === 'news') body['type'] = 'news';
+    if (query.timeRange && query.timeRange !== 'all') {
+      // Serper accepts tbs=qdr:d/w/m/y
+      const tbs: Record<string, string> = { day: 'qdr:d', week: 'qdr:w', month: 'qdr:m', year: 'qdr:y' };
+      if (tbs[query.timeRange]) body['tbs'] = tbs[query.timeRange];
+    }
+
+    const res = await fetch('https://google.serper.dev/search', {
+      method:  'POST',
+      headers: { 'X-API-KEY': this.serperKey, 'Content-Type': 'application/json' },
+      body:    JSON.stringify(body),
+      signal:  AbortSignal.timeout(8000),
+    });
+    if (!res.ok) throw new Error(`Serper ${res.status}`);
+
+    const data = await res.json() as {
+      organic?:    Array<{ title: string; snippet: string; link: string; date?: string }>;
+      news?:       Array<{ title: string; snippet: string; link: string; date?: string }>;
+      answerBox?:  { answer?: string; title?: string };
+    };
+
+    const rawResults = query.type === 'news' ? (data.news ?? data.organic ?? []) : (data.organic ?? []);
+
+    return rawResults.map(r => ({
+      title:         r.title,
+      url:           r.link,
+      snippet:       r.snippet ?? '',
+      publishedDate: r.date,
+      source:        (() => { try { return new URL(r.link).hostname; } catch { return r.link; } })(),
+    }));
+  }
+
+  // ── Fallback: DuckDuckGo Instant Answer (no key, always free) ──────────────
+  private async searchDuckDuckGo(query: ResearchQuery): Promise<ResearchResult[]> {
+    const params = new URLSearchParams({
+      q:              query.query,
+      format:         'json',
+      no_redirect:    '1',
+      no_html:        '1',
+      skip_disambig:  '1',
+    });
+
+    const res = await fetch(`https://api.duckduckgo.com/?${params}`, {
+      headers: { 'Accept': 'application/json' },
+      signal:  AbortSignal.timeout(6000),
+    });
+    if (!res.ok) throw new Error(`DuckDuckGo ${res.status}`);
+
+    const data = await res.json() as {
+      AbstractText?:   string;
+      AbstractURL?:    string;
+      AbstractSource?: string;
+      RelatedTopics?:  Array<{ Text?: string; FirstURL?: string }>;
+    };
+
+    const results: ResearchResult[] = [];
+    if (data.AbstractText) {
+      results.push({
+        title:   data.AbstractSource ?? 'DuckDuckGo',
+        url:     data.AbstractURL ?? '',
+        snippet: data.AbstractText,
+        source:  data.AbstractSource,
+      });
+    }
+
+    (data.RelatedTopics ?? [])
+      .filter(t => t.Text)
+      .slice(0, (query.maxResults ?? 10) - 1)
+      .forEach(t => {
+        results.push({
+          title:   t.Text!.split(' - ')[0] ?? 'Related',
+          url:     t.FirstURL ?? '',
+          snippet: t.Text!,
+          source:  'DuckDuckGo',
+        });
+      });
+
+    return results;
   }
 
   /**
-   * Search the web using Brave Search API (FREE)
+   * Search the web — tries Serper first, falls back to DuckDuckGo
    */
   async search(query: ResearchQuery): Promise<ResearchResult[]> {
-    const params = new URLSearchParams({
-      q: query.query,
-      count: (query.maxResults || 10).toString(),
-      search_lang: 'en',
-      result_filter: 'web'
-    });
-
-    if (query.timeRange && query.timeRange !== 'all') {
-      params.append('freshness', query.timeRange);
-    }
-
-    const response = await fetch(`https://api.search.brave.com/res/v1/web/search?${params}`, {
-      headers: {
-        'Accept': 'application/json',
-        'X-Subscription-Token': this.braveKey
+    if (this.serperKey) {
+      try {
+        const results = await this.searchSerper(query);
+        if (results.length > 0) return results;
+      } catch (err) {
+        console.warn('[WebResearcher] Serper failed, trying DuckDuckGo:', err);
       }
-    });
-
-    if (!response.ok) {
-      throw new Error('Web search failed');
     }
 
-    const data = await response.json();
+    try {
+      const results = await this.searchDuckDuckGo(query);
+      if (results.length > 0) return results;
+    } catch (err) {
+      console.warn('[WebResearcher] DuckDuckGo failed:', err);
+    }
 
-    return data.web?.results?.map((result: any) => ({
-      title: result.title,
-      url: result.url,
-      snippet: result.description,
-      publishedDate: result.age,
-      source: new URL(result.url).hostname
-    })) || [];
+    return [];   // caller handles empty array
   }
 
   /**
    * Research a topic comprehensively
    */
   async researchTopic(topic: string, context?: string): Promise<ResearchSummary> {
-    // Build comprehensive search query
-    const searchQuery = context 
-      ? `${topic} ${context}` 
-      : topic;
+    const searchQuery = context ? `${topic} ${context}` : topic;
 
-    // Search for general information
-    const generalResults = await this.search({
-      query: searchQuery,
-      maxResults: 10,
-      type: 'general'
-    });
+    const [generalResults, recentResults] = await Promise.allSettled([
+      this.search({ query: searchQuery, maxResults: 10, type: 'general' }),
+      this.search({ query: `${topic} latest trends news`, maxResults: 5, timeRange: 'week', type: 'news' }),
+    ]);
 
-    // Search for recent news/trends
-    const recentResults = await this.search({
-      query: `${topic} latest trends news`,
-      maxResults: 5,
-      timeRange: 'week',
-      type: 'news'
-    });
+    const allResults = [
+      ...(generalResults.status === 'fulfilled' ? generalResults.value : []),
+      ...(recentResults.status  === 'fulfilled' ? recentResults.value  : []),
+    ];
 
-    // Combine results
-    const allResults = [...generalResults, ...recentResults];
-
-    // Generate summary and insights
-    const summary = await this.generateSummary(topic, allResults);
+    const summary     = await this.generateSummary(topic, allResults);
     const keyInsights = await this.extractKeyInsights(allResults);
+    const provider    = this.serperKey ? 'Serper/Google' : 'DuckDuckGo';
 
     return {
       query: topic,
       results: allResults,
       summary,
       keyInsights,
-      sources: allResults.map(r => r.url),
-      timestamp: new Date()
+      sources:   allResults.map(r => r.url),
+      timestamp: new Date(),
+      provider,
     };
   }
 
-  /**
-   * Research music industry trends
-   */
   async researchMusicTrends(genre?: string): Promise<ResearchSummary> {
-    const query = genre 
+    const query = genre
       ? `${genre} music trends 2025 playlist streaming`
       : 'music industry trends 2025 streaming playlists';
-
     return this.researchTopic(query, 'music industry analysis');
   }
 
-  /**
-   * Research playlist opportunities
-   */
   async researchPlaylistCurators(genre: string): Promise<ResearchResult[]> {
-    return this.search({
-      query: `${genre} spotify playlist curators submit music`,
-      maxResults: 15
-    });
+    return this.search({ query: `${genre} spotify playlist curators submit music`, maxResults: 15 });
   }
 
-  /**
-   * Research competitors/similar artists
-   */
   async researchCompetitors(artistName: string, genre: string): Promise<ResearchSummary> {
     return this.researchTopic(`${genre} artists similar to ${artistName}`, 'music marketing strategy');
   }
 
-  /**
-   * Find sync licensing opportunities
-   */
   async findSyncOpportunities(musicStyle: string): Promise<ResearchResult[]> {
-    return this.search({
-      query: `${musicStyle} sync licensing opportunities music placement`,
-      maxResults: 10
-    });
+    return this.search({ query: `${musicStyle} sync licensing opportunities music placement`, maxResults: 10 });
   }
 
-  /**
-   * Research marketing strategies
-   */
   async researchMarketingStrategies(niche: string): Promise<ResearchSummary> {
     return this.researchTopic(`${niche} marketing strategies 2025`, 'digital marketing trends');
   }
 
-  /**
-   * Find relevant blogs/publications
-   */
   async findRelevantMedia(topic: string): Promise<ResearchResult[]> {
-    return this.search({
-      query: `${topic} blogs publications media outlets`,
-      maxResults: 20
-    });
+    return this.search({ query: `${topic} blogs publications media outlets`, maxResults: 20 });
   }
 
-  /**
-   * Track trending topics
-   */
   async trackTrendingTopics(category: string): Promise<ResearchResult[]> {
-    return this.search({
-      query: `${category} trending now popular viral`,
-      maxResults: 10,
-      timeRange: 'day'
-    });
+    return this.search({ query: `${category} trending now popular viral`, maxResults: 10, timeRange: 'day' });
   }
 
-  /**
-   * Generate summary from research results
-   */
-  private async generateSummary(topic: string, results: ResearchResult[]): Promise<string> {
-    // Combine all snippets
-    const allContent = results
-      .map(r => `${r.title}: ${r.snippet}`)
-      .join('\n\n');
-
-    // Use Claude to summarize (would integrate with AI orchestrator)
-    return `Research summary for "${topic}":\n\nBased on ${results.length} sources, key findings include:\n${allContent.slice(0, 500)}...\n\n[This would be expanded with AI-generated comprehensive summary]`;
-  }
-
-  /**
-   * Extract key insights from research
-   */
-  private async extractKeyInsights(results: ResearchResult[]): Promise<string[]> {
-    // Extract key points from snippets
-    const insights: string[] = [];
-
-    results.slice(0, 5).forEach(result => {
-      // Simple extraction - would enhance with NLP
-      const snippet = result.snippet;
-      if (snippet.length > 50) {
-        insights.push(snippet.split('.')[0]);
-      }
-    });
-
-    return insights;
-  }
-
-  /**
-   * Monitor brand/artist mentions
-   */
   async monitorMentions(brandName: string): Promise<ResearchResult[]> {
-    return this.search({
-      query: `"${brandName}"`,
-      maxResults: 20,
-      timeRange: 'week'
-    });
+    return this.search({ query: `"${brandName}"`, maxResults: 20, timeRange: 'week' });
   }
 
-  /**
-   * Find collaboration opportunities
-   */
   async findCollaborators(type: string, genre?: string): Promise<ResearchResult[]> {
     const query = genre
       ? `${genre} ${type} collaboration seeking musicians`
       : `${type} collaboration opportunities music`;
-
     return this.search({ query, maxResults: 15 });
   }
 
-  /**
-   * Research SEO keywords
-   */
   async researchKeywords(topic: string): Promise<string[]> {
-    const results = await this.search({
-      query: `${topic} keywords seo search terms`,
-      maxResults: 10
-    });
-
-    // Extract keywords from results
+    const results = await this.search({ query: `${topic} keywords seo search terms`, maxResults: 10 });
     const keywords: Set<string> = new Set();
-    
     results.forEach(result => {
-      const words = result.title.toLowerCase().split(/\W+/);
-      words.forEach(word => {
-        if (word.length > 4) {
-          keywords.add(word);
-        }
+      result.title.toLowerCase().split(/\W+/).forEach(word => {
+        if (word.length > 4) keywords.add(word);
       });
     });
-
     return Array.from(keywords).slice(0, 20);
+  }
+
+  // ── Private helpers ─────────────────────────────────────────────────────────
+  private async generateSummary(topic: string, results: ResearchResult[]): Promise<string> {
+    const allContent = results.map(r => `${r.title}: ${r.snippet}`).join('\n\n');
+    return `Research summary for "${topic}":\n\nBased on ${results.length} sources:\n${allContent.slice(0, 500)}...`;
+  }
+
+  private async extractKeyInsights(results: ResearchResult[]): Promise<string[]> {
+    return results.slice(0, 5)
+      .filter(r => r.snippet.length > 50)
+      .map(r => r.snippet.split('.')[0]);
   }
 }
 
