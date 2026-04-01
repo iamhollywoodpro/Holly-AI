@@ -1,0 +1,48 @@
+# ── Git ───────────────────────────────────────────────────────────────────────
+.git
+.gitignore
+.gitattributes
+
+# ── Next.js build artifacts ───────────────────────────────────────────────────
+.next
+out
+
+# ── Node modules (installed fresh inside Docker) ──────────────────────────────
+node_modules
+
+# ── Environment files (secrets never go into image) ──────────────────────────
+.env
+.env.*
+!.env.example
+
+# ── Development / editor files ───────────────────────────────────────────────
+.vscode
+.idea
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ── Testing ───────────────────────────────────────────────────────────────────
+coverage
+__tests__
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+
+# ── Docs / CI ─────────────────────────────────────────────────────────────────
+README.md
+DEPLOY.md
+CLAUDE.md
+.github
+.husky
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+*.log
+logs/
+npm-debug.log*
+
+# ── Misc ──────────────────────────────────────────────────────────────────────
+.eslintcache
+*.tgz

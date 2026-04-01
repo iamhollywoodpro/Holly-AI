@@ -2,6 +2,10 @@
 const path = require('path');
 
 const nextConfig = {
+  // ── Docker / Dokploy: standalone output bundles everything into .next/standalone
+  // Required for the production Dockerfile — do NOT remove
+  output: process.env.DOCKER_BUILD === 'true' ? 'standalone' : undefined,
+
   // Prevent single TS errors from blocking production deployments
   typescript: {
     ignoreBuildErrors: false, // Keep strict — all errors are now fixed

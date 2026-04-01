@@ -1,0 +1,149 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# HOLLY AI — Docker Compose
+#
+# Services:
+#   holly-app   — Next.js production server (port 3000)
+#   holly-cron  — Alpine cron container that fires all 7 background jobs
+#                 (replaces the vercel.json crons that Vercel Hobby silently drops)
+#
+# Usage (Dokploy):
+#   1. Create a new "Docker Compose" application in Dokploy
+#   2. Point it at this repo
+#   3. Set all env vars in Dokploy's Environment tab
+#   4. Deploy — Dokploy builds both services automatically
+#
+# Usage (local dev):
+#   docker compose up --build
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  # ── Main Next.js Application ─────────────────────────────────────────────
+  holly-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+    container_name: holly-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      # ── Core ──────────────────────────────────────────────────────────────
+      NODE_ENV:                         production
+      NEXT_PUBLIC_APP_URL:              ${NEXT_PUBLIC_APP_URL}
+      NEXT_PUBLIC_APP_NAME:             ${NEXT_PUBLIC_APP_NAME:-HOLLY}
+      INTERNAL_API_SECRET:              ${INTERNAL_API_SECRET}
+
+      # ── Database ──────────────────────────────────────────────────────────
+      DATABASE_URL:                     ${DATABASE_URL}
+
+      # ── Auth (Clerk) ──────────────────────────────────────────────────────
+      CLERK_SECRET_KEY:                 ${CLERK_SECRET_KEY}
+      CLERK_WEBHOOK_SECRET:             ${CLERK_WEBHOOK_SECRET}
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+
+      # ── LLM Providers (all free tiers) ────────────────────────────────────
+      GROQ_API_KEY:                     ${GROQ_API_KEY}
+      OPENROUTER_API_KEY:               ${OPENROUTER_API_KEY}
+      NVIDIA_API_KEY:                   ${NVIDIA_API_KEY}
+      CF_ACCOUNT_ID_CF_AI_TOKEN:        ${CF_ACCOUNT_ID_CF_AI_TOKEN}
+      HUGGINGFACE_API_KEY:              ${HUGGINGFACE_API_KEY}
+      OPENAI_API_KEY:                   ${OPENAI_API_KEY:-}
+
+      # ── Voice (Kokoro self-hosted) ─────────────────────────────────────────
+      KOKORO_TTS_URL:                   ${KOKORO_TTS_URL}
+      KOKORO_VOICE:                     ${KOKORO_VOICE:-af_heart}
+      CHATTERBOX_TTS_URL:               ${CHATTERBOX_TTS_URL:-}
+      HOLLY_TTS_API_KEY:                ${HOLLY_TTS_API_KEY:-}
+      HOLLY_VOICE_DESCRIPTION:          ${HOLLY_VOICE_DESCRIPTION:-}
+
+      # ── Music ─────────────────────────────────────────────────────────────
+      SUNO_API_KEY:                     ${SUNO_API_KEY:-}
+      SUNO_BASE_URL:                    ${SUNO_BASE_URL:-}
+
+      # ── Media Generation ──────────────────────────────────────────────────
+      FAL_KEY:                          ${FAL_KEY:-}
+      REPLICATE_API_KEY:                ${REPLICATE_API_KEY:-}
+      RUNWAY_API_KEY:                   ${RUNWAY_API_KEY:-}
+
+      # ── Storage ───────────────────────────────────────────────────────────
+      # Cloudflare R2 (free 10GB) — replaces Vercel Blob
+      R2_ACCOUNT_ID:                    ${R2_ACCOUNT_ID:-}
+      R2_ACCESS_KEY_ID:                 ${R2_ACCESS_KEY_ID:-}
+      R2_SECRET_ACCESS_KEY:             ${R2_SECRET_ACCESS_KEY:-}
+      R2_BUCKET_NAME:                   ${R2_BUCKET_NAME:-}
+      R2_PUBLIC_URL:                    ${R2_PUBLIC_URL:-}
+      # Vercel Blob (legacy — leave set if still using)
+      BLOB_READ_WRITE_TOKEN:            ${BLOB_READ_WRITE_TOKEN:-}
+
+      # ── Search ────────────────────────────────────────────────────────────
+      SERPER_API_KEY:                   ${SERPER_API_KEY:-}
+
+      # ── Social / OAuth ────────────────────────────────────────────────────
+      SPOTIFY_CLIENT_ID:                ${SPOTIFY_CLIENT_ID:-}
+      SPOTIFY_CLIENT_SECRET:            ${SPOTIFY_CLIENT_SECRET:-}
+      SPOTIFY_REDIRECT_URI:             ${SPOTIFY_REDIRECT_URI:-}
+      YOUTUBE_CLIENT_ID:                ${YOUTUBE_CLIENT_ID:-}
+      YOUTUBE_CLIENT_SECRET:            ${YOUTUBE_CLIENT_SECRET:-}
+      YOUTUBE_REDIRECT_URI:             ${YOUTUBE_REDIRECT_URI:-}
+      SOUNDCLOUD_CLIENT_ID:             ${SOUNDCLOUD_CLIENT_ID:-}
+      SOUNDCLOUD_CLIENT_SECRET:         ${SOUNDCLOUD_CLIENT_SECRET:-}
+      SOUNDCLOUD_REDIRECT_URI:          ${SOUNDCLOUD_REDIRECT_URI:-}
+      GITHUB_CLIENT_ID:                 ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET:             ${GITHUB_CLIENT_SECRET:-}
+      GITHUB_TOKEN:                     ${GITHUB_TOKEN:-}
+
+      # ── Feature Flags ─────────────────────────────────────────────────────
+      NEXT_PUBLIC_ENABLE_MUSIC_GENERATION:  ${NEXT_PUBLIC_ENABLE_MUSIC_GENERATION:-true}
+      NEXT_PUBLIC_ENABLE_LYRICS_AI:         ${NEXT_PUBLIC_ENABLE_LYRICS_AI:-true}
+      NEXT_PUBLIC_ENABLE_VIDEO_GENERATION:  ${NEXT_PUBLIC_ENABLE_VIDEO_GENERATION:-true}
+      NEXT_PUBLIC_ENABLE_ARTIST_CREATION:   ${NEXT_PUBLIC_ENABLE_ARTIST_CREATION:-true}
+      NEXT_PUBLIC_ENABLE_TRUE_STREAMING:    ${NEXT_PUBLIC_ENABLE_TRUE_STREAMING:-true}
+
+      # ── Cron auth secret (shared with holly-cron) ─────────────────────────
+      CRON_SECRET:                      ${CRON_SECRET}
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    networks:
+      - holly-network
+
+  # ── Cron Runner ──────────────────────────────────────────────────────────
+  # Replaces ALL 7 vercel.json crons — runs inside the same Docker network
+  # so it can reach holly-app directly via http://holly-app:3000
+  #
+  # Schedule  (matches original vercel.json)
+  #   0 3 * * *    → /api/admin/architecture/generate  (3 AM daily)
+  #   0 0 * * *    → /api/autonomy/self-heal            (midnight daily)
+  #   0 2 * * *    → /api/cron/evolve                   (2 AM daily)
+  #   0 4 * * *    → /api/cron/identity-evolve          (4 AM daily)
+  #   0 9 * * *    → /api/initiative                    (9 AM daily)
+  #   0 */2 * * *  → /api/background-learning           (every 2 hours)
+  #   30 */2 * * * → /api/background-learning           (every 2 hours, offset 30m)
+  holly-cron:
+    image: alpine:3.19
+    container_name: holly-cron
+    restart: unless-stopped
+    depends_on:
+      holly-app:
+        condition: service_healthy
+    environment:
+      CRON_SECRET:   ${CRON_SECRET}
+      APP_URL:       http://holly-app:3000
+    volumes:
+      - ./docker/cron/crontab:/etc/crontabs/root:ro
+      - ./docker/cron/run-cron.sh:/run-cron.sh:ro
+    command: >
+      sh -c "chmod +x /run-cron.sh && crond -f -L /dev/stdout"
+    networks:
+      - holly-network
+
+networks:
+  holly-network:
+    driver: bridge

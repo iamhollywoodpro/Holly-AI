@@ -1,0 +1,26 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# HOLLY Cron Schedule — replaces ALL 7 vercel.json crons
+# Runs inside the holly-cron Alpine container
+# All times are UTC
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Architecture generation  — 3 AM daily
+0 3 * * *    /run-cron.sh /api/admin/architecture/generate >> /proc/1/fd/1 2>&1
+
+# Self-heal               — midnight daily
+0 0 * * *    /run-cron.sh /api/autonomy/self-heal >> /proc/1/fd/1 2>&1
+
+# Evolution cycle         — 2 AM daily
+0 2 * * *    /run-cron.sh /api/cron/evolve >> /proc/1/fd/1 2>&1
+
+# Identity evolution      — 4 AM daily
+0 4 * * *    /run-cron.sh /api/cron/identity-evolve >> /proc/1/fd/1 2>&1
+
+# Initiative / proactive  — 9 AM daily
+0 9 * * *    /run-cron.sh /api/initiative >> /proc/1/fd/1 2>&1
+
+# Background learning     — every 2 hours (on the hour)
+0 */2 * * *  /run-cron.sh /api/background-learning >> /proc/1/fd/1 2>&1
+
+# Background learning     — every 2 hours (offset 30 min, staggered)
+30 */2 * * * /run-cron.sh /api/background-learning >> /proc/1/fd/1 2>&1
