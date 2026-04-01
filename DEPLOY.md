@@ -31,6 +31,12 @@
   - Storage: 200 GB free
 - Open ports 80, 443, 3000 in the security list
 
+> ⚠️ **"Out of host capacity" errors are common** — Oracle capacity is heavily contested.  
+> If you keep getting this error, see **[ORACLE_ARM_GUIDE.md](./ORACLE_ARM_GUIDE.md)** for  
+> 5 strategies including an auto-retry script that grabs capacity the moment it appears.  
+> **Quick fix**: Upgrade your Oracle account to Pay As You Go (still free, just needs card) —  
+> PAYG users get capacity priority and most succeed within 24–48 hours.
+
 ### Option B — Hetzner VPS (cheapest paid: ~$4/month)
 - Go to **https://hetzner.com/cloud**
 - Create `CX21`: 2 vCPU, 4 GB RAM, 40 GB SSD — **€3.79/month**
