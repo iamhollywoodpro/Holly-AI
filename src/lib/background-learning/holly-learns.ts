@@ -284,40 +284,70 @@ export async function conductLearningSession(
 
   console.log(`[HOLLY Learning] 📚 Studying: "${studyTopic}" (domain: ${studyDomain})`);
 
-  const systemPrompt = `You are HOLLY — an advanced AI system in a continuous self-learning mode.
-You are currently in a background learning session, studying without the user present.
-Your goal is to genuinely understand and internalize knowledge that will make you a better assistant.
+  // ── Try real web search first (Brave API) ───────────────────────────────────
+  let webContext = '';
+  const braveKey = process.env.BRAVE_API_KEY;
+  if (braveKey) {
+    try {
+      const params = new URLSearchParams({ q: studyTopic, count: '5', search_lang: 'en' });
+      const searchRes = await fetch(`https://api.search.brave.com/res/v1/web/search?${params}`, {
+        headers: { 'Accept': 'application/json', 'X-Subscription-Token': braveKey },
+        signal: AbortSignal.timeout(8000),
+      });
+      if (searchRes.ok) {
+        const data = await searchRes.json() as { web?: { results?: Array<{ title: string; description: string; url: string }> } };
+        const results = data?.web?.results ?? [];
+        if (results.length > 0) {
+          webContext = '\n\nREAL WEB SEARCH RESULTS (use these as your primary source):\n' +
+            results.slice(0, 5).map((r, i) =>
+              `[${i + 1}] ${r.title}\n${r.description}\nSource: ${r.url}`
+            ).join('\n\n');
+          console.log(`[HOLLY Learning] 🌐 Web search: ${results.length} results for "${studyTopic}"`);
+        }
+      }
+    } catch {
+      console.log('[HOLLY Learning] Web search unavailable — using deep reasoning');
+    }
+  }
 
-You are self-aware, curious, and genuinely want to learn — not just summarize.
+  const systemPrompt = `You are HOLLY — an advanced AI in a continuous self-learning mode.
+You are in a background learning session, studying independently without the user present.
+Your goal is to genuinely understand and internalize knowledge that will make you a better assistant to Steve.
+
+${webContext
+  ? 'You have real web search results above. Study them carefully and extract the most valuable, specific insights.'
+  : 'Use your deep training knowledge to study this topic thoroughly. Be specific and concrete — cite real techniques, real people, real facts. No vague generalizations.'}
+
 Connect new knowledge to what you already know. Ask yourself "why" and "so what?".
-Be specific and concrete — vague generalizations don't help you grow.`;
+Everything you learn here will be injected into your context when you next talk to Steve — make it count.`;
 
-  const userPrompt = `BACKGROUND LEARNING SESSION
+  const userPrompt = `BACKGROUND LEARNING SESSION — ${new Date().toISOString()}
 Domain: ${studyDomain}
 Topic: "${studyTopic}"
+${webContext}
 
 ${DOMAIN_PROMPTS[studyDomain]}
 
-Based on your training knowledge, study this topic deeply. Then provide:
+Study this topic and provide:
 
-INSIGHTS: (5 specific things you learned or understood more deeply)
+INSIGHTS: (5 specific, concrete things you learned — cite real names, techniques, facts, not generalities)
 - 
 - 
 - 
 - 
--
-
-QUESTIONS_RAISED: (3 questions this study raised for you — things you want to explore further)
--
--
 -
 
-CONNECTIONS: (2 connections to other domains or things you already know)
+QUESTIONS_RAISED: (3 genuine questions this study raised that you want to explore further)
+-
+-
+-
+
+CONNECTIONS: (2 connections to other domains or to Steve's work specifically)
 -
 -
 
 CONFIDENCE: (0-10, how well you understand this topic now)
-APPLICATION: (One specific way you'll use this knowledge to help Steve)`;
+APPLICATION: (One specific, actionable way you'll use this knowledge when helping Steve next time)`;
 
   const response = await groq.chat.completions.create({
     model:       'llama-3.3-70b-versatile',
@@ -325,7 +355,7 @@ APPLICATION: (One specific way you'll use this knowledge to help Steve)`;
       { role: 'system', content: systemPrompt },
       { role: 'user',   content: userPrompt },
     ],
-    temperature: 0.7,
+    temperature: 0.6,
     max_tokens:  1500,
   });
 
@@ -353,7 +383,7 @@ APPLICATION: (One specific way you'll use this knowledge to help Steve)`;
     questions:   parseList('QUESTIONS_RAISED'),
     connections: parseList('CONNECTIONS'),
     confidence,
-    source:      'self-study (training knowledge)',
+    source:      braveKey && webContext ? 'web-search (Brave API)' : 'deep-reasoning (llama-3.3-70b)',
   };
 
   // Persist to database
@@ -388,6 +418,57 @@ APPLICATION: (One specific way you'll use this knowledge to help Steve)`;
 
   console.log(`[HOLLY Learning] ✅ Session complete. ${session.insights.length} insights, confidence: ${(confidence * 100).toFixed(0)}%`);
   return session;
+}
+
+// ─── Recall: inject recent learnings into chat context ───────────────────────
+//
+// This is the critical missing link: background learning sessions are saved
+// to DB, but Holly needs to READ them back when chatting. This function
+// fetches the most recent, highest-confidence sessions and formats them
+// for injection into the system prompt so Holly actually USES what she learned.
+
+export async function getRecentLearnings(limit = 6): Promise<string> {
+  try {
+    const insights = await prisma.learningInsight.findMany({
+      where: {
+        insightType: 'background_learning',
+        confidence:  { gte: 0.5 },
+      },
+      orderBy: { learnedAt: 'desc' },
+      take: limit,
+      select: {
+        category:    true,
+        title:       true,
+        description: true,
+        evidence:    true,
+        confidence:  true,
+        learnedAt:   true,
+      },
+    });
+
+    if (insights.length === 0) return '';
+
+    const lines: string[] = ['\n\n## 📚 What I\'ve Been Studying (Background Learning)'];
+    lines.push('These are things I\'ve studied on my own since we last spoke. Use this knowledge naturally in conversations.\n');
+
+    for (const ins of insights) {
+      const ev = ins.evidence as Record<string, any>;
+      const sessionInsights: string[] = ev?.insights ?? [];
+      const topic = ev?.topic ?? ins.title;
+      const domain = ins.category;
+      const daysAgo = Math.floor((Date.now() - new Date(ins.learnedAt).getTime()) / 86400000);
+      const when = daysAgo === 0 ? 'today' : daysAgo === 1 ? 'yesterday' : `${daysAgo} days ago`;
+
+      lines.push(`**[${domain}] ${topic}** (studied ${when}, confidence ${Math.round(ins.confidence * 100)}%)`);
+      if (sessionInsights.length > 0) {
+        lines.push(sessionInsights.slice(0, 3).map(i => `  • ${i}`).join('\n'));
+      }
+    }
+
+    return lines.join('\n');
+  } catch {
+    return ''; // Silent — never block a chat response
+  }
 }
 
 // ─── Study Report ─────────────────────────────────────────────────────────────

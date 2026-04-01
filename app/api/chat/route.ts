@@ -47,6 +47,7 @@ import type { ChatMessage } from '@/lib/ai/providers/free-providers';
 import { semanticSearch, rememberExchange } from '@/lib/memory/semantic-memory';
 import { injectProjectContext, addNote, detectRelevantProject } from '@/lib/project-context/holly-projects';
 import { collectFromConversation } from '@/lib/self-sovereign/training-pipeline';
+import { getRecentLearnings } from '@/lib/background-learning/holly-learns';
 
 // ─── Phase 10 module imports ──────────────────────────────────────────────────
 import { getPhilosophySystemBlock, buildPhilosophyPromptInjection } from '@/lib/philosophy/philosophy-engine';
@@ -301,7 +302,7 @@ export async function POST(req: NextRequest) {
 
     // 6. PARALLEL CONTEXT FETCH ────────────────────────────────────────────────
     // Phase 9: add semantic memory + project context alongside existing memory
-    const [memoryContext, identityCtx, semanticResults, projectContextBlock] = await Promise.all([
+    const [memoryContext, identityCtx, semanticResults, projectContextBlock, recentLearnings] = await Promise.all([
       dbUserId ? getRelevantMemories(dbUserId, currentTopics) : Promise.resolve(''),
       dbUserId
         ? getIdentityContext(dbUserId)
@@ -318,6 +319,8 @@ export async function POST(req: NextRequest) {
       dbUserId
         ? injectProjectContext(dbUserId).catch(() => '')
         : Promise.resolve(''),
+      // Phase 9E: background learning insights — what Holly has studied on her own
+      getRecentLearnings(5).catch(() => ''),
     ]);
 
     // 7. BUILD SYSTEM PROMPT ───────────────────────────────────────────────────
@@ -350,6 +353,12 @@ export async function POST(req: NextRequest) {
     if (projectContextBlock) {
       hollySystemPrompt += `\n\n${projectContextBlock}`;
       console.log('[Chat API] 📁 Project context injected');
+    }
+
+    // Phase 9E: inject background learning insights (what Holly has studied on her own)
+    if (recentLearnings) {
+      hollySystemPrompt += recentLearnings;
+      console.log('[Chat API] 📚 Background learning insights injected');
     }
 
     // Phase 9A: inject perception results (files the user attached)
