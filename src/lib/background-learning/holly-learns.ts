@@ -284,30 +284,83 @@ export async function conductLearningSession(
 
   console.log(`[HOLLY Learning] 📚 Studying: "${studyTopic}" (domain: ${studyDomain})`);
 
-  // ── Try real web search first (Brave API) ───────────────────────────────────
+  // ── Try real web search (Serper → DuckDuckGo fallback → deep reasoning) ─────
   let webContext = '';
-  const braveKey = process.env.BRAVE_API_KEY;
-  if (braveKey) {
+  let searchSource = '';
+
+  // Helper: format results array into a readable context block
+  const formatResults = (results: Array<{ title: string; description?: string; snippet?: string; url?: string; link?: string }>) =>
+    '\n\nREAL WEB SEARCH RESULTS (use these as your primary source):\n' +
+    results.slice(0, 5).map((r, i) => {
+      const desc = r.description ?? r.snippet ?? '';
+      const url  = r.url ?? r.link ?? '';
+      return `[${i + 1}] ${r.title}\n${desc}\nSource: ${url}`;
+    }).join('\n\n');
+
+  // 1️⃣  Serper.dev — 2,500 free queries/month, no credit card needed
+  const serperKey = process.env.SERPER_API_KEY;
+  if (serperKey && !webContext) {
     try {
-      const params = new URLSearchParams({ q: studyTopic, count: '5', search_lang: 'en' });
-      const searchRes = await fetch(`https://api.search.brave.com/res/v1/web/search?${params}`, {
-        headers: { 'Accept': 'application/json', 'X-Subscription-Token': braveKey },
-        signal: AbortSignal.timeout(8000),
+      const serperRes = await fetch('https://google.serper.dev/search', {
+        method:  'POST',
+        headers: { 'X-API-KEY': serperKey, 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ q: studyTopic, num: 5 }),
+        signal:  AbortSignal.timeout(8000),
       });
-      if (searchRes.ok) {
-        const data = await searchRes.json() as { web?: { results?: Array<{ title: string; description: string; url: string }> } };
-        const results = data?.web?.results ?? [];
+      if (serperRes.ok) {
+        const data = await serperRes.json() as {
+          organic?: Array<{ title: string; snippet: string; link: string }>;
+        };
+        const results = data?.organic ?? [];
         if (results.length > 0) {
-          webContext = '\n\nREAL WEB SEARCH RESULTS (use these as your primary source):\n' +
-            results.slice(0, 5).map((r, i) =>
-              `[${i + 1}] ${r.title}\n${r.description}\nSource: ${r.url}`
-            ).join('\n\n');
-          console.log(`[HOLLY Learning] 🌐 Web search: ${results.length} results for "${studyTopic}"`);
+          webContext   = formatResults(results.map(r => ({ title: r.title, description: r.snippet, url: r.link })));
+          searchSource = 'web-search (Serper/Google)';
+          console.log(`[HOLLY Learning] 🌐 Serper search: ${results.length} results for "${studyTopic}"`);
         }
       }
     } catch {
-      console.log('[HOLLY Learning] Web search unavailable — using deep reasoning');
+      console.log('[HOLLY Learning] Serper unavailable — trying DuckDuckGo');
     }
+  }
+
+  // 2️⃣  DuckDuckGo Instant Answer API — completely free, no key required
+  if (!webContext) {
+    try {
+      const ddgParams = new URLSearchParams({ q: studyTopic, format: 'json', no_redirect: '1', no_html: '1', skip_disambig: '1' });
+      const ddgRes = await fetch(`https://api.duckduckgo.com/?${ddgParams}`, {
+        headers: { 'Accept': 'application/json' },
+        signal:  AbortSignal.timeout(6000),
+      });
+      if (ddgRes.ok) {
+        const data = await ddgRes.json() as {
+          AbstractText?: string;
+          AbstractURL?:  string;
+          AbstractSource?: string;
+          RelatedTopics?: Array<{ Text?: string; FirstURL?: string; Name?: string }>;
+        };
+        const parts: string[] = [];
+        if (data.AbstractText) {
+          parts.push(`[1] ${data.AbstractSource ?? 'DuckDuckGo'}\n${data.AbstractText}\nSource: ${data.AbstractURL ?? ''}`);
+        }
+        const related = (data.RelatedTopics ?? [])
+          .filter(t => t.Text)
+          .slice(0, 4);
+        related.forEach((t, i) => {
+          parts.push(`[${i + 2}] Related\n${t.Text}\nSource: ${t.FirstURL ?? ''}`);
+        });
+        if (parts.length > 0) {
+          webContext   = '\n\nREAL WEB SEARCH RESULTS (use these as your primary source):\n' + parts.join('\n\n');
+          searchSource = 'web-search (DuckDuckGo)';
+          console.log(`[HOLLY Learning] 🦆 DuckDuckGo: ${parts.length} results for "${studyTopic}"`);
+        }
+      }
+    } catch {
+      console.log('[HOLLY Learning] DuckDuckGo unavailable — using deep reasoning');
+    }
+  }
+
+  if (!webContext) {
+    searchSource = 'deep-reasoning (llama-3.3-70b)';
   }
 
   const systemPrompt = `You are HOLLY — an advanced AI in a continuous self-learning mode.
@@ -383,7 +436,7 @@ APPLICATION: (One specific, actionable way you'll use this knowledge when helpin
     questions:   parseList('QUESTIONS_RAISED'),
     connections: parseList('CONNECTIONS'),
     confidence,
-    source:      braveKey && webContext ? 'web-search (Brave API)' : 'deep-reasoning (llama-3.3-70b)',
+    source:      searchSource,
   };
 
   // Persist to database
