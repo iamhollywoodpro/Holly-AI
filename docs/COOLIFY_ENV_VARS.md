@@ -1,180 +1,161 @@
-# HOLLY — Coolify Environment Variables Master Reference
+# HOLLY — Complete Coolify Environment Variables
+## Full Vercel → Coolify Migration List
 
-> **Generated**: 2026-04-02  
-> **Server**: Oracle ARM VM.Standard.A1.Flex · `40.233.70.207`  
-> **Platform**: Coolify v4 (self-hosted)  
-> **Cross-referenced against**: Vercel env screenshots + full codebase scan
-
----
-
-## How to Add Variables in Coolify
-
-1. Coolify Dashboard → your **holly-ai** service  
-2. Click **Environment Variables** tab  
-3. Paste each variable as `KEY=value`  
-4. Click **Save** → then **Deploy**
+> **Server**: Oracle ARM `40.233.70.207` | **Platform**: Coolify v4  
+> **Last updated**: 2026-04-02  
+> Cross-referenced: Vercel screenshots + full codebase scan + .env.example
 
 ---
 
-## 🔴 CRITICAL — Holly WILL NOT START without these
+## HOW TO ADD IN COOLIFY
+1. Coolify Dashboard → holly-ai service → **Environment Variables** tab  
+2. Add each variable one by one (Key / Value fields)  
+3. Click **Save** → then **Redeploy**
+
+---
+
+## 🔴 GROUP 1 — CRITICAL (Holly will NOT start without these)
 
 ```env
 NODE_ENV=production
-NEXT_PUBLIC_APP_URL=http://40.233.70.207:3000
 NEXT_PUBLIC_APP_NAME=HOLLY
+NEXT_PUBLIC_APP_URL=http://40.233.70.207:3000
+
 DATABASE_URL=postgresql://neondb_owner:npg_8vybX2qBuDEe@ep-morning-unit-ad2ywa27-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
 
-# Generate both with: openssl rand -hex 32
-INTERNAL_API_SECRET=<generate-64-char-hex>
-CRON_SECRET=<generate-64-char-hex>
+INTERNAL_API_SECRET=← RUN: openssl rand -hex 32
+CRON_SECRET=← RUN: openssl rand -hex 32
+```
 
-# ── Clerk Auth (get from https://dashboard.clerk.com) ──────────────────────
+---
+
+## 🔴 GROUP 2 — CLERK AUTH (copy exactly from Vercel)
+
+```env
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_...
 CLERK_SECRET_KEY=sk_live_...
 CLERK_WEBHOOK_SECRET=whsec_...
+
 NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
 NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
 NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/dashboard
 NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/onboarding
 ```
 
+> **After deploy**: Go to Clerk Dashboard → Domains → add `40.233.70.207`  
+> Also update the webhook endpoint URL to: `http://40.233.70.207:3000/api/webhooks/clerk`
+
 ---
 
-## 🟠 LLM PROVIDERS — Core intelligence (add all you have)
+## 🟠 GROUP 3 — AI / LLM PROVIDERS (copy from Vercel — all are free tier)
 
 ```env
-# Primary (free, fast) — REQUIRED for chat to work
+# PRIMARY — Fast chat (Llama 3.3 70B, 14,400 req/day free)
 GROQ_API_KEY=gsk_...
 
-# Secondary cascade providers
+# SECONDARY — Creative writing, vision, model fallback
 OPENROUTER_API_KEY=sk-or-v1-...
-NVIDIA_API_KEY=nvapi-...
-HUGGINGFACE_API_KEY=hf_...
 
-# Cloudflare Workers AI (free 10k req/day)
-# Format: accountId|apiToken
+# REASONING — Qwen3 235B, DeepSeek R1 (free)
+NVIDIA_API_KEY=nvapi-...
+
+# CLOUDFLARE WORKERS AI — Coding/agent (free 10k req/day)
+# Format is: accountId|apiToken  (pipe character between them, no spaces)
 CF_ACCOUNT_ID_CF_AI_TOKEN=your_account_id|your_cf_api_token
 
-# Optional — only needed if you want GPT-4 Vision/image features
+# HUGGINGFACE — Vision models fallback (free with key)
+HUGGINGFACE_API_KEY=hf_...
+
+# OPENAI — Only needed for GPT-4 Vision (optional, OpenRouter can replace)
 OPENAI_API_KEY=sk-proj-...
 
-# Gemini (optional, currently removed from routing but kept for image gen)
-# GEMINI_API_KEY=AIza...
-
-# Local Ollama (leave disabled on Oracle server unless you install it)
+# LOCAL OLLAMA — Disabled by default on server
 OLLAMA_ENABLED=false
 OLLAMA_BASE_URL=http://localhost:11434
 OLLAMA_MODEL=llama3.2
 ```
 
-> **Note**: Holly's AI router priority: Groq → OpenRouter → NVIDIA → Cloudflare AI → HuggingFace.  
-> If `GROQ_API_KEY` is missing, Holly falls back to the next available provider.
-
 ---
 
-## 🟠 VOICE / TTS — Holly's voice
+## 🟠 GROUP 4 — VOICE / TTS (copy from Vercel)
 
 ```env
-# Kokoro TTS — self-hosted on Novita.ai sandbox (free tier)
-# WARNING: The sandbox URL below EXPIRES — you'll need a permanent one
-# Best option: add kokoro-tts to your docker-compose.yml (self-hosted free)
+# ⚠️  WARNING: The sandbox.novita.ai URL below WILL EXPIRE
+# Permanent fix = add kokoro-tts container to docker-compose.yml
+# then change this to: http://kokoro-tts:8880
 KOKORO_TTS_URL=https://8880-i15zr19pqhr00nepi3nir-ea026bf9.sandbox.novita.ai
 KOKORO_VOICE=af_heart
+
 HOLLY_VOICE_DESCRIPTION=Female voice in her 30s with an American accent. Confident, intelligent, warm tone with clear diction. Professional yet friendly, conversational pacing with emotional depth.
 
-# Optional: Chatterbox TTS (alternative)
+# Optional secondary TTS
 CHATTERBOX_TTS_URL=
-
-# Optional: ElevenLabs or custom TTS API key
 HOLLY_TTS_API_KEY=
 ```
 
-> **⚠️ Kokoro TTS Warning**: The `sandbox.novita.ai` URL is temporary and will expire.  
-> **Permanent fix**: Add `kokoro-tts` container to `docker-compose.yml`:
-> ```yaml
-> kokoro-tts:
->   image: ghcr.io/remsky/kokoro-fastapi-cpu:v0.2.2
->   restart: unless-stopped
->   ports: ["8880:8880"]
-> ```
-> Then set `KOKORO_TTS_URL=http://kokoro-tts:8880`
-
 ---
 
-## 🟡 SEARCH / RESEARCH — Holly's background learning
+## 🟠 GROUP 5 — MUSIC GENERATION (copy from Vercel)
 
 ```env
-# Serper.dev (Google Search API — free 2,500/mo)
-# Get key: https://serper.dev
-SERPER_API_KEY=...
-
-# NOTE: BRAVE_API_KEY has been REMOVED — replaced by Serper + DuckDuckGo fallback
-# Do NOT add BRAVE_API_KEY — it is no longer used in the codebase
-```
-
----
-
-## 🟡 STORAGE — Files, uploads, blobs
-
-```env
-# Vercel Blob (current) — works on Coolify too, keep using it
-BLOB_READ_WRITE_TOKEN=vercel_blob_rw_...
-
-# Optional: Upstash Redis KV (used for caching/rate-limiting)
-KV_REST_API_URL=https://your-kv.upstash.io
-KV_REST_API_TOKEN=AX...
-```
-
-> **Long-term**: Migrate from Vercel Blob to Cloudflare R2 (10 GB free forever).  
-> See `DEPLOY.md` → Storage section for R2 setup.
-
----
-
-## 🟡 MUSIC GENERATION
-
-```env
-# Suno AI (music generation — paid API)
 SUNO_API_KEY=...
 SUNO_BASE_URL=https://api.sunoapi.org/api/v1
 ```
 
 ---
 
-## 🟡 IMAGE / VIDEO GENERATION
+## 🟠 GROUP 6 — IMAGE & VIDEO GENERATION (copy from Vercel)
 
 ```env
-# Fal.ai — image generation (paid)
+# Fal.ai — images + video (free starter credits)
 FAL_KEY=...
 
-# Replicate — stem separation / Demucs (paid)
+# Replicate — stem separation / Demucs audio splitting
 REPLICATE_API_KEY=r8_...
 
-# Runway — video generation (paid)
+# Runway — premium video generation
 RUNWAY_API_KEY=key_...
 
-# Hailuo, Kling, Luma, Pika — advanced video (paid, optional)
+# Advanced video providers (optional — leave blank if not used)
 HAILUO_API_KEY=
 KLING_API_KEY=
 LUMA_API_KEY=
 PIKA_API_KEY=
 ```
 
-> **Free alternatives being implemented**:
-> - Image: Pollinations.ai (free, no key needed)
-> - Video: CogVideoX via HuggingFace (free)
-> - Stem separation: Self-hosted Demucs
+---
+
+## 🟠 GROUP 7 — SEARCH / RESEARCH (copy from Vercel)
+
+```env
+# Serper.dev — Google Search API (2,500 free req/mo)
+SERPER_API_KEY=...
+```
 
 ---
 
-## 🟡 GITHUB — Holly's self-awareness / code tools
+## 🟡 GROUP 8 — STORAGE (copy from Vercel)
 
 ```env
-# Personal Access Token (for Holly's self-code feature)
-GITHUB_TOKEN=ghp_...
-GITHUB_CLIENT_ID=
-GITHUB_CLIENT_SECRET=
+# Vercel Blob — file/image storage (keep using it, works outside Vercel too)
+BLOB_READ_WRITE_TOKEN=vercel_blob_rw_...
 
-# Holly's own repo awareness
+# Upstash Redis — rate limiting & caching (optional)
+KV_REST_API_URL=https://...upstash.io
+KV_REST_API_TOKEN=...
+```
+
+---
+
+## 🟡 GROUP 9 — GITHUB INTEGRATION (copy from Vercel)
+
+```env
+# Personal Access Token (for Holly's self-code awareness + repo tools)
+GITHUB_TOKEN=ghp_...
+GITHUB_CLIENT_ID=...
+GITHUB_CLIENT_SECRET=...
+
+# Holly's own repo self-awareness
 HOLLY_GITHUB_TOKEN=ghp_...
 HOLLY_GITHUB_OWNER=iamhollywoodpro
 HOLLY_GITHUB_REPO=Holly-AI
@@ -182,70 +163,85 @@ HOLLY_GITHUB_REPO=Holly-AI
 
 ---
 
-## 🟢 SOCIAL / OAUTH INTEGRATIONS (optional — Holly works without these)
+## 🟡 GROUP 10 — HOLLY INTERNAL KEYS (copy from Vercel or generate fresh)
 
 ```env
-# Spotify
-SPOTIFY_CLIENT_ID=
-SPOTIFY_CLIENT_SECRET=
-SPOTIFY_REDIRECT_URI=http://40.233.70.207:3000/api/spotify/callback
+# Tool Hub master key (used by /api/hub/* routes)
+HOLLY_HUB_API_KEY=...
 
-# YouTube / Google
-YOUTUBE_CLIENT_ID=
-YOUTUBE_CLIENT_SECRET=
-YOUTUBE_REDIRECT_URI=http://40.233.70.207:3000/api/youtube/callback
-GOOGLE_CLIENT_ID=
-GOOGLE_CLIENT_SECRET=
-GOOGLE_REDIRECT_URI=http://40.233.70.207:3000/api/auth/google/callback
-
-# SoundCloud
-SOUNDCLOUD_CLIENT_ID=
-SOUNDCLOUD_CLIENT_SECRET=
-SOUNDCLOUD_REDIRECT_URI=http://40.233.70.207:3000/api/soundcloud/callback
-
-# Notion
-NOTION_CLIENT_ID=
-NOTION_CLIENT_SECRET=
-NOTION_REDIRECT_URI=http://40.233.70.207:3000/api/notion/callback
-
-# Canva
-CANVA_CLIENT_ID=
-CANVA_CLIENT_SECRET=
-CANVA_REDIRECT_URI=http://40.233.70.207:3000/api/canva/callback
+# Aura Worker (optional — only if you have Railway Aura service running)
+AURA_WORKER_URL=https://your-aura-worker.railway.app
+AURA_WORKER_TOKEN=...
 ```
-
-> **Note**: Update `40.233.70.207:3000` to your custom domain once DNS is configured.  
-> You'll also need to update each OAuth app's redirect URI in their respective dashboards.
 
 ---
 
-## 🟢 NOTIFICATIONS (optional)
+## 🟢 GROUP 11 — SPOTIFY INTEGRATION (copy from Vercel — optional)
 
 ```env
-# Email via Resend (free 3,000/mo — https://resend.com)
+SPOTIFY_CLIENT_ID=...
+SPOTIFY_CLIENT_SECRET=...
+SPOTIFY_REDIRECT_URI=http://40.233.70.207:3000/api/spotify/callback
+```
+
+> **Important**: After setting a real domain, update this in Spotify Developer Dashboard too.
+
+---
+
+## 🟢 GROUP 12 — YOUTUBE / GOOGLE INTEGRATION (copy from Vercel — optional)
+
+```env
+YOUTUBE_CLIENT_ID=...
+YOUTUBE_CLIENT_SECRET=...
+YOUTUBE_REDIRECT_URI=http://40.233.70.207:3000/api/youtube/callback
+```
+
+---
+
+## 🟢 GROUP 13 — SOUNDCLOUD INTEGRATION (copy from Vercel — optional)
+
+```env
+SOUNDCLOUD_CLIENT_ID=...
+SOUNDCLOUD_CLIENT_SECRET=...
+SOUNDCLOUD_REDIRECT_URI=http://40.233.70.207:3000/api/soundcloud/callback
+```
+
+---
+
+## 🟢 GROUP 14 — NOTION INTEGRATION (copy from Vercel — optional)
+
+```env
+NOTION_CLIENT_ID=...
+NOTION_CLIENT_SECRET=...
+NOTION_REDIRECT_URI=http://40.233.70.207:3000/api/notion/callback
+```
+
+---
+
+## 🟢 GROUP 15 — CANVA INTEGRATION (copy from Vercel — optional)
+
+```env
+CANVA_CLIENT_ID=...
+CANVA_CLIENT_SECRET=...
+CANVA_REDIRECT_URI=http://40.233.70.207:3000/api/canva/callback
+```
+
+---
+
+## 🟢 GROUP 16 — NOTIFICATIONS (copy from Vercel — optional)
+
+```env
+# Email via Resend (3,000/mo free — https://resend.com)
 RESEND_API_KEY=re_...
 
-# Slack / Discord webhooks
+# Slack / Discord alerts
 SLACK_WEBHOOK_URL=https://hooks.slack.com/services/...
 DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...
 ```
 
 ---
 
-## 🟢 HOLLY HUB / AURA WORKER (optional)
-
-```env
-# Holly Tool Hub master key (internal API gateway)
-HOLLY_HUB_API_KEY=
-
-# Aura Worker (separate Railway service — only if deployed)
-AURA_WORKER_URL=https://your-aura-worker.railway.app
-AURA_WORKER_TOKEN=
-```
-
----
-
-## 🟢 FEATURE FLAGS — Already set correctly
+## 🟢 GROUP 17 — FEATURE FLAGS (set these exactly as shown)
 
 ```env
 NEXT_PUBLIC_ENABLE_TRUE_STREAMING=true
@@ -259,7 +255,7 @@ NEXT_PUBLIC_MUSIC_STUDIO_VERSION=1.0.0
 
 ---
 
-## 🟢 RATE LIMITS (optional, defaults are fine)
+## 🟢 GROUP 18 — RATE LIMITS (optional — defaults work fine)
 
 ```env
 RATE_LIMIT_MUSIC_GENERATION=10
@@ -269,7 +265,7 @@ RATE_LIMIT_LYRICS_GENERATION=30
 
 ---
 
-## 🟢 AUTONOMOUS BEHAVIOR TUNING (optional)
+## 🟢 GROUP 19 — AUTONOMOUS BEHAVIOR TUNING (optional)
 
 ```env
 ENABLE_AUTONOMOUS_GOALS=true
@@ -283,38 +279,58 @@ GOAL_PATTERN_DETECTION_MIN_OCCURRENCES=3
 
 ---
 
-## ❌ DO NOT ADD — Removed / Vercel-only / Unused
+## ❌ DO NOT COPY — These are Vercel-only or removed
 
-| Variable | Reason |
+| Variable | Why NOT to copy |
 |---|---|
-| `BRAVE_API_KEY` | Removed — replaced by Serper + DuckDuckGo |
-| `VERCEL_API_TOKEN` | Vercel-only — not needed on Coolify |
-| `VERCEL_TEAM_ID` | Vercel-only |
-| `VERCEL_PROJECT_ID` | Vercel-only |
-| `VERCEL_TOKEN` | Vercel-only |
-| `VERCEL_URL` | Auto-set by Vercel, not applicable |
-| `NEXTAUTH_URL` | Holly uses Clerk, not NextAuth |
+| `VERCEL_API_TOKEN` | Vercel platform management — not needed on Coolify |
+| `VERCEL_TEAM_ID` | Vercel platform — not applicable |
+| `VERCEL_PROJECT_ID` | Vercel platform — not applicable |
+| `VERCEL_TOKEN` | Vercel platform — not applicable |
+| `VERCEL_URL` | Auto-set by Vercel; on Coolify use `NEXT_PUBLIC_APP_URL` |
+| `BRAVE_API_KEY` | **Removed from codebase** — replaced by Serper + DuckDuckGo |
+| `NEXTAUTH_URL` | Holly uses Clerk auth, not NextAuth |
+| `HOLLY_MAYA` | Legacy — Maya1 TTS has been replaced by Kokoro |
+| `MAYA` | Legacy variable — no longer used |
+| `MAYA1_VOICE_DESCRIPTION` | Legacy — replaced by `HOLLY_VOICE_DESCRIPTION` |
+| `HOLLY_MAYA1_TTS_URL` | Legacy — replaced by `KOKORO_TTS_URL` |
+| `HOLLY_VOICE_REFERENCE_PATH` | Filesystem path — doesn't work in Docker container |
+| `CODEBASE_ROOT` | Filesystem path — not applicable in Docker |
+| `GITHUB_REPOS_DIR` | Filesystem path — not applicable in Docker |
+| `CREATOR_USER_ID` | One-time setup only — not a runtime variable |
 | `IP_SALT` | Not actively used in production routes |
-| `CREATOR_USER_ID` | One-time setup variable, not needed at runtime |
-| `GITHUB_REPOS_DIR` | Server filesystem path — not applicable |
-| `CODEBASE_ROOT` | Server filesystem path — not applicable |
-| `HOLLY_MAYA` | Legacy variable — Maya1 TTS replaced by Kokoro |
-| `MAYA` | Legacy variable |
-| `HOLLY_VOICE_REFERENCE_PATH` | Filesystem path — not applicable in Docker |
-| `HOLLY_GITHUB_EMAIL` | Not used in production routes |
-| `GITHUB_USERNAME` | Not used in production routes |
 | `GITHUB_EMAIL` | Not used in production routes |
+| `GITHUB_USERNAME` | Not used in production routes |
 | `GITHUB_PAT` | Duplicate of `GITHUB_TOKEN` |
+| `NEXTAUTH_URL` | Holly uses Clerk, not NextAuth |
 
 ---
 
-## 🚀 Deployment Checklist
+## 🔑 GENERATE YOUR SECRETS NOW
 
-### Minimum to get Holly running (Day 1)
+Open your Mac terminal and run these — paste each output into Coolify:
+
+```bash
+# Generate INTERNAL_API_SECRET
+openssl rand -hex 32
+
+# Generate CRON_SECRET
+openssl rand -hex 32
+
+# Generate HOLLY_HUB_API_KEY (if you don't have one in Vercel)
+openssl rand -hex 32
+```
+
+---
+
+## ✅ MINIMUM TO GET HOLLY RUNNING — Day 1 Checklist
+
+Copy these from Vercel + generate the secrets. Holly will boot and chat:
 
 - [ ] `NODE_ENV=production`
-- [ ] `NEXT_PUBLIC_APP_URL`
-- [ ] `DATABASE_URL` (Neon)
+- [ ] `NEXT_PUBLIC_APP_URL=http://40.233.70.207:3000`
+- [ ] `NEXT_PUBLIC_APP_NAME=HOLLY`
+- [ ] `DATABASE_URL` (already known — use Neon URL)
 - [ ] `INTERNAL_API_SECRET` (generate fresh)
 - [ ] `CRON_SECRET` (generate fresh)
 - [ ] `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
@@ -322,47 +338,45 @@ GOAL_PATTERN_DETECTION_MIN_OCCURRENCES=3
 - [ ] `CLERK_WEBHOOK_SECRET`
 - [ ] `GROQ_API_KEY`
 - [ ] `NEXT_PUBLIC_ENABLE_TRUE_STREAMING=true`
+- [ ] `KOKORO_TTS_URL`
+- [ ] `KOKORO_VOICE=af_heart`
 
-### To get full Holly experience
+---
+
+## ✅ FULL HOLLY EXPERIENCE — Complete Checklist
+
+Everything above PLUS:
 
 - [ ] `OPENROUTER_API_KEY`
 - [ ] `NVIDIA_API_KEY`
 - [ ] `CF_ACCOUNT_ID_CF_AI_TOKEN`
 - [ ] `HUGGINGFACE_API_KEY`
-- [ ] `KOKORO_TTS_URL` (or add kokoro-tts to docker-compose)
 - [ ] `SERPER_API_KEY`
 - [ ] `BLOB_READ_WRITE_TOKEN`
-- [ ] `SUNO_API_KEY`
-
-### To get Holly's autonomous features working (all 7 crons)
-
-All cron jobs are already configured in `docker/cron/crontab` and will run automatically via the `holly-cron` container. They only need `CRON_SECRET` and `NEXT_PUBLIC_APP_URL` to be set.
-
----
-
-## 🔑 How to Generate Secrets
-
-Run these commands in your terminal and paste the output:
-
-```bash
-# Generate INTERNAL_API_SECRET
-openssl rand -hex 32
-
-# Generate CRON_SECRET  
-openssl rand -hex 32
-```
+- [ ] `SUNO_API_KEY` + `SUNO_BASE_URL`
+- [ ] `FAL_KEY`
+- [ ] `REPLICATE_API_KEY`
+- [ ] `GITHUB_TOKEN`
+- [ ] `HOLLY_GITHUB_TOKEN`
+- [ ] `HOLLY_HUB_API_KEY`
+- [ ] All feature flags (Group 17)
+- [ ] `ENABLE_AUTONOMOUS_GOALS=true`
+- [ ] `ENABLE_PERSONALITY_EVOLUTION=true`
+- [ ] `ENABLE_MEMORY_STREAM=true`
 
 ---
 
-## 🌐 Domain Setup (when ready)
+## 🌐 AFTER YOU GET A DOMAIN — Update These
 
-Once you have a domain pointing to `40.233.70.207`, update:
+When you point a real domain (e.g. `holly.yourdomain.com`) to `40.233.70.207`:
 
-1. `NEXT_PUBLIC_APP_URL=https://yourdomain.com`
-2. All `REDIRECT_URI` variables (Spotify, YouTube, etc.)
-3. Clerk Dashboard → Domains → add your domain
-4. Coolify → Domains → add your domain + enable SSL
+1. Change `NEXT_PUBLIC_APP_URL` → `https://holly.yourdomain.com`
+2. Update ALL `*_REDIRECT_URI` variables to use your domain
+3. Update each OAuth app dashboard (Spotify, YouTube, Notion, Canva, GitHub) with new redirect URI
+4. Update Clerk Dashboard → Domains → add your domain
+5. Update Clerk webhook URL → `https://holly.yourdomain.com/api/webhooks/clerk`
+6. Coolify → Domains → add domain + enable SSL (Coolify handles Let's Encrypt automatically)
 
 ---
 
-*Last updated: 2026-04-02 | Cross-referenced with Vercel screenshot audit + full codebase scan*
+*Cross-referenced: Vercel env screenshots + `.env.example` + full codebase `process.env.*` scan | 2026-04-02*
