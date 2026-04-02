@@ -6,11 +6,11 @@
 #   holly-cron  — Alpine cron container that fires all 7 background jobs
 #                 (replaces the vercel.json crons that Vercel Hobby silently drops)
 #
-# Usage (Dokploy):
-#   1. Create a new "Docker Compose" application in Dokploy
-#   2. Point it at this repo
-#   3. Set all env vars in Dokploy's Environment tab
-#   4. Deploy — Dokploy builds both services automatically
+# Usage (Coolify):
+#   1. Create a new "Docker Compose" service in Coolify
+#   2. Point it at this repo (GitHub source)
+#   3. Set all env vars in Coolify's Environment Variables tab
+#   4. Deploy — Coolify builds both services automatically
 #
 # Usage (local dev):
 #   docker compose up --build

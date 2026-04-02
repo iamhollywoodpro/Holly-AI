@@ -1,7 +1,7 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # HOLLY AI — Production Dockerfile
 # Multi-stage build: deps → builder → runner
-# Target: Dokploy / any Docker host (ARM64 + AMD64)
+# Target: Coolify / any Docker host (ARM64 + AMD64)
 # Node: 20 LTS Alpine (small, fast, secure)
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -39,7 +39,7 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
-# Port the app listens on (Dokploy will map this)
+# Port the app listens on (Coolify will map this)
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
@@ -62,7 +62,7 @@ USER nextjs
 
 EXPOSE 3000
 
-# Health check — Dokploy will poll this
+# Health check — Coolify will poll this
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
   CMD curl -f http://localhost:3000/api/health || exit 1
 

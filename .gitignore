@@ -24,5 +24,23 @@ oracle-private-key.pem
 .oci/
 ORACLE KEYS/
 
+# Build artifacts
+tsconfig.tsbuildinfo
+
+# One-time dev/debug scripts (never commit these)
+check_memories.js
+extract_memory*.js
+extract_memory*.mjs
+find_purple_conv.js
+get_conversation.js
+memory_test_output.txt
+validator_output.txt
+test-build-simple.js
+test-oracle-voice.js
+
+# Vercel deployment triggers (not needed in git)
+.vercel-deploy
+.vercel-trigger
+
 services/kokoro-tts/*.onnx
 services/kokoro-tts/*.bin
