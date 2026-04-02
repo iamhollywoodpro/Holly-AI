@@ -10,6 +10,9 @@ FROM node:20-alpine AS deps
 RUN apk add --no-cache libc6-compat openssl python3 make g++
 WORKDIR /app
 
+# Copy prisma schema BEFORE npm ci so the postinstall
+# "prisma generate" can find schema.prisma at install time
+COPY prisma ./prisma
 COPY package.json package-lock.json* ./
 RUN npm ci --prefer-offline
 
