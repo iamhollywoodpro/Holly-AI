@@ -816,8 +816,15 @@ This is the most important relationship you have. Treat it accordingly.
           // 14. BACKGROUND WORK (fire-and-forget) ───────────────────────────────
           if (dbUserId && conversationId && fullResponse) {
             // Existing: keyword memory extraction
+            // Map content to string — extractMemories only needs plain text,
+            // not the ContentBlock[] used by multimodal messages
             extractMemories(conversationId, [
-              ...messages.slice(1).filter(m => m.role !== 'tool'),
+              ...messages.slice(1).filter(m => m.role !== 'tool').map(m => ({
+                role: m.role,
+                content: typeof m.content === 'string'
+                  ? m.content
+                  : m.content.map((b: { type: string; text?: string }) => b.type === 'text' ? (b.text ?? '') : '[image]').join(' '),
+              })),
               { role: 'assistant', content: fullResponse },
             ]).catch(err => console.error('[Chat API] Memory extraction failed:', err));
 
