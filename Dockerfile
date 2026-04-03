@@ -107,9 +107,11 @@ USER nextjs
 
 EXPOSE 3000
 
-# Health check — Coolify will poll this
-# start-period=120s gives Next.js time for cold start + Prisma init on first boot
-HEALTHCHECK --interval=30s --timeout=15s --start-period=120s --retries=5 \
-  CMD curl -sf http://localhost:3000/api/health || exit 1
+# Health check — minimal check: is the Node.js process answering HTTP?
+# /api/health returns 200 immediately with no DB or external calls.
+# start-period=180s: Next.js on ARM64 cold-start can take 2-3 min.
+# --connect-timeout 5: fail fast if port not bound yet (don't hang for 15s).
+HEALTHCHECK --interval=30s --timeout=10s --start-period=180s --retries=5 \
+  CMD curl -sf --connect-timeout 5 http://localhost:3000/api/health || exit 1
 
 CMD ["node", "server.js"]
