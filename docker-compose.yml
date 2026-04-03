@@ -24,6 +24,22 @@ services:
       context: .
       dockerfile: Dockerfile
       target: runner
+      # Pass NEXT_PUBLIC_* vars as build args so Next.js bakes them into
+      # the client bundle. Without this, Clerk and other client-side SDKs
+      # receive empty values and crash the server on startup.
+      args:
+        NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+        NEXT_PUBLIC_APP_NAME: ${NEXT_PUBLIC_APP_NAME:-HOLLY}
+        NEXT_PUBLIC_ENABLE_MUSIC_GENERATION: ${NEXT_PUBLIC_ENABLE_MUSIC_GENERATION:-true}
+        NEXT_PUBLIC_ENABLE_LYRICS_AI: ${NEXT_PUBLIC_ENABLE_LYRICS_AI:-true}
+        NEXT_PUBLIC_ENABLE_VIDEO_GENERATION: ${NEXT_PUBLIC_ENABLE_VIDEO_GENERATION:-true}
+        NEXT_PUBLIC_ENABLE_ARTIST_CREATION: ${NEXT_PUBLIC_ENABLE_ARTIST_CREATION:-true}
+        NEXT_PUBLIC_ENABLE_TRUE_STREAMING: ${NEXT_PUBLIC_ENABLE_TRUE_STREAMING:-true}
+        NEXT_PUBLIC_CLERK_SIGN_IN_URL: ${NEXT_PUBLIC_CLERK_SIGN_IN_URL:-/sign-in}
+        NEXT_PUBLIC_CLERK_SIGN_UP_URL: ${NEXT_PUBLIC_CLERK_SIGN_UP_URL:-/sign-up}
+        NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL: ${NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL:-/dashboard}
+        NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL: ${NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL:-/dashboard}
     container_name: holly-app
     restart: unless-stopped
     ports:
