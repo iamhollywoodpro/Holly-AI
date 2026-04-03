@@ -6,6 +6,8 @@ const isPublicRoute = createRouteMatcher([
   '/sign-up(.*)',
   '/factor-two(.*)',            // Clerk MFA second-factor verification page
   '/api/webhooks/(.*)',          // Clerk + GitHub webhooks must be public
+  '/api/health',                // Docker/Coolify health probe — never requires auth
+  '/api/version',               // Version info — public diagnostic endpoint
   '/offline',
   '/download/(.*)',              // public download links
   '/api/v1/(.*)',               // Phase 7: public API — Bearer API-key auth, NOT Clerk

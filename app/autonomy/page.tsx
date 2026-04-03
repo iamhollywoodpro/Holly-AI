@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
 import {
   Brain, Activity, Shield, Zap, TrendingUp, TrendingDown,
-  AlertTriangle, CheckCircle, RefreshCw, Clock,
+  AlertTriangle, CheckCircle, RefreshCw, Clock, ArrowLeft, MessageSquare,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -128,7 +129,9 @@ export default function AutonomyDashboard() {
   // ── Loading ──
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full">
+      <div className="min-h-screen bg-gray-950 flex flex-col">
+        <FeatureNav title="Autonomy" />
+        <div className="flex items-center justify-center flex-1">
         <div className="flex flex-col items-center gap-3">
           <motion.div
             animate={{ rotate: 360 }}
@@ -138,12 +141,15 @@ export default function AutonomyDashboard() {
           </motion.div>
           <p className="text-sm text-gray-500">Loading autonomy data…</p>
         </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="px-6 py-6 max-w-5xl mx-auto space-y-6">
+    <div className="min-h-screen bg-gray-950 flex flex-col">
+    <FeatureNav title="Autonomy" />
+    <div className="px-4 sm:px-6 py-6 max-w-5xl mx-auto space-y-6 w-full">
 
       {/* ── Page header ── */}
       <div className="flex items-center justify-between">
@@ -324,5 +330,25 @@ export default function AutonomyDashboard() {
       </div>
 
     </div>
+    </div>
+  );
+}
+
+// ─── Minimal feature nav ─────────────────────────────────────────────────────
+function FeatureNav({ title }: { title: string }) {
+  return (
+    <header className="sticky top-0 z-30 flex items-center justify-between gap-3 px-4 sm:px-6 py-3 bg-gray-950/90 backdrop-blur-xl border-b border-gray-800/60">
+      <div className="flex items-center gap-3">
+        <Link href="/chat" className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-800/60 hover:bg-gray-800 border border-gray-700/50 hover:border-purple-500/40 transition-all text-gray-400 hover:text-white text-xs font-medium">
+          <ArrowLeft className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Back to Chat</span>
+        </Link>
+        <span className="text-sm font-semibold text-white">{title}</span>
+      </div>
+      <Link href="/chat" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 transition-all text-purple-300 hover:text-white text-xs font-medium">
+        <MessageSquare className="w-3.5 h-3.5" />
+        <span className="hidden sm:inline">Open Chat</span>
+      </Link>
+    </header>
   );
 }
