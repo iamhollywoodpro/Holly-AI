@@ -562,7 +562,7 @@ export default function LandingPage() {
           transition={{ delay: 1 }}
           className="absolute bottom-10 text-[10px] text-gray-600 tracking-widest uppercase"
         >
-          v2.2 · Powered by AURA
+          v2.3 · Powered by AURA
         </motion.p>
       </div>
     );

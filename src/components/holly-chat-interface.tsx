@@ -2219,34 +2219,100 @@ export default function HollyChatInterface() {
                       </div>
                     ) : (
                       <div className="space-y-0.5 mt-1">
-                        {pastConversations
-                          .filter(conv => !convSearch || (conv.title || "").toLowerCase().includes(convSearch.toLowerCase()) || (conv.lastMessagePreview || "").toLowerCase().includes(convSearch.toLowerCase()))
-                          .map(conv => (
-                          <button
-                            key={conv.id}
-                            onClick={() => loadConversation(conv)}
-                            className={`w-full text-left px-3 py-2.5 rounded-lg transition-colors group ${
-                              activeConvId === conv.id
-                                ? "bg-purple-600/20 border border-purple-500/30"
-                                : "hover:bg-gray-800/80 border border-transparent"
-                            }`}
-                          >
-                            <p className={`text-xs font-medium truncate leading-snug ${
-                              activeConvId === conv.id ? "text-purple-300" : "text-gray-200 group-hover:text-white"
-                            }`}>
-                              {conv.title || "Untitled Chat"}
-                            </p>
-                            {conv.lastMessagePreview && (
-                              <p className="text-[10px] text-gray-600 truncate mt-0.5 leading-snug">
-                                {conv.lastMessagePreview}
+                        {convSearch ? (
+                          // Search results — show all matches
+                          pastConversations
+                            .filter(conv => (conv.title || "").toLowerCase().includes(convSearch.toLowerCase()) || (conv.lastMessagePreview || "").toLowerCase().includes(convSearch.toLowerCase()))
+                            .map(conv => (
+                            <button
+                              key={conv.id}
+                              onClick={() => loadConversation(conv)}
+                              className={`w-full text-left px-3 py-2.5 rounded-lg transition-colors group ${
+                                activeConvId === conv.id
+                                  ? "bg-purple-600/20 border border-purple-500/30"
+                                  : "hover:bg-gray-800/80 border border-transparent"
+                              }`}
+                            >
+                              <p className={`text-xs font-medium truncate leading-snug ${
+                                activeConvId === conv.id ? "text-purple-300" : "text-gray-200 group-hover:text-white"
+                              }`}>
+                                {conv.title || "Untitled Chat"}
+                              </p>
+                              {conv.lastMessagePreview && (
+                                <p className="text-[10px] text-gray-600 truncate mt-0.5 leading-snug">
+                                  {conv.lastMessagePreview}
+                                </p>
+                              )}
+                              <p className="text-[10px] text-gray-700 mt-0.5">
+                                {new Date(conv.updatedAt).toLocaleDateString([], { month: "short", day: "numeric" })}
+                                {conv.messageCount > 0 && ` · ${conv.messageCount} msgs`}
+                              </p>
+                            </button>
+                          ))
+                        ) : (
+                          // No search — show recent 8 labeled, then rest
+                          <>
+                            {pastConversations.length > 0 && (
+                              <p className="text-[9px] font-semibold text-gray-600 uppercase tracking-wider px-3 pt-2 pb-1">
+                                Recent — last {Math.min(pastConversations.length, 8)}
                               </p>
                             )}
-                            <p className="text-[10px] text-gray-700 mt-0.5">
-                              {new Date(conv.updatedAt).toLocaleDateString([], { month: "short", day: "numeric" })}
-                              {conv.messageCount > 0 && ` · ${conv.messageCount} msgs`}
-                            </p>
-                          </button>
-                        ))}
+                            {pastConversations.slice(0, 8).map(conv => (
+                              <button
+                                key={conv.id}
+                                onClick={() => loadConversation(conv)}
+                                className={`w-full text-left px-3 py-2.5 rounded-lg transition-colors group ${
+                                  activeConvId === conv.id
+                                    ? "bg-purple-600/20 border border-purple-500/30"
+                                    : "hover:bg-gray-800/80 border border-transparent"
+                                }`}
+                              >
+                                <p className={`text-xs font-medium truncate leading-snug ${
+                                  activeConvId === conv.id ? "text-purple-300" : "text-gray-200 group-hover:text-white"
+                                }`}>
+                                  {conv.title || "Untitled Chat"}
+                                </p>
+                                {conv.lastMessagePreview && (
+                                  <p className="text-[10px] text-gray-600 truncate mt-0.5 leading-snug">
+                                    {conv.lastMessagePreview}
+                                  </p>
+                                )}
+                                <p className="text-[10px] text-gray-700 mt-0.5">
+                                  {new Date(conv.updatedAt).toLocaleDateString([], { month: "short", day: "numeric" })}
+                                  {conv.messageCount > 0 && ` · ${conv.messageCount} msgs`}
+                                </p>
+                              </button>
+                            ))}
+                            {pastConversations.length > 8 && (
+                              <>
+                                <p className="text-[9px] font-semibold text-gray-600 uppercase tracking-wider px-3 pt-3 pb-1">
+                                  Older ({pastConversations.length - 8})
+                                </p>
+                                {pastConversations.slice(8).map(conv => (
+                                  <button
+                                    key={conv.id}
+                                    onClick={() => loadConversation(conv)}
+                                    className={`w-full text-left px-3 py-2 rounded-lg transition-colors group ${
+                                      activeConvId === conv.id
+                                        ? "bg-purple-600/20 border border-purple-500/30"
+                                        : "hover:bg-gray-800/80 border border-transparent"
+                                    }`}
+                                  >
+                                    <p className={`text-xs font-medium truncate leading-snug ${
+                                      activeConvId === conv.id ? "text-purple-300" : "text-gray-300 group-hover:text-white"
+                                    }`}>
+                                      {conv.title || "Untitled Chat"}
+                                    </p>
+                                    <p className="text-[10px] text-gray-700 mt-0.5">
+                                      {new Date(conv.updatedAt).toLocaleDateString([], { month: "short", day: "numeric" })}
+                                      {conv.messageCount > 0 && ` · ${conv.messageCount} msgs`}
+                                    </p>
+                                  </button>
+                                ))}
+                              </>
+                            )}
+                          </>
+                        )}
                       </div>
                     )}
                   </div>
@@ -2445,7 +2511,7 @@ export default function HollyChatInterface() {
                 Try Agent Mode — give me a goal, I'll handle it
               </button>
 
-              {/* ── Recent conversations ── */}
+              {/* ── Recent conversations (last 5 on welcome screen) ── */}
               {pastConversations.length > 0 && (
                 <div className="mt-8 w-full max-w-sm">
                   <div className="flex items-center justify-between mb-3 px-1">
@@ -2454,7 +2520,7 @@ export default function HollyChatInterface() {
                       onClick={() => { setNavOpen(true); setNavTab("chats"); }}
                       className="text-[10px] text-purple-500 hover:text-purple-400 transition-colors"
                     >
-                      View all
+                      View all ({pastConversations.length})
                     </button>
                   </div>
                   <div className="space-y-1.5 w-full">
@@ -2472,11 +2538,18 @@ export default function HollyChatInterface() {
                             {new Date(conv.updatedAt).toLocaleDateString([], { month: "short", day: "numeric" })}
                           </span>
                         </div>
-                        {conv.lastMessagePreview && (
-                          <p className="text-[10px] text-gray-600 truncate mt-0.5">
-                            {conv.lastMessagePreview}
-                          </p>
-                        )}
+                        <div className="flex items-center gap-2 mt-0.5">
+                          {conv.lastMessagePreview && (
+                            <p className="text-[10px] text-gray-600 truncate flex-1">
+                              {conv.lastMessagePreview}
+                            </p>
+                          )}
+                          {conv.messageCount > 0 && (
+                            <span className="text-[9px] text-gray-700 flex-shrink-0">
+                              {conv.messageCount} msgs
+                            </span>
+                          )}
+                        </div>
                       </button>
                     ))}
                   </div>

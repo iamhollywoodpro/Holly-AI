@@ -794,18 +794,29 @@ This is the most important relationship you have. Treat it accordingly.
           // 13. SAVE TO DATABASE ────────────────────────────────────────────────
           if (dbUserId && conversationId) {
             try {
+              // Upsert conversation first — creates it if it doesn't exist yet
+              // (client generates IDs like conv-${Date.now()} before first save)
+              await prisma.conversation.upsert({
+                where: { id: conversationId },
+                create: {
+                  id: conversationId,
+                  userId: dbUserId,
+                  title: null,
+                  messageCount: 2,
+                  lastMessagePreview: fullResponse.substring(0, 100) + (fullResponse.length > 100 ? '...' : ''),
+                },
+                update: {
+                  messageCount:      { increment: 2 },
+                  lastMessagePreview: fullResponse.substring(0, 100) + (fullResponse.length > 100 ? '...' : ''),
+                  updatedAt:         new Date(),
+                },
+              });
+              // Save both messages
               await prisma.message.create({
                 data: { conversationId, role: 'user', content: latestUserMessage, userId: dbUserId },
               });
               await prisma.message.create({
                 data: { conversationId, role: 'assistant', content: fullResponse, userId: dbUserId },
-              });
-              await prisma.conversation.update({
-                where: { id: conversationId },
-                data: {
-                  messageCount:      { increment: 2 },
-                  lastMessagePreview: fullResponse.substring(0, 100) + (fullResponse.length > 100 ? '...' : ''),
-                },
               });
               console.log('[Chat API] 💾 Messages saved');
             } catch (dbErr) {

@@ -45,6 +45,7 @@ export async function GET(request: NextRequest) {
     const conversations = await prisma.conversation.findMany({
       where: { userId: user.id },
       orderBy: { updatedAt: 'desc' },
+      take: 50, // Return last 50 conversations; sidebar shows all, welcome screen shows last 5
       select: {
         id: true,
         title: true,

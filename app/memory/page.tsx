@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import {
   Brain,
   Clock,
@@ -18,6 +19,7 @@ import {
   Sparkles,
   RefreshCw,
   ChevronDown,
+  ArrowLeft,
   ChevronUp,
   User,
   Activity,
@@ -328,7 +330,22 @@ export default function MemoryPage() {
 
   return (
     <div className="min-h-screen bg-[#0A0A0F] text-white">
-      <div className="max-w-6xl mx-auto p-6 lg:p-8">
+      {/* ── Feature nav ─────────────────────────────────────────────────────── */}
+      <header className="sticky top-0 z-30 flex items-center justify-between gap-3 px-4 sm:px-6 py-3 bg-gray-950/90 backdrop-blur-xl border-b border-gray-800/60">
+        <div className="flex items-center gap-3">
+          <Link href="/chat" className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-800/60 hover:bg-gray-800 border border-gray-700/50 hover:border-purple-500/40 transition-all text-gray-400 hover:text-white text-xs font-medium">
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Back to Chat</span>
+          </Link>
+          <span className="text-sm font-semibold text-white">🧠 Memory</span>
+        </div>
+        <Link href="/chat" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 transition-all text-purple-300 hover:text-white text-xs font-medium">
+          <MessageSquare className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Open Chat</span>
+        </Link>
+      </header>
+
+      <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8">
 
         {/* Header */}
         <div className="mb-8">
@@ -766,6 +783,7 @@ export default function MemoryPage() {
             Your data is private and only used to make HOLLY better for you.
           </p>
         </div>
+      </div>
       </div>
     </div>
   );

@@ -682,8 +682,9 @@ export default function MusicStudio() {
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
             <Link
-              href="/dashboard"
+              href="/chat"
               className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/60 hover:text-white transition-all"
+              title="Back to Chat"
             >
               <ArrowLeft className="w-4 h-4" />
             </Link>
