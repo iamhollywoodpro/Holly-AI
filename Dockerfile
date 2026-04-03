@@ -66,7 +66,8 @@ USER nextjs
 EXPOSE 3000
 
 # Health check — Coolify will poll this
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-  CMD curl -f http://localhost:3000/api/health || exit 1
+# start-period=120s gives Next.js time for cold start + Prisma init on first boot
+HEALTHCHECK --interval=30s --timeout=15s --start-period=120s --retries=5 \
+  CMD curl -sf http://localhost:3000/api/health || exit 1
 
 CMD ["node", "server.js"]
