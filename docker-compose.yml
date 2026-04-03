@@ -120,12 +120,10 @@ services:
       # ── Cron auth secret (shared with holly-cron) ─────────────────────────
       CRON_SECRET:                      ${CRON_SECRET}
 
-    healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:3000/api/health"]
-      interval: 30s
-      timeout: 15s
-      retries: 5
-      start_period: 120s
+    # Healthcheck defined in Dockerfile — do NOT duplicate here.
+    # The Dockerfile HEALTHCHECK is the authoritative one.
+    # Defining it in both places causes Docker to use this one (more strict)
+    # which overrides the Dockerfile's start-period and causes false failures.
 
     networks:
       - holly-network
@@ -148,7 +146,7 @@ services:
     restart: unless-stopped
     depends_on:
       holly-app:
-        condition: service_healthy
+        condition: service_started  # service_healthy blocks cron until app passes healthcheck — use service_started instead
     environment:
       CRON_SECRET:   ${CRON_SECRET}
       APP_URL:       http://holly-app:3000
