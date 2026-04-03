@@ -107,11 +107,9 @@ USER nextjs
 
 EXPOSE 3000
 
-# Health check — minimal check: is the Node.js process answering HTTP?
-# /api/health returns 200 immediately with no DB or external calls.
-# start-period=180s: Next.js on ARM64 cold-start can take 2-3 min.
-# --connect-timeout 5: fail fast if port not bound yet (don't hang for 15s).
-HEALTHCHECK --interval=30s --timeout=10s --start-period=180s --retries=5 \
-  CMD curl -sf --connect-timeout 5 http://localhost:3000/api/health || exit 1
-
+# No HEALTHCHECK here — Coolify/Traefik uses its own health probe.
+# A Docker HEALTHCHECK keeps the container in "starting" state during
+# start-period, which causes Traefik to return 503 until it passes.
+# Without a HEALTHCHECK Docker marks the container healthy immediately
+# so Traefik routes traffic to it as soon as the process starts.
 CMD ["node", "server.js"]
