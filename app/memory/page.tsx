@@ -784,7 +784,6 @@ export default function MemoryPage() {
           </p>
         </div>
       </div>
-      </div>
     </div>
   );
 }
