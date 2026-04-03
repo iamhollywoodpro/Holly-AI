@@ -1,0 +1,22 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# HOLLY Cron Image
+#
+# Bakes the crontab and run-cron.sh directly into the image so that
+# Coolify never needs to bind-mount host files into the container.
+# (Bind mounts fail in Coolify because it pre-creates the mount path as a
+#  directory, which conflicts with Docker's file-to-file mount requirement.)
+# ─────────────────────────────────────────────────────────────────────────────
+FROM alpine:3.19
+
+# Install curl (needed by run-cron.sh to call the Next.js API)
+RUN apk add --no-cache curl
+
+# Copy cron scripts into the image
+COPY run-cron.sh  /run-cron.sh
+COPY crontab      /etc/crontabs/root
+
+# Make the runner executable
+RUN chmod +x /run-cron.sh && chmod 600 /etc/crontabs/root
+
+# Run crond in the foreground, logging to stdout
+CMD ["crond", "-f", "-L", "/dev/stdout"]

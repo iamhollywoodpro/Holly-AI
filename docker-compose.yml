@@ -132,6 +132,11 @@ services:
   # Replaces ALL 7 vercel.json crons — runs inside the same Docker network
   # so it can reach holly-app directly via http://holly-app:3000
   #
+  # IMPORTANT: We build a custom image (Dockerfile.cron) instead of using
+  # alpine:3.19 + bind mounts. Coolify pre-creates bind-mount paths as
+  # directories, which makes Docker fail with "not a directory" when trying
+  # to mount a file. Baking the files into the image avoids this entirely.
+  #
   # Schedule  (matches original vercel.json)
   #   0 3 * * *    → /api/admin/architecture/generate  (3 AM daily)
   #   0 0 * * *    → /api/autonomy/self-heal            (midnight daily)
@@ -141,7 +146,9 @@ services:
   #   0 */2 * * *  → /api/background-learning           (every 2 hours)
   #   30 */2 * * * → /api/background-learning           (every 2 hours, offset 30m)
   holly-cron:
-    image: alpine:3.19
+    build:
+      context: ./docker/cron
+      dockerfile: Dockerfile.cron
     container_name: holly-cron
     restart: unless-stopped
     depends_on:
@@ -150,11 +157,6 @@ services:
     environment:
       CRON_SECRET:   ${CRON_SECRET}
       APP_URL:       http://holly-app:3000
-    volumes:
-      - ./docker/cron/crontab:/etc/crontabs/root:ro
-      - ./docker/cron/run-cron.sh:/run-cron.sh:ro
-    command: >
-      sh -c "chmod +x /run-cron.sh && crond -f -L /dev/stdout"
     networks:
       - holly-network
 
