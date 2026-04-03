@@ -88,6 +88,7 @@ function SignInContent() {
                   logoPlacement: 'inside'
                 }
               }}
+              forceRedirectUrl="/chat"
               fallbackRedirectUrl="/chat"
               signUpUrl="/sign-up"
             />

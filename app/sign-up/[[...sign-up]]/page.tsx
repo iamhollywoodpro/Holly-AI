@@ -55,6 +55,7 @@ export default function Page() {
                   logoPlacement: 'inside'
                 }
               }}
+              forceRedirectUrl="/chat"
               fallbackRedirectUrl="/chat"
               signInUrl="/sign-in"
             />
