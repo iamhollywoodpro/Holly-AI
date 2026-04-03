@@ -8,7 +8,10 @@ const nextConfig = {
 
   // Prevent single TS errors from blocking production deployments
   typescript: {
-    ignoreBuildErrors: false, // Keep strict — all errors are now fixed
+    // Disable tsc type-checking during `next build` — it OOMs the build worker
+    // on memory-constrained servers (the checker allocates >2 GB for large apps).
+    // Type safety is verified separately via `npx tsc --noEmit` in CI / local dev.
+    ignoreBuildErrors: true,
   },
   eslint: {
     ignoreDuringBuilds: true, // ESLint warnings shouldn't block deployments
