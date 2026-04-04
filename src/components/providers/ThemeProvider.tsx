@@ -2,18 +2,34 @@
 
 import { useEffect, ReactNode } from 'react';
 import { useSettings } from '@/lib/settings/settings-store';
+import { useAuth } from '@clerk/nextjs';
+import { usePathname } from 'next/navigation';
 
 interface ThemeProviderProps {
   children: ReactNode;
 }
 
+// Pages where settings should NOT be fetched (user is unauthenticated)
+const AUTH_PAGES = new Set(['/sign-in', '/sign-up', '/factor-two', '/']);
+
 export function ThemeProvider({ children }: ThemeProviderProps) {
   const { settings, loadSettings } = useSettings();
+  const { isSignedIn, isLoaded } = useAuth();
+  const pathname = usePathname();
 
   useEffect(() => {
-    // Load settings on mount
-    loadSettings();
-  }, []);
+    // Only load settings when:
+    // 1. Clerk auth state is ready (isLoaded)
+    // 2. User is signed in
+    // 3. Not on a public auth page (which would return HTML instead of JSON)
+    //
+    // Without this guard, /api/settings returns a redirect to /sign-in
+    // which is HTML — causing "SyntaxError: Unexpected token '<'" in the console.
+    const shouldLoad = isLoaded && isSignedIn && !AUTH_PAGES.has(pathname ?? '');
+    if (shouldLoad) {
+      loadSettings();
+    }
+  }, [isLoaded, isSignedIn, pathname]);
 
   useEffect(() => {
     if (!settings?.appearance) return;
