@@ -2,13 +2,14 @@ import { NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+export const fetchCache = 'no-store';
 
 export async function GET() {
   return NextResponse.json({
-    version: '2.0-complete-rewrite',
-    commit: '26c1061',
+    version: process.env.NEXT_PUBLIC_APP_VERSION ?? '2.5.0',
+    commit: process.env.VERCEL_GIT_COMMIT_SHA ?? process.env.RAILWAY_GIT_COMMIT_SHA ?? 'unknown',
     timestamp: new Date().toISOString(),
-    deployment: process.env.VERCEL_GIT_COMMIT_SHA || 'local',
-    message: 'Complete streaming rewrite with local state - NO Zustand updates during streaming',
+    uptime: Math.floor(process.uptime()),
+    deployment: 'coolify',
   });
 }
