@@ -9,11 +9,19 @@ import { usePathname } from 'next/navigation';
 // On these pages the user is unauthenticated, so /api/settings would
 // redirect to /sign-in and return HTML instead of JSON — causing a
 // "SyntaxError: Unexpected token '<'" console error on every page load.
-const AUTH_PAGES = new Set(['/sign-in', '/sign-up', '/']);
+const AUTH_PAGES = new Set(['/sign-in', '/sign-up', '/factor-two', '/']);
 
 /**
  * Settings Provider - Loads and applies user settings globally.
- * Only fetches settings when the user is signed in and on an authenticated page.
+ *
+ * IMPORTANT: This component MUST be rendered inside <ClerkProvider>
+ * because it calls useAuth() which requires Clerk's React context.
+ * See app/layout.tsx for the correct provider nesting order.
+ *
+ * Only fetches settings when:
+ *  1. Clerk auth state has fully loaded (isLoaded = true)
+ *  2. The user is signed in (isSignedIn = true)
+ *  3. We're not on a public auth page (not in AUTH_PAGES)
  */
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const { settings, loadSettings } = useSettings();

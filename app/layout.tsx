@@ -62,93 +62,102 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <SettingsProvider>
+        {/*
+         * ─── PROVIDER ORDER IS CRITICAL ────────────────────────────────────────
+         *
+         * ClerkProvider MUST be the outermost auth provider.
+         * SettingsProvider uses useAuth() from @clerk/nextjs — it MUST be
+         * nested INSIDE ClerkProvider or useAuth() will throw / return undefined.
+         *
+         * Correct order (outermost → innermost):
+         *   ClerkProvider → ThemeProvider → Providers → SettingsProvider → children
+         *
+         * ─── CLERK JS URL ────────────────────────────────────────────────────────
+         *
+         * The Clerk publishable key encodes "clerk.holly.nexamusicgroup.com"
+         * as the frontend API domain. That subdomain has a TLS certificate
+         * misconfiguration (sslv3 alert handshake failure), so Clerk's
+         * browser.js bundle fails to load → the sign-in/sign-up forms never mount.
+         *
+         * clerkJSUrl overrides the derived script URL and forces Clerk to
+         * load its JS from Clerk's own CDN (js.clerk.com). This is the official
+         * supported workaround documented at:
+         * https://clerk.com/docs/references/nextjs/clerk-provider#props
+         *
+         * ─── REDIRECT URLS ───────────────────────────────────────────────────────
+         *
+         * Coolify's environment panel may inject:
+         *   NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/dashboard  ← wrong, doesn't exist
+         *   NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/onboarding ← wrong, doesn't exist
+         *
+         * Clerk's mergeNextClerkPropsWithEnv() uses:
+         *   props.afterSignInUrl || process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL
+         *
+         * Setting the prop explicitly here guarantees /chat regardless of what
+         * Coolify has configured. forceRedirectUrl takes the highest priority
+         * and overrides even __clerk_redirect_url query params.
+         */}
+        <ClerkProvider
+          // Load Clerk JS from official CDN — bypasses broken custom domain SSL
+          clerkJSUrl="https://js.clerk.com/npm/@clerk/clerk-js@5/dist/clerk.browser.js"
+
+          // Auth page routes
+          signInUrl="/sign-in"
+          signUpUrl="/sign-up"
+          afterSignOutUrl="/"
+
+          // Force redirect to /chat after auth — explicit props override ALL env vars
+          afterSignInUrl="/chat"
+          afterSignUpUrl="/chat"
+          signInForceRedirectUrl="/chat"
+          signUpForceRedirectUrl="/chat"
+          signInFallbackRedirectUrl="/chat"
+          signUpFallbackRedirectUrl="/chat"
+
+          appearance={{
+            baseTheme: undefined,
+            variables: {
+              colorPrimary: '#a855f7',
+              colorBackground: '#111827',
+              colorInputBackground: '#1f2937',
+              colorInputText: '#ffffff',
+              colorText: '#ffffff',
+              colorTextSecondary: '#9ca3af',
+              colorNeutral: '#6b7280',
+            },
+            elements: {
+              // UserButton popover (profile menu in nav)
+              userButtonPopoverCard:
+                'bg-gray-900 border border-purple-500/20 shadow-2xl shadow-purple-500/20',
+              userButtonPopoverActionButton: 'text-white hover:bg-white/5',
+              userButtonPopoverActionButtonText: 'text-white',
+              userButtonPopoverActionButtonIcon: 'text-gray-400',
+              userButtonPopoverFooter: 'bg-gray-800/50 border-t border-white/10',
+              // Cards (UserProfile, OrganizationProfile, etc.)
+              card: 'bg-gray-900 border border-purple-500/20',
+              headerTitle: 'text-white',
+              headerSubtitle: 'text-gray-400',
+              profileSectionTitle: 'text-white',
+              profileSectionContent: 'text-gray-300',
+              formFieldLabel: 'text-gray-300',
+              formFieldInput: 'bg-gray-800 border-gray-700 text-white',
+              badge: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
+            },
+          }}
+        >
+          {/*
+           * ThemeProvider, Providers, and SettingsProvider are INSIDE ClerkProvider.
+           * This is required because SettingsProvider calls useAuth() which needs
+           * the Clerk context to be available.
+           */}
           <ThemeProvider>
             <Providers>
-              <ClerkProvider
-                /*
-                 * ─── CLERK JS URL ────────────────────────────────────────────────
-                 * The Clerk publishable key encodes "clerk.holly.nexamusicgroup.com"
-                 * as the frontend API domain. That subdomain has an SSL certificate
-                 * misconfiguration (TLS handshake failure) so Clerk's browser.js
-                 * bundle fails to load → the sign-in/sign-up forms never mount.
-                 *
-                 * clerkJSUrl overrides the derived script URL and forces Clerk to
-                 * load its JS directly from Clerk's own CDN (js.clerk.com).
-                 * This is the official supported workaround for custom-domain SSL
-                 * issues per Clerk documentation.
-                 *
-                 * ─── REDIRECT URLS ───────────────────────────────────────────────
-                 * Coolify's environment panel injects:
-                 *   NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/dashboard
-                 *   NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/onboarding
-                 *
-                 * Clerk's mergeNextClerkPropsWithEnv() merges env vars AFTER props,
-                 * but afterSignInUrl/afterSignUpUrl use props.X || env.X — meaning
-                 * the prop value wins when explicitly set.
-                 *
-                 * Setting all redirect props explicitly here overrides Coolify env
-                 * vars and ensures users land on /chat after auth (not /dashboard
-                 * which is a blank page or /onboarding which doesn't exist).
-                 *
-                 * ─── SESSION ─────────────────────────────────────────────────────
-                 * Clerk uses HttpOnly secure cookies. Sessions persist until sign-out.
-                 */
-
-                // Force Clerk JS to load from Clerk's CDN, bypassing the broken
-                // clerk.holly.nexamusicgroup.com custom domain SSL cert
-                clerkJSUrl="https://js.clerk.com/npm/@clerk/clerk-js@5/dist/clerk.browser.js"
-
-                // Auth page routes
-                signInUrl="/sign-in"
-                signUpUrl="/sign-up"
-                afterSignOutUrl="/"
-
-                // ALL redirect props set explicitly to override Coolify env vars
-                // (NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/dashboard etc.)
-                afterSignInUrl="/chat"
-                afterSignUpUrl="/chat"
-                signInForceRedirectUrl="/chat"
-                signUpForceRedirectUrl="/chat"
-                signInFallbackRedirectUrl="/chat"
-                signUpFallbackRedirectUrl="/chat"
-
-                appearance={{
-                  baseTheme: undefined,
-                  variables: {
-                    colorPrimary: '#a855f7',
-                    colorBackground: '#111827',
-                    colorInputBackground: '#1f2937',
-                    colorInputText: '#ffffff',
-                    colorText: '#ffffff',
-                    colorTextSecondary: '#9ca3af',
-                    colorNeutral: '#6b7280',
-                  },
-                  elements: {
-                    // UserButton popover (profile menu in nav)
-                    userButtonPopoverCard:
-                      'bg-gray-900 border border-purple-500/20 shadow-2xl shadow-purple-500/20',
-                    userButtonPopoverActionButton: 'text-white hover:bg-white/5',
-                    userButtonPopoverActionButtonText: 'text-white',
-                    userButtonPopoverActionButtonIcon: 'text-gray-400',
-                    userButtonPopoverFooter: 'bg-gray-800/50 border-t border-white/10',
-                    // Cards (UserProfile, OrganizationProfile, etc.)
-                    card: 'bg-gray-900 border border-purple-500/20',
-                    headerTitle: 'text-white',
-                    headerSubtitle: 'text-gray-400',
-                    profileSectionTitle: 'text-white',
-                    profileSectionContent: 'text-gray-300',
-                    formFieldLabel: 'text-gray-300',
-                    formFieldInput: 'bg-gray-800 border-gray-700 text-white',
-                    badge: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
-                  },
-                }}
-              >
+              <SettingsProvider>
                 {children}
-              </ClerkProvider>
+              </SettingsProvider>
             </Providers>
           </ThemeProvider>
-        </SettingsProvider>
+        </ClerkProvider>
       </body>
     </html>
   );
