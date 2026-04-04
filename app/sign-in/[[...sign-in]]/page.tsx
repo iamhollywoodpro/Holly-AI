@@ -20,21 +20,41 @@ export default function SignInPage() {
     <div className="min-h-screen w-full flex items-center justify-center bg-[#050508] px-4 relative overflow-hidden">
       {/* Background glow */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-purple-600/10 blur-[120px]" />
-        <div className="absolute bottom-0 right-0 w-[400px] h-[400px] rounded-full bg-blue-600/8 blur-[100px]" />
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] rounded-full bg-purple-600/8 blur-[140px]" />
+        <div className="absolute bottom-0 right-0 w-[400px] h-[400px] rounded-full bg-blue-600/6 blur-[100px]" />
       </div>
 
-      {/* Clerk sign-in form */}
+      {/* Card container */}
       <div className="relative z-10 w-full max-w-[480px]">
+        {/* HOLLY branding header */}
         <div className="text-center mb-8">
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center mx-auto mb-4 shadow-2xl shadow-purple-500/30">
             <span className="text-2xl font-black text-white">H</span>
           </div>
           <h1 className="text-2xl font-bold text-white tracking-tight">Welcome back to HOLLY</h1>
-          <p className="text-gray-400 text-sm mt-1">Sign in to continue your session</p>
+          <p className="text-gray-400 text-sm mt-1.5">Sign in to continue your session</p>
         </div>
 
+        {/*
+          Clerk SignIn component.
+          
+          ROUTING: Must use routing="path" with path="/sign-in" for Next.js
+          App Router catch-all routes [[...sign-in]]. Without this Clerk can't
+          handle multi-step flows (email → password → MFA) correctly.
+          
+          REDIRECT: forceRedirectUrl="/chat" overrides ALL other redirect settings
+          including Coolify env vars (NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/dashboard).
+          
+          APPEARANCE: Only use variables (CSS custom properties) — do NOT override
+          element class names for form inputs, as this breaks Clerk's internal layout
+          in v5. Only override cosmetic/color elements.
+        */}
         <SignIn
+          routing="path"
+          path="/sign-in"
+          forceRedirectUrl="/chat"
+          fallbackRedirectUrl="/chat"
+          signUpUrl="/sign-up"
           appearance={{
             variables: {
               colorPrimary: '#a855f7',
@@ -43,29 +63,36 @@ export default function SignInPage() {
               colorInputText: '#ffffff',
               colorText: '#ffffff',
               colorTextSecondary: '#9ca3af',
-              colorNeutral: '#6b7280',
+              colorNeutral: '#4b5563',
               borderRadius: '0.75rem',
+              fontFamily: 'Inter, system-ui, sans-serif',
             },
             elements: {
+              // Card shell
               rootBox: 'w-full',
-              card: 'bg-gray-900/80 border border-gray-800 shadow-2xl shadow-purple-500/10 backdrop-blur-xl',
+              card: 'bg-[#0f0f17]/90 border border-gray-800/60 shadow-2xl shadow-purple-900/20 backdrop-blur-xl rounded-2xl',
+              // Hide redundant Clerk header (we have our own above)
               headerTitle: 'hidden',
               headerSubtitle: 'hidden',
               logoBox: 'hidden',
-              socialButtonsBlockButton: 'bg-gray-800 border border-gray-700 hover:bg-gray-700 text-white transition-all',
-              formButtonPrimary: 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-semibold transition-all shadow-lg shadow-purple-500/20',
-              formFieldInput: 'bg-gray-800 border-gray-700 text-white placeholder:text-gray-500',
-              formFieldLabel: 'text-gray-300 font-medium',
-              footerActionLink: 'text-purple-400 hover:text-purple-300',
+              // Social buttons
+              socialButtonsBlockButton:
+                'bg-gray-900 border border-gray-700/60 hover:bg-gray-800 hover:border-gray-600 text-white transition-all duration-200',
+              socialButtonsBlockButtonText: 'text-white font-medium',
+              // Primary action button
+              formButtonPrimary:
+                'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-semibold transition-all duration-200 shadow-lg shadow-purple-900/30',
+              // Divider
+              dividerLine: 'bg-gray-800',
+              dividerText: 'text-gray-600',
+              // Footer link
+              footerActionLink: 'text-purple-400 hover:text-purple-300 transition-colors',
               identityPreviewEditButton: 'text-purple-400 hover:text-purple-300',
-              dividerLine: 'bg-gray-700',
-              dividerText: 'text-gray-500',
+              // Error
               alertText: 'text-red-400',
+              formFieldErrorText: 'text-red-400',
             },
           }}
-          forceRedirectUrl="/chat"
-          fallbackRedirectUrl="/chat"
-          signUpUrl="/sign-up"
         />
       </div>
 

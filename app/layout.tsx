@@ -23,7 +23,6 @@ export const metadata: Metadata = {
     capable: true,
     title: 'HOLLY',
     statusBarStyle: 'black-translucent',
-    // Startup images cleared — iOS generates splash from manifest background_color
   },
   icons: {
     icon: [
@@ -68,26 +67,52 @@ export default function RootLayout({
             <Providers>
               <ClerkProvider
                 /*
-                 * SESSION PERSISTENCE:
-                 * Clerk uses secure HttpOnly cookies by default.
-                 * Sessions persist until the user explicitly clicks "Sign Out".
-                 * No manual cookie config needed — this is Clerk's default behaviour.
-                 * The afterSignOut redirect goes back to the landing page (/),
-                 * so users see the login form again only when they sign out.
+                 * ─── CLERK JS URL ────────────────────────────────────────────────
+                 * The Clerk publishable key encodes "clerk.holly.nexamusicgroup.com"
+                 * as the frontend API domain. That subdomain has an SSL certificate
+                 * misconfiguration (TLS handshake failure) so Clerk's browser.js
+                 * bundle fails to load → the sign-in/sign-up forms never mount.
                  *
-                 * REDIRECT AFTER AUTH:
-                 * forceRedirectUrl takes priority over fallback — ensures /chat is
-                 * the destination after ALL auth flows including email-code MFA
-                 * (/factor-two). Without this Clerk falls through to /factor-two
-                 * which has no page in the app → 404.
+                 * clerkJSUrl overrides the derived script URL and forces Clerk to
+                 * load its JS directly from Clerk's own CDN (js.clerk.com).
+                 * This is the official supported workaround for custom-domain SSL
+                 * issues per Clerk documentation.
+                 *
+                 * ─── REDIRECT URLS ───────────────────────────────────────────────
+                 * Coolify's environment panel injects:
+                 *   NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/dashboard
+                 *   NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/onboarding
+                 *
+                 * Clerk's mergeNextClerkPropsWithEnv() merges env vars AFTER props,
+                 * but afterSignInUrl/afterSignUpUrl use props.X || env.X — meaning
+                 * the prop value wins when explicitly set.
+                 *
+                 * Setting all redirect props explicitly here overrides Coolify env
+                 * vars and ensures users land on /chat after auth (not /dashboard
+                 * which is a blank page or /onboarding which doesn't exist).
+                 *
+                 * ─── SESSION ─────────────────────────────────────────────────────
+                 * Clerk uses HttpOnly secure cookies. Sessions persist until sign-out.
                  */
-                afterSignOutUrl="/"
+
+                // Force Clerk JS to load from Clerk's CDN, bypassing the broken
+                // clerk.holly.nexamusicgroup.com custom domain SSL cert
+                clerkJSUrl="https://js.clerk.com/npm/@clerk/clerk-js@5/dist/clerk.browser.js"
+
+                // Auth page routes
                 signInUrl="/sign-in"
                 signUpUrl="/sign-up"
+                afterSignOutUrl="/"
+
+                // ALL redirect props set explicitly to override Coolify env vars
+                // (NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/dashboard etc.)
+                afterSignInUrl="/chat"
+                afterSignUpUrl="/chat"
                 signInForceRedirectUrl="/chat"
                 signUpForceRedirectUrl="/chat"
                 signInFallbackRedirectUrl="/chat"
                 signUpFallbackRedirectUrl="/chat"
+
                 appearance={{
                   baseTheme: undefined,
                   variables: {
@@ -100,12 +125,14 @@ export default function RootLayout({
                     colorNeutral: '#6b7280',
                   },
                   elements: {
+                    // UserButton popover (profile menu in nav)
                     userButtonPopoverCard:
                       'bg-gray-900 border border-purple-500/20 shadow-2xl shadow-purple-500/20',
                     userButtonPopoverActionButton: 'text-white hover:bg-white/5',
                     userButtonPopoverActionButtonText: 'text-white',
                     userButtonPopoverActionButtonIcon: 'text-gray-400',
                     userButtonPopoverFooter: 'bg-gray-800/50 border-t border-white/10',
+                    // Cards (UserProfile, OrganizationProfile, etc.)
                     card: 'bg-gray-900 border border-purple-500/20',
                     headerTitle: 'text-white',
                     headerSubtitle: 'text-gray-400',
