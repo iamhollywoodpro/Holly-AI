@@ -1,27 +1,81 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// PUBLIC ROUTES — never require authentication
+// ─────────────────────────────────────────────────────────────────────────────
 const isPublicRoute = createRouteMatcher([
   '/',                          // Landing page — always public
   '/sign-in(.*)',
   '/sign-up(.*)',
   '/factor-two(.*)',            // Clerk MFA second-factor verification page
-  '/api/webhooks/(.*)',          // Clerk + GitHub webhooks must be public
-  '/api/health',                // Docker/Coolify health probe — never requires auth
-  '/api/version',               // Version info — public diagnostic endpoint
+  '/api/webhooks/(.*)',         // Clerk + GitHub webhooks
+  '/api/health',                // ⚠️ CRITICAL: Docker/Coolify/Traefik health probe
+  '/api/version',               // Public diagnostic endpoint
   '/offline',
-  '/download/(.*)',              // public download links
-  '/api/v1/(.*)',               // Phase 7: public API — Bearer API-key auth, NOT Clerk
+  '/download/(.*)',
+  '/api/v1/(.*)',               // Public API — Bearer key auth
 ]);
 
-export default clerkMiddleware((auth, req) => {
+// ─────────────────────────────────────────────────────────────────────────────
+// HARD BYPASS PATHS
+// These paths return NextResponse.next() BEFORE Clerk initialises.
+// This guarantees /api/health always returns 200, even when Clerk is broken.
+// Traefik polls this endpoint to decide if the container is healthy; a non-200
+// response causes it to mark the container unhealthy → Gateway Timeout.
+// ─────────────────────────────────────────────────────────────────────────────
+const BYPASS_PATHS = new Set(['/api/health', '/api/version']);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CLERK MIDDLEWARE
+//
+// Clerk v5 change: `auth` is already the auth object — use `auth.protect()`
+// NOT `auth().protect()` (which was Clerk v4 syntax and causes crashes).
+// ─────────────────────────────────────────────────────────────────────────────
+const clerkHandler = clerkMiddleware(async (auth, req) => {
   if (!isPublicRoute(req)) {
-    auth().protect();
+    // Clerk v5: call protect() on auth directly (no parentheses)
+    await auth.protect();
   }
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// MAIN MIDDLEWARE EXPORT
+// ─────────────────────────────────────────────────────────────────────────────
+export default async function middleware(req: NextRequest) {
+  const pathname = req.nextUrl.pathname;
+
+  // ── Hard bypass: health + version must always work ─────────────────────────
+  if (BYPASS_PATHS.has(pathname)) {
+    return NextResponse.next();
+  }
+
+  // ── Delegate to Clerk, catch any config errors gracefully ──────────────────
+  // clerkHandler returns a Promise — await it so we can catch async errors.
+  // This handles cases where CLERK_SECRET_KEY or NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+  // is missing at runtime (Coolify env vars not set), preventing a 500 crash.
+  try {
+    return await Promise.resolve(clerkHandler(req));
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`[HOLLY] Clerk middleware error on "${pathname}": ${msg}`);
+
+    if (isPublicRoute(req)) {
+      // Let public pages render even without auth (degraded mode)
+      return NextResponse.next();
+    }
+
+    // Redirect protected routes to sign-in instead of crashing with 500
+    const signInUrl = new URL('/sign-in', req.url);
+    signInUrl.searchParams.set('redirect_url', req.url);
+    return NextResponse.redirect(signInUrl);
+  }
+}
+
 export const config = {
   matcher: [
-    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
-    '/(api|trpc)(.*)',
+    // Match all paths except Next.js internals and static files
+    '/((?!_next/static|_next/image|favicon\\.ico|manifest\\.json|robots\\.txt|sitemap\\.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2|ttf|otf|eot|mp4|webm|ogg|mp3|wav|pdf|zip)).*)',
   ],
 };

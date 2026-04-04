@@ -1,22 +1,51 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// /api/health — Minimal health probe endpoint
+//
+// RULES (DO NOT VIOLATE):
+//  1. Must ALWAYS return HTTP 200 — even if the database is down
+//  2. Must respond in < 2 seconds — no external calls, no DB queries
+//  3. No authentication — Clerk middleware MUST bypass this route
+//     (see middleware.ts BYPASS_PATHS)
+//  4. No imports from src/lib that could throw at module-load time
+//
+// Used by: Docker HEALTHCHECK, Coolify, Traefik upstream health probe.
+// A non-200 response marks the container as unhealthy and Traefik stops
+// routing traffic → Gateway Timeout for all users.
+// ─────────────────────────────────────────────────────────────────────────────
 import { NextResponse } from 'next/server';
 
-// PUBLIC endpoint - no auth required
-// This is ONLY used by Docker/Coolify healthcheck to confirm the process is alive.
-// It must respond in < 5 seconds and always return HTTP 200.
-// DB checks, env checks, and external API checks are intentionally NOT done here —
-// they all risk hanging or returning non-200 which kills the container.
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+// Explicitly mark as public so any future auth middleware changes don't
+// accidentally protect this route.
+export const fetchCache = 'no-store';
+
 export async function GET() {
-  // Ultra-minimal health check: just confirm the Node.js process and Next.js
-  // server are running. Nothing that can hang or fail externally.
   return NextResponse.json(
     {
       status: 'ok',
       timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
+      uptime: Math.floor(process.uptime()),
+      version: process.env.NEXT_PUBLIC_APP_VERSION ?? 'unknown',
     },
-    { status: 200 }
+    {
+      status: 200,
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+        'X-Health-Check': 'true',
+      },
+    }
   );
+}
+
+// HEAD is used by some load balancers / Traefik health probes
+export async function HEAD() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Cache-Control': 'no-store',
+      'X-Health-Check': 'true',
+    },
+  });
 }

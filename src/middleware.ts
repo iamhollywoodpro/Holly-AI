@@ -1,28 +1,10 @@
-import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
-
-// 1. Define Public Routes
-const isPublicRoute = createRouteMatcher([
-  "/",
-  "/sign-in(.*)",
-  "/sign-up(.*)",
-  "/api/webhook",
-  "/api/chat(.*)",        
-  "/api/settings",        
-  "/api/suggestions/(.*)",
-  "/api/conversations/(.*)" 
-]);
-
-// 2. Export Middleware
-export default clerkMiddleware((auth, request) => {
-  if (!isPublicRoute(request)) {
-    auth().protect();
-  }
-});
-
-// 3. Matcher Config
-export const config = {
-  matcher: [
-    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
-    '/(api|trpc)(.*)',
-  ],
-};
+// ─────────────────────────────────────────────────────────────────────────────
+// src/middleware.ts — DEPRECATED / INACTIVE
+//
+// Next.js only loads ONE middleware file. The active middleware is at the
+// project root: /middleware.ts
+//
+// This file is kept for reference but is NOT executed by Next.js.
+// Do NOT add logic here — edit /middleware.ts instead.
+// ─────────────────────────────────────────────────────────────────────────────
+export {};
