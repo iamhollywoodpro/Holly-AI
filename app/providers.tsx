@@ -1,41 +1,47 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useSettings } from '@/lib/settings/settings-store';
+import { useAuth } from '@clerk/nextjs';
+import { usePathname } from 'next/navigation';
+
+// Pages where we should NOT attempt to load user settings.
+// On these pages the user is unauthenticated, so /api/settings would
+// redirect to /sign-in and return HTML instead of JSON — causing a
+// "SyntaxError: Unexpected token '<'" console error on every page load.
+const AUTH_PAGES = new Set(['/sign-in', '/sign-up', '/']);
 
 /**
- * Settings Provider - Loads and applies user settings globally
- * This component initializes settings and applies theme changes
+ * Settings Provider - Loads and applies user settings globally.
+ * Only fetches settings when the user is signed in and on an authenticated page.
  */
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const { settings, loadSettings } = useSettings();
+  const { isSignedIn, isLoaded } = useAuth();
+  const pathname = usePathname();
 
-  // Load settings on mount
+  // Only load settings when auth is ready AND user is signed in AND not on an auth page
+  const shouldLoadSettings = isLoaded && isSignedIn && !AUTH_PAGES.has(pathname ?? '');
+
   useEffect(() => {
-    loadSettings();
-  }, [loadSettings]);
+    if (shouldLoadSettings) {
+      loadSettings();
+    }
+  }, [shouldLoadSettings, loadSettings]);
 
   // Apply theme to document
   useEffect(() => {
     const root = document.documentElement;
-    
-    // Apply theme
     root.setAttribute('data-theme', settings.appearance.theme);
-    
-    // Apply color scheme
     root.setAttribute('data-color-scheme', settings.appearance.colorScheme);
-    
-    // Apply font size
     root.setAttribute('data-font-size', settings.appearance.fontSize);
-    
-    // Apply compact mode
+
     if (settings.appearance.compactMode) {
       root.classList.add('compact-mode');
     } else {
       root.classList.remove('compact-mode');
     }
-    
-    // Apply animations
+
     if (!settings.appearance.animations) {
       root.classList.add('no-animations');
     } else {
@@ -46,7 +52,6 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   // Apply debug mode
   useEffect(() => {
     if (settings.developer.debugMode) {
-      console.log('[HOLLY Debug] Debug mode enabled');
       window.__HOLLY_DEBUG__ = true;
     } else {
       window.__HOLLY_DEBUG__ = false;
