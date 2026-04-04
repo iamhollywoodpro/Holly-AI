@@ -46,6 +46,13 @@ ARG NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
 ARG NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/chat
 ARG NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/chat
 
+# CRITICAL: Force Clerk JS to load from official CDN instead of the custom
+# domain clerk.holly.nexamusicgroup.com which has a TLS handshake failure.
+# This env var is read by mergeNextClerkPropsWithEnv as a fallback, but the
+# clerkJSUrl prop in app/layout.tsx takes explicit priority.
+# Both are set here for belt-and-suspenders reliability.
+ARG NEXT_PUBLIC_CLERK_JS_URL=https://js.clerk.com/npm/@clerk/clerk-js@5/dist/clerk.browser.js
+
 # ── App config ────────────────────────────────────────────────────────────────
 ARG NEXT_PUBLIC_APP_URL
 ARG NEXT_PUBLIC_APP_NAME=HOLLY
@@ -65,6 +72,7 @@ ENV NEXT_PUBLIC_CLERK_SIGN_IN_URL=$NEXT_PUBLIC_CLERK_SIGN_IN_URL
 ENV NEXT_PUBLIC_CLERK_SIGN_UP_URL=$NEXT_PUBLIC_CLERK_SIGN_UP_URL
 ENV NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=$NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL
 ENV NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=$NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL
+ENV NEXT_PUBLIC_CLERK_JS_URL=$NEXT_PUBLIC_CLERK_JS_URL
 ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
 ENV NEXT_PUBLIC_APP_NAME=$NEXT_PUBLIC_APP_NAME
 ENV NEXT_PUBLIC_APP_VERSION=$NEXT_PUBLIC_APP_VERSION

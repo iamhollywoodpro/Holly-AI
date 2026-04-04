@@ -3,11 +3,12 @@
 import { SignUp } from '@clerk/nextjs';
 import { useAuth } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 export default function SignUpPage() {
   const { isSignedIn, isLoaded } = useAuth();
   const router = useRouter();
+  const [clerkReady, setClerkReady] = useState(false);
 
   // Already signed in → go to chat
   useEffect(() => {
@@ -15,6 +16,13 @@ export default function SignUpPage() {
       router.replace('/chat');
     }
   }, [isLoaded, isSignedIn, router]);
+
+  // Show content once Clerk has initialised
+  useEffect(() => {
+    if (isLoaded) {
+      setClerkReady(true);
+    }
+  }, [isLoaded]);
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-[#050508] px-4 relative overflow-hidden">
@@ -35,8 +43,16 @@ export default function SignUpPage() {
           <p className="text-gray-400 text-sm mt-1.5">Create your account — it's free</p>
         </div>
 
+        {/* Loading state shown while Clerk initialises */}
+        {!clerkReady && (
+          <div className="flex flex-col items-center justify-center py-16 gap-4">
+            <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+            <p className="text-gray-500 text-sm">Loading...</p>
+          </div>
+        )}
+
         {/*
-          Clerk SignUp component.
+          Clerk SignUp component — only rendered once Clerk has initialised.
 
           ROUTING: Must use routing="path" with path="/sign-up" for Next.js
           App Router catch-all routes [[...sign-up]]. Without this Clerk can't
@@ -44,44 +60,46 @@ export default function SignUpPage() {
 
           REDIRECT: forceRedirectUrl="/chat" overrides Coolify env vars.
         */}
-        <SignUp
-          routing="path"
-          path="/sign-up"
-          forceRedirectUrl="/chat"
-          fallbackRedirectUrl="/chat"
-          signInUrl="/sign-in"
-          appearance={{
-            variables: {
-              colorPrimary: '#a855f7',
-              colorBackground: '#0f0f17',
-              colorInputBackground: '#1a1a2e',
-              colorInputText: '#ffffff',
-              colorText: '#ffffff',
-              colorTextSecondary: '#9ca3af',
-              colorNeutral: '#4b5563',
-              borderRadius: '0.75rem',
-              fontFamily: 'Inter, system-ui, sans-serif',
-            },
-            elements: {
-              rootBox: 'w-full',
-              card: 'bg-[#0f0f17]/90 border border-gray-800/60 shadow-2xl shadow-purple-900/20 backdrop-blur-xl rounded-2xl',
-              headerTitle: 'hidden',
-              headerSubtitle: 'hidden',
-              logoBox: 'hidden',
-              socialButtonsBlockButton:
-                'bg-gray-900 border border-gray-700/60 hover:bg-gray-800 hover:border-gray-600 text-white transition-all duration-200',
-              socialButtonsBlockButtonText: 'text-white font-medium',
-              formButtonPrimary:
-                'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-semibold transition-all duration-200 shadow-lg shadow-purple-900/30',
-              dividerLine: 'bg-gray-800',
-              dividerText: 'text-gray-600',
-              footerActionLink: 'text-purple-400 hover:text-purple-300 transition-colors',
-              identityPreviewEditButton: 'text-purple-400 hover:text-purple-300',
-              alertText: 'text-red-400',
-              formFieldErrorText: 'text-red-400',
-            },
-          }}
-        />
+        {clerkReady && (
+          <SignUp
+            routing="path"
+            path="/sign-up"
+            forceRedirectUrl="/chat"
+            fallbackRedirectUrl="/chat"
+            signInUrl="/sign-in"
+            appearance={{
+              variables: {
+                colorPrimary: '#a855f7',
+                colorBackground: '#0f0f17',
+                colorInputBackground: '#1a1a2e',
+                colorInputText: '#ffffff',
+                colorText: '#ffffff',
+                colorTextSecondary: '#9ca3af',
+                colorNeutral: '#4b5563',
+                borderRadius: '0.75rem',
+                fontFamily: 'Inter, system-ui, sans-serif',
+              },
+              elements: {
+                rootBox: 'w-full',
+                card: 'bg-[#0f0f17]/90 border border-gray-800/60 shadow-2xl shadow-purple-900/20 backdrop-blur-xl rounded-2xl',
+                headerTitle: 'hidden',
+                headerSubtitle: 'hidden',
+                logoBox: 'hidden',
+                socialButtonsBlockButton:
+                  'bg-gray-900 border border-gray-700/60 hover:bg-gray-800 hover:border-gray-600 text-white transition-all duration-200',
+                socialButtonsBlockButtonText: 'text-white font-medium',
+                formButtonPrimary:
+                  'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-semibold transition-all duration-200 shadow-lg shadow-purple-900/30',
+                dividerLine: 'bg-gray-800',
+                dividerText: 'text-gray-600',
+                footerActionLink: 'text-purple-400 hover:text-purple-300 transition-colors',
+                identityPreviewEditButton: 'text-purple-400 hover:text-purple-300',
+                alertText: 'text-red-400',
+                formFieldErrorText: 'text-red-400',
+              },
+            }}
+          />
+        )}
       </div>
 
       {/* Footer */}

@@ -3,11 +3,12 @@
 import { SignIn } from '@clerk/nextjs';
 import { useAuth } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 export default function SignInPage() {
   const { isSignedIn, isLoaded } = useAuth();
   const router = useRouter();
+  const [clerkReady, setClerkReady] = useState(false);
 
   // Already signed in → go straight to chat
   useEffect(() => {
@@ -15,6 +16,14 @@ export default function SignInPage() {
       router.replace('/chat');
     }
   }, [isLoaded, isSignedIn, router]);
+
+  // Track when Clerk initialises so we can show a loading state instead
+  // of a blank card if the auth context hasn't hydrated yet
+  useEffect(() => {
+    if (isLoaded) {
+      setClerkReady(true);
+    }
+  }, [isLoaded]);
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-[#050508] px-4 relative overflow-hidden">
@@ -35,65 +44,75 @@ export default function SignInPage() {
           <p className="text-gray-400 text-sm mt-1.5">Sign in to continue your session</p>
         </div>
 
+        {/* Loading state shown while Clerk initialises */}
+        {!clerkReady && (
+          <div className="flex flex-col items-center justify-center py-16 gap-4">
+            <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+            <p className="text-gray-500 text-sm">Loading...</p>
+          </div>
+        )}
+
         {/*
-          Clerk SignIn component.
-          
+          Clerk SignIn component — only rendered once Clerk has initialised.
+
           ROUTING: Must use routing="path" with path="/sign-in" for Next.js
           App Router catch-all routes [[...sign-in]]. Without this Clerk can't
           handle multi-step flows (email → password → MFA) correctly.
-          
+
           REDIRECT: forceRedirectUrl="/chat" overrides ALL other redirect settings
           including Coolify env vars (NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/dashboard).
-          
+
           APPEARANCE: Only use variables (CSS custom properties) — do NOT override
           element class names for form inputs, as this breaks Clerk's internal layout
           in v5. Only override cosmetic/color elements.
         */}
-        <SignIn
-          routing="path"
-          path="/sign-in"
-          forceRedirectUrl="/chat"
-          fallbackRedirectUrl="/chat"
-          signUpUrl="/sign-up"
-          appearance={{
-            variables: {
-              colorPrimary: '#a855f7',
-              colorBackground: '#0f0f17',
-              colorInputBackground: '#1a1a2e',
-              colorInputText: '#ffffff',
-              colorText: '#ffffff',
-              colorTextSecondary: '#9ca3af',
-              colorNeutral: '#4b5563',
-              borderRadius: '0.75rem',
-              fontFamily: 'Inter, system-ui, sans-serif',
-            },
-            elements: {
-              // Card shell
-              rootBox: 'w-full',
-              card: 'bg-[#0f0f17]/90 border border-gray-800/60 shadow-2xl shadow-purple-900/20 backdrop-blur-xl rounded-2xl',
-              // Hide redundant Clerk header (we have our own above)
-              headerTitle: 'hidden',
-              headerSubtitle: 'hidden',
-              logoBox: 'hidden',
-              // Social buttons
-              socialButtonsBlockButton:
-                'bg-gray-900 border border-gray-700/60 hover:bg-gray-800 hover:border-gray-600 text-white transition-all duration-200',
-              socialButtonsBlockButtonText: 'text-white font-medium',
-              // Primary action button
-              formButtonPrimary:
-                'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-semibold transition-all duration-200 shadow-lg shadow-purple-900/30',
-              // Divider
-              dividerLine: 'bg-gray-800',
-              dividerText: 'text-gray-600',
-              // Footer link
-              footerActionLink: 'text-purple-400 hover:text-purple-300 transition-colors',
-              identityPreviewEditButton: 'text-purple-400 hover:text-purple-300',
-              // Error
-              alertText: 'text-red-400',
-              formFieldErrorText: 'text-red-400',
-            },
-          }}
-        />
+        {clerkReady && (
+          <SignIn
+            routing="path"
+            path="/sign-in"
+            forceRedirectUrl="/chat"
+            fallbackRedirectUrl="/chat"
+            signUpUrl="/sign-up"
+            appearance={{
+              variables: {
+                colorPrimary: '#a855f7',
+                colorBackground: '#0f0f17',
+                colorInputBackground: '#1a1a2e',
+                colorInputText: '#ffffff',
+                colorText: '#ffffff',
+                colorTextSecondary: '#9ca3af',
+                colorNeutral: '#4b5563',
+                borderRadius: '0.75rem',
+                fontFamily: 'Inter, system-ui, sans-serif',
+              },
+              elements: {
+                // Card shell
+                rootBox: 'w-full',
+                card: 'bg-[#0f0f17]/90 border border-gray-800/60 shadow-2xl shadow-purple-900/20 backdrop-blur-xl rounded-2xl',
+                // Hide redundant Clerk header (we have our own above)
+                headerTitle: 'hidden',
+                headerSubtitle: 'hidden',
+                logoBox: 'hidden',
+                // Social buttons (Google, GitHub, etc.)
+                socialButtonsBlockButton:
+                  'bg-gray-900 border border-gray-700/60 hover:bg-gray-800 hover:border-gray-600 text-white transition-all duration-200',
+                socialButtonsBlockButtonText: 'text-white font-medium',
+                // Primary action button
+                formButtonPrimary:
+                  'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-semibold transition-all duration-200 shadow-lg shadow-purple-900/30',
+                // Divider
+                dividerLine: 'bg-gray-800',
+                dividerText: 'text-gray-600',
+                // Footer link
+                footerActionLink: 'text-purple-400 hover:text-purple-300 transition-colors',
+                identityPreviewEditButton: 'text-purple-400 hover:text-purple-300',
+                // Error states
+                alertText: 'text-red-400',
+                formFieldErrorText: 'text-red-400',
+              },
+            }}
+          />
+        )}
       </div>
 
       {/* Footer */}
