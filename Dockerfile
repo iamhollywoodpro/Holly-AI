@@ -31,6 +31,9 @@ COPY . .
 # time → Clerk throws "Missing Publishable Key" → server crashes on startup.
 
 # Auth (Clerk) — CRITICAL: client bundle needs the publishable key baked in
+# NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY is baked into the client bundle at build time
+# CLERK_SECRET_KEY is a runtime secret — set it in Coolify's Environment Variables
+# panel (not as a build arg). It is NOT baked into the image for security.
 ARG NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
 ARG NEXT_PUBLIC_APP_URL
 ARG NEXT_PUBLIC_APP_NAME=HOLLY
@@ -47,7 +50,7 @@ ARG NEXT_PUBLIC_APP_VERSION
 ARG NEXT_PUBLIC_MUSIC_STUDIO_VERSION
 ARG NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
 ARG NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
-# After-sign-in/up must go to /chat (not /dashboard — that route does not exist as a standalone page)
+# After-sign-in/up must go to /chat (not /dashboard — that route does not exist)
 ARG NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/chat
 ARG NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/chat
 
@@ -80,6 +83,7 @@ RUN npm run build
 
 # ── Stage 3: Production runner ────────────────────────────────────────────────
 FROM node:20-alpine AS runner
+# curl is required for the HEALTHCHECK below
 RUN apk add --no-cache libc6-compat openssl curl
 WORKDIR /app
 
@@ -108,9 +112,23 @@ USER nextjs
 
 EXPOSE 3000
 
-# No HEALTHCHECK here — Coolify/Traefik uses its own health probe.
-# A Docker HEALTHCHECK keeps the container in "starting" state during
-# start-period, which causes Traefik to return 503 until it passes.
-# Without a HEALTHCHECK Docker marks the container healthy immediately
-# so Traefik routes traffic to it as soon as the process starts.
+# ── HEALTHCHECK ───────────────────────────────────────────────────────────────
+# Purpose: Tell Docker (and Coolify) when the app is actually ready to serve
+# traffic. Without this, Docker marks the container "healthy" the moment the
+# process starts — before Next.js has finished initializing — causing Traefik
+# to route requests to an unready server → Gateway Timeout.
+#
+# Parameters explained:
+#   --start-period=30s  Give the app 30 s to boot before failing counts start.
+#                       Coolify/Traefik won't route traffic until the FIRST
+#                       successful check AFTER the start-period.
+#   --interval=10s      Check every 10 s (fast enough to detect crashes quickly)
+#   --timeout=5s        Consider the check failed if it takes > 5 s to respond
+#   --retries=3         Mark unhealthy only after 3 consecutive failures
+#
+# NOTE: Coolify has its own "Health check" config (separate from Docker). Make
+# sure Coolify's health check path is set to /api/health as well.
+HEALTHCHECK --start-period=30s --interval=10s --timeout=5s --retries=3 \
+  CMD curl -f http://localhost:3000/api/health || exit 1
+
 CMD ["node", "server.js"]
