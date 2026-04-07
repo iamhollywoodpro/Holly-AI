@@ -46,12 +46,14 @@ ARG NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
 ARG NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/chat
 ARG NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/chat
 
-# CRITICAL: Force Clerk JS to load from official CDN instead of the custom
-# domain clerk.holly.nexamusicgroup.com which has a TLS handshake failure.
-# This env var is read by mergeNextClerkPropsWithEnv as a fallback, but the
-# clerkJSUrl prop in app/layout.tsx takes explicit priority.
-# Both are set here for belt-and-suspenders reliability.
-ARG NEXT_PUBLIC_CLERK_JS_URL=https://js.clerk.com/npm/@clerk/clerk-js@5/dist/clerk.browser.js
+# CRITICAL: Force Clerk JS to load from Holly's own domain instead of external CDN.
+# clerk.browser.js and all chunk files are copied to /public at build time below.
+# The clerkJSUrl prop in app/layout.tsx sets this to "/clerk.browser.js" explicitly.
+ARG NEXT_PUBLIC_CLERK_JS_URL=/clerk.browser.js
+
+# CRITICAL: Route all Clerk API calls through Holly's proxy to bypass broken TLS
+# on clerk.holly.nexamusicgroup.com. The proxyUrl prop in ClerkProvider uses this.
+ARG NEXT_PUBLIC_CLERK_PROXY_URL=https://holly.nexamusicgroup.com/api/clerk
 
 # ── App config ────────────────────────────────────────────────────────────────
 ARG NEXT_PUBLIC_APP_URL
@@ -73,6 +75,7 @@ ENV NEXT_PUBLIC_CLERK_SIGN_UP_URL=$NEXT_PUBLIC_CLERK_SIGN_UP_URL
 ENV NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=$NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL
 ENV NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=$NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL
 ENV NEXT_PUBLIC_CLERK_JS_URL=$NEXT_PUBLIC_CLERK_JS_URL
+ENV NEXT_PUBLIC_CLERK_PROXY_URL=$NEXT_PUBLIC_CLERK_PROXY_URL
 ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
 ENV NEXT_PUBLIC_APP_NAME=$NEXT_PUBLIC_APP_NAME
 ENV NEXT_PUBLIC_APP_VERSION=$NEXT_PUBLIC_APP_VERSION
@@ -83,10 +86,13 @@ ENV NEXT_PUBLIC_ENABLE_VIDEO_GENERATION=$NEXT_PUBLIC_ENABLE_VIDEO_GENERATION
 ENV NEXT_PUBLIC_ENABLE_ARTIST_CREATION=$NEXT_PUBLIC_ENABLE_ARTIST_CREATION
 ENV NEXT_PUBLIC_ENABLE_TRUE_STREAMING=$NEXT_PUBLIC_ENABLE_TRUE_STREAMING
 
-# Copy Clerk JS bundle into /public so it's served from Holly's own domain.
-# This avoids loading from external CDN (js.clerk.com or clerk.holly.nexamusicgroup.com)
-# which may be unreachable from inside the Docker container.
-RUN cp node_modules/@clerk/clerk-js/dist/clerk.browser.js public/clerk.browser.js
+# Copy Clerk JS bundle + all chunk files into /public so they're served from Holly's own domain.
+# This avoids loading from external CDN (js.clerk.com or clerk.holly.nexamusicgroup.com).
+# clerk.browser.js is the main bundle; the *_clerk.browser_*.js files are lazy-loaded chunks
+# that webpack requests from the same path as the main bundle.
+RUN cp node_modules/@clerk/clerk-js/dist/clerk.browser.js public/clerk.browser.js && \
+    cp node_modules/@clerk/clerk-js/dist/*_clerk.browser_*.js public/ && \
+    echo "Clerk files copied: $(ls public/*clerk* | wc -l) files"
 
 # Generate Prisma client
 RUN npx prisma generate
