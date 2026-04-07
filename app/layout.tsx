@@ -98,11 +98,24 @@ export default function RootLayout({
          * and overrides even __clerk_redirect_url query params.
          */}
         <ClerkProvider
-          // Load Clerk JS from Holly's own domain — avoids external CDN dependency.
-          // clerk.browser.js is copied from node_modules/@clerk/clerk-js/dist/
-          // into /public at build time (see Dockerfile COPY step + package.json).
-          // This works even when the server has no outbound internet access.
+          // ── Clerk JS: serve from Holly's own domain ──────────────────────────
+          // clerk.browser.js + all chunk files are copied from @clerk/clerk-js
+          // into /public at build time (Dockerfile COPY step).
+          // This removes any external CDN dependency from the browser.
           clerkJSUrl="/clerk.browser.js"
+
+          // ── Clerk API Proxy ──────────────────────────────────────────────────
+          // The publishable key encodes "clerk.holly.nexamusicgroup.com" as the
+          // Frontend API domain. That subdomain has a broken TLS cert (SSLv3
+          // alert handshake failure), so ALL Clerk API calls fail from the browser.
+          //
+          // proxyUrl routes all Clerk API traffic through Holly's own server:
+          //   Browser → https://holly.nexamusicgroup.com/api/clerk/v1/...
+          //   Next.js proxy → https://clerk.holly.nexamusicgroup.com/v1/...
+          //
+          // The server-to-server call avoids the browser TLS restriction.
+          // Reference: https://clerk.com/docs/advanced-usage/proxy
+          proxyUrl="https://holly.nexamusicgroup.com/api/clerk"
 
           // Auth page routes
           signInUrl="/sign-in"

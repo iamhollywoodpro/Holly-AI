@@ -14,6 +14,7 @@ const isPublicRoute = createRouteMatcher([
   '/api/health',                // ⚠️ CRITICAL: Docker/Coolify/Traefik health probe
   '/api/version',               // Public diagnostic endpoint
   '/clerk.browser.js',          // Clerk JS bundle served locally — must be public
+  '/api/clerk/(.*)',            // Clerk API proxy — must be public (handles its own auth)
   '/offline',
   '/download/(.*)',
   '/api/v1/(.*)',               // Public API — Bearer key auth
@@ -29,6 +30,8 @@ const isPublicRoute = createRouteMatcher([
 // so the sign-in page can load Clerk without an external CDN dependency.
 // ─────────────────────────────────────────────────────────────────────────────
 const BYPASS_PATHS = new Set(['/api/health', '/api/version', '/clerk.browser.js']);
+// Also bypass all /api/clerk/* paths (Clerk proxy — handles its own auth)
+const BYPASS_PREFIX = ['/api/clerk/'];
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CLERK MIDDLEWARE
@@ -51,6 +54,10 @@ export default async function middleware(req: NextRequest) {
 
   // ── Hard bypass: health + version must always work ─────────────────────────
   if (BYPASS_PATHS.has(pathname)) {
+    return NextResponse.next();
+  }
+  // Bypass Clerk proxy paths (they handle their own auth forwarding)
+  if (BYPASS_PREFIX.some(prefix => pathname.startsWith(prefix))) {
     return NextResponse.next();
   }
 
@@ -78,7 +85,7 @@ export default async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    // Match all paths except Next.js internals and static files
-    '/((?!_next/static|_next/image|favicon\\.ico|manifest\\.json|robots\\.txt|sitemap\\.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2|ttf|otf|eot|mp4|webm|ogg|mp3|wav|pdf|zip)).*)',
+    // Match all paths except Next.js internals, static files, and clerk chunk files
+    '/((?!_next/static|_next/image|favicon\\.ico|manifest\\.json|robots\\.txt|sitemap\\.xml|clerk\\.browser\\.js|.*_clerk\\.browser_.*\\.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2|ttf|otf|eot|mp4|webm|ogg|mp3|wav|pdf|zip)).*)',
   ],
 };
