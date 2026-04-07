@@ -123,9 +123,8 @@ export default function RootLayout({
           signUpUrl="/sign-up"
           afterSignOutUrl="/"
 
-          // Force redirect to /chat after auth — explicit props override ALL env vars
-          afterSignInUrl="/chat"
-          afterSignUpUrl="/chat"
+          // Force redirect to /chat after auth.
+          // Use the v5 API (forceRedirectUrl / fallbackRedirectUrl) — NOT deprecated afterSignInUrl.
           signInForceRedirectUrl="/chat"
           signUpForceRedirectUrl="/chat"
           signInFallbackRedirectUrl="/chat"
