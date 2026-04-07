@@ -13,6 +13,7 @@ const isPublicRoute = createRouteMatcher([
   '/api/webhooks/(.*)',         // Clerk + GitHub webhooks
   '/api/health',                // ⚠️ CRITICAL: Docker/Coolify/Traefik health probe
   '/api/version',               // Public diagnostic endpoint
+  '/clerk.browser.js',          // Clerk JS bundle served locally — must be public
   '/offline',
   '/download/(.*)',
   '/api/v1/(.*)',               // Public API — Bearer key auth
@@ -24,8 +25,10 @@ const isPublicRoute = createRouteMatcher([
 // This guarantees /api/health always returns 200, even when Clerk is broken.
 // Traefik polls this endpoint to decide if the container is healthy; a non-200
 // response causes it to mark the container unhealthy → Gateway Timeout.
+// clerk.browser.js is served from /public and must be publicly accessible
+// so the sign-in page can load Clerk without an external CDN dependency.
 // ─────────────────────────────────────────────────────────────────────────────
-const BYPASS_PATHS = new Set(['/api/health', '/api/version']);
+const BYPASS_PATHS = new Set(['/api/health', '/api/version', '/clerk.browser.js']);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CLERK MIDDLEWARE

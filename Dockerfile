@@ -83,6 +83,11 @@ ENV NEXT_PUBLIC_ENABLE_VIDEO_GENERATION=$NEXT_PUBLIC_ENABLE_VIDEO_GENERATION
 ENV NEXT_PUBLIC_ENABLE_ARTIST_CREATION=$NEXT_PUBLIC_ENABLE_ARTIST_CREATION
 ENV NEXT_PUBLIC_ENABLE_TRUE_STREAMING=$NEXT_PUBLIC_ENABLE_TRUE_STREAMING
 
+# Copy Clerk JS bundle into /public so it's served from Holly's own domain.
+# This avoids loading from external CDN (js.clerk.com or clerk.holly.nexamusicgroup.com)
+# which may be unreachable from inside the Docker container.
+RUN cp node_modules/@clerk/clerk-js/dist/clerk.browser.js public/clerk.browser.js
+
 # Generate Prisma client
 RUN npx prisma generate
 
