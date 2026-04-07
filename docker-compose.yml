@@ -38,8 +38,11 @@ services:
         NEXT_PUBLIC_ENABLE_TRUE_STREAMING: ${NEXT_PUBLIC_ENABLE_TRUE_STREAMING:-true}
         NEXT_PUBLIC_CLERK_SIGN_IN_URL: ${NEXT_PUBLIC_CLERK_SIGN_IN_URL:-/sign-in}
         NEXT_PUBLIC_CLERK_SIGN_UP_URL: ${NEXT_PUBLIC_CLERK_SIGN_UP_URL:-/sign-up}
-        NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL: ${NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL:-/dashboard}
-        NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL: ${NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL:-/dashboard}
+        # NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL and AFTER_SIGN_UP_URL are intentionally
+        # NOT passed as build args. Redirects are controlled exclusively via
+        # forceRedirectUrl="/chat" props in app/layout.tsx and sign-in/sign-up pages.
+        # Passing these args caused Coolify to lock them in its env panel,
+        # and the /dashboard default sent users to a blank page.
     container_name: holly-app
     restart: unless-stopped
     ports:
