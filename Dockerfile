@@ -45,21 +45,14 @@ ARG NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
 ARG NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
 
 # CRITICAL: Force redirect to /chat after auth.
-# Coolify may have NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/dashboard set in its
-# env panel — this hardcodes /chat as the default so even if Coolify passes
-# wrong values, our code-level forceRedirectUrl="/chat" props take priority.
-# Setting these to /chat here also prevents the blank-screen issue where
-# afterSignInUrl=/dashboard redirects users to a non-existent page.
 ARG NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/chat
 ARG NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/chat
 
-# CRITICAL: Force Clerk JS to load from Holly's own domain instead of external CDN.
-# clerk.browser.js and all chunk files are copied to /public at build time below.
-# The clerkJSUrl prop in app/layout.tsx sets this to "/clerk.browser.js" explicitly.
-ARG NEXT_PUBLIC_CLERK_JS_URL=/clerk.browser.js
-
-# CRITICAL: Route all Clerk API calls through Holly's proxy to bypass broken TLS
-# on clerk.holly.nexamusicgroup.com. The proxyUrl prop in ClerkProvider uses this.
+# CRITICAL: Route ALL Clerk traffic (API + JS bundle) through Holly's proxy.
+# With proxyUrl set, @clerk/nextjs v5 automatically builds the clerk-js script URL as:
+#   https://holly.nexamusicgroup.com/api/clerk/npm/@clerk/clerk-js@5/dist/clerk.browser.js
+# The proxy follows the 307 redirect from clerk.clerk.com and serves the correct v5 bundle.
+# DO NOT set NEXT_PUBLIC_CLERK_JS_URL — it overrides this and can serve a wrong version.
 ARG NEXT_PUBLIC_CLERK_PROXY_URL=https://holly.nexamusicgroup.com/api/clerk
 
 # ── App config ────────────────────────────────────────────────────────────────
@@ -81,7 +74,6 @@ ENV NEXT_PUBLIC_CLERK_SIGN_IN_URL=$NEXT_PUBLIC_CLERK_SIGN_IN_URL
 ENV NEXT_PUBLIC_CLERK_SIGN_UP_URL=$NEXT_PUBLIC_CLERK_SIGN_UP_URL
 ENV NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=$NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL
 ENV NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=$NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL
-ENV NEXT_PUBLIC_CLERK_JS_URL=$NEXT_PUBLIC_CLERK_JS_URL
 ENV NEXT_PUBLIC_CLERK_PROXY_URL=$NEXT_PUBLIC_CLERK_PROXY_URL
 ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
 ENV NEXT_PUBLIC_APP_NAME=$NEXT_PUBLIC_APP_NAME
@@ -93,9 +85,8 @@ ENV NEXT_PUBLIC_ENABLE_VIDEO_GENERATION=$NEXT_PUBLIC_ENABLE_VIDEO_GENERATION
 ENV NEXT_PUBLIC_ENABLE_ARTIST_CREATION=$NEXT_PUBLIC_ENABLE_ARTIST_CREATION
 ENV NEXT_PUBLIC_ENABLE_TRUE_STREAMING=$NEXT_PUBLIC_ENABLE_TRUE_STREAMING
 
-# NOTE: Clerk JS bundle (clerk.browser.js) and all chunk files are already
-# committed to public/ in git and copied above via 'COPY . .'
-# No separate npm package or cp step needed — do NOT add @clerk/clerk-js to package.json
+# The clerk-js bundle is served via /api/clerk/npm/... proxy path.
+# No static files in public/ needed — proxy fetches from clerk.clerk.com.
 
 # Generate Prisma client
 RUN npx prisma generate
