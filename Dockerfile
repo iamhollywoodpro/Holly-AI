@@ -15,13 +15,21 @@ WORKDIR /app
 COPY prisma ./prisma
 COPY package.json package-lock.json* ./
 
-# Skip browser downloads for playwright (test-only) and disable
-# @xenova/transformers postinstall to keep build fast and lean.
-# These are only needed locally — not in the production container.
+# ── Skip ALL binary/model downloads during npm ci ────────────────────────────
+# @prisma/engines downloads a ~50MB query-engine binary per platform.
+# sharp downloads a prebuilt libvips binary (~10MB).
+# playwright downloads browser binaries (~300MB) — test-only, not needed here.
+# @xenova/transformers has a heavy postinstall.
+#
+# Solution: install with --ignore-scripts, then run ONLY prisma generate in
+# the builder stage (after COPY . . so schema.prisma is available).
+# This eliminates ALL network fetches during npm ci → build is fast + reliable.
 ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 ENV TRANSFORMERS_OFFLINE=1
+ENV PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1
+ENV SHARP_IGNORE_GLOBAL_LIBVIPS=1
 
-RUN npm ci
+RUN npm ci --ignore-scripts
 
 # ── Stage 2: Build the Next.js app ───────────────────────────────────────────
 FROM node:20-alpine AS builder
@@ -89,6 +97,10 @@ ENV NEXT_PUBLIC_ENABLE_TRUE_STREAMING=$NEXT_PUBLIC_ENABLE_TRUE_STREAMING
 # No static files in public/ needed — proxy fetches from clerk.clerk.com.
 
 # Generate Prisma client
+# PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1 prevents checksum failures if the
+# platform-specific engine binary wasn't pre-downloaded during npm ci --ignore-scripts.
+# Prisma generate only needs the schema-engine (CLI tool), not the query engine.
+ENV PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1
 RUN npx prisma generate
 
 # Build with 4 GB heap (needed for this large Next.js app)
