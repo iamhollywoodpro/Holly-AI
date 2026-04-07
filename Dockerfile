@@ -14,7 +14,7 @@ WORKDIR /app
 # "prisma generate" can find schema.prisma at install time
 COPY prisma ./prisma
 COPY package.json package-lock.json* ./
-RUN npm ci --prefer-offline
+RUN npm ci
 
 # ── Stage 2: Build the Next.js app ───────────────────────────────────────────
 FROM node:20-alpine AS builder
@@ -86,13 +86,9 @@ ENV NEXT_PUBLIC_ENABLE_VIDEO_GENERATION=$NEXT_PUBLIC_ENABLE_VIDEO_GENERATION
 ENV NEXT_PUBLIC_ENABLE_ARTIST_CREATION=$NEXT_PUBLIC_ENABLE_ARTIST_CREATION
 ENV NEXT_PUBLIC_ENABLE_TRUE_STREAMING=$NEXT_PUBLIC_ENABLE_TRUE_STREAMING
 
-# Copy Clerk JS bundle + all chunk files into /public so they're served from Holly's own domain.
-# This avoids loading from external CDN (js.clerk.com or clerk.holly.nexamusicgroup.com).
-# clerk.browser.js is the main bundle; the *_clerk.browser_*.js files are lazy-loaded chunks
-# that webpack requests from the same path as the main bundle.
-RUN cp node_modules/@clerk/clerk-js/dist/clerk.browser.js public/clerk.browser.js && \
-    cp node_modules/@clerk/clerk-js/dist/*_clerk.browser_*.js public/ && \
-    echo "Clerk files copied: $(ls public/*clerk* | wc -l) files"
+# NOTE: Clerk JS bundle (clerk.browser.js) and all chunk files are already
+# committed to public/ in git and copied above via 'COPY . .'
+# No separate npm package or cp step needed — do NOT add @clerk/clerk-js to package.json
 
 # Generate Prisma client
 RUN npx prisma generate
