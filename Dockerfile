@@ -14,6 +14,13 @@ WORKDIR /app
 # "prisma generate" can find schema.prisma at install time
 COPY prisma ./prisma
 COPY package.json package-lock.json* ./
+
+# Skip browser downloads for playwright (test-only) and disable
+# @xenova/transformers postinstall to keep build fast and lean.
+# These are only needed locally — not in the production container.
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
+ENV TRANSFORMERS_OFFLINE=1
+
 RUN npm ci
 
 # ── Stage 2: Build the Next.js app ───────────────────────────────────────────
