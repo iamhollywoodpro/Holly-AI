@@ -92,11 +92,13 @@ function proxyToClerk(req: NextRequest, pathSegments?: string[]): Promise<NextRe
           ? Buffer.from(await req.arrayBuffer())
           : undefined;
 
-      // Build headers — strip problematic ones, keep the rest
+      // Build headers — strip problematic ones, keep the rest.
+      // Also strip accept-encoding so Clerk returns plain (uncompressed) JSON —
+      // this avoids gzip passthrough issues where we'd need to re-encode.
       const reqHeaders: Record<string, string> = {};
       req.headers.forEach((value, key) => {
         const lower = key.toLowerCase();
-        if (!['host', 'connection', 'content-length', 'transfer-encoding'].includes(lower)) {
+        if (!['host', 'connection', 'content-length', 'transfer-encoding', 'accept-encoding'].includes(lower)) {
           reqHeaders[key] = value;
         }
       });
@@ -131,7 +133,8 @@ function proxyToClerk(req: NextRequest, pathSegments?: string[]): Promise<NextRe
           const responseHeaders = new Headers();
           Object.entries(nodeRes.headers).forEach(([key, value]) => {
             const lower = key.toLowerCase();
-            if (!['content-encoding', 'transfer-encoding', 'connection'].includes(lower) && value) {
+            // Strip hop-by-hop headers; keep content-encoding so browser can decompress.
+            if (!['transfer-encoding', 'connection'].includes(lower) && value) {
               responseHeaders.set(key, Array.isArray(value) ? value.join(', ') : value);
             }
           });
