@@ -98,22 +98,23 @@ export default function RootLayout({
          * and overrides even __clerk_redirect_url query params.
          */}
         <ClerkProvider
-          // ── Clerk JS: serve from Holly's own domain ──────────────────────────
-          // clerk.browser.js + all chunk files are copied from @clerk/clerk-js
-          // into /public at build time (Dockerfile COPY step).
-          // This removes any external CDN dependency from the browser.
-          clerkJSUrl="/clerk.browser.js"
-
           // ── Clerk API Proxy ──────────────────────────────────────────────────
           // The publishable key encodes "clerk.holly.nexamusicgroup.com" as the
           // Frontend API domain. That subdomain has a broken TLS cert (SSLv3
           // alert handshake failure), so ALL Clerk API calls fail from the browser.
           //
-          // proxyUrl routes all Clerk API traffic through Holly's own server:
+          // proxyUrl routes ALL Clerk traffic (API calls AND the clerk-js bundle)
+          // through Holly's own server:
           //   Browser → https://holly.nexamusicgroup.com/api/clerk/v1/...
-          //   Next.js proxy → https://clerk.holly.nexamusicgroup.com/v1/...
+          //   Browser → https://holly.nexamusicgroup.com/api/clerk/npm/@clerk/clerk-js@5/dist/clerk.browser.js
+          //   Next.js proxy → clerk.clerk.com (valid TLS) with correct x-forwarded-host
           //
-          // The server-to-server call avoids the browser TLS restriction.
+          // DO NOT set clerkJSUrl here — with proxyUrl set, @clerk/nextjs automatically
+          // builds the correct script URL as:
+          //   https://holly.nexamusicgroup.com/api/clerk/npm/@clerk/clerk-js@5/dist/clerk.browser.js
+          // This serves the CORRECT v5 bundle matching @clerk/nextjs v5.
+          // Setting clerkJSUrl="/clerk.browser.js" was serving a wrong v6 file → crash.
+          //
           // Reference: https://clerk.com/docs/advanced-usage/proxy
           proxyUrl="https://holly.nexamusicgroup.com/api/clerk"
 
