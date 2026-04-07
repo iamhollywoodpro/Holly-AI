@@ -98,8 +98,11 @@ export default function RootLayout({
          * and overrides even __clerk_redirect_url query params.
          */}
         <ClerkProvider
-          // Load Clerk JS from official CDN — bypasses broken custom domain SSL
-          clerkJSUrl="https://js.clerk.com/npm/@clerk/clerk-js@5/dist/clerk.browser.js"
+          // Load Clerk JS from Holly's own domain — avoids external CDN dependency.
+          // clerk.browser.js is copied from node_modules/@clerk/clerk-js/dist/
+          // into /public at build time (see Dockerfile COPY step + package.json).
+          // This works even when the server has no outbound internet access.
+          clerkJSUrl="/clerk.browser.js"
 
           // Auth page routes
           signInUrl="/sign-in"
