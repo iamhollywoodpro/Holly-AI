@@ -9,13 +9,30 @@ export default function SignUpPage() {
   const { isSignedIn, isLoaded } = useAuth();
   const router = useRouter();
   const [clerkReady, setClerkReady] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
 
   // Already signed in → go to chat
   useEffect(() => {
-    if (isLoaded && isSignedIn) {
+    if (isLoaded && isSignedIn && !redirecting) {
+      console.log('[HOLLY] Sign-up complete, redirecting to /chat...', {
+        isLoaded,
+        isSignedIn,
+        timestamp: new Date().toISOString(),
+      });
+      setRedirecting(true);
+      
+      // Try router.replace first (Next.js client-side navigation)
       router.replace('/chat');
+      
+      // Backup: force hard redirect after 1 second if router.replace doesn't work
+      setTimeout(() => {
+        if (window.location.pathname === '/sign-up') {
+          console.warn('[HOLLY] router.replace failed, forcing hard redirect');
+          window.location.href = '/chat';
+        }
+      }, 1000);
     }
-  }, [isLoaded, isSignedIn, router]);
+  }, [isLoaded, isSignedIn, router, redirecting]);
 
   // Show content once Clerk has initialised
   useEffect(() => {
@@ -51,6 +68,15 @@ export default function SignUpPage() {
           </div>
         )}
 
+        {/* Redirecting state */}
+        {redirecting && (
+          <div className="flex flex-col items-center justify-center py-16 gap-4">
+            <div className="w-8 h-8 border-2 border-green-500 border-t-transparent rounded-full animate-spin" />
+            <p className="text-green-400 text-sm font-medium">Welcome to HOLLY!</p>
+            <p className="text-gray-600 text-xs">Redirecting to chat...</p>
+          </div>
+        )}
+
         {/*
           Clerk SignUp component — only rendered once Clerk has initialised.
 
@@ -60,7 +86,7 @@ export default function SignUpPage() {
 
           REDIRECT: forceRedirectUrl="/chat" overrides Coolify env vars.
         */}
-        {clerkReady && (
+        {clerkReady && !redirecting && (
           <SignUp
             routing="path"
             path="/sign-up"

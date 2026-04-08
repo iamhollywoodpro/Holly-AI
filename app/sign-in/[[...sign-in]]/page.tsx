@@ -9,13 +9,30 @@ export default function SignInPage() {
   const { isSignedIn, isLoaded } = useAuth();
   const router = useRouter();
   const [clerkReady, setClerkReady] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
 
   // Already signed in → go straight to chat
   useEffect(() => {
-    if (isLoaded && isSignedIn) {
+    if (isLoaded && isSignedIn && !redirecting) {
+      console.log('[HOLLY] Sign-in detected, redirecting to /chat...', {
+        isLoaded,
+        isSignedIn,
+        timestamp: new Date().toISOString(),
+      });
+      setRedirecting(true);
+      
+      // Try router.replace first (Next.js client-side navigation)
       router.replace('/chat');
+      
+      // Backup: force hard redirect after 1 second if router.replace doesn't work
+      setTimeout(() => {
+        if (window.location.pathname === '/sign-in') {
+          console.warn('[HOLLY] router.replace failed, forcing hard redirect');
+          window.location.href = '/chat';
+        }
+      }, 1000);
     }
-  }, [isLoaded, isSignedIn, router]);
+  }, [isLoaded, isSignedIn, router, redirecting]);
 
   // Track when Clerk initialises so we can show a loading state instead
   // of a blank card if the auth context hasn't hydrated yet
@@ -52,6 +69,15 @@ export default function SignInPage() {
           </div>
         )}
 
+        {/* Redirecting state */}
+        {redirecting && (
+          <div className="flex flex-col items-center justify-center py-16 gap-4">
+            <div className="w-8 h-8 border-2 border-green-500 border-t-transparent rounded-full animate-spin" />
+            <p className="text-green-400 text-sm font-medium">Signing you in...</p>
+            <p className="text-gray-600 text-xs">Redirecting to HOLLY chat</p>
+          </div>
+        )}
+
         {/*
           Clerk SignIn component — only rendered once Clerk has initialised.
 
@@ -66,7 +92,7 @@ export default function SignInPage() {
           element class names for form inputs, as this breaks Clerk's internal layout
           in v5. Only override cosmetic/color elements.
         */}
-        {clerkReady && (
+        {clerkReady && !redirecting && (
           <SignIn
             routing="path"
             path="/sign-in"
