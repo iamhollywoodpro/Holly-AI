@@ -125,10 +125,12 @@ async function proxyToClerk(req: NextRequest, pathSegments?: string[]): Promise<
     const searchParams = req.nextUrl.searchParams.toString();
     const isNpmPath = path.startsWith('/npm/');
     const isApiPath = path.startsWith('/v1/') || path.startsWith('/v2/');
+    const isClientPath = path.includes('/client/') || path.includes('/client?');
 
-    // Build query string — inject publishable key for API routes
+    // Build query string — inject publishable key ONLY for non-client API routes
+    // Client routes like /v1/client/sign_ins should NOT get __clerk_publishable_key
     const qs = new URLSearchParams(searchParams || '');
-    if (isApiPath && !qs.has('__clerk_publishable_key')) {
+    if (isApiPath && !isClientPath && !qs.has('__clerk_publishable_key')) {
       qs.set('__clerk_publishable_key', PUBLISHABLE_KEY);
     }
     const qsStr = qs.toString();
