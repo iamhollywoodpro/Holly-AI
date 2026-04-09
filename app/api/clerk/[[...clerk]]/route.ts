@@ -125,16 +125,26 @@ async function proxyToClerk(req: NextRequest, pathSegments?: string[]): Promise<
     const searchParams = req.nextUrl.searchParams.toString();
     const isNpmPath = path.startsWith('/npm/');
     const isApiPath = path.startsWith('/v1/') || path.startsWith('/v2/');
-    const isClientPath = path.includes('/client/') || path.includes('/client?');
+    const isSessionPath = path.includes('/sessions/');
+    const isTouchPath = path.includes('/touch');
 
-    // Build query string — inject publishable key ONLY for non-client API routes
-    // Client routes like /v1/client/sign_ins should NOT get __clerk_publishable_key
+    // Inject __clerk_publishable_key for ALL Clerk API calls.
+    // Previously this was excluded for "client" paths, but the session /touch
+    // endpoint REQUIRES it to identify the Holly app — without it Clerk returns
+    // 401 Unauthorized and the session is never confirmed, causing a login loop.
     const qs = new URLSearchParams(searchParams || '');
-    if (isApiPath && !isClientPath && !qs.has('__clerk_publishable_key')) {
+    if (isApiPath && !qs.has('__clerk_publishable_key')) {
       qs.set('__clerk_publishable_key', PUBLISHABLE_KEY);
     }
     const qsStr = qs.toString();
     let finalPath = qsStr ? `${path}?${qsStr}` : path;
+
+    // Log session touch calls to help debug auth issues
+    if (isSessionPath && isTouchPath) {
+      const cookieHeader = req.headers.get('cookie') || '';
+      const hasSessionCookie = cookieHeader.includes('__session') || cookieHeader.includes('__clerk');
+      console.log(`[HOLLY] Session touch proxy: ${path} | cookies=${hasSessionCookie ? 'present' : 'MISSING'} | method=${req.method}`);
+    }
 
     const body =
       req.method !== 'GET' && req.method !== 'HEAD'
