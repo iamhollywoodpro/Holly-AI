@@ -128,12 +128,22 @@ async function proxyToClerk(req: NextRequest, pathSegments?: string[]): Promise<
     const isSessionPath = path.includes('/sessions/');
     const isTouchPath = path.includes('/touch');
 
-    // Inject __clerk_publishable_key for ALL Clerk API calls.
-    // Previously this was excluded for "client" paths, but the session /touch
-    // endpoint REQUIRES it to identify the Holly app — without it Clerk returns
-    // 401 Unauthorized and the session is never confirmed, causing a login loop.
+    // ── publishable key injection rules ────────────────────────────────────────
+    // CONFIRMED via network capture: Clerk's /sign_ins and /sign_ups endpoints
+    // return 422 "__clerk_publishable_key is not a valid parameter" if injected.
+    // The browser SDK already sends the key itself on those endpoints.
+    //
+    // Only inject the key server-side for the /touch endpoint — this is a
+    // session keep-alive call that the SDK sends WITHOUT the key when going
+    // through a proxy, causing a 401 and the login loop.
+    //
+    // Rule: inject ONLY for /sessions/{id}/touch and any non-client API paths
+    // that don't already include the key.
     const qs = new URLSearchParams(searchParams || '');
-    if (isApiPath && !qs.has('__clerk_publishable_key')) {
+    const isSignInPath = path.includes('/sign_ins') || path.includes('/sign_ups');
+    const needsKeyInjection = isApiPath && !qs.has('__clerk_publishable_key') && !isSignInPath;
+
+    if (needsKeyInjection) {
       qs.set('__clerk_publishable_key', PUBLISHABLE_KEY);
     }
     const qsStr = qs.toString();
@@ -231,7 +241,7 @@ async function proxyToClerk(req: NextRequest, pathSegments?: string[]): Promise<
     responseHeaders.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
     responseHeaders.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
 
-    return new NextResponse(response.data, {
+    return new NextResponse(response.data as unknown as BodyInit, {
       status: response.statusCode,
       headers: responseHeaders,
     });
