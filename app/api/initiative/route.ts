@@ -17,7 +17,7 @@ import Groq from 'groq-sdk';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || '' });
+const groq = process.env.GROQ_API_KEY ? new Groq({ apiKey: process.env.GROQ_API_KEY }) : null;
 
 // ─── GET: evaluate and return proactive initiatives ──────────────────────────
 export async function GET(req: NextRequest) {
@@ -70,6 +70,18 @@ export async function GET(req: NextRequest) {
     ].filter(Boolean).join('\n');
 
     // Ask Groq to generate proactive initiatives
+    if (!groq) {
+      return NextResponse.json({
+        initiatives: [],
+        context: {
+          activeGoals: activeGoals.length,
+          recentEvents: recentEvents.length,
+          currentMood: latestEmotion?.primaryEmotion || 'neutral',
+          confidence: identity?.confidenceLevel || 0.5,
+        },
+      });
+    }
+
     const completion = await groq.chat.completions.create({
       model: 'llama-3.1-8b-instant',
       temperature: 0.8,

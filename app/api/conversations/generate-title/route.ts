@@ -24,7 +24,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { firstMessage } = await request.json();
+    const body = await request.json();
+    const firstMessage = body.firstMessage || body.userMessage;
 
     if (!firstMessage || typeof firstMessage !== 'string') {
       return NextResponse.json(
