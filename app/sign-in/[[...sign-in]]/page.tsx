@@ -112,8 +112,8 @@ function SignInContent() {
           <SignIn
             routing="path"
             path="/sign-in"
-            forceRedirectUrl="/chat"
-            fallbackRedirectUrl="/chat"
+            forceRedirectUrl="https://holly.nexamusicgroup.com/chat"
+            fallbackRedirectUrl="https://holly.nexamusicgroup.com/chat"
             signUpUrl="/sign-up"
             appearance={{
               variables: {

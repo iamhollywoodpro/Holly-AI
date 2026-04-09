@@ -124,11 +124,13 @@ export default function RootLayout({
           afterSignOutUrl="/"
 
           // Force redirect to /chat after auth.
-          // Use the v5 API (forceRedirectUrl / fallbackRedirectUrl) — NOT deprecated afterSignInUrl.
-          signInForceRedirectUrl="/chat"
-          signUpForceRedirectUrl="/chat"
-          signInFallbackRedirectUrl="/chat"
-          signUpFallbackRedirectUrl="/chat"
+          // Because we use a proxy (x-forwarded-host: clerk.holly.nexamusicgroup.com),
+          // Clerk rejects relative URLs like '/chat' because it resolves them against
+          // the frontend API subdomain instead of the main app domain. Absolute URLs fix this.
+          signInForceRedirectUrl="https://holly.nexamusicgroup.com/chat"
+          signUpForceRedirectUrl="https://holly.nexamusicgroup.com/chat"
+          signInFallbackRedirectUrl="https://holly.nexamusicgroup.com/chat"
+          signUpFallbackRedirectUrl="https://holly.nexamusicgroup.com/chat"
 
           appearance={{
             baseTheme: undefined,

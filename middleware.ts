@@ -58,23 +58,27 @@ function sanitizeRedirectUrl(redirectUrl: string | null): string | null {
     }
   }
 
-  // If it's a relative path, it's safe to use as-is
+  // Convert relative paths to absolute URLs using our public origin.
+  // This is CRITICAL: because we proxy Clerk behind clerk.holly.nexamusicgroup.com,
+  // Clerk evaluates relative URLs against the proxy domain instead of the app domain.
+  // Clerk then rejects relative URLs because it doesn't recognize the proxy domain
+  // as the allowed redirect destination.
   if (sanitized.startsWith('/')) {
-    return sanitized;
+    return PUBLIC_ORIGIN + sanitized;
   }
 
   // If it's an absolute URL, ensure it's our domain
   try {
     const url = new URL(sanitized);
     if (url.origin === PUBLIC_ORIGIN) {
-      return url.pathname + url.search;
+      return url.href; // Return full absolute URL, not just pathname
     }
   } catch {
     // Invalid URL — ignore
   }
 
-  // Anything else is unsafe — discard it
-  return '/chat';
+  // Anything else is unsafe — discard it and fallback to absolute default
+  return PUBLIC_ORIGIN + '/chat';
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
