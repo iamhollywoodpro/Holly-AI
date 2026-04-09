@@ -2,29 +2,56 @@
 
 import { SignIn } from '@clerk/nextjs';
 import { useAuth } from '@clerk/nextjs';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useState, Suspense } from 'react';
 
-export default function SignInPage() {
+const PUBLIC_ORIGIN = 'https://holly.nexamusicgroup.com';
+const DOCKER_ORIGINS = ['0.0.0.0', 'localhost', '127.0.0.1'];
+
+// Sanitize redirect_url — strip any Docker/localhost URL to prevent Clerk 422 errors
+function getSafeRedirectUrl(rawParam: string | null): string {
+  if (!rawParam) return '/chat';
+  try {
+    const decoded = decodeURIComponent(rawParam);
+    // If it's relative, it's safe
+    if (decoded.startsWith('/')) return decoded;
+    // If it's our public domain, extract the path
+    const url = new URL(decoded);
+    if (url.origin === PUBLIC_ORIGIN) return url.pathname + url.search;
+    // Any Docker/localhost URL → discard
+    if (DOCKER_ORIGINS.some(h => url.hostname === h)) return '/chat';
+    // Any other absolute URL → discard
+    return '/chat';
+  } catch {
+    return '/chat';
+  }
+}
+
+function SignInContent() {
   const { isSignedIn, isLoaded } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [clerkReady, setClerkReady] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
+
+  // Sanitize the redirect_url param — MUST happen before Clerk reads it.
+  // If the URL bar contains ?redirect_url=https://0.0.0.0:3000/chat,
+  // strip it immediately so Clerk never sees it and returns 422.
+  useEffect(() => {
+    const rawRedirect = searchParams.get('redirect_url');
+    if (rawRedirect && DOCKER_ORIGINS.some(h => rawRedirect.includes(h))) {
+      console.warn('[HOLLY] Stripping bad redirect_url from sign-in URL:', rawRedirect);
+      // Replace URL without the bad param — no history entry
+      window.history.replaceState({}, '', '/sign-in');
+    }
+  }, [searchParams]);
 
   // Already signed in → go straight to chat
   useEffect(() => {
     if (isLoaded && isSignedIn && !redirecting) {
-      console.log('[HOLLY] Sign-in detected, redirecting to /chat...', {
-        isLoaded,
-        isSignedIn,
-        timestamp: new Date().toISOString(),
-      });
+      console.log('[HOLLY] Sign-in detected, redirecting to /chat...');
       setRedirecting(true);
-      
-      // Try router.replace first (Next.js client-side navigation)
       router.replace('/chat');
-      
-      // Backup: force hard redirect after 1 second if router.replace doesn't work
       setTimeout(() => {
         if (window.location.pathname === '/sign-in') {
           console.warn('[HOLLY] router.replace failed, forcing hard redirect');
@@ -34,12 +61,8 @@ export default function SignInPage() {
     }
   }, [isLoaded, isSignedIn, router, redirecting]);
 
-  // Track when Clerk initialises so we can show a loading state instead
-  // of a blank card if the auth context hasn't hydrated yet
   useEffect(() => {
-    if (isLoaded) {
-      setClerkReady(true);
-    }
+    if (isLoaded) setClerkReady(true);
   }, [isLoaded]);
 
   return (
@@ -61,7 +84,7 @@ export default function SignInPage() {
           <p className="text-gray-400 text-sm mt-1.5">Sign in to continue your session</p>
         </div>
 
-        {/* Loading state shown while Clerk initialises */}
+        {/* Loading state */}
         {!clerkReady && (
           <div className="flex flex-col items-center justify-center py-16 gap-4">
             <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
@@ -79,18 +102,11 @@ export default function SignInPage() {
         )}
 
         {/*
-          Clerk SignIn component — only rendered once Clerk has initialised.
-
-          ROUTING: Must use routing="path" with path="/sign-in" for Next.js
-          App Router catch-all routes [[...sign-in]]. Without this Clerk can't
-          handle multi-step flows (email → password → MFA) correctly.
-
-          REDIRECT: forceRedirectUrl="/chat" overrides ALL other redirect settings
-          including Coolify env vars (NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/dashboard).
-
-          APPEARANCE: Only use variables (CSS custom properties) — do NOT override
-          element class names for form inputs, as this breaks Clerk's internal layout
-          in v5. Only override cosmetic/color elements.
+          Clerk SignIn component.
+          - forceRedirectUrl="/chat" is the highest-priority redirect — always goes to /chat
+          - Do NOT pass redirect_url from searchParams — it may contain 0.0.0.0 URLs
+            which Clerk validates and rejects with 422 Unprocessable Content.
+          - The ClerkProvider in layout.tsx also has forceRedirectUrl="/chat" as a backstop.
         */}
         {clerkReady && !redirecting && (
           <SignIn
@@ -112,27 +128,20 @@ export default function SignInPage() {
                 fontFamily: 'Inter, system-ui, sans-serif',
               },
               elements: {
-                // Card shell
                 rootBox: 'w-full',
                 card: 'bg-[#0f0f17]/90 border border-gray-800/60 shadow-2xl shadow-purple-900/20 backdrop-blur-xl rounded-2xl',
-                // Hide redundant Clerk header (we have our own above)
                 headerTitle: 'hidden',
                 headerSubtitle: 'hidden',
                 logoBox: 'hidden',
-                // Social buttons (Google, GitHub, etc.)
                 socialButtonsBlockButton:
                   'bg-gray-900 border border-gray-700/60 hover:bg-gray-800 hover:border-gray-600 text-white transition-all duration-200',
                 socialButtonsBlockButtonText: 'text-white font-medium',
-                // Primary action button
                 formButtonPrimary:
                   'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-semibold transition-all duration-200 shadow-lg shadow-purple-900/30',
-                // Divider
                 dividerLine: 'bg-gray-800',
                 dividerText: 'text-gray-600',
-                // Footer link
                 footerActionLink: 'text-purple-400 hover:text-purple-300 transition-colors',
                 identityPreviewEditButton: 'text-purple-400 hover:text-purple-300',
-                // Error states
                 alertText: 'text-red-400',
                 formFieldErrorText: 'text-red-400',
               },
@@ -146,5 +155,17 @@ export default function SignInPage() {
         <p className="text-[10px] text-gray-700 tracking-widest uppercase">HOLLY — Living AI · Phase 10</p>
       </div>
     </div>
+  );
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen w-full flex items-center justify-center bg-[#050508]">
+        <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <SignInContent />
+    </Suspense>
   );
 }
