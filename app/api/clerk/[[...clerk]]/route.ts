@@ -128,24 +128,7 @@ async function proxyToClerk(req: NextRequest, pathSegments?: string[]): Promise<
     const isSessionPath = path.includes('/sessions/');
     const isTouchPath = path.includes('/touch');
 
-    // ── publishable key injection rules ────────────────────────────────────────
-    // CONFIRMED via network capture: Clerk's /sign_ins and /sign_ups endpoints
-    // return 422 "__clerk_publishable_key is not a valid parameter" if injected.
-    // The browser SDK already sends the key itself on those endpoints.
-    //
-    // Only inject the key server-side for the /touch endpoint — this is a
-    // session keep-alive call that the SDK sends WITHOUT the key when going
-    // through a proxy, causing a 401 and the login loop.
-    //
-    // Rule: inject ONLY for /sessions/{id}/touch and any non-client API paths
-    // that don't already include the key.
-    const qs = new URLSearchParams(searchParams || '');
-    const needsKeyInjection = isApiPath && !qs.has('__clerk_publishable_key') && isTouchPath;
-
-    if (needsKeyInjection) {
-      qs.set('__clerk_publishable_key', PUBLISHABLE_KEY);
-    }
-    const qsStr = qs.toString();
+    const qsStr = searchParams;
     let finalPath = qsStr ? `${path}?${qsStr}` : path;
 
     // Log session touch calls to help debug auth issues
