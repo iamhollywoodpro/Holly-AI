@@ -229,14 +229,29 @@ async function proxyToClerk(req: NextRequest, pathSegments?: string[]): Promise<
       if (!['transfer-encoding', 'connection'].includes(lower) && value) {
         if (Array.isArray(value)) {
           value.forEach(v => {
+            // CRITICAL PROXY FIX: 
+            // Clerk's backend sets `Domain=clerk.holly.nexamusicgroup.com` because
+            // we sent `x-forwarded-host: clerk.holly.nexamusicgroup.com`.
+            // The browser is at `holly.nexamusicgroup.com` and STRICTLY REJECTS 
+            // the cookie because a parent domain cannot set a subdomain cookie.
+            // We must rewrite the domain to the app's root domain, or strip it.
+            let cleanCookie = v;
+            if (lower === 'set-cookie') {
+              cleanCookie = cleanCookie.replace(/Domain=[^;]+/i, 'Domain=holly.nexamusicgroup.com');
+            }
+            
             if (Object.prototype.toString.call(responseHeaders) === '[object Headers]') {
-              responseHeaders.append(key, v);
+              responseHeaders.append(key, cleanCookie);
             } else {
-              responseHeaders.set(key, v);
+              responseHeaders.set(key, cleanCookie);
             }
           });
         } else {
-          responseHeaders.set(key, value);
+          let cleanCookie = value;
+          if (lower === 'set-cookie') {
+            cleanCookie = cleanCookie.replace(/Domain=[^;]+/i, 'Domain=holly.nexamusicgroup.com');
+          }
+          responseHeaders.set(key, cleanCookie);
         }
       }
     });
