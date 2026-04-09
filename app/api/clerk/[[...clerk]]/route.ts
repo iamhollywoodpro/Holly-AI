@@ -140,8 +140,7 @@ async function proxyToClerk(req: NextRequest, pathSegments?: string[]): Promise<
     // Rule: inject ONLY for /sessions/{id}/touch and any non-client API paths
     // that don't already include the key.
     const qs = new URLSearchParams(searchParams || '');
-    const isSignInPath = path.includes('/sign_ins') || path.includes('/sign_ups');
-    const needsKeyInjection = isApiPath && !qs.has('__clerk_publishable_key') && !isSignInPath;
+    const needsKeyInjection = isApiPath && !qs.has('__clerk_publishable_key') && isTouchPath;
 
     if (needsKeyInjection) {
       qs.set('__clerk_publishable_key', PUBLISHABLE_KEY);
