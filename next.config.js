@@ -6,6 +6,17 @@ const nextConfig = {
   // Required for the production Dockerfile — do NOT remove
   output: process.env.DOCKER_BUILD === 'true' ? 'standalone' : undefined,
 
+  // ── Build memory control ──────────────────────────────────────────────────
+  // On Coolify (ARM64 Oracle Cloud, 4-core), Next.js static page generation
+  // spawns one worker per CPU. With NODE_OPTIONS='--max-old-space-size=4096',
+  // that's 4 cores × 4GB = 16GB peak — which OOM-kills the Docker build
+  // (exit code 255 at "Generating static pages (0/359)").
+  // Limiting to 1 worker thread keeps peak memory under 4GB and fixes the crash.
+  experimental: {
+    workerThreads: false,
+    cpus: 1,
+  },
+
   // Prevent single TS errors from blocking production deployments
   typescript: {
     // Disable tsc type-checking during `next build` — it OOMs the build worker
