@@ -227,7 +227,17 @@ async function proxyToClerk(req: NextRequest, pathSegments?: string[]): Promise<
       const lower = key.toLowerCase();
       // Strip hop-by-hop headers; pass everything else including content-encoding
       if (!['transfer-encoding', 'connection'].includes(lower) && value) {
-        responseHeaders.set(key, Array.isArray(value) ? value.join(', ') : value);
+        if (Array.isArray(value)) {
+          value.forEach(v => {
+            if (Object.prototype.toString.call(responseHeaders) === '[object Headers]') {
+              responseHeaders.append(key, v);
+            } else {
+              responseHeaders.set(key, v);
+            }
+          });
+        } else {
+          responseHeaders.set(key, value);
+        }
       }
     });
 
