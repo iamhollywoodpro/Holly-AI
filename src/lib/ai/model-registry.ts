@@ -395,6 +395,180 @@ export const MODEL_CANDIDATES: Array<{
     contextK:   262,
     reason:     'Qwen 3.6 Coder: updated coder model with stronger benchmarks',
   },
+  // ─── Image generation candidates ─────────────────────────────────────────
+  // Holly watches HuggingFace for new FLUX / SDXL variants and promotes
+  // them automatically when benchmarks improve.
+  {
+    key:        'hf:flux-1-dev-fp8',
+    provider:   'huggingface',
+    modelId:    'black-forest-labs/FLUX.1-dev-fp8',
+    licence:    'Apache-2.0',
+    taskTypes:  ['image'],
+    supersedes: 'hf:flux-1-schnell',
+    contextK:   0,
+    reason:     'FLUX.1-dev FP8: same quality as dev at half the VRAM, faster inference on HF free tier',
+  },
+  {
+    key:        'hf:stable-diffusion-3.5',
+    provider:   'huggingface',
+    modelId:    'stabilityai/stable-diffusion-3.5-large',
+    licence:    'Apache-2.0',
+    taskTypes:  ['image'],
+    supersedes: 'hf:sdxl',
+    contextK:   0,
+    reason:     'SD 3.5 Large: strongest Stability AI model, Apache-2.0, free on HF inference',
+  },
+  // ─── Video generation candidates ─────────────────────────────────────────
+  {
+    key:        'hf:cogvideox-5b',
+    provider:   'huggingface',
+    modelId:    'THUDM/CogVideoX-5b',
+    licence:    'Apache-2.0',
+    taskTypes:  ['video'],
+    supersedes: 'hf:zeroscope-v2',
+    contextK:   0,
+    reason:     'CogVideoX-5B: state-of-art OSS text-to-video (2024), better motion than ZeroScope',
+  },
+  {
+    key:        'hf:mochi-1',
+    provider:   'huggingface',
+    modelId:    'genmo/mochi-1-preview',
+    licence:    'Apache-2.0',
+    taskTypes:  ['video'],
+    supersedes: 'hf:animatediff',
+    contextK:   0,
+    reason:     'Mochi-1: high-fidelity motion, Apache-2.0, free on HF — best OSS video model',
+  },
+];
+
+/**
+ * Media model registry (image / video) — separate from LLM catalogue.
+ * Holly monitors HuggingFace model hubs for updates and promotes
+ * newer models when they become available on the free inference tier.
+ */
+export interface MediaModelRecord {
+  key:          string;
+  type:         'image' | 'video' | 'audio';
+  provider:     'pollinations' | 'huggingface' | 'local';
+  modelId:      string;         // HF repo ID or provider model name
+  displayName:  string;
+  licence:      string;
+  free:         boolean;
+  keyNeeded:    boolean;
+  keyEnv?:      string;
+  quality:      'excellent' | 'good' | 'decent';
+  note:         string;
+  addedAt:      string;
+  active:       boolean;        // false = superseded by better model
+}
+
+export const MEDIA_MODEL_REGISTRY: MediaModelRecord[] = [
+  // ─── Image: Pollinations (no key) ────────────────────────────────────────
+  {
+    key:         'pollinations:flux-dev',
+    type:        'image',
+    provider:    'pollinations',
+    modelId:     'flux',
+    displayName: 'FLUX.1-dev via Pollinations',
+    licence:     'Apache-2.0',
+    free:        true,
+    keyNeeded:   false,
+    quality:     'excellent',
+    note:        'Primary image provider. No API key. Always available. 1024px max.',
+    addedAt:     '2025-01-01',
+    active:      true,
+  },
+  {
+    key:         'pollinations:sdxl',
+    type:        'image',
+    provider:    'pollinations',
+    modelId:     'stable-diffusion-xl',
+    displayName: 'SDXL via Pollinations',
+    licence:     'Apache-2.0',
+    free:        true,
+    keyNeeded:   false,
+    quality:     'good',
+    note:        'Fallback image style. No API key.',
+    addedAt:     '2025-01-01',
+    active:      true,
+  },
+  // ─── Image: HuggingFace free inference ───────────────────────────────────
+  {
+    key:         'hf:flux-schnell',
+    type:        'image',
+    provider:    'huggingface',
+    modelId:     'black-forest-labs/FLUX.1-schnell',
+    displayName: 'FLUX.1-schnell (HuggingFace)',
+    licence:     'Apache-2.0',
+    free:        true,
+    keyNeeded:   true,
+    keyEnv:      'HUGGINGFACE_API_KEY',
+    quality:     'excellent',
+    note:        'HF free tier. 4-step distillation. Fastest FLUX variant.',
+    addedAt:     '2025-01-01',
+    active:      true,
+  },
+  {
+    key:         'hf:sdxl',
+    type:        'image',
+    provider:    'huggingface',
+    modelId:     'stabilityai/stable-diffusion-xl-base-1.0',
+    displayName: 'SDXL 1.0 (HuggingFace)',
+    licence:     'Apache-2.0',
+    free:        true,
+    keyNeeded:   true,
+    keyEnv:      'HUGGINGFACE_API_KEY',
+    quality:     'excellent',
+    note:        'HF free tier. Best artistic quality of SDXL family.',
+    addedAt:     '2025-01-01',
+    active:      true,
+  },
+  // ─── Video: Pollinations (no key, experimental) ───────────────────────────
+  {
+    key:         'pollinations:video',
+    type:        'video',
+    provider:    'pollinations',
+    modelId:     'video',
+    displayName: 'Pollinations Video (FLUX)',
+    licence:     'Apache-2.0',
+    free:        true,
+    keyNeeded:   false,
+    quality:     'decent',
+    note:        'No API key. Experimental endpoint. Short clips only.',
+    addedAt:     '2025-01-01',
+    active:      true,
+  },
+  // ─── Video: HuggingFace free inference ───────────────────────────────────
+  {
+    key:         'hf:zeroscope-v2',
+    type:        'video',
+    provider:    'huggingface',
+    modelId:     'cerspense/zeroscope_v2_XL',
+    displayName: 'ZeroScope v2 XL (HuggingFace)',
+    licence:     'CC-BY-NC-4.0',
+    free:        true,
+    keyNeeded:   true,
+    keyEnv:      'HUGGINGFACE_API_KEY',
+    quality:     'good',
+    note:        'HF free tier. Best OSS text-to-video. Non-commercial use.',
+    addedAt:     '2025-01-01',
+    active:      true,
+  },
+  {
+    key:         'hf:animatediff',
+    type:        'video',
+    provider:    'huggingface',
+    modelId:     'guoyww/animatediff-motion-adapter-v1-5-2',
+    displayName: 'AnimateDiff v1.5 (HuggingFace)',
+    licence:     'Apache-2.0',
+    free:        true,
+    keyNeeded:   true,
+    keyEnv:      'HUGGINGFACE_API_KEY',
+    quality:     'decent',
+    note:        'HF free tier. GIF output. Good fallback for animation.',
+    addedAt:     '2025-01-01',
+    active:      true,
+  },
 ];
 
 /**

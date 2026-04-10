@@ -142,6 +142,27 @@ export async function GET() {
           stemSeparation: true,
           songExtension:  true,
         },
+        // Image / Video generation — 100% free, open-source
+        mediaEngine: {
+          policy: 'FREE_OSS_ONLY',
+          blocked: ['Midjourney', 'DALL-E', 'Fal.ai', 'Replicate', 'Runway', 'Sora', 'Pika', 'Adobe Firefly'],
+          imageProviders: [
+            { name: 'Pollinations AI (FLUX.1-dev)', keyRequired: false, licence: 'Apache-2.0', priority: 1 },
+            { name: 'HuggingFace FLUX.1-schnell',   keyRequired: true,  env: 'HUGGINGFACE_API_KEY', licence: 'Apache-2.0', priority: 2 },
+            { name: 'HuggingFace SDXL 1.0',         keyRequired: true,  env: 'HUGGINGFACE_API_KEY', licence: 'Apache-2.0', priority: 3 },
+          ],
+          videoProviders: [
+            { name: 'Pollinations Video (FLUX)',     keyRequired: false, licence: 'Apache-2.0',    priority: 1, note: 'experimental' },
+            { name: 'HuggingFace ZeroScope v2 XL',  keyRequired: true,  env: 'HUGGINGFACE_API_KEY', licence: 'CC-BY-NC-4.0', priority: 2 },
+            { name: 'HuggingFace AnimateDiff v1.5', keyRequired: true,  env: 'HUGGINGFACE_API_KEY', licence: 'Apache-2.0',   priority: 3 },
+          ],
+          candidates: [
+            'FLUX.1-dev FP8 (HuggingFace, Apache-2.0)',
+            'Stable Diffusion 3.5 Large (HuggingFace, Apache-2.0)',
+            'CogVideoX-5B (HuggingFace, Apache-2.0)',
+            'Mochi-1 Preview (HuggingFace, Apache-2.0)',
+          ],
+        },
         // Training pipeline (roadmap)
         trainingPipeline: {
           phase:       'data-collection',
