@@ -11,6 +11,7 @@ import { ClerkProvider } from '@clerk/nextjs';
 import { Providers } from '@/components/Providers';
 import { SettingsProvider } from './providers';
 import { ThemeProvider } from '@/components/providers/ThemeProvider';
+import { ServiceWorkerRegistration } from '@/components/ServiceWorkerRegistration';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -172,6 +173,7 @@ export default function RootLayout({
             <Providers>
               <SettingsProvider>
                 {children}
+                <ServiceWorkerRegistration />
               </SettingsProvider>
             </Providers>
           </ThemeProvider>
