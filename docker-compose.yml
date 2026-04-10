@@ -123,11 +123,21 @@ services:
       # ── Cron auth secret (shared with holly-cron) ─────────────────────────
       CRON_SECRET:                      ${CRON_SECRET}
 
-    # No HEALTHCHECK — removing it means Docker marks the container healthy
-    # immediately on start. Traefik then routes traffic right away instead of
-    # waiting for a health probe to pass (which caused 503 "no available server").
+    # HEALTHCHECK — tells Traefik to only route traffic once the app is
+    # actually responding. start_period gives the app 120s to boot before
+    # any failures count. This prevents Gateway Timeout on cold starts.
     healthcheck:
-      disable: true
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      start_period: 120s
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+    labels:
+      # Tell Traefik to only route to this container when it is healthy.
+      # Without this label Traefik routes immediately on container start,
+      # before Next.js has finished booting → Gateway Timeout.
+      - "traefik.docker.network=holly-network"
 
     networks:
       - holly-network

@@ -157,7 +157,7 @@ EXPOSE 3000
 #
 # Traefik only routes traffic to this container AFTER the first successful
 # health check, preventing Gateway Timeout on cold starts.
-HEALTHCHECK --start-period=30s --interval=10s --timeout=5s --retries=3 \
+HEALTHCHECK --start-period=120s --interval=15s --timeout=5s --retries=3 \
   CMD curl -f http://localhost:3000/api/health || exit 1
 
 CMD ["node", "server.js"]
