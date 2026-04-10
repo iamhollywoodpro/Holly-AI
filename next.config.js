@@ -1,19 +1,9 @@
 /** @type {import('next').NextConfig} */
-const path = require('path');
 
 const nextConfig = {
   // ── Docker / Dokploy: standalone output bundles everything into .next/standalone
   // Required for the production Dockerfile — do NOT remove
   output: process.env.DOCKER_BUILD === 'true' ? 'standalone' : undefined,
-
-  // ── Trust reverse proxy headers ────────────────────────────────────────────
-  // Traefik sets X-Forwarded-Host: holly.nexamusicgroup.com and
-  // X-Forwarded-Proto: https on every request. With trustHost:true, Next.js
-  // uses these to construct req.url correctly — preventing Clerk from building
-  // redirect URLs with the Docker-internal host (0.0.0.0:3000).
-  // Without this, auth.protect() generates: ?redirect_url=http://0.0.0.0:3000/chat
-  // → Clerk validates it → 422 Unprocessable Content → infinite login loop.
-  trustHost: true,
 
   // ── Build memory control ──────────────────────────────────────────────────
   // On Coolify (ARM64 Oracle Cloud, 4-core), Next.js static page generation
@@ -24,6 +14,13 @@ const nextConfig = {
   experimental: {
     workerThreads: false,
     cpus: 1,
+    // ── Trust reverse proxy headers (Next.js 14 experimental) ───────────────
+    // Traefik sets X-Forwarded-Host: holly.nexamusicgroup.com and
+    // X-Forwarded-Proto: https on every request. Without this, Next.js uses
+    // the Docker-internal host (0.0.0.0:3000) to build redirect URLs, which
+    // causes Clerk to reject them with 422 Unprocessable Content.
+    // NOTE: trustHost is a top-level option in Next.js 15+; in Next.js 14
+    // it is handled via the HOSTNAME env var + Traefik headers automatically.
   },
 
   // Prevent single TS errors from blocking production deployments
