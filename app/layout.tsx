@@ -12,6 +12,7 @@ import { Providers } from '@/components/Providers';
 import { SettingsProvider } from './providers';
 import { ThemeProvider } from '@/components/providers/ThemeProvider';
 import { ServiceWorkerRegistration } from '@/components/ServiceWorkerRegistration';
+import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -174,6 +175,7 @@ export default function RootLayout({
               <SettingsProvider>
                 {children}
                 <ServiceWorkerRegistration />
+                <PWAInstallPrompt />
               </SettingsProvider>
             </Providers>
           </ThemeProvider>

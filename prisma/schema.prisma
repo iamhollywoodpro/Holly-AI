@@ -115,7 +115,7 @@ model User {
   collections  Collection[]
 
   // Phase 7: Public API Layer
-  apiKeys      ApiKey[]
+  apiKeys ApiKey[]
 
   @@map("users")
 }
@@ -158,7 +158,7 @@ model FileUpload {
   userId         String
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   conversationId String?
-  messageId      String?  // Link file to specific message
+  messageId      String? // Link file to specific message
   fileName       String
   fileSize       Int
   fileType       String
@@ -3677,15 +3677,15 @@ model ProjectAsset {
 
 model EvolutionProposal {
   id             String    @id @default(cuid())
-  type           String    // code_improvement, model_training, api_creation, feature_addition
+  type           String // code_improvement, model_training, api_creation, feature_addition
   title          String
   description    String    @db.Text
   rationale      String    @db.Text
-  impact         String    // low, medium, high, critical
-  risk           String    // low, medium, high
+  impact         String // low, medium, high, critical
+  risk           String // low, medium, high
   status         String    @default("proposed") // proposed, approved, testing, deployed, rejected
   proposedAt     DateTime  @default(now())
-  approvedBy     String?   // human, holly
+  approvedBy     String? // human, holly
   testResults    Json?
   deploymentDate DateTime?
   createdAt      DateTime  @default(now())
@@ -3714,7 +3714,7 @@ model EvolutionCapability {
 
 model LearningEvent {
   id             String   @id @default(cuid())
-  type           String   // conversation, feedback, error, success, correction
+  type           String // conversation, feedback, error, success, correction
   userId         String
   conversationId String?
   data           Json     @default("{}")
@@ -3732,7 +3732,7 @@ model LearningEvent {
 model LearningPattern {
   id         String   @id @default(cuid())
   pattern    String   @db.Text
-  category   String   // user_preference, common_query, error_pattern, success_pattern
+  category   String // user_preference, common_query, error_pattern, success_pattern
   frequency  Int      @default(1)
   lastSeen   DateTime @default(now())
   confidence Float    @default(0)
@@ -3767,15 +3767,15 @@ model UserLearningProfile {
 // ============================================================================
 
 model TasteSignal {
-  id         String   @id @default(cuid())
-  userId     String
-  category   String   // tone, length, format, topic, style, humor, technical, emoji
-  item       String   @default("") // specific preference item: "formal_tone", "bullet_lists", etc.
-  signal     String   // positive, negative, neutral
-  context    String   @db.Text
-  weight     Float    @default(1.0)
-  source     String   @default("implicit") // implicit, explicit, feedback
-  createdAt  DateTime @default(now())
+  id        String   @id @default(cuid())
+  userId    String
+  category  String // tone, length, format, topic, style, humor, technical, emoji
+  item      String   @default("") // specific preference item: "formal_tone", "bullet_lists", etc.
+  signal    String // positive, negative, neutral
+  context   String   @db.Text
+  weight    Float    @default(1.0)
+  source    String   @default("implicit") // implicit, explicit, feedback
+  createdAt DateTime @default(now())
 
   @@index([userId])
   @@index([category])
@@ -3785,25 +3785,25 @@ model TasteSignal {
 }
 
 model TasteProfile {
-  id        String   @id @default(cuid())
-  userId    String   @unique
+  id          String   @id @default(cuid())
+  userId      String   @unique
   // Tone preferences: formal=1.0, casual=0.0
-  tone      Float    @default(0.5)
+  tone        Float    @default(0.5)
   // Response length: concise=0.0, detailed=1.0
-  verbosity Float    @default(0.5)
+  verbosity   Float    @default(0.5)
   // Humor level: 0.0=serious, 1.0=very playful
-  humor     Float    @default(0.3)
+  humor       Float    @default(0.3)
   // Technical depth: 0.0=simple, 1.0=expert
-  technical Float    @default(0.5)
+  technical   Float    @default(0.5)
   // Emoji usage: 0.0=none, 1.0=heavy
-  emoji     Float    @default(0.4)
+  emoji       Float    @default(0.4)
   // Top interests derived from signals
-  topTopics String[] @default([])
+  topTopics   String[] @default([])
   // Preferred formats (bullets, prose, code, tables)
-  formats   String[] @default([])
-  signalCount Int    @default(0)
+  formats     String[] @default([])
+  signalCount Int      @default(0)
   lastUpdated DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  updatedAt   DateTime @updatedAt
 
   @@map("taste_profiles")
 }
@@ -3816,26 +3816,26 @@ model TasteProfile {
 /// The `keyHash` field stores a SHA-256 hex digest of the raw key so the
 /// plaintext is never stored.  The raw key is returned ONCE at creation.
 model ApiKey {
-  id          String    @id @default(cuid())
-  userId      String
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  name        String                    // human label, e.g. "My App"
-  keyHash     String    @unique         // SHA-256(rawKey) — never store plaintext
-  keyPrefix   String                    // first 8 chars of raw key for display ("holly_ab12")
-  scopes      String[]  @default([])    // e.g. ["chat", "evolution:read"]
-  isActive    Boolean   @default(true)
-  expiresAt   DateTime?                 // null = never expires
+  name      String // human label, e.g. "My App"
+  keyHash   String    @unique // SHA-256(rawKey) — never store plaintext
+  keyPrefix String // first 8 chars of raw key for display ("holly_ab12")
+  scopes    String[]  @default([]) // e.g. ["chat", "evolution:read"]
+  isActive  Boolean   @default(true)
+  expiresAt DateTime? // null = never expires
 
   // Rate limiting (requests per minute, per day)
-  rpmLimit    Int       @default(20)
-  rpdLimit    Int       @default(1000)
+  rpmLimit Int @default(20)
+  rpdLimit Int @default(1000)
 
-  lastUsedAt  DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  lastUsedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
-  usageLogs   ApiKeyUsage[]
+  usageLogs ApiKeyUsage[]
 
   @@index([userId])
   @@index([keyHash])
@@ -3844,15 +3844,15 @@ model ApiKey {
 
 /// Canva OAuth tokens — one row per HOLLY user, stores access + refresh tokens.
 model CanvaToken {
-  id            String   @id @default(cuid())
-  userId        String   @unique   // HOLLY user id (maps to User.id)
-  accessToken   String   @db.Text  // Canva short-lived access token
-  refreshToken  String   @db.Text  // Canva long-lived refresh token (single-use)
-  expiresAt     DateTime           // When the current access token expires
-  scope         String             // Space-separated scopes granted
-  canvaUserId   String?            // Canva user id (from /v1/users/me)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id           String   @id @default(cuid())
+  userId       String   @unique // HOLLY user id (maps to User.id)
+  accessToken  String   @db.Text // Canva short-lived access token
+  refreshToken String   @db.Text // Canva long-lived refresh token (single-use)
+  expiresAt    DateTime // When the current access token expires
+  scope        String // Space-separated scopes granted
+  canvaUserId  String? // Canva user id (from /v1/users/me)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   @@index([userId])
   @@map("canva_tokens")
@@ -3860,11 +3860,11 @@ model CanvaToken {
 
 /// Per-request usage log for an ApiKey — used for rate limiting and analytics.
 model ApiKeyUsage {
-  id         String   @id @default(cuid())
-  apiKeyId   String
-  apiKey     ApiKey   @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+  id       String @id @default(cuid())
+  apiKeyId String
+  apiKey   ApiKey @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
 
-  endpoint   String               // e.g. "/api/v1/chat"
+  endpoint   String // e.g. "/api/v1/chat"
   method     String   @default("POST")
   statusCode Int      @default(200)
   durationMs Int      @default(0)

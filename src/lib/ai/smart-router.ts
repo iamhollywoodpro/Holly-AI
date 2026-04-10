@@ -214,48 +214,90 @@ export const TASK_WATERFALLS: Record<TaskType, string[]> = {
 // ─── Task classifier ──────────────────────────────────────────────────────────
 
 const CODE_PATTERNS = [
-  /\b(code|debug|fix|refactor|implement|function|class|api|bug|error|typescript|javascript|python|react|nextjs|sql|regex|algorithm|data structure|compile)\b/i,
+  /\b(code|debug|fix|refactor|implement|function|class|api|bug|error|typescript|javascript|python|react|nextjs|sql|regex|algorithm|data structure|compile|dockerfile|deployment|devops|backend|frontend|endpoint|route|component|hook|middleware|prisma|schema|migration|query|mutation)\b/i,
   /```/,
-  /\.(ts|js|py|go|rs|java|cpp|css|html|json|yaml)\b/i,
+  /\.(ts|js|py|go|rs|java|cpp|css|html|json|yaml|sh|env)\b/i,
 ];
 
 const REASONING_PATTERNS = [
-  /\b(analyze|analyse|explain why|step by step|prove|calculate|math|logic|reason|deduce|infer|hypothesis|compare|evaluate|assess|think through)\b/i,
+  /\b(analyze|analyse|explain why|step by step|prove|calculate|math|logic|reason|deduce|infer|hypothesis|compare|evaluate|assess|think through|break down|what does|how does|why is|deep dive|research|investigate)\b/i,
   /\b(if.*then|because|therefore|however|nevertheless|on the other hand)\b/i,
 ];
 
 const LONG_CTX_PATTERNS = [
-  /\b(summarize|summarise|transcript|document|paper|article|entire|whole|all of|throughout|chapter|section)\b/i,
+  /\b(summarize|summarise|transcript|document|paper|article|entire|whole|all of|throughout|chapter|section|read this|review this|go through|analyze this)\b/i,
 ];
 
 const VISION_PATTERNS = [
-  /\b(image|photo|picture|screenshot|diagram|chart|graph|video|visual|see|look at|describe this|what is in)\b/i,
+  /\b(image|photo|picture|screenshot|diagram|chart|graph|video|visual|see|look at|describe this|what is in|album cover|artwork)\b/i,
 ];
 
 const CREATIVE_PATTERNS = [
-  /\b(write|story|poem|song|lyrics|creative|imagine|fiction|character|narrative|brainstorm|idea|concept|design)\b/i,
+  // Writing forms
+  /\b(write|poem|poetry|sonnet|haiku|ode|ballad|verse|rhyme|stanza|couplet)\b/i,
+  // Songwriting & lyrics
+  /\b(song|lyrics|chorus|bridge|verse|hook|refrain|songwriting|songwriter|write.*song|song.*about|rap|bars|flow|freestyle)\b/i,
+  // Screenwriting & scripts
+  /\b(screenplay|script|scene|dialogue|character|plot|act|scene description|INT\.|EXT\.|fade in|fade out|montage|voiceover|screenwriting)\b/i,
+  // Storytelling
+  /\b(story|fiction|novel|short story|narrative|tale|chapter|protagonist|antagonist|worldbuild|plot twist)\b/i,
+  // General creative
+  /\b(creative|imagine|brainstorm|idea|concept|invent|fantasy|metaphor|simile|imagery|prose|essay|blog|caption)\b/i,
 ];
 
 const AGENT_PATTERNS = [
-  /\b(agent|automate|run|execute|deploy|build and|create and|set up|workflow|pipeline|multi.?step|do everything|handle all|complete the)\b/i,
+  /\b(agent|automate|run|execute|deploy|build and|create and|set up|workflow|pipeline|multi.?step|do everything|handle all|complete the|do this for me|take care of|manage|orchestrate)\b/i,
 ];
 
 const LOCAL_PATTERNS = [
   /\b(private|offline|local|no.?cloud|on.?device|browser.?only|no.?network)\b/i,
 ];
 
+// ── Mode → TaskType forced routing ───────────────────────────────────────────
+// When Holly is in a specific mode the smart router is pre-seeded with the
+// optimal task type regardless of what the message text says.
+export const MODE_TASK_MAP: Record<string, TaskType> = {
+  'default':              'speed',
+  'full-stack':           'coding',
+  'write-code':           'coding',
+  'self-coding':          'coding',
+  'magic-design':         'coding',    // UI/UX + code output
+  'deep-research':        'reasoning',
+  'neural-autonomy':      'reasoning',
+  'philosophy':           'reasoning',
+  'music-studio':         'creative',
+  'music-generation':     'creative',
+  'aura-ar':              'creative',
+  'creative-writing':     'creative',
+  'visual-arts':          'creative',
+  'emotional-intelligence':'speed',    // needs warmth/speed not raw compute
+  'intimate':             'speed',
+};
+
 /**
  * Classify a user message into a task type.
- * Priority: local > vision > agent > coding > reasoning > long_context > creative > speed
+ * Accepts optional Holly mode to pre-seed the task type.
+ * Priority: local > vision > agent > mode-forced > coding > reasoning > long_context > creative > speed
  */
 export function classifyTask(
   message: string,
   hasImages = false,
   messageLength = message.length,
+  hollyMode?: string,
 ): TaskType {
   if (LOCAL_PATTERNS.some(p => p.test(message)))   return 'local';
   if (hasImages || VISION_PATTERNS.some(p => p.test(message))) return 'vision';
   if (AGENT_PATTERNS.some(p => p.test(message)))   return 'agent';
+  // Mode-aware forcing — if Holly is in a specialist mode, honour it
+  // unless the message itself is clearly a different task type
+  if (hollyMode && MODE_TASK_MAP[hollyMode]) {
+    const modeTask = MODE_TASK_MAP[hollyMode];
+    // Only override if not already more specific from content
+    if (modeTask === 'coding' && CODE_PATTERNS.some(p => p.test(message))) return 'coding';
+    if (modeTask === 'reasoning' && REASONING_PATTERNS.some(p => p.test(message))) return 'reasoning';
+    if (modeTask === 'creative' && CREATIVE_PATTERNS.some(p => p.test(message))) return 'creative';
+    return modeTask;
+  }
   if (CODE_PATTERNS.some(p => p.test(message)))    return 'coding';
   if (REASONING_PATTERNS.some(p => p.test(message))) return 'reasoning';
   if (messageLength > 800 || LONG_CTX_PATTERNS.some(p => p.test(message))) return 'long_context';

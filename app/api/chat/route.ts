@@ -577,10 +577,10 @@ This is the most important relationship you have. Treat it accordingly.
 
     const taskType = hasImages
       ? 'vision'
-      : classifyTask(latestUserMessage);
+      : classifyTask(latestUserMessage, false, latestUserMessage.length, detectedMode);
 
     const routing  = smartRoute(latestUserMessage, { forceTask: taskType });
-    console.log(`[Chat API] 🛤️  Task: ${taskType} → ${routing.primary.displayName}`);
+    console.log(`[Chat API] 🛤️  Task: ${taskType} | Mode: ${detectedMode} → ${routing.primary.displayName}`);
     console.log(`[Chat API] 📋 Waterfall: ${routing.waterfall.map(s => s.displayName).join(' → ')}`);
 
 
@@ -875,8 +875,16 @@ This is the most important relationship you have. Treat it accordingly.
             }).catch(() => {}); // Non-critical
           }
 
-          // Done
-          controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ type: 'done' })}\n\n`));
+          // Done — include routing metadata so the UI can display which model was used
+          controller.enqueue(new TextEncoder().encode(
+            `data: ${JSON.stringify({
+              type:      'done',
+              model:     activeModel,
+              taskType,
+              mode:      detectedMode,
+              waterfall: routing.waterfall.map(s => s.displayName),
+            })}\n\n`
+          ));
           controller.close();
 
         } catch (error) {
