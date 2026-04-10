@@ -12,12 +12,16 @@
  * 5. Holly can ADD or PROMOTE models; she cannot remove a working model
  *    without confirming a better replacement is live on the same provider
  *
- * Provider free-tier status (as of 2025-04):
+ * Provider free-tier status (as of 2026-04):
  *   Groq          — free tier, 14,400 req/day, top-tier speed (300+ tok/s)
  *   Cloudflare AI — free tier, 10,000 neurons/day, best for coding (Kimi K2.5)
  *   NVIDIA NIM    — free tier, 1,000 req/day, best for reasoning (Qwen3 235B)
  *   OpenRouter    — free tier, 200 req/day across 27+ free models
  *   Ollama        — unlimited, fully local, no network cost
+ *
+ * HuggingFace API URL change (late 2025):
+ *   OLD (deprecated): https://api-inference.huggingface.co/models/{model}
+ *   NEW (active):     https://router.huggingface.co/hf-inference/models/{model}
  */
 
 export interface ModelRecord {
@@ -59,7 +63,7 @@ export const MODEL_REGISTRY: ModelRecord[] = [
     licence:      'Llama-3',
     free:         true,
     addedAt:      '2024-12-01',
-    lastVerified: '2025-04-10',
+    lastVerified: '2026-04-10',
     taskTypes:    ['speed', 'creative', 'agent'],
     benchmarks:   { mmlu: 86, humaneval: 72 },
   },
@@ -73,7 +77,7 @@ export const MODEL_REGISTRY: ModelRecord[] = [
     licence:      'Llama-3',
     free:         true,
     addedAt:      '2024-07-01',
-    lastVerified: '2025-04-10',
+    lastVerified: '2026-04-10',
     taskTypes:    ['speed'],
     benchmarks:   { mmlu: 73 },
   },
@@ -87,7 +91,7 @@ export const MODEL_REGISTRY: ModelRecord[] = [
     licence:      'MIT',
     free:         true,
     addedAt:      '2025-01-01',
-    lastVerified: '2025-04-10',
+    lastVerified: '2026-04-10',
     taskTypes:    ['reasoning', 'coding'],
     benchmarks:   { mmlu: 88, math: 86 },
   },
@@ -101,7 +105,7 @@ export const MODEL_REGISTRY: ModelRecord[] = [
     licence:      'Llama-3',
     free:         true,
     addedAt:      '2025-01-01',
-    lastVerified: '2025-04-10',
+    lastVerified: '2026-04-10',
     taskTypes:    ['speed'],
   },
   // ─── Cloudflare Workers AI ────────────────────────────────────────────────
@@ -115,7 +119,7 @@ export const MODEL_REGISTRY: ModelRecord[] = [
     licence:      'Apache-2.0',
     free:         true,
     addedAt:      '2025-02-01',
-    lastVerified: '2025-04-10',
+    lastVerified: '2026-04-10',
     taskTypes:    ['coding', 'long_context', 'agent'],
     benchmarks:   { mmlu: 87, humaneval: 85, contextK: 256 },
   },
@@ -129,7 +133,7 @@ export const MODEL_REGISTRY: ModelRecord[] = [
     licence:      'Llama-3',
     free:         true,
     addedAt:      '2024-12-01',
-    lastVerified: '2025-04-10',
+    lastVerified: '2026-04-10',
     taskTypes:    ['speed', 'creative'],
   },
   {
@@ -142,7 +146,7 @@ export const MODEL_REGISTRY: ModelRecord[] = [
     licence:      'Apache-2.0',
     free:         true,
     addedAt:      '2025-04-01',
-    lastVerified: '2025-04-10',
+    lastVerified: '2026-04-10',
     taskTypes:    ['reasoning', 'coding'],
     benchmarks:   { mmlu: 85 },
   },
@@ -540,6 +544,24 @@ export const MEDIA_MODEL_REGISTRY: MediaModelRecord[] = [
     active:      true,
   },
   // ─── Image: HuggingFace free inference ───────────────────────────────────
+  // NOTE: HF API URL changed in late 2025.
+  //   OLD: https://api-inference.huggingface.co/models/{model}  ← DEPRECATED
+  //   NEW: https://router.huggingface.co/hf-inference/models/{model} ← ACTIVE
+  {
+    key:         'hf:flux2-klein',
+    type:        'image',
+    provider:    'huggingface',
+    modelId:     'black-forest-labs/FLUX.2-klein-4B',
+    displayName: 'FLUX.2-klein 4B (Black Forest Labs)',
+    licence:     'Apache-2.0',  // ✅ fully commercial-safe (Jan 2026)
+    free:        true,
+    keyNeeded:   true,
+    keyEnv:      'HUGGINGFACE_API_KEY',
+    quality:     'excellent',
+    note:        'ACTIVE 2026-04-10. Released Jan 2026. Distilled 4B model. Sub-second generation. Best free image model 2026. Apache-2.0 commercial-safe.',
+    addedAt:     '2026-04-10',
+    active:      true,
+  },
   {
     key:         'hf:flux-schnell',
     type:        'image',
@@ -625,7 +647,7 @@ export const MEDIA_MODEL_REGISTRY: MediaModelRecord[] = [
     quality:     'good',
     note:        'OUTDATED (2023 model). Non-commercial only (CC-BY-NC-4.0). Being superseded by CogVideoX-5B and LTX-2.3.',
     addedAt:     '2025-01-01',
-    active:      true,  // still in waterfall until better model confirmed on HF free tier
+    active:      false,  // REMOVED — CC-BY-NC-4.0 non-commercial only + outdated. Replaced by CogVideoX-5B
   },
   {
     key:         'hf:animatediff',
@@ -642,26 +664,40 @@ export const MEDIA_MODEL_REGISTRY: MediaModelRecord[] = [
     addedAt:     '2025-01-01',
     active:      true,  // still in waterfall as last HF fallback
   },
-  // ─── Video: UPGRADE CANDIDATES (2025-2026 state-of-art) ──────────────────
-  // These are all confirmed open-source, verified licences, available on HF.
-  // They require more VRAM than HF free tier typically provides, so they are
-  // candidates until the HF Inference API confirms them on the free tier,
-  // OR until Holly adds a self-hosted GPU path.
+  // ─── Video: ACTIVE 2026 models (promoted from candidates) ─────────────────
+  // CogVideoX-5B and Wan2.2-TI2V-5B are now PRIMARY video providers.
+  // ZeroScope (CC-BY-NC-4.0, 2023) has been REMOVED from the active waterfall.
   {
     key:         'hf:cogvideox-5b',
     type:        'video',
     provider:    'huggingface',
     modelId:     'THUDM/CogVideoX-5b',
-    displayName: 'CogVideoX-5B (THUDM) — CANDIDATE',
+    displayName: 'CogVideoX-5B (THUDM) — ACTIVE',
     licence:     'Apache-2.0',
     free:        true,
     keyNeeded:   true,
     keyEnv:      'HUGGINGFACE_API_KEY',
     quality:     'excellent',
-    note:        'UPGRADE CANDIDATE. 5B params, Apache-2.0, much better motion than ZeroScope. Promote when confirmed on HF free inference.',
+    note:        'PROMOTED 2026-04-10. Primary video model. 5B params, Apache-2.0, superior motion coherence vs ZeroScope. T2V + I2V supported.',
     addedAt:     '2026-04-10',
-    active:      false,
+    active:      true,
   },
+  {
+    key:         'hf:wan-2.2-5b',
+    type:        'video',
+    provider:    'huggingface',
+    modelId:     'Wan-AI/Wan2.2-TI2V-5B',
+    displayName: 'Wan2.2-TI2V-5B (Alibaba) — ACTIVE',
+    licence:     'Apache-2.0',
+    free:        true,
+    keyNeeded:   true,
+    keyEnv:      'HUGGINGFACE_API_KEY',
+    quality:     'excellent',
+    note:        'PROMOTED 2026-04-10. Secondary video. 5B MoE, 720P 24fps, T2V+I2V, cinematic quality. Consumer-GPU friendly (24GB VRAM). Apache-2.0.',
+    addedAt:     '2026-04-10',
+    active:      true,
+  },
+  // ─── Video: HIGH-VRAM CANDIDATES (need self-hosted GPU or HF Pro dedicated) ─
   {
     key:         'hf:ltx-video-2.3',
     type:        'video',
@@ -678,17 +714,17 @@ export const MEDIA_MODEL_REGISTRY: MediaModelRecord[] = [
     active:      false,
   },
   {
-    key:         'hf:wan-2.2',
+    key:         'hf:wan-2.2-14b',
     type:        'video',
     provider:    'huggingface',
     modelId:     'Wan-AI/Wan2.2-T2V-A14B',
-    displayName: 'Wan 2.2 A14B (Alibaba) — CANDIDATE',
+    displayName: 'Wan 2.2 A14B (Alibaba) — CANDIDATE (needs 24GB+ VRAM)',
     licence:     'Apache-2.0',
     free:        true,
     keyNeeded:   true,
     keyEnv:      'HUGGINGFACE_API_KEY',
     quality:     'excellent',
-    note:        'UPGRADE CANDIDATE. Aug 2025. First open-source MoE video model, 720P, cinematic controls, Apache-2.0. Top-ranked OSS video 2026.',
+    note:        'CANDIDATE (14B needs 24GB+ VRAM). Aug 2025. First open-source MoE video model, 720P, cinematic controls, Apache-2.0. 5B variant (Wan2.2-TI2V-5B) is active instead.',
     addedAt:     '2026-04-10',
     active:      false,
   },
