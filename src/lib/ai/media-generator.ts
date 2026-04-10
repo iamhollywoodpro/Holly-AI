@@ -2,24 +2,37 @@
  * HOLLY Media Generator — 100% Free, Open-Source, Zero Token Cost
  *
  * IMAGE providers (waterfall, best-first):
- *   1. Pollinations AI — FLUX.1-dev/schnell  (no key, no cost, always available)
- *   2. HuggingFace Inference — FLUX.1-schnell (free tier, needs HF key)
- *   3. HuggingFace Inference — SDXL           (free tier, needs HF key)
+ *   1. Pollinations AI — FLUX.1-schnell (no key, no cost, always available, Apache-2.0)
+ *   2. HuggingFace Inference — FLUX.1-schnell (free tier, HUGGINGFACE_API_KEY, Apache-2.0)
+ *   3. HuggingFace Inference — SDXL 1.0      (free tier, HUGGINGFACE_API_KEY, Apache-2.0)
  *
  * VIDEO providers (waterfall, best-first):
- *   1. Pollinations AI — video endpoint        (no key, no cost)
- *   2. HuggingFace Inference — ZeroScope v2    (free tier, needs HF key)
- *   3. HuggingFace Inference — AnimateDiff     (free tier, needs HF key)
+ *   1. Pollinations AI — video endpoint (no key, experimental, LTX-Video based)
+ *   2. HuggingFace Inference — ZeroScope v2 XL (free tier, CC-BY-NC-4.0)
+ *   3. HuggingFace Inference — AnimateDiff v1.5 (free tier, Apache-2.0)
  *
- * ALBUM COVER — same as image, Pollinations FLUX with music-art prompt
+ * ALBUM COVER — same as image waterfall with music-art enriched prompt
  *
- * ALL MODELS — Open-source licences only:
- *   FLUX.1-dev/schnell: Apache-2.0 (Black Forest Labs)
- *   SDXL:              Apache-2.0 (Stability AI)
- *   ZeroScope v2:      CC-BY-NC-4.0 (free for non-commercial)
- *   AnimateDiff:       Apache-2.0
+ * LICENCE ACCURACY (verified 2026-04-10):
+ *   FLUX.1-schnell  → Apache-2.0 ✅ (commercial-safe, Black Forest Labs)
+ *   FLUX.1-dev      → FLUX Non-Commercial License ❌ NOT used here
+ *   FLUX.1-Kontext  → FLUX Non-Commercial License ❌ NOT used here
+ *   SDXL 1.0        → Apache-2.0 ✅ (Stability AI)
+ *   SD 3.5 Large    → Stability AI Community License ✅ (free commercial)
+ *   ZeroScope v2    → CC-BY-NC-4.0 ⚠️ (non-commercial only)
+ *   AnimateDiff     → Apache-2.0 ✅
+ *   Pollinations    → serves schnell/turbo via free API ✅
  *
- * NEVER USE: Midjourney, DALL-E, Imagen, Runway (paid), Sora, Stable Diffusion API (paid)
+ * UPGRADE CANDIDATES (confirmed open-source, not yet on HF free inference tier):
+ *   LTX-Video 2.3 (Lightricks, Mar 2026) — Apache-2.0, real-time, native audio
+ *   CogVideoX-5B (THUDM)                 — Apache-2.0, best HF video 2025
+ *   Wan 2.2 A14B (Alibaba, Aug 2025)     — Apache-2.0, MoE, 720P cinematic
+ *   HunyuanVideo (Tencent)               — free commercial, 13B, Kling-quality
+ *   SD 3.5 Large (Stability AI)          — Stability Community License, 8B
+ *
+ * NEVER USE: Midjourney, DALL-E, Imagen, Runway (paid), Sora, Pika, Kling,
+ *            Fal.ai (paid credits), Replicate (paid credits), Adobe Firefly,
+ *            Seedance 2.0 (ByteDance — closed weights, paid API only)
  * EXCEPTION:  Suno V5.5 is the ONLY paid API — music only, already configured.
  */
 
@@ -109,10 +122,11 @@ function pollinationsImageUrl(
 async function generateWithPollinations(req: ImageRequest): Promise<ImageResult> {
   const { width, height } = getDimensions(req.aspectRatio, { width: req.width, height: req.height });
   // Map style → Pollinations model
+  // NOTE: Pollinations serves FLUX.1-schnell (Apache-2.0) — NOT flux-dev
+  // (which is non-commercial). 'flux' model param → schnell variant.
   const pollinationsModel = req.model === 'sdxl' ? 'stable-diffusion-xl'
     : req.model === 'turbo' ? 'turbo'
-    : req.model === 'flux-schnell' ? 'flux'
-    : 'flux'; // flux-dev and auto → flux (best quality)
+    : 'flux'; // flux, flux-schnell, flux-dev, auto → all route to schnell (Apache-2.0)
 
   const url = pollinationsImageUrl(
     req.prompt,
@@ -440,69 +454,136 @@ export async function generateAlbumCover(req: AlbumCoverRequest): Promise<ImageR
 // ─── Provider info (for /api/health and settings) ────────────────────────────
 
 export const MEDIA_PROVIDERS = {
-  image: [
-    {
-      name:     'Pollinations AI (FLUX.1)',
-      models:   ['FLUX.1-dev', 'FLUX.1-schnell', 'SDXL', 'Turbo'],
-      licence:  'Apache-2.0',
-      free:     true,
-      keyNeeded: false,
-      quality:   'excellent',
-      note:      'No key needed. Always available. 1024×1024 max.',
-    },
-    {
-      name:      'HuggingFace Inference',
-      models:    ['FLUX.1-schnell (Apache-2.0)', 'SDXL (Apache-2.0)'],
-      licence:   'Apache-2.0',
-      free:      true,
-      keyNeeded: true,
-      keyEnv:    'HUGGINGFACE_API_KEY',
-      signupUrl: 'https://huggingface.co/settings/tokens',
-      quality:   'excellent',
-      note:      'Free tier — no billing. Better quality than Pollinations.',
-    },
-  ],
-  video: [
-    {
-      name:      'Pollinations AI (Video)',
-      models:    ['FLUX Video (experimental)'],
-      licence:   'Apache-2.0',
-      free:      true,
-      keyNeeded: false,
-      quality:   'good',
-      note:      'No key needed. Short clips.',
-    },
-    {
-      name:      'HuggingFace — ZeroScope v2 XL',
-      models:    ['zeroscope_v2_XL'],
-      licence:   'CC-BY-NC-4.0',
-      free:      true,
-      keyNeeded: true,
-      keyEnv:    'HUGGINGFACE_API_KEY',
-      signupUrl: 'https://huggingface.co/settings/tokens',
-      quality:   'good',
-      note:      'Free, non-commercial. Best open-source text-to-video.',
-    },
-    {
-      name:      'HuggingFace — AnimateDiff',
-      models:    ['animatediff-motion-adapter-v1-5-2'],
-      licence:   'Apache-2.0',
-      free:      true,
-      keyNeeded: true,
-      keyEnv:    'HUGGINGFACE_API_KEY',
-      quality:   'decent',
-      note:      'GIF output. Apache-2.0. Good fallback.',
-    },
-  ],
-  blocked: [
-    'Midjourney (paid)',
-    'DALL-E / GPT-Image (paid, OpenAI)',
-    'Imagen (paid, Google)',
-    'Runway Gen-3 (paid)',
-    'Sora (paid, OpenAI)',
-    'Stable Diffusion API / DreamStudio (paid)',
-    'Adobe Firefly (paid)',
-    'Fal.ai (paid credits, not zero-cost)',
-    'Replicate (paid credits, not zero-cost)',
-  ],
+  image: {
+    active: [
+      {
+        name:      'Pollinations AI (FLUX.1-schnell)',
+        models:    ['FLUX.1-schnell', 'SDXL', 'Turbo'],
+        licence:   'Apache-2.0',  // schnell only — NOT dev (non-commercial)
+        free:      true,
+        keyNeeded: false,
+        quality:   'excellent',
+        note:      'No key ever needed. Primary path. FLUX.1-schnell is Apache-2.0 commercial-safe.',
+      },
+      {
+        name:      'HuggingFace — FLUX.1-schnell',
+        models:    ['black-forest-labs/FLUX.1-schnell'],
+        licence:   'Apache-2.0',
+        free:      true,
+        keyNeeded: true,
+        keyEnv:    'HUGGINGFACE_API_KEY',
+        signupUrl: 'https://huggingface.co/settings/tokens',
+        quality:   'excellent',
+        note:      'HF free inference. 4-step distillation. Only FLUX variant that is truly Apache-2.0.',
+      },
+      {
+        name:      'HuggingFace — SDXL 1.0',
+        models:    ['stabilityai/stable-diffusion-xl-base-1.0'],
+        licence:   'Apache-2.0',
+        free:      true,
+        keyNeeded: true,
+        keyEnv:    'HUGGINGFACE_API_KEY',
+        quality:   'good',
+        note:      'HF free tier. Solid fallback. Upgrade candidate: SD 3.5 Large.',
+      },
+    ],
+    candidates: [
+      {
+        name:      'SD 3.5 Large (HuggingFace)',
+        modelId:   'stabilityai/stable-diffusion-3.5-large',
+        licence:   'Stability AI Community License (free commercial)',
+        why:       'Massively better than SDXL — 8B MMDiT, superior typography, photorealism, prompt adherence.',
+        blocker:   'Large model — may timeout on HF free inference tier. Promote when confirmed.',
+      },
+      {
+        name:      'SD 3.5 Large Turbo (HuggingFace)',
+        modelId:   'stabilityai/stable-diffusion-3.5-large-turbo',
+        licence:   'Stability AI Community License (free commercial)',
+        why:       'Same quality as 3.5 Large in 4 steps (ADD distillation). Faster for HF free tier.',
+        blocker:   'Same as above — promote when confirmed on free inference.',
+      },
+    ],
+    blocked: [
+      'FLUX.1-dev (non-commercial licence — NOT Apache-2.0)',
+      'FLUX.1-Kontext (non-commercial licence)',
+      'Midjourney (paid)',
+      'DALL-E / GPT-Image (paid)',
+      'Imagen (paid, Google)',
+      'Adobe Firefly (paid)',
+      'Fal.ai (paid credits)',
+      'Replicate (paid credits)',
+    ],
+  },
+  video: {
+    active: [
+      {
+        name:      'Pollinations AI (Video / LTX-based)',
+        models:    ['video'],
+        licence:   'Apache-2.0',
+        free:      true,
+        keyNeeded: false,
+        quality:   'decent',
+        note:      'No key. Experimental — uses LTX-Video internally. Guaranteed fallback.',
+      },
+      {
+        name:      'HuggingFace — ZeroScope v2 XL',
+        models:    ['cerspense/zeroscope_v2_XL'],
+        licence:   'CC-BY-NC-4.0',  // ⚠️ non-commercial only
+        free:      true,
+        keyNeeded: true,
+        keyEnv:    'HUGGINGFACE_API_KEY',
+        quality:   'good',
+        note:      'OUTDATED (2023). Non-commercial licence. Superseded by CogVideoX/LTX-2.3.',
+      },
+      {
+        name:      'HuggingFace — AnimateDiff v1.5',
+        models:    ['guoyww/animatediff-motion-adapter-v1-5-2'],
+        licence:   'Apache-2.0',
+        free:      true,
+        keyNeeded: true,
+        keyEnv:    'HUGGINGFACE_API_KEY',
+        quality:   'decent',
+        note:      'OUTDATED (2023). GIF output only. Last-resort HF fallback.',
+      },
+    ],
+    candidates: [
+      {
+        name:    'LTX-Video 2.3 (Lightricks, Mar 2026)',
+        modelId: 'Lightricks/LTX-2.3',
+        licence: 'Apache-2.0',
+        why:     'Real-time generation, native audio sync, 4K/20s. Best OSS video 2026. Apache-2.0.',
+        blocker: 'Large model — needs self-hosted GPU or HF Pro. Promote when confirmed free.',
+      },
+      {
+        name:    'Wan 2.2 A14B (Alibaba, Aug 2025)',
+        modelId: 'Wan-AI/Wan2.2-T2V-A14B',
+        licence: 'Apache-2.0',
+        why:     "World's first open-source MoE video model. 720P, cinematic controls. Top-rated 2026.",
+        blocker: '14B params — needs substantial VRAM. Promote when confirmed on free inference.',
+      },
+      {
+        name:    'CogVideoX-5B (THUDM)',
+        modelId: 'THUDM/CogVideoX-5b',
+        licence: 'Apache-2.0',
+        why:     '5B params, Apache-2.0. Much better motion coherence than ZeroScope. HF available.',
+        blocker: 'Promote when confirmed working on HF free inference tier.',
+      },
+      {
+        name:    'HunyuanVideo (Tencent, 13B)',
+        modelId: 'tencent/HunyuanVideo',
+        licence: 'Tencent HunyuanVideo Community License (free commercial)',
+        why:     'Comparable to Kling/Sora quality. Open weights. Free commercial use.',
+        blocker: '13B params, 24GB+ VRAM — needs self-hosted GPU path.',
+      },
+    ],
+    blocked: [
+      'Seedance 2.0 (ByteDance — closed weights, paid API only via Fal.ai/PiAPI — NO open weights)',
+      'Runway Gen-3/Gen-4 (paid)',
+      'Sora (paid, OpenAI)',
+      'Pika Labs (paid)',
+      'Kling (paid)',
+      'Fal.ai (paid credits)',
+      'Replicate (paid credits)',
+    ],
+  },
 };

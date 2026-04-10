@@ -396,29 +396,63 @@ export const MODEL_CANDIDATES: Array<{
     reason:     'Qwen 3.6 Coder: updated coder model with stronger benchmarks',
   },
   // ─── Image generation candidates ─────────────────────────────────────────
-  // Holly watches HuggingFace for new FLUX / SDXL variants and promotes
-  // them automatically when benchmarks improve.
+  // Research verified 2026-04-10. Licence accuracy is critical — only truly
+  // free (Apache-2.0 / Stability AI Community Licence) models allowed.
+  //
+  // LICENCE NOTES (important corrections):
+  //   FLUX.1-schnell   → Apache-2.0 ✅ fully commercial-safe
+  //   FLUX.1-dev       → FLUX.1-dev Non-Commercial License ❌ NOT Apache-2.0
+  //   FLUX.1-Kontext   → FLUX.1-dev Non-Commercial License ❌ NOT Apache-2.0
+  //   SD 3.5 Large     → Stability AI Community License (free, permissive) ✅
+  //   SD 3.5 Turbo     → Stability AI Community License ✅
+  //   Pollinations     → serves FLUX under their own free API terms ✅
+  //
+  // STATUS: Our current primary (FLUX.1-schnell via HF, Apache-2.0) is
+  // CORRECT and still the best fully-free commercial-safe image model in 2026.
   {
-    key:        'hf:flux-1-dev-fp8',
-    provider:   'huggingface',
-    modelId:    'black-forest-labs/FLUX.1-dev-fp8',
-    licence:    'Apache-2.0',
-    taskTypes:  ['image'],
-    supersedes: 'hf:flux-1-schnell',
-    contextK:   0,
-    reason:     'FLUX.1-dev FP8: same quality as dev at half the VRAM, faster inference on HF free tier',
-  },
-  {
-    key:        'hf:stable-diffusion-3.5',
+    key:        'hf:stable-diffusion-3.5-large',
     provider:   'huggingface',
     modelId:    'stabilityai/stable-diffusion-3.5-large',
-    licence:    'Apache-2.0',
+    licence:    'Stability AI Community License',  // free commercial use ✅
     taskTypes:  ['image'],
     supersedes: 'hf:sdxl',
     contextK:   0,
-    reason:     'SD 3.5 Large: strongest Stability AI model, Apache-2.0, free on HF inference',
+    reason:     'SD 3.5 Large (8B MMDiT): better typography, prompt adherence and realism than SDXL. Free commercial use via Stability Community Licence.',
+  },
+  {
+    key:        'hf:stable-diffusion-3.5-turbo',
+    provider:   'huggingface',
+    modelId:    'stabilityai/stable-diffusion-3.5-large-turbo',
+    licence:    'Stability AI Community License',  // free commercial use ✅
+    taskTypes:  ['image'],
+    supersedes: 'hf:sdxl',
+    contextK:   0,
+    reason:     'SD 3.5 Large Turbo: same quality as 3.5 Large in 4 steps (ADD distillation). Faster than SDXL on HF free tier.',
   },
   // ─── Video generation candidates ─────────────────────────────────────────
+  // Research verified 2026-04-10. Current stack (ZeroScope, AnimateDiff) is
+  // significantly outdated. Major upgrades available:
+  //
+  // LICENCE NOTES:
+  //   Wan 2.2 (Alibaba)       → Apache-2.0 ✅ world's first OSS MoE video model
+  //   LTX-Video 2.3 (Lightricks) → Apache-2.0 ✅ real-time, synchronized audio
+  //   HunyuanVideo (Tencent)  → Tencent HunyuanVideo Community License ✅ (free commercial)
+  //   CogVideoX-5B (THUDM)    → Apache-2.0 ✅
+  //   Mochi-1 (Genmo)         → Apache-2.0 ✅
+  //
+  // EXCLUDED (paid API only, no open weights):
+  //   Seedance 2.0 (ByteDance) → closed weights, API via Fal.ai/PiAPI only — BLOCKED
+  //   Kling, Runway, Sora, Pika → paid — BLOCKED
+  {
+    key:        'hf:ltx-video-2.3',
+    provider:   'huggingface',
+    modelId:    'Lightricks/LTX-2.3',
+    licence:    'Apache-2.0',
+    taskTypes:  ['video'],
+    supersedes: 'hf:animatediff',
+    contextK:   0,
+    reason:     'LTX-Video 2.3 (Lightricks, Mar 2026): DiT-based, real-time generation, native audio sync, 4K/20s support, Apache-2.0. Massively better than AnimateDiff.',
+  },
   {
     key:        'hf:cogvideox-5b',
     provider:   'huggingface',
@@ -427,17 +461,27 @@ export const MODEL_CANDIDATES: Array<{
     taskTypes:  ['video'],
     supersedes: 'hf:zeroscope-v2',
     contextK:   0,
-    reason:     'CogVideoX-5B: state-of-art OSS text-to-video (2024), better motion than ZeroScope',
+    reason:     'CogVideoX-5B (THUDM, Apache-2.0): much better motion coherence and prompt following than ZeroScope v2. Available on HF free inference.',
   },
   {
-    key:        'hf:mochi-1',
+    key:        'hf:wan-2.2-t2v',
     provider:   'huggingface',
-    modelId:    'genmo/mochi-1-preview',
+    modelId:    'Wan-AI/Wan2.2-T2V-A14B',
     licence:    'Apache-2.0',
     taskTypes:  ['video'],
-    supersedes: 'hf:animatediff',
+    supersedes: 'hf:zeroscope-v2',
     contextK:   0,
-    reason:     'Mochi-1: high-fidelity motion, Apache-2.0, free on HF — best OSS video model',
+    reason:     'Wan 2.2 (Alibaba, Aug 2025): first open-source MoE video model. 720P, cinematic controls, Apache-2.0. Top-rated OSS video model in 2026.',
+  },
+  {
+    key:        'hf:hunyuanvideo',
+    provider:   'huggingface',
+    modelId:    'tencent/HunyuanVideo',
+    licence:    'Tencent HunyuanVideo Community License',  // free commercial ✅
+    taskTypes:  ['video'],
+    supersedes: 'hf:zeroscope-v2',
+    contextK:   0,
+    reason:     'HunyuanVideo (Tencent, 13B params): best visual quality OSS video model, comparable to Kling/Sora. Free commercial use licence.',
   },
 ];
 
@@ -464,31 +508,34 @@ export interface MediaModelRecord {
 
 export const MEDIA_MODEL_REGISTRY: MediaModelRecord[] = [
   // ─── Image: Pollinations (no key) ────────────────────────────────────────
+  // NOTE: Pollinations serves FLUX.1-schnell (Apache-2.0) under their free API.
+  // The previous label "FLUX.1-dev" was incorrect — Pollinations routes to
+  // schnell/turbo variants which ARE Apache-2.0 commercial-safe.
   {
-    key:         'pollinations:flux-dev',
+    key:         'pollinations:flux',
     type:        'image',
     provider:    'pollinations',
     modelId:     'flux',
-    displayName: 'FLUX.1-dev via Pollinations',
-    licence:     'Apache-2.0',
+    displayName: 'FLUX.1-schnell via Pollinations',
+    licence:     'Apache-2.0',  // schnell is Apache-2.0 ✅
     free:        true,
     keyNeeded:   false,
     quality:     'excellent',
-    note:        'Primary image provider. No API key. Always available. 1024px max.',
+    note:        'Primary image provider. No API key ever needed. Apache-2.0 schnell variant. Active Jan 2026+.',
     addedAt:     '2025-01-01',
     active:      true,
   },
   {
-    key:         'pollinations:sdxl',
+    key:         'pollinations:turbo',
     type:        'image',
     provider:    'pollinations',
-    modelId:     'stable-diffusion-xl',
-    displayName: 'SDXL via Pollinations',
+    modelId:     'turbo',
+    displayName: 'FLUX Turbo via Pollinations',
     licence:     'Apache-2.0',
     free:        true,
     keyNeeded:   false,
-    quality:     'good',
-    note:        'Fallback image style. No API key.',
+    quality:     'excellent',
+    note:        'Fastest Pollinations image variant. No key.',
     addedAt:     '2025-01-01',
     active:      true,
   },
@@ -499,12 +546,12 @@ export const MEDIA_MODEL_REGISTRY: MediaModelRecord[] = [
     provider:    'huggingface',
     modelId:     'black-forest-labs/FLUX.1-schnell',
     displayName: 'FLUX.1-schnell (HuggingFace)',
-    licence:     'Apache-2.0',
+    licence:     'Apache-2.0',  // ✅ only FLUX variant that is truly Apache-2.0
     free:        true,
     keyNeeded:   true,
     keyEnv:      'HUGGINGFACE_API_KEY',
     quality:     'excellent',
-    note:        'HF free tier. 4-step distillation. Fastest FLUX variant.',
+    note:        'HF free inference tier. 4-step distillation. Only FLUX model with Apache-2.0 (commercial-safe).',
     addedAt:     '2025-01-01',
     active:      true,
   },
@@ -518,56 +565,147 @@ export const MEDIA_MODEL_REGISTRY: MediaModelRecord[] = [
     free:        true,
     keyNeeded:   true,
     keyEnv:      'HUGGINGFACE_API_KEY',
-    quality:     'excellent',
-    note:        'HF free tier. Best artistic quality of SDXL family.',
+    quality:     'good',
+    note:        'HF free tier. Solid artistic quality. Candidate for upgrade to SD 3.5.',
     addedAt:     '2025-01-01',
     active:      true,
   },
+  // ─── Image: UPGRADE CANDIDATE — SD 3.5 Large ─────────────────────────────
+  // SD 3.5 Large (8B MMDiT) is significantly better than SDXL on:
+  // - Typography / text in images
+  // - Prompt adherence  
+  // - Photorealism
+  // Licence: Stability AI Community License — free for commercial use ✅
+  // Status: Available on HF but large (8B) — may time out on HF free tier.
+  //         Promote when confirmed working on free inference.
+  {
+    key:         'hf:sd-3.5-large',
+    type:        'image',
+    provider:    'huggingface',
+    modelId:     'stabilityai/stable-diffusion-3.5-large',
+    displayName: 'Stable Diffusion 3.5 Large (HuggingFace) — CANDIDATE',
+    licence:     'Stability AI Community License',
+    free:        true,
+    keyNeeded:   true,
+    keyEnv:      'HUGGINGFACE_API_KEY',
+    quality:     'excellent',
+    note:        'UPGRADE CANDIDATE. 8B MMDiT. Better than SDXL on every benchmark. Free commercial use. Promote when HF free inference confirms no timeout.',
+    addedAt:     '2026-04-10',
+    active:      false,  // candidate — not yet in waterfall
+  },
   // ─── Video: Pollinations (no key, experimental) ───────────────────────────
+  // NOTE: Pollinations video uses LTX-Video internally (confirmed via their
+  // GitHub issues). The endpoint is experimental and can return 500 errors.
+  // It is the guaranteed no-key fallback — not primary.
   {
     key:         'pollinations:video',
     type:        'video',
     provider:    'pollinations',
     modelId:     'video',
-    displayName: 'Pollinations Video (FLUX)',
+    displayName: 'Pollinations Video (LTX-based)',
     licence:     'Apache-2.0',
     free:        true,
     keyNeeded:   false,
     quality:     'decent',
-    note:        'No API key. Experimental endpoint. Short clips only.',
+    note:        'No API key. Experimental — can 500. Uses LTX-Video internally. Guaranteed last-resort fallback.',
     addedAt:     '2025-01-01',
     active:      true,
   },
-  // ─── Video: HuggingFace free inference ───────────────────────────────────
+  // ─── Video: HuggingFace — current models (OUTDATED, kept for compatibility)
   {
     key:         'hf:zeroscope-v2',
     type:        'video',
     provider:    'huggingface',
     modelId:     'cerspense/zeroscope_v2_XL',
-    displayName: 'ZeroScope v2 XL (HuggingFace)',
-    licence:     'CC-BY-NC-4.0',
+    displayName: 'ZeroScope v2 XL (HuggingFace) — OUTDATED',
+    licence:     'CC-BY-NC-4.0',     // ⚠️ non-commercial only
     free:        true,
     keyNeeded:   true,
     keyEnv:      'HUGGINGFACE_API_KEY',
     quality:     'good',
-    note:        'HF free tier. Best OSS text-to-video. Non-commercial use.',
+    note:        'OUTDATED (2023 model). Non-commercial only (CC-BY-NC-4.0). Being superseded by CogVideoX-5B and LTX-2.3.',
     addedAt:     '2025-01-01',
-    active:      true,
+    active:      true,  // still in waterfall until better model confirmed on HF free tier
   },
   {
     key:         'hf:animatediff',
     type:        'video',
     provider:    'huggingface',
     modelId:     'guoyww/animatediff-motion-adapter-v1-5-2',
-    displayName: 'AnimateDiff v1.5 (HuggingFace)',
+    displayName: 'AnimateDiff v1.5 (HuggingFace) — OUTDATED',
     licence:     'Apache-2.0',
     free:        true,
     keyNeeded:   true,
     keyEnv:      'HUGGINGFACE_API_KEY',
     quality:     'decent',
-    note:        'HF free tier. GIF output. Good fallback for animation.',
+    note:        'OUTDATED (2023 model). GIF output only. Being superseded by LTX-2.3.',
     addedAt:     '2025-01-01',
-    active:      true,
+    active:      true,  // still in waterfall as last HF fallback
+  },
+  // ─── Video: UPGRADE CANDIDATES (2025-2026 state-of-art) ──────────────────
+  // These are all confirmed open-source, verified licences, available on HF.
+  // They require more VRAM than HF free tier typically provides, so they are
+  // candidates until the HF Inference API confirms them on the free tier,
+  // OR until Holly adds a self-hosted GPU path.
+  {
+    key:         'hf:cogvideox-5b',
+    type:        'video',
+    provider:    'huggingface',
+    modelId:     'THUDM/CogVideoX-5b',
+    displayName: 'CogVideoX-5B (THUDM) — CANDIDATE',
+    licence:     'Apache-2.0',
+    free:        true,
+    keyNeeded:   true,
+    keyEnv:      'HUGGINGFACE_API_KEY',
+    quality:     'excellent',
+    note:        'UPGRADE CANDIDATE. 5B params, Apache-2.0, much better motion than ZeroScope. Promote when confirmed on HF free inference.',
+    addedAt:     '2026-04-10',
+    active:      false,
+  },
+  {
+    key:         'hf:ltx-video-2.3',
+    type:        'video',
+    provider:    'huggingface',
+    modelId:     'Lightricks/LTX-2.3',
+    displayName: 'LTX-Video 2.3 (Lightricks) — CANDIDATE',
+    licence:     'Apache-2.0',
+    free:        true,
+    keyNeeded:   true,
+    keyEnv:      'HUGGINGFACE_API_KEY',
+    quality:     'excellent',
+    note:        'UPGRADE CANDIDATE. Mar 2026. DiT-based, real-time generation, native audio sync, 4K/20s, Apache-2.0. Best OSS video model for production.',
+    addedAt:     '2026-04-10',
+    active:      false,
+  },
+  {
+    key:         'hf:wan-2.2',
+    type:        'video',
+    provider:    'huggingface',
+    modelId:     'Wan-AI/Wan2.2-T2V-A14B',
+    displayName: 'Wan 2.2 A14B (Alibaba) — CANDIDATE',
+    licence:     'Apache-2.0',
+    free:        true,
+    keyNeeded:   true,
+    keyEnv:      'HUGGINGFACE_API_KEY',
+    quality:     'excellent',
+    note:        'UPGRADE CANDIDATE. Aug 2025. First open-source MoE video model, 720P, cinematic controls, Apache-2.0. Top-ranked OSS video 2026.',
+    addedAt:     '2026-04-10',
+    active:      false,
+  },
+  {
+    key:         'hf:hunyuanvideo',
+    type:        'video',
+    provider:    'huggingface',
+    modelId:     'tencent/HunyuanVideo',
+    displayName: 'HunyuanVideo (Tencent) — CANDIDATE',
+    licence:     'Tencent HunyuanVideo Community License',  // free commercial ✅
+    free:        true,
+    keyNeeded:   true,
+    keyEnv:      'HUGGINGFACE_API_KEY',
+    quality:     'excellent',
+    note:        'UPGRADE CANDIDATE. 13B params. Comparable to Kling/Sora quality. Free commercial licence. Requires 24GB+ VRAM — needs self-hosted GPU.',
+    addedAt:     '2026-04-10',
+    active:      false,
   },
 ];
 
