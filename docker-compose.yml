@@ -123,20 +123,25 @@ services:
       # ── Cron auth secret (shared with holly-cron) ─────────────────────────
       CRON_SECRET:                      ${CRON_SECRET}
 
-    # HEALTHCHECK — tells Traefik to only route traffic once the app is
-    # actually responding. start_period gives the app 120s to boot before
-    # any failures count. This prevents Gateway Timeout on cold starts.
+    # Docker healthcheck — marks container healthy/unhealthy.
+    # start_period: app gets 3 minutes to boot before failures count.
+    # Traefik reads this status via the labels below.
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
-      start_period: 120s
+      test: ["CMD-SHELL", "curl -sf http://localhost:3000/api/health || exit 1"]
+      start_period: 180s
       interval: 15s
-      timeout: 5s
-      retries: 3
+      timeout: 10s
+      retries: 5
 
     labels:
-      # Tell Traefik to only route to this container when it is healthy.
-      # Without this label Traefik routes immediately on container start,
-      # before Next.js has finished booting → Gateway Timeout.
+      # ── Traefik health-gate labels ─────────────────────────────────────────
+      # These tell Traefik to ONLY route traffic to this container when
+      # Docker marks it healthy. Without these, Traefik routes immediately
+      # on container start → Gateway Timeout while Next.js is still booting.
+      - "traefik.enable=true"
+      - "traefik.http.services.holly-app.loadbalancer.healthcheck.path=/api/health"
+      - "traefik.http.services.holly-app.loadbalancer.healthcheck.interval=15s"
+      - "traefik.http.services.holly-app.loadbalancer.healthcheck.timeout=10s"
       - "traefik.docker.network=holly-network"
 
     networks:
