@@ -5,6 +5,9 @@ import { useAuth } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
+const PUBLIC_ORIGIN = 'https://holly.nexamusicgroup.com';
+const DOCKER_ORIGINS = ['0.0.0.0', 'localhost', '127.0.0.1'];
+
 export default function SignUpPage() {
   const { isSignedIn, isLoaded } = useAuth();
   const router = useRouter();
@@ -28,7 +31,7 @@ export default function SignUpPage() {
       setTimeout(() => {
         if (window.location.pathname === '/sign-up') {
           console.warn('[HOLLY] router.replace failed, forcing hard redirect');
-          window.location.href = '/chat';
+          window.location.href = `${PUBLIC_ORIGIN}/chat`;
         }
       }, 1000);
     }
@@ -57,7 +60,7 @@ export default function SignUpPage() {
             <span className="text-2xl font-black text-white">H</span>
           </div>
           <h1 className="text-2xl font-bold text-white tracking-tight">Start with HOLLY</h1>
-          <p className="text-gray-400 text-sm mt-1.5">Create your account — it's free</p>
+          <p className="text-gray-400 text-sm mt-1.5">Create your account — it&apos;s free</p>
         </div>
 
         {/* Loading state shown while Clerk initialises */}
@@ -84,14 +87,16 @@ export default function SignUpPage() {
           App Router catch-all routes [[...sign-up]]. Without this Clerk can't
           handle multi-step flows (fill form → email verify → continue) correctly.
 
-          REDIRECT: forceRedirectUrl="/chat" overrides Coolify env vars.
+          REDIRECT: Use absolute URLs because Clerk with proxyUrl resolves relative
+          paths against the proxy subdomain (clerk.holly.nexamusicgroup.com) instead
+          of the main app domain, causing "invalid redirect_url" 422 errors.
         */}
         {clerkReady && !redirecting && (
           <SignUp
             routing="path"
             path="/sign-up"
-            forceRedirectUrl="/chat"
-            fallbackRedirectUrl="/chat"
+            forceRedirectUrl={`${PUBLIC_ORIGIN}/chat`}
+            fallbackRedirectUrl={`${PUBLIC_ORIGIN}/chat`}
             signInUrl="/sign-in"
             appearance={{
               variables: {

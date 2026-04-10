@@ -225,16 +225,34 @@ export default function IntegrationsPage() {
   const [discordSaving, setDiscordSaving]         = useState(false);
   const [statusLoading, setStatusLoading]         = useState(true);
   const [activeCategory, setActiveCategory]       = useState<string>('All');
+  // New integrations
+  const [instagramConnected, setInstagramConnected] = useState(false);
+  const [instagramUser, setInstagramUser]           = useState('');
+  const [tiktokConnected, setTiktokConnected]       = useState(false);
+  const [tiktokUser, setTiktokUser]                 = useState('');
+  const [dropboxConnected, setDropboxConnected]     = useState(false);
+  const [dropboxUser, setDropboxUser]               = useState('');
+  const [slackConnected, setSlackConnected]         = useState(false);
+  const [slackTeam, setSlackTeam]                   = useState('');
+  const [appleMusicConnected, setAppleMusicConnected] = useState(false);
 
   // ── Read OAuth callback query params ──────────────────────────────────────
   useEffect(() => {
     const ok          = searchParams.get('success');
     const err         = searchParams.get('error');
-    const cv          = searchParams.get('canva');
-    const notionErr   = searchParams.get('notion_error');
-    const spotifyErr  = searchParams.get('spotify_error');
-    const ytErr       = searchParams.get('youtube_error');
-    const scErr       = searchParams.get('soundcloud_error');
+    const cv                  = searchParams.get('canva');
+    const notionErr           = searchParams.get('notion_error');
+    const spotifyErr          = searchParams.get('spotify_error');
+    const ytErr               = searchParams.get('youtube_error');
+    const scErr               = searchParams.get('soundcloud_error');
+    const instagramConnected  = searchParams.get('instagram_connected');
+    const instagramErr        = searchParams.get('instagram_error');
+    const tiktokConnected     = searchParams.get('tiktok_connected');
+    const tiktokErr           = searchParams.get('tiktok_error');
+    const dropboxConnected    = searchParams.get('dropbox_connected');
+    const dropboxErr          = searchParams.get('dropbox_error');
+    const slackConnected      = searchParams.get('slack_connected');
+    const slackErr            = searchParams.get('slack_error');
 
     if (ok === 'drive_connected')       showToast('success', '🎉 Google Drive connected!');
     if (ok === 'github_connected')      showToast('success', '🎉 GitHub connected!');
@@ -244,13 +262,23 @@ export default function IntegrationsPage() {
     if (ok === 'notion_connected')      showToast('success', '📝 Notion connected!');
     if (cv === 'connected')             showToast('success', '🎨 Canva connected!');
     if (cv === 'denied')                showToast('error',   'Canva connection cancelled.');
+    if (instagramConnected)             showToast('success', '📸 Instagram connected!');
+    if (tiktokConnected)                showToast('success', '🎵 TikTok connected!');
+    if (dropboxConnected)               showToast('success', '📦 Dropbox connected!');
+    if (slackConnected)                 showToast('success', '💬 Slack connected!');
     if (err)                            showToast('error',   `Error: ${decodeURIComponent(err)}`);
     if (notionErr)                      showToast('error',   `Notion error: ${notionErr}`);
     if (spotifyErr)                     showToast('error',   `Spotify error: ${spotifyErr}`);
     if (ytErr)                          showToast('error',   `YouTube error: ${ytErr}`);
     if (scErr)                          showToast('error',   `SoundCloud error: ${scErr}`);
+    if (instagramErr)                   showToast('error',   `Instagram error: ${instagramErr}`);
+    if (tiktokErr)                      showToast('error',   `TikTok error: ${tiktokErr}`);
+    if (dropboxErr)                     showToast('error',   `Dropbox error: ${dropboxErr}`);
+    if (slackErr)                       showToast('error',   `Slack error: ${slackErr}`);
 
-    if (cv || ok || err || notionErr || spotifyErr || ytErr || scErr) {
+    if (cv || ok || err || notionErr || spotifyErr || ytErr || scErr ||
+        instagramConnected || instagramErr || tiktokConnected || tiktokErr ||
+        dropboxConnected || dropboxErr || slackConnected || slackErr) {
       window.history.replaceState({}, '', '/settings/integrations');
     }
   }, [searchParams]);
@@ -298,6 +326,28 @@ export default function IntegrationsPage() {
         .then(r => r.json()).then(d => {
           setDiscordConnected(d.connected);
           if (d.channelName) setDiscordChannel(d.channelName);
+        }).catch(() => {}),
+      // New integrations
+      fetch('/api/integrations/instagram', { cache: 'no-store' })
+        .then(r => r.json()).then(d => {
+          setInstagramConnected(d.connected && d.active);
+          if (d.username) setInstagramUser(d.username);
+        }).catch(() => {}),
+      fetch('/api/integrations/tiktok', { cache: 'no-store' })
+        .then(r => r.json()).then(d => {
+          setTiktokConnected(d.connected && d.active);
+          if (d.displayName) setTiktokUser(d.displayName);
+        }).catch(() => {}),
+      fetch('/api/integrations/dropbox/callback', { cache: 'no-store' }).catch(() => {}), // status only
+      fetch('/api/social/status', { cache: 'no-store' })
+        .then(r => r.json()).then(d => {
+          const s = d.status ?? {};
+          if (s.dropbox?.connected) { setDropboxConnected(true); setDropboxUser(s.dropbox.username ?? 'Dropbox'); }
+          if (s.slack?.connected)   { setSlackConnected(true);   setSlackTeam(s.slack.username ?? 'Slack'); }
+          if (s['apple-music']?.connected) setAppleMusicConnected(true);
+          // Refresh instagram/tiktok from unified endpoint too
+          if (s.instagram?.connected) { setInstagramConnected(true); if (s.instagram.username) setInstagramUser(s.instagram.username); }
+          if (s.tiktok?.connected)    { setTiktokConnected(true);    if (s.tiktok.username)    setTiktokUser(s.tiktok.username); }
         }).catch(() => {}),
     ]);
     setStatusLoading(false);
@@ -352,6 +402,60 @@ export default function IntegrationsPage() {
     showToast('success', 'Discord disconnected.');
   }
 
+  async function disconnectInstagram() {
+    await fetch('/api/integrations/instagram', { method: 'DELETE' });
+    setInstagramConnected(false); setInstagramUser('');
+    showToast('success', 'Instagram disconnected.');
+  }
+
+  async function disconnectTikTok() {
+    await fetch('/api/integrations/tiktok', { method: 'DELETE' });
+    setTiktokConnected(false); setTiktokUser('');
+    showToast('success', 'TikTok disconnected.');
+  }
+
+  async function disconnectDropbox() {
+    await fetch('/api/integrations/dropbox/disconnect', { method: 'DELETE' });
+    setDropboxConnected(false); setDropboxUser('');
+    showToast('success', 'Dropbox disconnected.');
+  }
+
+  async function disconnectSlack() {
+    await fetch('/api/integrations/slack/disconnect', { method: 'DELETE' });
+    setSlackConnected(false); setSlackTeam('');
+    showToast('success', 'Slack disconnected.');
+  }
+
+  async function disconnectAppleMusic() {
+    await fetch('/api/integrations/apple-music', { method: 'DELETE' });
+    setAppleMusicConnected(false);
+    showToast('success', 'Apple Music disconnected.');
+  }
+
+  async function connectInstagram() {
+    const res = await fetch('/api/integrations/instagram', { method: 'POST' });
+    const data = await res.json();
+    if (data.authUrl) { window.location.href = data.authUrl; }
+    else showToast('error', data.error ?? 'Instagram not configured');
+  }
+
+  async function connectTikTok() {
+    const res = await fetch('/api/integrations/tiktok', { method: 'POST' });
+    const data = await res.json();
+    if (data.authUrl) { window.location.href = data.authUrl; }
+    else showToast('error', data.error ?? 'TikTok not configured');
+  }
+
+  async function connectAppleMusic() {
+    const res = await fetch('/api/integrations/apple-music');
+    const data = await res.json();
+    if (!data.configured) {
+      showToast('error', 'Apple Music requires APPLE_MUSIC_KEY_ID, APPLE_MUSIC_TEAM_ID, and APPLE_MUSIC_PRIVATE_KEY env vars.');
+    } else {
+      showToast('error', 'Apple Music uses MusicKit JS — integration coming in next update.');
+    }
+  }
+
   async function saveDiscordWebhook(url: string, serverName: string) {
     setDiscordSaving(true);
     try {
@@ -403,7 +507,10 @@ export default function IntegrationsPage() {
       id: 'dropbox', name: 'Dropbox',
       description: 'Sync generated files to your Dropbox folders automatically.',
       icon: <Icons.Dropbox />, gradient: 'from-[#0061FF] to-[#004BA0]', category: 'Storage',
-      status: 'coming-soon',
+      status: dropboxConnected ? 'connected' : 'disconnected',
+      connectedInfo: dropboxUser || 'Dropbox account',
+      onConnect: () => window.location.href = '/api/integrations/dropbox/auth',
+      onDisconnect: disconnectDropbox,
     },
     // Dev
     {
@@ -437,7 +544,10 @@ export default function IntegrationsPage() {
       id: 'apple-music', name: 'Apple Music',
       description: 'View Apple Music analytics and push releases through Music Connect.',
       icon: <Icons.AppleMusic />, gradient: 'from-[#FC3C44] to-[#B71C1C]', category: 'Music',
-      status: 'coming-soon',
+      status: appleMusicConnected ? 'connected' : 'disconnected',
+      connectedInfo: 'Apple Music',
+      onConnect: connectAppleMusic,
+      onDisconnect: disconnectAppleMusic,
     },
     // Video
     {
@@ -452,15 +562,21 @@ export default function IntegrationsPage() {
     // Social
     {
       id: 'instagram', name: 'Instagram',
-      description: 'Schedule posts, reels, and stories. HOLLY generates captions and hashtags automatically.',
+      description: 'Post reels, stories, and images. HOLLY generates captions and hashtags automatically.',
       icon: <Icons.Instagram />, gradient: 'from-[#833AB4] via-[#FD1D1D] to-[#F77737]', category: 'Social',
-      status: 'coming-soon',
+      status: instagramConnected ? 'connected' : 'disconnected',
+      connectedInfo: instagramUser ? `@${instagramUser}` : 'Instagram account',
+      onConnect: connectInstagram,
+      onDisconnect: disconnectInstagram,
     },
     {
       id: 'tiktok', name: 'TikTok',
       description: 'Post clips, manage your TikTok presence, and get trending sound recommendations.',
       icon: <Icons.TikTok />, gradient: 'from-[#010101] to-[#69C9D0]', category: 'Social',
-      status: 'coming-soon',
+      status: tiktokConnected ? 'connected' : 'disconnected',
+      connectedInfo: tiktokUser || 'TikTok account',
+      onConnect: connectTikTok,
+      onDisconnect: disconnectTikTok,
     },
     // Productivity
     {
@@ -477,7 +593,10 @@ export default function IntegrationsPage() {
       id: 'slack', name: 'Slack',
       description: 'Get HOLLY notifications in Slack — new releases, milestones, and AI alerts.',
       icon: <Icons.Slack />, gradient: 'from-[#4A154B] to-[#611f69]', category: 'Community',
-      status: 'coming-soon',
+      status: slackConnected ? 'connected' : 'disconnected',
+      connectedInfo: slackTeam || 'Slack workspace',
+      onConnect: () => window.location.href = '/api/integrations/slack/auth',
+      onDisconnect: disconnectSlack,
     },
     {
       id: 'discord', name: 'Discord',
@@ -494,7 +613,7 @@ export default function IntegrationsPage() {
   const filtered   = activeCategory === 'All' ? integrations : integrations.filter(i => i.category === activeCategory);
   const liveCount  = integrations.filter(i => i.status === 'connected' || i.status === 'disconnected').length;
 
-  const loadingIds = new Set(['canva', 'google-drive', 'github', 'spotify', 'youtube', 'soundcloud', 'notion', 'discord']);
+  const loadingIds = new Set(['canva', 'google-drive', 'github', 'spotify', 'youtube', 'soundcloud', 'notion', 'discord', 'instagram', 'tiktok', 'dropbox', 'slack', 'apple-music']);
 
   return (
     <div className="space-y-6">
