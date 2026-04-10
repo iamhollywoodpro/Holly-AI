@@ -59,16 +59,16 @@ export async function POST(req: NextRequest) {
       data: {
         userId: user.id,
         action: 'social_post_scheduled',
-        resource: 'social',
-        resourceId: `scheduled-${Date.now()}`,
         details: {
           platforms,
           content,
           scheduledAt: scheduledDate.toISOString(),
           status: 'pending',
+          resource: 'social',
+          resourceId: `scheduled-${Date.now()}`,
+          userAgent: req.headers.get('user-agent') ?? 'HOLLY',
         },
         ipAddress: req.headers.get('x-forwarded-for') ?? 'unknown',
-        userAgent: req.headers.get('user-agent') ?? 'HOLLY',
       },
     });
 
@@ -102,19 +102,19 @@ export async function GET(req: NextRequest) {
         userId: user.id,
         action: 'social_post_scheduled',
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { timestamp: 'desc' },
       take: 50,
       select: {
         id: true,
         details: true,
-        createdAt: true,
+        timestamp: true,
       },
     });
 
     const posts = scheduled.map(s => ({
       id: s.id,
       ...((s.details as any) ?? {}),
-      createdAt: s.createdAt,
+      createdAt: s.timestamp,
     }));
 
     return NextResponse.json({ scheduled: posts, count: posts.length });

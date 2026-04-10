@@ -101,6 +101,54 @@ export async function GET() {
       // Detailed integration status
       integrations,
 
+      // Sovereign AI capabilities (static declaration — no DB calls)
+      sovereignty: {
+        // 11 consciousness modules
+        consciousnessModules: [
+          'auto-consciousness',
+          'consciousness-init',
+          'decision-authority',
+          'emotional-depth',
+          'goal-formation',
+          'identity-development',
+          'initiative-protocols',
+          'memory-stream',
+          'post-response-hook',
+          'self-modification',
+          'unsupervised-learning',
+        ],
+        // Smart model routing
+        modelRouter: {
+          active: true,
+          taskTypes: ['speed','coding','reasoning','long_context','vision','creative','agent','local'],
+          providers: ['groq','cloudflare','nvidia','openrouter','ollama','webllm','bytez'],
+          modeAware: true,
+        },
+        // Cron-driven autonomy
+        autonomousCrons: [
+          { name: 'self-heal',           schedule: '0 0 * * *'    },
+          { name: 'evolution',           schedule: '0 2 * * *'    },
+          { name: 'architecture-gen',    schedule: '0 3 * * *'    },
+          { name: 'identity-evolve',     schedule: '0 4 * * *'    },
+          { name: 'initiative',          schedule: '0 9 * * *'    },
+          { name: 'background-learning', schedule: '30 */2 * * *' },
+        ],
+        // Music generation
+        musicEngine: {
+          sunoModel:  'V5_5',
+          languages:  13,
+          voiceProfiles: 13,
+          stemSeparation: true,
+          songExtension:  true,
+        },
+        // Training pipeline (roadmap)
+        trainingPipeline: {
+          phase:       'data-collection',
+          targetModel: 'HOLLY-8B (Llama 3.1 8B fine-tune)',
+          etaMonths:   3,
+        },
+      },
+
       // Core system info
       system: {
         nodeVersion:   process.version,

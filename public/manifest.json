@@ -3,48 +3,142 @@
   "short_name": "HOLLY",
   "description": "The AI that remembers you, grows with you, and acts for you. Creative partner, builder, analyst, and life companion — powered by AURA.",
   "start_url": "/chat",
+  "scope": "/",
+  "id": "holly-ai-v2",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui", "browser"],
   "background_color": "#0a0a0f",
   "theme_color": "#a855f7",
-  "orientation": "portrait-primary",
+  "orientation": "any",
   "lang": "en-US",
+  "dir": "ltr",
+  "prefer_related_applications": false,
   "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any"
+    },
     {
       "src": "/favicon.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "/favicon.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
-  "categories": ["productivity", "utilities", "entertainment"],
-  "screenshots": [],
+  "categories": ["productivity", "utilities", "entertainment", "music"],
   "shortcuts": [
     {
       "name": "Chat with HOLLY",
       "short_name": "Chat",
-      "description": "Open HOLLY chat",
+      "description": "Open HOLLY AI chat",
       "url": "/chat",
-      "icons": [{ "src": "/favicon.png", "sizes": "96x96" }]
+      "icons": [{ "src": "/favicon.png", "sizes": "96x96", "type": "image/png" }]
     },
     {
       "name": "Music Studio",
       "short_name": "Studio",
-      "description": "Create music with AI",
+      "description": "Create music with Suno V5.5",
       "url": "/music-studio",
-      "icons": [{ "src": "/favicon.png", "sizes": "96x96" }]
+      "icons": [{ "src": "/favicon.png", "sizes": "96x96", "type": "image/png" }]
     },
     {
       "name": "Memory",
       "short_name": "Memory",
       "description": "View HOLLY's memory of you",
       "url": "/memory",
-      "icons": [{ "src": "/favicon.png", "sizes": "96x96" }]
+      "icons": [{ "src": "/favicon.png", "sizes": "96x96", "type": "image/png" }]
+    },
+    {
+      "name": "Settings",
+      "short_name": "Settings",
+      "description": "App settings and integrations",
+      "url": "/settings",
+      "icons": [{ "src": "/favicon.png", "sizes": "96x96", "type": "image/png" }]
     }
-  ]
+  ],
+  "screenshots": [
+    {
+      "src": "/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "HOLLY AI Chat on Mobile"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "HOLLY AI on Desktop"
+    }
+  ],
+  "share_target": {
+    "action": "/chat",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  },
+  "protocol_handlers": [
+    {
+      "protocol": "web+holly",
+      "url": "/chat?url=%s"
+    }
+  ],
+  "related_applications": [],
+  "edge_side_panel": {
+    "preferred_width": 480
+  }
 }
