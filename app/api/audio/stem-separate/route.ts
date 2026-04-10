@@ -3,16 +3,18 @@
  *
  * HOLLY Stem Separation — Phase 12B
  *
- * Uses Demucs (via FAL.ai or Replicate) to split a track into stems:
+ * Uses Demucs / Spleeter to split a track into stems:
  *   - vocals
  *   - drums
  *   - bass
  *   - other (instruments)
  *
- * Provider priority:
- *   1. FAL.ai   — fal-ai/demucs (fast, pay-per-minute, great quality)
- *   2. Replicate — mtg/demucs (free tier, slower)
- *   3. HuggingFace Inference API — spleeter fallback
+ * Provider priority (free-first):
+ *   1. HuggingFace — deezer/spleeter (free tier, 2-stems, Apache-2.0)
+ *   2. FAL.ai      — fal-ai/demucs (optional paid credits — only if FAL_KEY set)
+ *   3. Replicate   — mtg/demucs (optional free tier — only if REPLICATE_API_KEY set)
+ *
+ * NOTE: FAL.ai and Replicate are optional enhancements; Holly works without them.
  *
  * Request body:
  * {
@@ -221,40 +223,50 @@ export async function POST(req: NextRequest) {
     let result: any;
     let provider = '';
 
-    // Try providers in order
-    if (process.env.FAL_KEY) {
-      try {
-        result   = await separateWithFal(audioUrl, model);
-        provider = 'fal';
-      } catch (err: any) {
-        console.warn('[StemSeparate] FAL failed:', err.message);
-      }
-    }
-
-    if (!result && process.env.REPLICATE_API_KEY) {
-      try {
-        result   = await separateWithReplicate(audioUrl, model);
-        provider = 'replicate';
-      } catch (err: any) {
-        console.warn('[StemSeparate] Replicate failed:', err.message);
-      }
-    }
-
+    // ── 1. HuggingFace Spleeter — FREE, no billing (2-stems only) ────────────
+    // This is the primary free path. Works for vocals/accompaniment separation
+    // without any paid keys. For 4/6-stem jobs we fall through to optional providers.
     if (!result && process.env.HUGGINGFACE_API_KEY && model === '2stems') {
       try {
         result   = await separateWithHuggingFace(audioUrl);
         provider = 'huggingface';
       } catch (err: any) {
-        console.warn('[StemSeparate] HuggingFace failed:', err.message);
+        console.warn('[StemSeparate] HuggingFace Spleeter failed:', err.message);
+      }
+    }
+
+    // ── 2. FAL.ai Demucs — optional (paid credits, faster, supports 4/6-stems) ─
+    if (!result && process.env.FAL_KEY) {
+      try {
+        result   = await separateWithFal(audioUrl, model);
+        provider = 'fal';
+      } catch (err: any) {
+        console.warn('[StemSeparate] FAL Demucs failed:', err.message);
+      }
+    }
+
+    // ── 3. Replicate Demucs — optional (free tier, slower) ───────────────────
+    if (!result && process.env.REPLICATE_API_KEY) {
+      try {
+        result   = await separateWithReplicate(audioUrl, model);
+        provider = 'replicate';
+      } catch (err: any) {
+        console.warn('[StemSeparate] Replicate Demucs failed:', err.message);
       }
     }
 
     if (!result) {
       return NextResponse.json(
         {
-          error:    'No stem separation provider configured',
-          detail:   'Add FAL_KEY, REPLICATE_API_KEY, or HUGGINGFACE_API_KEY to your environment variables.',
-          required: ['FAL_KEY (recommended)', 'REPLICATE_API_KEY (free tier)', 'HUGGINGFACE_API_KEY (2-stems only)'],
+          error:     'No stem separation provider available',
+          detail:    model === '2stems'
+            ? 'Add HUGGINGFACE_API_KEY (free) for 2-stem separation, or FAL_KEY / REPLICATE_API_KEY for 4/6-stem Demucs.'
+            : 'For 4/6-stem separation, add FAL_KEY or REPLICATE_API_KEY. For free 2-stem separation, add HUGGINGFACE_API_KEY.',
+          providers: [
+            { name: 'HuggingFace Spleeter', env: 'HUGGINGFACE_API_KEY', stems: '2stems', free: true, cost: '$0' },
+            { name: 'FAL.ai Demucs',        env: 'FAL_KEY',             stems: '2/4/6',  free: false, cost: 'pay-per-minute, optional' },
+            { name: 'Replicate Demucs',     env: 'REPLICATE_API_KEY',   stems: '2/4/6',  free: true, cost: 'free tier, optional' },
+          ],
         },
         { status: 503 },
       );
@@ -280,11 +292,11 @@ export async function POST(req: NextRequest) {
       stems:            result.stems,
       stemLabels,
       pollUrl:          result.pollUrl,
-      estimatedSeconds: provider === 'fal' ? 30 : provider === 'replicate' ? 120 : 60,
+      estimatedSeconds: provider === 'huggingface' ? 60 : provider === 'fal' ? 30 : 120,
       message:
         result.status === 'completed'
           ? `✅ ${model} stem separation complete! Isolated: ${Object.keys(result.stems ?? {}).join(', ')}`
-          : `⏳ Separating stems with ${provider} — usually takes ${provider === 'fal' ? '30 seconds' : '2 minutes'}. Poll ${result.pollUrl} for results.`,
+          : `⏳ Separating stems with ${provider} — usually takes ${provider === 'fal' ? '30 seconds' : provider === 'huggingface' ? '60 seconds' : '2 minutes'}. ${result.pollUrl ? `Poll ${result.pollUrl} for results.` : ''}`,
     });
   } catch (err: any) {
     console.error('[StemSeparate] Error:', err);

@@ -1,98 +1,72 @@
-import { NextRequest, NextResponse } from 'next/server';
-
-export const runtime = 'nodejs';
-
-
 /**
- * Video Generation API
- * Generates videos using AI (concept videos, lyric videos, visualizers)
+ * POST /api/media/generate-video
+ *
+ * HOLLY's canonical video generation endpoint.
+ * 100% free, open-source, zero token cost.
+ *
+ * Provider waterfall:
+ *   1. Pollinations AI — video (no key, experimental)
+ *   2. HuggingFace — ZeroScope v2 XL (free, CC-BY-NC-4.0)
+ *   3. HuggingFace — AnimateDiff GIF (free, Apache-2.0)
+ *
+ * Blocked forever: Runway, Sora, Pika Labs (all paid)
  */
+
+import { NextRequest, NextResponse } from 'next/server';
+import { generateVideo, type VideoRequest } from '@/lib/ai/media-generator';
+
+export const runtime    = 'nodejs';
+export const maxDuration = 120;
+
 export async function POST(request: NextRequest) {
   try {
-    const { type, prompt, duration, style } = await request.json() as any;
-    
-    if (!type || !prompt) {
-      return NextResponse.json(
-        { error: 'Type and prompt are required' },
-        { status: 400 }
-      );
+    const body = await request.json() as VideoRequest & { [key: string]: unknown };
+    const {
+      prompt,
+      duration     = 4,
+      aspectRatio  = '16:9',
+      fps          = 8,
+      style,
+      inputImage,
+    } = body;
+
+    if (!prompt || typeof prompt !== 'string') {
+      return NextResponse.json({ error: 'prompt is required' }, { status: 400 });
     }
-    
-    let videoUrl = '';
-    let previewUrl = '';
-    
-    switch (type) {
-      case 'concept':
-        ({ videoUrl, previewUrl } = await generateConceptVideo(prompt, duration));
-        break;
-      case 'lyric':
-        ({ videoUrl, previewUrl } = await generateLyricVideo(prompt, style));
-        break;
-      case 'visualizer':
-        ({ videoUrl, previewUrl } = await generateAudioVisualizer(prompt));
-        break;
-      default:
-        throw new Error('Invalid video type');
-    }
-    
+
+    const result = await generateVideo({ prompt, duration, aspectRatio, fps, style, inputImage });
+
     return NextResponse.json({
-      success: true,
-      videoUrl,
-      previewUrl,
-      duration,
-      type
+      success:  true,
+      videoUrl: result.url,
+      url:      result.url,
+      provider: result.provider,
+      model:    result.model,
+      duration: result.duration,
+      fps:      result.fps,
+      format:   result.format,
+      licence:  result.licence,
+      cost:     0,
     });
-  } catch (error) {
-    console.error('Video generation error:', error);
+
+  } catch (error: any) {
+    console.error('[Video API] Generation failed:', error.message);
     return NextResponse.json(
-      { error: 'Failed to generate video' },
-      { status: 500 }
+      { error: 'Video generation failed', detail: error.message },
+      { status: 500 },
     );
   }
 }
 
-async function generateConceptVideo(prompt: string, duration: number): Promise<{
-  videoUrl: string;
-  previewUrl: string;
-}> {
-  // Would integrate with:
-  // - Runway ML (text-to-video)
-  // - Pika Labs (AI video generation)
-  // - Stable Video Diffusion
-  
-  // Placeholder implementation
-  return {
-    videoUrl: 'https://placeholder.com/video.mp4',
-    previewUrl: 'https://placeholder.com/preview.jpg'
-  };
-}
-
-async function generateLyricVideo(prompt: string, style: string): Promise<{
-  videoUrl: string;
-  previewUrl: string;
-}> {
-  // Would integrate with:
-  // - Lyric Video Creator APIs
-  // - FFmpeg for text overlay
-  // - Custom animation engines
-  
-  return {
-    videoUrl: 'https://placeholder.com/lyric-video.mp4',
-    previewUrl: 'https://placeholder.com/lyric-preview.jpg'
-  };
-}
-
-async function generateAudioVisualizer(prompt: string): Promise<{
-  videoUrl: string;
-  previewUrl: string;
-}> {
-  // Would integrate with:
-  // - Audio waveform generators
-  // - FFmpeg for visualization
-  // - Custom WebGL visualizers
-  
-  return {
-    videoUrl: 'https://placeholder.com/visualizer.mp4',
-    previewUrl: 'https://placeholder.com/visualizer-preview.jpg'
-  };
+export async function GET() {
+  return NextResponse.json({
+    endpoint: 'POST /api/media/generate-video',
+    providers: [
+      { name: 'Pollinations AI Video', keyRequired: false, licence: 'Apache-2.0' },
+      { name: 'HuggingFace ZeroScope v2 XL', keyRequired: true, env: 'HUGGINGFACE_API_KEY', licence: 'CC-BY-NC-4.0' },
+      { name: 'HuggingFace AnimateDiff', keyRequired: true, env: 'HUGGINGFACE_API_KEY', licence: 'Apache-2.0' },
+    ],
+    cost:   0,
+    policy: 'Free, open-source only — no Runway, Sora, Pika Labs',
+  });
 }
