@@ -4,12 +4,12 @@
  * HOLLY's canonical video generation endpoint.
  * 100% free, open-source, zero token cost.
  *
- * Provider waterfall (no keys needed → optional key for better quality):
- *   1. Pollinations AI — video (no key, experimental, always available)
- *   2. HuggingFace    — ZeroScope v2 XL (free tier, HUGGINGFACE_API_KEY, CC-BY-NC-4.0)
- *   3. HuggingFace    — AnimateDiff (free tier, HUGGINGFACE_API_KEY, Apache-2.0)
+ * Provider waterfall (HF_INFERENCE_ENABLED=false default → Pollinations only):
+ *   DEFAULT: Pollinations AI — LTX-Video based (no key, $0 forever)
+ *   OPT-IN:  HF CogVideoX-5B → HF Wan2.2-TI2V-5B → Pollinations → HF AnimateDiff (GIF)
+ *   ZeroScope v2 REMOVED: CC-BY-NC-4.0 (non-commercial only, outdated 2023 model)
  *
- * Blocked forever: Runway, Sora, Pika Labs, Kling (all paid)
+ * Blocked forever: Runway, Sora, Pika Labs, Kling, Seedance (all paid or closed)
  */
 
 import { NextRequest, NextResponse } from 'next/server';

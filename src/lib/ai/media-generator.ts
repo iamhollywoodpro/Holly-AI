@@ -2,57 +2,97 @@
  * HOLLY Media Generator — 100% Free, Open-Source, Zero Token Cost
  *
  * ═══════════════════════════════════════════════════════════════════
+ * HUGGINGFACE BILLING REALITY (verified 2026-04-10):
+ *
+ *   HF Pro ($9/month) covers:
+ *     • ZeroGPU quota (25 min H200/day) — for Spaces apps only
+ *     • 1TB private / 11.2TB public storage
+ *     • Higher Hub API rate limits
+ *
+ *   "Inference Usage $0.00 / $2.00" on the billing page means:
+ *     → You have used $0 of a $2.00 PAY-AS-YOU-GO threshold.
+ *     → The $2.00 is NOT money you own or have deposited.
+ *     → It is the point at which HF would START billing your card.
+ *     → Credits balance shows $0.00 separately — that IS zero real credits.
+ *
+ *   OWNER DECISION: No HF inference API calls. Zero. Ever.
+ *     → HF_INFERENCE_ENABLED=false is the permanent setting.
+ *     → All images and video are served by Pollinations ($0, no account).
+ *     → Do NOT enable Automatic Recharge on HF billing settings.
+ *
+ *   HOLLY'S POLICY:
+ *   ────────────────────────────────────────────────────────
+ *   HF_INFERENCE_ENABLED=false  ← PERMANENT DEFAULT — NO HF BILLING EVER
+ *     → All HF inference calls are completely skipped
+ *     → Pollinations handles all images ($0, Apache-2.0, no account needed)
+ *     → Pollinations handles all video ($0, no account needed)
+ *
+ *   HF_INFERENCE_ENABLED=true   ← DO NOT USE (risks pay-as-you-go charges)
+ *     → Only set this if you explicitly want to risk HF billing
+ *
+ * ═══════════════════════════════════════════════════════════════════
  * IMAGE providers (waterfall, best-first):
- *   1. Pollinations AI  — FLUX.1-schnell (no key, Apache-2.0, always free)
- *   2. HuggingFace      — FLUX.2-klein 4B (free tier, HUGGINGFACE_API_KEY, Apache-2.0, 2026)
- *   3. HuggingFace      — FLUX.1-schnell (free tier, HUGGINGFACE_API_KEY, Apache-2.0)
- *   4. HuggingFace      — SDXL 1.0 (free tier, HUGGINGFACE_API_KEY, Apache-2.0)
+ *   PRIMARY (HF_INFERENCE_ENABLED=false — PERMANENT DEFAULT):
+ *   1. Pollinations AI — FLUX.1-schnell (no key, Apache-2.0, $0 forever)
+ *   2. Pollinations AI — retry with new seed (final safety net)
+ *
+ *   DISABLED (HF_INFERENCE_ENABLED=true — DO NOT USE):
+ *   Would add: HF FLUX.2-klein, HF FLUX.1-schnell, HF SDXL
+ *   (skipped permanently to avoid pay-as-you-go billing)
  *
  * VIDEO providers (waterfall, best-first):
- *   1. HuggingFace      — CogVideoX-5B (HUGGINGFACE_API_KEY, Apache-2.0, best OSS 2026)
- *   2. HuggingFace      — Wan2.2-TI2V-5B (HUGGINGFACE_API_KEY, Apache-2.0, cinematic 720P)
- *   3. Pollinations AI  — video endpoint (no key, experimental, LTX-Video based)
- *   4. HuggingFace      — AnimateDiff v1.5 (GIF fallback, Apache-2.0)
+ *   PRIMARY (HF_INFERENCE_ENABLED=false — PERMANENT DEFAULT):
+ *   1. Pollinations AI — LTX-Video based (no key, $0 forever)
  *
- * ALBUM COVER — same as image waterfall with music-art enriched prompt
+ *   DISABLED (HF_INFERENCE_ENABLED=true — DO NOT USE):
+ *   Would add: HF CogVideoX-5B, HF Wan2.2-TI2V-5B, HF AnimateDiff
+ *   (skipped permanently to avoid pay-as-you-go billing)
+ *
+ * ALBUM COVER — same as image waterfall
  *
  * ═══════════════════════════════════════════════════════════════════
  * LICENCE ACCURACY (verified 2026-04-10):
  *   FLUX.1-schnell      → Apache-2.0 ✅ (commercial-safe, Black Forest Labs)
- *   FLUX.2-klein        → Apache-2.0 ✅ (Jan 2026, 4B/9B, sub-second gen, commercial-safe)
- *   FLUX.2-dev          → FLUX Non-Commercial License ❌ NOT used (32B, non-commercial)
+ *   FLUX.2-klein        → Apache-2.0 ✅ (Jan 2026, 4B/9B, sub-second gen)
+ *   FLUX.2-dev          → FLUX Non-Commercial License ❌ NOT used (32B)
  *   FLUX.1-dev          → FLUX Non-Commercial License ❌ NOT used
- *   FLUX.1-Kontext      → FLUX Non-Commercial License ❌ NOT used
  *   SDXL 1.0            → Apache-2.0 ✅ (Stability AI)
- *   SD 3.5 Large        → Stability AI Community License ✅ (free commercial)
  *   CogVideoX-5B        → Apache-2.0 ✅ (THUDM, best free video 2025-2026)
- *   Wan2.2-TI2V-5B      → Apache-2.0 ✅ (Alibaba, 720P, T2V + I2V, 2026)
+ *   Wan2.2-TI2V-5B      → Apache-2.0 ✅ (Alibaba, 720P, T2V + I2V)
  *   AnimateDiff         → Apache-2.0 ✅
- *   ZeroScope v2        → CC-BY-NC-4.0 ⚠️ (non-commercial only — REMOVED from active)
- *   Pollinations        → serves schnell/turbo via free API ✅
- *   HunyuanVideo        → Tencent Community License ⚠️ (commercial ok, but 60-80GB VRAM)
+ *   ZeroScope v2        → CC-BY-NC-4.0 ⚠️ REMOVED (non-commercial only)
+ *   Pollinations        → serves FLUX.1-schnell via free API ✅
+ *   HunyuanVideo        → Tencent License ⚠️ (free commercial, 60-80GB VRAM)
  *
  * ═══════════════════════════════════════════════════════════════════
- * HF API URL CHANGE (as of late 2025):
- *   OLD (deprecated): https://api-inference.huggingface.co/models/{model}
+ * HF API URL (as of late 2025):
  *   NEW (active):     https://router.huggingface.co/hf-inference/models/{model}
+ *   OLD (deprecated): https://api-inference.huggingface.co/models/{model}
  *
- * HF PRO NOTE ($9/month):
- *   - Pro gives $2/month included credits (not unlimited)
- *   - Pro gives 8× ZeroGPU quota (25 min H200/day) for Spaces — not serverless API
- *   - API requests via HUGGINGFACE_API_KEY are charged pay-as-you-go beyond $2 credits
- *   - Images via HF inference cost ~$0.001 per image (10s @ $0.00012/GPU-sec)
- *   - Holly uses Pollinations as primary (free) — HF is fallback only
- *   - Get your API key at: https://huggingface.co/settings/tokens
+ * BOTTOM LINE:
+ *   - $9/mo HF Pro = storage + ZeroGPU Spaces + rate limits. That is ALL.
+ *   - "$2.00" on billing page = pay-as-you-go threshold, NOT a credit balance.
+ *   - HF_INFERENCE_ENABLED=false = zero HF API calls = zero extra charges ever.
+ *   - Pollinations is the only media provider. It is $0, always, no account.
+ *   - DO NOT enable Automatic Recharge: https://huggingface.co/settings/billing
  *
  * ═══════════════════════════════════════════════════════════════════
- * UPGRADE CANDIDATES (open-source, confirmed available, high VRAM):
- *   LTX-Video 2.3 (Lightricks, Mar 2026) — Apache-2.0, real-time, native audio, 4K
- *   Wan 2.2 A14B (Alibaba, 2026)         — Apache-2.0, MoE 14B, cinematic, 720P
- *   HunyuanVideo (Tencent, 13B)          — free commercial, 60GB+ VRAM, Kling-quality
- *   SD 3.5 Large (Stability AI)          — Community License, 8B, superior typography
- *   FLUX.2-dev (BFL, 32B)               — Non-commercial, needs 20GB+ quantized
- *   Z-Image-Turbo (Tongyi-MAI, 6B)      — Apache-2.0, sub-second, strong text render
+ * MODAL.COM (free $30/mo compute credits — HF Pro cancelled):
+ *   Modal Starter gives $30/month real GPU credits, billed by the second.
+ *   GPU rates: T4 $0.000164/s, A10G $0.000306/s ($1.10/hr), A100 $0.001036/s
+ *   Hard spend cap can be set on Modal account (unlike HF — no individual cap).
+ *   Potential uses:
+ *     • CogVideoX-5B on A10G → ~2 min/video → ~$0.037/video → ~800 videos/mo FREE
+ *     • Wan2.2-TI2V-5B on A10G → ~5 min/video → ~$0.092/video → ~325 videos/mo FREE
+ *     • FLUX.1-schnell image → <1s on T4 → ~$0.0002/image → ~150,000 images/mo FREE
+ *   To enable: deploy services/maya1-tts/modal_deploy.py or create new Modal endpoint.
+ *   Modal account is already set up (iamhollywoodpro workspace).
+ *
+ * MODEL QUALITY RANKING 2026 (verified research):
+ *   IMAGE:  FLUX.2-klein 4B > FLUX.1-schnell > SDXL 1.0
+ *           Qwen-Image-2.0 (20B, Apache-2.0, 2K native, unified gen+edit) — not yet on free API
+ *   VIDEO:  Wan2.2 > LTX-Video 2.3 > CogVideoX-5B > AnimateDiff (GIF only)
+ *           HunyuanVideo (13B) — commercial-safe but needs 60-80GB VRAM (too heavy for free tier)
  *
  * NEVER USE:
  *   Midjourney, DALL-E, Imagen, Runway (paid), Sora, Pika, Kling,
@@ -128,6 +168,121 @@ function getDimensions(ar: AspectRatio = '1:1', override?: { width?: number; hei
 
 function hfInferenceUrl(model: string): string {
   return `https://router.huggingface.co/hf-inference/models/${model}`;
+}
+
+// ─── Modal.com GPU Endpoints (optional — uses $30/mo free credits) ────────────
+//
+// Set these in Coolify after deploying services/modal-media/:
+//   MODAL_IMAGE_URL=https://iamhollywoodpro--holly-image-generate.modal.run
+//   MODAL_VIDEO_URL=https://iamhollywoodpro--holly-video-generate.modal.run
+//
+// When set: Modal is used FIRST (GPU quality, ~$0.0001/image, ~$0.028/video)
+// When not set: Pollinations is used (always free, decent quality)
+//
+// ⚠️ STOP holly-maya1-tts first! It is LIVE on A10G and burning credits.
+//   Run: modal app stop holly-maya1-tts
+//   Or:  https://modal.com/apps/iamhollywoodpro/main → Stop app
+
+const MODAL_IMAGE_URL = process.env.MODAL_IMAGE_URL || '';  // set after deploying image_generate.py
+const MODAL_VIDEO_URL = process.env.MODAL_VIDEO_URL || '';  // set after deploying video_generate.py
+
+// ─── HuggingFace Inference Gate ─────────────────────────────────────────────
+//
+// HF_INFERENCE_ENABLED=false (DEFAULT — PERMANENT)
+//   Owner decision: no HF inference API calls, ever.
+//   The $2.00 shown on HF billing is a pay-as-you-go threshold — NOT a credit.
+//   We do not want any pay-as-you-go charges. Pollinations handles everything.
+//
+// HF_INFERENCE_ENABLED=true (DO NOT SET — risks pay-as-you-go billing)
+
+const HF_INFERENCE_ENABLED = process.env.HF_INFERENCE_ENABLED === 'true'; // default: false — NO HF billing ever
+const HF_SPENDING_SAFE      = process.env.HF_SPENDING_SAFE !== 'false';   // default: true (safety net if somehow enabled)
+
+/** Sentinel error — thrown when HF is out of credits and spending-safe is on */
+class HFCreditExhaustedError extends Error {
+  constructor(details: string) {
+    super(`HF credits exhausted (spending-safe ON — no pay-as-you-go): ${details}`);
+    this.name = 'HFCreditExhaustedError';
+  }
+}
+
+/**
+ * Check an HF response for credit/payment errors.
+ * HTTP 402 = payment required.
+ * HTTP 429 with billing message = quota/credit exhausted.
+ * Throws HFCreditExhaustedError when HF_SPENDING_SAFE=true so the
+ * waterfall can skip ALL subsequent HF providers and go straight to free ones.
+ */
+function checkHFCreditError(status: number, body: string, model: string): void {
+  if (!HF_SPENDING_SAFE) return; // user opted out — let it charge
+
+  const bodyLower = body.toLowerCase();
+  const isCreditError =
+    status === 402 ||
+    (status === 429 && (
+      bodyLower.includes('credit') ||
+      bodyLower.includes('quota') ||
+      bodyLower.includes('billing') ||
+      bodyLower.includes('payment') ||
+      bodyLower.includes('insufficient')
+    )) ||
+    bodyLower.includes('you have exceeded') ||
+    bodyLower.includes('credits exhausted') ||
+    bodyLower.includes('billing limit') ||
+    bodyLower.includes('payment required');
+
+  if (isCreditError) {
+    throw new HFCreditExhaustedError(`${model} HTTP ${status}: ${body.slice(0, 120)}`);
+  }
+}
+
+// ─── Image Provider 0: Modal.com (GPU-quality, uses $30/mo free credits) ──────
+// Deployed from services/modal-media/image_generate.py
+// Model: OpenFLUX.1 on T4 GPU (Apache-2.0, no HF token needed)
+//   - Same architecture as FLUX.1-schnell, identical quality, fully open
+//   - Upgrades to FLUX.1-schnell automatically if huggingface-secret is added
+// Cost: ~$0.0001/image | $30/mo free = ~300,000 images/mo
+// Set MODAL_IMAGE_URL to enable
+
+async function generateWithModal(req: ImageRequest): Promise<ImageResult> {
+  if (!MODAL_IMAGE_URL) throw new Error('MODAL_IMAGE_URL not configured');
+
+  const { width, height } = getDimensions(req.aspectRatio, { width: req.width, height: req.height });
+
+  // Modal fastapi_endpoint URL is the full endpoint (no /generate path needed)
+  const res = await fetch(MODAL_IMAGE_URL.replace(/\/$/, ''), {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      prompt:               req.prompt,
+      width:                Math.min(width, 1024),
+      height:               Math.min(height, 1024),
+      num_inference_steps:  4,   // FLUX schnell optimal
+      seed:                 req.seed,
+      format:               'jpeg',
+    }),
+    signal: AbortSignal.timeout(60_000),
+  });
+
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Modal image error ${res.status}: ${body.slice(0, 200)}`);
+  }
+
+  // Modal returns raw image bytes
+  const arrayBuf = await res.arrayBuffer();
+  const base64   = Buffer.from(arrayBuf).toString('base64');
+  const dataUri  = `data:image/jpeg;base64,${base64}`;
+
+  return {
+    url:      dataUri,
+    provider: 'modal',
+    model:    'OpenFLUX.1 (Modal T4)',
+    width,
+    height,
+    cost:     0,
+    licence:  'Apache-2.0',
+  };
 }
 
 // ─── Image Provider 1: Pollinations AI (no key, always free) ─────────────────
@@ -225,6 +380,7 @@ async function generateWithHuggingFaceFlux2Klein(req: ImageRequest): Promise<Ima
 
   if (!res.ok) {
     const body = await res.text();
+    checkHFCreditError(res.status, body, 'FLUX.2-klein');
     throw new Error(`HF FLUX.2-klein error ${res.status}: ${body.slice(0, 200)}`);
   }
 
@@ -281,6 +437,7 @@ async function generateWithHuggingFace(req: ImageRequest): Promise<ImageResult> 
 
   if (!res.ok) {
     const body = await res.text();
+    checkHFCreditError(res.status, body, model);
     throw new Error(`HuggingFace ${model} error ${res.status}: ${body.slice(0, 200)}`);
   }
 
@@ -304,12 +461,31 @@ async function generateWithHuggingFace(req: ImageRequest): Promise<ImageResult> 
 
 /**
  * Generate an image using the free waterfall.
- * Always returns a result — falls back through providers until one works.
+ *
+ * DEFAULT (HF_INFERENCE_ENABLED=false):
+ *   Pollinations only — FLUX.1-schnell, $0 forever, no account needed.
+ *
+ * OPT-IN (HF_INFERENCE_ENABLED=true):
+ *   Pollinations → HF FLUX.2-klein → HF FLUX.1-schnell → HF SDXL
+ *   Credit-safe: if HF returns 402/billing error, all HF calls are skipped
+ *   and Pollinations is retried as final safety net.
  */
 export async function generateImage(req: ImageRequest): Promise<ImageResult> {
   const errors: string[] = [];
+  let hfCreditExhausted = false;
 
-  // 1. Pollinations (no key — always try first, fastest)
+  // 0. Modal.com (GPU quality, $0.0001/img from $30/mo free credits)
+  //    Only tried when MODAL_IMAGE_URL is configured in env
+  if (MODAL_IMAGE_URL) {
+    try {
+      return await generateWithModal(req);
+    } catch (e) {
+      errors.push(`Modal: ${(e as Error).message}`);
+      console.warn('[MediaGen] Modal image failed, falling back:', (e as Error).message);
+    }
+  }
+
+  // 1. Pollinations (no key — always free, always available, $0 forever)
   try {
     return await generateWithPollinations(req);
   } catch (e) {
@@ -317,31 +493,126 @@ export async function generateImage(req: ImageRequest): Promise<ImageResult> {
     console.warn('[MediaGen] Pollinations failed:', (e as Error).message);
   }
 
-  // 2. HuggingFace FLUX.2-klein 4B (NEW Jan 2026 — faster and better quality)
-  try {
-    return await generateWithHuggingFaceFlux2Klein(req);
-  } catch (e) {
-    errors.push(`HF FLUX.2-klein: ${(e as Error).message}`);
-    console.warn('[MediaGen] HF FLUX.2-klein failed:', (e as Error).message);
+  // HF providers — only attempted if HF_INFERENCE_ENABLED=true
+  if (!HF_INFERENCE_ENABLED) {
+    // HF is disabled (default) — no billing risk. Retry Pollinations with new seed.
+    console.info('[MediaGen] HF inference disabled (HF_INFERENCE_ENABLED=false) — Pollinations only');
+    try {
+      return await generateWithPollinations({ ...req, seed: Math.floor(Math.random() * 99999) });
+    } catch (e) {
+      errors.push(`Pollinations retry: ${(e as Error).message}`);
+    }
+    throw new Error(`Image generation failed (Pollinations unavailable):\n${errors.join('\n')}`);
   }
 
-  // 3. HuggingFace FLUX.1-schnell
-  try {
-    return await generateWithHuggingFace({ ...req, model: 'flux-schnell' });
-  } catch (e) {
-    errors.push(`HF FLUX.1-schnell: ${(e as Error).message}`);
-    console.warn('[MediaGen] HF FLUX.1-schnell failed:', (e as Error).message);
+  // 2. HuggingFace FLUX.2-klein 4B (opt-in, Apache-2.0, uses HF credit)
+  if (!hfCreditExhausted) {
+    try {
+      return await generateWithHuggingFaceFlux2Klein(req);
+    } catch (e) {
+      if (e instanceof HFCreditExhaustedError) {
+        hfCreditExhausted = true;
+        errors.push(`HF credits exhausted — skipping all HF providers (spending-safe ON)`);
+        console.warn('[MediaGen] HF credit exhausted — skipping remaining HF providers');
+      } else {
+        errors.push(`HF FLUX.2-klein: ${(e as Error).message}`);
+        console.warn('[MediaGen] HF FLUX.2-klein failed:', (e as Error).message);
+      }
+    }
   }
 
-  // 4. HuggingFace SDXL (last resort image fallback)
+  // 3. HuggingFace FLUX.1-schnell (skip if credits gone)
+  if (!hfCreditExhausted) {
+    try {
+      return await generateWithHuggingFace({ ...req, model: 'flux-schnell' });
+    } catch (e) {
+      if (e instanceof HFCreditExhaustedError) {
+        hfCreditExhausted = true;
+        errors.push(`HF credits exhausted — skipping all HF providers (spending-safe ON)`);
+        console.warn('[MediaGen] HF credit exhausted — skipping remaining HF providers');
+      } else {
+        errors.push(`HF FLUX.1-schnell: ${(e as Error).message}`);
+        console.warn('[MediaGen] HF FLUX.1-schnell failed:', (e as Error).message);
+      }
+    }
+  }
+
+  // 4. HuggingFace SDXL (skip if credits gone)
+  if (!hfCreditExhausted) {
+    try {
+      return await generateWithHuggingFace({ ...req, model: 'sdxl' });
+    } catch (e) {
+      if (e instanceof HFCreditExhaustedError) {
+        hfCreditExhausted = true;
+        errors.push(`HF credits exhausted — spending-safe ON, no pay-as-you-go`);
+        console.warn('[MediaGen] HF credit exhausted on SDXL');
+      } else {
+        errors.push(`HF SDXL: ${(e as Error).message}`);
+        console.warn('[MediaGen] HF SDXL failed:', (e as Error).message);
+      }
+    }
+  }
+
+  // 5. FINAL SAFETY NET: Pollinations retry — user always gets an image
+  console.info('[MediaGen] HF path failed/exhausted — Pollinations final safety net');
   try {
-    return await generateWithHuggingFace({ ...req, model: 'sdxl' });
+    return await generateWithPollinations({ ...req, seed: Math.floor(Math.random() * 99999) });
   } catch (e) {
-    errors.push(`HF SDXL: ${(e as Error).message}`);
-    console.warn('[MediaGen] HF SDXL failed:', (e as Error).message);
+    errors.push(`Pollinations (final retry): ${(e as Error).message}`);
   }
 
   throw new Error(`All free image providers failed:\n${errors.join('\n')}`);
+}
+
+// ─── Video Provider 0: Modal.com CogVideoX-5B (GPU quality, uses $30/mo credits) ─
+// Deployed from services/modal-media/video_generate.py
+// Model: CogVideoX-5B on A10G GPU — cinematic quality, T2V + I2V
+// Cost: ~$0.028/video | $30/mo free = ~1,000 videos/mo (at 30 vids/day)
+// Set MODAL_VIDEO_URL to enable
+
+async function generateVideoWithModal(req: VideoRequest): Promise<VideoResult> {
+  if (!MODAL_VIDEO_URL) throw new Error('MODAL_VIDEO_URL not configured');
+
+  const { width, height } = getDimensions(req.aspectRatio);
+  const duration = Math.min(Math.max(req.duration ?? 5, 2), 10);
+  const fps      = req.fps ?? 8;
+
+  // Modal fastapi_endpoint URL is the full endpoint (no /generate path needed)
+  const res = await fetch(MODAL_VIDEO_URL.replace(/\/$/, ''), {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      prompt:              req.prompt,
+      duration,
+      fps,
+      width:               Math.min(width, 480),   // CogVideoX-5B optimal dimensions
+      height:              Math.min(height, 320),
+      num_inference_steps: 50,
+      ...(req.inputImage && { input_image: req.inputImage }),
+    }),
+    signal: AbortSignal.timeout(300_000),  // 5 min — video takes time even on GPU
+  });
+
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Modal video error ${res.status}: ${body.slice(0, 200)}`);
+  }
+
+  // Modal returns raw MP4 bytes
+  const arrayBuf = await res.arrayBuffer();
+  const base64   = Buffer.from(arrayBuf).toString('base64');
+  const dataUri  = `data:video/mp4;base64,${base64}`;
+
+  return {
+    url:      dataUri,
+    provider: 'modal',
+    model:    'CogVideoX-5B (Modal A10G)',
+    duration,
+    fps,
+    format:   'mp4',
+    cost:     0,
+    licence:  'Apache-2.0',
+  };
 }
 
 // ─── Video generation ─────────────────────────────────────────────────────────
@@ -382,6 +653,7 @@ async function generateVideoWithCogVideoX(req: VideoRequest): Promise<VideoResul
 
   if (!res.ok) {
     const body = await res.text();
+    checkHFCreditError(res.status, body, 'CogVideoX-5B');
     throw new Error(`HF CogVideoX-5B error ${res.status}: ${body.slice(0, 200)}`);
   }
 
@@ -447,6 +719,7 @@ async function generateVideoWithWan22(req: VideoRequest): Promise<VideoResult> {
 
   if (!res.ok) {
     const bodyText = await res.text();
+    checkHFCreditError(res.status, bodyText, 'Wan2.2-TI2V-5B');
     throw new Error(`HF Wan2.2 error ${res.status}: ${bodyText.slice(0, 200)}`);
   }
 
@@ -520,7 +793,11 @@ async function generateAnimatedGifWithHuggingFace(req: VideoRequest): Promise<Vi
     signal: AbortSignal.timeout(120_000),
   });
 
-  if (!res.ok) throw new Error(`HF AnimateDiff error ${res.status}`);
+  if (!res.ok) {
+    const body = await res.text();
+    checkHFCreditError(res.status, body, 'AnimateDiff');
+    throw new Error(`HF AnimateDiff error ${res.status}: ${body.slice(0, 200)}`);
+  }
 
   const blob     = await res.blob();
   const arrayBuf = await blob.arrayBuffer();
@@ -541,28 +818,67 @@ async function generateAnimatedGifWithHuggingFace(req: VideoRequest): Promise<Vi
 
 /**
  * Generate a video using the free waterfall.
- * CogVideoX-5B → Wan2.2 → Pollinations → AnimateDiff
+ *
+ * DEFAULT (HF_INFERENCE_ENABLED=false):
+ *   Pollinations video only — LTX-Video based, $0 forever, no account needed.
+ *
+ * OPT-IN (HF_INFERENCE_ENABLED=true):
+ *   HF CogVideoX-5B → HF Wan2.2 → Pollinations Video → HF AnimateDiff (GIF)
+ *   Credit-safe: HF credit errors skip all remaining HF calls immediately.
  */
 export async function generateVideo(req: VideoRequest): Promise<VideoResult> {
   const errors: string[] = [];
+  let hfCreditExhausted = false;
 
-  // 1. CogVideoX-5B (best Apache-2.0 video 2025-2026)
-  try {
-    return await generateVideoWithCogVideoX(req);
-  } catch (e) {
-    errors.push(`CogVideoX-5B: ${(e as Error).message}`);
-    console.warn('[MediaGen] CogVideoX-5B failed:', (e as Error).message);
+  // 0. Modal.com CogVideoX-5B (GPU quality, $0.028/video from $30/mo free credits)
+  //    Only tried when MODAL_VIDEO_URL is configured in env
+  if (MODAL_VIDEO_URL) {
+    try {
+      return await generateVideoWithModal(req);
+    } catch (e) {
+      errors.push(`Modal: ${(e as Error).message}`);
+      console.warn('[MediaGen] Modal video failed, falling back:', (e as Error).message);
+    }
   }
 
-  // 2. Wan2.2-TI2V-5B (cinematic 720P, Apache-2.0, T2V+I2V)
-  try {
-    return await generateVideoWithWan22(req);
-  } catch (e) {
-    errors.push(`Wan2.2-TI2V-5B: ${(e as Error).message}`);
-    console.warn('[MediaGen] Wan2.2 failed:', (e as Error).message);
+  // HF video providers — only if HF_INFERENCE_ENABLED=true
+  if (HF_INFERENCE_ENABLED) {
+    // 1. CogVideoX-5B (best Apache-2.0 video 2025-2026)
+    if (!hfCreditExhausted) {
+      try {
+        return await generateVideoWithCogVideoX(req);
+      } catch (e) {
+        if (e instanceof HFCreditExhaustedError) {
+          hfCreditExhausted = true;
+          errors.push(`HF credits exhausted — skipping HF video providers (spending-safe ON)`);
+          console.warn('[MediaGen] HF credit exhausted — skipping remaining HF video providers');
+        } else {
+          errors.push(`CogVideoX-5B: ${(e as Error).message}`);
+          console.warn('[MediaGen] CogVideoX-5B failed:', (e as Error).message);
+        }
+      }
+    }
+
+    // 2. Wan2.2-TI2V-5B (cinematic 720P, T2V+I2V — skip if credits gone)
+    if (!hfCreditExhausted) {
+      try {
+        return await generateVideoWithWan22(req);
+      } catch (e) {
+        if (e instanceof HFCreditExhaustedError) {
+          hfCreditExhausted = true;
+          errors.push(`HF credits exhausted — skipping HF video providers (spending-safe ON)`);
+          console.warn('[MediaGen] HF credit exhausted on Wan2.2');
+        } else {
+          errors.push(`Wan2.2-TI2V-5B: ${(e as Error).message}`);
+          console.warn('[MediaGen] Wan2.2 failed:', (e as Error).message);
+        }
+      }
+    }
+  } else {
+    console.info('[MediaGen] HF inference disabled (HF_INFERENCE_ENABLED=false) — Pollinations video only');
   }
 
-  // 3. Pollinations video (experimental, no key)
+  // 3. Pollinations video (no key, ALWAYS FREE — tried regardless of HF setting)
   try {
     return await generateVideoWithPollinations(req);
   } catch (e) {
@@ -570,12 +886,19 @@ export async function generateVideo(req: VideoRequest): Promise<VideoResult> {
     console.warn('[MediaGen] Pollinations video failed:', (e as Error).message);
   }
 
-  // 4. AnimateDiff (GIF fallback, last resort)
-  try {
-    return await generateAnimatedGifWithHuggingFace(req);
-  } catch (e) {
-    errors.push(`HF AnimateDiff: ${(e as Error).message}`);
-    console.warn('[MediaGen] HF AnimateDiff failed:', (e as Error).message);
+  // 4. AnimateDiff GIF fallback — only if HF enabled and credits still available
+  if (HF_INFERENCE_ENABLED && !hfCreditExhausted) {
+    try {
+      return await generateAnimatedGifWithHuggingFace(req);
+    } catch (e) {
+      if (e instanceof HFCreditExhaustedError) {
+        errors.push(`HF credits exhausted — no AnimateDiff fallback (spending-safe ON)`);
+        console.warn('[MediaGen] HF credit exhausted on AnimateDiff');
+      } else {
+        errors.push(`HF AnimateDiff: ${(e as Error).message}`);
+        console.warn('[MediaGen] HF AnimateDiff failed:', (e as Error).message);
+      }
+    }
   }
 
   throw new Error(`All free video providers failed:\n${errors.join('\n')}`);
@@ -621,17 +944,33 @@ export async function generateAlbumCover(req: AlbumCoverRequest): Promise<ImageR
 
 // ─── Provider info (for /api/health and settings) ────────────────────────────
 
+/** Exported status flags for health checks & settings UI */
+export const HF_COST_SAFE_MODE     = HF_SPENDING_SAFE;
+export const HF_INFERENCE_ACTIVE   = HF_INFERENCE_ENABLED;
+
 export const MEDIA_PROVIDERS = {
   image: {
     active: [
       {
-        name:      'Pollinations AI (FLUX.1-schnell)',
+        name:      'Modal.com — FLUX.1-schnell (T4 GPU) [BEST — deploy first]',
+        models:    ['FLUX.1-schnell'],
+        licence:   'Apache-2.0',
+        free:      true,
+        keyNeeded: false,
+        envVar:    'MODAL_IMAGE_URL',
+        deployCmd: 'cd services/modal-media && modal deploy image_generate.py',
+        quality:   'excellent',
+        cost:      '~$0.0001/image | $30/mo free = ~300,000 images/mo',
+        note:      'GPU-quality FLUX on YOUR Modal account. Set MODAL_IMAGE_URL after deploying.',
+      },
+      {
+        name:      'Pollinations AI (FLUX.1-schnell) [DEFAULT fallback]',
         models:    ['FLUX.1-schnell', 'SDXL', 'Turbo'],
         licence:   'Apache-2.0',
         free:      true,
         keyNeeded: false,
         quality:   'excellent',
-        note:      'No key ever needed. Primary path. FLUX.1-schnell is Apache-2.0 commercial-safe.',
+        note:      'No key needed. Free forever. Used when MODAL_IMAGE_URL is not set.',
       },
       {
         name:      'HuggingFace — FLUX.2-klein 4B (NEW 2026)',
@@ -667,6 +1006,20 @@ export const MEDIA_PROVIDERS = {
       },
     ],
     candidates: [
+      {
+        name:      'FLUX.1-schnell on Modal.com',
+        modelId:   'black-forest-labs/FLUX.1-schnell',
+        licence:   'Apache-2.0',
+        why:       'Modal A10G: ~$0.0002/image. $30/mo free credits = ~150,000 images free. Sub-second on GPU.',
+        blocker:   'Needs Modal deployment (services/maya1-tts/modal_deploy.py as template). Account ready.',
+      },
+      {
+        name:      'Qwen-Image-2.0 (Alibaba, 20B)',
+        modelId:   'Qwen/Qwen-Image',
+        licence:   'Apache-2.0',
+        why:       '20B MMDiT, 2K native resolution, unified generation+editing, excellent text rendering.',
+        blocker:   'Not yet on HF free inference API. Available via paid API (~$0.021/image). Skip for now.',
+      },
       {
         name:      'FLUX.2-dev (32B)',
         modelId:   'black-forest-labs/FLUX.2-dev',
@@ -704,14 +1057,16 @@ export const MEDIA_PROVIDERS = {
   video: {
     active: [
       {
-        name:      'HuggingFace — CogVideoX-5B (PRIMARY 2026)',
+        name:      'Modal.com — CogVideoX-5B (A10G GPU) [BEST — deploy first]',
         models:    ['THUDM/CogVideoX-5b'],
         licence:   'Apache-2.0',
         free:      true,
-        keyNeeded: true,
-        keyEnv:    'HUGGINGFACE_API_KEY',
+        keyNeeded: false,
+        envVar:    'MODAL_VIDEO_URL',
+        deployCmd: 'cd services/modal-media && modal deploy video_generate.py',
         quality:   'excellent',
-        note:      '5B params, Apache-2.0, T2V+I2V. Best free video model 2025-2026. Replaces ZeroScope.',
+        cost:      '~$0.028/video | $30/mo free = ~1,000 videos/mo',
+        note:      'GPU-quality CogVideoX-5B on YOUR Modal account. Set MODAL_VIDEO_URL after deploying.',
       },
       {
         name:      'HuggingFace — Wan2.2-TI2V-5B (2026)',
@@ -752,11 +1107,25 @@ export const MEDIA_PROVIDERS = {
     ],
     candidates: [
       {
+        name:    'CogVideoX-5B on Modal.com (RECOMMENDED NEXT STEP)',
+        modelId: 'THUDM/CogVideoX-5b',
+        licence: 'Apache-2.0',
+        why:     'Modal A10G: ~2 min/video → $0.037/video. $30/mo free = ~800 videos FREE. Apache-2.0.',
+        blocker: 'Needs Modal endpoint deployment. Template: services/maya1-tts/modal_deploy.py. Account ready.',
+      },
+      {
+        name:    'Wan2.2-TI2V-5B on Modal.com',
+        modelId: 'Wan-AI/Wan2.2-TI2V-5B',
+        licence: 'Apache-2.0',
+        why:     'Best OSS video 2026 for motion/cinematics. Modal A10G: ~5 min/video → $0.092/video.',
+        blocker: 'Needs Modal endpoint deployment. Better quality than CogVideoX but slower.',
+      },
+      {
         name:    'LTX-Video 2.3 (Lightricks, Mar 2026)',
         modelId: 'Lightricks/LTX-2.3',
         licence: 'Apache-2.0',
         why:     'Real-time generation, native audio sync. Best OSS video 2026. Needs ≥16GB VRAM.',
-        blocker: 'High VRAM — needs HF Pro dedicated GPU or self-hosted. Promote when confirmed free.',
+        blocker: 'High VRAM — needs Modal A10G (48GB) or L40S. Fast once deployed.',
       },
       {
         name:    'Wan 2.2 A14B (Alibaba)',
@@ -770,11 +1139,12 @@ export const MEDIA_PROVIDERS = {
         modelId: 'tencent/HunyuanVideo',
         licence: 'Tencent HunyuanVideo Community License (free commercial)',
         why:     'Comparable to Kling/Sora quality. Open weights. Beats Runway Gen-3 in benchmarks.',
-        blocker: '13B params, 60-80GB VRAM — too heavy for HF free serverless tier.',
+        blocker: '13B params, 60-80GB VRAM — too heavy for HF free serverless. Possible on Modal L40S.',
       },
     ],
     blocked: [
       'Seedance 2.0 (ByteDance — closed weights, paid API only via Fal.ai/PiAPI)',
+      'Kling (paid API — free web tier only, no API)',
       'Runway Gen-3/Gen-4 (paid)',
       'Sora (paid, OpenAI)',
       'Pika Labs (paid)',

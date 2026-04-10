@@ -44,3 +44,4 @@ test-oracle-voice.js
 
 services/kokoro-tts/*.onnx
 services/kokoro-tts/*.bin
+services/modal-media/__pycache__/

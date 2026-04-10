@@ -5,10 +5,9 @@
  * 100% free, open-source, zero token cost.
  * Delegates to the canonical media-generator waterfall.
  *
- * Provider waterfall (no keys needed → optional key for better quality):
- *   1. Pollinations AI — FLUX.1-dev (no key, always available)
- *   2. HuggingFace    — FLUX.1-schnell (free tier, HUGGINGFACE_API_KEY)
- *   3. HuggingFace    — SDXL (free tier, HUGGINGFACE_API_KEY)
+ * Provider waterfall (HF_INFERENCE_ENABLED=false default → Pollinations only):
+ *   DEFAULT: Pollinations AI — FLUX.1-schnell (Apache-2.0, no key, $0 forever)
+ *   OPT-IN:  HF FLUX.2-klein 4B → HF FLUX.1-schnell → HF SDXL → Pollinations retry
  *
  * Blocked forever: Midjourney, DALL-E, Imagen, Fal.ai, Replicate, Adobe Firefly
  */
@@ -84,9 +83,10 @@ export async function GET() {
   return NextResponse.json({
     endpoint: 'POST /api/image/generate-multi',
     providers: [
-      { name: 'Pollinations AI (FLUX.1)', keyRequired: false, licence: 'Apache-2.0', note: 'No key. Always available.' },
-      { name: 'HuggingFace FLUX.1-schnell', keyRequired: true, env: 'HUGGINGFACE_API_KEY', licence: 'Apache-2.0', note: 'Free tier. signup: huggingface.co/settings/tokens' },
-      { name: 'HuggingFace SDXL', keyRequired: true, env: 'HUGGINGFACE_API_KEY', licence: 'Apache-2.0', note: 'Free tier.' },
+      { name: 'Pollinations AI (FLUX.1-schnell)', keyRequired: false, licence: 'Apache-2.0', note: 'Default. Always $0. No account. Apache-2.0.' },
+      { name: 'HuggingFace FLUX.2-klein 4B (Jan 2026)', keyRequired: true, env: 'HUGGINGFACE_API_KEY', licence: 'Apache-2.0', note: 'OPT-IN only (HF_INFERENCE_ENABLED=true). Pay-as-you-go disabled by default.' },
+      { name: 'HuggingFace FLUX.1-schnell', keyRequired: true, env: 'HUGGINGFACE_API_KEY', licence: 'Apache-2.0', note: 'OPT-IN only.' },
+      { name: 'HuggingFace SDXL 1.0', keyRequired: true, env: 'HUGGINGFACE_API_KEY', licence: 'Apache-2.0', note: 'OPT-IN only.' },
     ],
     models:  ['flux-dev', 'flux-schnell', 'sdxl', 'turbo', 'auto'],
     cost:    0,

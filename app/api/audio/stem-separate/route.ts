@@ -172,7 +172,7 @@ async function separateWithHuggingFace(
   if (!audioRes.ok) throw new Error('Could not fetch audio file');
   const audioBuffer = await audioRes.arrayBuffer();
 
-  const res = await fetch('https://api-inference.huggingface.co/models/deezer/spleeter', {
+  const res = await fetch('https://router.huggingface.co/hf-inference/models/deezer/spleeter', {
     method:  'POST',
     headers: {
       'Authorization': `Bearer ${HF_KEY}`,

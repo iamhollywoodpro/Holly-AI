@@ -28,8 +28,8 @@ export interface FreeVisionResult {
 export class FreeVisionModels {
   private huggingfaceKey: string;
   
-  // Hugging Face FREE Inference API endpoint
-  private readonly HF_INFERENCE_API = 'https://api-inference.huggingface.co/models';
+  // Hugging Face Inference Router (new 2025 endpoint — old api-inference.huggingface.co deprecated)
+  private readonly HF_INFERENCE_API = 'https://router.huggingface.co/hf-inference/models';
 
   constructor() {
     // Optional: HF API key for higher rate limits (still FREE)
