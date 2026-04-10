@@ -2319,9 +2319,9 @@ export default function HollyChatInterface() {
                     )}
                   </div>
 
-                  {/* User profile + sign out */}
+                  {/* User profile + settings + sign out */}
                   <div className="border-t border-gray-800 flex-shrink-0">
-                    <div className="flex items-center gap-3 px-4 py-3">
+                    <div className="flex items-center gap-2 px-3 py-3">
                       <div className="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0">
                         {user?.imageUrl ? (
                           <img src={user.imageUrl} alt={user.firstName || "User"} className="w-full h-full object-cover" />
@@ -2333,6 +2333,14 @@ export default function HollyChatInterface() {
                         <p className="text-xs font-medium text-white truncate">{user?.firstName || user?.username || "User"}</p>
                         <p className="text-[10px] text-gray-500 truncate">{user?.primaryEmailAddress?.emailAddress || ""}</p>
                       </div>
+                      <Link
+                        href="/settings"
+                        onClick={() => setNavOpen(false)}
+                        className="p-1.5 rounded-md text-gray-500 hover:text-purple-400 hover:bg-purple-500/10 transition-colors flex-shrink-0"
+                        title="Settings"
+                      >
+                        <Settings className="w-4 h-4" />
+                      </Link>
                       <button
                         onClick={() => signOut({ redirectUrl: "/" })}
                         className="p-1.5 rounded-md text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-colors flex-shrink-0"
@@ -2440,9 +2448,9 @@ export default function HollyChatInterface() {
                     </div>
                   </div>
 
-                  {/* User profile + sign out */}
+                  {/* User profile + settings + sign out */}
                   <div className="border-t border-gray-800 flex-shrink-0">
-                    <div className="flex items-center gap-3 px-4 py-3">
+                    <div className="flex items-center gap-2 px-3 py-3">
                       <div className="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0">
                         {user?.imageUrl ? (
                           <img src={user.imageUrl} alt={user.firstName || "User"} className="w-full h-full object-cover" />
@@ -2454,6 +2462,14 @@ export default function HollyChatInterface() {
                         <p className="text-xs font-medium text-white truncate">{user?.firstName || user?.username || "User"}</p>
                         <p className="text-[10px] text-gray-500 truncate">{user?.primaryEmailAddress?.emailAddress || ""}</p>
                       </div>
+                      <Link
+                        href="/settings"
+                        onClick={() => setNavOpen(false)}
+                        className="p-1.5 rounded-md text-gray-500 hover:text-purple-400 hover:bg-purple-500/10 transition-colors flex-shrink-0"
+                        title="Settings"
+                      >
+                        <Settings className="w-4 h-4" />
+                      </Link>
                       <button
                         onClick={() => signOut({ redirectUrl: "/" })}
                         className="p-1.5 rounded-md text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-colors flex-shrink-0"
