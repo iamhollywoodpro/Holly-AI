@@ -24,3 +24,7 @@
 
 # Background learning     — every 2 hours (offset 30 min, staggered)
 30 */2 * * * /run-cron.sh /api/background-learning >> /proc/1/fd/1 2>&1
+
+# Model discovery & auto-upgrade — 5 AM daily
+# Checks providers for newer free/OSS models and promotes them to the router
+0 5 * * *    /run-cron.sh /api/admin/model-update >> /proc/1/fd/1 2>&1
