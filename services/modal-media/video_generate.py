@@ -2,36 +2,15 @@
 """
 HOLLY Modal Video Generation Service
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Model:   CogVideoX-5B  (THUDM, Apache-2.0 — no token required, fully open)
-GPU:     NVIDIA A10G (24GB VRAM) — minimum GPU for CogVideoX-5B
-Cost:    ~$0.000306/s | ~90s/video → ~$0.028/video
-Free:    $30/mo Modal credits → ~1,000 videos/month (at ≤30 vids/day)
+Model:  CogVideoX-5B (THUDM, Apache-2.0, no HF token required)
+GPU:    NVIDIA A10G (24 GB VRAM)
+Cost:   ~$0.000306/s | ~90s/video → ~$0.028/video
+Free:   $30/mo Modal credits → ~1,000 videos/month FREE (at ≤20/day)
 
-Quality vs current Pollinations:
-  Pollinations (LTX-Video):  Decent, experimental, no GPU control
-  CogVideoX-5B (this):       Excellent — cinematic motion, 720p capable, T2V + I2V
-
-Deploy:
-    modal deploy services/modal-media/video_generate.py
-
-After deploy Modal prints your endpoint URL, e.g.:
-    https://iamhollywoodpro--holly-video-generate.modal.run
-
-Set in Coolify env:
-    MODAL_VIDEO_URL=https://iamhollywoodpro--holly-video-generate.modal.run
-
-No HuggingFace token required — CogVideoX-5B is fully open (Apache-2.0).
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-COST BREAKDOWN (A10G, $0.000306/s = $1.10/hr):
-  • Cold start:    ~60s  → $0.018 (first request, weights cached in volume after that)
-  • Warm inference (5s video): ~90s → $0.028/video
-  • 20 videos/day → $0.56/day → $17/month  ← within $30 free
-  • 30+ videos/day may approach the $30 limit — monitor usage!
-
-⚠️  IMPORTANT: Set a spend alert on Modal account settings:
-    https://modal.com/settings  → Billing → Spend alerts
-    Recommend: alert at $25/mo
+Key design:
+  - Weights downloaded at IMAGE BUILD TIME (baked in, no download on cold start)
+  - Cold start = load weights to GPU (~30s), no network I/O
+  - scaledown_window=300 keeps container warm 5 min
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
 
@@ -43,18 +22,32 @@ import modal
 
 app = modal.App("holly-video-generate")
 
-# ─── Container image ──────────────────────────────────────────────────────────
+COGVIDEO_MODEL = "THUDM/CogVideoX-5b"
+MODEL_CACHE    = "/model-cache"
+
+# ─── Download weights at BUILD TIME ───────────────────────────────────────────
+
+def download_weights():
+    from huggingface_hub import snapshot_download
+    print(f"📥 Downloading {COGVIDEO_MODEL} weights (Apache-2.0, no token)...")
+    snapshot_download(
+        repo_id=COGVIDEO_MODEL,
+        local_dir=MODEL_CACHE,
+        ignore_patterns=["*.md", "*.txt", "original/*"],
+    )
+    print("✅ CogVideoX-5B weights downloaded")
+
 
 image = (
     modal.Image.debian_slim(python_version="3.11")
     .apt_install("ffmpeg")
     .pip_install(
-        "torch==2.4.1",
+        "torch==2.5.1",
         "torchvision",
         "torchaudio",
-        "diffusers>=0.30.0",
-        "transformers>=4.44.0",
-        "accelerate>=0.34.0",
+        "diffusers==0.31.0",
+        "transformers==4.46.3",
+        "accelerate==0.34.2",
         "sentencepiece",
         "protobuf",
         "imageio[ffmpeg]",
@@ -64,25 +57,24 @@ image = (
         "fastapi[standard]",
         "pydantic>=2.0",
         "huggingface_hub>=0.25.0",
-        extra_options="--extra-index-url https://download.pytorch.org/whl/cu121",
+        extra_options="--extra-index-url https://download.pytorch.org/whl/cu124",
+    )
+    # Bake weights into the image at build time — cold start needs no download
+    .run_function(
+        download_weights,
+        timeout=1200,   # 20 min — CogVideoX-5B is ~35GB
     )
 )
-
-# ─── Model weights volume (avoids re-downloading — first load takes ~5 min) ───
-
-weights_vol    = modal.Volume.from_name("holly-cogvideo-weights", create_if_missing=True)
-MODEL_CACHE    = "/models"
-COGVIDEO_MODEL = "THUDM/CogVideoX-5b"   # Apache-2.0, no token required
 
 # ─── Inference class ──────────────────────────────────────────────────────────
 
 @app.cls(
     image=image,
-    gpu="A10G",                   # 24GB VRAM — minimum for CogVideoX-5B
-    volumes={MODEL_CACHE: weights_vol},
-    scaledown_window=300,          # stay warm 5 min (cold start is ~60s)
-    timeout=600,                  # max 10 min per video generation
-    # No HF secret needed — CogVideoX-5B is fully open
+    gpu="A10G",
+    max_containers=1,        # ⚠️ CRITICAL: never spin up more than 1 GPU
+    scaledown_window=300,    # warm for 5 min between requests
+    timeout=600,             # 10 min max per video
+    startup_timeout=900,     # 15 min startup — covers first weight download
 )
 class HollyVideoGenerator:
 
@@ -91,19 +83,17 @@ class HollyVideoGenerator:
         import torch
         from diffusers import CogVideoXPipeline
 
-        print(f"📥 Loading {COGVIDEO_MODEL} (first load ~5 min, cached after)...")
-
+        print(f"📥 Loading CogVideoX-5B from {MODEL_CACHE}...")
         self.pipe = CogVideoXPipeline.from_pretrained(
-            COGVIDEO_MODEL,
+            MODEL_CACHE,
             torch_dtype=torch.bfloat16,
-            cache_dir=MODEL_CACHE,
+            local_files_only=True,
         )
         self.pipe = self.pipe.to("cuda")
-        self.pipe.enable_model_cpu_offload()   # fits 24GB VRAM efficiently
+        self.pipe.enable_model_cpu_offload()
         self.pipe.vae.enable_slicing()
         self.pipe.vae.enable_tiling()
-
-        print(f"✅ {COGVIDEO_MODEL} loaded on A10G GPU")
+        print("✅ CogVideoX-5B loaded on A10G GPU")
 
     @modal.fastapi_endpoint(method="POST", label="video-generate")
     def generate(self, request: dict):
@@ -113,33 +103,23 @@ class HollyVideoGenerator:
         import numpy as np
         from fastapi.responses import Response
 
-        prompt      = (request.get("prompt") or "").strip()
-        duration    = min(float(request.get("duration", 5.0)), 10.0)   # max 10s
-        fps         = int(request.get("fps", 8))
-        width       = min(int(request.get("width",  480)), 720)
-        height      = min(int(request.get("height", 320)), 480)
-        steps       = min(int(request.get("num_inference_steps", 50)), 50)
-        seed        = request.get("seed")
+        prompt     = (request.get("prompt") or "").strip()
+        duration   = min(float(request.get("duration", 5.0)), 10.0)
+        fps        = int(request.get("fps", 8))
+        width      = min(int(request.get("width",  480)), 720)
+        height     = min(int(request.get("height", 320)), 480)
+        steps      = min(int(request.get("num_inference_steps", 50)), 50)
+        seed       = request.get("seed")
 
         if not prompt:
             return Response(
                 content=b'{"error":"prompt is required"}',
-                media_type="application/json",
-                status_code=400,
-            )
-        if len(prompt) > 2000:
-            return Response(
-                content=b'{"error":"prompt too long (max 2000 chars)"}',
-                media_type="application/json",
-                status_code=400,
+                media_type="application/json", status_code=400,
             )
 
-        # CogVideoX-5B max 49 frames
         num_frames = min(int(duration * fps), 49)
-        actual_duration = num_frames / fps
-
-        print(f"🎬 Generating video: {prompt[:80]}...")
-        print(f"   {num_frames} frames @ {fps}fps = {actual_duration:.1f}s | {width}x{height}")
+        actual_dur = num_frames / fps
+        print(f"🎬 {prompt[:80]} | {num_frames}f @ {fps}fps = {actual_dur:.1f}s | {width}x{height}")
 
         generator = torch.Generator("cuda").manual_seed(seed) if seed is not None else None
 
@@ -154,39 +134,32 @@ class HollyVideoGenerator:
                 generator=generator,
             )
 
-        # Export frames to MP4 via imageio
-        frames     = result.frames[0]   # list of PIL images
-        np_frames  = [np.array(f) for f in frames]
+        frames    = result.frames[0]
+        np_frames = [np.array(f) for f in frames]
 
         with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as tmp:
             tmp_path = tmp.name
 
-        imageio.mimwrite(
-            tmp_path,
-            np_frames,
-            fps=fps,
-            codec="libx264",
-            output_params=["-crf", "23", "-preset", "fast"],
-        )
+        imageio.mimwrite(tmp_path, np_frames, fps=fps, codec="libx264",
+                         output_params=["-crf", "23", "-preset", "fast"])
 
         with open(tmp_path, "rb") as f:
             video_bytes = f.read()
-
         os.unlink(tmp_path)
 
-        print(f"✅ {actual_duration:.1f}s MP4 — {len(video_bytes):,} bytes")
+        print(f"✅ {actual_dur:.1f}s MP4 — {len(video_bytes):,} bytes")
 
         return Response(
             content=video_bytes,
             media_type="video/mp4",
             headers={
-                "X-Model":     "CogVideoX-5B",
-                "X-Provider":  "modal",
-                "X-Duration":  str(round(actual_duration, 2)),
-                "X-FPS":       str(fps),
-                "X-Width":     str(width),
-                "X-Height":    str(height),
-                "X-Licence":   "Apache-2.0",
+                "X-Model":    "CogVideoX-5B",
+                "X-Provider": "modal",
+                "X-Duration": str(round(actual_dur, 2)),
+                "X-FPS":      str(fps),
+                "X-Width":    str(width),
+                "X-Height":   str(height),
+                "X-Licence":  "Apache-2.0",
                 "Access-Control-Allow-Origin": "*",
             },
         )
@@ -195,22 +168,17 @@ class HollyVideoGenerator:
     def health(self):
         from fastapi.responses import JSONResponse
         return JSONResponse({
-            "status":   "healthy",
-            "model":    COGVIDEO_MODEL,
-            "gpu":      "A10G",
-            "licence":  "Apache-2.0",
-            "cost":     "~$0.028/video (A10G @$0.000306/s, ~90s inference)",
-            "free":     "$30/mo credits → ~1,000 videos/mo (≤20/day to stay free)",
-            "warning":  "Monitor spend at https://modal.com/settings → Billing",
-            "no_token": "CogVideoX-5B is fully open — no HuggingFace token needed",
-            "version":  "1.1.0",
+            "status":     "healthy",
+            "model":      COGVIDEO_MODEL,
+            "gpu":        "A10G",
+            "licence":    "Apache-2.0",
+            "cost":       "~$0.028/video (A10G @$0.000306/s, ~90s inference)",
+            "free_quota": "$30/mo → ~1,000 videos/mo free (at ≤20/day)",
+            "version":    "2.0.0",
         })
 
 
-# ─── Local test ───────────────────────────────────────────────────────────────
-
 @app.local_entrypoint()
-def test():
-    """Quick local test — run with: modal run services/modal-media/video_generate.py"""
-    print("Holly Video Generator — check Modal dashboard for endpoint URL after deploy")
-    print("Deploy with: modal deploy services/modal-media/video_generate.py")
+def main():
+    print("Deploy: modal deploy services/modal-media/video_generate.py")
+    print("Endpoint: https://iamhollywoodpro--video-generate.modal.run")
