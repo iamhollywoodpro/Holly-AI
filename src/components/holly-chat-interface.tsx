@@ -29,7 +29,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from "react";
-import { useUser } from "@clerk/nextjs";
+import { useUser, useClerk } from "@clerk/nextjs";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -45,6 +45,7 @@ import {
   Volume2, VolumeX, StopCircle, Paperclip, Music, Film,
   Sun, Moon, RotateCcw, Edit3, Flame, RefreshCw, MessageSquare,
   Star, Heart, Activity, Wifi, WifiOff, CheckCircle, AlertCircle,
+  LogOut, User,
 } from "lucide-react";
 import Link from "next/link";
 import SandboxWindow from "@/components/sandbox-window";
@@ -1312,6 +1313,7 @@ function detectCreator(email?: string | null, username?: string | null): boolean
 
 export default function HollyChatInterface() {
   const { user, isLoaded } = useUser();
+  const { signOut } = useClerk();
   const isCreator = isLoaded && detectCreator(
     user?.primaryEmailAddress?.emailAddress,
     user?.username
@@ -2316,6 +2318,30 @@ export default function HollyChatInterface() {
                       </div>
                     )}
                   </div>
+
+                  {/* User profile + sign out */}
+                  <div className="border-t border-gray-800 flex-shrink-0">
+                    <div className="flex items-center gap-3 px-4 py-3">
+                      <div className="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0">
+                        {user?.imageUrl ? (
+                          <img src={user.imageUrl} alt={user.firstName || "User"} className="w-full h-full object-cover" />
+                        ) : (
+                          <User className="w-4 h-4 text-white" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium text-white truncate">{user?.firstName || user?.username || "User"}</p>
+                        <p className="text-[10px] text-gray-500 truncate">{user?.primaryEmailAddress?.emailAddress || ""}</p>
+                      </div>
+                      <button
+                        onClick={() => signOut({ redirectUrl: "/" })}
+                        className="p-1.5 rounded-md text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-colors flex-shrink-0"
+                        title="Sign out"
+                      >
+                        <LogOut className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -2411,6 +2437,30 @@ export default function HollyChatInterface() {
                           <kbd className="text-[10px] text-gray-500 bg-gray-800 border border-gray-700 rounded px-1.5 py-0.5 font-mono">{key}</kbd>
                         </div>
                       ))}
+                    </div>
+                  </div>
+
+                  {/* User profile + sign out */}
+                  <div className="border-t border-gray-800 flex-shrink-0">
+                    <div className="flex items-center gap-3 px-4 py-3">
+                      <div className="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0">
+                        {user?.imageUrl ? (
+                          <img src={user.imageUrl} alt={user.firstName || "User"} className="w-full h-full object-cover" />
+                        ) : (
+                          <User className="w-4 h-4 text-white" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium text-white truncate">{user?.firstName || user?.username || "User"}</p>
+                        <p className="text-[10px] text-gray-500 truncate">{user?.primaryEmailAddress?.emailAddress || ""}</p>
+                      </div>
+                      <button
+                        onClick={() => signOut({ redirectUrl: "/" })}
+                        className="p-1.5 rounded-md text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-colors flex-shrink-0"
+                        title="Sign out"
+                      >
+                        <LogOut className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
                 </div>
