@@ -42,6 +42,144 @@ const TASK_EMOJIS: Record<string, string> = {
   agent: '🤖', local: '🔒',
 };
 
+// ── Model Discovery Panel ────────────────────────────────────────────────────
+function ModelDiscoveryPanel() {
+  const [status, setStatus]   = useState<'idle' | 'running' | 'done' | 'error'>('idle');
+  const [report, setReport]   = useState<any>(null);
+  const [registry, setRegistry] = useState<any>(null);
+  const [showCandidates, setShowCandidates] = useState(false);
+
+  const runDiscovery = async () => {
+    setStatus('running');
+    try {
+      const res = await fetch('/api/admin/model-update', { method: 'POST' });
+      const data = await res.json();
+      if (res.ok) { setReport(data.report); setStatus('done'); }
+      else setStatus('error');
+    } catch { setStatus('error'); }
+  };
+
+  const loadRegistry = async () => {
+    try {
+      const res = await fetch('/api/admin/model-update');
+      if (res.ok) setRegistry(await res.json());
+    } catch {}
+  };
+
+  return (
+    <div className="space-y-4 pt-6 border-t border-gray-800">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div>
+          <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+            🔍 Model Discovery
+            <span className="text-xs font-normal px-2 py-0.5 bg-purple-500/20 text-purple-300 rounded-full border border-purple-500/30">
+              Auto · 5 AM UTC daily
+            </span>
+          </h3>
+          <p className="text-xs text-gray-400 mt-0.5">
+            Holly checks all free providers daily for better open-source models and promotes them automatically. Free &amp; OSS only — Suno V5.5 is the only paid exception.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={loadRegistry}
+            className="text-xs px-3 py-1.5 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg text-gray-300 transition-colors"
+          >
+            View Registry
+          </button>
+          <button
+            onClick={runDiscovery}
+            disabled={status === 'running'}
+            className="text-xs px-3 py-1.5 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 rounded-lg text-white transition-colors flex items-center gap-1.5"
+          >
+            {status === 'running' ? (
+              <><span className="inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> Scanning...</>
+            ) : '▶ Run Now'}
+          </button>
+        </div>
+      </div>
+
+      {/* Rules */}
+      <div className="text-xs text-gray-500 bg-gray-900/50 border border-gray-800 rounded-lg px-4 py-3 space-y-1">
+        <p className="font-medium text-gray-400">Upgrade Rules (enforced in code)</p>
+        <p>✅ Free models only — MIT, Apache-2.0, Llama-3/4, CC-BY licences</p>
+        <p>✅ Better benchmark scores required before promotion</p>
+        <p>✅ Suno V5.5 remains the only paid API (music generation)</p>
+        <p>🚫 No GPT, no Claude, no Gemini — ever</p>
+      </div>
+
+      {/* Discovery result */}
+      {report && (
+        <div className="bg-gray-900 border border-gray-800 rounded-lg p-4 space-y-3 text-xs">
+          <p className="text-gray-400">Run: {new Date(report.checkedAt).toLocaleString()}</p>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="text-center bg-purple-500/10 border border-purple-500/20 rounded-lg p-2">
+              <p className="text-2xl font-bold text-purple-300">{report.promoted?.length ?? 0}</p>
+              <p className="text-gray-400">Promoted</p>
+            </div>
+            <div className="text-center bg-gray-800 border border-gray-700 rounded-lg p-2">
+              <p className="text-2xl font-bold text-white">{report.candidates ?? 0}</p>
+              <p className="text-gray-400">Checked</p>
+            </div>
+            <div className="text-center bg-gray-800 border border-gray-700 rounded-lg p-2">
+              <p className="text-2xl font-bold text-gray-300">{report.skipped?.length ?? 0}</p>
+              <p className="text-gray-400">Not yet live</p>
+            </div>
+          </div>
+          {report.promoted?.length > 0 && (
+            <div>
+              <p className="text-green-400 font-medium mb-1">✅ Models promoted this run:</p>
+              {report.promoted.map((p: string, i: number) => (
+                <p key={i} className="text-gray-300 font-mono">{p}</p>
+              ))}
+            </div>
+          )}
+          {report.errors?.length > 0 && (
+            <div>
+              <p className="text-red-400 font-medium mb-1">⚠ Errors:</p>
+              {report.errors.map((e: string, i: number) => (
+                <p key={i} className="text-gray-500">{e}</p>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Registry */}
+      {registry && (
+        <div className="space-y-3">
+          <button
+            onClick={() => setShowCandidates(v => !v)}
+            className="w-full text-left px-4 py-2 bg-gray-800/50 hover:bg-gray-800 border border-gray-700 rounded-lg text-xs text-gray-400 transition-colors flex items-center justify-between"
+          >
+            <span>📋 {registry.candidates?.length ?? 0} candidate models being monitored</span>
+            <span>{showCandidates ? '▲' : '▼'}</span>
+          </button>
+          {showCandidates && registry.candidates && (
+            <div className="space-y-2">
+              {registry.candidates.map((c: any) => (
+                <div key={c.key} className={`text-xs px-4 py-2 rounded-lg border flex items-start gap-3 ${
+                  c.inCatalogue
+                    ? 'bg-green-500/5 border-green-500/20 text-green-300'
+                    : 'bg-gray-900 border-gray-800 text-gray-400'
+                }`}>
+                  <span className="shrink-0">{c.inCatalogue ? '✅' : '⏳'}</span>
+                  <div className="min-w-0">
+                    <span className="font-mono font-medium">{c.key}</span>
+                    <span className="text-gray-600 ml-2">supersedes {c.supersedes}</span>
+                    <p className="text-gray-500 truncate mt-0.5">{c.reason}</p>
+                    <p className="text-gray-600">{c.licence} · {c.taskTypes.join(', ')}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function DeveloperPage() {
   const { settings, updateSettings, loadSettings, isSaving, exportSettings, resetToDefaults } =
     useSettings();
@@ -377,6 +515,9 @@ export default function DeveloperPage() {
           <p className="text-xs text-gray-500 italic">Click Refresh to load router status</p>
         )}
       </div>
+
+      {/* ── Model Discovery & Auto-Upgrade ── */}
+      <ModelDiscoveryPanel />
 
       {/* Warning Box */}
       <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">

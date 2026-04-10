@@ -130,6 +130,7 @@ export async function GET() {
           { name: 'evolution',           schedule: '0 2 * * *'    },
           { name: 'architecture-gen',    schedule: '0 3 * * *'    },
           { name: 'identity-evolve',     schedule: '0 4 * * *'    },
+          { name: 'model-discovery',     schedule: '0 5 * * *'    },
           { name: 'initiative',          schedule: '0 9 * * *'    },
           { name: 'background-learning', schedule: '30 */2 * * *' },
         ],

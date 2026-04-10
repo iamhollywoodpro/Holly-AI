@@ -1364,9 +1364,9 @@ export default function HollyChatInterface() {
   const [isVoiceInput, setIsVoiceInput] = useState(false);
   // ── Phase F: Growth stats ───────────────────────────────────────────────────
   const [growthStats, setGrowthStats] = useState<GrowthStats | null>(null);
-  // ── Active model routing (shown in UI after each response) ──────────────────
-  const [activeModel, setActiveModel] = useState<string | null>(null);
-  const [activeTaskType, setActiveTaskType] = useState<string | null>(null);
+  // ── Active model routing (backend tracking only — not shown to user) ─────────
+  const [_activeModel, _setActiveModel] = useState<string | null>(null);
+  const [_activeTaskType, _setActiveTaskType] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -1892,8 +1892,8 @@ export default function HollyChatInterface() {
               streamDone = true;
               // Capture routing metadata from the done event
               const doneData = data as any;
-              if (doneData.model)    { detectedModel = doneData.model; setActiveModel(doneData.model); }
-              if (doneData.taskType) { setActiveTaskType(doneData.taskType); }
+              if (doneData.model)    { detectedModel = doneData.model; _setActiveModel(doneData.model); }
+              if (doneData.taskType) { _setActiveTaskType(doneData.taskType); }
               break;
             }
             if (data.type === "error") {
@@ -2757,7 +2757,7 @@ export default function HollyChatInterface() {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="flex justify-start pl-12 gap-2 flex-wrap"
+            className="flex justify-start pl-12"
           >
             <button
               onClick={regenerateLastResponse}
@@ -2766,19 +2766,6 @@ export default function HollyChatInterface() {
               <RefreshCw className="w-3 h-3" />
               Regenerate
             </button>
-            {/* Model badge — shows which AI model Holly used */}
-            {activeModel && (
-              <div
-                title={`Task type: ${activeTaskType ?? 'auto'}`}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-purple-400/80 border border-purple-500/20 rounded-lg bg-purple-500/5 cursor-default select-none"
-              >
-                <span className="w-1.5 h-1.5 rounded-full bg-purple-400/60 animate-pulse" />
-                {activeModel}
-                {activeTaskType && (
-                  <span className="text-gray-600 ml-0.5">· {activeTaskType}</span>
-                )}
-              </div>
-            )}
           </motion.div>
         )}
 
