@@ -4,8 +4,8 @@
  * POST /api/multimodal/generate
  *
  * Unified endpoint for:
- *   - Image generation (FLUX 1.1 Pro via Fal.ai, Stable Diffusion XL, Pollinations free — NO paid APIs)
- *   - Video generation (Kling v2, Wan 2.5, Runway Gen-4, Replicate/Zeroscope)
+ *   - Image generation (Modal FLUX.1-schnell → Pollinations fallback)
+ *   - Video generation (Modal CogVideoX-5B)
  *   - Audio-visual synchronization (beat-sync, lyric-sync)
  *
  * Body:
@@ -14,8 +14,8 @@
  *   model?: string          — specific model override
  *   aspectRatio?: string    — '16:9' | '9:16' | '1:1' | '4:3' | '3:4'
  *   style?: string          — cinematic, photorealistic, anime, painterly, etc.
- *   duration?: number       — video seconds (3–15)
- *   referenceImageUrl?: string — img2video or img2img reference
+ *   duration?: number       — video seconds (3–10)
+ *   referenceImageUrl?: string — img2img reference
  *   negativePrompt?: string
  *   seed?: number
  *   // audio_visual only:
@@ -180,32 +180,25 @@ export async function GET() {
     providers: registry,
     models: {
       image: [
-        { id: 'flux-1-1-pro', name: 'FLUX 1.1 Pro', provider: 'fal.ai', quality: 'best', speed: 'medium', cost: '$0.003/image', requiresKey: 'FAL_KEY' },
-        { id: 'flux-schnell', name: 'FLUX Schnell', provider: 'fal.ai', quality: 'good', speed: 'fast', cost: '$0.001/image', requiresKey: 'FAL_KEY' },
-        { id: 'flux-dev', name: 'FLUX Dev', provider: 'fal.ai', quality: 'high', speed: 'medium', cost: '$0.002/image', requiresKey: 'FAL_KEY' },
-        { id: 'stable-diffusion-xl', name: 'Stable Diffusion XL', provider: 'fal.ai', quality: 'good', speed: 'fast', cost: '$0.001/image', requiresKey: 'FAL_KEY' },
-        { id: 'pollinations', name: 'Pollinations (FLUX)', provider: 'pollinations.ai', quality: 'good', speed: 'fast', cost: 'free', requiresKey: null },
-        { id: 'auto', name: 'Auto (best available)', provider: 'varies', quality: 'best_available', speed: 'varies', cost: 'varies', requiresKey: 'any' },
+        { id: 'flux-schnell', name: 'FLUX.1-schnell (Modal)', provider: 'Holly Modal GPU', quality: 'production', speed: 'fast', cost: 'free', requiresKey: null },
+        { id: 'pollinations',  name: 'Pollinations FLUX',    provider: 'pollinations.ai',  quality: 'good',       speed: 'fast', cost: 'free', requiresKey: null },
+        { id: 'auto', name: 'Auto (Modal → Pollinations)',   provider: 'varies',            quality: 'best_available', speed: 'fast', cost: 'free', requiresKey: null },
       ],
       video: [
-        { id: 'kling-v2', name: 'Kling v2', provider: 'fal.ai', quality: 'cinematic', speed: 'slow', cost: '$0.15/5s', requiresKey: 'FAL_KEY' },
-        { id: 'wan-v2-5', name: 'Wan 2.5', provider: 'fal.ai', quality: 'high', speed: 'medium', cost: '$0.05/5s', requiresKey: 'FAL_KEY' },
-        { id: 'runway-gen4', name: 'Runway Gen-4', provider: 'runway', quality: 'cinematic', speed: 'medium', cost: '$0.10/5s', requiresKey: 'RUNWAY_API_KEY' },
-        { id: 'luma-dream-machine', name: 'LumaAI Dream Machine', provider: 'luma', quality: 'high', speed: 'medium', cost: '$0.08/5s', requiresKey: 'LUMAAI_API_KEY' },
-        { id: 'zeroscope', name: 'Zeroscope v2', provider: 'replicate', quality: 'good', speed: 'slow', cost: '$0.01/3s', requiresKey: 'REPLICATE_API_KEY' },
-        { id: 'auto', name: 'Auto (best available)', provider: 'varies', quality: 'best_available', speed: 'varies', cost: 'varies', requiresKey: 'any' },
+        { id: 'cogvideox', name: 'CogVideoX-5B (Modal)', provider: 'Holly Modal GPU', quality: 'high', speed: 'slow', cost: 'free', requiresKey: null },
+        { id: 'auto',      name: 'Auto (Modal CogVideoX)', provider: 'Holly Modal GPU', quality: 'high', speed: 'slow', cost: 'free', requiresKey: null },
       ],
     },
     capabilities: [
       'Text-to-image generation',
       'Image-to-image transformation',
       'Text-to-video generation',
-      'Image-to-video animation',
       'Music video creation',
       'Audio-visual synchronization',
       'Beat-sync visual generation',
       'Lyric video creation',
     ],
+    note: 'All generation runs on Holly\'s own Modal.com GPU workers. No FAL_KEY or REPLICATE_API_KEY needed.',
   });
 }
 
@@ -274,17 +267,17 @@ function buildAVSyncPlan(concept: string, syncMode: string): Record<string, unkn
 // ─── Error helper ─────────────────────────────────────────────────────────────
 
 function getSuggestion(errorMessage: string): string {
-  if (errorMessage.includes('VIDEO_KEY_REQUIRED') || (errorMessage.includes('FAL_KEY') && errorMessage.includes('video'))) {
-    return 'Video generation needs FAL_KEY. Get free starter credits at https://fal.ai/dashboard/keys — add FAL_KEY to Vercel env vars. Images always work free via Pollinations (no key needed).';
+  if (errorMessage.includes('VIDEO_NOT_CONFIGURED') || errorMessage.includes('MODAL_VIDEO_URL')) {
+    return 'Video generation runs on Holly\'s Modal CogVideoX-5B GPU. Ensure MODAL_VIDEO_URL is set in Coolify environment variables.';
   }
-  if (errorMessage.includes('FAL_KEY') || errorMessage.includes('fal.ai')) {
-    return 'Add FAL_KEY to Vercel environment variables (free starter credits at fal.ai/dashboard/keys) for FLUX and video generation.';
+  if (errorMessage.includes('Modal video error') || errorMessage.includes('modal-cogvideox')) {
+    return 'Modal video GPU may be cold-starting (scale-to-zero). Try again in 60 seconds — the worker spins up automatically.';
   }
-  if (errorMessage.includes('REPLICATE')) {
-    return 'Add REPLICATE_API_KEY to your environment for Zeroscope video fallback. Or add FAL_KEY for better quality video.';
+  if (errorMessage.includes('Modal image error') || errorMessage.includes('modal-flux')) {
+    return 'Modal image GPU is unavailable. Holly will automatically fall back to Pollinations (free, always available).';
   }
-  if (errorMessage.includes('No.*configured') || errorMessage.includes('unavailable')) {
-    return 'Images work 100% free via Pollinations (no key needed). Videos require FAL_KEY (free credits at fal.ai). Music requires SUNO_API_KEY.';
+  if (errorMessage.includes('Pollinations')) {
+    return 'Pollinations fallback failed. Check network connectivity.';
   }
-  return 'Check your generation API key configuration in Vercel environment variables.';
+  return 'Generation failed. Holly uses Modal.com GPU workers — check MODAL_IMAGE_URL and MODAL_VIDEO_URL in Coolify env vars.';
 }

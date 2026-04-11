@@ -1,18 +1,18 @@
 /**
- * HOLLY Multi-Modal Generation Engine — Phase 11
+ * HOLLY Multi-Modal Generation Engine — Phase 11 (Modal-first)
  *
- * Unified orchestration layer for all AI generation modalities:
- *   - Image synthesis (Fal.ai FLUX, Stable Diffusion, Pollinations — all free)
- *   - Video generation (Fal.ai, Replicate, Kling, LumaAI, Runway)
- *   - Music generation (SUNO via existing engine)
- *   - Music video synthesis (image frames + audio A/V sync)
- *   - Audio-visual synchronization (lip sync, beat-sync visuals)
+ * Provider priority:
  *
- * Provider Strategy:
- *   Each modality has a waterfall of providers sorted by quality.
- *   If provider A fails or has no key, falls through to B, C, etc.
- *   Pollinations AI is always the final free fallback for images.
- *   Replicate is the final fallback for video.
+ *   Images:
+ *     1. MODAL_IMAGE_URL  — Holly's own FLUX.1-schnell GPU on Modal (set in Coolify ✅)
+ *     2. Pollinations AI  — free, no key, always-available fallback
+ *
+ *   Video:
+ *     1. MODAL_VIDEO_URL  — Holly's own CogVideoX-5B GPU on Modal (set in Coolify ✅)
+ *     ↳ Graceful error if Modal video is not responding (cold start / scale-to-zero)
+ *
+ * No FAL_KEY, no REPLICATE_API_KEY, no HuggingFace inference needed.
+ * All third-party paid-video providers have been removed.
  */
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -20,30 +20,22 @@
 export type GenerationModality = 'image' | 'video' | 'music' | 'music_video' | 'audio_visual';
 
 export type ImageModel =
-  | 'flux-1-1-pro'       // Fal.ai FLUX 1.1 Pro — best quality
-  | 'flux-schnell'       // Fal.ai FLUX Schnell — fast
-  | 'flux-dev'           // Fal.ai FLUX Dev — balanced
-  | 'stable-diffusion-xl'// Fal.ai SDXL
-  | 'pollinations'       // Pollinations AI — free, always available
-  | 'auto';              // Engine picks best available
+  | 'flux-schnell'       // Modal FLUX.1-schnell (Holly's GPU) — default
+  | 'pollinations'       // Pollinations AI — free always-on fallback
+  | 'auto';              // Engine picks best available (Modal → Pollinations)
 
 export type VideoModel =
-  | 'kling-v2'           // Kling AI v2 — cinematic quality
-  | 'runway-gen4'        // Runway Gen-4 Turbo
-  | 'luma-dream-machine' // LumaAI Dream Machine
-  | 'wan-v2-5'           // Wan 2.5 — open source quality
-  | 'stable-video'       // Stable Video Diffusion
-  | 'zeroscope'          // Zeroscope — free via Replicate
+  | 'cogvideox'          // Modal CogVideoX-5B (Holly's GPU) — default
   | 'auto';              // Engine picks best available
 
 export type MusicVideoStyle =
-  | 'cinematic'          // Film-quality narrative
-  | 'visualizer'         // Abstract audio-reactive visuals
-  | 'lyric-video'        // Text-animated lyrics
-  | 'performance'        // Artist performing footage
-  | 'abstract'           // Pure visual art
-  | 'animated'           // Animation / illustrated
-  | 'documentary';       // Behind-the-scenes style
+  | 'cinematic'
+  | 'visualizer'
+  | 'lyric-video'
+  | 'performance'
+  | 'abstract'
+  | 'animated'
+  | 'documentary';
 
 export type AspectRatio = '16:9' | '9:16' | '1:1' | '4:3' | '3:4';
 
@@ -56,12 +48,12 @@ export interface ImageGenerationRequest {
   width?: number;
   height?: number;
   aspectRatio?: AspectRatio;
-  style?: string;           // e.g. "cinematic", "oil painting", "photorealistic"
-  referenceImageUrl?: string; // img2img
-  steps?: number;           // diffusion steps
-  guidance?: number;        // CFG scale
+  style?: string;
+  referenceImageUrl?: string;
+  steps?: number;
+  guidance?: number;
   seed?: number;
-  artDirection?: {          // HOLLY art direction block
+  artDirection?: {
     movement?: string;
     lighting?: string;
     colorPalette?: string;
@@ -74,35 +66,35 @@ export interface VideoGenerationRequest {
   prompt: string;
   negativePrompt?: string;
   model?: VideoModel;
-  duration?: number;        // seconds (3-30)
-  fps?: number;             // frames per second
+  duration?: number;        // seconds (3–20)
+  fps?: number;
   aspectRatio?: AspectRatio;
   style?: string;
-  referenceImageUrl?: string; // image-to-video
-  referenceVideoUrl?: string; // video-to-video
+  referenceImageUrl?: string;
+  referenceVideoUrl?: string;
   cameraMovement?: 'static' | 'pan-left' | 'pan-right' | 'zoom-in' | 'zoom-out' | 'orbit' | 'dolly';
   motionIntensity?: 'low' | 'medium' | 'high';
 }
 
 export interface MusicVideoRequest {
-  prompt: string;             // Visual description / concept
-  audioUrl?: string;          // Source audio track URL
+  prompt: string;
+  audioUrl?: string;
   songTitle?: string;
   artistName?: string;
   genre?: string;
   style?: MusicVideoStyle;
-  duration?: number;          // seconds
+  duration?: number;
   aspectRatio?: AspectRatio;
   colorPalette?: string;
   moodKeywords?: string[];
-  beatSync?: boolean;         // Sync cuts to beats
+  beatSync?: boolean;
   lyricsUrl?: string;
 }
 
 export interface AudioVisualSyncRequest {
   audioUrl: string;
   videoUrl?: string;
-  imageUrls?: string[];       // Sequence of images to sync
+  imageUrls?: string[];
   syncMode: 'beat-sync' | 'lyric-sync' | 'ambient';
   bpm?: number;
   intensity?: 'subtle' | 'medium' | 'intense';
@@ -114,7 +106,7 @@ export interface GenerationResult {
   success: boolean;
   modality: GenerationModality;
   url?: string;
-  urls?: string[];            // Multiple outputs (e.g., image variants)
+  urls?: string[];
   thumbnailUrl?: string;
   duration?: number;
   provider: string;
@@ -123,13 +115,13 @@ export interface GenerationResult {
   metadata?: Record<string, unknown>;
   error?: string;
   generatedAt: Date;
-  estimatedCost?: number;     // USD estimate
+  estimatedCost?: number;
 }
 
 export interface ProviderCapability {
   name: string;
   modalities: GenerationModality[];
-  maxDuration?: number;       // For video — max seconds
+  maxDuration?: number;
   maxResolution?: string;
   requiresKey: boolean;
   keyEnvVar?: string;
@@ -145,74 +137,39 @@ export function getProviderRegistry(): ProviderCapability[] {
   return [
     // ── Image providers ──
     {
-      name: 'fal-flux-1-1-pro',
+      name: 'modal-flux-schnell',
       modalities: ['image'],
-      maxResolution: '2048x2048',
-      requiresKey: true,
-      keyEnvVar: 'FAL_KEY',
+      maxResolution: '1344x768',
+      requiresKey: false,
       quality: 5,
-      speed: 'medium',
-      costTier: 'medium',
-      available: !!process.env.FAL_KEY,
-    },
-    {
-      name: 'fal-flux-schnell',
-      modalities: ['image'],
-      maxResolution: '1024x1024',
-      requiresKey: true,
-      keyEnvVar: 'FAL_KEY',
-      quality: 4,
       speed: 'fast',
-      costTier: 'low',
-      available: !!process.env.FAL_KEY,
+      costTier: 'free',
+      available: !!process.env.MODAL_IMAGE_URL,
     },
     {
       name: 'pollinations',
       modalities: ['image'],
-      maxResolution: '1024x1024',
+      maxResolution: '1344x768',
       requiresKey: false,
       quality: 3,
       speed: 'fast',
       costTier: 'free',
-      available: true, // Always available
+      available: true, // always available
     },
     // ── Video providers ──
     {
-      name: 'fal-kling-v2',
+      name: 'modal-cogvideox',
       modalities: ['video'],
       maxDuration: 10,
-      requiresKey: true,
-      keyEnvVar: 'FAL_KEY',
-      quality: 5,
-      speed: 'slow',
-      costTier: 'high',
-      available: !!process.env.FAL_KEY,
-    },
-    {
-      name: 'fal-wan-v2-5',
-      modalities: ['video'],
-      maxDuration: 15,
-      requiresKey: true,
-      keyEnvVar: 'FAL_KEY',
+      requiresKey: false,
       quality: 4,
-      speed: 'medium',
-      costTier: 'medium',
-      available: !!process.env.FAL_KEY,
-    },
-    {
-      name: 'replicate-zeroscope',
-      modalities: ['video'],
-      maxDuration: 3,
-      requiresKey: true,
-      keyEnvVar: 'REPLICATE_API_KEY',
-      quality: 3,
-      speed: 'medium',
-      costTier: 'low',
-      available: !!process.env.REPLICATE_API_KEY,
+      speed: 'slow', // GPU cold start may take ~60s
+      costTier: 'free',
+      available: !!process.env.MODAL_VIDEO_URL,
     },
     // ── Music providers ──
     {
-      name: 'suno-v4',
+      name: 'suno-v5',
       modalities: ['music'],
       maxDuration: 240,
       requiresKey: true,
@@ -228,107 +185,98 @@ export function getProviderRegistry(): ProviderCapability[] {
 // ─── Image Generation ─────────────────────────────────────────────────────────
 
 export async function generateImage(req: ImageGenerationRequest): Promise<GenerationResult> {
-  const falKey = process.env.FAL_KEY;
-
   // Build enriched prompt with HOLLY art direction
   let enrichedPrompt = req.prompt;
   if (req.artDirection) {
     const ad = req.artDirection;
     const parts = [
       req.prompt,
-      ad.movement && `Art style: ${ad.movement}`,
-      ad.lighting && `Lighting: ${ad.lighting}`,
+      ad.movement    && `Art style: ${ad.movement}`,
+      ad.lighting    && `Lighting: ${ad.lighting}`,
       ad.colorPalette && `Color palette: ${ad.colorPalette}`,
       ad.composition && `Composition: ${ad.composition}`,
-      ad.mood && `Mood: ${ad.mood}`,
+      ad.mood        && `Mood: ${ad.mood}`,
     ].filter(Boolean);
     enrichedPrompt = parts.join('. ');
   }
   if (req.style) enrichedPrompt = `${enrichedPrompt}, ${req.style} style`;
 
-  // Provider waterfall: Fal.ai FLUX → Pollinations (both free/no-cost)
   const model = req.model || 'auto';
+  const modalUrl = process.env.MODAL_IMAGE_URL;
 
-  // 1. Fal.ai FLUX (best quality, requires FAL_KEY — free starter credits)
-  if (falKey && model !== 'pollinations') {
+  // 1. Holly's Modal FLUX endpoint (primary — no external API key needed)
+  if (modalUrl && model !== 'pollinations') {
     try {
-      return await generateImageFal(enrichedPrompt, req, falKey);
+      return await generateImageModal(enrichedPrompt, req, modalUrl);
     } catch (err) {
-      console.warn('[Generation] Fal.ai image failed, falling back to Pollinations:', err);
+      console.warn('[Generation] Modal image failed, falling back to Pollinations:', (err as Error).message);
     }
   }
 
-  // 2. Pollinations AI — always free, no key, no limits
+  // 2. Pollinations AI — always free, no key, true fallback
   return await generateImagePollinations(enrichedPrompt, req);
 }
 
-async function generateImageFal(
+async function generateImageModal(
   prompt: string,
   req: ImageGenerationRequest,
-  apiKey: string
+  endpointUrl: string,
 ): Promise<GenerationResult> {
-  const modelMap: Record<string, string> = {
-    'flux-1-1-pro': 'fal-ai/flux-pro/v1.1',
-    'flux-schnell': 'fal-ai/flux/schnell',
-    'flux-dev': 'fal-ai/flux/dev',
-    'stable-diffusion-xl': 'fal-ai/stable-diffusion-xl',
-    'auto': 'fal-ai/flux/schnell',
-  };
-
-  const falModel = modelMap[req.model || 'auto'] || 'fal-ai/flux/schnell';
   const [w, h] = resolveImageDimensions(req);
 
-  const payload: Record<string, unknown> = {
+  const payload = {
     prompt,
-    image_size: { width: w, height: h },
-    num_inference_steps: req.steps || 28,
-    guidance_scale: req.guidance || 3.5,
-    num_images: 1,
-    enable_safety_checker: true,
+    negative_prompt: req.negativePrompt || '',
+    width: w,
+    height: h,
+    num_inference_steps: req.steps || 4,    // FLUX.1-schnell is optimized for 4 steps
+    guidance_scale: req.guidance || 0,       // schnell ignores CFG, keep 0
+    seed: req.seed ?? Math.floor(Math.random() * 1_000_000),
   };
-  if (req.negativePrompt) payload.negative_prompt = req.negativePrompt;
-  if (req.seed) payload.seed = req.seed;
-  if (req.referenceImageUrl) payload.image_url = req.referenceImageUrl;
 
-  const res = await fetch(`https://fal.run/${falModel}`, {
+  console.log(`[Generation] Modal image: ${endpointUrl}/generate (${w}×${h})`);
+
+  const res = await fetch(`${endpointUrl}/generate`, {
     method: 'POST',
-    headers: {
-      'Authorization': `Key ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(120_000), // 2 min — allow for cold start
   });
 
-  if (!res.ok) throw new Error(`Fal.ai error: ${res.status} ${res.statusText}`);
+  if (!res.ok) {
+    const errText = await res.text().catch(() => res.statusText);
+    throw new Error(`Modal image error: ${res.status} — ${errText.substring(0, 200)}`);
+  }
 
-  const data = await res.json() as { images?: Array<{ url: string }> };
-  const url = data.images?.[0]?.url;
-  if (!url) throw new Error('Fal.ai returned no image URL');
+  const data = await res.json() as { image_url?: string; url?: string; error?: string };
+  if (data.error) throw new Error(`Modal returned error: ${data.error}`);
+
+  const url = data.image_url || data.url;
+  if (!url) throw new Error('Modal image endpoint returned no URL');
 
   return {
     success: true,
     modality: 'image',
     url,
-    provider: 'fal.ai',
-    model: falModel,
+    provider: 'modal-flux-schnell',
+    model: 'FLUX.1-schnell',
     prompt,
     generatedAt: new Date(),
-    estimatedCost: 0.003,
+    estimatedCost: 0,
   };
 }
 
 async function generateImagePollinations(
   prompt: string,
-  req: ImageGenerationRequest
+  req: ImageGenerationRequest,
 ): Promise<GenerationResult> {
   const [w, h] = resolveImageDimensions(req);
   const seed = req.seed || Math.floor(Math.random() * 1_000_000);
-  const model = req.model === 'pollinations' ? 'flux' : 'flux';
   const encodedPrompt = encodeURIComponent(prompt);
-  const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?seed=${seed}&width=${w}&height=${h}&model=${model}&nologo=true`;
+  const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?seed=${seed}&width=${w}&height=${h}&model=flux&nologo=true`;
 
-  // Verify it returns an image
-  const check = await fetch(url, { method: 'HEAD' });
+  // Verify Pollinations responds
+  const check = await fetch(url, { method: 'HEAD', signal: AbortSignal.timeout(30_000) });
   if (!check.ok) throw new Error('Pollinations returned non-OK');
 
   return {
@@ -336,7 +284,7 @@ async function generateImagePollinations(
     modality: 'image',
     url,
     provider: 'pollinations',
-    model: 'flux',
+    model: 'FLUX (Pollinations)',
     prompt,
     generatedAt: new Date(),
     estimatedCost: 0,
@@ -346,229 +294,67 @@ async function generateImagePollinations(
 // ─── Video Generation ─────────────────────────────────────────────────────────
 
 export async function generateVideo(req: VideoGenerationRequest): Promise<GenerationResult> {
-  const falKey = process.env.FAL_KEY;
-  const replicateKey = process.env.REPLICATE_API_KEY;
-  const model = req.model || 'auto';
+  const modalUrl = process.env.MODAL_VIDEO_URL;
 
-  // 1. Fal.ai (Kling v2 or Wan 2.5 — best quality)
-  if (falKey && model !== 'zeroscope') {
-    try {
-      return await generateVideoFal(req, falKey);
-    } catch (err) {
-      console.warn('[Generation] Fal.ai video failed:', err);
-    }
+  if (!modalUrl) {
+    throw new Error(
+      'VIDEO_NOT_CONFIGURED: MODAL_VIDEO_URL is not set. ' +
+      'The Holly CogVideoX-5B Modal endpoint is not configured. ' +
+      'Check Coolify environment variables.'
+    );
   }
 
-  // 2. Replicate (Zeroscope — reliable fallback)
-  if (replicateKey) {
-    try {
-      return await generateVideoReplicate(req, replicateKey);
-    } catch (err) {
-      console.warn('[Generation] Replicate video failed:', err);
-    }
-  }
-
-  // 3. No paid video key — return a helpful structured error
-  throw new Error(
-    'VIDEO_KEY_REQUIRED: Video generation needs FAL_KEY (fal.ai/dashboard/keys — free starter credits). ' +
-    'Images work 100% free via Pollinations. ' +
-    'Note: there is no truly free unlimited text-to-video API without signup.'
-  );
+  return await generateVideoModal(req, modalUrl);
 }
 
-async function generateVideoFal(
+async function generateVideoModal(
   req: VideoGenerationRequest,
-  apiKey: string
+  endpointUrl: string,
 ): Promise<GenerationResult> {
-  // Model selection: Kling v2 for quality, Wan 2.5 for speed/cost
-  const useKling = req.model === 'kling-v2' || req.model === 'auto';
-  const falModel = useKling
-    ? 'fal-ai/kling-video/v2/master/text-to-video'
-    : 'fal-ai/wan-v2.5/text-to-video';
-
-  const duration = Math.min(req.duration || 5, useKling ? 10 : 15);
+  const duration = Math.min(req.duration || 6, 10); // CogVideoX supports up to ~10s
   const ar = req.aspectRatio || '16:9';
 
-  const payload: Record<string, unknown> = {
+  const payload = {
     prompt: req.prompt,
-    duration: `${duration}s`,
-    aspect_ratio: ar,
+    negative_prompt: req.negativePrompt || '',
+    num_frames: duration * (req.fps || 8),   // CogVideoX default 8fps
+    fps: req.fps || 8,
+    guidance_scale: 6,
+    num_inference_steps: 50,
+    seed: Math.floor(Math.random() * 1_000_000),
   };
 
-  if (req.negativePrompt) payload.negative_prompt = req.negativePrompt;
-  if (req.referenceImageUrl) payload.image_url = req.referenceImageUrl;
-  if (req.cameraMovement) payload.camera_movement = req.cameraMovement;
+  console.log(`[Generation] Modal video: ${endpointUrl}/video-generate, ${duration}s, ${ar}`);
 
-  // For Wan 2.5 specific params
-  if (!useKling) {
-    payload.num_frames = duration * (req.fps || 16);
-    payload.motion_strength = req.motionIntensity === 'high' ? 1.0
-      : req.motionIntensity === 'low' ? 0.3 : 0.6;
-  }
-
-  console.log(`[Generation] Fal.ai video: ${falModel}, ${duration}s, ${ar}`);
-
-  const res = await fetch(`https://fal.run/${falModel}`, {
+  const res = await fetch(`${endpointUrl}/video-generate`, {
     method: 'POST',
-    headers: {
-      'Authorization': `Key ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(600_000), // 10 min — video generation can be slow
   });
 
   if (!res.ok) {
-    const errText = await res.text();
-    throw new Error(`Fal.ai video error: ${res.status} — ${errText.substring(0, 200)}`);
+    const errText = await res.text().catch(() => res.statusText);
+    throw new Error(`Modal video error: ${res.status} — ${errText.substring(0, 300)}`);
   }
 
-  const data = await res.json() as {
-    video?: { url: string };
-    url?: string;
-    request_id?: string;
-  };
+  const data = await res.json() as { video_url?: string; url?: string; error?: string };
+  if (data.error) throw new Error(`Modal video returned error: ${data.error}`);
 
-  // Fal.ai may return async (queue) or sync response
-  const videoUrl = data.video?.url || data.url;
-  if (!videoUrl) {
-    // Async mode — poll queue
-    if (data.request_id) {
-      return await pollFalQueue(data.request_id, apiKey, falModel, req.prompt);
-    }
-    throw new Error('Fal.ai returned no video URL or request_id');
-  }
+  const url = data.video_url || data.url;
+  if (!url) throw new Error('Modal video endpoint returned no URL');
 
   return {
     success: true,
     modality: 'video',
-    url: videoUrl,
+    url,
     duration,
-    provider: 'fal.ai',
-    model: falModel,
+    provider: 'modal-cogvideox',
+    model: 'CogVideoX-5B',
     prompt: req.prompt,
     generatedAt: new Date(),
-    estimatedCost: useKling ? 0.15 : 0.05,
+    estimatedCost: 0,
   };
-}
-
-async function pollFalQueue(
-  requestId: string,
-  apiKey: string,
-  model: string,
-  prompt: string,
-  maxWaitMs: number = 300_000  // 5 minutes
-): Promise<GenerationResult> {
-  const start = Date.now();
-  const pollInterval = 5000;
-
-  while (Date.now() - start < maxWaitMs) {
-    await new Promise(r => setTimeout(r, pollInterval));
-
-    const res = await fetch(`https://queue.fal.run/${model}/requests/${requestId}`, {
-      headers: { 'Authorization': `Key ${apiKey}` },
-    });
-
-    if (!res.ok) continue;
-    const data = await res.json() as {
-      status?: string;
-      output?: { video?: { url: string }; url?: string };
-    };
-
-    if (data.status === 'COMPLETED' && data.output) {
-      const url = data.output.video?.url || data.output.url;
-      if (url) {
-        return {
-          success: true,
-          modality: 'video',
-          url,
-          provider: 'fal.ai',
-          model,
-          prompt,
-          generatedAt: new Date(),
-        };
-      }
-    }
-
-    if (data.status === 'FAILED') {
-      throw new Error('Fal.ai video generation failed in queue');
-    }
-  }
-
-  throw new Error('Fal.ai video generation timed out after 5 minutes');
-}
-
-async function generateVideoReplicate(
-  req: VideoGenerationRequest,
-  apiKey: string
-): Promise<GenerationResult> {
-  const duration = Math.min(req.duration || 3, 3);
-  const fps = req.fps || 24;
-  const numFrames = duration * fps;
-
-  const res = await fetch('https://api.replicate.com/v1/predictions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Token ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      version: 'anotherjesse/zeroscope-v2-xl:9f747673945c62801b13b84701c783929c0ee784e4748ec062204894dda1a351',
-      input: {
-        prompt: req.prompt,
-        fps,
-        width: 1024,
-        height: 576,
-        num_frames: numFrames,
-        num_inference_steps: 50,
-      },
-    }),
-  });
-
-  if (!res.ok) throw new Error(`Replicate error: ${res.status}`);
-  const prediction = await res.json() as { id: string };
-
-  // Poll for completion
-  const videoUrl = await pollReplicate(prediction.id, apiKey);
-
-  return {
-    success: true,
-    modality: 'video',
-    url: videoUrl,
-    duration,
-    provider: 'replicate',
-    model: 'zeroscope-v2-xl',
-    prompt: req.prompt,
-    generatedAt: new Date(),
-    estimatedCost: 0.01,
-  };
-}
-
-async function pollReplicate(
-  predictionId: string,
-  apiKey: string,
-  maxWaitMs = 180_000
-): Promise<string> {
-  const start = Date.now();
-
-  while (Date.now() - start < maxWaitMs) {
-    await new Promise(r => setTimeout(r, 3000));
-
-    const res = await fetch(`https://api.replicate.com/v1/predictions/${predictionId}`, {
-      headers: { 'Authorization': `Token ${apiKey}` },
-    });
-
-    const data = await res.json() as { status: string; output?: string | string[] };
-
-    if (data.status === 'succeeded') {
-      const output = Array.isArray(data.output) ? data.output[0] : data.output;
-      if (output) return output;
-      throw new Error('Replicate returned empty output');
-    }
-
-    if (data.status === 'failed') throw new Error('Replicate prediction failed');
-  }
-
-  throw new Error('Replicate prediction timed out');
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -579,9 +365,9 @@ function resolveImageDimensions(req: ImageGenerationRequest): [number, number] {
   const arMap: Record<AspectRatio, [number, number]> = {
     '16:9': [1344, 768],
     '9:16': [768, 1344],
-    '1:1': [1024, 1024],
-    '4:3': [1152, 896],
-    '3:4': [896, 1152],
+    '1:1':  [1024, 1024],
+    '4:3':  [1152, 896],
+    '3:4':  [896, 1152],
   };
 
   return arMap[req.aspectRatio || '1:1'];
@@ -590,44 +376,42 @@ function resolveImageDimensions(req: ImageGenerationRequest): [number, number] {
 // ─── System Prompt Block for HOLLY chat ───────────────────────────────────────
 
 export function getGenerationSystemBlock(): string {
-  const registry = getProviderRegistry();
-  const imageProviders = registry.filter(p => p.modalities.includes('image') && p.available);
-  const videoProviders = registry.filter(p => p.modalities.includes('video') && p.available);
-  const hasFalKey = !!process.env.FAL_KEY;
+  const hasModalImage = !!process.env.MODAL_IMAGE_URL;
+  const hasModalVideo = !!process.env.MODAL_VIDEO_URL;
+  const hasSuno       = !!process.env.SUNO_API_KEY;
 
   return `
 [MULTI-MODAL GENERATION ENGINE — Phase 11]
 
-HOLLY has access to a full multi-modal generation studio. She can generate:
+HOLLY has access to a full multi-modal generation studio powered by her own Modal.com GPU workers.
 
-**Images** (✅ FREE — works right now via Pollinations)
-  Available providers: ${imageProviders.map(p => p.name).join(', ') || 'Pollinations (free, no key needed)'}
-  Trigger words: "generate an image", "create a picture", "make art", "design", "visualize"
-  Free model: Pollinations FLUX (1024×1024, no key needed — always available)
-  Premium (needs FAL_KEY): FLUX 1.1 Pro, FLUX Dev, FLUX Schnell, Stable Diffusion XL
+**Images** (${hasModalImage ? '✅ ACTIVE — Modal FLUX.1-schnell GPU online' : '⚠️ MODAL_IMAGE_URL not set — using Pollinations fallback'})
+  Primary: Holly's own FLUX.1-schnell on Modal (free, no third-party API key)
+  Fallback: Pollinations FLUX (always available, no key needed)
+  Trigger words: "generate an image", "create a picture", "make art", "design", "visualize",
+                 "album art", "album cover", "poster", "thumbnail", "render", "illustrate"
 
-**Videos** (${hasFalKey ? '✅ ACTIVE — FAL_KEY configured' : '⚠️ NEEDS FAL_KEY — add at fal.ai/dashboard/keys (free starter credits)'})
-  Available providers: ${videoProviders.map(p => p.name).join(', ') || 'None configured yet'}
+**Videos** (${hasModalVideo ? '✅ ACTIVE — Modal CogVideoX-5B GPU online' : '⚠️ MODAL_VIDEO_URL not set — video unavailable'})
+  Primary: Holly's own CogVideoX-5B on Modal (free, no third-party API key)
+  Note: First request may take ~60s if the GPU worker is cold (scale-to-zero)
   Trigger words: "generate a video", "create a video clip", "make a short film", "animate"
-  Models (all need FAL_KEY): Kling v2 (cinematic $0.15/5s), Wan 2.5 (quality $0.05/5s)
-  Note: There is no truly free unlimited text-to-video API. FAL_KEY has free starter credits.
-  
-**Music Videos** — Combines SUNO music + image generation (both work free)
-  Trigger: "make a music video", "create a visual for this song"
-  
-**Audio-Visual Sync** — Beat-sync, lyric-sync, ambient sync
-  Trigger: "sync visuals to the beat", "create a lyric video"
 
-When a user requests any of these, call the appropriate API:
-  POST /api/multimodal/generate — images and videos
+**Music** (${hasSuno ? '✅ ACTIVE — Suno V5_5 online' : '⚠️ SUNO_API_KEY not set'})
+  Full song generation with vocals via Suno V5_5
+
+**Music Videos** — Combines Suno music generation + FLUX image generation
+  Trigger: "make a music video", "create a visual for this song"
+
+When a user requests generation:
+  POST /api/multimodal/generate  — images and videos
   POST /api/multimodal/music-video — full music videos
 
 Always:
   1. Confirm the concept before generating (unless the user says "just do it")
-  2. Provide art direction — don't just pass the raw prompt
-  3. Describe what you're generating and why those specific choices
-  4. After generation, explain the creative decisions made
-  5. If video is requested and FAL_KEY is missing, explain this clearly and offer to generate images instead
+  2. Provide art direction — enrich the prompt with lighting, mood, style details
+  3. Describe what you're generating and why those creative choices
+  4. After generation, explain the decisions made
+  5. If a generator is unavailable, say so clearly and offer alternatives
 `;
 }
 

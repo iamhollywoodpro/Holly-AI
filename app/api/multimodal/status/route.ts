@@ -3,162 +3,89 @@
  *
  * GET /api/multimodal/status
  *
- * Returns the current status of all generation providers,
- * available models, and environment key configuration.
- * Useful for the Studio UI to know what's available.
- *
- * 100% FREE / open-source stack — no OpenAI, no DALL-E, no paid LLMs.
+ * Returns the current status of all generation providers.
+ * All generation runs on Holly's own Modal.com GPU workers —
+ * no FAL_KEY, no REPLICATE_API_KEY, no third-party video API needed.
  */
 
 import { NextResponse } from 'next/server';
 import { getProviderRegistry } from '@/lib/multimodal/generation-engine';
 
+export const runtime = 'nodejs';
+
 export async function GET() {
   const registry = getProviderRegistry();
 
-  // Check which API keys are configured (existence only, not values)
-  const keyStatus = {
-    FAL_KEY: !!process.env.FAL_KEY,
-    REPLICATE_API_KEY: !!process.env.REPLICATE_API_KEY,
-    HUGGINGFACE_API_KEY: !!process.env.HUGGINGFACE_API_KEY,
-    RUNWAY_API_KEY: !!process.env.RUNWAY_API_KEY,
-    SUNO_API_KEY: !!process.env.SUNO_API_KEY,
-    GROQ_API_KEY: !!process.env.GROQ_API_KEY,
-    OPENROUTER_API_KEY: !!process.env.OPENROUTER_API_KEY,
-  };
+  const hasModalImage = !!process.env.MODAL_IMAGE_URL;
+  const hasModalVideo = !!process.env.MODAL_VIDEO_URL;
+  const hasSuno       = !!process.env.SUNO_API_KEY;
+  const hasGroq       = !!process.env.GROQ_API_KEY;
+  const hasOpenRouter = !!process.env.OPENROUTER_API_KEY;
 
-  const imageProviders = registry.filter(p => p.modalities.includes('image'));
-  const videoProviders = registry.filter(p => p.modalities.includes('video'));
-
-  const imageAvailable = imageProviders.some(p => p.available);
-  const videoAvailable = videoProviders.some(p => p.available);
-
-  // Always available (free, no key required)
-  const pollinationsAvailable = true;
+  const imageAvailable = registry.some(p => p.modalities.includes('image') && p.available);
+  const videoAvailable = registry.some(p => p.modalities.includes('video') && p.available);
 
   return NextResponse.json({
     status: 'operational',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV,
-    note: '100% free stack — Pollinations (images), Fal.ai/HuggingFace (enhanced), Groq (LLM), OpenRouter (vision)',
+    note: 'Holly generates images + video on her own Modal.com GPU workers — no third-party media API keys required.',
 
     capabilities: {
-      imageGeneration: imageAvailable || pollinationsAvailable,
+      imageGeneration: imageAvailable || true, // Pollinations is always available
       videoGeneration: videoAvailable,
-      musicVideoCreation: imageAvailable || pollinationsAvailable,
+      musicVideoCreation: true,
       audioVisualSync: true,
-      musicGeneration: keyStatus.SUNO_API_KEY,
+      musicGeneration: hasSuno,
     },
 
     providers: registry,
 
+    endpoints: {
+      image: process.env.MODAL_IMAGE_URL || null,
+      video: process.env.MODAL_VIDEO_URL || null,
+    },
+
     keyConfiguration: {
-      configured: Object.entries(keyStatus)
-        .filter(([, v]) => v)
-        .map(([k]) => k),
-      missing: Object.entries(keyStatus)
-        .filter(([, v]) => !v)
-        .map(([k]) => ({
-          key: k,
-          purpose: KEY_PURPOSES[k as keyof typeof KEY_PURPOSES] || 'Unknown',
-          getUrl: KEY_URLS[k as keyof typeof KEY_URLS] || '#',
-          required: KEY_REQUIRED[k as keyof typeof KEY_REQUIRED] || false,
-        })),
+      configured: [
+        hasModalImage && 'MODAL_IMAGE_URL',
+        hasModalVideo && 'MODAL_VIDEO_URL',
+        hasSuno       && 'SUNO_API_KEY',
+        hasGroq       && 'GROQ_API_KEY',
+        hasOpenRouter && 'OPENROUTER_API_KEY',
+      ].filter(Boolean),
+      notes: {
+        MODAL_IMAGE_URL: hasModalImage  ? '✅ Modal FLUX.1-schnell image GPU — active' : '⚠️ Not set — using Pollinations fallback',
+        MODAL_VIDEO_URL: hasModalVideo  ? '✅ Modal CogVideoX-5B video GPU — active'  : '⚠️ Not set — video generation unavailable',
+        SUNO_API_KEY:    hasSuno        ? '✅ Suno V5_5 music generation — active'     : '⚠️ Not set — music generation unavailable',
+      },
     },
 
     freeOptions: [
       {
         modality: 'image',
-        provider: 'Pollinations AI',
-        model: 'FLUX (Apache 2.0)',
-        quality: 'Good — suitable for prototyping and development',
-        cost: 'Free, no API key required',
-        limitation: 'No NSFW, rate limited by IP',
+        provider: 'Holly Modal FLUX.1-schnell',
+        model: 'FLUX.1-schnell (Black Forest Labs)',
+        quality: 'Production-quality — 1344×768, 4-step generation',
+        cost: 'Free — Holly\'s own GPU on Modal.com',
+        status: hasModalImage ? 'active' : 'endpoint not configured',
       },
       {
         modality: 'image',
-        provider: 'Hugging Face',
-        model: 'FLUX.1-schnell, SDXL (both open-source)',
-        quality: 'Best open-source quality',
-        cost: 'Free with HUGGINGFACE_API_KEY (free signup)',
-        limitation: 'Rate limited on free tier',
+        provider: 'Pollinations AI',
+        model: 'FLUX (Apache 2.0)',
+        quality: 'Good — suitable for development and prototyping',
+        cost: 'Free, no API key required',
+        status: 'always active (fallback)',
       },
       {
-        modality: 'llm',
-        provider: 'Groq',
-        model: 'Llama 3.3 70B (Meta, open-source)',
-        quality: 'Excellent — beats GPT-4 on many benchmarks',
-        cost: 'Free with GROQ_API_KEY (free signup)',
-        limitation: 'Daily request limits',
+        modality: 'video',
+        provider: 'Holly Modal CogVideoX-5B',
+        model: 'CogVideoX-5B (THUDM)',
+        quality: 'High quality open-source video generation',
+        cost: 'Free — Holly\'s own GPU on Modal.com',
+        status: hasModalVideo ? 'active (may have ~60s cold start)' : 'endpoint not configured',
       },
     ],
-
-    recommendations: buildRecommendations(keyStatus),
   });
-}
-
-// ─── Key metadata ─────────────────────────────────────────────────────────────
-
-const KEY_PURPOSES = {
-  FAL_KEY: 'Best image & video generation (FLUX 1.1 Pro, Kling v2, Wan 2.5, SDXL) — free starter credits',
-  REPLICATE_API_KEY: 'Video generation fallback (Zeroscope, AnimateDiff) — free tier',
-  HUGGINGFACE_API_KEY: 'Free open-source model inference (FLUX, SDXL, Whisper, vision models)',
-  RUNWAY_API_KEY: 'Runway Gen-4 Turbo — cinematic video generation',
-  SUNO_API_KEY: 'AI music generation (complete songs with vocals)',
-  GROQ_API_KEY: 'Free Llama 3.3 70B, Whisper STT — extremely fast inference',
-  OPENROUTER_API_KEY: 'Free vision (Qwen2.5-VL-72B) and LLM routing',
-};
-
-const KEY_URLS = {
-  FAL_KEY: 'https://fal.ai/dashboard/keys',
-  REPLICATE_API_KEY: 'https://replicate.com/account/api-tokens',
-  HUGGINGFACE_API_KEY: 'https://huggingface.co/settings/tokens',
-  RUNWAY_API_KEY: 'https://runwayml.com/api',
-  SUNO_API_KEY: 'https://suno.com',
-  GROQ_API_KEY: 'https://console.groq.com/keys',
-  OPENROUTER_API_KEY: 'https://openrouter.ai/keys',
-};
-
-const KEY_REQUIRED = {
-  FAL_KEY: false,
-  REPLICATE_API_KEY: false,
-  HUGGINGFACE_API_KEY: false,
-  RUNWAY_API_KEY: false,
-  SUNO_API_KEY: false,
-  GROQ_API_KEY: false,
-  OPENROUTER_API_KEY: false,
-};
-
-function buildRecommendations(keyStatus: Record<string, boolean>): string[] {
-  const recs: string[] = [];
-
-  if (!keyStatus.GROQ_API_KEY) {
-    recs.push('Add GROQ_API_KEY for free Llama 3.3 70B chat + Whisper STT. Sign up free at console.groq.com');
-  }
-
-  if (!keyStatus.FAL_KEY) {
-    recs.push('Add FAL_KEY for the best image and video quality — FLUX 1.1 Pro, Kling v2, and more. Free starter credits at fal.ai');
-  }
-
-  if (!keyStatus.HUGGINGFACE_API_KEY) {
-    recs.push('Add HUGGINGFACE_API_KEY for free FLUX, SDXL, and vision model inference. Free signup at huggingface.co');
-  }
-
-  if (!keyStatus.OPENROUTER_API_KEY) {
-    recs.push('Add OPENROUTER_API_KEY to enable Qwen2.5-VL-72B vision (free tier). Free signup at openrouter.ai');
-  }
-
-  if (!keyStatus.REPLICATE_API_KEY && !keyStatus.FAL_KEY) {
-    recs.push('Add REPLICATE_API_KEY as a video generation fallback (Zeroscope). Free tier available at replicate.com');
-  }
-
-  if (!keyStatus.SUNO_API_KEY) {
-    recs.push('Add SUNO_API_KEY to enable full AI music generation — complete songs with vocals, instruments, and style control.');
-  }
-
-  if (Object.values(keyStatus).every(v => !v)) {
-    recs.push('HOLLY works right now using Pollinations (free image generation, no key needed). Add API keys to unlock the full suite.');
-  }
-
-  return recs;
 }

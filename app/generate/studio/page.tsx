@@ -4,8 +4,8 @@
  * HOLLY Generation Studio — Phase 11
  *
  * Full multi-modal creation suite:
- *   - Image generation (FLUX via Fal.ai/HuggingFace, Pollinations — 100% free)
- *   - Video generation (Kling v2, Wan 2.5, Replicate)
+ *   - Image generation (Holly Modal FLUX.1-schnell → Pollinations fallback — 100% free)
+ *   - Video generation (Holly Modal CogVideoX-5B)
  *   - Music video creation (storyboard + frame generation)
  *   - Audio-visual sync planner
  */
@@ -19,7 +19,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 type Tab = 'image' | 'video' | 'music-video' | 'av-sync';
 type ImageModel = 'auto' | 'flux-1-1-pro' | 'flux-schnell' | 'flux-dev' | 'stable-diffusion-xl' | 'pollinations';
-type VideoModel = 'auto' | 'kling-v2' | 'wan-v2-5' | 'runway-gen4' | 'luma-dream-machine' | 'zeroscope';
+type VideoModel = 'auto' | 'cogvideox';
 type AspectRatio = '16:9' | '9:16' | '1:1' | '4:3' | '3:4';
 type MusicVideoStyle = 'cinematic' | 'visualizer' | 'lyric-video' | 'performance' | 'abstract' | 'animated' | 'documentary';
 
@@ -350,7 +350,7 @@ export default function GenerationStudio() {
                 >
                   <SectionHeader
                     title="Video Generation"
-                    subtitle="Create cinematic video clips with Kling v2, Wan 2.5, or Zeroscope"
+                    subtitle="Create video clips with Holly's CogVideoX-5B GPU on Modal"
                     icon="🎬"
                   />
 
@@ -1039,11 +1039,7 @@ const IMAGE_MODELS = [
 
 const VIDEO_MODELS = [
   { value: 'auto', label: 'Auto (Best Available)' },
-  { value: 'kling-v2', label: 'Kling v2 — Cinematic' },
-  { value: 'wan-v2-5', label: 'Wan 2.5 — High Quality' },
-  { value: 'runway-gen4', label: 'Runway Gen-4 Turbo' },
-  { value: 'luma-dream-machine', label: 'LumaAI Dream Machine' },
-  { value: 'zeroscope', label: 'Zeroscope (Replicate)' },
+  { value: 'cogvideox', label: 'CogVideoX-5B (Holly Modal GPU)' },
 ];
 
 const ASPECT_RATIOS = [
