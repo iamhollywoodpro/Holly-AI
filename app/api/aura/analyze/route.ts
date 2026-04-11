@@ -110,11 +110,9 @@ async function queueAnalysisJob(jobId: string, data: AnalyzeRequest): Promise<vo
 }
 
 /**
- * Real AI analysis using Groq (Llama 3.3 70B — free, 300+ tok/s)
+ * Real AI analysis via the smart router (creative task)
  */
 async function processAnalysisWithGroq(jobId: string, data: AnalyzeRequest): Promise<void> {
-  const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
-
   try {
     const track = await prisma.musicTrack.findFirst({
       where: { blobUrl: data.audioUrl },
@@ -126,7 +124,7 @@ async function processAnalysisWithGroq(jobId: string, data: AnalyzeRequest): Pro
       data: { status: 'analyzing' },
     });
 
-    // Build context for Groq
+    // Build context for AI
     const contextParts: string[] = [];
     contextParts.push(`Track: "${data.trackTitle}"`);
     contextParts.push(`Artist: ${data.artistName}`);
@@ -137,7 +135,10 @@ async function processAnalysisWithGroq(jobId: string, data: AnalyzeRequest): Pro
 
     let aiResult: Record<string, unknown> | null = null;
 
-    if (GROQ_API_KEY) {
+    {
+      const { smartRoute } = await import('@/lib/ai/smart-router');
+      const { cascadeCollect } = await import('@/lib/ai/cascade');
+
       const prompt = `You are AURA, an elite A&R analyst with 20+ years in the music industry.
 Analyze this track and provide a professional A&R assessment.
 
@@ -159,32 +160,28 @@ Respond ONLY with valid JSON:
   "a_and_r_verdict": "2-3 sentence honest verdict",
   "target_audience": "specific demographic",
   "features": { "tempo": <bpm estimate>, "energy": <0-1>, "danceability": <0-1> },
-  "model_version": "AURA-v3.0-groq"
+  "model_version": "AURA-v3.0"
 }`;
 
-      const groqResp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${GROQ_API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: 'llama-3.3-70b-versatile',
-          messages: [{ role: 'user', content: prompt }],
-          temperature: 0.7,
-          max_tokens: 1024,
-          response_format: { type: 'json_object' },
-        }),
-      });
-
-      if (groqResp.ok) {
-        const groqData = await groqResp.json();
-        const content = groqData.choices?.[0]?.message?.content;
-        if (content) aiResult = JSON.parse(content);
+      try {
+        const routeResult = smartRoute(prompt, { taskHint: 'creative' });
+        console.log(`[AURA analyze] Routing via ${routeResult.reason}`);
+        const { text: content, model: usedModel } = await cascadeCollect(
+          routeResult.waterfall,
+          [{ role: 'user', content: prompt }],
+          { temperature: 0.7, maxTokens: 1024 },
+        );
+        if (content) {
+          const cleaned = content.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
+          aiResult = JSON.parse(cleaned);
+          if (aiResult) aiResult['model_version'] = `AURA-v3.0 (${usedModel.displayName})`;
+        }
+      } catch (aiErr) {
+        console.warn('[AURA analyze] AI failed, using fallback:', aiErr);
       }
     }
 
-    // Fallback values if Groq fails or key not set
+    // Fallback values if AI fails or no providers configured
     const result: Record<string, unknown> = aiResult || {
       hit_factor: 72,
       scores: { audio: 75, lyrics: 70, brand: 72, market: 71 },
@@ -203,7 +200,7 @@ Respond ONLY with valid JSON:
       a_and_r_verdict: 'Shows potential. Further development recommended before major label pitch.',
       target_audience: 'Young adults 18-30',
       features: { tempo: 120, energy: 0.75, danceability: 0.70 },
-      model_version: GROQ_API_KEY ? 'AURA-v3.0-groq' : 'AURA-v3.0-fallback',
+      model_version: 'AURA-v3.0-fallback',
     };
 
     const mockResult = result;

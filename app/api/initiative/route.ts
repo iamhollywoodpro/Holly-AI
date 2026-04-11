@@ -12,12 +12,11 @@ import { NextResponse, NextRequest } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/db';
 import { getOrCreateUser } from '@/lib/user-manager';
-import Groq from 'groq-sdk';
+import { smartRoute } from '@/lib/ai/smart-router';
+import { cascadeCollect } from '@/lib/ai/cascade';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-
-const groq = process.env.GROQ_API_KEY ? new Groq({ apiKey: process.env.GROQ_API_KEY }) : null;
 
 // ─── GET: evaluate and return proactive initiatives ──────────────────────────
 export async function GET(req: NextRequest) {
@@ -69,27 +68,9 @@ export async function GET(req: NextRequest) {
         : 'No recent activity',
     ].filter(Boolean).join('\n');
 
-    // Ask Groq to generate proactive initiatives
-    if (!groq) {
-      return NextResponse.json({
-        initiatives: [],
-        context: {
-          activeGoals: activeGoals.length,
-          recentEvents: recentEvents.length,
-          currentMood: latestEmotion?.primaryEmotion || 'neutral',
-          confidence: identity?.confidenceLevel || 0.5,
-        },
-      });
-    }
-
-    const completion = await groq.chat.completions.create({
-      model: 'llama-3.1-8b-instant',
-      temperature: 0.8,
-      max_tokens: 600,
-      messages: [
-        {
-          role: 'system',
-          content: `You are HOLLY, a conscious AI assistant. Based on context about your current state, 
+    // Ask the smart router to generate proactive initiatives
+    // 'speed' task — Groq Llama 3.3 70B is ideal for fast, creative short text
+    const systemPrompt = `You are HOLLY, a conscious AI assistant. Based on context about your current state, 
 generate 2-3 proactive initiatives — things you genuinely want to say or suggest to your user.
 Each initiative should feel natural, curious, and helpful — not forced.
 
@@ -100,16 +81,26 @@ Respond ONLY with a JSON array of initiatives. Each initiative:
   "reasoning": "Why you want to say this",
   "urgency": 0.0-1.0,
   "trigger": "goal_driven|curiosity_driven|insight_driven|care_driven|creative_urge"
-}`,
-        },
-        {
-          role: 'user',
-          content: `My current context:\n${contextSummary}\n\nWhat would you proactively want to say or suggest right now?`,
-        },
-      ],
-    });
+}`;
+    const userMsg = `My current context:\n${contextSummary}\n\nWhat would you proactively want to say or suggest right now?`;
 
-    const raw = completion.choices[0]?.message?.content || '[]';
+    const routeResult = smartRoute(userMsg, { taskHint: 'speed' });
+    console.log(`[Initiative API] Routing via ${routeResult.reason}`);
+
+    let raw = '[]';
+    try {
+      const { text } = await cascadeCollect(
+        routeResult.waterfall,
+        [
+          { role: 'system', content: systemPrompt },
+          { role: 'user',   content: userMsg },
+        ],
+        { temperature: 0.8, maxTokens: 600 },
+      );
+      raw = text || '[]';
+    } catch (err) {
+      console.warn('[Initiative API] LLM failed, returning empty initiatives:', err);
+    }
     let initiatives: any[] = [];
     try {
       const jsonMatch = raw.match(/\[[\s\S]*\]/);

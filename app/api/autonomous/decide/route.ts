@@ -1,14 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import Groq from 'groq-sdk';
 import { prisma } from '@/lib/db';
+import { smartRoute } from '@/lib/ai/smart-router';
+import { cascadeCollect } from '@/lib/ai/cascade';
 
 export const runtime = 'nodejs';
-
-// Use Groq (free tier) — no Gemini, no paid APIs
-const groq = process.env.GROQ_API_KEY
-  ? new Groq({ apiKey: process.env.GROQ_API_KEY })
-  : null;
 
 export async function POST(req: NextRequest) {
   try {
@@ -28,21 +24,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing scenario description' }, { status: 400 });
     }
 
-    if (!groq) {
-      return NextResponse.json(
-        { error: 'AI decision-making requires GROQ_API_KEY' },
-        { status: 500 }
-      );
-    }
-
     // Get user's historical preferences and patterns
-    const [recentExperiences] = await Promise.all([
-      prisma.hollyExperience.findMany({
-        where: { userId },
-        orderBy: { timestamp: 'desc' },
-        take: 10,
-      }),
-    ]);
+    const recentExperiences = await prisma.hollyExperience.findMany({
+      where: { userId },
+      orderBy: { timestamp: 'desc' },
+      take: 10,
+    });
 
     const decisionPrompt = `You are HOLLY AI making an autonomous decision.
 
@@ -74,15 +61,15 @@ REASONING: [Detailed explanation]
 RISKS: [Potential risks]
 BENEFITS: [Expected benefits]`;
 
-    const completion = await groq.chat.completions.create({
-      model:       'llama-3.3-70b-versatile',
-      messages:    [{ role: 'user', content: decisionPrompt }],
-      temperature: 0.3,
-      max_tokens:  1024,
-      stream:      false,
-    });
+    // Route to 'reasoning' task — NVIDIA Qwen3-235B → Groq DeepSeek-R1 → NVIDIA DeepSeek-R1 → CF Kimi
+    const routeResult = smartRoute(decisionPrompt, { taskHint: 'reasoning' });
+    console.log(`[Autonomous Decide] Routing via ${routeResult.taskType}: ${routeResult.reason}`);
 
-    const decisionText = completion.choices[0]?.message?.content ?? '';
+    const { text: decisionText, model: usedModel } = await cascadeCollect(
+      routeResult.waterfall,
+      [{ role: 'user', content: decisionPrompt }],
+      { temperature: 0.3, maxTokens: 1024 },
+    );
 
     // Parse AI decision
     const decisionMatch   = decisionText.match(/DECISION:\s*(.+?)(?:\n|$)/);
@@ -100,6 +87,7 @@ BENEFITS: [Expected benefits]`;
         type:    'AUTONOMOUS_DECISION',
         content: JSON.stringify({
           scenario, options, urgency, decision, confidence,
+          model: usedModel.displayName,
           timestamp: new Date().toISOString(),
         }),
         significance:     confidence / 100,
@@ -119,6 +107,7 @@ BENEFITS: [Expected benefits]`;
         confidence,
         reasoning,
         urgency,
+        model:                 usedModel.displayName,
         timestamp:             new Date().toISOString(),
         requiresHumanApproval: confidence < 70 || urgency === 'HIGH',
       },

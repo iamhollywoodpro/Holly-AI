@@ -1,17 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/db';
+import { smartRoute } from '@/lib/ai/smart-router';
+import { cascadeCollect } from '@/lib/ai/cascade';
 
-// ── Real AI code generation via Groq ─────────────────────────────────────────
-async function generateCodeWithGroq(
+// ── Real AI code generation via smart router ──────────────────────────────────
+async function generateCodeWithAI(
   prompt: string,
   language: string,
   purpose?: string,
   context?: any,
-): Promise<string> {
-  const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey) throw new Error('GROQ_API_KEY not configured');
-
+): Promise<{ code: string; modelUsed: string }> {
   const langGuide: Record<string, string> = {
     typescript: 'TypeScript with proper types, interfaces, and exports. Use modern TS patterns.',
     javascript: 'Modern ES2022+ JavaScript with JSDoc comments. Use ES modules.',
@@ -38,32 +37,22 @@ Guidelines: ${langNote}${contextNote}
 Requirement:
 ${prompt}`;
 
-  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'llama-3.3-70b-versatile',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user',   content: userPrompt },
-      ],
-      temperature: 0.2,
-      max_tokens: 4096,
-    }),
-  });
+  // Route to 'coding' task — CF Kimi K2.5 → NVIDIA Qwen3-235B → OpenRouter Qwen Coder → Groq DeepSeek
+  const routeResult = smartRoute(userPrompt, { taskHint: 'coding' });
+  console.log(`[Builder Generate] Routing via ${routeResult.taskType}: ${routeResult.reason}`);
 
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Groq error ${res.status}: ${err.slice(0, 200)}`);
-  }
+  const { text: code, model: usedModel } = await cascadeCollect(
+    routeResult.waterfall,
+    [
+      { role: 'system', content: systemPrompt },
+      { role: 'user',   content: userPrompt },
+    ],
+    { temperature: 0.2, maxTokens: 4096 },
+  );
 
-  const data = await res.json();
-  const code = data.choices?.[0]?.message?.content?.trim() ?? '';
-  if (!code) throw new Error('Groq returned empty code');
-  return code;
+  const trimmed = (code || '').trim();
+  if (!trimmed) throw new Error('AI returned empty code');
+  return { code: trimmed, modelUsed: usedModel.displayName };
 }
 
 export const runtime = 'nodejs';
@@ -292,18 +281,20 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      // Generate code using Groq AI (Llama-3.3-70B, fast + free tier)
+      // Generate code using smart router (coding task: CF Kimi → NVIDIA Qwen3 → Groq DeepSeek)
       let generatedCodeText = '';
       let aiError: string | null = null;
+      let modelUsed: string | null = null;
       try {
-        generatedCodeText = await generateCodeWithGroq(prompt, language, purpose, contextUsed);
+        const result = await generateCodeWithAI(prompt, language, purpose, contextUsed);
+        generatedCodeText = result.code;
+        modelUsed = result.modelUsed;
       } catch (err: any) {
-        console.warn('[Builder/Generate] Groq unavailable, using structured fallback:', err.message);
+        console.warn('[Builder/Generate] AI unavailable, using structured fallback:', err.message);
         aiError = err.message;
         // Structured fallback — at least provides a real starting point
-        const ext = language === 'python' ? 'py' : language === 'typescript' ? 'ts' : language === 'javascript' ? 'js' : language;
         const commentChar = ['python', 'bash', 'shell'].includes(language) ? '#' : '//';
-        generatedCodeText = `${commentChar} ${language} — ${purpose ?? prompt}\n${commentChar} Note: AI generation unavailable (${err.message}). Add GROQ_API_KEY for real code generation.\n`;
+        generatedCodeText = `${commentChar} ${language} — ${purpose ?? prompt}\n${commentChar} Note: AI generation unavailable (${err.message}). Configure an AI provider key for real code generation.\n`;
       }
 
       // Calculate metrics
@@ -361,7 +352,7 @@ export async function POST(request: NextRequest) {
         generatedCode,
         job,
         aiGenerated: !aiError,
-        model: aiError ? null : 'groq/llama-3.3-70b-versatile',
+        model: aiError ? null : modelUsed,
         aiError: aiError ?? undefined,
       });
     }

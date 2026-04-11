@@ -1,27 +1,25 @@
 /**
  * AURA A&R Analysis API
- * Real AI-powered music analysis using Groq (free, 300+ tok/s)
+ * Real AI-powered music analysis via the smart router.
+ * Routes to 'creative' task: OpenRouter Mistral → Groq Llama-3.3-70B → NVIDIA Mistral → CF Kimi
  * No mock data. No external Python worker needed.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
+import { smartRoute } from '@/lib/ai/smart-router';
+import { cascadeCollect } from '@/lib/ai/cascade';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
-const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
-const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
-
-async function analyzeWithGroq(params: {
+async function analyzeWithAI(params: {
   trackTitle?: string;
   artistName?: string;
   genre?: string;
   lyrics?: string;
   audioUrl?: string;
 }): Promise<object> {
-  if (!GROQ_API_KEY) throw new Error('GROQ_API_KEY not configured');
-
   const contextParts: string[] = [];
   if (params.trackTitle) contextParts.push(`Track: "${params.trackTitle}"`);
   if (params.artistName) contextParts.push(`Artist: ${params.artistName}`);
@@ -55,35 +53,29 @@ Respond ONLY with valid JSON matching this exact structure:
   "radio_viability": "<High|Medium|Low> - <one sentence reason>",
   "sync_potential": "<High|Medium|Low> - <one sentence reason>",
   "a_and_r_verdict": "<2-3 sentence honest executive verdict>",
-  "model_version": "AURA-v3.0-groq"
+  "model_version": "AURA-v3.0"
 }`;
 
-  const response = await fetch(GROQ_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${GROQ_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: 'llama-3.3-70b-versatile',
-      messages: [{ role: 'user', content: prompt }],
-      temperature: 0.7,
-      max_tokens: 1024,
-      response_format: { type: 'json_object' },
-    }),
-  });
+  // Route to 'creative' task — OpenRouter Mistral Small → Groq Llama-3.3-70B → NVIDIA Mistral → CF Kimi
+  const routeResult = smartRoute(prompt, { taskHint: 'creative' });
+  console.log(`[AURA] Routing via ${routeResult.taskType}: ${routeResult.reason}`);
 
-  if (!response.ok) {
-    const err = await response.text();
-    throw new Error(`Groq error ${response.status}: ${err.slice(0, 200)}`);
-  }
+  const { text: content, model: usedModel } = await cascadeCollect(
+    routeResult.waterfall,
+    [{ role: 'user', content: prompt }],
+    { temperature: 0.7, maxTokens: 1024 },
+  );
 
-  const data = await response.json();
-  const content = data.choices?.[0]?.message?.content;
-  if (!content) throw new Error('Empty response from Groq');
+  if (!content) throw new Error('Empty AI response');
 
-  const parsed = JSON.parse(content);
-  return { ...parsed, analyzed_at: new Date().toISOString() };
+  // Strip markdown fences before parsing
+  const cleaned = content.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
+  const parsed = JSON.parse(cleaned);
+  return {
+    ...parsed,
+    model_version: `AURA-v3.0 (${usedModel.displayName})`,
+    analyzed_at: new Date().toISOString(),
+  };
 }
 
 export async function POST(req: NextRequest) {
@@ -126,7 +118,7 @@ export async function POST(req: NextRequest) {
 
     console.log('[AURA] Starting AI analysis...');
 
-    const analysis = await analyzeWithGroq({
+    const analysis = await analyzeWithAI({
       trackTitle: trackTitle || undefined,
       artistName: artistName || undefined,
       genre: genre || undefined,
@@ -140,15 +132,6 @@ export async function POST(req: NextRequest) {
 
   } catch (error) {
     console.error('[AURA] Error:', error);
-
-    // Graceful fallback if Groq is unavailable
-    if (error instanceof Error && error.message.includes('GROQ_API_KEY')) {
-      return NextResponse.json(
-        { success: false, error: 'AI analysis unavailable — GROQ_API_KEY not configured' },
-        { status: 503 }
-      );
-    }
-
     return NextResponse.json(
       { success: false, error: error instanceof Error ? error.message : 'Analysis failed' },
       { status: 500 }

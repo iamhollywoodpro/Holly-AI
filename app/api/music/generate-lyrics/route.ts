@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import Groq from 'groq-sdk';
+import { smartRoute } from '@/lib/ai/smart-router';
+import { cascadeCollect } from '@/lib/ai/cascade';
 
 /**
  * POST /api/music/generate-lyrics
@@ -121,14 +122,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Theme is required' }, { status: 400 });
     }
 
-    const groqKey = process.env.GROQ_API_KEY;
-    if (!groqKey) {
-      return NextResponse.json(
-        { success: false, error: 'GROQ_API_KEY not configured' },
-        { status: 503 }
-      );
-    }
-
     // Resolve language config — fallback to English if unknown
     const langKey = language.toLowerCase().replace(/\s+/g, '-');
     const langConfig = LANGUAGE_CONFIGS[langKey] ?? LANGUAGE_CONFIGS['english'];
@@ -167,18 +160,20 @@ Make the lyrics emotionally resonant, culturally authentic, and lyrically powerf
 
     console.log(`[Lyrics API] Generating ${langConfig.name} lyrics for theme: "${theme}"`);
 
-    const groq = new Groq({ apiKey: groqKey });
-    const completion = await groq.chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt },
-      ],
-      temperature: 0.92,
-      max_tokens: 1400,
-    });
+    // Route to 'creative' task — primary: OpenRouter Mistral Small → Groq Llama 3.3 → NVIDIA Mistral → CF Kimi
+    const routeResult = smartRoute(userPrompt, { taskHint: 'creative' });
+    console.log(`[Lyrics API] Routing via ${routeResult.taskType}: ${routeResult.reason}`);
 
-    const lyrics = completion.choices[0]?.message?.content;
+    const messages = [
+      { role: 'system' as const, content: systemPrompt },
+      { role: 'user'   as const, content: userPrompt   },
+    ];
+
+    const { text: lyrics, model: usedModel } = await cascadeCollect(
+      routeResult.waterfall,
+      messages,
+      { temperature: 0.92, maxTokens: 1400 },
+    );
 
     if (!lyrics) {
       return NextResponse.json({ success: false, error: 'Failed to generate lyrics' }, { status: 500 });
@@ -190,7 +185,8 @@ Make the lyrics emotionally resonant, culturally authentic, and lyrically powerf
         lyrics: lyrics.trim(),
         language: langConfig.name,
         languageCode: langKey,
-        provider: 'groq-llama-3.3-70b',
+        provider: usedModel.displayName,
+        model: usedModel.model,
       },
     });
 

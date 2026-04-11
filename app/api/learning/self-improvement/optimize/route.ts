@@ -1,32 +1,27 @@
 /**
  * POST /api/learning/self-improvement/optimize
- * Returns optimization suggestions for Holly's performance using Groq.
+ * Returns optimization suggestions for Holly's performance.
+ * Routes via smart router (reasoning task: NVIDIA Qwen3-235B → Groq DeepSeek-R1 → CF Kimi).
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@clerk/nextjs/server';
+import { smartRoute } from '@/lib/ai/smart-router';
+import { cascadeCollect } from '@/lib/ai/cascade';
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
 
-async function callGroq(prompt: string): Promise<string> {
-  const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey) throw new Error('GROQ_API_KEY not configured');
-  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'llama-3.1-8b-instant',
-      messages: [
-        { role: 'system', content: 'You are HOLLY\'s optimization engine. Return only valid JSON.' },
-        { role: 'user', content: prompt },
-      ],
-      temperature: 0.3,
-      max_tokens: 512,
-    }),
-  });
-  if (!res.ok) throw new Error(`Groq error ${res.status}`);
-  const data = await res.json();
-  return data.choices?.[0]?.message?.content?.trim() ?? '{}';
+async function callAI(prompt: string): Promise<string> {
+  const routeResult = smartRoute(prompt, { taskHint: 'reasoning' });
+  const { text } = await cascadeCollect(
+    routeResult.waterfall,
+    [
+      { role: 'system', content: 'You are HOLLY\'s optimization engine. Return only valid JSON.' },
+      { role: 'user',   content: prompt },
+    ],
+    { temperature: 0.3, maxTokens: 512 },
+  );
+  return text || '{}';
 }
 
 function parseJSON<T>(raw: string, fallback: T): T {
@@ -73,7 +68,7 @@ Return JSON: { "suggestions": ["suggestion1","suggestion2"], "expectedImprovemen
 
     let result: any;
     try {
-      result = parseJSON(await callGroq(prompt), null);
+      result = parseJSON(await callAI(prompt), null);
     } catch { /* fallback */ }
 
     if (!result) {

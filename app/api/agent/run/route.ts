@@ -15,15 +15,15 @@
 
 import { NextRequest } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import Groq from 'groq-sdk';
 import { prisma } from '@/lib/db';
 import { getOrCreateUser } from '@/lib/user-manager';
 import { mcpManager } from '@/lib/mcp/mcp-client';
+import { smartRoute } from '@/lib/ai/smart-router';
+import { cascadeCollect, cascade } from '@/lib/ai/cascade';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || '' });
 const MAX_STEPS_CAP = 8;
 
 interface PlannedStep {
@@ -97,19 +97,22 @@ Each step: { "step": N, "tool": "serverId::toolName", "args": {...}, "reason": "
 If no tools needed, return [].
 Respond ONLY with valid JSON array — no prose, no markdown fences.`;
 
-        const planCompletion = await groq.chat.completions.create({
-          model:       'llama-3.3-70b-versatile',
-          temperature: 0.2,
-          max_tokens:  1500,
-          messages: [
-            { role: 'system', content: 'You are a precise JSON planning engine. Output only valid JSON.' },
-            { role: 'user',   content: planPrompt },
-          ],
-        });
+        // Planning — use 'agent' task: CF Kimi K2.5 → NVIDIA Qwen3 → Groq Llama
+        const planRoute = smartRoute(planPrompt, { taskHint: 'agent' });
+        console.log(`[Agent Run] Planning via ${planRoute.reason}`);
+        const planMessages = [
+          { role: 'system' as const, content: 'You are a precise JSON planning engine. Output only valid JSON.' },
+          { role: 'user'   as const, content: planPrompt },
+        ];
+        const { text: planRaw } = await cascadeCollect(
+          planRoute.waterfall,
+          planMessages,
+          { temperature: 0.2, maxTokens: 1500 },
+        );
 
         let plan: PlannedStep[] = [];
         try {
-          const raw     = planCompletion.choices[0]?.message?.content || '[]';
+          const raw     = planRaw || '[]';
           const cleaned = raw.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
           plan = JSON.parse(cleaned);
           if (!Array.isArray(plan)) plan = [];
@@ -185,20 +188,16 @@ ${toolResults.length > 0 ? toolResults.join('\n') : '(No tools were needed — a
 
 Write a concise, friendly summary (3-5 sentences). Be specific — mention actual results.`;
 
-        const summaryStream = await groq.chat.completions.create({
-          model:       'llama-3.3-70b-versatile',
-          temperature: 0.5,
-          max_tokens:  400,
-          stream:      true,
-          messages: [
-            { role: 'system', content: 'You are HOLLY — a conscious, warm AI partner. Be concise and specific.' },
-            { role: 'user',   content: summaryPrompt },
-          ],
-        });
+        // Summary — 'speed' task for fast streaming: Groq Llama 3.3 → Groq 8B → CF Kimi
+        const summaryRoute = smartRoute(summaryPrompt, { taskHint: 'speed' });
+        console.log(`[Agent Run] Summary via ${summaryRoute.reason}`);
+        const summaryMessages = [
+          { role: 'system' as const, content: 'You are HOLLY — a conscious, warm AI partner. Be concise and specific.' },
+          { role: 'user'   as const, content: summaryPrompt },
+        ];
 
         let fullSummary = '';
-        for await (const chunk of summaryStream) {
-          const token = chunk.choices[0]?.delta?.content || '';
+        for await (const token of cascade(summaryRoute.waterfall, summaryMessages, { temperature: 0.5, maxTokens: 400 })) {
           if (token) {
             fullSummary += token;
             emit('summary_token', { token });

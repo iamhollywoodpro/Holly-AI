@@ -1,17 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import Groq from 'groq-sdk';
+import { smartRoute } from '@/lib/ai/smart-router';
+import { cascadeCollect } from '@/lib/ai/cascade';
 
 export const runtime = 'nodejs';
 
-// Use Groq (free tier, 14,400 req/day) — no Gemini, no paid APIs
-const groq = process.env.GROQ_API_KEY
-  ? new Groq({ apiKey: process.env.GROQ_API_KEY })
-  : null;
-
 /**
  * POST /api/conversations/generate-title
- * Generate a smart, concise title for a conversation based on first message
+ * Generate a smart, concise title for a conversation based on first message.
+ * Uses the smart router (speed task: Groq Llama 3.3 → Groq 8B → OpenRouter → CF Kimi).
  */
 export async function POST(request: NextRequest) {
   try {
@@ -34,10 +31,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // If Groq is available, use it to generate a smart title
-    if (groq) {
-      try {
-        const titlePrompt = `Generate a concise, descriptive title (3-6 words) for a conversation that starts with:
+    // Smart router — 'speed' task: Groq Llama 3.3 70B → Groq 8B → OpenRouter → CF Kimi
+    try {
+      const titlePrompt = `Generate a concise, descriptive title (3-6 words) for a conversation that starts with:
 
 "${firstMessage}"
 
@@ -51,28 +47,25 @@ Examples:
 
 Title:`;
 
-        const completion = await groq.chat.completions.create({
-          model: 'llama-3.1-8b-instant',   // fast 8B model — title gen doesn't need 70B
-          messages: [{ role: 'user', content: titlePrompt }],
-          temperature: 0.3,
-          max_tokens: 50,
-        });
+      const routeResult = smartRoute(titlePrompt, { taskHint: 'speed' });
+      const { text: raw, model: usedModel } = await cascadeCollect(
+        routeResult.waterfall,
+        [{ role: 'user', content: titlePrompt }],
+        { temperature: 0.3, maxTokens: 50 },
+      );
 
-        let generatedTitle = completion.choices[0]?.message?.content?.trim() || '';
+      let generatedTitle = (raw || '').trim();
+      generatedTitle = generatedTitle
+        .replace(/^["']|["']$/g, '')   // Remove surrounding quotes
+        .replace(/^Title:\s*/i, '')    // Remove "Title:" prefix
+        .trim();
 
-        // Clean up the title
-        generatedTitle = generatedTitle
-          .replace(/^[\"']|[\"']$/g, '')   // Remove quotes
-          .replace(/^Title:\s*/i, '')       // Remove "Title:" prefix
-          .trim();
-
-        if (generatedTitle && generatedTitle.length <= 60) {
-          console.log('[Title Generation] ✅ Generated via Groq:', generatedTitle);
-          return NextResponse.json({ title: generatedTitle });
-        }
-      } catch (groqErr: unknown) {
-        console.warn('[Title Generation] Groq failed, using fallback:', (groqErr as Error).message);
+      if (generatedTitle && generatedTitle.length <= 60) {
+        console.log(`[Title Generation] ✅ Generated via ${usedModel.displayName}:`, generatedTitle);
+        return NextResponse.json({ title: generatedTitle });
       }
+    } catch (err: unknown) {
+      console.warn('[Title Generation] Smart router failed, using fallback:', (err as Error).message);
     }
 
     // Fallback: generate title from message text directly
