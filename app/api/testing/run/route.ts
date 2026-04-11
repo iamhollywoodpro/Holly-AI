@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
+import { smartRoute } from '@/lib/ai/smart-router';
+import { cascadeCollect } from '@/lib/ai/cascade';
 
 export const runtime = 'nodejs';
 
@@ -26,28 +28,21 @@ export async function POST(request: Request) {
     const consoles  = (code.match(/console\.(log|warn|error)/g) ?? []).length;
     const anyTypes  = (code.match(/:\s*any\b/g) ?? []).length;
 
-    // Use Groq for lightweight code review if key is available
+    // Smart router — 'coding' task: CF Kimi K2.5 → NVIDIA Qwen3 → OpenRouter Qwen Coder → Groq DeepSeek
     let aiReview: string | null = null;
-    const groqKey = process.env.GROQ_API_KEY;
-    if (groqKey && code.length < 4000) {
+    if (code.length < 4000) {
       try {
-        const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${groqKey}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            model: 'llama-3.1-8b-instant',
-            messages: [
-              { role: 'system', content: 'You are a code reviewer. Identify potential bugs, edge cases, and missing test coverage. Be concise.' },
-              { role: 'user', content: `Review this ${language} code for ${testFramework} testing gaps:\n\`\`\`\n${code.slice(0, 2000)}\n\`\`\`` },
-            ],
-            temperature: 0.2,
-            max_tokens: 512,
-          }),
-        });
-        if (res.ok) {
-          const data = await res.json();
-          aiReview = data.choices?.[0]?.message?.content?.trim() ?? null;
-        }
+        const reviewPrompt = `Review this ${language} code for ${testFramework} testing gaps:\n\`\`\`\n${code.slice(0, 2000)}\n\`\`\``;
+        const routeResult = smartRoute(reviewPrompt, { taskHint: 'coding' });
+        const { text, model: usedModel } = await cascadeCollect(
+          routeResult.waterfall,
+          [
+            { role: 'system', content: 'You are a code reviewer. Identify potential bugs, edge cases, and missing test coverage. Be concise.' },
+            { role: 'user',   content: reviewPrompt },
+          ],
+          { temperature: 0.2, maxTokens: 512 },
+        );
+        aiReview = text ? `[${usedModel.displayName}] ${text}` : null;
       } catch { /* non-fatal */ }
     }
 
@@ -67,7 +62,7 @@ export async function POST(request: Request) {
         issueCount: issues.length,
         passed: issues.length === 0,
       },
-      aiReview: aiReview ?? 'Add GROQ_API_KEY for AI-powered code review',
+      aiReview: aiReview ?? 'No AI provider configured for code review',
       results: {
         passed: issues.length === 0 ? 1 : 0,
         failed: issues.length > 0 ? issues.length : 0,

@@ -20,24 +20,16 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import Groq from 'groq-sdk';
 import { getValidAccessToken, uploadVideoFromUrl } from '@/lib/music/youtube/youtube-client';
+import { smartRoute } from '@/lib/ai/smart-router';
+import { cascadeCollect } from '@/lib/ai/cascade';
 
 export const runtime  = 'nodejs';
-export const maxDuration = 60; // Vercel Hobby cap — use Dokploy for unlimited
-
-const groq = process.env.GROQ_API_KEY ? new Groq({ apiKey: process.env.GROQ_API_KEY }) : null;
+export const maxDuration = 60;
 
 async function generateSEOMetadata(opts: {
   title: string; trackName?: string; artistName?: string; genre?: string;
 }): Promise<{ description: string; tags: string[] }> {
-  if (!groq) {
-    return {
-      description: `${opts.title}${opts.artistName ? ` by ${opts.artistName}` : ''}.\n\nSubscribe for more music!`,
-      tags: ['music', opts.genre ?? 'pop', opts.artistName ?? '', opts.trackName ?? ''].filter(Boolean),
-    };
-  }
-
   const prompt = `You are a YouTube SEO expert for music artists. Generate optimised metadata for this video.
 
 Track info:
@@ -53,13 +45,14 @@ Return ONLY valid JSON (no markdown, no explanation):
 }`;
 
   try {
-    const completion = await groq.chat.completions.create({
-      model:    'llama-3.3-70b-versatile',
-      messages: [{ role: 'user', content: prompt }],
-      max_tokens: 800,
-    });
-    const text = completion.choices[0]?.message?.content ?? '';
-    const json = JSON.parse(text.replace(/```json|```/g, '').trim());
+    // 'creative' task — OpenRouter Mistral → Groq Llama-3.3 → NVIDIA Mistral → CF Kimi
+    const routeResult = smartRoute(prompt, { taskHint: 'creative' });
+    const { text } = await cascadeCollect(
+      routeResult.waterfall,
+      [{ role: 'user', content: prompt }],
+      { maxTokens: 800 },
+    );
+    const json = JSON.parse((text ?? '').replace(/```json|```/g, '').trim());
     return { description: json.description ?? '', tags: json.tags ?? [] };
   } catch {
     return {

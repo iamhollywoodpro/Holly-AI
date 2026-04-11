@@ -1,37 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/db';
+import { smartRoute } from '@/lib/ai/smart-router';
+import { cascadeCollect } from '@/lib/ai/cascade';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
 type RouteContext = { params: Promise<{ id: string }>; };
 
-async function callGroq(messages: { role: string; content: string }[]): Promise<string> {
-  const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey) throw new Error('GROQ_API_KEY not configured');
-
-  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'llama-3.1-8b-instant',
-      messages,
-      temperature: 0.3,
-      max_tokens: 1024,
-    }),
-  });
-
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Groq API error (${res.status}): ${err}`);
-  }
-
-  const data = await res.json();
-  return data.choices?.[0]?.message?.content?.trim() ?? '';
+async function callAI(messages: { role: string; content: string }[]): Promise<string> {
+  const userMsg = messages.find(m => m.role === 'user')?.content ?? '';
+  const routeResult = smartRoute(userMsg, { taskHint: 'long_context' });
+  const { text } = await cascadeCollect(
+    routeResult.waterfall,
+    messages as { role: 'system' | 'user' | 'assistant'; content: string }[],
+    { temperature: 0.3, maxTokens: 1024 },
+  );
+  return text ?? '';
 }
 
 function parseJSON<T>(raw: string, fallback: T): T {
@@ -109,13 +95,13 @@ Always respond with a valid JSON object matching this exact structure — no ext
 
     let parsed: any = null;
     try {
-      const raw = await callGroq([
+      const raw = await callAI([
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },
       ]);
       parsed = parseJSON(raw, null);
     } catch (err: any) {
-      console.warn('[Summarize] Groq failed:', err.message);
+      console.warn('[Summarize] AI cascade failed:', err.message);
     }
 
     // Fallback: extract basic topics from message content
