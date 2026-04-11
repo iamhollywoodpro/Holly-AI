@@ -153,10 +153,6 @@ class EnhancedVoiceOutput {
     this._aborted = true;
     this._isSpeaking = false;
 
-    if (typeof window !== "undefined") {
-      window.speechSynthesis?.cancel();
-    }
-
     if (this.currentAudio) {
       this.currentAudio.pause();
       this.currentAudio.currentTime = 0;

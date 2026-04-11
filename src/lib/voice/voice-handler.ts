@@ -1,270 +1,156 @@
 /**
- * Voice Handler - Web Speech API Integration
- * Handles both voice input (Speech Recognition) and voice output (Speech Synthesis)
+ * Voice Handler — Phase 4C (updated: Browser Web Speech API removed)
+ *
+ * Voice INPUT:  MediaRecorder → POST /api/voice/transcribe (Groq Whisper)
+ * Voice OUTPUT: EnhancedVoiceOutput → Kokoro → Chatterbox (no browser speechSynthesis)
+ *
+ * The Web Speech API (webkitSpeechRecognition, speechSynthesis) has been
+ * intentionally removed. HOLLY uses server-side STT/TTS exclusively.
  */
 
 import { EnhancedVoiceOutput } from './enhanced-voice-output';
 
-// Check if Web Speech API is available
-export const isSpeechRecognitionAvailable = (): boolean => {
-  return typeof window !== 'undefined' && 
-    ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window);
-};
+// ─── Availability checks ──────────────────────────────────────────────────────
 
-export const isSpeechSynthesisAvailable = (): boolean => {
-  return typeof window !== 'undefined' && 'speechSynthesis' in window;
-};
+/** Returns true if the browser supports MediaRecorder (required for server STT). */
+export const isSpeechRecognitionAvailable = (): boolean =>
+  typeof window !== 'undefined' && typeof MediaRecorder !== 'undefined';
 
-// Voice Input - Speech Recognition
+// NOTE: isSpeechSynthesisAvailable removed — HOLLY uses Kokoro/Chatterbox TTS,
+// never the browser speechSynthesis API.
+
+// ─── Voice Input ──────────────────────────────────────────────────────────────
+
+/**
+ * VoiceInput — records microphone audio via MediaRecorder and sends it to
+ * the server for Whisper transcription. No browser speech recognition used.
+ */
 export class VoiceInput {
-  private recognition: any;
+  private mediaRecorder: MediaRecorder | null = null;
+  private audioChunks: Blob[] = [];
   private isListening: boolean = false;
+  private stream: MediaStream | null = null;
   private onTranscriptCallback?: (text: string) => void;
   private onErrorCallback?: (error: string) => void;
 
   constructor() {
-    if (typeof window === 'undefined') return;
-
-    const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
-    
-    if (SpeechRecognition) {
-      this.recognition = new SpeechRecognition();
-      this.recognition.continuous = false; // Stop after user finishes speaking
-      this.recognition.interimResults = false; // Only final results
-      this.recognition.lang = 'en-US'; // Language
-      this.recognition.maxAlternatives = 1;
-
-      this.setupEventListeners();
-    }
-  }
-
-  private setupEventListeners() {
-    if (!this.recognition) return;
-
-    this.recognition.onresult = (event: any) => {
-      const transcript = event.results[0][0].transcript;
-      console.log('🎤 Transcribed:', transcript);
-      
-      if (this.onTranscriptCallback) {
-        this.onTranscriptCallback(transcript);
-      }
-    };
-
-    this.recognition.onerror = (event: any) => {
-      console.error('🎤 Recognition error:', event.error);
-      
-      const errorMessage = this.getErrorMessage(event.error);
-      if (this.onErrorCallback) {
-        this.onErrorCallback(errorMessage);
-      }
-      
-      this.isListening = false;
-    };
-
-    this.recognition.onend = () => {
-      console.log('🎤 Recognition ended');
-      this.isListening = false;
-    };
-  }
-
-  private getErrorMessage(error: string): string {
-    switch (error) {
-      case 'no-speech':
-        return "No speech detected. Please try again.";
-      case 'audio-capture':
-        return "Microphone not found. Please check your device.";
-      case 'not-allowed':
-        return "Microphone permission denied. Please enable it in your browser settings.";
-      case 'network':
-        return "Network error. Please check your connection.";
-      default:
-        return `Voice recognition error: ${error}`;
-    }
+    // Nothing to initialise synchronously — microphone access is async.
   }
 
   start(
     onTranscript: (text: string) => void,
     onError?: (error: string) => void
-  ) {
-    if (!this.recognition) {
-      onError?.('Speech recognition not supported in this browser.');
+  ): void {
+    if (typeof window === 'undefined') {
+      onError?.('Voice input is only available in the browser.');
       return;
     }
-
+    if (typeof MediaRecorder === 'undefined') {
+      onError?.('MediaRecorder is not supported in this browser. Please use Chrome or Firefox.');
+      return;
+    }
     if (this.isListening) {
-      console.log('Already listening...');
+      console.warn('[VoiceInput] Already listening.');
       return;
     }
 
     this.onTranscriptCallback = onTranscript;
     this.onErrorCallback = onError;
 
-    try {
-      this.recognition.start();
-      this.isListening = true;
-      console.log('🎤 Started listening...');
-    } catch (error) {
-      console.error('Failed to start recognition:', error);
-      onError?.('Failed to start voice recognition');
-    }
+    navigator.mediaDevices
+      .getUserMedia({ audio: true })
+      .then((stream) => {
+        this.stream = stream;
+        this.audioChunks = [];
+
+        const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/ogg';
+        this.mediaRecorder = new MediaRecorder(stream, { mimeType });
+
+        this.mediaRecorder.ondataavailable = (e) => {
+          if (e.data.size > 0) this.audioChunks.push(e.data);
+        };
+
+        this.mediaRecorder.onstop = () => {
+          void this._sendForTranscription();
+        };
+
+        this.mediaRecorder.start(500);
+        this.isListening = true;
+        console.log('[VoiceInput] Recording started');
+      })
+      .catch((err: Error) => {
+        const msg = err.name === 'NotAllowedError'
+          ? 'Microphone permission denied. Please allow microphone access in your browser.'
+          : `Failed to access microphone: ${err.message}`;
+        this.onErrorCallback?.(msg);
+      });
   }
 
-  stop() {
-    if (!this.recognition || !this.isListening) return;
-
-    try {
-      this.recognition.stop();
-      this.isListening = false;
-      console.log('🎤 Stopped listening');
-    } catch (error) {
-      console.error('Failed to stop recognition:', error);
-    }
+  stop(): void {
+    if (!this.isListening) return;
+    this.isListening = false;
+    this.mediaRecorder?.stop();
+    this.stream?.getTracks().forEach(t => t.stop());
+    this.stream = null;
+    console.log('[VoiceInput] Recording stopped');
   }
 
   isActive(): boolean {
     return this.isListening;
   }
-}
 
-// Voice Output - Speech Synthesis
-export class VoiceOutput {
-  private synth: SpeechSynthesis | null = null;
-  private currentUtterance: SpeechSynthesisUtterance | null = null;
-  private isSpeaking: boolean = false;
+  private async _sendForTranscription(): Promise<void> {
+    if (this.audioChunks.length === 0) return;
 
-  constructor() {
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      this.synth = window.speechSynthesis;
+    const blob = new Blob(this.audioChunks, { type: this.mediaRecorder?.mimeType || 'audio/webm' });
+    this.audioChunks = [];
+
+    try {
+      const form = new FormData();
+      form.append('audio', blob, 'recording.webm');
+
+      const res = await fetch('/api/voice/transcribe', {
+        method: 'POST',
+        body: form,
+      });
+
+      if (!res.ok) {
+        throw new Error(`Transcription server returned ${res.status}`);
+      }
+
+      const data = await res.json();
+      const text: string = data.text || data.transcription || '';
+
+      if (text) {
+        console.log('[VoiceInput] Transcribed:', text.substring(0, 80));
+        this.onTranscriptCallback?.(text);
+      } else {
+        this.onErrorCallback?.('No speech detected. Please try again.');
+      }
+    } catch (err: unknown) {
+      const message = (err as Error).message || 'Transcription failed';
+      console.error('[VoiceInput] Transcription error:', message);
+      this.onErrorCallback?.(message);
     }
-  }
-
-  // Get available voices
-  getVoices(): SpeechSynthesisVoice[] {
-    if (!this.synth) return [];
-    return this.synth.getVoices();
-  }
-
-  // Get HOLLY's preferred voice (female, English)
-  getHollyVoice(): SpeechSynthesisVoice | null {
-    const voices = this.getVoices();
-    
-    // Prefer female English voices
-    const femaleEnglish = voices.find(v => 
-      v.lang.startsWith('en') && 
-      (v.name.toLowerCase().includes('female') || 
-       v.name.toLowerCase().includes('samantha') ||
-       v.name.toLowerCase().includes('victoria') ||
-       v.name.toLowerCase().includes('karen'))
-    );
-    
-    if (femaleEnglish) return femaleEnglish;
-    
-    // Fallback to any English voice
-    return voices.find(v => v.lang.startsWith('en')) || voices[0] || null;
-  }
-
-  // Speak text with HOLLY's voice
-  speak(
-    text: string,
-    options?: {
-      rate?: number; // 0.1 to 10 (default 1)
-      pitch?: number; // 0 to 2 (default 1)
-      volume?: number; // 0 to 1 (default 1)
-      onStart?: () => void;
-      onEnd?: () => void;
-      onError?: (error: string) => void;
-    }
-  ) {
-    if (!this.synth) {
-      options?.onError?.('Speech synthesis not supported in this browser.');
-      return;
-    }
-
-    // Stop any current speech
-    this.stop();
-
-    const utterance = new SpeechSynthesisUtterance(text);
-    
-    // Set HOLLY's voice
-    const hollyVoice = this.getHollyVoice();
-    if (hollyVoice) {
-      utterance.voice = hollyVoice;
-    }
-    
-    // Set parameters
-    utterance.rate = options?.rate || 1.0; // Normal speed
-    utterance.pitch = options?.pitch || 1.1; // Slightly higher pitch (feminine)
-    utterance.volume = options?.volume || 0.8; // 80% volume
-
-    // Event handlers
-    utterance.onstart = () => {
-      this.isSpeaking = true;
-      options?.onStart?.();
-      console.log('🔊 HOLLY speaking:', text.substring(0, 50) + '...');
-    };
-
-    utterance.onend = () => {
-      this.isSpeaking = false;
-      this.currentUtterance = null;
-      options?.onEnd?.();
-      console.log('🔊 HOLLY finished speaking');
-    };
-
-    utterance.onerror = (event) => {
-      this.isSpeaking = false;
-      this.currentUtterance = null;
-      console.error('🔊 Speech error:', event.error);
-      options?.onError?.(event.error);
-    };
-
-    this.currentUtterance = utterance;
-    this.synth.speak(utterance);
-  }
-
-  // Stop current speech
-  stop() {
-    if (!this.synth) return;
-
-    if (this.synth.speaking) {
-      this.synth.cancel();
-      this.isSpeaking = false;
-      this.currentUtterance = null;
-      console.log('🔊 Stopped speaking');
-    }
-  }
-
-  // Pause speech
-  pause() {
-    if (!this.synth || !this.synth.speaking) return;
-    this.synth.pause();
-  }
-
-  // Resume speech
-  resume() {
-    if (!this.synth || !this.synth.paused) return;
-    this.synth.resume();
-  }
-
-  // Check if currently speaking
-  isActive(): boolean {
-    return this.isSpeaking;
   }
 }
 
-// Singleton instances
+// ─── Voice Output ─────────────────────────────────────────────────────────────
+
+// VoiceOutput (browser speechSynthesis) has been removed.
+// Use EnhancedVoiceOutput directly — it routes to Kokoro → Chatterbox.
+
+// ─── Singletons ───────────────────────────────────────────────────────────────
+
 let voiceInputInstance: VoiceInput | null = null;
 let voiceOutputInstance: EnhancedVoiceOutput | null = null;
 
 export const getVoiceInput = (): VoiceInput => {
-  if (!voiceInputInstance) {
-    voiceInputInstance = new VoiceInput();
-  }
+  if (!voiceInputInstance) voiceInputInstance = new VoiceInput();
   return voiceInputInstance;
 };
 
 export const getVoiceOutput = (): EnhancedVoiceOutput => {
-  if (!voiceOutputInstance) {
-    voiceOutputInstance = new EnhancedVoiceOutput();
-  }
+  if (!voiceOutputInstance) voiceOutputInstance = new EnhancedVoiceOutput();
   return voiceOutputInstance;
 };

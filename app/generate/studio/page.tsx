@@ -354,6 +354,17 @@ export default function GenerationStudio() {
                     icon="🎬"
                   />
 
+                  {/* Cold-start latency notice */}
+                  <div className="flex items-start gap-3 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-sm">
+                    <span className="text-lg leading-none mt-0.5">⏱️</span>
+                    <div>
+                      <span className="font-semibold">Cold-start notice:</span>{' '}
+                      CogVideoX-5B on Modal GPU may take <strong>60–90 seconds</strong> to respond on the first request
+                      after idle. Subsequent requests are fast (~15–30 s). If the request times out, try again — the
+                      GPU will already be warm.
+                    </div>
+                  </div>
+
                   <PromptTextarea
                     value={videoPrompt}
                     onChange={setVideoPrompt}

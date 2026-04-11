@@ -8,9 +8,151 @@ import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/db';
 
 export const runtime = 'nodejs';
-
-
 export const dynamic = 'force-dynamic';
+
+// ─── Delivery helpers ─────────────────────────────────────────────────────────
+
+/**
+ * Send an email notification.
+ * Uses Resend API when RESEND_API_KEY is set,
+ * otherwise falls back to a generic SMTP-over-fetch approach.
+ * Returns true on success, false on failure (non-fatal).
+ */
+async function deliverEmail(
+  to: string,
+  subject: string,
+  html: string
+): Promise<boolean> {
+  const resendKey = process.env.RESEND_API_KEY;
+  const fromEmail = process.env.NOTIFICATION_FROM_EMAIL || 'notifications@holly.ai';
+
+  if (!resendKey) {
+    // SMTP fallback via Nodemailer-style env vars
+    const smtpHost = process.env.SMTP_HOST;
+    const smtpUser = process.env.SMTP_USER;
+    const smtpPass = process.env.SMTP_PASS;
+    const smtpPort = parseInt(process.env.SMTP_PORT || '587');
+
+    if (!smtpHost || !smtpUser || !smtpPass) {
+      console.warn('[Notifications] No email provider configured (set RESEND_API_KEY or SMTP_HOST/SMTP_USER/SMTP_PASS)');
+      return false;
+    }
+
+    // Nodemailer (available in Node runtime)
+    try {
+      const nodemailer = await import('nodemailer');
+      const transporter = nodemailer.default.createTransport({
+        host: smtpHost,
+        port: smtpPort,
+        secure: smtpPort === 465,
+        auth: { user: smtpUser, pass: smtpPass },
+      });
+      await transporter.sendMail({ from: fromEmail, to, subject, html });
+      return true;
+    } catch (err: unknown) {
+      console.error('[Notifications] SMTP delivery failed:', (err as Error).message);
+      return false;
+    }
+  }
+
+  // Resend API
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${resendKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ from: fromEmail, to, subject, html }),
+    });
+    if (!res.ok) {
+      const err = await res.text();
+      console.error('[Notifications] Resend error:', err);
+      return false;
+    }
+    return true;
+  } catch (err: unknown) {
+    console.error('[Notifications] Resend delivery failed:', (err as Error).message);
+    return false;
+  }
+}
+
+/**
+ * Send a Slack notification via incoming webhook.
+ * Requires SLACK_WEBHOOK_URL environment variable.
+ * Returns true on success, false on failure (non-fatal).
+ */
+async function deliverSlack(
+  title: string,
+  message: string,
+  priority: string,
+  actionUrl?: string
+): Promise<boolean> {
+  const webhookUrl = process.env.SLACK_WEBHOOK_URL;
+  if (!webhookUrl) {
+    console.warn('[Notifications] SLACK_WEBHOOK_URL not configured — skipping Slack delivery');
+    return false;
+  }
+
+  const emoji = priority === 'critical' ? '🚨' : priority === 'high' ? '⚠️' : 'ℹ️';
+  const blocks: object[] = [
+    {
+      type: 'section',
+      text: {
+        type: 'mrkdwn',
+        text: `${emoji} *${title}*\n${message}`,
+      },
+    },
+  ];
+  if (actionUrl) {
+    blocks.push({
+      type: 'actions',
+      elements: [{
+        type: 'button',
+        text: { type: 'plain_text', text: 'View →' },
+        url: actionUrl,
+      }],
+    });
+  }
+
+  try {
+    const res = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ blocks }),
+    });
+    if (!res.ok) {
+      console.error('[Notifications] Slack webhook failed:', res.status);
+      return false;
+    }
+    return true;
+  } catch (err: unknown) {
+    console.error('[Notifications] Slack delivery error:', (err as Error).message);
+    return false;
+  }
+}
+
+/**
+ * Build a simple HTML email body for a notification.
+ */
+function buildEmailHtml(title: string, message: string, actionUrl?: string, actionLabel?: string): string {
+  const actionBlock = actionUrl
+    ? `<p style="margin-top:16px;"><a href="${actionUrl}" style="background:#7c3aed;color:#fff;padding:8px 16px;border-radius:6px;text-decoration:none;font-size:14px;">${actionLabel || 'View'}</a></p>`
+    : '';
+  return `<!DOCTYPE html>
+<html>
+<body style="font-family:sans-serif;background:#f9fafb;padding:32px;">
+  <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:12px;padding:32px;box-shadow:0 2px 8px rgba(0,0,0,.08);">
+    <h2 style="margin:0 0 12px;color:#1f2937;">🤖 HOLLY Notification</h2>
+    <h3 style="margin:0 0 8px;color:#374151;">${title}</h3>
+    <p style="color:#4b5563;line-height:1.6;">${message}</p>
+    ${actionBlock}
+    <hr style="margin:24px 0;border:none;border-top:1px solid #e5e7eb;" />
+    <p style="font-size:12px;color:#9ca3af;">Sent by HOLLY AI • <a href="https://holly.nexamusicgroup.com/settings" style="color:#6b7280;">Manage notifications</a></p>
+  </div>
+</body>
+</html>`;
+}
 
 /**
  * GET - List notifications or get preferences
@@ -218,8 +360,51 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    // TODO: Trigger actual delivery via integrations (email, Slack, etc.)
-    // For now, just mark as delivered via web
+    // ── Real delivery via email + Slack ─────────────────────────────────────
+    const requestedChannels: string[] = channels || ['web'];
+    const deliveredViaSet = new Set<string>(['web']);
+
+    // Get user email from DB for email delivery
+    const userWithEmail = await prisma.user.findUnique({
+      where: { clerkUserId },
+      select: { id: true, email: true },
+    });
+    const userEmail = userWithEmail?.email;
+
+    // Email delivery
+    if (requestedChannels.includes('email') && userEmail) {
+      const html = buildEmailHtml(
+        title,
+        message,
+        actionUrl as string | undefined,
+        actionLabel as string | undefined
+      );
+      const sent = await deliverEmail(userEmail, title, html);
+      if (sent) deliveredViaSet.add('email');
+    }
+
+    // Slack delivery (for critical/high priority OR when explicitly requested)
+    const shouldSlack =
+      requestedChannels.includes('slack') ||
+      (priority === 'critical') ||
+      (priority === 'high' && process.env.SLACK_NOTIFY_HIGH === 'true');
+
+    if (shouldSlack) {
+      const sent = await deliverSlack(
+        title,
+        message,
+        priority || 'normal',
+        actionUrl as string | undefined
+      );
+      if (sent) deliveredViaSet.add('slack');
+    }
+
+    // Update deliveredVia on the notification record
+    const deliveredViaArray = Array.from(deliveredViaSet);
+    await prisma.notification.update({
+      where: { id: notification.id },
+      data: { deliveredVia: deliveredViaArray },
+    });
 
     return NextResponse.json({
       success: true,

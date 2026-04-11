@@ -4,9 +4,9 @@
  * Speech-to-text — free-only provider chain:
  *
  *  1. Groq Whisper (whisper-large-v3-turbo — free tier, extremely fast)
- *  2. Browser Web Speech API (signal returned as { useBrowserSTT: true })
  *
  * No OpenAI. No paid APIs. No limits beyond Groq's generous free tier.
+ * Browser Web Speech API fallback has been removed — HOLLY uses server-side STT only.
  *
  * Supported audio formats: mp3, mp4, mpeg, mpga, m4a, wav, webm, ogg, flac
  * Max file size: 25 MB
@@ -17,10 +17,9 @@ import Groq from 'groq-sdk';
 export interface TranscriptionResult {
   text: string;
   language: string;
-  provider: 'groq-whisper' | 'browser';
+  provider: 'groq-whisper';
   durationMs?: number;
   confidence?: number;
-  useBrowserSTT?: boolean;
   segments?: TranscriptionSegment[];
 }
 
@@ -81,13 +80,13 @@ export async function transcribeAudio(
     }
   }
 
-  // ── Signal browser Web Speech API ─────────────────────────────────────────
-  console.log('[Whisper STT] No cloud provider available — signaling browser STT');
+  // No cloud STT available — return empty result.
+  // The UI should show an error asking the user to check GROQ_API_KEY.
+  console.error('[Whisper STT] GROQ_API_KEY not configured. STT unavailable.');
   return {
     text: '',
     language: opts.language || 'en',
-    provider: 'browser',
-    useBrowserSTT: true,
+    provider: 'groq-whisper',
     durationMs: Date.now() - t0,
   };
 }
@@ -167,10 +166,10 @@ function getMimeType(filename: string): string {
 export function getSTTStatus() {
   const providers = getAvailableProviders();
   return {
-    available: providers.length > 0 || true, // browser STT always available
+    available: providers.length > 0,
     providers,
-    primaryProvider: providers[0] || 'browser',
-    browserFallback: true,
+    primaryProvider: providers[0] || null,
+    browserFallback: false, // Browser Web Speech API intentionally removed
     models: {
       groq: 'whisper-large-v3-turbo (free, ~250 req/day)',
     },

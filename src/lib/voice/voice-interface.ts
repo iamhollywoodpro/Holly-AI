@@ -6,7 +6,7 @@
  *
  * Provider chain (automatic):
  *   1. Groq Whisper (whisper-large-v3-turbo) — free, fast, no limits
- *   2. Browser Web Speech API signal (when GROQ_API_KEY not set)
+ * Browser Web Speech API removed.
  */
 
 import { transcribeAudio, getSTTStatus, type TranscriptionResult } from '@/lib/ai/whisper-stt';
@@ -15,7 +15,6 @@ interface LegacyTranscriptionResult {
   text: string;
   language: string;
   provider?: string;
-  useBrowserSTT?: boolean;
 }
 
 class VoiceInterface {
@@ -36,7 +35,6 @@ class VoiceInterface {
       text: result.text,
       language: result.language,
       provider: result.provider,
-      useBrowserSTT: result.useBrowserSTT,
     };
   }
 

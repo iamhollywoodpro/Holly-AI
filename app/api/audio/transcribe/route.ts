@@ -5,7 +5,7 @@
  * Accepts JSON body with { audioUrl, language?, prompt?, segments? }
  * or multipart/form-data with { audio: File, ... }
  *
- * Provider chain: Groq Whisper (free) → browser Web Speech API signal
+ * Provider chain: Groq Whisper (free). Browser Web Speech API removed.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -41,8 +41,8 @@ export async function POST(request: NextRequest) {
         language, prompt, includeSegments: includeSegs,
       });
 
-      if (result.useBrowserSTT) {
-        return NextResponse.json({ success: false, useBrowserSTT: true, setup: getSTTStatus() });
+      if (!result.text) {
+        return NextResponse.json({ success: false, error: 'No speech detected. Ensure GROQ_API_KEY is set in Coolify.', setup: getSTTStatus() }, { status: 503 });
       }
 
       return NextResponse.json({
@@ -79,8 +79,8 @@ export async function POST(request: NextRequest) {
       language, prompt, includeSegments: segments,
     });
 
-    if (result.useBrowserSTT) {
-      return NextResponse.json({ success: false, useBrowserSTT: true, setup: getSTTStatus() });
+    if (!result.text) {
+      return NextResponse.json({ success: false, error: 'No speech detected. Ensure GROQ_API_KEY is set in Coolify.', setup: getSTTStatus() }, { status: 503 });
     }
 
     return NextResponse.json({

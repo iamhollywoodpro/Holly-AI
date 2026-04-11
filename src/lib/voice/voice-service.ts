@@ -1,7 +1,16 @@
 /**
  * Voice Input Service
- * Handles voice transcription (speech-to-text) ONLY
- * For TTS, use enhanced-voice-output.ts
+ * Handles voice transcription (speech-to-text) ONLY via server-side API.
+ *
+ * STT provider chain (server-side, no browser API):
+ *   1. Groq Whisper large-v3-turbo (POST /api/voice/transcribe)
+ *   2. Kokoro TTS fallback only for output — never browser speechSynthesis
+ *
+ * The Browser Web Speech API (webkitSpeechRecognition / speechSynthesis)
+ * has been intentionally removed. HOLLY uses MediaRecorder to capture audio
+ * and sends the blob to the server for Whisper transcription.
+ *
+ * For TTS output use enhanced-voice-output.ts → Kokoro → Chatterbox.
  */
 
 'use client';
@@ -33,79 +42,85 @@ class VoiceService {
   };
 
   private listeners: Set<(state: VoiceServiceState) => void> = new Set();
-  private recognition: any = null;
+  private mediaRecorder: MediaRecorder | null = null;
+  private audioChunks: Blob[] = [];
   private onTranscriptCallback: ((text: string, isFinal: boolean) => void) | null = null;
+  private stream: MediaStream | null = null;
 
-  constructor() {
-    if (typeof window !== 'undefined') {
-      // Initialize speech recognition
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      if (SpeechRecognition) {
-        this.recognition = new SpeechRecognition();
-        this.recognition.continuous = true;
-        this.recognition.interimResults = true;
-        this.recognition.lang = 'en-US';
-
-        this.recognition.onresult = (event: any) => {
-          const last = event.results.length - 1;
-          const transcript = event.results[last][0].transcript;
-          const isFinal = event.results[last].isFinal;
-
-          if (this.onTranscriptCallback) {
-            this.onTranscriptCallback(transcript, isFinal);
-          }
-        };
-
-        this.recognition.onerror = (event: any) => {
-          console.error('Speech recognition error:', event.error);
-          this.stopListening();
-        };
-
-        this.recognition.onend = () => {
-          if (this.state.isListening) {
-            // Restart if still supposed to be listening
-            try {
-              this.recognition.start();
-            } catch (e) {
-              this.stopListening();
-            }
-          }
-        };
-      }
-    }
-  }
-
+  /** Returns true if MediaRecorder is available (it always is in modern browsers). */
   isRecognitionAvailable(): boolean {
-    return this.recognition !== null;
+    return typeof window !== 'undefined' && typeof MediaRecorder !== 'undefined';
   }
 
+  /**
+   * Start recording microphone audio.
+   * When the user stops (or after a silence threshold), the audio is sent to
+   * POST /api/voice/transcribe (Groq Whisper) and the transcript is returned.
+   */
   async startListening(onTranscript: (text: string, isFinal: boolean) => void): Promise<boolean> {
-    if (!this.recognition) {
-      console.warn('Speech recognition not available');
-      return false;
-    }
+    if (typeof window === 'undefined') return false;
 
     try {
+      this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      this.mediaRecorder = new MediaRecorder(this.stream, { mimeType: 'audio/webm' });
+      this.audioChunks = [];
       this.onTranscriptCallback = onTranscript;
-      this.recognition.start();
+
+      this.mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) this.audioChunks.push(e.data);
+      };
+
+      this.mediaRecorder.onstop = async () => {
+        if (this.audioChunks.length === 0) return;
+        const blob = new Blob(this.audioChunks, { type: 'audio/webm' });
+        this.audioChunks = [];
+        await this._transcribe(blob);
+      };
+
+      this.mediaRecorder.start(1000); // Collect in 1-second chunks
       this.updateState({ isListening: true });
       return true;
     } catch (error) {
-      console.error('Failed to start listening:', error);
+      console.error('[VoiceService] Failed to start microphone:', error);
       return false;
     }
   }
 
   stopListening(): void {
-    if (this.recognition) {
-      try {
-        this.recognition.stop();
-      } catch (e) {
-        // Already stopped
-      }
+    if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+      this.mediaRecorder.stop();
+    }
+    if (this.stream) {
+      this.stream.getTracks().forEach(t => t.stop());
+      this.stream = null;
     }
     this.onTranscriptCallback = null;
     this.updateState({ isListening: false });
+  }
+
+  private async _transcribe(blob: Blob): Promise<void> {
+    try {
+      const formData = new FormData();
+      formData.append('audio', blob, 'recording.webm');
+
+      const res = await fetch('/api/voice/transcribe', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!res.ok) {
+        console.error('[VoiceService] Transcription HTTP error:', res.status);
+        return;
+      }
+
+      const data = await res.json();
+      const text = data.text || data.transcription || '';
+      if (text && this.onTranscriptCallback) {
+        this.onTranscriptCallback(text, true);
+      }
+    } catch (err) {
+      console.error('[VoiceService] Transcription error:', err);
+    }
   }
 
   setInputMethod(method: 'keyboard' | 'voice' | null): void {
@@ -148,9 +163,11 @@ export function getVoiceService(): VoiceService {
 
 export const voiceService = getVoiceService();
 
-// For TTS, use this instead
+/**
+ * TTS helper — delegates to Kokoro/Chatterbox via enhanced-voice-output.
+ * NEVER uses browser speechSynthesis.
+ */
 export async function speakText(text: string): Promise<void> {
-  // Import dynamically to avoid circular dependencies
   const { speakText: speak } = await import('./enhanced-voice-output');
   return speak(text, { volume: 0.9 });
 }

@@ -207,12 +207,159 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // TODO: Implement actual connection testing for each service
-      // For now, return mock success
+      // Real connection test per service type
+      const testStart = Date.now();
+      let testOk = false;
+      let testDetail = '';
+
+      try {
+        const svc = (integration.service as string).toLowerCase();
+        const cfg = (integration.config || {}) as Record<string, string>;
+        const creds = (integration.credentials || {}) as Record<string, string>;
+
+        if (svc === 'slack') {
+          // Slack: POST to the configured webhook URL or use Bot token to call auth.test
+          const webhookUrl = creds.webhookUrl || cfg.webhookUrl || process.env.SLACK_WEBHOOK_URL;
+          const botToken   = creds.botToken   || cfg.botToken;
+          if (botToken) {
+            const r = await fetch('https://slack.com/api/auth.test', {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${botToken}`, 'Content-Type': 'application/json' },
+            });
+            const d = await r.json();
+            testOk = d.ok === true;
+            testDetail = testOk ? `Connected as ${d.user} (team: ${d.team})` : `Slack error: ${d.error}`;
+          } else if (webhookUrl) {
+            // Send a silent ping (empty payload still returns 200 from Slack if valid)
+            const r = await fetch(webhookUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ text: ':white_check_mark: HOLLY integration health check' }),
+            });
+            testOk = r.ok;
+            testDetail = testOk ? 'Webhook reachable' : `Webhook returned ${r.status}`;
+          } else {
+            testDetail = 'No Slack credentials configured (need webhookUrl or botToken)';
+          }
+
+        } else if (svc === 'github') {
+          const token = creds.token || cfg.token || process.env.GITHUB_TOKEN;
+          if (!token) { testDetail = 'GITHUB_TOKEN not configured'; }
+          else {
+            const r = await fetch('https://api.github.com/user', {
+              headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' },
+            });
+            const d = await r.json();
+            testOk = r.ok;
+            testDetail = testOk ? `GitHub: authenticated as @${d.login}` : `GitHub error: ${d.message}`;
+          }
+
+        } else if (svc === 'spotify') {
+          const clientId     = cfg.clientId     || process.env.SPOTIFY_CLIENT_ID;
+          const clientSecret = creds.clientSecret || process.env.SPOTIFY_CLIENT_SECRET;
+          if (!clientId || !clientSecret) { testDetail = 'Spotify credentials not configured'; }
+          else {
+            const r = await fetch('https://accounts.spotify.com/api/token', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`,
+                'Content-Type': 'application/x-www-form-urlencoded',
+              },
+              body: 'grant_type=client_credentials',
+            });
+            testOk = r.ok;
+            testDetail = testOk ? 'Spotify client credentials OK' : `Spotify auth failed: ${r.status}`;
+          }
+
+        } else if (svc === 'email' || svc === 'resend') {
+          const resendKey = creds.apiKey || cfg.apiKey || process.env.RESEND_API_KEY;
+          if (!resendKey) { testDetail = 'RESEND_API_KEY not configured'; }
+          else {
+            const r = await fetch('https://api.resend.com/domains', {
+              headers: { 'Authorization': `Bearer ${resendKey}` },
+            });
+            testOk = r.ok;
+            testDetail = testOk ? 'Resend API key valid' : `Resend error: ${r.status}`;
+          }
+
+        } else if (svc === 'suno') {
+          const sunoKey = creds.apiKey || cfg.apiKey || process.env.SUNO_API_KEY;
+          if (!sunoKey) { testDetail = 'SUNO_API_KEY not configured'; }
+          else {
+            const r = await fetch('https://api.sunoapi.org/api/v1/credits', {
+              headers: { 'Authorization': `Bearer ${sunoKey}` },
+            });
+            testOk = r.ok;
+            if (testOk) {
+              const d = await r.json();
+              testDetail = `Suno connected — credits: ${d.credits ?? d.remaining ?? 'unknown'}`;
+            } else {
+              testDetail = `Suno API returned ${r.status}`;
+            }
+          }
+
+        } else if (svc === 'google_drive' || svc === 'google-drive') {
+          // Check if OAuth tokens exist in DB
+          const driveIntegration = await prisma.googleDriveIntegration.findFirst({
+            where: { userId: clerkUserId },
+            select: { accessToken: true, expiresAt: true },
+          }).catch(() => null);
+          if (!driveIntegration?.accessToken) {
+            testDetail = 'Google Drive not connected — OAuth required';
+          } else {
+            const expired = driveIntegration.expiresAt && new Date(driveIntegration.expiresAt) < new Date();
+            testOk = !expired;
+            testDetail = expired ? 'Google Drive token expired — re-authorise in settings' : 'Google Drive connected';
+          }
+
+        } else if (svc === 'modal') {
+          // Check Modal GPU endpoints
+          const imageUrl = process.env.MODAL_IMAGE_URL;
+          const videoUrl = process.env.MODAL_VIDEO_URL;
+          if (!imageUrl && !videoUrl) {
+            testDetail = 'MODAL_IMAGE_URL / MODAL_VIDEO_URL not set in Coolify';
+          } else {
+            const checks = await Promise.allSettled([
+              imageUrl ? fetch(imageUrl, { method: 'OPTIONS' }).catch(() => null) : null,
+              videoUrl ? fetch(videoUrl, { method: 'OPTIONS' }).catch(() => null) : null,
+            ]);
+            const imageOk = checks[0]?.status === 'fulfilled';
+            const videoOk = checks[1]?.status === 'fulfilled';
+            testOk = imageOk || videoOk;
+            testDetail = `Modal GPU: image=${imageOk ? 'reachable' : 'unreachable'}, video=${videoOk ? 'reachable' : 'unreachable'}`;
+          }
+
+        } else {
+          // Generic HTTP endpoint test — try a HEAD/GET to a configured url
+          const testUrl = cfg.url || cfg.endpoint || cfg.webhookUrl;
+          if (!testUrl) {
+            testDetail = `No test URL configured for service "${svc}"`;
+          } else {
+            const r = await fetch(testUrl, { method: 'HEAD' }).catch(() => null);
+            testOk = !!r?.ok;
+            testDetail = testOk ? `Endpoint reachable (${r!.status})` : `Endpoint unreachable`;
+          }
+        }
+      } catch (testErr: unknown) {
+        testDetail = `Test error: ${(testErr as Error).message}`;
+      }
+
+      const latency = Date.now() - testStart;
+
+      // Update integration status based on test result
+      await prisma.integration.update({
+        where: { id: integrationId },
+        data: {
+          status: testOk ? 'connected' : 'error',
+          lastChecked: new Date(),
+          errorMessage: testOk ? null : testDetail,
+        } as object,
+      }).catch(() => { /* field may not exist on older schema */ });
+
       return NextResponse.json({
-        success: true,
-        message: 'Connection test successful',
-        latency: Math.floor(Math.random() * 200) + 50 // Mock latency
+        success: testOk,
+        message: testDetail || (testOk ? 'Connection test successful' : 'Connection test failed'),
+        latency,
       });
     }
 

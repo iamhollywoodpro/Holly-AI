@@ -6,8 +6,8 @@
  * Orchestrates full music video creation:
  *   1. Parse song concept, style, mood
  *   2. Generate visual scene descriptions (storyboard)
- *   3. Generate key frame images (FLUX via Fal.ai or Pollinations \u2014 free)
- *   4. Optionally generate video clips per scene (Kling / Wan / Replicate)
+ *   3. Generate key frame images (FLUX via Holly's Modal GPU — fallback Pollinations)
+ *   4. Optionally generate video clips per scene (Holly's Modal CogVideoX-5B)
  *   5. Return structured music video package
  *
  * Body:

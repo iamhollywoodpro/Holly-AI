@@ -868,12 +868,11 @@ function useVoiceInput(onTranscript: (text: string) => void) {
           const data = await res.json();
           if (data.success && data.text) {
             onTranscript(data.text);
-          } else if (data.useBrowserSTT) {
-            // Fall back to browser Speech API
-            useBrowserSpeech(onTranscript);
+          } else if (data.error) {
+            console.error('[Voice] STT error:', data.error);
           }
-        } catch {
-          useBrowserSpeech(onTranscript);
+        } catch (err) {
+          console.error('[Voice] Transcription fetch failed:', err);
         } finally {
           setIsTranscribing(false);
         }
@@ -881,9 +880,8 @@ function useVoiceInput(onTranscript: (text: string) => void) {
       mr.start();
       mediaRecorderRef.current = mr;
       setIsListening(true);
-    } catch {
-      // No mic permission — use browser speech API directly
-      useBrowserSpeech(onTranscript);
+    } catch (micErr) {
+      console.error('[Voice] Microphone access denied:', micErr);
     }
   }, [onTranscript]);
 
@@ -897,19 +895,6 @@ function useVoiceInput(onTranscript: (text: string) => void) {
   return { isListening, isTranscribing, startListening, stopListening };
 }
 
-function useBrowserSpeech(onTranscript: (text: string) => void) {
-  const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-  if (!SR) return;
-  const rec = new SR();
-  rec.continuous = false;
-  rec.interimResults = false;
-  rec.lang = "en-US";
-  rec.onresult = (e: any) => {
-    const text = e.results[0]?.[0]?.transcript;
-    if (text) onTranscript(text);
-  };
-  rec.start();
-}
 
 // ─── Model badge ──────────────────────────────────────────────────────────────
 

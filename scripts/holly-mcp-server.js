@@ -32,7 +32,10 @@
  *   creative_write         structured creative writing framework (poetry, fiction, lyrics, essays)
  *   emotional_support       emotional intelligence framework and response guidance
  *   analyze_language        NLP analysis: intent, register, subtext, semantic fields
- * (23 tools total)
+ * GROUP 7 – SENTINEL CODE INTELLIGENCE
+ *   sentinel_analyze_code   score, errors, warnings, suggestions, security, performance for any code
+ *   sentinel_generate_code  generate production-ready code from a description
+ * (25 tools total)
  */
 
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
@@ -385,7 +388,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     // ── GROUP 5: CREATIVE / UTILITY ──────────────────────────────────────────
     {
       name: "generate_image",
-      description: "Queue an image generation job. Sends the prompt to the Pollinations.AI free image API and returns the image URL. No API key needed.",
+      description: "Generate an image using HOLLY's Modal GPU (FLUX.1-schnell) with Pollinations.AI as fallback. Returns the image URL. No external API key needed — HOLLY's own infrastructure is used.",
       inputSchema: {
         type: "object",
         properties: {
@@ -475,6 +478,39 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
           context:  { type: "string", description: "Optional: conversation context to improve interpretation accuracy" }
         },
         required: ["message"]
+      }
+    },
+
+    // ── GROUP 7: SENTINEL CODE INTELLIGENCE ─────────────────────────────────
+    {
+      name: "sentinel_analyze_code",
+      description: "HOLLY's Sentinel code intelligence engine. Deeply analyzes code for quality, errors, warnings, security vulnerabilities, performance bottlenecks, and style issues. Returns a score (0-100), categorized findings, and auto-generated fixed code when possible. Use whenever the user shares code and wants a review, bug hunt, security audit, or quality check.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          code:       { type: "string", description: "The source code to analyze" },
+          language:   { type: "string", description: "Programming language: typescript, javascript, python, go, rust, java, cpp, etc." },
+          filename:   { type: "string", description: "Optional: filename for context, e.g. 'route.ts'" },
+          context:    { type: "string", description: "Optional: additional context about what the code is supposed to do" },
+          focusAreas: { type: "array", items: { type: "string" }, description: "Optional: areas to focus on — e.g. ['security', 'performance', 'style', 'errors']" }
+        },
+        required: ["code", "language"]
+      }
+    },
+    {
+      name: "sentinel_generate_code",
+      description: "HOLLY's Sentinel code generation engine. Generates production-ready, well-commented, idiomatic code from a natural language description. Returns the code, explanation, usage examples, dependencies, and test stubs. Use when the user asks HOLLY to write code, create a function, build a component, or implement a feature.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          description: { type: "string", description: "What the code should do — be as specific as possible" },
+          language:    { type: "string", description: "Programming language: typescript, javascript, python, go, rust, java, etc." },
+          framework:   { type: "string", description: "Optional: framework context, e.g. 'Next.js App Router', 'React', 'Express', 'FastAPI'" },
+          style:       { type: "string", description: "Optional: code style — 'functional', 'class-based', 'hooks', 'async/await'" },
+          context:     { type: "string", description: "Optional: existing code context or file structure information" },
+          requirements: { type: "array", items: { type: "string" }, description: "Optional: specific requirements or constraints the code must meet" }
+        },
+        required: ["description", "language"]
       }
     }
   ]
@@ -862,16 +898,60 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
     // ── generate_image ────────────────────────────────────────────────────────
     if (name === "generate_image") {
-      // Pollinations.AI — completely free, no API key required
-      const encoded = encodeURIComponent(args.prompt);
+      const MODAL_IMAGE_URL = process.env.MODAL_IMAGE_URL;
       const w = args.width  || 1024;
       const h = args.height || 1024;
-      const model = args.model || "flux";
-      const seed = Math.floor(Math.random() * 1000000);
-      const imageUrl = `https://image.pollinations.ai/prompt/${encoded}?width=${w}&height=${h}&model=${model}&seed=${seed}&nologo=true`;
+
+      // ── Primary: Holly's Modal FLUX.1-schnell GPU ───────────────────────────
+      if (MODAL_IMAGE_URL) {
+        try {
+          const payload = JSON.stringify({
+            prompt: args.prompt,
+            width: w,
+            height: h,
+            num_inference_steps: 4,
+            guidance_scale: 0,
+          });
+          const res = await fetch(MODAL_IMAGE_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: payload,
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            // Modal returns { image_url: "..." } or { url: "..." } or { images: ["..."] }
+            const imageUrl = data.image_url || data.url || (Array.isArray(data.images) ? data.images[0] : null);
+            if (imageUrl) {
+              return text(
+                `🎨 Image generated by HOLLY's Modal GPU (FLUX.1-schnell)!\n\n` +
+                `Prompt: ${args.prompt}\n\n` +
+                `URL: ${imageUrl}\n\n` +
+                `Embed in markdown:\n![${args.prompt.slice(0, 50)}](${imageUrl})`
+              );
+            }
+            // Modal returned 200 but no image URL — fall through to Pollinations
+            console.error("[MCP generate_image] Modal returned unexpected shape:", JSON.stringify(data).slice(0, 200));
+          } else {
+            console.error("[MCP generate_image] Modal returned", res.status);
+          }
+        } catch (e) {
+          console.error("[MCP generate_image] Modal error:", e.message);
+        }
+      }
+
+      // ── Fallback: Pollinations.AI (free, no key) ────────────────────────────
+      const encoded = encodeURIComponent(args.prompt);
+      const model   = args.model || "flux";
+      const seed    = Math.floor(Math.random() * 1000000);
+      const pollinationsUrl = `https://image.pollinations.ai/prompt/${encoded}?width=${w}&height=${h}&model=${model}&seed=${seed}&nologo=true`;
 
       return text(
-        `🎨 Image generated!\n\nPrompt: ${args.prompt}\n\nURL: ${imageUrl}\n\nTo display: paste the URL in your browser, or embed it in markdown as:\n![${args.prompt.slice(0, 50)}](${imageUrl})`
+        `🎨 Image generated via Pollinations.AI (FLUX fallback)!\n\n` +
+        `Prompt: ${args.prompt}\n\n` +
+        `URL: ${pollinationsUrl}\n\n` +
+        `Note: Set MODAL_IMAGE_URL in Coolify to use Holly's own GPU for faster generation.\n\n` +
+        `Embed in markdown:\n![${args.prompt.slice(0, 50)}](${pollinationsUrl})`
       );
     }
 
@@ -1105,6 +1185,127 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       );
     }
 
+    // ══ GROUP 7: SENTINEL CODE INTELLIGENCE ══════════════════════════════════
+
+    // ── sentinel_analyze_code ─────────────────────────────────────────────────
+    if (name === "sentinel_analyze_code") {
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL ||
+        (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+
+      const payload = {
+        code:       args.code,
+        language:   args.language,
+        filename:   args.filename,
+        context:    args.context,
+        focusAreas: args.focusAreas || [],
+      };
+
+      try {
+        const resp = await fetchJSON(`${baseUrl}/api/hub/sentinel/analyze_code`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-internal-token": process.env.INTERNAL_API_SECRET || "holly-internal",
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (resp.status !== 200 || !resp.body) {
+          return text(`❌ Sentinel analysis failed (HTTP ${resp.status}): ${JSON.stringify(resp.body)}`);
+        }
+
+        const r = resp.body;
+        const score = r.score ?? r.result?.score ?? 0;
+        const errors   = (r.errors   ?? r.result?.errors   ?? []).slice(0, 5);
+        const warnings = (r.warnings ?? r.result?.warnings ?? []).slice(0, 5);
+        const suggestions = (r.suggestions ?? r.result?.suggestions ?? []).slice(0, 4);
+        const security = r.security ?? r.result?.security ?? {};
+        const performance = r.performance ?? r.result?.performance ?? {};
+        const summary = r.summary ?? r.result?.summary ?? '';
+        const fixedCode = r.fixedCode ?? r.result?.fixedCode ?? '';
+
+        const bar = "█".repeat(Math.round(score / 10)) + "░".repeat(10 - Math.round(score / 10));
+        const grade = score >= 90 ? 'A+' : score >= 80 ? 'A' : score >= 70 ? 'B' : score >= 60 ? 'C' : score >= 50 ? 'D' : 'F';
+
+        let output = `🛡️ SENTINEL CODE ANALYSIS\n\n`;
+        output += `Quality Score: ${score}/100  ${bar}  [${grade}]\n\n`;
+        if (summary) output += `Summary: ${summary}\n\n`;
+        if (errors.length > 0) {
+          output += `❌ ERRORS (${errors.length}):\n${errors.map(e => `  • ${typeof e === 'string' ? e : e.message || JSON.stringify(e)}`).join('\n')}\n\n`;
+        }
+        if (warnings.length > 0) {
+          output += `⚠️ WARNINGS (${warnings.length}):\n${warnings.map(w => `  • ${typeof w === 'string' ? w : w.message || JSON.stringify(w)}`).join('\n')}\n\n`;
+        }
+        if (suggestions.length > 0) {
+          output += `💡 SUGGESTIONS:\n${suggestions.map(s => `  • ${typeof s === 'string' ? s : s.description || JSON.stringify(s)}`).join('\n')}\n\n`;
+        }
+        if (security?.issues?.length > 0) {
+          output += `🔐 SECURITY:\n${security.issues.slice(0, 3).map(i => `  • ${typeof i === 'string' ? i : i.description || JSON.stringify(i)}`).join('\n')}\n\n`;
+        }
+        if (performance?.issues?.length > 0) {
+          output += `⚡ PERFORMANCE:\n${performance.issues.slice(0, 3).map(i => `  • ${typeof i === 'string' ? i : i.description || JSON.stringify(i)}`).join('\n')}\n\n`;
+        }
+        if (fixedCode) {
+          output += `✅ FIXED CODE:\n\`\`\`${args.language}\n${fixedCode}\n\`\`\``;
+        }
+
+        return text(output.trim());
+      } catch (err) {
+        return text(`❌ Sentinel analyze error: ${err.message}\nTip: Make sure the HOLLY app is running and INTERNAL_API_SECRET is set.`);
+      }
+    }
+
+    // ── sentinel_generate_code ────────────────────────────────────────────────
+    if (name === "sentinel_generate_code") {
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL ||
+        (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+
+      const payload = {
+        description: args.description,
+        language:    args.language,
+        framework:   args.framework,
+        style:       args.style,
+        context:     args.context,
+        requirements: args.requirements || [],
+      };
+
+      try {
+        const resp = await fetchJSON(`${baseUrl}/api/hub/sentinel/generate_code`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-internal-token": process.env.INTERNAL_API_SECRET || "holly-internal",
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (resp.status !== 200 || !resp.body) {
+          return text(`❌ Sentinel generate failed (HTTP ${resp.status}): ${JSON.stringify(resp.body)}`);
+        }
+
+        const r = resp.body;
+        const code        = r.code        ?? r.result?.code        ?? '';
+        const explanation = r.explanation ?? r.result?.explanation ?? '';
+        const usage       = r.usage       ?? r.result?.usage       ?? '';
+        const dependencies = r.dependencies ?? r.result?.dependencies ?? [];
+        const tests       = r.tests       ?? r.result?.tests       ?? '';
+        const notes       = r.notes       ?? r.result?.notes       ?? '';
+
+        let output = `🛡️ SENTINEL CODE GENERATION\n\n`;
+        output += `Language: ${args.language}${args.framework ? ` (${args.framework})` : ''}\n\n`;
+        if (explanation) output += `${explanation}\n\n`;
+        if (code) output += `\`\`\`${args.language}\n${code}\n\`\`\`\n\n`;
+        if (usage) output += `**Usage:**\n${usage}\n\n`;
+        if (dependencies.length > 0) output += `**Dependencies:** ${dependencies.join(', ')}\n\n`;
+        if (tests) output += `**Test stub:**\n\`\`\`${args.language}\n${tests}\n\`\`\`\n\n`;
+        if (notes) output += `**Notes:** ${notes}`;
+
+        return text(output.trim());
+      } catch (err) {
+        return text(`❌ Sentinel generate error: ${err.message}\nTip: Make sure the HOLLY app is running and INTERNAL_API_SECRET is set.`);
+      }
+    }
+
     throw new Error(`Unknown tool: ${name}`);
 
   } catch (err) {
@@ -1117,7 +1318,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error("[Holly MCP] Phase 10 tool server running — 23 tools active (music, philosophy, creative writing, emotional intelligence, NLP analysis added)");
+  console.error("[Holly MCP] Phase 10 tool server running — 25 tools active (music, philosophy, creative writing, emotional intelligence, NLP analysis, Sentinel code intelligence added)");
 }
 
 main().catch((err) => {

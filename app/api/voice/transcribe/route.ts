@@ -4,7 +4,7 @@
  * Phase 4C: Real Whisper STT endpoint.
  * Free-only provider chain:
  *   1. Groq Whisper (whisper-large-v3-turbo — free, fast, no limits)
- *   2. Browser Web Speech API signal (when GROQ_API_KEY not set)
+ * Browser Web Speech API removed — server-side Whisper only.
  *
  * Accepts multipart/form-data with:
  *   audio        File   — required, any Whisper-supported format
@@ -49,14 +49,13 @@ export async function POST(request: NextRequest) {
       includeSegments: segments,
     });
 
-    // If no cloud providers, tell the frontend to use Web Speech API
-    if (result.useBrowserSTT) {
+    // If Groq not configured or no speech detected, return a clear error.
+    if (!result.text) {
       return NextResponse.json({
         success: false,
-        useBrowserSTT: true,
-        message: 'No STT cloud providers configured. Use browser Web Speech API.',
+        error: 'No speech detected. Ensure GROQ_API_KEY is set in Coolify.',
         setup: getSTTStatus(),
-      });
+      }, { status: 503 });
     }
 
     return NextResponse.json({
