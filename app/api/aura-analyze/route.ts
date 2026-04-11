@@ -1,103 +1,156 @@
 /**
  * AURA A&R Analysis API
- * Analyzes music tracks and provides professional A&R feedback
+ * Real AI-powered music analysis using Groq (free, 300+ tok/s)
+ * No mock data. No external Python worker needed.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 
 export const runtime = 'nodejs';
-export const maxDuration = 60; // Vercel Hobby cap — use Dokploy for unlimited // 5 minutes for audio analysis
+export const maxDuration = 60;
+
+const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
+const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
+
+async function analyzeWithGroq(params: {
+  trackTitle?: string;
+  artistName?: string;
+  genre?: string;
+  lyrics?: string;
+  audioUrl?: string;
+}): Promise<object> {
+  if (!GROQ_API_KEY) throw new Error('GROQ_API_KEY not configured');
+
+  const contextParts: string[] = [];
+  if (params.trackTitle) contextParts.push(`Track: "${params.trackTitle}"`);
+  if (params.artistName) contextParts.push(`Artist: ${params.artistName}`);
+  if (params.genre)      contextParts.push(`Genre: ${params.genre}`);
+  if (params.audioUrl)   contextParts.push(`Audio URL: ${params.audioUrl}`);
+  if (params.lyrics)     contextParts.push(`\nLyrics:\n${params.lyrics.slice(0, 2000)}`);
+
+  const context = contextParts.join('\n');
+
+  const prompt = `You are AURA, an elite A&R analyst with 20+ years in the music industry. You have signed artists to major labels, predicted hit songs, and worked with Billboard charting acts.
+
+Analyze this track submission and provide a professional A&R assessment. Be direct, specific, and honest — like a real A&R executive writing an internal memo.
+
+${context}
+
+Respond ONLY with valid JSON matching this exact structure:
+{
+  "overall_score": <0-100 integer>,
+  "production_quality": <0-100 integer>,
+  "commercial_viability": <0-100 integer>,
+  "artistic_merit": <0-100 integer>,
+  "hit_potential": <0-100 integer>,
+  "strengths": [<3-4 specific strengths as strings>],
+  "weaknesses": [<2-3 honest weaknesses as strings>],
+  "recommendations": [<3 actionable industry recommendations as strings>],
+  "market_potential": "<one sentence assessment>",
+  "target_audience": "<specific demographic description>",
+  "genre_fit": "<primary genre / subgenre>",
+  "playlist_targets": [<3 specific Spotify/Apple playlist names to target>],
+  "similar_artists": [<2-3 comparable artists>],
+  "radio_viability": "<High|Medium|Low> - <one sentence reason>",
+  "sync_potential": "<High|Medium|Low> - <one sentence reason>",
+  "a_and_r_verdict": "<2-3 sentence honest executive verdict>",
+  "model_version": "AURA-v3.0-groq"
+}`;
+
+  const response = await fetch(GROQ_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${GROQ_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: 'llama-3.3-70b-versatile',
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.7,
+      max_tokens: 1024,
+      response_format: { type: 'json_object' },
+    }),
+  });
+
+  if (!response.ok) {
+    const err = await response.text();
+    throw new Error(`Groq error ${response.status}: ${err.slice(0, 200)}`);
+  }
+
+  const data = await response.json();
+  const content = data.choices?.[0]?.message?.content;
+  if (!content) throw new Error('Empty response from Groq');
+
+  const parsed = JSON.parse(content);
+  return { ...parsed, analyzed_at: new Date().toISOString() };
+}
 
 export async function POST(req: NextRequest) {
   try {
-    // Verify authentication
     const { userId } = await auth();
-    
     if (!userId) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Parse request body
+    // Parse request — accept both FormData and JSON
     let audioUrl: string | null = null;
-    let audioFile: File | null = null;
     let lyrics: string | null = null;
+    let trackTitle: string | null = null;
+    let artistName: string | null = null;
+    let genre: string | null = null;
 
-    try {
-      // Try to parse as FormData first
+    const contentType = req.headers.get('content-type') || '';
+    if (contentType.includes('multipart/form-data')) {
       const formData = await req.formData();
-      audioUrl = formData.get('audioUrl') as string;
-      audioFile = formData.get('file') as File;
-      lyrics = formData.get('lyrics') as string;
-    } catch (e) {
-      // If FormData fails, try JSON
-      try {
-        const body = await req.json();
-        audioUrl = body.audioUrl;
-        audioFile = body.audioFile;
-        lyrics = body.lyrics;
-      } catch (jsonError) {
-        console.error('[AURA] Failed to parse request:', jsonError);
-      }
+      audioUrl    = formData.get('audioUrl') as string;
+      lyrics      = formData.get('lyrics') as string;
+      trackTitle  = formData.get('trackTitle') as string;
+      artistName  = formData.get('artistName') as string;
+      genre       = formData.get('genre') as string;
+    } else {
+      const body = await req.json().catch(() => ({}));
+      audioUrl    = body.audioUrl;
+      lyrics      = body.lyrics;
+      trackTitle  = body.trackTitle;
+      artistName  = body.artistName;
+      genre       = body.genre;
     }
 
-    if (!audioUrl && !audioFile) {
+    if (!audioUrl && !lyrics && !trackTitle) {
       return NextResponse.json(
-        { error: 'Either audioUrl or audioFile is required' },
+        { error: 'Provide at least one of: audioUrl, lyrics, or trackTitle' },
         { status: 400 }
       );
     }
 
-    console.log('[AURA] Starting analysis...');
-    console.log('[AURA] Audio URL:', audioUrl);
-    console.log('[AURA] Has file:', !!audioFile);
-    console.log('[AURA] Has lyrics:', !!lyrics);
+    console.log('[AURA] Starting AI analysis...');
 
-    // For now, return a mock analysis since the Python worker needs to be deployed
-    // TODO: Call the Python worker (aura_analyzer.py) when deployed
-    const mockAnalysis = {
-      overall_score: 78,
-      production_quality: 82,
-      commercial_viability: 76,
-      artistic_merit: 75,
-      strengths: [
-        'Excellent production quality with professional mix',
-        'Strong commercial appeal and market potential',
-        'Well-balanced tempo and energy levels'
-      ],
-      weaknesses: [
-        'Could benefit from more dynamic variation',
-        'Lyrics could be more developed'
-      ],
-      recommendations: [
-        'Consider pitching to major streaming playlists',
-        'Target radio stations in the pop/electronic genre',
-        'Develop a strong visual identity for marketing'
-      ],
-      market_potential: 'High - Strong commercial appeal with mainstream potential',
-      target_audience: 'Ages 18-35, fans of electronic pop and dance music',
-      genre_fit: 'Electronic Pop / Dance',
-      model_version: 'AURA-v2.1-mock',
-      analyzed_at: new Date().toISOString()
-    };
-
-    console.log('[AURA] Analysis complete:', mockAnalysis.overall_score);
-
-    return NextResponse.json({
-      success: true,
-      analysis: mockAnalysis
+    const analysis = await analyzeWithGroq({
+      trackTitle: trackTitle || undefined,
+      artistName: artistName || undefined,
+      genre: genre || undefined,
+      lyrics: lyrics || undefined,
+      audioUrl: audioUrl || undefined,
     });
+
+    console.log('[AURA] AI analysis complete');
+
+    return NextResponse.json({ success: true, analysis });
 
   } catch (error) {
     console.error('[AURA] Error:', error);
+
+    // Graceful fallback if Groq is unavailable
+    if (error instanceof Error && error.message.includes('GROQ_API_KEY')) {
+      return NextResponse.json(
+        { success: false, error: 'AI analysis unavailable — GROQ_API_KEY not configured' },
+        { status: 503 }
+      );
+    }
+
     return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : 'Analysis failed'
-      },
+      { success: false, error: error instanceof Error ? error.message : 'Analysis failed' },
       { status: 500 }
     );
   }

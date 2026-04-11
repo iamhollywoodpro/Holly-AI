@@ -125,7 +125,9 @@ class MemoryStore implements RateLimitStore {
 
   constructor() {
     this.startCleanup();
-    hollyLogger.api.warn('Rate limiter using in-memory storage. This will NOT work correctly in serverless environments (Vercel, AWS Lambda). Consider setting up Vercel KV for production.');
+    // In-memory is correct for self-hosted Coolify (persistent Node.js process).
+    // Only needed for serverless (Vercel/Lambda): set KV_REST_API_URL + KV_REST_API_TOKEN.
+    hollyLogger.api.info('Rate limiter using in-memory storage (correct for self-hosted Coolify).');
   }
 
   private startCleanup(): void {
