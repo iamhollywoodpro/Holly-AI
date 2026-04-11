@@ -302,7 +302,7 @@ export async function POST(req: NextRequest) {
 
     // 6. PARALLEL CONTEXT FETCH ────────────────────────────────────────────────
     // Phase 9: add semantic memory + project context alongside existing memory
-    const [memoryContext, identityCtx, semanticResults, projectContextBlock, recentLearnings] = await Promise.all([
+    const [memoryContext, identityCtx, semanticResults, projectContextBlock, recentLearnings, pastSummaries] = await Promise.all([
       dbUserId ? getRelevantMemories(dbUserId, currentTopics) : Promise.resolve(''),
       dbUserId
         ? getIdentityContext(dbUserId)
@@ -321,6 +321,27 @@ export async function POST(req: NextRequest) {
         : Promise.resolve(''),
       // Phase 9E: background learning insights — what Holly has studied on her own
       getRecentLearnings(5).catch(() => ''),
+      // Phase 9H: cross-session persistent memory — past conversation summaries
+      // Fetch the 5 most recent summarised conversations (excluding current one).
+      // This is what makes Holly actually remember across sessions.
+      (dbUserId && conversationId)
+        ? prisma.conversationSummary.findMany({
+            where: {
+              userId: dbUserId,
+              conversationId: { not: conversationId }, // exclude current conversation
+            },
+            orderBy: { updatedAt: 'desc' },
+            take: 5,
+            select: {
+              summary: true,
+              keyTopics: true,
+              topics: true,
+              outcome: true,
+              actionItems: true,
+              updatedAt: true,
+            },
+          }).catch(() => [])
+        : Promise.resolve([]),
     ]);
 
     // 7. BUILD SYSTEM PROMPT ───────────────────────────────────────────────────
@@ -359,6 +380,22 @@ export async function POST(req: NextRequest) {
     if (recentLearnings) {
       hollySystemPrompt += recentLearnings;
       console.log('[Chat API] 📚 Background learning insights injected');
+    }
+
+    // Phase 9H: inject cross-session persistent memory (past conversation summaries)
+    // This is what gives Holly real long-term memory across separate sessions.
+    if (Array.isArray(pastSummaries) && pastSummaries.length > 0) {
+      const summaryBlock = pastSummaries.map((s, i) => {
+        const topicList = [...new Set([...(s.keyTopics ?? []), ...(s.topics ?? [])])].slice(0, 4).join(', ');
+        const when = new Date(s.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        let entry = `[Past Session ${i + 1} — ${when}]: ${s.summary}`;
+        if (topicList) entry += ` | Topics: ${topicList}`;
+        if (s.outcome)  entry += ` | Outcome: ${s.outcome}`;
+        if (s.actionItems?.length) entry += ` | Open actions: ${s.actionItems.slice(0, 2).join('; ')}`;
+        return entry;
+      }).join('\n');
+      hollySystemPrompt += `\n\n## What You Remember From Past Sessions\nYou have worked with ${userName} before. Here is what you know from previous conversations:\n${summaryBlock}`;
+      console.log(`[Chat API] 🗂️  ${pastSummaries.length} past session summaries injected`);
     }
 
     // Phase 9A: inject perception results (files the user attached)
