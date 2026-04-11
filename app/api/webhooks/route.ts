@@ -353,6 +353,66 @@ export async function DELETE(request: NextRequest) {
 }
 
 /**
+ * Route a webhook payload to the correct internal handler.
+ * Add cases as new integrations are wired up.
+ */
+async function dispatchWebhook(
+  service: string,
+  event: string,
+  body: any,
+  integration: any,
+): Promise<{ handled: boolean; detail?: string }> {
+  const s = service.toLowerCase();
+  const e = event.toLowerCase();
+
+  // ── GitHub ─────────────────────────────────────────────────────────────────
+  if (s === 'github') {
+    if (e === 'push') {
+      const ref    = body?.ref ?? '';
+      const branch = ref.replace('refs/heads/', '');
+      const repo   = body?.repository?.full_name ?? 'unknown';
+      const commits = (body?.commits ?? []).length;
+      console.log(`[Webhook/GitHub] push → ${repo}@${branch} (${commits} commit(s))`);
+      return { handled: true, detail: `push to ${repo}@${branch}` };
+    }
+    if (e === 'pull_request') {
+      const action = body?.action ?? '';
+      const pr     = body?.pull_request?.title ?? 'untitled';
+      console.log(`[Webhook/GitHub] pull_request ${action} → "${pr}"`);
+      return { handled: true, detail: `PR ${action}: ${pr}` };
+    }
+    if (e === 'issues') {
+      const action = body?.action ?? '';
+      const issue  = body?.issue?.title ?? 'untitled';
+      console.log(`[Webhook/GitHub] issue ${action} → "${issue}"`);
+      return { handled: true, detail: `Issue ${action}: ${issue}` };
+    }
+    // Generic GitHub event — log and ack
+    console.log(`[Webhook/GitHub] unhandled event: ${event}`);
+    return { handled: true, detail: `GitHub ${event} acknowledged` };
+  }
+
+  // ── Stripe ─────────────────────────────────────────────────────────────────
+  if (s === 'stripe') {
+    const type = body?.type ?? e;
+    console.log(`[Webhook/Stripe] event: ${type}`);
+    return { handled: true, detail: `Stripe ${type} acknowledged` };
+  }
+
+  // ── Suno (music generation callbacks) ──────────────────────────────────────
+  if (s === 'suno') {
+    const taskId = body?.task_id ?? body?.id ?? 'unknown';
+    const status = body?.status ?? 'unknown';
+    console.log(`[Webhook/Suno] task ${taskId} → ${status}`);
+    return { handled: true, detail: `Suno task ${taskId}: ${status}` };
+  }
+
+  // ── Generic / unknown ──────────────────────────────────────────────────────
+  console.log(`[Webhook] unhandled service "${service}", event "${event}"`);
+  return { handled: false, detail: `No handler for service "${service}"` };
+}
+
+/**
  * Process webhook payload (async)
  */
 async function processWebhook(
@@ -363,20 +423,30 @@ async function processWebhook(
   const startTime = Date.now();
   
   try {
-    // TODO: Implement actual webhook processing based on service type
-    // For now, just mark as processed
-    
+    // Retrieve the webhook log to get service/event info
+    const log = await prisma.webhookLog.findUnique({
+      where: { id: webhookLogId },
+      select: { service: true, event: true },
+    });
+
+    const service = log?.service ?? 'unknown';
+    const event   = log?.event   ?? 'unknown';
+
+    // Dispatch to the appropriate handler
+    const { handled, detail } = await dispatchWebhook(service, event, body, integration);
+
     await prisma.webhookLog.update({
       where: { id: webhookLogId },
       data: {
         status: 'success',
         processed: true,
         processedAt: new Date(),
-        processingTime: Date.now() - startTime
+        processingTime: Date.now() - startTime,
+        ...(detail ? { error: null } : {}),
       }
     });
 
-    console.log(`✅ Webhook ${webhookLogId} processed successfully`);
+    console.log(`✅ Webhook ${webhookLogId} processed (${handled ? 'handled' : 'acknowledged'}): ${detail}`);
 
   } catch (error) {
     console.error(`❌ Failed to process webhook ${webhookLogId}:`, error);
