@@ -121,7 +121,7 @@ export async function GET() {
         modelRouter: {
           active: true,
           taskTypes: ['speed','coding','reasoning','long_context','vision','creative','agent','local'],
-          providers: ['groq','cloudflare','nvidia','openrouter','ollama','webllm','bytez'],
+          providers: ['groq','cloudflare','nvidia','openrouter','ollama','webllm'],
           modeAware: true,
         },
         // Cron-driven autonomy

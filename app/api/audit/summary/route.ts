@@ -3,6 +3,7 @@ import { auth } from '@clerk/nextjs/server';
 import { getAuditSummary } from '@/lib/security/audit-logger';
 
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 
 // GET /api/audit/summary - Get audit summary

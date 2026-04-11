@@ -1,9 +1,9 @@
 /**
- * WebLLM Service - Local Browser Inference
- * 
- * Enables HOLLY to run AI inference locally in the browser via WebGPU.
- * Currently a placeholder - Phase 4 Action Engine will implement this fully.
- * 
+ * WebLLM Service - Local Browser Inference (stub)
+ *
+ * Placeholder kept so the UI badge renders correctly.
+ * Ollama (OLLAMA_BASE_URL) is the recommended local inference path.
+ *
  * @see https://github.com/mlc-ai/web-llm
  */
 
@@ -13,12 +13,22 @@ export interface WebLLMChatOptions {
 }
 
 export class WebLLMService {
+  /** Returns false — in-browser WebGPU inference is not implemented. */
+  static isAvailable(): boolean {
+    return false;
+  }
+
   /**
-   * Run local inference via WebGPU
-   * Phase 4: Will use @mlc-ai/web-llm with Qwen-7B or Llama models
+   * Stub — returns a graceful error message instead of throwing.
+   * The UI will show this message and allow the user to switch provider.
    */
   static async chat(options: WebLLMChatOptions): Promise<string> {
-    // Phase 4 implementation will load model weights into browser GPU memory
-    throw new Error('Local AI inference not yet available. Please use the cloud backend.');
+    // Signal progress callback so the UI doesn't hang
+    options.onProgress?.(0, 'Local browser inference is not available.');
+    return (
+      "In-browser AI isn't available yet. " +
+      'For private/offline inference, install Ollama (https://ollama.com) ' +
+      'and set OLLAMA_BASE_URL in your environment.'
+    );
   }
 }

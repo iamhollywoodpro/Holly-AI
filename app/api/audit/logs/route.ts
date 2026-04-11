@@ -3,6 +3,7 @@ import { auth } from '@clerk/nextjs/server';
 import { getAuditLogs } from '@/lib/security/audit-logger';
 
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 
 // GET /api/audit/logs - Get audit logs with filters
