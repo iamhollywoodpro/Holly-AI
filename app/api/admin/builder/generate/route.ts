@@ -2,6 +2,70 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/db';
 
+// ── Real AI code generation via Groq ─────────────────────────────────────────
+async function generateCodeWithGroq(
+  prompt: string,
+  language: string,
+  purpose?: string,
+  context?: any,
+): Promise<string> {
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) throw new Error('GROQ_API_KEY not configured');
+
+  const langGuide: Record<string, string> = {
+    typescript: 'TypeScript with proper types, interfaces, and exports. Use modern TS patterns.',
+    javascript: 'Modern ES2022+ JavaScript with JSDoc comments. Use ES modules.',
+    python:     'Python 3.10+ with type hints, docstrings, and PEP 8 style.',
+    css:        'Modern CSS with custom properties and responsive design.',
+    html:       'Semantic HTML5 with accessibility attributes.',
+    sql:        'Standard SQL with clear table aliases and comments.',
+    bash:       'Bash with set -euo pipefail and inline comments.',
+    go:         'Go with proper error handling and godoc comments.',
+    rust:       'Idiomatic Rust with proper error handling.',
+  };
+  const langNote = langGuide[language.toLowerCase()] ?? `${language} following best practices`;
+
+  const contextNote = context ? `\n\nAdditional context: ${JSON.stringify(context).slice(0, 500)}` : '';
+
+  const systemPrompt = `You are HOLLY's code generation engine — a senior engineer that writes production-quality code.
+Always write complete, working code. Never use TODO placeholders. Never leave stub functions.
+Respond ONLY with the raw code — no markdown fences, no explanation, no preamble.`;
+
+  const userPrompt = `Language: ${language}
+Purpose: ${purpose ?? prompt}
+Guidelines: ${langNote}${contextNote}
+
+Requirement:
+${prompt}`;
+
+  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'llama-3.3-70b-versatile',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user',   content: userPrompt },
+      ],
+      temperature: 0.2,
+      max_tokens: 4096,
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Groq error ${res.status}: ${err.slice(0, 200)}`);
+  }
+
+  const data = await res.json();
+  const code = data.choices?.[0]?.message?.content?.trim() ?? '';
+  if (!code) throw new Error('Groq returned empty code');
+  return code;
+}
+
 export const runtime = 'nodejs';
 
 
@@ -228,52 +292,18 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      // Simulate code generation (In production, this would call an AI service)
-      // For now, generate a simple placeholder based on language
+      // Generate code using Groq AI (Llama-3.3-70B, fast + free tier)
       let generatedCodeText = '';
-      
-      if (language === 'typescript') {
-        generatedCodeText = `// Generated TypeScript code
-// Purpose: ${purpose || 'Generated code'}
-
-export interface GeneratedInterface {
-  id: string;
-  name: string;
-  createdAt: Date;
-}
-
-export function processData(data: GeneratedInterface): void {
-  console.log('Processing:', data.name);
-  // TODO: Implement logic based on: ${prompt}
-}
-
-export default processData;
-`;
-      } else if (language === 'python') {
-        generatedCodeText = `# Generated Python code
-# Purpose: ${purpose || 'Generated code'}
-
-from typing import Dict, Any
-from datetime import datetime
-
-def process_data(data: Dict[str, Any]) -> None:
-    """
-    Process data based on requirements.
-    
-    Args:
-        data: Input data dictionary
-    """
-    print(f"Processing: {data.get('name')}")
-    # TODO: Implement logic based on: ${prompt}
-
-if __name__ == "__main__":
-    process_data({"name": "test"})
-`;
-      } else {
-        generatedCodeText = `// Generated ${language} code
-// Purpose: ${purpose || 'Generated code'}
-// TODO: Implement logic based on: ${prompt}
-`;
+      let aiError: string | null = null;
+      try {
+        generatedCodeText = await generateCodeWithGroq(prompt, language, purpose, contextUsed);
+      } catch (err: any) {
+        console.warn('[Builder/Generate] Groq unavailable, using structured fallback:', err.message);
+        aiError = err.message;
+        // Structured fallback — at least provides a real starting point
+        const ext = language === 'python' ? 'py' : language === 'typescript' ? 'ts' : language === 'javascript' ? 'js' : language;
+        const commentChar = ['python', 'bash', 'shell'].includes(language) ? '#' : '//';
+        generatedCodeText = `${commentChar} ${language} — ${purpose ?? prompt}\n${commentChar} Note: AI generation unavailable (${err.message}). Add GROQ_API_KEY for real code generation.\n`;
       }
 
       // Calculate metrics
@@ -299,9 +329,9 @@ if __name__ == "__main__":
           linesOfCode,
           complexity,
           testCoverage: 0,
-          securityScore: 75, // Default, would be calculated by security scanner
+          securityScore: aiError ? 50 : 80,
           testsPass: null,
-          lintErrors: lintErrors.length > 0 ? lintErrors : null,
+          lintErrors: lintErrors.length > 0 ? lintErrors : aiError ? [aiError] : null,
           codeGenJobId: job.id,
         },
         include: {
@@ -321,8 +351,8 @@ if __name__ == "__main__":
             linesOfCode,
             complexity,
           },
-          codeQualityScore: 75,
-          successRate: 100,
+          codeQualityScore: aiError ? 50 : 85,
+          successRate: aiError ? 0 : 100,
         },
       });
 
@@ -330,6 +360,9 @@ if __name__ == "__main__":
         success: true,
         generatedCode,
         job,
+        aiGenerated: !aiError,
+        model: aiError ? null : 'groq/llama-3.3-70b-versatile',
+        aiError: aiError ?? undefined,
       });
     }
 

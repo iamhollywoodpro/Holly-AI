@@ -246,26 +246,76 @@ async function checkComponentHealth(): Promise<StatusResponse['components']> {
   // Database check
   const databaseStatus = await checkDatabaseHealth();
 
-  // AI check (based on recent performance)
-  const aiStatus: ComponentStatus = {
-    status: 'healthy', // TODO: Check actual AI service health
-    message: 'AI services operational',
-    lastChecked: now,
-  };
+  // AI check — probe Groq with a minimal request
+  const aiStatus: ComponentStatus = await (async () => {
+    const groqKey = process.env.GROQ_API_KEY;
+    if (!groqKey) {
+      return {
+        status: 'degraded' as const,
+        message: 'GROQ_API_KEY not set — AI running on fallback providers',
+        lastChecked: now,
+      };
+    }
+    try {
+      const t0 = performance.now();
+      const probe = await fetch('https://api.groq.com/openai/v1/models', {
+        headers: { Authorization: `Bearer ${groqKey}` },
+        signal: AbortSignal.timeout(5000),
+      });
+      const ms = Math.round(performance.now() - t0);
+      if (!probe.ok) throw new Error(`HTTP ${probe.status}`);
+      return {
+        status: 'healthy' as const,
+        message: `Groq AI operational (${ms}ms)`,
+        lastChecked: now,
+      };
+    } catch (e: any) {
+      return {
+        status: 'degraded' as const,
+        message: `Groq AI unreachable: ${e.message}`,
+        lastChecked: now,
+      };
+    }
+  })();
 
-  // Authentication check
-  const authStatus: ComponentStatus = {
-    status: 'healthy', // TODO: Check Clerk service health
-    message: 'Authentication services operational',
-    lastChecked: now,
-  };
+  // Authentication check — verify Clerk publishable key is set
+  const authStatus: ComponentStatus = (() => {
+    const clerkPub  = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+    const clerkSec  = process.env.CLERK_SECRET_KEY;
+    if (!clerkPub || !clerkSec) {
+      return {
+        status: 'degraded' as const,
+        message: 'Clerk keys missing — authentication may fail',
+        lastChecked: now,
+      };
+    }
+    return {
+      status: 'healthy' as const,
+      message: 'Clerk authentication configured',
+      lastChecked: now,
+    };
+  })();
 
-  // File uploads check
-  const fileUploadsStatus: ComponentStatus = {
-    status: 'healthy', // TODO: Check Vercel Blob health
-    message: 'File upload services operational',
-    lastChecked: now,
-  };
+  // File uploads check — verify storage is configured
+  const fileUploadsStatus: ComponentStatus = (() => {
+    // Holly uses Vercel Blob OR local uploads; check for at least one configured
+    const blobToken   = process.env.BLOB_READ_WRITE_TOKEN;
+    const s3Bucket    = process.env.AWS_S3_BUCKET;
+    const uploadDir   = process.env.UPLOAD_DIR;
+    if (!blobToken && !s3Bucket && !uploadDir) {
+      return {
+        status: 'degraded' as const,
+        message: 'No file storage configured (BLOB_READ_WRITE_TOKEN, AWS_S3_BUCKET, or UPLOAD_DIR)',
+        lastChecked: now,
+      };
+    }
+    const provider = blobToken ? 'Vercel Blob' : s3Bucket ? 'AWS S3' : 'local';
+    return {
+      status: 'healthy' as const,
+      message: `File uploads via ${provider}`,
+      lastChecked: now,
+    };
+  })();
 
   // Performance check
   const performanceStatus: ComponentStatus = {
