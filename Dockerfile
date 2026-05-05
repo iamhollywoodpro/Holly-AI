@@ -123,14 +123,13 @@ RUN npx prisma@5.22.0 generate
 RUN npm rebuild node-pty --build-from-source 2>&1 || echo '[WARN] node-pty rebuild failed — WS terminal will fall back to REST mode'
 
 # Build with 3 GB heap.
-# Compile holly-server.ts → holly-server.js from TypeScript source.
-# With workerThreads:false + cpus:1 in next.config.js, 3GB heap is sufficient.
+# npm run build = compile-server (tsc) + prisma generate + next build
+# No need for separate tsc/prisma steps — the build script handles everything.
 ENV NODE_OPTIONS="--max-old-space-size=3072"
 ENV NEXT_TELEMETRY_DISABLED=1
 # Triggers output:'standalone' in next.config.js
 ENV DOCKER_BUILD=true
 
-RUN npx tsc --project tsconfig.server.json
 RUN npm run build
 
 # ── Stage 3: Production runner ────────────────────────────────────────────────
