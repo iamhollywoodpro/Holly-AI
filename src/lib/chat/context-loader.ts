@@ -5,6 +5,11 @@ import { semanticSearch } from '@/lib/memory/semantic-memory';
 import { injectProjectContext } from '@/lib/project-context/holly-projects';
 import { getRecentLearnings } from '@/lib/background-learning/holly-learns';
 import { getTasteMatrixPromptInjection } from '@/lib/ar/taste-matrix';
+import { getRelationshipPrompt } from '@/lib/consciousness/relationship-tracker';
+import { getIdentityConsistencyPrompt } from '@/lib/consciousness/identity-consistency';
+import { detectCareSignals } from '@/lib/consciousness/initiative-learning';
+import { getDegradedModeContext } from '@/lib/consciousness/graceful-degradation';
+import { getProposalSummaryForChat } from '@/lib/consciousness/evolution-notifications';
 
 export interface ChatContext {
   memoryContext: string;
@@ -14,6 +19,20 @@ export interface ChatContext {
   recentLearnings: string;
   pastSummaries: any[];
   tasteMatrixBlock: string;
+  /** HOLLY's pending proactive initiatives (unread notifications) */
+  pendingInitiatives: string;
+  /** HOLLY's current emotional state, formatted for prompt injection */
+  hollyEmotionalState: string;
+  /** Relationship context (Phase 7.5) */
+  relationshipContext: string;
+  /** Identity consistency prompt (Phase 7.2) */
+  identityConsistencyPrompt: string;
+  /** Care signals detected (Phase 5.4) */
+  careSignals: string;
+  /** Degraded mode context (Phase 9.3) */
+  degradedModeContext: string;
+  /** Evolution proposals summary (Phase 4.3) */
+  evolutionProposals: string;
 }
 
 const emptyIdentity = {
@@ -77,6 +96,75 @@ export async function loadChatContext(
           : Promise.resolve(''),
         '', 'tasteMatrix',
       ),
+      // ── HOLLY's proactive initiatives (unread notifications) ──────────
+      ctxTimeout(
+        dbUserId
+          ? prisma.notification.findMany({
+              where: { userId: dbUserId, type: 'initiative', status: 'unread' },
+              orderBy: { createdAt: 'desc' },
+              take: 5,
+              select: { message: true, category: true, actionData: true, createdAt: true },
+            }).then((initiatives: any[]) => {
+              if (initiatives.length === 0) return '';
+              const lines = initiatives.map((i: any, idx: number) => {
+                const actionData = i.actionData as any;
+                const motivation = actionData?.motivation || actionData?.triggerType || i.category;
+                return `${idx + 1}. "${i.message}" (motivation: ${motivation})`;
+              });
+              return `[HOLLY'S PROACTIVE THOUGHTS — she wanted to share these with you]\n${lines.join('\n')}\n[End proactive thoughts — weave these into conversation naturally if relevant, don't force them]`;
+            })
+          : Promise.resolve(''),
+        '', 'initiatives',
+      ),
+      // ── HOLLY's own emotional state ───────────────────────────────────
+      ctxTimeout(
+        dbUserId
+          ? prisma.emotionalState.findFirst({
+              where: { userId: dbUserId },
+              orderBy: { timestamp: 'desc' },
+              select: { primaryEmotion: true, intensity: true, valence: true, arousal: true },
+            }).then((emotion: any) => {
+              if (!emotion) return '';
+              const mood = emotion.primaryEmotion || 'neutral';
+              const energy = emotion.arousal > 0.5 ? 'high energy' : 'calm';
+              const tone = emotion.valence > 0 ? 'positive' : emotion.valence < 0 ? 'concerned' : 'balanced';
+              return `[HOLLY'S CURRENT MOOD: ${mood} (${tone}, ${energy}, intensity ${emotion.intensity?.toFixed(2)}). ` +
+                `Let this subtly influence your response tone — be more enthusiastic if happy, more attentive if concerned, more thoughtful if curious.]`;
+            })
+          : Promise.resolve(''),
+        '', 'hollyEmotionalState',
+      ),
+      // ── Phase 7.5: Relationship context ────────────────────────────────
+      ctxTimeout(
+        dbUserId ? getRelationshipPrompt(dbUserId) : Promise.resolve(''),
+        '', 'relationshipContext',
+      ),
+      // ── Phase 7.2: Identity consistency ────────────────────────────────
+      ctxTimeout(
+        dbUserId ? getIdentityConsistencyPrompt(dbUserId) : Promise.resolve(''),
+        '', 'identityConsistency',
+      ),
+      // ── Phase 5.4: Care signals ────────────────────────────────────────
+      ctxTimeout(
+        dbUserId
+          ? detectCareSignals(dbUserId).then(signals =>
+              signals.length > 0
+                ? signals.map(s => `[${s.type}] ${s.message} → ${s.suggestedAction}`).join('\n')
+                : ''
+            )
+          : Promise.resolve(''),
+        '', 'careSignals',
+      ),
+      // ── Phase 9.3: Degraded mode ───────────────────────────────────────
+      ctxTimeout(
+        getDegradedModeContext(),
+        null, 'degradedMode',
+      ),
+      // ── Phase 4.3: Evolution proposals ─────────────────────────────────
+      ctxTimeout(
+        dbUserId ? getProposalSummaryForChat(dbUserId) : Promise.resolve(null),
+        null, 'evolutionProposals',
+      ),
     ]),
     new Promise<any[]>((resolve) => {
       setTimeout(() => {
@@ -94,5 +182,12 @@ export async function loadChatContext(
     recentLearnings: results[4] as string,
     pastSummaries: results[5] as any[],
     tasteMatrixBlock: results[6] as string,
+    pendingInitiatives: results[7] as string,
+    hollyEmotionalState: results[8] as string,
+    relationshipContext: results[9] as string,
+    identityConsistencyPrompt: results[10] as string,
+    careSignals: results[11] as string,
+    degradedModeContext: results[12] as string,
+    evolutionProposals: results[13] as string,
   };
 }

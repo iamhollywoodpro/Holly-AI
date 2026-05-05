@@ -158,6 +158,13 @@ export async function POST(req: NextRequest) {
       audioAnalysis,
       arResult,
       imageDataUrls,
+      pendingInitiatives: ctx.pendingInitiatives,
+      hollyEmotionalState: ctx.hollyEmotionalState,
+      relationshipContext: ctx.relationshipContext,
+      identityConsistencyPrompt: ctx.identityConsistencyPrompt,
+      careSignals: ctx.careSignals,
+      degradedModeContext: ctx.degradedModeContext,
+      evolutionProposals: ctx.evolutionProposals,
     });
 
     // 8. PREPARE MESSAGES

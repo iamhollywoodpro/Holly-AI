@@ -39,3 +39,8 @@
 # Synthesizes overnight learning, diagnostics, and goals into a proactive briefing
 # pushed to the NEXA Dashboard via the Notification system.
 0 12 * * *   /run-cron.sh /api/autonomy/morning-briefing >> /proc/1/fd/1 2>&1
+
+# Consciousness Loop — every hour (offset 15 min, staggered from background-learning)
+# The heartbeat of HOLLY's autonomous existence: processes experiences, generates
+# LLM-powered insights, evaluates initiatives, and evolves identity daily.
+15 * * * *   /run-cron.sh /api/cron/consciousness-loop >> /proc/1/fd/1 2>&1

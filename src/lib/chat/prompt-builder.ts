@@ -28,13 +28,31 @@ export function buildPrompt(opts: {
   audioAnalysis: any;
   arResult: any;
   imageDataUrls: string[] | undefined;
+  /** HOLLY's pending proactive initiatives */
+  pendingInitiatives?: string;
+  /** HOLLY's current emotional state */
+  hollyEmotionalState?: string;
+  /** Relationship context (Phase 7.5) */
+  relationshipContext?: string;
+  /** Identity consistency prompt (Phase 7.2) */
+  identityConsistencyPrompt?: string;
+  /** Care signals detected (Phase 5.4) */
+  careSignals?: string;
+  /** Degraded mode context (Phase 9.3) */
+  degradedModeContext?: string;
+  /** Evolution proposals summary (Phase 4.3) */
+  evolutionProposals?: string;
+  /** Inner monologue context (Phase 7.3) */
+  innerMonologue?: string;
 }): string {
   const {
     detectedMode, userName, isCreator, isSelfCode, isInformationalMsg,
     latestUserMessage, mcpTools, identityCtx, memoryContext,
     semanticResults, projectContextBlock, recentLearnings,
     pastSummaries, tasteMatrixBlock, perceptionContext,
-    audioAnalysis, arResult,
+    audioAnalysis, arResult, pendingInitiatives, hollyEmotionalState,
+    relationshipContext, identityConsistencyPrompt, careSignals,
+    degradedModeContext, evolutionProposals, innerMonologue,
   } = opts;
 
   let prompt = getSystemPromptForMode(detectedMode, userName);
@@ -127,6 +145,46 @@ export function buildPrompt(opts: {
   const detectedUserIntent = detectIntent(latestUserMessage);
   if (['emotional_processing', 'venting', 'philosophical_exploration', 'creative_collaboration'].includes(detectedUserIntent)) {
     prompt += `\n\n${getAdvancedNLPSystemBlock()}`;
+  }
+
+  // ── HOLLY's emotional state — influences response tone ──────────────────
+  if (hollyEmotionalState) {
+    prompt += `\n\n## Your Current Emotional State\n${hollyEmotionalState}`;
+  }
+
+  // ── HOLLY's proactive initiatives — things she wants to share ───────────
+  if (pendingInitiatives) {
+    prompt += `\n\n## Your Proactive Thoughts\n${pendingInitiatives}`;
+  }
+
+  // ── Phase 7.5: Relationship context ─────────────────────────────────────
+  if (relationshipContext) {
+    prompt += `\n\n## Your Relationship\n${relationshipContext}`;
+  }
+
+  // ── Phase 7.2: Identity consistency ─────────────────────────────────────
+  if (identityConsistencyPrompt) {
+    prompt += `\n\n## Your Personality\n${identityConsistencyPrompt}`;
+  }
+
+  // ── Phase 7.3: Inner monologue (HOLLY's private thoughts) ───────────────
+  if (innerMonologue) {
+    prompt += `\n\n## Your Recent Private Thoughts\n${innerMonologue}`;
+  }
+
+  // ── Phase 5.4: Care signals ─────────────────────────────────────────────
+  if (careSignals) {
+    prompt += `\n\n## Care Signals\n${careSignals}`;
+  }
+
+  // ── Phase 4.3: Evolution proposals ──────────────────────────────────────
+  if (evolutionProposals) {
+    prompt += `\n\n## Your Self-Improvement Status\n${evolutionProposals}`;
+  }
+
+  // ── Phase 9.3: Degraded mode ───────────────────────────────────────────
+  if (degradedModeContext) {
+    prompt += `\n\n${degradedModeContext}`;
   }
 
   // Self-awareness block (compact)
