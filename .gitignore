@@ -14,7 +14,7 @@ out/
 .DS_Store
 *.log
 .env.credentials
-core
+/core
 
 # Oracle Cloud Private Keys
 *.pem
@@ -59,7 +59,7 @@ mobile-app/package-lock.json
 browser-extension/icons/*.png
 
 # Downloads
-downloads/
+/downloads/
 
 # Stitch exports
 stitch_exports/
