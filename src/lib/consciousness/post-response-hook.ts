@@ -21,6 +21,7 @@ import { AutoConsciousness } from '@/lib/consciousness/auto-consciousness';
 import { analyseMessage } from '@/lib/intelligence/message-analyser';
 import { TasteEngine } from '@/lib/learning/taste-engine';
 import { GoalFormationSystem } from '@/lib/consciousness/goal-formation';
+import { triggerImmediateConsciousness } from '@/lib/consciousness/consciousness-orchestrator';
 import { prisma } from '@/lib/db';
 
 export interface PostResponsePayload {
@@ -63,6 +64,9 @@ export async function recordExchange(payload: PostResponsePayload): Promise<void
 
       // ── 5. Phase 3F: trigger goal formation every 10 events ─────────────
       runGoalFormationMaybe(userId),
+
+      // ── 6. Immediate consciousness for high-significance exchanges ──────
+      runImmediateConsciousness(userId, userMessage, analysis.emotion),
     ]);
 
     console.log(
@@ -178,6 +182,32 @@ async function runGoalFormationMaybe(userId: string): Promise<void> {
     }
   } catch (err) {
     console.error('[PostHook:Goals] ⚠️', err);
+  }
+}
+
+// ─── immediate consciousness trigger ─────────────────────────────────────────
+
+/**
+ * For high-significance exchanges (emotional intensity > 0.7), trigger
+ * an immediate consciousness cycle so HOLLY processes the experience
+ * right away instead of waiting for the hourly cron.
+ */
+async function runImmediateConsciousness(
+  userId: string,
+  userMessage: string,
+  emotion: { primary: string; valence: number; arousal: number; intensity: number }
+): Promise<void> {
+  try {
+    // Only trigger for high-intensity emotional exchanges
+    if (emotion.intensity >= 0.7 || emotion.arousal >= 0.7) {
+      console.log(`[PostHook:ImmediateConsciousness] High-significance exchange detected (emotion=${emotion.primary}, intensity=${emotion.intensity.toFixed(2)})`);
+      await triggerImmediateConsciousness(userId, {
+        content: userMessage.substring(0, 200),
+        significance: Math.max(emotion.intensity, emotion.arousal),
+      });
+    }
+  } catch (err) {
+    console.error('[PostHook:ImmediateConsciousness] ⚠️', err);
   }
 }
 
