@@ -35,8 +35,25 @@ __tests__
 README.md
 DEPLOY.md
 CLAUDE.md
+FEATURE_ROADMAP.md
+HOLLY_IMPLEMENTATION_PLAN.md
+HOLLY_MANIFESTO.md
+PHASE_9_ARCHITECTURE.md
+ORACLE_ARM_GUIDE.md
+HOLLY_AI_COMPLETE_DOCUMENTATION.md
+VERCEL.md
 .github
 .husky
+docs/
+mockups/
+scratch/
+
+# ── PDFs and large files ──────────────────────────────────────────────────────
+*.pdf
+
+# ── Non-Docker sub-projects ──────────────────────────────────────────────────
+browser-extension/
+mobile-app/
 
 # ── Logs ──────────────────────────────────────────────────────────────────────
 *.log
