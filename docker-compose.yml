@@ -1,0 +1,241 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# HOLLY AI — Docker Compose
+#
+# Services:
+#   holly-app    — Next.js production server (port 3000)
+#   holly-cron   — Alpine cron container that fires all 8 background jobs
+#   livekit      — WebRTC media server for zero-latency voice
+#                  (replaces HTTP request/response voice with persistent audio socket)
+#
+# Usage (Coolify):
+#   1. Create a new "Docker Compose" service in Coolify
+#   2. Point it at this repo (GitHub source)
+#   3. Set all env vars in Coolify's Environment Variables tab
+#   4. Deploy — Coolify builds both services automatically
+#
+# Usage (local dev):
+#   docker compose up --build
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  # ── Main Next.js Application ─────────────────────────────────────────────
+  holly-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+      # Pass NEXT_PUBLIC_* vars as build args so Next.js bakes them into
+      # the client bundle. Without this, Clerk and other client-side SDKs
+      # receive empty values and crash the server on startup.
+      args:
+        NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+        NEXT_PUBLIC_APP_NAME: ${NEXT_PUBLIC_APP_NAME:-HOLLY}
+        NEXT_PUBLIC_ENABLE_MUSIC_GENERATION: ${NEXT_PUBLIC_ENABLE_MUSIC_GENERATION:-true}
+        NEXT_PUBLIC_ENABLE_LYRICS_AI: ${NEXT_PUBLIC_ENABLE_LYRICS_AI:-true}
+        NEXT_PUBLIC_ENABLE_VIDEO_GENERATION: ${NEXT_PUBLIC_ENABLE_VIDEO_GENERATION:-true}
+        NEXT_PUBLIC_ENABLE_ARTIST_CREATION: ${NEXT_PUBLIC_ENABLE_ARTIST_CREATION:-true}
+        NEXT_PUBLIC_ENABLE_TRUE_STREAMING: ${NEXT_PUBLIC_ENABLE_TRUE_STREAMING:-true}
+        NEXT_PUBLIC_CLERK_SIGN_IN_URL: ${NEXT_PUBLIC_CLERK_SIGN_IN_URL:-/sign-in}
+        NEXT_PUBLIC_CLERK_SIGN_UP_URL: ${NEXT_PUBLIC_CLERK_SIGN_UP_URL:-/sign-up}
+        # NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL and AFTER_SIGN_UP_URL are intentionally
+        # NOT passed as build args. Redirects are controlled exclusively via
+        # forceRedirectUrl="/chat" props in app/layout.tsx and sign-in/sign-up pages.
+        # Passing these args caused Coolify to lock them in its env panel,
+        # and the /dashboard default sent users to a blank page.
+    container_name: holly-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      # ── Core ──────────────────────────────────────────────────────────────
+      NODE_ENV:                         production
+      NEXT_PUBLIC_APP_URL:              ${NEXT_PUBLIC_APP_URL}
+      NEXT_PUBLIC_APP_NAME:             ${NEXT_PUBLIC_APP_NAME:-HOLLY}
+      INTERNAL_API_SECRET:              ${INTERNAL_API_SECRET}
+
+      # ── Database ──────────────────────────────────────────────────────────
+      DATABASE_URL:                     ${DATABASE_URL}
+
+      # ── Auth (Clerk) ──────────────────────────────────────────────────────
+      CLERK_SECRET_KEY:                 ${CLERK_SECRET_KEY}
+      CLERK_WEBHOOK_SECRET:             ${CLERK_WEBHOOK_SECRET}
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+
+      # ── LLM Providers (all free tiers) ────────────────────────────────────
+      GROQ_API_KEY:                     ${GROQ_API_KEY}
+      OPENROUTER_API_KEY:               ${OPENROUTER_API_KEY}
+      NVIDIA_API_KEY:                   ${NVIDIA_API_KEY}
+      CF_ACCOUNT_ID_CF_AI_TOKEN:        ${CF_ACCOUNT_ID_CF_AI_TOKEN}
+      HUGGINGFACE_API_KEY:              ${HUGGINGFACE_API_KEY}
+      OPENAI_API_KEY:                   ${OPENAI_API_KEY:-}
+      ARCEE_API_KEY:                    ${ARCEE_API_KEY:-}
+      ARCEE_BASE_URL:                   ${ARCEE_BASE_URL:-https://api.arcee.ai/api/v1}
+
+      # ── Voice: VoxCPM2 (primary) + Kokoro (fallback) ──────────────────────────
+      # VoxCPM2: 48kHz studio quality, 30 languages, voice design, emotion style tags
+      # Kokoro: ultra-low-latency fallback, CPU-only emergency
+      VOXCPM2_TTS_URL:                  ${VOXCPM2_TTS_URL:-}
+      VOXCPM2_STYLE_GUIDANCE:           ${VOXCPM2_STYLE_GUIDANCE:-natural, warm, confident}
+      HOLLY_VOICE_DESCRIPTION:          ${HOLLY_VOICE_DESCRIPTION:-}
+      HOLLY_TTS_API_KEY:                ${HOLLY_TTS_API_KEY:-}
+      KOKORO_TTS_URL:                   ${KOKORO_TTS_URL:-}
+      KOKORO_VOICE:                     ${KOKORO_VOICE:-af_heart}
+
+      # ── Music ─────────────────────────────────────────────────────────────
+      SUNO_API_KEY:                     ${SUNO_API_KEY:-}
+      SUNO_BASE_URL:                    ${SUNO_BASE_URL:-}
+      SONAUTO_API_KEY:                  ${SONAUTO_API_KEY:-}
+
+      # ── Storage ───────────────────────────────────────────────────────────
+      # Cloudflare R2 (free 10GB) — replaces Vercel Blob
+      R2_ACCOUNT_ID:                    ${R2_ACCOUNT_ID:-}
+      R2_ACCESS_KEY_ID:                 ${R2_ACCESS_KEY_ID:-}
+      R2_SECRET_ACCESS_KEY:             ${R2_SECRET_ACCESS_KEY:-}
+      R2_BUCKET_NAME:                   ${R2_BUCKET_NAME:-}
+      R2_PUBLIC_URL:                    ${R2_PUBLIC_URL:-}
+      # Vercel Blob (legacy — leave set if still using)
+      BLOB_READ_WRITE_TOKEN:            ${BLOB_READ_WRITE_TOKEN:-}
+
+      # ── Search ────────────────────────────────────────────────────────────
+      SERPER_API_KEY:                   ${SERPER_API_KEY:-}
+
+      # ── Social / OAuth ────────────────────────────────────────────────────
+      SPOTIFY_CLIENT_ID:                ${SPOTIFY_CLIENT_ID:-}
+      SPOTIFY_CLIENT_SECRET:            ${SPOTIFY_CLIENT_SECRET:-}
+      SPOTIFY_REDIRECT_URI:             ${SPOTIFY_REDIRECT_URI:-}
+      YOUTUBE_CLIENT_ID:                ${YOUTUBE_CLIENT_ID:-}
+      YOUTUBE_CLIENT_SECRET:            ${YOUTUBE_CLIENT_SECRET:-}
+      YOUTUBE_REDIRECT_URI:             ${YOUTUBE_REDIRECT_URI:-}
+      SOUNDCLOUD_CLIENT_ID:             ${SOUNDCLOUD_CLIENT_ID:-}
+      SOUNDCLOUD_CLIENT_SECRET:         ${SOUNDCLOUD_CLIENT_SECRET:-}
+      SOUNDCLOUD_REDIRECT_URI:          ${SOUNDCLOUD_REDIRECT_URI:-}
+      GITHUB_CLIENT_ID:                 ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET:             ${GITHUB_CLIENT_SECRET:-}
+      GITHUB_TOKEN:                     ${GITHUB_TOKEN:-}
+      GITHUB_OWNER:                     ${GITHUB_OWNER:-iamhollywoodpro}
+      GITHUB_REPO:                      ${GITHUB_REPO:-Holly-AI}
+
+      # ── Feature Flags ─────────────────────────────────────────────────────
+      NEXT_PUBLIC_ENABLE_MUSIC_GENERATION:  ${NEXT_PUBLIC_ENABLE_MUSIC_GENERATION:-true}
+      NEXT_PUBLIC_ENABLE_LYRICS_AI:         ${NEXT_PUBLIC_ENABLE_LYRICS_AI:-true}
+      NEXT_PUBLIC_ENABLE_VIDEO_GENERATION:  ${NEXT_PUBLIC_ENABLE_VIDEO_GENERATION:-true}
+      NEXT_PUBLIC_ENABLE_ARTIST_CREATION:   ${NEXT_PUBLIC_ENABLE_ARTIST_CREATION:-true}
+      NEXT_PUBLIC_ENABLE_TRUE_STREAMING:    ${NEXT_PUBLIC_ENABLE_TRUE_STREAMING:-true}
+
+      # ── Cron auth secret (shared with holly-cron) ─────────────────────────
+      CRON_SECRET:                      ${CRON_SECRET}
+
+      # ── LiveKit WebRTC Voice ──────────────────────────────────────────────
+      LIVEKIT_API_KEY:                  ${LIVEKIT_API_KEY:-hollylivekitkey2026}
+      LIVEKIT_API_SECRET:               ${LIVEKIT_API_SECRET:-hollylivekit_secure_production_secret_32chars_long}
+      LIVEKIT_URL:                      ${LIVEKIT_URL:-ws://livekit:7880}
+      LIVEKIT_NODE_IP:                  ${LIVEKIT_NODE_IP:-127.0.0.1}
+
+      # ── HOLLY AI Builder — Phase 12 ──────────────────────────────────────
+      # SANDBOX_PROVIDER: 'docker' spawns per-session containers (needs socket
+      # mount in volumes below). Fallback is 'local' (/tmp/holly-builder).
+      SANDBOX_PROVIDER:               ${SANDBOX_PROVIDER:-docker}
+      HOLLY_DOCKER_IMAGE:             ${HOLLY_DOCKER_IMAGE:-node:20-slim}
+      HOLLY_DOCKER_MEM:               ${HOLLY_DOCKER_MEM:-512m}
+      HOLLY_DOCKER_CPU_QUOTA:         ${HOLLY_DOCKER_CPU_QUOTA:-50000}
+      HOLLY_DOCKER_PIDS:              ${HOLLY_DOCKER_PIDS:-100}
+      TERMINAL_TRANSPORT:             ${TERMINAL_TRANSPORT:-ws}
+      PREVIEW_PROXY_ENABLED:          ${PREVIEW_PROXY_ENABLED:-true}
+      GITHUB_INTEGRATION_ENABLED:     ${GITHUB_INTEGRATION_ENABLED:-true}
+      FIX_LOOP_MAX_ATTEMPTS:          ${FIX_LOOP_MAX_ATTEMPTS:-5}
+      FILE_SYNC_ENABLED:              ${FILE_SYNC_ENABLED:-true}
+
+    # Docker healthcheck — marks container healthy/unhealthy.
+    # start_period: app gets 3 minutes to boot before failures count.
+    # Traefik reads this status via the labels below.
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:3000/api/health || exit 1"]
+      start_period: 180s
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+    # ── Docker socket bind-mount ─────────────────────────────────────────────
+    # Required for SANDBOX_PROVIDER=docker so HOLLY Builder can run
+    # `docker run` to create isolated per-session build containers.
+    # ⚠️  Security: grants container root-equivalent access to host Docker.
+    # Coolify itself already runs this way. Set SANDBOX_PROVIDER=local to opt out.
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+    labels:
+      # ── Traefik health-gate labels ─────────────────────────────────────────
+      # These tell Traefik to ONLY route traffic to this container when
+      # Docker marks it healthy. Without these, Traefik routes immediately
+      # on container start → Gateway Timeout while Next.js is still booting.
+      - "traefik.enable=true"
+      - "traefik.http.services.holly-app.loadbalancer.healthcheck.path=/api/health"
+      - "traefik.http.services.holly-app.loadbalancer.healthcheck.interval=15s"
+      - "traefik.http.services.holly-app.loadbalancer.healthcheck.timeout=10s"
+      - "traefik.docker.network=coolify"
+
+    networks:
+      - coolify
+
+  # ── Cron Runner ──────────────────────────────────────────────────────────
+  # Cron runner — runs inside the same Docker network
+  # so it can reach holly-app directly via http://holly-app:3000
+  #
+  # IMPORTANT: We build a custom image (Dockerfile.cron) instead of using
+  # alpine:3.19 + bind mounts. Coolify pre-creates bind-mount paths as
+  # directories, which makes Docker fail with "not a directory" when trying
+  # to mount a file. Baking the files into the image avoids this entirely.
+  #
+  # Schedule
+  #   0 3 * * *    → /api/admin/architecture/generate  (3 AM daily)
+  #   0 0 * * *    → /api/autonomy/self-heal            (midnight daily)
+  #   0 2 * * *    → /api/cron/evolve                   (2 AM daily)
+  #   0 4 * * *    → /api/cron/identity-evolve          (4 AM daily)
+  #   0 9 * * *    → /api/initiative                    (9 AM daily)
+  #   0 */2 * * *  → /api/background-learning           (every 2 hours)
+  #   30 */2 * * * → /api/background-learning           (every 2 hours, offset 30m)
+  holly-cron:
+    build:
+      context: ./docker/cron
+      dockerfile: Dockerfile.cron
+    container_name: holly-cron
+    restart: unless-stopped
+    depends_on:
+      holly-app:
+        condition: service_started  # service_healthy blocks cron until app passes healthcheck — use service_started instead
+    environment:
+      CRON_SECRET:   ${CRON_SECRET}
+      APP_URL:       http://holly-app:3000
+    networks:
+      - coolify
+
+  # ── LiveKit WebRTC Server ──────────────────────────────────────────────────
+  # Provides zero-latency bi-directional audio for HOLLY's voice conversations.
+  # LiveKit handles WebRTC negotiation, TURN/STUN, and room management.
+  # HOLLY's VoxCPM2 TTS streams through LiveKit as an agent participant.
+  livekit:
+    image: livekit/livekit-server:latest
+    container_name: holly-livekit
+    restart: unless-stopped
+    ports:
+      - "7880:7880"    # HTTP/WS API
+      - "7881:7881"    # RTC (UDP)
+      - "7882:7882/udp"  # RTC (UDP)
+    environment:
+      LIVEKIT_KEYS: "${LIVEKIT_API_KEY:-hollylivekitkey2026}: ${LIVEKIT_API_SECRET:-8f3e2a9b1c7d4e5f6a0b9c8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f}"
+    command: >
+      --node-ip ${LIVEKIT_NODE_IP:-127.0.0.1}
+      --port 7880
+      --bind 0.0.0.0
+    networks:
+      - coolify
+
+networks:
+  coolify:
+    external: true
+    # Coolify's shared Docker network.
+    # All services (holly-app, holly-cron, livekit) and the standalone
+    # holly-db database are on this network — Traefik routes on it too.
+    # Do NOT use a custom bridge network; Traefik won't find containers on it.

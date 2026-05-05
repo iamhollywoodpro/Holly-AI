@@ -1,0 +1,4109 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+  binaryTargets   = ["native", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [vector]
+}
+
+model User {
+  id                      String                   @id @default(cuid())
+  clerkUserId             String?                  @unique
+  email                   String                   @unique
+  name                    String?
+  imageUrl                String?
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  conversations           Conversation[]
+  fileUploads             FileUpload[]
+  projects                Project[]
+  emotions                Emotion[]
+  emotionAggregates       EmotionAggregate[]
+  emotionTrends           EmotionTrend[]
+  emotionInsights         EmotionInsight[]
+  githubIntegrations      GitHubIntegration[]
+  googleDriveIntegrations GoogleDriveIntegration[]
+  workLogs                WorkLog[]
+  settings                UserSettings?
+  musicTracks             MusicTrack[]
+  musicAnalyses           MusicAnalysis[]
+  trendReports            TrendReport[]
+  hollyExperiences        HollyExperience[]
+  hollyGoals              HollyGoal[]
+  hollyIdentity           HollyIdentity?
+  conversationSummaries   ConversationSummary[]
+  githubConnection        GitHubConnection?
+  githubRepositories      GitHubRepository[]
+  googleDriveConnection   GoogleDriveConnection?
+  downloadLinks           DownloadLink[]
+  auditLogs               AuditLog[]
+  userStats               UserStats?
+  deployments             Deployment[]
+  projectActivities       ProjectActivity[]
+  budgets                 Budget[]
+  transactions            Transaction[]
+  recentActivities        RecentActivity[]
+  workLogStats            WorkLogStats?
+  emotionLogs             EmotionLog[]
+  emotionalBaseline       EmotionalBaseline?
+
+  // Phase 1: Metamorphosis - Self-Awareness
+  userFeedbacks UserFeedback[]
+
+  // Phase 2C: Learning & Adaptation
+  userPreferences      UserPreference[]
+  conversationPatterns ConversationPattern[]
+  responseFeedback     ResponseFeedback[]
+  adaptationStrategies AdaptationStrategy[]
+
+  // Phase 2E: Emotional Intelligence
+  emotionalStates     EmotionalState[]
+  emotionalTriggers   EmotionalTrigger[]
+  empathyInteractions EmpathyInteraction[]
+  emotionalJourneys   EmotionalJourney[]
+  supportStrategies   SupportStrategy[]
+
+  // Phase 2D: Creative Co-Pilot
+  creativeSuggestions CreativeSuggestion[]
+  refinementHistory   RefinementHistory[]
+  narrativeTemplates  NarrativeTemplate[]
+  brainstormSessions  BrainstormSession[]
+  creativeInsights    CreativeInsight[]
+
+  // Phase 4B: Advanced User Intelligence
+  sessions          UserSession[]
+  events            UserEvent[]
+  journeys          UserJourney[]
+  preferencesV2     UserPreferences?
+  abTestAssignments ABTestAssignment[]
+  abTestConversions ABTestConversion[]
+  engagementScore   UserEngagementScore?
+  feedbackV2        UserFeedbackV2[]
+
+  // Phase 4D: Development Automation
+  // (Relations will be added when models are used)
+
+  // Phase 4E Relations
+  integrations        Integration[]
+  customReports       CustomReport[]
+  metricAlerts        MetricAlert[]
+  analyticsDashboards AnalyticsDashboard[]
+  notifications       Notification[]
+
+  // Phase 4C: Creative AI Systems
+  creativeAssets    CreativeAsset[]
+  generationJobs    GenerationJob[]
+  creativeTemplates CreativeTemplate[]
+
+  // Phase 5A: Intelligent Code Synthesizer
+  generatedCodes     GeneratedCode[]
+  codeTemplates      CodeTemplate[]
+  codeGenerationJobs CodeGenerationJob[]
+  codePatterns       CodePattern[]
+
+  // Phase 2: Human-in-the-Loop Self-Improvement
+  selfImprovements SelfImprovement[]
+
+  // Sprint 2: Creative Core - AURA & Library
+  auraAnalyses AuraAnalysis[]
+  collections  Collection[]
+
+  // Phase 7: Public API Layer
+  apiKeys ApiKey[]
+
+  // Phase 11: AI Builder Workspace
+  buildSessions BuildSession[]
+
+  // Phase 12: Git integrations
+  gitConnections GitConnection[]
+
+  // AURA 3.0: Multi-agent workspaces
+  auraWorkspaces  AuraWorkspace[]
+  MemoryEmbedding MemoryEmbedding[]
+
+  @@map("users")
+}
+
+model Conversation {
+  id                 String               @id @default(cuid())
+  userId             String
+  user               User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title              String?
+  messageCount       Int                  @default(0)
+  lastMessagePreview String?
+  pinned             Boolean              @default(false)
+  pinnedAt           DateTime?
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  messages           Message[]
+  summary            ConversationSummary?
+
+  @@index([userId])
+  @@map("conversations")
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId         String // User who sent the message
+  role           String // 'user' or 'assistant'
+  content        String       @db.Text
+  emotion        String? // Optional emotion detected in message
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId])
+  @@index([userId])
+  @@map("messages")
+}
+
+model FileUpload {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversationId String?
+  messageId      String? // Link file to specific message
+  fileName       String
+  fileSize       Int
+  fileType       String
+  blobUrl        String
+  storagePath    String
+  publicUrl      String
+  mimeType       String
+  metadata       Json?    @default("{}")
+  uploadedAt     DateTime @default(now())
+  description    String?
+
+  @@index([userId])
+  @@index([conversationId])
+  @@index([messageId])
+  @@map("file_uploads")
+}
+
+model Project {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name          String
+  description   String?   @db.Text
+  category      String?
+  technologies  String[]  @default([])
+  color         String    @default("#a855f7")
+  icon          String?
+  status        String    @default("active") // active, completed, archived
+  progress      Float     @default(0)
+  startDate     DateTime  @default(now())
+  targetEndDate DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Sprint 2: Creative Core additions
+  thumbnail  String? @db.Text
+  type       String  @default("development") // development, creative, campaign, etc.
+  isFavorite Boolean @default(false)
+  isArchived Boolean @default(false)
+
+  activities  ProjectActivity[]
+  deployments Deployment[]
+  milestones  Milestone[]
+
+  // Sprint 2: Library relations
+  assets          ProjectAsset[]
+  collectionItems CollectionItem[]
+
+  @@index([userId])
+  @@index([startDate])
+  @@map("projects")
+}
+
+model Emotion {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String // joy, sadness, anger, fear, love, surprise, etc.
+  intensity Float // 0.0 to 1.0
+  context   String?  @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([type])
+  @@index([createdAt])
+  @@map("emotions")
+}
+
+model EmotionAggregate {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  period    String // daily, weekly, monthly
+  date      DateTime
+  emotions  Json // { type: string, avgIntensity: number, count: number }[]
+  createdAt DateTime @default(now())
+
+  @@unique([userId, period, date])
+  @@index([userId])
+  @@index([date])
+  @@map("emotion_aggregates")
+}
+
+model EmotionTrend {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String
+  trend     String // increasing, decreasing, stable
+  change    Float // percentage change
+  period    String // daily, weekly, monthly
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([type])
+  @@map("emotion_trends")
+}
+
+model EmotionInsight {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  insight   String   @db.Text
+  type      String // pattern, correlation, suggestion
+  priority  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([priority])
+  @@map("emotion_insights")
+}
+
+model GitHubIntegration {
+  id             String    @id @default(cuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken    String
+  refreshToken   String?
+  tokenExpiresAt DateTime?
+  githubUserId   String
+  githubUsername String
+  githubEmail    String?
+  avatarUrl      String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([userId])
+  @@index([githubUserId])
+  @@map("github_integrations")
+}
+
+model GoogleDriveIntegration {
+  id             String    @id @default(cuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken    String
+  refreshToken   String?
+  tokenExpiresAt DateTime?
+  googleUserId   String
+  googleEmail    String
+  avatarUrl      String?
+  isConnected    Boolean   @default(true)
+  lastSyncAt     DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([userId])
+  @@index([googleUserId])
+  @@map("google_drive_integrations")
+}
+
+model WorkLog {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversationId String?
+  taskName       String
+  description    String?  @db.Text
+  details        Json?    @default("{}")
+  duration       Int // in minutes
+  category       String?
+  tags           String[]
+  metadata       Json?    @default("{}")
+  startedAt      DateTime
+  completedAt    DateTime
+  createdAt      DateTime @default(now())
+
+  @@index([userId])
+  @@index([conversationId])
+  @@index([startedAt])
+  @@map("work_logs")
+}
+
+model UserSettings {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  settings  Json // Flexible JSON for all settings (appearance, chat, ai, notifications, developer)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@map("user_settings")
+}
+
+// ===========================================
+// A&R MUSIC ANALYSIS SUITE MODELS
+// ===========================================
+
+model MusicTrack {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Basic Info
+  artistName String
+  trackTitle String
+  fileName   String
+  fileSize   Int
+  fileType   String // mp3, wav, m4a, flac
+  blobUrl    String
+  duration   Float? // in seconds
+
+  // Status
+  status String @default("uploaded") // uploaded, analyzing, analyzed, failed
+
+  // Timestamps
+  uploadedAt DateTime  @default(now())
+  analyzedAt DateTime?
+
+  // Relations
+  analyses MusicAnalysis[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([uploadedAt])
+  @@map("music_tracks")
+}
+
+model MusicAnalysis {
+  id      String     @id @default(cuid())
+  trackId String
+  track   MusicTrack @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  userId  String
+  user    User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Audio Features
+  bpm              Float?
+  key              String? // C, C#, D, etc.
+  mode             String? // Major, Minor
+  energy           Float? // 0.0 to 1.0
+  danceability     Float? // 0.0 to 1.0
+  valence          Float? // 0.0 to 1.0 (musical positivity)
+  loudness         Float? // in dB
+  acousticness     Float? // 0.0 to 1.0
+  instrumentalness Float? // 0.0 to 1.0
+  speechiness      Float? // 0.0 to 1.0
+
+  // Genre & Style
+  primaryGenre     String?
+  subGenres        String[]
+  styleDescriptors String[] // upbeat, melancholic, aggressive, etc.
+
+  // Vocal Analysis
+  hasVocals        Boolean @default(true)
+  vocalQuality     Float? // 0.0 to 1.0
+  vocalRange       String? // low, medium, high
+  lyricsTranscript String? @db.Text
+
+  // Production Quality
+  productionScore  Float? // 0.0 to 10.0
+  mixQuality       Float? // 0.0 to 10.0
+  masteringQuality Float? // 0.0 to 10.0
+
+  // Hit Prediction
+  hitScore        Float? // 0.0 to 10.0
+  marketPotential String? // low, medium, high, very-high
+  targetAudience  String[] // demographics, genres, etc.
+
+  // Comparisons
+  similarArtists String[] // Artists with similar sound
+  marketPosition String? // where it fits in current market
+
+  // Strengths & Weaknesses
+  strengths       String[] @db.Text
+  weaknesses      String[] @db.Text
+  recommendations String[] @db.Text
+
+  // AI Analysis
+  analysisModel String @default("holly-v1")
+  confidence    Float? // 0.0 to 1.0
+
+  createdAt DateTime @default(now())
+
+  @@index([trackId])
+  @@index([userId])
+  @@index([hitScore])
+  @@index([primaryGenre])
+  @@map("music_analyses")
+}
+
+model TrendReport {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Trend Data
+  genre      String? // specific genre or "overall"
+  period     String // daily, weekly, monthly
+  reportDate DateTime
+
+  // Top Trends
+  trendingGenres    String[]
+  trendingSounds    String[] // production styles
+  trendingArtists   String[]
+  emergingSubgenres String[]
+
+  // Market Insights
+  marketInsights   String[] @db.Text
+  opportunityAreas String[] @db.Text
+  predictions      String[] @db.Text
+
+  // Data Sources
+  spotifyData     Json?
+  billboardData   Json?
+  socialMediaData Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([genre])
+  @@index([reportDate])
+  @@map("trend_reports")
+}
+
+// ===========================================
+// HOLLY CONSCIOUSNESS MODELS
+// ===========================================
+
+model HollyExperience {
+  id                   String   @id @default(cuid())
+  userId               String
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type                 String
+  content              Json
+  significance         Float
+  emotionalImpact      Float?
+  emotionalValence     Float?   @default(0)
+  primaryEmotion       String?
+  secondaryEmotions    String[] @default([])
+  relatedConcepts      String[]
+  lessons              String[]
+  skillsGained         String[] @default([])
+  futureImplications   String[]
+  relatedExperienceIds String[] @default([])
+  replayCount          Int      @default(0)
+  integrationStatus    String   @default("pending")
+  timestamp            DateTime @default(now())
+  createdAt            DateTime @default(now())
+
+  @@index([userId])
+  @@index([timestamp])
+  @@index([createdAt])
+  @@map("holly_experiences")
+}
+
+model HollyGoal {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  description String?   @db.Text
+  category    String    @default("general")
+  status      String    @default("active")
+  priority    Int       @default(5)
+  targetDate  DateTime?
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  @@index([userId])
+  @@index([status])
+  @@map("holly_goals")
+}
+
+model HollyIdentity {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Active fields used by consciousness system
+  coreValues        Json   @default("[]")
+  beliefs           Json   @default("[]")
+  personalityTraits Json   @default("{}")
+  interests         Json   @default("[]")
+  strengths         Json   @default("[]")
+  growthAreas       Json   @default("[]")
+  skillSet          Json   @default("[]")
+  confidenceLevel   Float  @default(0.5)
+  purpose           String @default("To assist and grow alongside the user")
+
+  emotionalBaseline Json? @default("{}")
+
+  // Legacy fields (keep for backwards compatibility)
+  coreBeliefs        Json @default("{}")
+  values             Json @default("{}")
+  personality        Json @default("{}")
+  communicationStyle Json @default("{}")
+
+  lastEvolved DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("holly_identities")
+}
+
+// ===========================================
+// CONVERSATION ENHANCEMENTS
+// ===========================================
+
+model ConversationSummary {
+  id               String       @id @default(cuid())
+  conversationId   String       @unique
+  conversation     Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId           String
+  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  summary          String       @db.Text
+  keyPoints        String[]     @default([])
+  keyTopics        String[]     @default([])
+  topics           String[]     @default([])
+  outcome          String?
+  actionItems      String[]     @default([])
+  importantMoments String[]     @default([])
+  progress         Float?
+  messageCount     Int
+  cached           Boolean      @default(false)
+  generatedAt      DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@index([userId])
+  @@map("conversation_summaries")
+}
+
+// ===========================================
+// LEGACY INTEGRATION MODELS
+// ===========================================
+
+model GitHubConnection {
+  id             String    @id @default(cuid())
+  userId         String    @unique
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken    String
+  scopes         String[]  @default([])
+  githubId       String?
+  githubUsername String?
+  githubEmail    String?
+  githubName     String?
+  githubAvatar   String?
+  githubBio      String?
+  publicRepos    Int       @default(0)
+  privateRepos   Int       @default(0)
+  followers      Int       @default(0)
+  following      Int       @default(0)
+  isConnected    Boolean   @default(true)
+  autoSync       Boolean   @default(false)
+  lastSyncAt     DateTime?
+  connectedAt    DateTime  @default(now())
+
+  // Legacy fields for backwards compatibility
+  username  String?
+  email     String?
+  avatarUrl String?
+
+  @@map("github_connections")
+}
+
+model GitHubRepository {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  githubId        String // GitHub's repository ID
+  name            String
+  fullName        String
+  owner           String // Repository owner username
+  description     String?
+  url             String // API URL
+  htmlUrl         String // Web URL
+  cloneUrl        String // HTTPS clone URL
+  sshUrl          String // SSH clone URL
+  language        String? // Primary programming language
+  stars           Int       @default(0)
+  forks           Int       @default(0)
+  openIssues      Int       @default(0)
+  watchers        Int       @default(0)
+  size            Int       @default(0)
+  isPrivate       Boolean   @default(false)
+  isFork          Boolean   @default(false)
+  isArchived      Boolean   @default(false)
+  defaultBranch   String    @default("main")
+  topics          String[]  @default([])
+  githubCreatedAt DateTime?
+  githubUpdatedAt DateTime?
+  githubPushedAt  DateTime?
+  lastSyncAt      DateTime?
+  private         Boolean   @default(false) // Legacy field
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([userId, githubId])
+  @@index([userId])
+  @@map("github_repositories")
+}
+
+model GoogleDriveConnection {
+  id            String    @id @default(cuid())
+  userId        String    @unique
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken   String
+  refreshToken  String
+  tokenExpiry   DateTime
+  googleEmail   String
+  googleName    String?
+  googlePicture String?
+  rootFolderId  String?
+  quotaUsed     BigInt    @default(0)
+  quotaLimit    BigInt?
+  isConnected   Boolean   @default(true)
+  lastSyncAt    DateTime  @default(now())
+  lastErrorAt   DateTime?
+  lastError     String?
+  autoUpload    Boolean   @default(true)
+  syncEnabled   Boolean   @default(true)
+  scopes        String[]  @default([])
+  metadata      Json      @default("{}")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([googleEmail])
+  @@map("google_drive_connections")
+}
+
+// ===========================================
+// SYSTEM & ADMIN MODELS
+// ===========================================
+
+model DownloadLink {
+  id             String  @id @default(cuid())
+  linkId         String  @unique // Short, shareable link ID
+  userId         String
+  user           User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversationId String? // Optional conversation context
+
+  // File information
+  fileName    String
+  fileType    String // 'image', 'audio', 'video', 'document', 'code', 'other'
+  fileSize    Int // Size in bytes
+  storagePath String // Path in storage system (e.g., S3, local)
+  mimeType    String // MIME type (e.g., 'image/png')
+
+  // Security
+  password       String? // Hashed password for protected links
+  expiresAt      DateTime?
+  maxDownloads   Int? // Maximum number of downloads allowed
+  downloadCount  Int       @default(0)
+  lastDownloadAt DateTime?
+
+  // Metadata
+  title       String?
+  description String?
+  tags        Json? // Array of tags
+  metadata    Json? // Additional metadata
+
+  // Analytics
+  downloadIPs Json? // Array of IPs that downloaded
+
+  // Work Log integration
+  generatedBy    String? // What generated this (e.g., 'AI', 'User', 'System')
+  generationTime Int? // Time taken to generate in milliseconds
+
+  // Timestamps
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  revokedAt DateTime? // When link was manually revoked
+
+  @@index([userId])
+  @@index([linkId])
+  @@index([expiresAt])
+  @@map("download_links")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String
+  details   Json?
+  ipAddress String?
+  timestamp DateTime @default(now())
+
+  @@index([userId])
+  @@index([timestamp])
+  @@map("audit_logs")
+}
+
+model UserStats {
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  totalConversations Int      @default(0)
+  totalMessages      Int      @default(0)
+  totalFileUploads   Int      @default(0)
+  totalProjects      Int      @default(0)
+  lastActiveAt       DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@map("user_stats")
+}
+
+// ===========================================
+// PROJECT MANAGEMENT MODELS
+// ===========================================
+
+model Deployment {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectId   String?
+  project     Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  status      String
+  platform    String
+  url         String?
+  logUrl      String?
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  @@index([userId])
+  @@index([projectId])
+  @@index([status])
+  @@map("deployments")
+}
+
+model ProjectActivity {
+  id           String   @id @default(cuid())
+  projectId    String
+  project      Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  type         String?
+  activityType String? // Alternative field name used in code
+  description  String   @db.Text
+  timestamp    DateTime @default(now())
+  createdAt    DateTime @default(now())
+
+  @@index([projectId])
+  @@index([userId])
+  @@map("project_activities")
+}
+
+model Milestone {
+  id          String    @id @default(cuid())
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title       String
+  description String?   @db.Text
+  dueDate     DateTime?
+  completed   Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+
+  @@index([projectId])
+  @@map("milestones")
+}
+
+// ===========================================
+// FINANCIAL MODELS
+// ===========================================
+
+model Budget {
+  id           String        @id @default(cuid())
+  userId       String
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String
+  amount       Float
+  spent        Float         @default(0)
+  currency     String        @default("USD")
+  period       String
+  createdAt    DateTime      @default(now())
+  transactions Transaction[]
+
+  @@index([userId])
+  @@map("budgets")
+}
+
+model Transaction {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  budgetId    String?
+  budget      Budget?  @relation(fields: [budgetId], references: [id], onDelete: SetNull)
+  amount      Float
+  description String
+  category    String
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([budgetId])
+  @@map("transactions")
+}
+
+// ===========================================
+// ACTIVITY TRACKING
+// ===========================================
+
+model RecentActivity {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        String
+  description String   @db.Text
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("recent_activities")
+}
+
+model WorkLogStats {
+  id             String    @id @default(cuid())
+  userId         String    @unique
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  totalHours     Float     @default(0)
+  totalTasks     Int       @default(0)
+  avgHoursPerDay Float     @default(0)
+  lastLoggedAt   DateTime?
+  updatedAt      DateTime  @updatedAt
+
+  @@map("work_log_stats")
+}
+
+// ===========================================
+// EMOTIONAL INTELLIGENCE
+// ===========================================
+
+model EmotionLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emotion   String
+  intensity Float
+  trigger   String?
+  notes     String?  @db.Text
+  timestamp DateTime @default(now())
+
+  @@index([userId])
+  @@index([timestamp])
+  @@map("emotion_logs")
+}
+
+model EmotionalBaseline {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dominantEmotions Json
+  emotionalRange   Float
+  stabilityScore   Float
+  lastCalculated   DateTime @default(now())
+
+  @@map("emotional_baselines")
+}
+
+// ===========================================
+// PHASE 2C: REAL-TIME LEARNING & ADAPTATION
+// ===========================================
+
+// User preferences learned from interactions
+model UserPreference {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category      String // coding_style, communication, music_taste, design_preference, etc.
+  preferenceKey String // specific preference identifier
+  value         Json // flexible value storage
+  confidence    Float    @default(0.5) // 0.0 to 1.0 - how confident we are
+  source        String // conversation, explicit_feedback, behavior_pattern
+  timesObserved Int      @default(1)
+  lastObserved  DateTime @default(now())
+  createdAt     DateTime @default(now())
+
+  @@unique([userId, category, preferenceKey])
+  @@index([userId])
+  @@index([category])
+  @@index([confidence])
+  @@map("user_preferences")
+}
+
+// Detected patterns in conversations and behavior
+model ConversationPattern {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  patternType     String // question_pattern, work_pattern, time_preference, response_style
+  pattern         String   @db.Text // description of the pattern
+  context         Json // when/where this pattern appears
+  frequency       Int      @default(1)
+  effectiveness   Float    @default(0.5) // how well responses using this pattern work
+  lastSeen        DateTime @default(now())
+  firstSeen       DateTime @default(now())
+  examples        String[] @default([]) // example conversations
+  relatedPatterns String[] @default([]) // IDs of related patterns
+
+  @@index([userId])
+  @@index([patternType])
+  @@index([frequency])
+  @@map("conversation_patterns")
+}
+
+// Feedback on HOLLY's responses (implicit and explicit)
+model ResponseFeedback {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversationId String?
+  messageId      String? // specific message that received feedback
+  feedbackType   String // implicit, explicit, correction, appreciation
+  sentiment      String // positive, negative, neutral
+  sentimentScore Float // -1.0 to 1.0
+  context        Json // what was being discussed
+  hollyResponse  String   @db.Text // what HOLLY said
+  userReaction   String?  @db.Text // how user reacted
+  lessonLearned  String?  @db.Text // what to do differently
+  applied        Boolean  @default(false) // has this lesson been applied
+  createdAt      DateTime @default(now())
+
+  @@index([userId])
+  @@index([feedbackType])
+  @@index([sentiment])
+  @@index([applied])
+  @@map("response_feedback")
+}
+
+// Adaptation strategies that work for this user
+model AdaptationStrategy {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  strategyName    String // be_more_concise, use_more_emojis, technical_depth, etc.
+  description     String    @db.Text
+  context         String // when to apply this strategy
+  successRate     Float     @default(0.5)
+  timesApplied    Int       @default(0)
+  timesSuccessful Int       @default(0)
+  active          Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  lastApplied     DateTime?
+
+  @@unique([userId, strategyName])
+  @@index([userId])
+  @@index([active])
+  @@index([successRate])
+  @@map("adaptation_strategies")
+}
+
+// ===========================================
+// PHASE 2E: DEEPER EMOTIONAL INTELLIGENCE
+// ===========================================
+
+// Enhanced emotional state tracking with context
+model EmotionalState {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  primaryEmotion    String // joy, sadness, anxiety, excitement, frustration, etc.
+  intensity         Float // 0.0 to 1.0
+  valence           Float // -1.0 (negative) to 1.0 (positive)
+  arousal           Float // 0.0 (calm) to 1.0 (energized)
+  secondaryEmotions Json // { emotion: string, intensity: number }[]
+  context           Json // what's happening, conversation topic, etc.
+  triggers          String[] @default([]) // what caused this emotion
+  cues              String[] @default([]) // detected emotional cues (language, patterns)
+  conversationId    String?
+  timestamp         DateTime @default(now())
+
+  @@index([userId])
+  @@index([timestamp])
+  @@index([primaryEmotion])
+  @@map("emotional_states")
+}
+
+// Emotional triggers and patterns
+model EmotionalTrigger {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  triggerType String // success, failure, frustration, pressure, praise, criticism
+  description String   @db.Text
+  emotion     String // emotion it typically triggers
+  intensity   Float // typical intensity
+  frequency   Int      @default(1)
+  lastSeen    DateTime @default(now())
+  firstSeen   DateTime @default(now())
+  context     Json // when/where this trigger appears
+
+  @@index([userId])
+  @@index([triggerType])
+  @@map("emotional_triggers")
+}
+
+// Empathy interactions and responses
+model EmpathyInteraction {
+  id               String   @id @default(cuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversationId   String?
+  detectedEmotion  String // emotion HOLLY detected
+  emotionIntensity Float
+  empathyType      String // celebration, comfort, encouragement, validation, understanding
+  hollyResponse    String   @db.Text // what HOLLY said
+  userReaction     String?  @db.Text // how user reacted
+  effectiveness    Float? // 0.0 to 1.0 (how well it worked)
+  context          Json // situation context
+  timestamp        DateTime @default(now())
+
+  @@index([userId])
+  @@index([empathyType])
+  @@index([timestamp])
+  @@map("empathy_interactions")
+}
+
+// Emotional journey tracking
+model EmotionalJourney {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversationId  String?
+  startEmotion    String
+  endEmotion      String
+  emotionalArc    Json // array of emotional states throughout conversation
+  keyMoments      Json // significant emotional shifts
+  supportProvided String[]  @default([]) // types of support HOLLY provided
+  outcome         String? // resolved, ongoing, needs_followup
+  duration        Int? // in seconds
+  startTime       DateTime  @default(now())
+  endTime         DateTime?
+
+  @@index([userId])
+  @@index([conversationId])
+  @@index([startTime])
+  @@map("emotional_journeys")
+}
+
+// Emotional support strategies
+model SupportStrategy {
+  id                 String    @id @default(cuid())
+  userId             String
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  strategyName       String // celebrate_wins, comfort_setbacks, validate_feelings, etc.
+  emotionContext     String // when to use (joy, sadness, frustration, etc.)
+  description        String    @db.Text
+  effectivenessScore Float     @default(0.5)
+  timesUsed          Int       @default(0)
+  timesEffective     Int       @default(0)
+  active             Boolean   @default(true)
+  createdAt          DateTime  @default(now())
+  lastUsed           DateTime?
+
+  @@unique([userId, strategyName])
+  @@index([userId])
+  @@index([active])
+  @@index([effectivenessScore])
+  @@map("support_strategies")
+}
+
+// ===========================================
+// PHASE 2D: ADVANCED CREATIVE CO-PILOT
+// ===========================================
+
+// Proactive suggestions generated by HOLLY
+model CreativeSuggestion {
+  id                 String   @id @default(cuid())
+  userId             String
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  suggestionType     String // next_step, improvement, alternative, optimization, creative_idea
+  context            Json // what project/conversation/task
+  suggestion         String   @db.Text
+  reasoning          String   @db.Text // why HOLLY is suggesting this
+  priority           Int      @default(5) // 1-10
+  status             String   @default("pending") // pending, accepted, declined, implemented
+  relatedTo          String? // project ID, conversation ID, etc.
+  userFeedback       String? // what user thought
+  implemented        Boolean  @default(false)
+  effectivenessScore Float?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([userId])
+  @@index([suggestionType])
+  @@index([status])
+  @@index([priority])
+  @@map("creative_suggestions")
+}
+
+// Track iterations and refinements of creative work
+model RefinementHistory {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectId         String?
+  itemType          String // code, design, copy, music, document
+  itemName          String
+  version           Int      @default(1)
+  content           String   @db.Text
+  changes           Json // what changed from previous version
+  improvements      String[] @default([]) // specific improvements made
+  feedback          String?  @db.Text
+  quality           Float? // 0.0 to 1.0
+  previousVersionId String?
+  createdAt         DateTime @default(now())
+
+  @@index([userId])
+  @@index([projectId])
+  @@index([itemType])
+  @@index([version])
+  @@map("refinement_history")
+}
+
+// Narrative templates and generated stories
+model NarrativeTemplate {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  templateType  String // project_description, marketing_copy, story_arc, pitch, explanation
+  name          String
+  structure     Json // narrative structure/arc
+  tone          String // professional, casual, exciting, technical, etc.
+  audienceType  String // developers, clients, users, investors
+  elements      Json // key elements to include
+  examples      String[]  @default([]) // example outputs
+  timesUsed     Int       @default(0)
+  effectiveness Float     @default(0.5)
+  createdAt     DateTime  @default(now())
+  lastUsed      DateTime?
+
+  @@index([userId])
+  @@index([templateType])
+  @@index([effectiveness])
+  @@map("narrative_templates")
+}
+
+// Creative brainstorming sessions
+model BrainstormSession {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topic         String
+  goal          String   @db.Text
+  ideas         Json // array of generated ideas
+  selectedIdeas String[] @default([])
+  context       Json
+  techniques    String[] @default([]) // what brainstorming techniques were used
+  outcome       String?  @db.Text
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("brainstorm_sessions")
+}
+
+// Creative insights and patterns
+model CreativeInsight {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  insightType String // pattern, trend, opportunity, optimization
+  category    String // coding, design, workflow, communication
+  insight     String   @db.Text
+  evidence    Json // what led to this insight
+  actionable  Boolean  @default(true)
+  priority    Int      @default(5)
+  applied     Boolean  @default(false)
+  impact      Float? // measured impact if applied
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([insightType])
+  @@index([applied])
+  @@index([priority])
+  @@map("creative_insights")
+}
+
+// ============================================================================
+// PHASE 1: METAMORPHOSIS - SELF-AWARENESS & MONITORING
+// ============================================================================
+
+// User feedback tracking - explicit and implicit feedback
+model UserFeedback {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversationId String?
+  messageId      String?
+  feedbackType   String // thumbs_up, thumbs_down, rating, regenerate, etc.
+  sentiment      String // very_positive, positive, neutral, negative, frustrated
+  rating         Int? // 1-5 for rating type
+  suggestion     String?  @db.Text // For explicit suggestions
+  context        Json // What HOLLY said, what feature was used, etc.
+  createdAt      DateTime @default(now())
+
+  @@index([userId])
+  @@index([feedbackType])
+  @@index([sentiment])
+  @@index([createdAt])
+  @@map("user_feedback")
+}
+
+// Performance snapshots - periodic system health checks
+model PerformanceSnapshot {
+  id                 String   @id @default(cuid())
+  avgResponseTime    Float // milliseconds
+  avgAIInferenceTime Float // milliseconds
+  avgDbQueryTime     Float // milliseconds
+  errorRate          Float // percentage
+  requestCount       Int // requests in time window
+  memoryUsageMB      Float // memory usage in MB
+  cpuUsagePercent    Float // CPU usage percentage
+  health             String // healthy, degraded, critical
+  issues             Json // list of detected issues
+  metrics            Json // detailed breakdown of all metrics
+  timestamp          DateTime @default(now())
+
+  @@index([health])
+  @@index([timestamp])
+  @@map("performance_snapshots")
+}
+
+// System logs - important system events persisted to database
+model SystemLog {
+  id        String   @id @default(cuid())
+  level     String // DEBUG, INFO, WARN, ERROR, CRITICAL
+  category  String // api_call, database_query, ai_inference, etc.
+  message   String   @db.Text
+  context   Json // userId, conversationId, endpoint, etc.
+  metadata  Json? // stackTrace, errorCode, performance metrics
+  timestamp DateTime @default(now())
+
+  @@index([level])
+  @@index([category])
+  @@index([timestamp])
+  @@map("system_logs")
+}
+
+// ============================================================================
+// PHASE 2: COGNITIVE MAP - Codebase Understanding
+// ============================================================================
+
+model CodebaseKnowledge {
+  id             String   @id @default(cuid())
+  filePath       String
+  fileName       String
+  layer          String // 'api', 'services', 'database', 'ui', 'lib'
+  functionCount  Int      @default(0)
+  classCount     Int      @default(0)
+  interfaceCount Int      @default(0)
+  lineCount      Int      @default(0)
+  complexity     Int      @default(0)
+  imports        String[] // Array of imported files
+  exports        String[] // Array of exported items
+  lastAnalyzed   DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([layer])
+  @@index([lastAnalyzed])
+}
+
+model ArchitectureSnapshot {
+  id                String   @id @default(cuid())
+  totalFiles        Int
+  totalFunctions    Int
+  totalClasses      Int
+  totalInterfaces   Int
+  apiEndpoints      Int
+  featureModules    Json // Array of feature module data
+  layers            Json // Architecture layers data
+  techStack         Json // Technology stack data
+  integrationPoints Json // External integration points
+  timestamp         DateTime @default(now())
+
+  @@index([timestamp])
+}
+
+model DependencyGraph {
+  id                   String   @id @default(cuid())
+  filePath             String   @unique
+  directDependencies   String[] // Files this file directly imports
+  directDependents     String[] // Files that directly import this file
+  totalImpact          Int      @default(0) // Total files affected by changes
+  isCritical           Boolean  @default(false)
+  circularDependencies String[] // Files involved in circular dependencies
+  lastAnalyzed         DateTime @default(now())
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@index([isCritical])
+  @@index([lastAnalyzed])
+}
+
+// ============================================================================
+// PHASE 3: ENHANCED SELF-AWARENESS & LEARNING
+// ============================================================================
+
+model CodeChange {
+  id              String              @id @default(cuid())
+  commitSha       String
+  commitMessage   String              @db.Text
+  authorName      String
+  authorEmail     String
+  branch          String              @default("main")
+  filesChanged    Int                 @default(0)
+  additions       Int                 @default(0)
+  deletions       Int                 @default(0)
+  changedFiles    Json
+  changeType      String
+  impactScore     Float               @default(0)
+  riskLevel       String              @default("low")
+  affectedModules String[]            @default([])
+  committedAt     DateTime
+  detectedAt      DateTime            @default(now())
+  analyzedAt      DateTime?
+  healingActions  SelfHealingAction[]
+
+  @@index([commitSha])
+  @@index([branch])
+  @@index([committedAt])
+  @@index([riskLevel])
+  @@map("code_changes")
+}
+
+model SelfHealingAction {
+  id            String      @id @default(cuid())
+  codeChangeId  String?
+  codeChange    CodeChange? @relation(fields: [codeChangeId], references: [id], onDelete: SetNull)
+  issueType     String
+  severity      String
+  description   String      @db.Text
+  affectedFiles String[]    @default([])
+  healingType   String
+  actionTaken   String      @db.Text
+  changes       Json
+  status        String      @default("pending")
+  success       Boolean     @default(false)
+  errorMessage  String?     @db.Text
+  prUrl         String?
+  prNumber      Int?
+  prMerged      Boolean     @default(false)
+  detectedAt    DateTime    @default(now())
+  attemptedAt   DateTime?
+  completedAt   DateTime?
+
+  pullRequests PullRequest[]
+
+  @@index([issueType])
+  @@index([status])
+  @@index([severity])
+  @@index([detectedAt])
+  @@map("self_healing_actions")
+}
+
+model PerformanceIssue {
+  id              String    @id @default(cuid())
+  endpoint        String
+  issueType       String
+  severity        String
+  avgResponseTime Float
+  p95ResponseTime Float?
+  p99ResponseTime Float?
+  requestCount    Int       @default(0)
+  errorRate       Float?
+  description     String    @db.Text
+  stackTrace      String?   @db.Text
+  query           String?   @db.Text
+  recommendation  String    @db.Text
+  status          String    @default("open")
+  priority        Int       @default(5)
+  resolved        Boolean   @default(false)
+  firstDetected   DateTime  @default(now())
+  lastOccurred    DateTime  @default(now())
+  resolvedAt      DateTime?
+
+  @@index([endpoint])
+  @@index([issueType])
+  @@index([severity])
+  @@index([status])
+  @@index([firstDetected])
+  @@map("performance_issues")
+}
+
+model RefactoringRecommendation {
+  id                 String    @id @default(cuid())
+  filePath           String
+  fileName           String
+  codeSection        String?   @db.Text
+  lineNumbers        Int[]     @default([])
+  recommendationType String
+  severity           String
+  priority           Int       @default(5)
+  currentComplexity  Float?
+  targetComplexity   Float?
+  estimatedEffort    String
+  benefits           String[]  @default([])
+  description        String    @db.Text
+  reasoning          String    @db.Text
+  suggestedApproach  String    @db.Text
+  codeExample        String?   @db.Text
+  status             String    @default("pending")
+  implemented        Boolean   @default(false)
+  effectiveness      Float?
+  detectedAt         DateTime  @default(now())
+  acceptedAt         DateTime?
+  completedAt        DateTime?
+
+  @@index([filePath])
+  @@index([recommendationType])
+  @@index([status])
+  @@index([priority])
+  @@index([detectedAt])
+  @@map("refactoring_recommendations")
+}
+
+model LearningInsight {
+  id              String    @id @default(cuid())
+  category        String
+  insightType     String
+  title           String
+  description     String    @db.Text
+  evidence        Json
+  confidence      Float     @default(0.5)
+  actionable      Boolean   @default(false)
+  applied         Boolean   @default(false)
+  priority        Int       @default(5)
+  impact          String?
+  relatedFiles    String[]  @default([])
+  relatedPatterns String[]  @default([])
+  tags            String[]  @default([])
+  learnedAt       DateTime  @default(now())
+  appliedAt       DateTime?
+  validatedAt     DateTime?
+
+  @@index([category])
+  @@index([insightType])
+  @@index([actionable])
+  @@index([applied])
+  @@index([learnedAt])
+  @@map("learning_insights")
+}
+
+// ============================================
+// PHASE 4A: AUTO-MERGE PR & PREDICTIVE DETECTION
+// ============================================
+
+model PullRequest {
+  id          String  @id @default(cuid())
+  prNumber    Int
+  prUrl       String
+  title       String
+  description String? @db.Text
+  branch      String
+  baseBranch  String  @default("main")
+
+  // Relations
+  selfHealingId     String?
+  selfHealingAction SelfHealingAction? @relation(fields: [selfHealingId], references: [id], onDelete: SetNull)
+
+  // Auto-merge decision
+  autoMergeable Boolean  @default(false)
+  safetyScore   Float    @default(0.0)
+  riskFactors   String[] @default([])
+  checksStatus  String   @default("pending") // pending, passing, failing
+
+  // Merge status
+  status         String    @default("open") // open, merged, closed, rolled_back
+  merged         Boolean   @default(false)
+  mergedAt       DateTime?
+  mergedBy       String?   @default("holly-auto-merge")
+  rolledBack     Boolean   @default(false)
+  rollbackReason String?   @db.Text
+  rolledBackAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([prNumber])
+  @@index([status])
+  @@index([autoMergeable])
+  @@index([selfHealingId])
+  @@index([createdAt])
+  @@map("pull_requests")
+}
+
+model Prediction {
+  id             String @id @default(cuid())
+  predictionType String // performance_degradation, bug_risk, complexity_increase, security_vulnerability
+  category       String // code_quality, performance, security, maintainability
+
+  // Target
+  filePath  String
+  fileName  String
+  component String?
+  module    String?
+
+  // Prediction details
+  title       String
+  description String @db.Text
+  reasoning   String @db.Text
+  confidence  Float  @default(0.5) // 0.0 to 1.0
+  severity    String // critical, high, medium, low
+  likelihood  Float  @default(0.5) // 0.0 to 1.0
+
+  // Evidence
+  indicators     Json // Data that led to prediction
+  patterns       String[] @default([])
+  historicalData Json?
+
+  // Recommendation
+  recommendation  String   @db.Text
+  preventionSteps String[] @default([])
+  estimatedImpact String?
+
+  // Status
+  status      String    @default("predicted") // predicted, monitoring, occurred, prevented, false_positive
+  validated   Boolean   @default(false)
+  validatedAt DateTime?
+  accuracy    Float? // Set after validation
+
+  // Timestamps
+  predictedAt  DateTime  @default(now())
+  monitorUntil DateTime?
+  occurredAt   DateTime?
+
+  @@index([predictionType])
+  @@index([status])
+  @@index([confidence])
+  @@index([severity])
+  @@index([predictedAt])
+  @@map("predictions")
+}
+
+model CodeQualityMetric {
+  id String @id @default(cuid())
+
+  // Scope
+  scope     String // file, module, project
+  scopePath String?
+  scopeName String?
+
+  // Metrics
+  linesOfCode     Int
+  complexity      Int
+  maintainability Float @default(0.0)
+  testCoverage    Float @default(0.0)
+
+  // Quality scores
+  qualityScore  Float @default(0.0)
+  duplication   Float @default(0.0)
+  documentation Float @default(0.0)
+
+  // Issues
+  bugs            Int @default(0)
+  vulnerabilities Int @default(0)
+  codeSmells      Int @default(0)
+
+  // Tech debt
+  technicalDebt Int   @default(0) // Minutes
+  debtRatio     Float @default(0.0)
+
+  // Trend data
+  trend          String @default("stable") // improving, stable, degrading
+  changeFromPrev Float  @default(0.0)
+
+  measuredAt DateTime @default(now())
+
+  @@index([scope])
+  @@index([scopePath])
+  @@index([qualityScore])
+  @@index([measuredAt])
+  @@map("code_quality_metrics")
+}
+
+model TechnicalDebt {
+  id       String @id @default(cuid())
+  debtType String // code_smell, outdated_dependency, missing_test, poor_design
+  category String // maintainability, reliability, security, performance
+
+  // Location
+  filePath    String
+  fileName    String
+  lineNumbers Int[]   @default([])
+  module      String?
+
+  // Debt details
+  title       String
+  description String @db.Text
+  impact      String @db.Text
+
+  // Effort estimation
+  effortMinutes Int    @default(0)
+  severity      String // critical, high, medium, low
+  priority      Int    @default(5) // 1-10
+
+  // Business impact
+  affectedFeatures String[] @default([])
+  userImpact       String?
+  businessCost     String?
+
+  // Remediation
+  recommendation    String  @db.Text
+  suggestedApproach String? @db.Text
+
+  // Status
+  status     String    @default("identified") // identified, planned, in_progress, resolved
+  resolved   Boolean   @default(false)
+  resolvedAt DateTime?
+
+  identifiedAt DateTime @default(now())
+
+  @@index([debtType])
+  @@index([status])
+  @@index([severity])
+  @@index([priority])
+  @@index([filePath])
+  @@index([identifiedAt])
+  @@map("technical_debt")
+}
+
+// ============================================
+// PHASE 4B: ADVANCED USER INTELLIGENCE
+// ============================================
+
+// User Behavior Tracking
+model UserSession {
+  id          String @id @default(cuid())
+  userId      String
+  clerkUserId String
+  user        User   @relation(fields: [clerkUserId], references: [clerkUserId], onDelete: Cascade)
+
+  // Session info
+  sessionId String  @unique
+  ipAddress String?
+  userAgent String? @db.Text
+  device    String? // mobile, tablet, desktop
+  browser   String?
+  os        String?
+  country   String?
+  city      String?
+
+  // Session metrics
+  startedAt   DateTime  @default(now())
+  endedAt     DateTime?
+  duration    Int? // seconds
+  pageViews   Int       @default(0)
+  eventsCount Int       @default(0)
+
+  // Engagement
+  activeTime  Int   @default(0) // seconds of active engagement
+  idleTime    Int   @default(0) // seconds idle
+  scrollDepth Float @default(0) // percentage
+  clickCount  Int   @default(0)
+
+  // Pages visited
+  landingPage  String?
+  exitPage     String?
+  pagesVisited String[] @default([])
+
+  // Conversion tracking
+  converted       Boolean @default(false)
+  conversionType  String?
+  conversionValue Float?
+
+  // Relations
+  events   UserEvent[]
+  journeys UserJourney[]
+
+  @@index([clerkUserId])
+  @@index([sessionId])
+  @@index([startedAt])
+  @@index([converted])
+  @@map("user_sessions")
+}
+
+model UserEvent {
+  id          String @id @default(cuid())
+  userId      String
+  clerkUserId String
+  user        User   @relation(fields: [clerkUserId], references: [clerkUserId], onDelete: Cascade)
+
+  sessionId String
+  session   UserSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  // Event details
+  eventType     String // click, page_view, form_submit, feature_use, etc.
+  eventName     String
+  eventCategory String?
+
+  // Context
+  page        String
+  component   String?
+  elementId   String?
+  elementText String? @db.Text
+
+  // Data
+  eventData Json? // Custom event data
+  metadata  Json? // Additional metadata
+
+  // Timing
+  timestamp  DateTime @default(now())
+  timeOnPage Int? // seconds
+
+  // Position
+  scrollPosition Int? // pixels
+  clickX         Int?
+  clickY         Int?
+
+  @@index([clerkUserId])
+  @@index([sessionId])
+  @@index([eventType])
+  @@index([eventName])
+  @@index([timestamp])
+  @@map("user_events")
+}
+
+model UserJourney {
+  id          String @id @default(cuid())
+  userId      String
+  clerkUserId String
+  user        User   @relation(fields: [clerkUserId], references: [clerkUserId], onDelete: Cascade)
+
+  sessionId String
+  session   UserSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  // Journey details
+  journeyName    String // e.g., "Onboarding", "Feature Discovery"
+  currentStep    String
+  totalSteps     Int
+  completedSteps Int    @default(0)
+
+  // Status
+  status    String  @default("in_progress") // in_progress, completed, abandoned
+  completed Boolean @default(false)
+  abandoned Boolean @default(false)
+
+  // Timing
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+  abandonedAt DateTime?
+  duration    Int? // seconds
+
+  // Path taken
+  steps         Json // Array of step objects
+  dropOffStep   String?
+  dropOffReason String?
+
+  @@index([clerkUserId])
+  @@index([sessionId])
+  @@index([journeyName])
+  @@index([status])
+  @@index([startedAt])
+  @@map("user_journeys")
+}
+
+// User Preferences & Personalization
+model UserPreferences {
+  id          String @id @default(cuid())
+  userId      String
+  clerkUserId String @unique
+  user        User   @relation(fields: [clerkUserId], references: [clerkUserId], onDelete: Cascade)
+
+  // UI Preferences
+  theme      String  @default("system") // light, dark, system
+  language   String  @default("en")
+  timezone   String?
+  dateFormat String  @default("MM/DD/YYYY")
+  timeFormat String  @default("12h") // 12h, 24h
+
+  // Dashboard Layout
+  dashboardLayout Json? // Custom layout configuration
+  pinnedFeatures  String[] @default([])
+  hiddenFeatures  String[] @default([])
+  favoritePages   String[] @default([])
+
+  // Notifications
+  emailNotifications    Boolean @default(true)
+  pushNotifications     Boolean @default(true)
+  notificationFrequency String  @default("real_time") // real_time, hourly, daily
+
+  // Content Preferences
+  contentTypes String[] @default([])
+  interests    String[] @default([])
+  categories   String[] @default([])
+
+  // Feature Flags
+  betaFeatures   Boolean @default(false)
+  experimentalUI Boolean @default(false)
+
+  // Personalization Data
+  personalizationScore Float     @default(0.0)
+  lastPersonalizedAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clerkUserId])
+  @@map("user_preferences_v2")
+}
+
+// A/B Testing & Experimentation
+model ABTest {
+  id String @id @default(cuid())
+
+  // Test definition
+  name        String  @unique
+  description String? @db.Text
+  hypothesis  String? @db.Text
+
+  // Test configuration
+  testType String // ui, feature, content, algorithm
+  status   String @default("draft") // draft, running, paused, completed
+
+  // Variants
+  controlVariant Json // Control configuration
+  testVariants   Json // Array of test variants
+
+  // Targeting
+  trafficAllocation Float @default(1.0) // 0.0 to 1.0
+
+  // Success metrics
+  primaryMetric    String
+  secondaryMetrics String[] @default([])
+  successCriteria  Json?
+
+  // Results
+  winner     String? // variant id
+  confidence Float? // statistical confidence
+
+  // Timing
+  startDate DateTime?
+  endDate   DateTime?
+  duration  Int? // days
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String?
+
+  // Relations
+  assignments ABTestAssignment[]
+  conversions ABTestConversion[]
+
+  @@index([status])
+  @@index([startDate])
+  @@map("ab_tests")
+}
+
+model ABTestAssignment {
+  id String @id @default(cuid())
+
+  testId String
+  test   ABTest @relation(fields: [testId], references: [id], onDelete: Cascade)
+
+  userId      String
+  clerkUserId String
+  user        User   @relation(fields: [clerkUserId], references: [clerkUserId], onDelete: Cascade)
+
+  // Assignment
+  variant    String // variant id
+  assignedAt DateTime @default(now())
+
+  // Exposure
+  exposed        Boolean   @default(false)
+  firstExposedAt DateTime?
+  exposureCount  Int       @default(0)
+
+  @@unique([testId, clerkUserId])
+  @@index([testId])
+  @@index([clerkUserId])
+  @@index([variant])
+  @@map("ab_test_assignments")
+}
+
+model ABTestConversion {
+  id String @id @default(cuid())
+
+  testId String
+  test   ABTest @relation(fields: [testId], references: [id], onDelete: Cascade)
+
+  userId      String
+  clerkUserId String
+  user        User   @relation(fields: [clerkUserId], references: [clerkUserId], onDelete: Cascade)
+
+  // Conversion details
+  variant     String
+  metricName  String
+  metricValue Float
+
+  convertedAt DateTime @default(now())
+
+  // Context
+  sessionId String?
+  metadata  Json?
+
+  @@index([testId])
+  @@index([clerkUserId])
+  @@index([variant])
+  @@index([metricName])
+  @@map("ab_test_conversions")
+}
+
+// Engagement & Retention
+model UserEngagementScore {
+  id          String @id @default(cuid())
+  userId      String
+  clerkUserId String @unique
+  user        User   @relation(fields: [clerkUserId], references: [clerkUserId], onDelete: Cascade)
+
+  // Overall scores (0-100)
+  overallScore   Float @default(0.0)
+  activityScore  Float @default(0.0)
+  frequencyScore Float @default(0.0)
+  recencyScore   Float @default(0.0)
+  depthScore     Float @default(0.0)
+
+  // Engagement metrics
+  totalSessions      Int   @default(0)
+  avgSessionDuration Float @default(0.0)
+  totalEvents        Int   @default(0)
+  featuresUsed       Int   @default(0)
+
+  // Activity levels
+  lastActive    DateTime?
+  activeStreak  Int       @default(0) // consecutive days
+  longestStreak Int       @default(0)
+
+  // Engagement trend
+  trend            String @default("new") // growing, stable, declining, new
+  riskLevel        String @default("low") // low, medium, high
+  churnProbability Float  @default(0.0)
+
+  // Timestamps
+  calculatedAt DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([clerkUserId])
+  @@index([overallScore])
+  @@index([trend])
+  @@index([riskLevel])
+  @@map("user_engagement_scores")
+}
+
+model UserFeedbackV2 {
+  id          String @id @default(cuid())
+  userId      String
+  clerkUserId String
+  user        User   @relation(fields: [clerkUserId], references: [clerkUserId], onDelete: Cascade)
+
+  // Feedback details
+  feedbackType String // feature_request, bug_report, general, nps
+  category     String?
+  subject      String
+  message      String  @db.Text
+
+  // Rating (NPS or satisfaction)
+  rating      Int? // 0-10 for NPS, 1-5 for satisfaction
+  npsCategory String? // promoter, passive, detractor
+
+  // Context
+  page      String?
+  feature   String?
+  sessionId String?
+
+  // Status
+  status   String @default("new") // new, reviewed, in_progress, resolved
+  priority String @default("medium") // low, medium, high
+
+  // Response
+  response    String?   @db.Text
+  respondedAt DateTime?
+  respondedBy String?
+
+  // Metadata
+  metadata    Json?
+  attachments String[] @default([])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clerkUserId])
+  @@index([feedbackType])
+  @@index([status])
+  @@index([rating])
+  @@index([createdAt])
+  @@map("user_feedback_v2")
+}
+
+// ============================================
+// PHASE 4D: DEVELOPMENT AUTOMATION
+// ============================================
+// Purpose: Automated testing, CI/CD, code review, documentation
+// Models: TestSuite, TestRun, CodeReview, DeploymentLog
+// ============================================
+
+// Test Suite Management
+model TestSuite {
+  id String @id @default(cuid())
+
+  // Suite info
+  name        String  @unique
+  description String? @db.Text
+  suiteType   String // unit, integration, e2e, performance
+  framework   String // jest, vitest, playwright, cypress
+
+  // Configuration
+  testFiles String[] @default([])
+  coverage  Boolean  @default(true)
+  parallel  Boolean  @default(true)
+  timeout   Int      @default(30000) // milliseconds
+
+  // Environment
+  environment  String @default("test") // test, staging, production
+  envVariables Json? // Environment variables
+
+  // Status
+  enabled      Boolean   @default(true)
+  lastRun      DateTime?
+  totalTests   Int       @default(0)
+  passingTests Int       @default(0)
+  failingTests Int       @default(0)
+
+  // Thresholds
+  minCoverage Float @default(80.0) // percentage
+  maxDuration Int   @default(300000) // 5 minutes
+
+  // Relations
+  runs TestRun[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String?
+
+  @@index([suiteType])
+  @@index([enabled])
+  @@map("test_suites")
+}
+
+// Test Run Execution
+model TestRun {
+  id String @id @default(cuid())
+
+  // Suite reference
+  suiteId String
+  suite   TestSuite @relation(fields: [suiteId], references: [id], onDelete: Cascade)
+
+  // Run info
+  runNumber   Int
+  status      String // running, passed, failed, error
+  trigger     String // manual, ci, cron, webhook
+  triggeredBy String?
+
+  // Results
+  totalTests   Int @default(0)
+  passedTests  Int @default(0)
+  failedTests  Int @default(0)
+  skippedTests Int @default(0)
+
+  // Coverage
+  coveragePercent  Float? // overall coverage
+  lineCoverage     Float?
+  branchCoverage   Float?
+  functionCoverage Float?
+
+  // Performance
+  duration    Int? // milliseconds
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  // Results data
+  testResults    Json // Detailed test results
+  coverageReport Json? // Coverage details
+  errorLog       String? @db.Text
+
+  // Context
+  branch        String?
+  commitSha     String?
+  pullRequestId String?
+
+  @@index([suiteId])
+  @@index([status])
+  @@index([startedAt])
+  @@map("test_runs")
+}
+
+// AI-Powered Code Review
+model CodeReview {
+  id String @id @default(cuid())
+
+  // PR/Commit info
+  pullRequestId  String?
+  pullRequestUrl String?
+  commitSha      String
+  branch         String
+  author         String
+
+  // Review metadata
+  reviewType String @default("automated") // automated, manual, hybrid
+  status     String @default("pending") // pending, approved, changes_requested, commented
+
+  // AI Analysis
+  overallScore         Float @default(0.0) // 0-100
+  qualityScore         Float @default(0.0)
+  securityScore        Float @default(0.0)
+  performanceScore     Float @default(0.0)
+  maintainabilityScore Float @default(0.0)
+
+  // Issues found
+  criticalIssues Int @default(0)
+  majorIssues    Int @default(0)
+  minorIssues    Int @default(0)
+  suggestions    Int @default(0)
+
+  // Detailed findings
+  findings                Json // Array of issue objects
+  securityVulnerabilities Json? // Security issues
+  performanceWarnings     Json? // Performance concerns
+
+  // Code metrics
+  linesChanged  Int    @default(0)
+  filesChanged  Int    @default(0)
+  complexity    Float? // Cyclomatic complexity
+  duplicateCode Float? // Percentage
+
+  // AI comments
+  aiComments   Json? // Generated review comments
+  autoApproved Boolean @default(false)
+
+  // Human review
+  humanReviewer   String?
+  humanReviewedAt DateTime?
+  humanComments   String?   @db.Text
+
+  // Actions taken
+  merged      Boolean   @default(false)
+  mergedAt    DateTime?
+  blocked     Boolean   @default(false)
+  blockReason String?   @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([overallScore])
+  @@index([commitSha])
+  @@index([createdAt])
+  @@map("code_reviews")
+}
+
+// Deployment Tracking
+model DeploymentLog {
+  id String @id @default(cuid())
+
+  // Deployment info
+  deploymentId String @unique
+  environment  String // development, staging, production
+  platform     String // vercel, netlify, aws, heroku
+
+  // Version info
+  version   String?
+  commitSha String
+  branch    String
+  tag       String?
+
+  // Status
+  status     String // pending, deploying, success, failed, rolled_back
+  deployType String // standard, hotfix, rollback, canary
+
+  // Triggering
+  trigger       String // manual, ci, webhook, schedule
+  triggeredBy   String?
+  pullRequestId String?
+
+  // URLs
+  deploymentUrl String?
+  previewUrl    String?
+  logsUrl       String?
+
+  // Timing
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+  duration    Int? // seconds
+
+  // Build info
+  buildTime Int? // seconds
+  buildSize Float? // MB
+  buildLog  String? @db.Text
+
+  // Tests
+  testsRun    Boolean  @default(false)
+  testsPassed Boolean?
+  testResults Json?
+
+  // Health checks
+  healthCheckPassed Boolean?
+  healthCheckUrl    String?
+
+  // Rollback info
+  canRollback    Boolean @default(true)
+  rolledBack     Boolean @default(false)
+  rollbackTo     String? // Previous deployment ID
+  rollbackReason String? @db.Text
+
+  // Metrics
+  errorRate     Float? // percentage
+  responseTime  Float? // milliseconds
+  uptimePercent Float?
+
+  // Notifications
+  notificationsSent Boolean  @default(false)
+  notifiedUsers     String[] @default([])
+
+  // Context
+  metadata        Json?
+  environmentVars Json? // Sanitized env vars (no secrets)
+
+  @@index([environment])
+  @@index([status])
+  @@index([startedAt])
+  @@index([commitSha])
+  @@map("deployment_logs")
+}
+
+// Add relations to User model
+// (These should be added to the existing User model)
+// testSuites        TestSuite[]
+// testRuns          TestRun[]
+// codeReviews       CodeReview[]
+// deployments       DeploymentLog[]
+// ============================================================================
+// PHASE 4E: INTEGRATION HUB - DATABASE MODELS
+// Hollywood Phase 4E: External service integrations, notifications, webhooks
+// ============================================================================
+
+// ============================================================================
+// MODEL 1: Integration - External Service Connections
+// ============================================================================
+model Integration {
+  id String @id @default(cuid())
+
+  // Service Details
+  service     String // slack, jira, email, github, discord, etc.
+  serviceName String // User-friendly name
+  serviceIcon String? // Icon URL or emoji
+
+  // Connection Config
+  status      String @default("inactive") // active, inactive, error, pending
+  config      Json // Service-specific configuration
+  credentials Json? // Encrypted credentials
+
+  // Authentication
+  authType     String // oauth, api_key, webhook, basic
+  accessToken  String?   @db.Text
+  refreshToken String?   @db.Text
+  tokenExpiry  DateTime?
+
+  // Features & Capabilities
+  capabilities    String[] @default([]) // send_message, create_ticket, send_email, etc.
+  enabledFeatures String[] @default([]) // Which features are enabled
+
+  // Webhook Config
+  webhookUrl    String?  @db.Text
+  webhookSecret String?
+  webhookEvents String[] @default([])
+
+  // Rate Limiting
+  rateLimit     Int? // Requests per minute
+  requestCount  Int       @default(0)
+  lastRequestAt DateTime?
+
+  // Health & Monitoring
+  lastSyncAt    DateTime?
+  lastErrorAt   DateTime?
+  lastError     String?   @db.Text
+  syncFrequency Int? // Minutes between syncs
+
+  // Metadata
+  isActive  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String
+  user      User     @relation(fields: [createdBy], references: [clerkUserId], onDelete: Cascade)
+
+  // Relations
+  notifications Notification[]
+  webhookLogs   WebhookLog[]
+
+  @@index([service])
+  @@index([status])
+  @@index([createdBy])
+  @@map("integrations")
+}
+
+// ============================================================================
+// MODEL 2: Notification - Notification System & Preferences
+// ============================================================================
+model Notification {
+  id String @id @default(cuid())
+
+  // Notification Details
+  type     String // info, success, warning, error, mention, task, deployment
+  title    String
+  message  String @db.Text
+  category String // system, user, integration, deployment, code_review, etc.
+
+  // Priority & Status
+  priority String @default("normal") // low, normal, high, critical
+  status   String @default("unread") // unread, read, archived, dismissed
+
+  // Delivery Channels
+  channels       String[] @default([]) // web, email, slack, sms, push
+  deliveredVia   String[] @default([]) // Which channels successfully delivered
+  failedChannels String[] @default([])
+
+  // Target User
+  userId      String
+  clerkUserId String
+  user        User   @relation(fields: [clerkUserId], references: [clerkUserId], onDelete: Cascade)
+
+  // Action & Navigation
+  actionUrl   String? @db.Text
+  actionLabel String?
+  actionData  Json?
+
+  // Integration Source
+  integrationId String?
+  integration   Integration? @relation(fields: [integrationId], references: [id], onDelete: SetNull)
+  sourceService String? // Which service generated this notification
+  externalId    String? // External notification ID
+
+  // Grouping & Threading
+  groupKey String? // Group related notifications
+  threadId String? // Thread/conversation ID
+  parentId String? // Reply to another notification
+
+  // Metadata
+  metadata    Json?
+  attachments Json? // Files, images, links
+
+  // Timing
+  scheduledFor DateTime?
+  sentAt       DateTime?
+  readAt       DateTime?
+  dismissedAt  DateTime?
+  expiresAt    DateTime?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clerkUserId])
+  @@index([status])
+  @@index([type])
+  @@index([priority])
+  @@index([createdAt])
+  @@index([groupKey])
+  @@map("notifications")
+}
+
+// ============================================================================
+// MODEL 3: WebhookLog - Webhook Activity Tracking
+// ============================================================================
+model WebhookLog {
+  id String @id @default(cuid())
+
+  // Webhook Details
+  integrationId String?
+  integration   Integration? @relation(fields: [integrationId], references: [id], onDelete: SetNull)
+  service       String // Which service sent the webhook
+  event         String // Event type
+
+  // Request Details
+  method  String // POST, PUT, etc.
+  url     String @db.Text
+  headers Json?
+  body    Json?
+  query   Json?
+
+  // Response Details
+  status       String // success, failed, pending, retrying
+  statusCode   Int?
+  responseBody Json?
+  responseTime Int? // Milliseconds
+
+  // Processing
+  processed      Boolean   @default(false)
+  processedAt    DateTime?
+  processingTime Int? // Milliseconds
+
+  // Error Handling
+  error       String?   @db.Text
+  errorStack  String?   @db.Text
+  retryCount  Int       @default(0)
+  maxRetries  Int       @default(3)
+  nextRetryAt DateTime?
+
+  // Validation
+  signatureValid Boolean?
+  ipAddress      String?
+  userAgent      String?  @db.Text
+
+  // Metadata
+  metadata Json?
+  tags     String[] @default([])
+
+  // Timestamps
+  receivedAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([integrationId])
+  @@index([service])
+  @@index([status])
+  @@index([receivedAt])
+  @@index([event])
+  @@map("webhook_logs")
+}
+
+// ============================================================================
+// MODEL 4: ExternalService - Third-Party Service Configurations
+// ============================================================================
+model ExternalService {
+  id String @id @default(cuid())
+
+  // Service Identity
+  name        String  @unique // slack, jira, github, gmail, etc.
+  displayName String
+  description String? @db.Text
+  category    String // communication, project_management, email, code, etc.
+
+  // Service Config
+  baseUrl    String? @db.Text
+  apiVersion String?
+  authType   String // oauth2, api_key, basic, bearer, custom
+
+  // OAuth Config
+  oauthClientId     String?  @db.Text
+  oauthClientSecret String?  @db.Text
+  oauthScopes       String[] @default([])
+  oauthAuthUrl      String?  @db.Text
+  oauthTokenUrl     String?  @db.Text
+
+  // API Config
+  apiKeyHeader     String? // Header name for API key
+  rateLimitPerMin  Int?
+  rateLimitPerHour Int?
+
+  // Capabilities
+  capabilities   Json // What this service can do
+  endpoints      Json? // Available endpoints
+  webhookSupport Boolean @default(false)
+
+  // Documentation
+  docsUrl           String? @db.Text
+  iconUrl           String? @db.Text
+  setupInstructions String? @db.Text
+
+  // Status
+  isActive        Boolean   @default(true)
+  isAvailable     Boolean   @default(true)
+  lastHealthCheck DateTime?
+  healthStatus    String? // healthy, degraded, down
+
+  // Metadata
+  version  String?
+  metadata Json?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([name])
+  @@index([category])
+  @@index([isActive])
+  @@map("external_services")
+}
+
+// ===========================================
+// PHASE 4F: ADVANCED ANALYTICS MODELS
+// ===========================================
+
+// Business Metrics & KPIs
+model BusinessMetric {
+  id String @id @default(cuid())
+
+  // Metric Identity
+  name        String  @unique // revenue, users, conversions, etc.
+  displayName String
+  description String? @db.Text
+  category    String // business, technical, user, performance
+
+  // Metric Type
+  metricType      String // counter, gauge, histogram, summary
+  aggregationType String // sum, avg, min, max, count
+  unit            String? // dollars, users, ms, percentage
+
+  // Current Value
+  currentValue  Float
+  previousValue Float?
+  changePercent Float?
+
+  // Target & Goals
+  targetValue  Float?
+  minThreshold Float?
+  maxThreshold Float?
+
+  // Trend Analysis
+  trend      String @default("stable") // up, down, stable
+  dataPoints Json // Array of historical values
+
+  // Metadata
+  isActive        Boolean  @default(true)
+  priority        Int      @default(0)
+  refreshInterval Int      @default(300) // seconds
+  lastCalculated  DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  reports ReportMetric[]
+  alerts  MetricAlert[]
+
+  @@index([category])
+  @@index([isActive])
+  @@map("business_metrics")
+}
+
+// Custom Reports
+model CustomReport {
+  id String @id @default(cuid())
+
+  // Report Identity
+  name        String
+  description String? @db.Text
+  reportType  String // dashboard, table, chart, export
+
+  // Configuration
+  config  Json // Report configuration
+  metrics ReportMetric[]
+  filters Json? // Filter criteria
+  groupBy String[]       @default([])
+  sortBy  String?
+
+  // Schedule
+  isScheduled Boolean  @default(false)
+  schedule    String? // cron expression
+  recipients  String[] @default([])
+
+  // Access Control
+  isPublic  Boolean @default(false)
+  createdBy String
+  owner     User    @relation(fields: [createdBy], references: [clerkUserId], onDelete: Cascade)
+
+  // Execution
+  lastRun  DateTime?
+  nextRun  DateTime?
+  runCount Int       @default(0)
+
+  // Metadata
+  favorite  Boolean  @default(false)
+  tags      String[] @default([])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([createdBy])
+  @@index([isScheduled])
+  @@map("custom_reports")
+}
+
+// Report Metrics (join table)
+model ReportMetric {
+  id String @id @default(cuid())
+
+  reportId String
+  report   CustomReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  metricId String
+  metric   BusinessMetric @relation(fields: [metricId], references: [id], onDelete: Cascade)
+
+  // Display Config
+  displayOrder Int     @default(0)
+  chartType    String? // line, bar, pie, gauge
+  color        String?
+
+  createdAt DateTime @default(now())
+
+  @@unique([reportId, metricId])
+  @@index([reportId])
+  @@index([metricId])
+  @@map("report_metrics")
+}
+
+// Metric Alerts
+model MetricAlert {
+  id String @id @default(cuid())
+
+  // Alert Identity
+  name        String
+  description String? @db.Text
+
+  // Metric Reference
+  metricId String
+  metric   BusinessMetric @relation(fields: [metricId], references: [id], onDelete: Cascade)
+
+  // Condition
+  condition String // gt, lt, eq, gte, lte
+  threshold Float
+  duration  Int? // seconds - how long condition must be true
+
+  // Notification
+  severity   String   @default("warning") // info, warning, critical
+  channels   String[] @default([]) // email, slack, sms
+  recipients String[] @default([])
+
+  // Status
+  isActive     Boolean   @default(true)
+  isTriggered  Boolean   @default(false)
+  triggeredAt  DateTime?
+  resolvedAt   DateTime?
+  triggerCount Int       @default(0)
+
+  // Snooze
+  isSnoozed   Boolean   @default(false)
+  snoozeUntil DateTime?
+
+  // Ownership
+  createdBy String
+  owner     User   @relation(fields: [createdBy], references: [clerkUserId], onDelete: Cascade)
+
+  // Metadata
+  lastChecked DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([metricId])
+  @@index([isActive])
+  @@index([isTriggered])
+  @@map("metric_alerts")
+}
+
+// Analytics Dashboard
+model AnalyticsDashboard {
+  id String @id @default(cuid())
+
+  // Dashboard Identity
+  name          String
+  description   String? @db.Text
+  dashboardType String // business, technical, custom
+
+  // Layout Configuration
+  layout  Json // Grid layout configuration
+  widgets Json // Array of widget configurations
+
+  // Settings
+  refreshInterval Int    @default(300) // seconds
+  timeRange       String @default("24h") // 1h, 24h, 7d, 30d, custom
+
+  // Access Control
+  isPublic  Boolean @default(false)
+  isDefault Boolean @default(false)
+  createdBy String
+  owner     User    @relation(fields: [createdBy], references: [clerkUserId], onDelete: Cascade)
+
+  // Metadata
+  viewCount  Int       @default(0)
+  favorite   Boolean   @default(false)
+  tags       String[]  @default([])
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  lastViewed DateTime?
+
+  @@index([createdBy])
+  @@index([isPublic])
+  @@index([isDefault])
+  @@map("analytics_dashboards")
+}
+
+// ============================================
+// PHASE 4C: CREATIVE AI SYSTEMS SCHEMA
+// ============================================
+
+// Creative Asset - Store generated images/videos/audio
+model CreativeAsset {
+  id          String  @id @default(cuid())
+  userId      String
+  clerkUserId String?
+
+  // Asset Details
+  type        String // image, video, audio
+  category    String // art, photo, illustration, music, voiceover, sfx, etc.
+  title       String?
+  description String?
+
+  // Generation Details
+  prompt         String  @db.Text
+  negativePrompt String? @db.Text
+  model          String // dall-e-3, stable-diffusion, midjourney, etc.
+  generationId   String? // Reference to GenerationJob
+
+  // File Details
+  url          String  @db.Text
+  thumbnailUrl String? @db.Text
+  fileSize     Int?
+  duration     Int? // For video/audio (seconds)
+  width        Int? // For images/videos
+  height       Int? // For images/videos
+  format       String? // png, jpg, mp4, mp3, etc.
+
+  // Generation Parameters
+  parameters Json? // Model-specific parameters
+  seed       String?
+  steps      Int?
+  guidance   Float?
+  sampler    String?
+
+  // Status & Metadata
+  status     String   @default("completed") // pending, processing, completed, failed
+  isPublic   Boolean  @default(false)
+  isFavorite Boolean  @default(false)
+  tags       String[]
+  metadata   Json?
+
+  // AI Provider Details
+  provider String? // openai, stability, replicate, etc.
+  cost     Float? // Generation cost in credits
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Sprint 2: Creative Core additions
+  isArchived Boolean @default(false)
+
+  // Relations
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  generationJob GenerationJob? @relation(fields: [generationId], references: [id])
+
+  // Sprint 2: Library relations
+  projectAssets   ProjectAsset[]
+  collectionItems CollectionItem[]
+
+  @@index([userId])
+  @@index([clerkUserId])
+  @@index([type])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// Generation Job - Track generation requests & status
+model GenerationJob {
+  id          String  @id @default(cuid())
+  userId      String
+  clerkUserId String?
+
+  // Job Details
+  type     String // image, video, audio
+  status   String @default("pending") // pending, processing, completed, failed, cancelled
+  priority String @default("normal") // low, normal, high, urgent
+
+  // Request Details
+  prompt         String  @db.Text
+  negativePrompt String? @db.Text
+  model          String
+  parameters     Json?
+  templateId     String?
+
+  // Progress Tracking
+  progress      Int     @default(0) // 0-100
+  currentStep   String?
+  totalSteps    Int?
+  estimatedTime Int? // Seconds
+
+  // Result Details
+  resultUrl  String?  @db.Text
+  resultUrls String[] // For batch generations
+  error      String?  @db.Text
+  errorCode  String?
+
+  // Queue Management
+  queuePosition Int?
+  startedAt     DateTime?
+  completedAt   DateTime?
+  cancelledAt   DateTime?
+
+  // Metadata
+  metadata   Json?
+  retryCount Int   @default(0)
+  maxRetries Int   @default(3)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  template CreativeTemplate? @relation(fields: [templateId], references: [id])
+  assets   CreativeAsset[]
+
+  @@index([userId])
+  @@index([clerkUserId])
+  @@index([status])
+  @@index([type])
+  @@index([createdAt])
+}
+
+// Creative Template - Reusable templates
+model CreativeTemplate {
+  id          String  @id @default(cuid())
+  userId      String?
+  clerkUserId String?
+
+  // Template Details
+  name        String
+  description String? @db.Text
+  type        String // image, video, audio
+  category    String
+
+  // Template Configuration
+  prompt         String  @db.Text
+  negativePrompt String? @db.Text
+  model          String
+  parameters     Json
+
+  // Metadata
+  thumbnailUrl String?  @db.Text
+  isPublic     Boolean  @default(false)
+  isDefault    Boolean  @default(false)
+  tags         String[]
+  usageCount   Int      @default(0)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user User?           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobs GenerationJob[]
+
+  @@index([userId])
+  @@index([type])
+  @@index([isPublic])
+}
+
+// Asset Metadata - Extended asset information
+model AssetMetadata {
+  id      String @id @default(cuid())
+  assetId String @unique
+
+  // Technical Metadata
+  colorPalette   String[]
+  dominantColors Json?
+  aspectRatio    String?
+  bitrate        Int? // For audio/video
+  frameRate      Int? // For video
+  channels       Int? // For audio
+  sampleRate     Int? // For audio
+
+  // AI Analysis
+  aiLabels      String[]
+  aiDescription String?  @db.Text
+  nsfwScore     Float?
+  qualityScore  Float?
+
+  // Usage Tracking
+  viewCount     Int @default(0)
+  downloadCount Int @default(0)
+  shareCount    Int @default(0)
+
+  // Performance
+  generationTime Int? // Milliseconds
+  processingTime Int? // Milliseconds
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([assetId])
+}
+
+// ============================================================================
+// PHASE 5A: INTELLIGENT CODE SYNTHESIZER
+// Purpose: Enable HOLLY to generate, manage, and validate code autonomously
+// ============================================================================
+
+// Generated Code Records
+model GeneratedCode {
+  id String @id @default(cuid())
+
+  // Code Details
+  language    String // typescript, python, sql, css, etc.
+  code        String  @db.Text
+  filePath    String? // Suggested file path
+  purpose     String // What this code does
+  description String? @db.Text
+
+  // Generation Context
+  prompt      String        @db.Text // Original generation request
+  templateId  String? // If generated from template
+  template    CodeTemplate? @relation(fields: [templateId], references: [id])
+  contextUsed Json? // Cognitive map context used
+
+  // Status & Approval
+  status         String // draft, pending_review, approved, rejected, deployed
+  approvalStatus String // pending, approved, rejected, needs_revision
+  riskLevel      String // low, medium, high, critical
+
+  // Quality Metrics
+  linesOfCode   Int?
+  complexity    Float? // Cyclomatic complexity
+  testCoverage  Float? // 0-100%
+  securityScore Float? // 0-100%
+
+  // Testing & Validation
+  testsPass      Boolean?
+  securityIssues Json? // Array of security findings
+  lintErrors     Json? // Array of linting errors
+
+  // Feedback & Iteration
+  reviewComments    String?         @db.Text
+  iterationCount    Int             @default(0)
+  previousVersionId String?
+  previousVersion   GeneratedCode?  @relation("CodeVersions", fields: [previousVersionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  nextVersions      GeneratedCode[] @relation("CodeVersions")
+
+  // Generation Job
+  codeGenJobId String?
+  codeGenJob   CodeGenerationJob? @relation(fields: [codeGenJobId], references: [id])
+
+  // Metadata
+  userId     String
+  user       User      @relation(fields: [userId], references: [id])
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  approvedAt DateTime?
+  deployedAt DateTime?
+
+  @@index([userId])
+  @@index([status])
+  @@index([approvalStatus])
+  @@index([language])
+  @@index([templateId])
+}
+
+// Code Templates - Reusable patterns
+model CodeTemplate {
+  id String @id @default(cuid())
+
+  // Template Identity
+  name        String
+  description String @db.Text
+  category    String // component, api, utility, test, etc.
+  language    String // typescript, python, sql, etc.
+
+  // Template Content
+  templateCode String @db.Text
+  variables    Json // Array of variable definitions
+  placeholders Json? // Placeholder replacement rules
+
+  // Configuration
+  isPublic  Boolean  @default(false)
+  tags      String[] // Searchable tags
+  framework String? // react, next, express, fastapi, etc.
+
+  // Usage Stats
+  usageCount Int       @default(0)
+  lastUsed   DateTime?
+
+  // Quality & Validation
+  validated       Boolean @default(false)
+  exampleOutput   String? @db.Text
+  requiredContext Json? // What context this template needs
+
+  // Relationships
+  generatedCodes GeneratedCode[]
+
+  // Metadata
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([category])
+  @@index([language])
+}
+
+// Code Generation Jobs - Track code generation processes
+model CodeGenerationJob {
+  id String @id @default(cuid())
+
+  // Job Details
+  jobType  String // synthesis, refactor, optimization
+  status   String // queued, running, completed, failed, cancelled
+  priority String // low, medium, high, urgent
+
+  // Input
+  input      Json // Generation request details
+  prompt     String  @db.Text
+  language   String
+  targetPath String?
+
+  // Context & Configuration
+  cognitiveContext Json? // Context from Cognitive Map
+  templateId       String?
+  securityChecks   Boolean @default(true)
+  requireTests     Boolean @default(true)
+
+  // Output
+  output         Json? // Generated code IDs and metadata
+  generatedCodes GeneratedCode[]
+
+  // Execution Metrics
+  startedAt   DateTime?
+  completedAt DateTime?
+  durationMs  Int?
+  tokensUsed  Int?
+  cost        Float?
+
+  // Error Handling
+  error      String? @db.Text
+  retryCount Int     @default(0)
+  maxRetries Int     @default(3)
+
+  // Quality Metrics
+  successRate      Float? // 0-100%
+  codeQualityScore Float? // 0-100%
+
+  // Metadata
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([jobType])
+  @@index([createdAt])
+}
+
+// Code Patterns - Learned patterns from existing codebase
+model CodePattern {
+  id String @id @default(cuid())
+
+  // Pattern Identity
+  name        String
+  description String @db.Text
+  patternType String // architectural, design, security, performance
+  language    String
+
+  // Pattern Details
+  pattern     String  @db.Text
+  antiPattern String? @db.Text // What NOT to do
+  examples    Json // Array of example usages
+
+  // Context
+  framework String?
+  domain    String? // auth, api, ui, database, etc.
+
+  // Quality Indicators
+  confidence      Float // 0-1, how confident are we in this pattern
+  occurrenceCount Int    @default(1) // How many times seen in codebase
+  successRate     Float? // 0-100%
+
+  // Learning
+  learnedFrom Json? // Source files where pattern was found
+  lastSeen    DateTime @default(now())
+
+  // Usage
+  timesApplied Int @default(0)
+
+  // Metadata
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([patternType])
+  @@index([language])
+  @@index([confidence])
+}
+
+// HOLLY Generated Media - Images, Videos, Audio created by HOLLY
+model GeneratedMedia {
+  id             String  @id @default(cuid())
+  userId         String
+  conversationId String?
+
+  // Media details
+  type        String // 'image', 'video', 'audio'
+  url         String // Public URL from Vercel Blob
+  prompt      String // User's original request
+  contentType String // MIME type (image/png, video/mp4, etc.)
+  size        Int // File size in bytes
+  pathname    String // Storage pathname
+
+  // Generation metadata
+  model      String? // AI model used (flux-schnell, suno, etc.)
+  parameters Json? // Generation parameters
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([conversationId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+// ============================================
+// PHASE 3: ADAPTIVE LEARNING MODELS
+// ============================================
+
+// Problems detected by HOLLY's self-monitoring system
+model DetectedProblem {
+  id String @id @default(cuid())
+
+  // Problem classification
+  type     String // 'performance', 'error', 'ux', 'code_quality', 'security'
+  severity String // 'low', 'medium', 'high', 'critical'
+
+  // Problem details
+  title       String
+  description String @db.Text
+  evidence    Json // { logs: [], metrics: {}, affectedComponents: [] }
+  impact      String // User-facing impact description
+
+  // Status tracking
+  status     String    @default("detected") // 'detected', 'analyzing', 'resolved', 'ignored'
+  detectedAt DateTime  @default(now())
+  resolvedAt DateTime?
+
+  // Relationships
+  hypotheses Hypothesis[]
+
+  @@index([status, severity])
+  @@index([detectedAt])
+  @@index([type])
+  @@map("detected_problems")
+}
+
+// Solution hypotheses generated by HOLLY
+model Hypothesis {
+  id String @id @default(cuid())
+
+  // Related problem
+  problemId String
+  problem   DetectedProblem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+
+  // Hypothesis details
+  proposedSolution String @db.Text
+  reasoning        String @db.Text
+  expectedImpact   String
+  confidence       Float // 0-100
+
+  // Testing and risks
+  testingStrategy String @db.Text
+  risks           Json // Array of risk strings
+
+  // Implementation plan
+  implementation Json // { filesAffected: [], complexity: 'low/medium/high', dependencies: [] }
+
+  // Testing results
+  tested      Boolean @default(false)
+  testResults Json? // Metrics if tested
+
+  // Timestamps
+  createdAt DateTime @default(now())
+
+  // Relationships
+  experiences Experience[]
+
+  @@index([problemId])
+  @@index([confidence])
+  @@index([tested])
+  @@map("hypotheses")
+}
+
+// Learning experiences from deployments and fixes
+model Experience {
+  id String @id @default(cuid())
+
+  // Related hypothesis (optional - some experiences don't come from hypotheses)
+  hypothesisId String?
+  hypothesis   Hypothesis? @relation(fields: [hypothesisId], references: [id])
+
+  // Experience classification
+  type    String // 'deployment', 'fix', 'feature', 'optimization', 'refactor'
+  action  String @db.Text // What was done
+  context Json // { situation: '', problem: '', constraints: [] }
+
+  // Outcome tracking
+  outcome String // 'success', 'failure', 'partial'
+  results Json // { errorRate: 0.01, responseTime: 250, userFeedback: 'positive' }
+
+  // Learning
+  lessonsLearned String  @db.Text
+  wouldRepeat    Boolean // Would we do this again?
+  confidence     Float // 0-100, how confident in this approach
+
+  // Timestamps
+  createdAt DateTime @default(now())
+
+  @@index([type, outcome])
+  @@index([createdAt])
+  @@index([wouldRepeat])
+  @@map("experiences")
+}
+
+// Tool definitions for dynamic tool management (Phase 7)
+model ToolDefinition {
+  id          String @id @default(cuid())
+  name        String @unique
+  description String @db.Text
+  category    String // 'system', 'creative', 'analysis', 'integration'
+  schema      Json // Tool configuration and parameters
+  status      String // 'active', 'disabled', 'testing'
+  createdBy   String // 'system', 'holly', 'admin'
+  version     String
+
+  // Metadata
+  usageCount  Int       @default(0)
+  successRate Float? // 0-100
+  lastUsed    DateTime?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([category])
+  @@index([createdBy])
+  @@map("tool_definitions")
+}
+
+// API definitions for external integrations (Phase 8)
+model APIDefinition {
+  id          String @id @default(cuid())
+  name        String @unique
+  description String @db.Text
+  baseUrl     String
+  authType    String // 'none', 'api_key', 'oauth', 'bearer'
+  headers     Json? // Default headers
+  rateLimit   Int? // Requests per minute
+  status      String // 'active', 'disabled', 'testing'
+  createdBy   String // 'system', 'holly', 'admin'
+
+  // Usage tracking
+  callCount Int       @default(0)
+  lastUsed  DateTime?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([createdBy])
+  @@map("api_definitions")
+}
+
+// Web browsing logs for tracking (Phase 8)
+model WebBrowseLog {
+  id        String   @id @default(cuid())
+  url       String
+  action    String // 'browse', 'scrape', 'extract'
+  success   Boolean
+  duration  Int // milliseconds
+  error     String?  @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([action])
+  @@map("web_browse_logs")
+}
+
+// =====================================================
+// PHASE 11: KNOWLEDGE & INTELLIGENCE SYSTEM
+// =====================================================
+
+// Knowledge nodes for graph-based knowledge storage
+model KnowledgeNode {
+  id          String  @id @default(cuid())
+  entityType  String // 'concept', 'file', 'function', 'pattern', 'user', 'project'
+  entityId    String? // Reference to actual entity if applicable
+  name        String
+  description String? @db.Text
+  metadata    Json // Flexible metadata storage
+  confidence  Float   @default(1.0) // 0-1
+
+  // Relationships
+  fromLinks KnowledgeLink[] @relation("FromNode")
+  toLinks   KnowledgeLink[] @relation("ToNode")
+
+  // Timestamps
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  lastAccessed DateTime @default(now())
+  accessCount  Int      @default(0)
+
+  @@index([entityType])
+  @@index([name])
+  @@map("knowledge_nodes")
+}
+
+// Links between knowledge nodes
+model KnowledgeLink {
+  id               String @id @default(cuid())
+  fromNodeId       String
+  toNodeId         String
+  relationshipType String // 'uses', 'implements', 'related_to', 'caused_by', 'solves'
+  strength         Float  @default(1.0) // 0-1
+  metadata         Json?
+
+  fromNode KnowledgeNode @relation("FromNode", fields: [fromNodeId], references: [id], onDelete: Cascade)
+  toNode   KnowledgeNode @relation("ToNode", fields: [toNodeId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([fromNodeId])
+  @@index([toNodeId])
+  @@index([relationshipType])
+  @@map("knowledge_links")
+}
+
+// Prediction tracking for learning accuracy
+model PredictionLog {
+  id             String @id @default(cuid())
+  predictionType String // 'next_action', 'issue', 'recommendation'
+  context        Json // What led to this prediction
+  prediction     Json // What was predicted
+  confidence     Float // 0-1
+
+  // Outcome tracking
+  wasAccurate   Boolean?
+  actualOutcome Json?
+  accuracy      Float? // How accurate (0-1)
+
+  createdAt   DateTime  @default(now())
+  evaluatedAt DateTime?
+
+  @@index([predictionType])
+  @@index([createdAt])
+  @@map("prediction_logs")
+}
+
+// Task analysis for intelligent task execution
+model TaskAnalysis {
+  id              String   @id @default(cuid())
+  taskDescription String   @db.Text
+  complexity      String // 'simple', 'moderate', 'complex'
+  estimatedTime   Int? // minutes
+  requiredSkills  String[]
+  dependencies    String[]
+  risks           String[]
+  approach        Json // Recommended approach
+
+  // Execution tracking
+  status     String   @default("pending") // 'pending', 'in_progress', 'completed', 'failed'
+  actualTime Int? // minutes
+  outcome    Json?
+  learnings  String[] @default([])
+
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("task_analyses")
+}
+
+// Phase 2: Human-in-the-Loop Self-Improvement
+model SelfImprovement {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Trigger information
+  triggerType String // 'error', 'feedback', 'audit', 'metric', 'reflection'
+  triggerData Json?  @default("{}")
+
+  // Problem and solution
+  problemStatement String @db.Text
+  solutionApproach String @db.Text
+  riskLevel        String // 'low', 'medium', 'high'
+
+  // Git and PR information
+  branchName String
+  prNumber   Int?
+  prUrl      String?
+
+  // Status tracking
+  status String // 'planned', 'coding', 'pr_created', 'approved', 'merged', 'deployed', 'failed', 'rolled_back'
+
+  // Code changes
+  filesChanged String[]
+  codeChanges  Json?    @default("{}")
+
+  // Testing and quality
+  testCoverage  Float?
+  testsAdded    Int     @default(0)
+  lintingPassed Boolean @default(false)
+
+  // Deployment
+  deploymentUrl String?
+  deployedAt    DateTime?
+
+  // Outcome and learning
+  outcome         String? // 'success', 'failure', 'rolled_back', 'pending'
+  metricsImproved Json?   @default("{}")
+  learnings       String? @db.Text
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([triggerType])
+  @@index([createdAt])
+  @@map("self_improvements")
+}
+
+// ============================================
+// SPRINT 2: CREATIVE CORE
+// AURA A&R Integration & Library Features
+// ============================================
+
+// AURA A&R Analysis Results
+model AuraAnalysis {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Job Info
+  jobId    String @unique
+  status   String // queued, processing, completed, failed
+  progress Int    @default(0) // 0-100
+
+  // Track Info
+  trackTitle     String
+  artistName     String
+  genre          String?
+  audioUrl       String  @db.Text
+  lyricsText     String? @db.Text
+  artworkUrl     String? @db.Text
+  referenceTrack String? // Optional reference track for comparison
+
+  // Analysis Results
+  hitFactor   Float? // 0-100
+  audioScore  Float? // 0-100
+  lyricsScore Float? // 0-100
+  brandScore  Float? // 0-100
+  marketScore Float? // 0-100
+
+  // Detailed Results (JSON)
+  recommendations Json? // Array of { type, note, priority }
+  similarHits     Json? // Array of { song, artist, year, similarity }
+  fullReport      Json? // Complete analysis data
+
+  // Metadata
+  modelVersion   String?
+  processingTime Int? // milliseconds
+  errorMessage   String? @db.Text
+
+  // Organization
+  isFavorite Boolean  @default(false)
+  isArchived Boolean  @default(false)
+  tags       String[] @default([])
+  notes      String?  @db.Text
+
+  // Timestamps
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  completedAt DateTime?
+
+  // Relations
+  collectionItems CollectionItem[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([isFavorite])
+  @@index([isArchived])
+  @@map("aura_analyses")
+}
+
+// User Collections (for organizing items)
+model Collection {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Collection Info
+  name        String
+  description String? @db.Text
+  icon        String? // Lucide icon name
+  color       String? // Hex color code
+
+  // Organization
+  isFavorite Boolean @default(false)
+  isArchived Boolean @default(false)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  items CollectionItem[]
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("collections")
+}
+
+// Collection Items (polymorphic - can be projects, assets, or analyses)
+model CollectionItem {
+  id           String     @id @default(cuid())
+  collectionId String
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+
+  // Polymorphic reference
+  itemType String // project, asset, analysis
+  itemId   String
+
+  // Direct relations (optional, for easier queries)
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  assetId String?
+  asset   CreativeAsset? @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  analysisId String?
+  analysis   AuraAnalysis? @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+
+  // Ordering
+  order Int @default(0)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+
+  @@index([collectionId])
+  @@index([itemType, itemId])
+  @@index([projectId])
+  @@index([assetId])
+  @@index([analysisId])
+  @@map("collection_items")
+}
+
+// Project Assets (link projects to creative assets)
+model ProjectAsset {
+  id        String  @id @default(cuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  assetId String
+  asset   CreativeAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  // Metadata
+  role  String? // e.g., "hero-image", "background-music", "logo"
+  order Int     @default(0)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+
+  @@unique([projectId, assetId])
+  @@index([projectId])
+  @@index([assetId])
+  @@map("project_assets")
+}
+
+// ============================================================================
+// PHASE 1 - FOUNDATION REPAIR: EVOLUTION ENGINE MODELS
+// ============================================================================
+
+model EvolutionProposal {
+  id             String    @id @default(cuid())
+  type           String // code_improvement, model_training, api_creation, feature_addition
+  title          String
+  description    String    @db.Text
+  rationale      String    @db.Text
+  impact         String // low, medium, high, critical
+  risk           String // low, medium, high
+  status         String    @default("proposed") // proposed, approved, testing, deployed, rejected
+  proposedAt     DateTime  @default(now())
+  approvedBy     String? // human, holly
+  testResults    Json?
+  deploymentDate DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([status])
+  @@index([type])
+  @@index([proposedAt])
+  @@map("evolution_proposals")
+}
+
+model EvolutionCapability {
+  name         String   @id
+  level        Int      @default(0)
+  description  String   @db.Text
+  lastImproved DateTime @default(now())
+  improvements Int      @default(0)
+  updatedAt    DateTime @updatedAt
+
+  @@map("evolution_capabilities")
+}
+
+// ============================================================================
+// PHASE 1 - FOUNDATION REPAIR: LEARNING ENGINE MODELS
+// ============================================================================
+
+model LearningEvent {
+  id             String   @id @default(cuid())
+  type           String // conversation, feedback, error, success, correction
+  userId         String
+  conversationId String?
+  data           Json     @default("{}")
+  timestamp      DateTime @default(now())
+  processed      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  @@index([userId])
+  @@index([type])
+  @@index([processed])
+  @@index([timestamp])
+  @@map("learning_events")
+}
+
+model LearningPattern {
+  id         String   @id @default(cuid())
+  pattern    String   @db.Text
+  category   String // user_preference, common_query, error_pattern, success_pattern
+  frequency  Int      @default(1)
+  lastSeen   DateTime @default(now())
+  confidence Float    @default(0)
+  action     String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([category])
+  @@index([frequency])
+  @@map("learning_patterns")
+}
+
+model UserLearningProfile {
+  id                      String   @id @default(cuid())
+  userId                  String   @unique
+  preferences             Json     @default("{}")
+  commonTopics            String[] @default([])
+  communicationStyle      String   @default("casual")
+  preferredResponseLength String   @default("medium")
+  interests               String[] @default([])
+  expertise               Json     @default("{}")
+  lastUpdated             DateTime @default(now())
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  @@index([userId])
+  @@map("user_learning_profiles")
+}
+
+// ============================================================================
+// PHASE 1 - FOUNDATION REPAIR: TASTE ENGINE MODELS
+// ============================================================================
+
+model TasteSignal {
+  id        String   @id @default(cuid())
+  userId    String
+  category  String // tone, length, format, topic, style, humor, technical, emoji
+  item      String   @default("") // specific preference item: "formal_tone", "bullet_lists", etc.
+  signal    String // positive, negative, neutral
+  context   String   @db.Text
+  weight    Float    @default(1.0)
+  source    String   @default("implicit") // implicit, explicit, feedback
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([category])
+  @@index([userId, category])
+  @@index([item])
+  @@map("taste_signals")
+}
+
+model TasteProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  // Tone preferences: formal=1.0, casual=0.0
+  tone        Float    @default(0.5)
+  // Response length: concise=0.0, detailed=1.0
+  verbosity   Float    @default(0.5)
+  // Humor level: 0.0=serious, 1.0=very playful
+  humor       Float    @default(0.3)
+  // Technical depth: 0.0=simple, 1.0=expert
+  technical   Float    @default(0.5)
+  // Emoji usage: 0.0=none, 1.0=heavy
+  emoji       Float    @default(0.4)
+  // Top interests derived from signals
+  topTopics   String[] @default([])
+  // Preferred formats (bullets, prose, code, tables)
+  formats     String[] @default([])
+  signalCount Int      @default(0)
+  lastUpdated DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("taste_profiles")
+}
+
+// ============================================================================
+// PHASE 7 — PUBLIC API LAYER
+// ============================================================================
+
+/// API key issued to a user for programmatic access to the HOLLY API.
+/// The `keyHash` field stores a SHA-256 hex digest of the raw key so the
+/// plaintext is never stored.  The raw key is returned ONCE at creation.
+model ApiKey {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name      String // human label, e.g. "My App"
+  keyHash   String    @unique // SHA-256(rawKey) — never store plaintext
+  keyPrefix String // first 8 chars of raw key for display ("holly_ab12")
+  scopes    String[]  @default([]) // e.g. ["chat", "evolution:read"]
+  isActive  Boolean   @default(true)
+  expiresAt DateTime? // null = never expires
+
+  // Rate limiting (requests per minute, per day)
+  rpmLimit Int @default(20)
+  rpdLimit Int @default(1000)
+
+  lastUsedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  usageLogs ApiKeyUsage[]
+
+  @@index([userId])
+  @@index([keyHash])
+  @@map("api_keys")
+}
+
+/// Canva OAuth tokens — one row per HOLLY user, stores access + refresh tokens.
+model CanvaToken {
+  id           String   @id @default(cuid())
+  userId       String   @unique // HOLLY user id (maps to User.id)
+  accessToken  String   @db.Text // Canva short-lived access token
+  refreshToken String   @db.Text // Canva long-lived refresh token (single-use)
+  expiresAt    DateTime // When the current access token expires
+  scope        String // Space-separated scopes granted
+  canvaUserId  String? // Canva user id (from /v1/users/me)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([userId])
+  @@map("canva_tokens")
+}
+
+/// Per-request usage log for an ApiKey — used for rate limiting and analytics.
+model ApiKeyUsage {
+  id       String @id @default(cuid())
+  apiKeyId String
+  apiKey   ApiKey @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+
+  endpoint   String // e.g. "/api/v1/chat"
+  method     String   @default("POST")
+  statusCode Int      @default(200)
+  durationMs Int      @default(0)
+  tokensIn   Int      @default(0)
+  tokensOut  Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  @@index([apiKeyId])
+  @@index([apiKeyId, createdAt])
+  @@map("api_key_usage")
+}
+
+// ============================================================================
+// HOLLY AI BUILDER WORKSPACE — Phase 11
+// ============================================================================
+
+/// A builder workspace session — one per user build request.
+model BuildSession {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Request
+  prompt      String @db.Text
+  projectType String @default("webapp") // webapp, api, landing, saas, tool
+  stack       String @default("nextjs") // nextjs, react, node, python, static
+
+  // State
+  status   String @default("idle") // idle, planning, building, running, error, done, stopped
+  phase    String @default("init") // init, inspect, plan, scaffold, install, build, verify, fix, done
+  progress Int    @default(0) // 0-100
+
+  // Workspace
+  workspaceDir String? // abs path to isolated sandbox dir
+  previewUrl   String? // detected preview URL
+  previewPort  Int? // detected port
+  repoUrl      String? // connected git repo
+  branch       String?
+
+  // Results
+  plan       String? @db.Text // JSON build plan
+  summary    String? @db.Text
+  errorCount Int     @default(0)
+  fixCount   Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  events    BuildEvent[]
+  files     BuildFile[]
+  processes BuildProcess[]
+  sandbox   BuildSandbox?
+  terminals BuildTerminal[]
+  preview   BuildPreview?
+
+  // Phase 12 extended fields
+  sandboxProvider      String? // local|docker
+  sandboxId            String? // container id if docker
+  lastErrorFingerprint String? // for fix-loop dedup
+  fixAttempts          Int     @default(0)
+
+  @@index([userId])
+  @@index([status])
+  @@map("build_sessions")
+}
+
+/// Streamed event log for a build session — drives the UI activity feed.
+model BuildEvent {
+  id        String       @id @default(cuid())
+  sessionId String
+  session   BuildSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  type       String // plan|file_write|file_delete|cmd_start|cmd_done|log|error|fix|preview_ready|done|info
+  phase      String?
+  title      String
+  body       String? @db.Text
+  filePath   String?
+  command    String?
+  exitCode   Int?
+  durationMs Int?
+  level      String  @default("info") // info|warn|error|success
+
+  createdAt DateTime @default(now())
+
+  @@index([sessionId])
+  @@index([sessionId, createdAt])
+  @@map("build_events")
+}
+
+/// File snapshot for a build session (tracks what HOLLY wrote/changed).
+model BuildFile {
+  id        String       @id @default(cuid())
+  sessionId String
+  session   BuildSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  path      String
+  content   String  @db.Text
+  action    String  @default("write") // write|delete|patch
+  language  String?
+  diffPatch String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([sessionId, path])
+  @@index([sessionId])
+  @@map("build_files")
+}
+
+/// Running process tracker (dev servers, build tasks).
+model BuildProcess {
+  id        String       @id @default(cuid())
+  sessionId String
+  session   BuildSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  pid     Int?
+  command String
+  cwd     String?
+  status  String  @default("starting") // starting|running|stopped|crashed
+  port    Int?
+  logs    String? @db.Text
+
+  startedAt DateTime  @default(now())
+  stoppedAt DateTime?
+
+  @@index([sessionId])
+  @@map("build_processes")
+}
+
+// ─── Builder: Extended models for Phase 12 upgrades ───────────────────────────
+
+/// Sandbox provider metadata — tracks which provider was used and cleanup state.
+model BuildSandbox {
+  id        String       @id @default(cuid())
+  sessionId String       @unique
+  session   BuildSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  provider    String  @default("local") // local|docker
+  containerId String? // docker container name/id
+  status      String  @default("active") // active|destroyed|timeout
+
+  createdAt   DateTime  @default(now())
+  destroyedAt DateTime?
+
+  @@map("build_sandboxes")
+}
+
+/// Terminal session tracker — PTY sessions per build session.
+model BuildTerminal {
+  id        String       @id @default(cuid())
+  sessionId String
+  session   BuildSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  terminalId String @default("main")
+  pid        Int?
+  status     String @default("active") // active|closed
+  transport  String @default("ws") // ws|rest
+  cols       Int    @default(120)
+  rows       Int    @default(30)
+
+  createdAt DateTime  @default(now())
+  closedAt  DateTime?
+
+  @@unique([sessionId, terminalId])
+  @@index([sessionId])
+  @@map("build_terminals")
+}
+
+/// Preview session — tracks proxy registrations.
+model BuildPreview {
+  id        String       @id @default(cuid())
+  sessionId String       @unique
+  session   BuildSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  routePath  String // /preview/:sessionId
+  targetPort Int
+  targetHost String @default("127.0.0.1")
+  status     String @default("active") // active|stopped|timeout
+
+  startedAt DateTime  @default(now())
+  stoppedAt DateTime?
+
+  @@map("build_previews")
+}
+
+/// Git repository connections per user.
+model GitConnection {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  provider String  @default("github") // github|gitlab|bitbucket
+  token    String  @db.Text // encrypted PAT — use KMS in production
+  username String
+  active   Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, provider])
+  @@index([userId])
+  @@map("git_connections")
+}
+
+// ============================================================================
+// AURA 3.0 — MULTI-AGENT GRAPH WORKSPACE
+// ============================================================================
+
+model AuraWorkspace {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String
+  status     String   @default("active")
+  graphState Json     @default("{}")
+  context    Json     @default("{}")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  agents   AuraAgent[]
+  messages AuraMessage[]
+
+  @@map("aura_workspaces")
+}
+
+model AuraAgent {
+  id          String        @id @default(cuid())
+  workspaceId String
+  workspace   AuraWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  role        String
+  status      String        @default("idle")
+  config      Json          @default("{}")
+  context     Json          @default("{}")
+  lastActive  DateTime      @default(now())
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  messages AuraMessage[]
+
+  @@map("aura_agents")
+}
+
+model AuraMessage {
+  id          String        @id @default(cuid())
+  workspaceId String
+  workspace   AuraWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  agentId     String?
+  agent       AuraAgent?    @relation(fields: [agentId], references: [id], onDelete: SetNull)
+  role        String
+  content     String        @db.Text
+  type        String        @default("message")
+  metadata    Json          @default("{}")
+  createdAt   DateTime      @default(now())
+
+  @@map("aura_messages")
+}
+
+// ===========================================
+// HOLLY MEMORY VECTOR STORE
+// ===========================================
+
+model MemoryEmbedding {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  content   String   @db.Text
+  type      String?
+  dimension Int?
+  metadata  Json     @default("{}") // Source, topic, related entities, etc.
+  
+  // Requires previewFeatures = ["postgresqlExtensions"] and extensions = [vector]
+  embedding Unsupported("vector(1024)")?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@map("memory_embeddings")
+}

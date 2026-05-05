@@ -1,0 +1,190 @@
+/**
+ * HOLLY 2.0 - Living Sovereign Theme Styles
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: #0B0A08; /* Warm Void */
+  color: #F5F0E8; /* Warm Ivory */
+  margin: 0;
+  padding: 0;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(212, 168, 83, 0.2);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(212, 168, 83, 0.4);
+}
+
+/* Selection */
+::selection {
+  background: rgba(212, 168, 83, 0.2);
+  color: #F5F0E8;
+}
+
+/* Animations */
+@keyframes pulse-glow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Utility Classes */
+.animate-pulse-glow {
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.animate-fade-in {
+  animation: fade-in 0.4s ease-out;
+}
+
+/* Glow Effects */
+.glow-purple, .glow-gold {
+  box-shadow: 0 0 20px rgba(212, 168, 83, 0.3);
+}
+
+.glow-cyan, .glow-ivory {
+  box-shadow: 0 0 20px rgba(245, 240, 232, 0.2);
+}
+
+.glow-pink, .glow-crimson {
+  box-shadow: 0 0 20px rgba(184, 64, 82, 0.3);
+}
+
+/* Code Blocks */
+pre {
+  font-family: 'JetBrains Mono', Consolas, monospace;
+  background-color: #12110F;
+  border: 1px solid rgba(212, 168, 83, 0.1);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  overflow-x: auto;
+}
+
+code {
+  font-family: 'JetBrains Mono', Consolas, monospace;
+  background-color: rgba(212, 168, 83, 0.1);
+  color: #D4A853;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  font-size: 0.875em;
+}
+
+pre code {
+  background-color: transparent;
+  padding: 0;
+  color: inherit;
+}
+
+/* Links */
+a {
+  color: #D4A853;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+a:hover {
+  color: #F5F0E8;
+  opacity: 0.8;
+}
+
+/* Buttons */
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+/* Inputs */
+input,
+textarea {
+  font-family: inherit;
+  outline: none;
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(212, 168, 83, 0.1);
+  border-radius: 0.75rem;
+  color: #F5F0E8;
+  padding: 0.75rem 1rem;
+}
+
+input:focus,
+textarea:focus {
+  border-color: rgba(212, 168, 83, 0.4) !important;
+  box-shadow: 0 0 0 3px rgba(212, 168, 83, 0.1);
+}
+
+/* Transitions */
+.transition-all {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.transition-colors {
+  transition: color 0.3s, background-color 0.3s, border-color 0.3s, box-shadow 0.3s;
+}
+
+/* Backdrop Blur */
+.backdrop-blur {
+  backdrop-filter: blur(12px);
+}
+
+/* Gradient Text */
+.gradient-text {
+  background: linear-gradient(135deg, #D4A853 0%, #B84052 50%, #F5F0E8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Loading Spinner */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin {
+  animation: spin 1.2s linear infinite;
+}
+
+/* Smooth Scroll */
+html {
+  scroll-behavior: smooth;
+}

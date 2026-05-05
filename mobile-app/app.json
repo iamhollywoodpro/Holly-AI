@@ -1,0 +1,41 @@
+{
+  "expo": {
+    "name": "HOLLY AI",
+    "slug": "holly-ai",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "holly-ai",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0a060e",
+    "splash": {
+      "backgroundColor": "#0a060e",
+      "resizeMode": "contain"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.nexamusicgroup.holly",
+      "buildNumber": "1"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0a060e"
+      },
+      "package": "com.nexamusicgroup.holly",
+      "versionCode": 1,
+      "permissions": [
+        "CAMERA",
+        "RECORD_AUDIO",
+        "NOTIFICATIONS"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-notifications",
+        {
+          "color": "#22d3ee"
+        }
+      ]
+    ]
+  }
+}

@@ -1,0 +1,47 @@
+# HOLLY AI Builder — Cloud Sandbox Base Image
+#
+# Isolated container environment for running untrusted builder code.
+# Each builder session spins up a fresh container from this image.
+#
+# Build:
+#   docker build -f docker/sandbox/Dockerfile.sandbox -t holly-sandbox:latest .
+#
+# Usage (automatic via CloudSandboxManager):
+#   CloudSandboxManager.createSandbox(sessionId)
+#
+
+FROM node:20-alpine
+
+RUN apk add --no-cache \
+    python3 \
+    py3-pip \
+    git \
+    curl \
+    wget \
+    bash \
+    tar \
+    gzip \
+    unzip \
+    ca-certificates \
+    && rm -rf /var/cache/apk/*
+
+RUN addgroup -g 1000 builder \
+    && adduser -D -u 1000 -G builder -s /bin/bash builder \
+    && mkdir -p /workspace \
+    && chown builder:builder /workspace
+
+USER builder
+WORKDIR /workspace
+
+ENV NODE_ENV=development
+ENV NPM_CONFIG_FUND=false
+ENV NPM_CONFIG_UPDATE_NOTIFIER=false
+ENV PATH="/home/builder/.local/bin:/home/builder/.npm-global/bin:${PATH}"
+
+RUN mkdir -p /home/builder/.npm-global \
+    && npm config set prefix /home/builder/.npm-global
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+    CMD node -e "process.exit(0)" || exit 1
+
+CMD ["sleep", "infinity"]

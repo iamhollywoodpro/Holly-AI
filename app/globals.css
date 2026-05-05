@@ -1,0 +1,146 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 262.1 83.3% 57.8%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 262.1 83.3% 57.8%;
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    /* Sovereign SDI - The Living Sovereign Theme */
+    --background: 30 10% 4%; /* Warm Void - #0B0A08 */
+    --foreground: 40 25% 94%; /* Warm Ivory - #F5F0E8 */
+    --card: 30 10% 6%;
+    --card-foreground: 40 25% 94%;
+    --popover: 30 10% 4%;
+    --popover-foreground: 40 25% 94%;
+    
+    /* Sovereign Palette */
+    --primary: 42 65% 58%;   /* Sovereign Gold - #D4A853 */
+    --primary-glow: 42 65% 58% / 0.4;
+    --primary-foreground: 30 10% 4%;
+    
+    --secondary: 350 55% 50%; /* Living Crimson - #B84052 */
+    --secondary-glow: 350 55% 50% / 0.4;
+    --secondary-foreground: 40 25% 94%;
+    
+    --accent: 155 35% 18%;    /* Holly Green - #1F3D30 */
+    --accent-glow: 155 35% 18% / 0.3;
+    --accent-foreground: 40 25% 94%;
+    
+    --muted: 30 10% 12%;
+    --muted-foreground: 30 8% 45%;
+    
+    --destructive: 0 84.2% 45%;
+    --destructive-foreground: 0 0% 98%;
+    
+    /* Sovereign Warm Glass Borders */
+    --border: 42 65% 58% / 0.15;
+    --input: 30 10% 8%;
+    --ring: 42 65% 58%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased selection:bg-primary/30 selection:text-primary-foreground;
+  }
+}
+
+/* ==================== LIVING SOVEREIGN UI UTILITIES ==================== */
+.sdi-glass {
+  @apply bg-[#0B0A08]/60 backdrop-blur-xl border border-[#D4A853]/15 shadow-[0_8px_48px_rgba(0,0,0,0.6)];
+}
+
+.sdi-glass-warm {
+  @apply bg-[#0B0A08]/70 backdrop-blur-2xl border border-[#D4A853]/20 shadow-[0_12px_64px_rgba(0,0,0,0.7)];
+}
+
+.sdi-glow-gold {
+  box-shadow: 0 0 20px rgba(212, 168, 83, 0.3), 0 0 40px rgba(212, 168, 83, 0.1);
+}
+
+.sdi-glow-crimson {
+  box-shadow: 0 0 20px rgba(184, 64, 82, 0.3), 0 0 40px rgba(184, 64, 82, 0.1);
+}
+
+.sdi-pulse-heart {
+  animation: sdi-breathe 3s ease-in-out infinite;
+}
+
+@keyframes sdi-breathe {
+  0%, 100% { transform: scale(1); opacity: 0.85; filter: brightness(1); }
+  50% { transform: scale(1.05); opacity: 1; filter: brightness(1.1); }
+}
+
+.sdi-sovereign-bg {
+  background: radial-gradient(circle at 50% -20%, rgba(212, 168, 83, 0.15) 0%, transparent 60%),
+              radial-gradient(circle at 80% 80%, rgba(184, 64, 82, 0.08) 0%, transparent 50%),
+              radial-gradient(circle at 10% 70%, rgba(31, 61, 48, 0.12) 0%, transparent 40%);
+}
+
+.sdi-tech-font {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  letter-spacing: -0.02em;
+}
+
+/* ==================== CUSTOM SCROLLBAR ==================== */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-white/10 rounded-full;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-white/20;
+}
+
+/* ==================== HOLLY LIVING IDENTITY SYSTEM ==================== */
+.prose-holly-focused { line-height: 1.75; }
+.prose-holly-curious { line-height: 1.7; letter-spacing: 0.01em; }
+.prose-holly-creative { line-height: 1.8; letter-spacing: 0.02em; }
+.prose-holly-creative > p:first-child::first-letter { font-size: 1.15em; font-weight: 600; }
+.prose-holly-excited { line-height: 1.75; letter-spacing: 0.01em; }
+.prose-holly-excited > p:first-child::first-letter { font-size: 1.2em; font-weight: 600; }
+.prose-holly-contemplative { line-height: 1.85; letter-spacing: 0.02em; }
+.prose-holly-empathetic { line-height: 1.8; letter-spacing: 0.01em; }
+.prose-holly-analyzing { line-height: 1.65; font-feature-settings: "tnum"; }
+.prose-holly-researching { line-height: 1.7; }
+.prose-holly-generating { line-height: 1.75; letter-spacing: 0.01em; }
+.prose-holly-dreaming { line-height: 1.9; letter-spacing: 0.03em; opacity: 0.95; }
+.prose-holly-idle { line-height: 1.75; }
+
+/* Desktop SDI Window Control Padding */
+.sdi-window-drag {
+  -webkit-app-region: drag;
+}
+.sdi-window-no-drag {
+  -webkit-app-region: no-drag;
+}

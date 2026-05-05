@@ -1,0 +1,60 @@
+/* Reading Mode - High Contrast Accessibility */
+
+.reading-mode {
+  /* Increase contrast for better readability */
+  --reading-bg: #000000;
+  --reading-text: #FFFFFF;
+  --reading-secondary: #E0E0E0;
+  --reading-border: #444444;
+  --reading-highlight: #00F0FF;
+}
+
+.reading-mode .chat-message {
+  background: var(--reading-bg) !important;
+  color: var(--reading-text) !important;
+  border: 1px solid var(--reading-border) !important;
+}
+
+.reading-mode .chat-message p,
+.reading-mode .chat-message span,
+.reading-mode .chat-message div {
+  color: var(--reading-text) !important;
+  line-height: 1.8 !important;
+  font-size: 1.05rem !important;
+}
+
+.reading-mode .chat-message code {
+  background: #1a1a1a !important;
+  color: var(--reading-highlight) !important;
+  border: 1px solid var(--reading-border) !important;
+}
+
+.reading-mode .chat-message pre {
+  background: #0a0a0a !important;
+  border: 1px solid var(--reading-border) !important;
+}
+
+.reading-mode .chat-message a {
+  color: var(--reading-highlight) !important;
+  text-decoration: underline !important;
+}
+
+.reading-mode .chat-message strong,
+.reading-mode .chat-message b {
+  color: var(--reading-highlight) !important;
+  font-weight: 700 !important;
+}
+
+/* Reduce animations and glow effects in reading mode */
+.reading-mode * {
+  animation: none !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+/* Keep essential borders visible */
+.reading-mode button,
+.reading-mode input,
+.reading-mode textarea {
+  border: 1px solid var(--reading-border) !important;
+}
