@@ -1,0 +1,332 @@
+/**
+ * HOLLY AI - Accessibility Improvements
+ * Screen reader support, high contrast mode, keyboard navigation
+ */
+
+/* High Contrast Mode */
+.high-contrast {
+  --bg-primary: #000000;
+  --bg-secondary: #1A1A1A;
+  --text-primary: #FFFFFF;
+  --text-secondary: #E0E0E0;
+  --border-primary: #FFFFFF;
+  --accent-color: #00FFFF;
+}
+
+.high-contrast * {
+  border-color: var(--border-primary) !important;
+  color: var(--text-primary) !important;
+}
+
+.high-contrast button,
+.high-contrast input,
+.high-contrast textarea,
+.high-contrast select {
+  background-color: var(--bg-secondary) !important;
+  border: 2px solid var(--border-primary) !important;
+  color: var(--text-primary) !important;
+}
+
+.high-contrast a {
+  color: var(--accent-color) !important;
+  text-decoration: underline !important;
+}
+
+/* Focus Indicators */
+*:focus {
+  outline: 2px solid #00F0FF !important;
+  outline-offset: 2px !important;
+}
+
+.high-contrast *:focus {
+  outline: 3px solid #FFFFFF !important;
+  outline-offset: 3px !important;
+}
+
+/* Screen Reader Only Content */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.sr-only-focusable:focus {
+  position: static;
+  width: auto;
+  height: auto;
+  padding: inherit;
+  margin: inherit;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}
+
+/* Skip to Content Link */
+.skip-to-content {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: #00F0FF;
+  color: #000;
+  padding: 8px 16px;
+  text-decoration: none;
+  z-index: 100;
+  font-weight: bold;
+}
+
+.skip-to-content:focus {
+  top: 0;
+}
+
+/* Keyboard Navigation Hints */
+[data-keyboard-hint]::after {
+  content: attr(data-keyboard-hint);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+
+[data-keyboard-hint]:focus::after {
+  opacity: 1;
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Increased Touch Targets for Mobile */
+@media (max-width: 768px) {
+  button,
+  a,
+  input[type="button"],
+  input[type="submit"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* ARIA Live Regions */
+[aria-live="polite"],
+[aria-live="assertive"] {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+/* Focus Trap for Modals */
+.modal-open {
+  overflow: hidden;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  z-index: 40;
+}
+
+/* Accessible Form Labels */
+label {
+  cursor: pointer;
+}
+
+input:required + label::after,
+select:required + label::after {
+  content: " *";
+  color: #FF006E;
+}
+
+/* Error States */
+[aria-invalid="true"] {
+  border-color: #EF4444 !important;
+}
+
+[role="alert"] {
+  padding: 12px;
+  border-radius: 8px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid #EF4444;
+  color: #EF4444;
+}
+
+/* Loading States */
+[aria-busy="true"] {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Tooltips */
+[role="tooltip"] {
+  position: absolute;
+  z-index: 1000;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  border-radius: 6px;
+  font-size: 14px;
+  max-width: 200px;
+  pointer-events: none;
+}
+
+/* Progress Bars */
+[role="progressbar"] {
+  height: 4px;
+  background: rgba(0, 240, 255, 0.2);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+[role="progressbar"]::before {
+  content: "";
+  display: block;
+  height: 100%;
+  background: #00F0FF;
+  width: var(--progress, 0%);
+  transition: width 0.3s ease;
+}
+
+/* Tabs Accessibility */
+[role="tablist"] {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+[role="tab"] {
+  padding: 12px 24px;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: inherit;
+  border-bottom: 2px solid transparent;
+}
+
+[role="tab"][aria-selected="true"] {
+  border-bottom-color: #00F0FF;
+  color: #00F0FF;
+}
+
+[role="tabpanel"] {
+  padding: 24px 0;
+}
+
+[role="tabpanel"][hidden] {
+  display: none;
+}
+
+/* Disclosure/Accordion */
+[aria-expanded="false"] + [role="region"] {
+  display: none;
+}
+
+/* Menu/Dropdown */
+[role="menu"] {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+[role="menuitem"] {
+  padding: 8px 16px;
+  cursor: pointer;
+}
+
+[role="menuitem"]:hover,
+[role="menuitem"]:focus {
+  background: rgba(0, 240, 255, 0.1);
+}
+
+/* Dialog/Modal */
+[role="dialog"] {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 50;
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow: auto;
+}
+
+/* Breadcrumbs */
+[aria-label="Breadcrumb"] ol {
+  list-style: none;
+  display: flex;
+  gap: 8px;
+  padding: 0;
+  margin: 0;
+}
+
+[aria-label="Breadcrumb"] li:not(:last-child)::after {
+  content: "/";
+  margin-left: 8px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+[aria-current="page"] {
+  color: #00F0FF;
+  font-weight: bold;
+}
+
+/* Status Messages */
+[role="status"] {
+  padding: 12px;
+  border-radius: 8px;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid #10B981;
+  color: #10B981;
+}
+
+/* Alerts */
+[role="alert"] {
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Print Styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  * {
+    background: white !important;
+    color: black !important;
+  }
+}

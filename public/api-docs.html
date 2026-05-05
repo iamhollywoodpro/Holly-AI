@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HOLLY 3.0 - API Documentation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: #0066cc;
+            --secondary-color: #004999;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --border-color: #e2e8f0;
+            --code-bg: #f1f5f9;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text-primary);
+            background: var(--bg-color);
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 3rem 2rem;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.25rem;
+            opacity: 0.9;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 2rem;
+        }
+
+        .sidebar {
+            position: sticky;
+            top: 2rem;
+            height: fit-content;
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .sidebar h3 {
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .sidebar nav ul {
+            list-style: none;
+        }
+
+        .sidebar nav ul li {
+            margin-bottom: 0.5rem;
+        }
+
+        .sidebar nav ul li a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            display: block;
+            padding: 0.5rem;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .sidebar nav ul li a:hover {
+            background: var(--code-bg);
+            color: var(--primary-color);
+        }
+
+        .content {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .section {
+            margin-bottom: 3rem;
+        }
+
+        .section h2 {
+            color: var(--primary-color);
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .section h3 {
+            color: var(--text-primary);
+            font-size: 1.5rem;
+            margin: 2rem 0 1rem 0;
+        }
+
+        .endpoint-card {
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .endpoint-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .method {
+            padding: 0.25rem 0.75rem;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+        }
+
+        .method.get { background: var(--success-color); color: white; }
+        .method.post { background: var(--primary-color); color: white; }
+        .method.put { background: var(--warning-color); color: white; }
+        .method.delete { background: var(--danger-color); color: white; }
+
+        .endpoint-path {
+            font-family: 'Courier New', monospace;
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        .code-block {
+            background: var(--code-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 1rem;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+            margin: 1rem 0;
+        }
+
+        .params-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+
+        .params-table th,
+        .params-table td {
+            text-align: left;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .params-table th {
+            background: var(--code-bg);
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .params-table code {
+            background: var(--card-bg);
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-size: 0.875rem;
+            color: var(--danger-color);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge.required { background: #fee2e2; color: #991b1b; }
+        .badge.optional { background: #dbeafe; color: #1e40af; }
+
+        @media (max-width: 1024px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+            .sidebar {
+                position: static;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>HOLLY 3.0</h1>
+        <p>API Documentation - Comprehensive Developer Reference</p>
+    </div>
+
+    <div class="container">
+        <aside class="sidebar">
+            <h3>Navigation</h3>
+            <nav>
+                <ul>
+                    <li><a href="#overview">Overview</a></li>
+                    <li><a href="#authentication">Authentication</a></li>
+                    <li><a href="#creative">Creative Engine API</a></li>
+                    <li><a href="#analytics">Analytics API</a></li>
+                    <li><a href="#security">Security API</a></li>
+                    <li><a href="#orchestration">Orchestration API</a></li>
+                    <li><a href="#webhooks">Webhooks</a></li>
+                    <li><a href="#rate-limits">Rate Limits</a></li>
+                    <li><a href="#errors">Error Codes</a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <main class="content">
+            <!-- OVERVIEW SECTION -->
+            <section id="overview" class="section">
+                <h2>Overview</h2>
+                <p>Welcome to the HOLLY 3.0 API documentation. This comprehensive API provides access to four core engines: Creative, Analytics, Security, and Orchestration. All endpoints use RESTful conventions and return JSON responses.</p>
+                
+                <h3>Base URL</h3>
+                <div class="code-block">https://api.holly.ai/v1</div>
+
+                <h3>Quick Start</h3>
+                <div class="code-block">curl -X GET "https://api.holly.ai/v1/creative/images" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json"</div>
+            </section>
+
+            <!-- AUTHENTICATION SECTION -->
+            <section id="authentication" class="section">
+                <h2>Authentication</h2>
+                <p>All API requests require authentication using Bearer tokens. Include your API key in the Authorization header of each request.</p>
+                
+                <div class="code-block">Authorization: Bearer YOUR_API_KEY</div>
+
+                <h3>Getting Your API Key</h3>
+                <ol>
+                    <li>Sign in to the HOLLY dashboard</li>
+                    <li>Navigate to Settings → API Keys</li>
+                    <li>Click "Generate New Key"</li>
+                    <li>Copy and securely store your key</li>
+                </ol>
+            </section>
+
+            <!-- CREATIVE ENGINE API -->
+            <section id="creative" class="section">
+                <h2>Creative Engine API</h2>
+                <p>Generate and manage AI-powered creative assets including images, content, and templates.</p>
+
+                <!-- Generate Image -->
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method post">POST</span>
+                        <span class="endpoint-path">/creative/image/generate</span>
+                    </div>
+                    <p>Generate AI-powered images from text prompts.</p>
+                    
+                    <h4>Request Body</h4>
+                    <table class="params-table">
+                        <thead>
+                            <tr>
+                                <th>Parameter</th>
+                                <th>Type</th>
+                                <th>Required</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>prompt</code></td>
+                                <td>string</td>
+                                <td><span class="badge required">Required</span></td>
+                                <td>Text description of the image to generate</td>
+                            </tr>
+                            <tr>
+                                <td><code>model</code></td>
+                                <td>string</td>
+                                <td><span class="badge optional">Optional</span></td>
+                                <td>AI model to use (default: "dalle-3")</td>
+                            </tr>
+                            <tr>
+                                <td><code>width</code></td>
+                                <td>integer</td>
+                                <td><span class="badge optional">Optional</span></td>
+                                <td>Image width in pixels (default: 1024)</td>
+                            </tr>
+                            <tr>
+                                <td><code>height</code></td>
+                                <td>integer</td>
+                                <td><span class="badge optional">Optional</span></td>
+                                <td>Image height in pixels (default: 1024)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <h4>Example Request</h4>
+                    <div class="code-block">{
+  "prompt": "A futuristic cityscape at sunset",
+  "model": "dalle-3",
+  "width": 1024,
+  "height": 1024
+}</div>
+
+                    <h4>Example Response</h4>
+                    <div class="code-block">{
+  "jobId": "img_abc123",
+  "status": "processing",
+  "estimatedTime": 15
+}</div>
+                </div>
+
+                <!-- List Images -->
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method get">GET</span>
+                        <span class="endpoint-path">/creative/images</span>
+                    </div>
+                    <p>Retrieve all generated images.</p>
+                    
+                    <h4>Query Parameters</h4>
+                    <table class="params-table">
+                        <thead>
+                            <tr>
+                                <th>Parameter</th>
+                                <th>Type</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>page</code></td>
+                                <td>integer</td>
+                                <td>Page number (default: 1)</td>
+                            </tr>
+                            <tr>
+                                <td><code>limit</code></td>
+                                <td>integer</td>
+                                <td>Items per page (default: 20, max: 100)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Generate Content -->
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method post">POST</span>
+                        <span class="endpoint-path">/creative/content/generate</span>
+                    </div>
+                    <p>Generate AI-powered text content.</p>
+                    
+                    <h4>Request Body</h4>
+                    <table class="params-table">
+                        <thead>
+                            <tr>
+                                <th>Parameter</th>
+                                <th>Type</th>
+                                <th>Required</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>topic</code></td>
+                                <td>string</td>
+                                <td><span class="badge required">Required</span></td>
+                                <td>Content topic or subject</td>
+                            </tr>
+                            <tr>
+                                <td><code>type</code></td>
+                                <td>string</td>
+                                <td><span class="badge required">Required</span></td>
+                                <td>Content type: "article", "social", "email"</td>
+                            </tr>
+                            <tr>
+                                <td><code>tone</code></td>
+                                <td>string</td>
+                                <td><span class="badge optional">Optional</span></td>
+                                <td>Writing tone: "professional", "casual", "formal"</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- List Assets -->
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method get">GET</span>
+                        <span class="endpoint-path">/creative/assets</span>
+                    </div>
+                    <p>Retrieve all creative assets (images, content, templates).</p>
+                </div>
+
+                <!-- Delete Asset -->
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method delete">DELETE</span>
+                        <span class="endpoint-path">/creative/asset/{id}</span>
+                    </div>
+                    <p>Delete a specific creative asset.</p>
+                </div>
+            </section>
+
+            <!-- ANALYTICS API -->
+            <section id="analytics" class="section">
+                <h2>Analytics API</h2>
+                <p>Access performance metrics, reports, and insights.</p>
+
+                <!-- Get Metrics -->
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method get">GET</span>
+                        <span class="endpoint-path">/analytics/metrics</span>
+                    </div>
+                    <p>Retrieve all performance metrics.</p>
+                    
+                    <h4>Query Parameters</h4>
+                    <table class="params-table">
+                        <thead>
+                            <tr>
+                                <th>Parameter</th>
+                                <th>Type</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>timeRange</code></td>
+                                <td>string</td>
+                                <td>"24h", "7d", "30d", "90d" (default: "7d")</td>
+                            </tr>
+                            <tr>
+                                <td><code>category</code></td>
+                                <td>string</td>
+                                <td>Filter by category</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <h4>Example Response</h4>
+                    <div class="code-block">[
+  {
+    "id": "metric_1",
+    "name": "api_calls",
+    "displayName": "API Calls",
+    "currentValue": 15234,
+    "previousValue": 12890,
+    "changePercent": 18.2,
+    "trend": "up",
+    "unit": "count"
+  }
+]</div>
+                </div>
+
+                <!-- Get Reports -->
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method get">GET</span>
+                        <span class="endpoint-path">/analytics/reports</span>
+                    </div>
+                    <p>List all analytics reports.</p>
+                </div>
+
+                <!-- Run Report -->
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method post">POST</span>
+                        <span class="endpoint-path">/analytics/report/{id}/run</span>
+                    </div>
+                    <p>Execute a specific analytics report.</p>
+                </div>
+
+                <!-- Get Insights -->
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method get">GET</span>
+                        <span class="endpoint-path">/analytics/insights</span>
+                    </div>
+                    <p>Get AI-powered insights and recommendations.</p>
+                    
+                    <h4>Query Parameters</h4>
+                    <table class="params-table">
+                        <thead>
+                            <tr>
+                                <th>Parameter</th>
+                                <th>Type</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>severity</code></td>
+                                <td>string</td>
+                                <td>"high", "medium", "low"</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- SECURITY API -->
+            <section id="security" class="section">
+                <h2>Security API</h2>
+                <p>Monitor security events, run scans, and manage threat detection.</p>
+
+                <!-- List Events -->
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method get">GET</span>
+                        <span class="endpoint-path">/security/events</span>
+                    </div>
+                    <p>Retrieve security events and alerts.</p>
+                    
+                    <h4>Query Parameters</h4>
+                    <table class="params-table">
+                        <thead>
+                            <tr>
+                                <th>Parameter</th>
+                                <th>Type</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>severity</code></td>
+                                <td>string</td>
+                                <td>"critical", "high", "medium", "low"</td>
+                            </tr>
+                            <tr>
+                                <td><code>status</code></td>
+                                <td>string</td>
+                                <td>"open", "investigating", "resolved"</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Run Security Scan -->
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method post">POST</span>
+                        <span class="endpoint-path">/security/scan</span>
+                    </div>
+                    <p>Initiate a comprehensive security scan.</p>
+                    
+                    <h4>Request Body</h4>
+                    <table class="params-table">
+                        <thead>
+                            <tr>
+                                <th>Parameter</th>
+                                <th>Type</th>
+                                <th>Required</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>scanType</code></td>
+                                <td>string</td>
+                                <td><span class="badge required">Required</span></td>
+                                <td>"vulnerability", "compliance", "full"</td>
+                            </tr>
+                            <tr>
+                                <td><code>target</code></td>
+                                <td>string</td>
+                                <td><span class="badge optional">Optional</span></td>
+                                <td>Specific target to scan</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Get Scan Results -->
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method get">GET</span>
+                        <span class="endpoint-path">/security/scan/{scanId}</span>
+                    </div>
+                    <p>Retrieve results from a specific security scan.</p>
+                </div>
+            </section>
+
+            <!-- ORCHESTRATION API -->
+            <section id="orchestration" class="section">
+                <h2>Orchestration API</h2>
+                <p>Manage AI agents, workflows, and automation tasks.</p>
+
+                <!-- List Agents -->
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method get">GET</span>
+                        <span class="endpoint-path">/orchestration/agents</span>
+                    </div>
+                    <p>Retrieve all AI agents and their status.</p>
+                </div>
+
+                <!-- Create Agent -->
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method post">POST</span>
+                        <span class="endpoint-path">/orchestration/agent</span>
+                    </div>
+                    <p>Create a new AI agent.</p>
+                    
+                    <h4>Request Body</h4>
+                    <table class="params-table">
+                        <thead>
+                            <tr>
+                                <th>Parameter</th>
+                                <th>Type</th>
+                                <th>Required</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>name</code></td>
+                                <td>string</td>
+                                <td><span class="badge required">Required</span></td>
+                                <td>Agent name</td>
+                            </tr>
+                            <tr>
+                                <td><code>type</code></td>
+                                <td>string</td>
+                                <td><span class="badge required">Required</span></td>
+                                <td>"creative", "analytics", "security", "custom"</td>
+                            </tr>
+                            <tr>
+                                <td><code>config</code></td>
+                                <td>object</td>
+                                <td><span class="badge optional">Optional</span></td>
+                                <td>Agent configuration</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Create Workflow -->
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method post">POST</span>
+                        <span class="endpoint-path">/orchestration/workflow</span>
+                    </div>
+                    <p>Create a new automation workflow.</p>
+                    
+                    <h4>Request Body</h4>
+                    <table class="params-table">
+                        <thead>
+                            <tr>
+                                <th>Parameter</th>
+                                <th>Type</th>
+                                <th>Required</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>name</code></td>
+                                <td>string</td>
+                                <td><span class="badge required">Required</span></td>
+                                <td>Workflow name</td>
+                            </tr>
+                            <tr>
+                                <td><code>steps</code></td>
+                                <td>array</td>
+                                <td><span class="badge required">Required</span></td>
+                                <td>Array of workflow steps</td>
+                            </tr>
+                            <tr>
+                                <td><code>trigger</code></td>
+                                <td>object</td>
+                                <td><span class="badge required">Required</span></td>
+                                <td>Workflow trigger configuration</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <h4>Example Request</h4>
+                    <div class="code-block">{
+  "name": "Daily Analytics Report",
+  "steps": [
+    {
+      "type": "api_call",
+      "endpoint": "/analytics/metrics",
+      "params": { "timeRange": "24h" }
+    },
+    {
+      "type": "transform_data",
+      "operation": "format_report"
+    },
+    {
+      "type": "notification",
+      "channel": "email",
+      "recipients": ["team@example.com"]
+    }
+  ],
+  "trigger": {
+    "type": "schedule",
+    "schedule": "0 9 * * *"
+  }
+}</div>
+                </div>
+
+                <!-- Execute Workflow -->
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method post">POST</span>
+                        <span class="endpoint-path">/orchestration/workflow/{id}/execute</span>
+                    </div>
+                    <p>Manually execute a workflow.</p>
+                </div>
+            </section>
+
+            <!-- WEBHOOKS SECTION -->
+            <section id="webhooks" class="section">
+                <h2>Webhooks</h2>
+                <p>Receive real-time notifications for events in your HOLLY system.</p>
+
+                <h3>Supported Events</h3>
+                <ul>
+                    <li><code>image.generated</code> - Image generation completed</li>
+                    <li><code>content.created</code> - Content creation completed</li>
+                    <li><code>security.alert</code> - Security event detected</li>
+                    <li><code>workflow.completed</code> - Workflow execution finished</li>
+                    <li><code>agent.status_changed</code> - Agent status updated</li>
+                </ul>
+
+                <h3>Webhook Payload Example</h3>
+                <div class="code-block">{
+  "event": "image.generated",
+  "timestamp": "2025-12-06T23:30:00Z",
+  "data": {
+    "jobId": "img_abc123",
+    "status": "completed",
+    "imageUrl": "https://cdn.holly.ai/images/abc123.png"
+  }
+}</div>
+            </section>
+
+            <!-- RATE LIMITS SECTION -->
+            <section id="rate-limits" class="section">
+                <h2>Rate Limits</h2>
+                <p>API rate limits are applied per API key:</p>
+                
+                <table class="params-table">
+                    <thead>
+                        <tr>
+                            <th>Plan</th>
+                            <th>Requests/Minute</th>
+                            <th>Requests/Day</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Free</td>
+                            <td>60</td>
+                            <td>1,000</td>
+                        </tr>
+                        <tr>
+                            <td>Pro</td>
+                            <td>300</td>
+                            <td>10,000</td>
+                        </tr>
+                        <tr>
+                            <td>Enterprise</td>
+                            <td>1,000</td>
+                            <td>100,000</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>Rate Limit Headers</h3>
+                <div class="code-block">X-RateLimit-Limit: 60
+X-RateLimit-Remaining: 45
+X-RateLimit-Reset: 1702000000</div>
+            </section>
+
+            <!-- ERROR CODES SECTION -->
+            <section id="errors" class="section">
+                <h2>Error Codes</h2>
+                <p>The HOLLY API uses standard HTTP status codes and returns detailed error messages.</p>
+                
+                <table class="params-table">
+                    <thead>
+                        <tr>
+                            <th>Code</th>
+                            <th>Status</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>200</td>
+                            <td>OK</td>
+                            <td>Request successful</td>
+                        </tr>
+                        <tr>
+                            <td>201</td>
+                            <td>Created</td>
+                            <td>Resource created successfully</td>
+                        </tr>
+                        <tr>
+                            <td>400</td>
+                            <td>Bad Request</td>
+                            <td>Invalid request parameters</td>
+                        </tr>
+                        <tr>
+                            <td>401</td>
+                            <td>Unauthorized</td>
+                            <td>Invalid or missing API key</td>
+                        </tr>
+                        <tr>
+                            <td>403</td>
+                            <td>Forbidden</td>
+                            <td>Insufficient permissions</td>
+                        </tr>
+                        <tr>
+                            <td>404</td>
+                            <td>Not Found</td>
+                            <td>Resource not found</td>
+                        </tr>
+                        <tr>
+                            <td>429</td>
+                            <td>Too Many Requests</td>
+                            <td>Rate limit exceeded</td>
+                        </tr>
+                        <tr>
+                            <td>500</td>
+                            <td>Internal Server Error</td>
+                            <td>Server error occurred</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>Error Response Format</h3>
+                <div class="code-block">{
+  "error": {
+    "code": "invalid_request",
+    "message": "The 'prompt' parameter is required",
+    "details": {
+      "field": "prompt",
+      "issue": "missing_required_field"
+    }
+  }
+}</div>
+            </section>
+        </main>
+    </div>
+</body>
+</html>

@@ -1,0 +1,72 @@
+.env
+.env.local
+.env*.local
+.env.development.local
+.env.test.local
+
+.env.production.local
+API_KEYS_UPDATE_LOG.md
+AUDIT_RESULTS_AND_NEXT_STEPS.md
+HOLLYWOOD_DOWNLOAD_THIS.md
+node_modules/
+.next/
+out/
+.DS_Store
+*.log
+.env.credentials
+core
+
+# Oracle Cloud Private Keys
+*.pem
+*.key
+*.key.pub
+id_rsa*
+oracle-private-key.pem
+.oci/
+ORACLE KEYS/
+
+# Build artifacts
+tsconfig.tsbuildinfo
+dist/
+holly-server.js
+
+# One-time dev/debug scripts (never commit these)
+check_memories.js
+extract_memory*.js
+extract_memory*.mjs
+find_purple_conv.js
+get_conversation.js
+memory_test_output.txt
+validator_output.txt
+test-build-simple.js
+test-oracle-voice.js
+
+# Vercel deployment triggers (not needed in git)
+.vercel-deploy
+.vercel-trigger
+
+services/kokoro-tts/*.onnx
+services/kokoro-tts/*.bin
+services/modal-media/__pycache__/
+
+# Mobile app
+mobile-app/node_modules/
+mobile-app/.expo/
+mobile-app/expo-env.d.ts
+mobile-app/package-lock.json
+
+# Browser extension build artifacts
+browser-extension/icons/*.png
+
+# Downloads
+downloads/
+
+# Stitch exports
+stitch_exports/
+
+# Plans (local only)
+plans/
+
+# One-off debug scripts
+check-db.js
+test-fetch.js

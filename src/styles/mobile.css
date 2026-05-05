@@ -1,0 +1,30 @@
+/* Mobile Responsive Styles for HOLLY AI */
+
+/* Hide text labels on mobile, show only icons */
+@media (max-width: 768px) {
+  .mobile-hide {
+    display: none !important;
+  }
+
+  .clean-header {
+    padding: 0.5rem 0.75rem !important;
+    gap: 0.25rem !important;
+  }
+
+  .clean-header button {
+    padding: 0.5rem !important;
+    min-width: 36px;
+  }
+
+  /* Make chat title smaller on mobile */
+  .clean-header > div:first-child {
+    gap: 0.5rem !important;
+  }
+}
+
+/* Tablet breakpoint */
+@media (max-width: 1024px) and (min-width: 769px) {
+  .clean-header {
+    padding: 0.5rem 1rem !important;
+  }
+}

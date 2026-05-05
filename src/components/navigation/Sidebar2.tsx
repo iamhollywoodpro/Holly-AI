@@ -1,0 +1,271 @@
+'use client';
+
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { 
+  Sparkles, 
+  Search, 
+  MessageSquare, 
+  Settings, 
+  Activity, 
+  Users,
+  Menu,
+  X,
+  ChevronDown,
+  ChevronRight,
+  Plus,
+  TrendingUp,
+  Hammer,
+  Music,
+  Bot,
+  Image,
+  Code2,
+} from 'lucide-react';
+import { UserButton } from '@clerk/nextjs';
+import { useSidebar } from '@/hooks/use-sidebar';
+import { NewTaskMenu } from './NewTaskMenu';
+import { ChatHistorySection } from '@/components/chat/ChatHistorySection';
+import { LivingLogo } from '@/components/holly/LivingLogo';
+import { HollyStateBar } from '@/components/holly/HollyStateBar';
+import { useHollyEmotion } from '@/components/holly/HollyEmotionContext';
+
+export function Sidebar2({ 
+  currentConversationId,
+  onSelectConversation,
+  onNewConversation,
+}: {
+  currentConversationId?: string;
+  onSelectConversation?: (id: string) => void;
+  onNewConversation?: () => void;
+}) {
+  const pathname = usePathname();
+  const { isCollapsed, isMobileOpen, toggleCollapse, toggleMobile, closeAll } = useSidebar();
+  const [conversations, setConversations] = useState<any[]>([]);
+  const [showAllChats, setShowAllChats] = useState(true);
+
+  // Load conversations
+  useEffect(() => {
+    const loadConversations = async () => {
+      try {
+        const response = await fetch('/api/conversations');
+        if (response.ok) {
+          const data = await response.json();
+          setConversations(data.conversations || []);
+        }
+      } catch (error) {
+        console.error('Failed to load conversations:', error);
+      }
+    };
+    loadConversations();
+  }, [currentConversationId]);
+
+  const isActive = (href: string) => {
+    if (href === '/') return pathname === '/';
+    return pathname?.startsWith(href);
+  };
+
+  const NavLink = ({ href, icon: Icon, label }: { href: string; icon: any; label: string }) => {
+    const active = isActive(href);
+    
+    return (
+      <Link
+        href={href}
+        onClick={() => isMobileOpen && closeAll()}
+        className={`
+          flex items-center gap-3 px-3 py-2 rounded-lg text-sm
+          transition-all duration-200
+          ${isCollapsed ? 'justify-center' : ''}
+          ${
+            active
+              ? 'text-white bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30'
+              : 'text-gray-400 hover:text-white hover:bg-gray-800'
+          }
+        `}
+        title={isCollapsed ? label : undefined}
+      >
+        <Icon className={`w-5 h-5 ${active ? 'text-purple-400' : ''}`} />
+        {!isCollapsed && <span>{label}</span>}
+      </Link>
+    );
+  };
+
+  const { emotion, sessionMinutes, confidence } = useHollyEmotion();
+
+  const SidebarContent = () => (
+    <>
+      {/* Header */}
+      <div className="flex items-center justify-between p-4 border-b border-gray-800">
+        {!isCollapsed && (
+          <div className="flex items-center gap-2.5">
+            <LivingLogo emotion={emotion} size={36} showGlow />
+            <div>
+              <h1 className="text-lg font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                HOLLY
+              </h1>
+              <p className="text-xs text-gray-500">Sovereign Intelligence</p>
+            </div>
+          </div>
+        )}
+        {isCollapsed && (
+          <LivingLogo emotion={emotion} size={32} showGlow />
+        )}
+        
+        {/* Desktop: Collapse button */}
+        <button
+          onClick={toggleCollapse}
+          className="hidden md:block p-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
+          aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+
+        {/* Mobile: Close button */}
+        <button
+          onClick={toggleMobile}
+          className="md:hidden p-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
+          aria-label="Close sidebar"
+        >
+          <X className="w-5 h-5" />
+        </button>
+
+        {/* User button when collapsed */}
+        {isCollapsed && (
+          <div className="hidden md:block">
+            <UserButton afterSignOutUrl="/" />
+          </div>
+        )}
+      </div>
+
+      {/* Main Navigation */}
+      <nav className="flex-1 px-2 py-3 overflow-y-auto">
+        {/* New Task */}
+        <div className="px-1 mb-3">
+          <NewTaskMenu isCollapsed={isCollapsed} />
+        </div>
+
+        {/* Core */}
+        {!isCollapsed && (
+          <p className="px-2 mb-1 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Core</p>
+        )}
+        <div className="space-y-0.5 mb-3">
+          <NavLink href="/chat" icon={MessageSquare} label="Chat" />
+          <NavLink href="/builder" icon={Hammer} label="AI Builder" />
+        </div>
+
+        {/* Create */}
+        {!isCollapsed && (
+          <p className="px-2 mb-1 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Create</p>
+        )}
+        <div className="space-y-0.5 mb-3">
+          <NavLink href="/music-studio" icon={Music} label="Music Studio" />
+          <NavLink href="/generate/studio" icon={Image} label="Generation Studio" />
+          <NavLink href="/aura-lab" icon={Sparkles} label="AURA" />
+        </div>
+
+        {/* Tools */}
+        {!isCollapsed && (
+          <p className="px-2 mb-1 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Tools</p>
+        )}
+        <div className="space-y-0.5 mb-3">
+          <NavLink href="/code-workshop" icon={Code2} label="Code Workshop" />
+          <NavLink href="/library" icon={Activity} label="Library" />
+        </div>
+
+        {/* Chat History */}
+        <ChatHistorySection
+          conversations={conversations}
+          currentConversationId={currentConversationId}
+          isCollapsed={isCollapsed}
+          onSelectConversation={(id) => {
+            onSelectConversation?.(id);
+            if (isMobileOpen) closeAll();
+          }}
+          onNewConversation={() => {
+            onNewConversation?.();
+            if (isMobileOpen) closeAll();
+          }}
+          onRefresh={() => {
+            const loadConversations = async () => {
+              try {
+                const response = await fetch('/api/conversations');
+                if (response.ok) {
+                  const data = await response.json();
+                  setConversations(data.conversations || []);
+                }
+              } catch (error) {
+                console.error('Failed to load conversations:', error);
+              }
+            };
+            loadConversations();
+          }}
+        />
+      </nav>
+
+      {/* Bottom Navigation */}
+      <div className="p-3 border-t border-gray-800 space-y-1">
+        <NavLink href="/evolution" icon={TrendingUp} label="Evolution" />
+        <NavLink href="/settings" icon={Settings} label="Settings" />
+        <NavLink href="/autonomy" icon={Activity} label="Autonomy" />
+        <NavLink href="/onboarding" icon={Users} label="Partner Setup" />
+        
+        {/* User Button (not collapsed) */}
+        {!isCollapsed && (
+          <div className="pt-2">
+            <UserButton afterSignOutUrl="/" />
+          </div>
+        )}
+      </div>
+
+      {/* Living State Bar */}
+      {!isCollapsed && (
+        <HollyStateBar
+          emotion={emotion}
+          sessionMinutes={sessionMinutes}
+          confidence={confidence}
+        />
+      )}
+    </>
+  );
+
+  return (
+    <>
+      {/* Desktop Sidebar */}
+      <aside
+        className={`
+          hidden md:flex flex-col fixed left-0 top-0 h-screen
+          bg-gray-900 border-r border-gray-800
+          transition-all duration-300 z-40
+          ${isCollapsed ? 'w-20' : 'w-64'}
+        `}
+      >
+        <SidebarContent />
+      </aside>
+
+      {/* Mobile Sidebar */}
+      {isMobileOpen && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="md:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+            onClick={toggleMobile}
+          />
+
+          {/* Sidebar */}
+          <aside className="md:hidden fixed left-0 top-0 h-screen w-64 bg-gray-900 border-r border-gray-800 z-50 flex flex-col">
+            <SidebarContent />
+          </aside>
+        </>
+      )}
+
+      {/* Mobile Menu Button */}
+      <button
+        onClick={toggleMobile}
+        className="md:hidden fixed top-4 left-4 z-30 p-2 rounded-lg bg-gray-900 border border-gray-800 text-white"
+        aria-label="Open menu"
+      >
+        <Menu className="w-5 h-5" />
+      </button>
+    </>
+  );
+}

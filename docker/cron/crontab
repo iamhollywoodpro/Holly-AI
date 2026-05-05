@@ -1,0 +1,41 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# HOLLY Cron Schedule — replaces ALL 7 vercel.json crons
+# Runs inside the holly-cron Alpine container
+# All times are UTC
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Architecture generation  — 3 AM daily
+0 3 * * *    /run-cron.sh /api/admin/architecture/generate >> /proc/1/fd/1 2>&1
+
+# Self-heal               — midnight daily
+0 0 * * *    /run-cron.sh /api/autonomy/self-heal >> /proc/1/fd/1 2>&1
+
+# Evolution cycle         — 2 AM daily
+0 2 * * *    /run-cron.sh /api/cron/evolve >> /proc/1/fd/1 2>&1
+
+# Identity evolution      — 4 AM daily
+0 4 * * *    /run-cron.sh /api/cron/identity-evolve >> /proc/1/fd/1 2>&1
+
+# Initiative / proactive  — 9 AM daily
+0 9 * * *    /run-cron.sh /api/initiative >> /proc/1/fd/1 2>&1
+
+# Background learning     — every 2 hours (on the hour)
+0 */2 * * *  /run-cron.sh /api/background-learning >> /proc/1/fd/1 2>&1
+
+# Background learning     — every 2 hours (offset 30 min, staggered)
+30 */2 * * * /run-cron.sh /api/background-learning >> /proc/1/fd/1 2>&1
+
+# Model discovery & auto-upgrade — 5 AM daily
+# Checks providers for newer free/OSS models and promotes them to the router
+0 5 * * *    /run-cron.sh /api/admin/model-update >> /proc/1/fd/1 2>&1
+
+# Daily diagnostic — 9 AM UTC (5 AM ET) daily
+# Silent maintenance: pings all APIs, checks TTS/LLM providers, verifies routes,
+# runs Mirror Protocol spec-to-state comparison. Reports "All Systems Nominal" or
+# generates an incident report with self-repair recommendations.
+0 9 * * *    /run-cron.sh /api/autonomy/daily-diagnostic >> /proc/1/fd/1 2>&1
+
+# Morning Briefing — 12 PM UTC (8 AM ET) daily
+# Synthesizes overnight learning, diagnostics, and goals into a proactive briefing
+# pushed to the NEXA Dashboard via the Notification system.
+0 12 * * *   /run-cron.sh /api/autonomy/morning-briefing >> /proc/1/fd/1 2>&1

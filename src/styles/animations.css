@@ -1,0 +1,347 @@
+/* HOLLY AI - Living Sovereign Animations & Effects */
+
+/* Glow Animations */
+@keyframes glow-pulse-gold {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(212, 168, 83, 0.2),
+                0 0 20px rgba(212, 168, 83, 0.1),
+                0 0 30px rgba(212, 168, 83, 0.05);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(212, 168, 83, 0.4),
+                0 0 30px rgba(212, 168, 83, 0.2),
+                0 0 40px rgba(212, 168, 83, 0.1);
+  }
+}
+
+@keyframes glow-pulse-crimson {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(184, 64, 82, 0.2),
+                0 0 20px rgba(184, 64, 82, 0.1),
+                0 0 30px rgba(184, 64, 82, 0.05);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(184, 64, 82, 0.4),
+                0 0 30px rgba(184, 64, 82, 0.2),
+                0 0 40px rgba(184, 64, 82, 0.1);
+  }
+}
+
+/* Rotation Animations */
+@keyframes rotate-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes rotate-reverse {
+  from { transform: rotate(360deg); }
+  to { transform: rotate(0deg); }
+}
+
+/* Pulse Animations */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes pulse-scale {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.05); opacity: 0.8; }
+}
+
+/* Slide Animations */
+@keyframes slide-in-right {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slide-in-left {
+  from { transform: translateX(-100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slide-in-up {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* Fade Animations */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fade-in-scale {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* Shimmer Effect */
+@keyframes shimmer {
+  0% { background-position: -1000px 0; }
+  100% { background-position: 1000px 0; }
+}
+
+/* Glitch Effect (Subtle for Sovereign) */
+@keyframes glitch {
+  0% { transform: translate(0); }
+  20% { transform: translate(-1px, 1px); }
+  40% { transform: translate(-1px, -1px); }
+  60% { transform: translate(1px, 1px); }
+  80% { transform: translate(1px, -1px); }
+  100% { transform: translate(0); }
+}
+
+/* Scan Line Effect */
+@keyframes scan-line {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+
+@keyframes heart-pulse {
+  0% { transform: scale(1); opacity: 0.8; }
+  15% { transform: scale(1.15); opacity: 1; }
+  30% { transform: scale(1); opacity: 0.8; }
+  45% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); opacity: 0.8; }
+}
+
+@keyframes sdi-scanning {
+  0% { transform: translateY(-100%) scaleX(1); opacity: 0; }
+  50% { opacity: 0.3; }
+  100% { transform: translateY(100%) scaleX(1); opacity: 0; }
+}
+
+/* Utility Classes */
+.animate-glow-pulse {
+  animation: glow-pulse-gold 4s ease-in-out infinite;
+}
+
+.animate-glow-pulse-pink, .animate-glow-pulse-crimson {
+  animation: glow-pulse-crimson 4s ease-in-out infinite;
+}
+
+.animate-glow-pulse-purple, .animate-glow-pulse-gold {
+  animation: glow-pulse-gold 4s ease-in-out infinite;
+}
+
+.animate-rotate-slow {
+  animation: rotate-slow 20s linear infinite;
+}
+
+.animate-rotate-reverse {
+  animation: rotate-reverse 15s linear infinite;
+}
+
+.animate-pulse {
+  animation: pulse 3s ease-in-out infinite;
+}
+
+.animate-pulse-scale {
+  animation: pulse-scale 3s ease-in-out infinite;
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.3s ease-out;
+}
+
+.animate-slide-in-left {
+  animation: slide-in-left 0.3s ease-out;
+}
+
+.animate-slide-in-up {
+  animation: slide-in-up 0.3s ease-out;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+.animate-fade-in-scale {
+  animation: fade-in-scale 0.3s ease-out;
+}
+
+.animate-shimmer {
+  animation: shimmer 2.5s linear infinite;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(212, 168, 83, 0.05) 50%,
+    transparent 100%
+  );
+  background-size: 1000px 100%;
+}
+
+.animate-glitch {
+  animation: glitch 0.3s ease-in-out;
+}
+
+/* Hover Effects */
+.hover-glow {
+  transition: all 0.3s ease;
+}
+
+.hover-glow:hover {
+  box-shadow: 0 0 20px rgba(212, 168, 83, 0.3),
+              0 0 30px rgba(212, 168, 83, 0.15);
+  transform: translateY(-1px);
+}
+
+.hover-glow-pink:hover, .hover-glow-crimson:hover {
+  box-shadow: 0 0 20px rgba(184, 64, 82, 0.3),
+              0 0 30px rgba(184, 64, 82, 0.15);
+  transform: translateY(-1px);
+}
+
+.hover-glow-purple:hover, .hover-glow-gold:hover {
+  box-shadow: 0 0 20px rgba(212, 168, 83, 0.3),
+              0 0 30px rgba(212, 168, 83, 0.15);
+  transform: translateY(-1px);
+}
+
+.hover-lift {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+}
+
+.hover-scale {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hover-scale:hover {
+  transform: scale(1.02);
+}
+
+/* Sovereign Grid Background */
+.cyberpunk-grid {
+  background-image: 
+    linear-gradient(rgba(212, 168, 83, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(212, 168, 83, 0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+
+/* Sovereign Border Effect */
+.neon-border {
+  position: relative;
+  border: 1px solid transparent;
+}
+
+.neon-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, #D4A853, #B84052, #D4A853);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+
+/* Holographic Text Effect */
+.holographic-text {
+  background: linear-gradient(
+    135deg,
+    #D4A853 0%,
+    #B84052 25%,
+    #F5F0E8 50%,
+    #B84052 75%,
+    #D4A853 100%
+  );
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 5s ease-in-out infinite;
+}
+
+/* Loading Spinner */
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 2px solid rgba(212, 168, 83, 0.1);
+  border-top-color: #D4A853;
+  border-radius: 50%;
+  animation: rotate-slow 1.5s linear infinite;
+}
+
+/* Scan Line Overlay */
+.scan-line-overlay {
+  position: relative;
+  overflow: hidden;
+}
+
+.scan-line-overlay::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(212, 168, 83, 0.2),
+    transparent
+  );
+  animation: scan-line 4s linear infinite;
+  pointer-events: none;
+}
+
+/* Smooth Transitions */
+* {
+  transition-property: color, background-color, border-color, opacity, transform, box-shadow;
+  transition-duration: 0.3s;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Selection Styling */
+::selection {
+  background: rgba(212, 168, 83, 0.2);
+  color: #F5F0E8;
+}
+
+::-moz-selection {
+  background: rgba(212, 168, 83, 0.2);
+  color: #F5F0E8;
+}
+
+/* SDI Interface Utilities */
+.sdi-glass {
+  background: rgba(11, 10, 8, 0.6);
+  backdrop-filter: blur(24px) saturate(150%);
+  border: 1px solid rgba(212, 168, 83, 0.08);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6);
+}
+
+.sdi-glow-gold {
+  box-shadow: 0 0 20px rgba(212, 168, 83, 0.1),
+              inset 0 0 10px rgba(212, 168, 83, 0.05);
+  border-color: rgba(212, 168, 83, 0.2);
+}
+
+.sdi-glow-cyan {
+  box-shadow: 0 0 20px rgba(212, 168, 83, 0.1);
+  border-color: rgba(212, 168, 83, 0.2);
+}
+
+.animate-heart-pulse {
+  animation: heart-pulse 3s ease-in-out infinite;
+}
+
+.sdi-scanline {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  background: linear-gradient(to bottom, 
+    transparent 0%, 
+    rgba(212, 168, 83, 0.05) 50%, 
+    transparent 100%);
+  animation: sdi-scanning 4s ease-in-out infinite;
+  pointer-events: none;
+}

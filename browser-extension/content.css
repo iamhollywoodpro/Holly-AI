@@ -1,0 +1,76 @@
+@keyframes holly-widget-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes holly-badge-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.15);
+  }
+}
+
+@keyframes holly-glow {
+  0%,
+  100% {
+    box-shadow: 0 4px 20px rgba(0, 229, 255, 0.3);
+  }
+  50% {
+    box-shadow: 0 4px 30px rgba(0, 229, 255, 0.5), 0 0 60px rgba(179, 136, 255, 0.15);
+  }
+}
+
+#holly-ai-widget {
+  all: initial;
+  position: fixed;
+  z-index: 2147483647;
+  bottom: 24px;
+  right: 24px;
+  pointer-events: none;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #e8e0f0;
+  animation: holly-widget-enter 0.4s ease forwards;
+}
+
+#holly-ai-widget * {
+  all: unset;
+  box-sizing: border-box;
+}
+
+#holly-ai-widget button,
+#holly-ai-widget textarea,
+#holly-ai-widget input,
+#holly-ai-widget a {
+  all: revert;
+  pointer-events: auto;
+}
+
+#holly-ai-widget {
+  pointer-events: auto;
+}
+
+@media (max-width: 480px) {
+  #holly-ai-widget {
+    bottom: 12px;
+    right: 12px;
+    left: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #holly-ai-widget {
+    animation: none;
+  }
+}

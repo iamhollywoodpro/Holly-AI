@@ -1,0 +1,40 @@
+###############################################################################
+# HOLLY Kokoro TTS — GPU Docker Compose (NVIDIA only)
+#
+# ~50ms TTFA vs ~300ms on CPU — use this if you have an NVIDIA GPU
+# Requires: nvidia-container-toolkit
+#   Install: https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html
+###############################################################################
+
+services:
+  kokoro-tts:
+    image: ghcr.io/remsky/kokoro-fastapi-gpu:latest
+    container_name: holly-kokoro-tts-gpu
+    ports:
+      - "8880:8880"
+    environment:
+      - API_LOG_LEVEL=WARNING
+      - DEFAULT_VOICE=af_heart
+      - TARGET_MIN_TOKENS=100
+      - TARGET_MAX_TOKENS=200
+      - ABSOLUTE_MAX_TOKENS=450
+    volumes:
+      - kokoro-models:/app/api/src/models
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8880/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+
+volumes:
+  kokoro-models:
+    name: holly-kokoro-models
