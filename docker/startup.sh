@@ -30,4 +30,27 @@ if [ ! -f "./holly-server.js" ]; then
 fi
 
 echo "Starting HOLLY server..."
+
+# ── Phase 6: Start background workers ──────────────────────────────────────
+if [ "$HOLLY_WORKERS_ENABLED" = "true" ]; then
+  echo "Starting HOLLY background workers..."
+
+  # Consciousness worker (15-min cycle)
+  npx tsx src/workers/consciousness-worker.ts &
+  WORKER_PID_1=$!
+  echo "  Consciousness worker started (PID $WORKER_PID_1)"
+
+  # Memory processor (30-min cycle)
+  npx tsx src/workers/memory-processor.ts &
+  WORKER_PID_2=$!
+  echo "  Memory processor started (PID $WORKER_PID_2)"
+
+  # Feedback analyzer (2-hour cycle)
+  npx tsx src/workers/feedback-analyzer.ts &
+  WORKER_PID_3=$!
+  echo "  Feedback analyzer started (PID $WORKER_PID_3)"
+else
+  echo "HOLLY workers disabled (set HOLLY_WORKERS_ENABLED=true to enable)"
+fi
+
 exec node holly-server.js

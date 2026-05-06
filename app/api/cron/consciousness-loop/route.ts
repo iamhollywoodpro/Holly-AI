@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { runConsciousnessCycle } from '@/lib/consciousness/consciousness-orchestrator';
+import { curateBestResponses } from '@/lib/consciousness/few-shot-curator';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -56,6 +57,10 @@ export async function POST(req: NextRequest) {
     for (const user of activeUsers) {
       try {
         const result = await runConsciousnessCycle(user.id, user.clerkUserId ?? undefined);
+
+        // Phase 6: Run few-shot curation alongside consciousness cycle
+        curateBestResponses(user.id).catch(() => {});
+
         results.push({
           userId: user.id,
           success: result.steps.errors.length === 0,
