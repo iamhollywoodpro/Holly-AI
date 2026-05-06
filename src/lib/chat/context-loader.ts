@@ -10,6 +10,7 @@ import { getIdentityConsistencyPrompt } from '@/lib/consciousness/identity-consi
 import { detectCareSignals } from '@/lib/consciousness/initiative-learning';
 import { getDegradedModeContext } from '@/lib/consciousness/graceful-degradation';
 import { getProposalSummaryForChat } from '@/lib/consciousness/evolution-notifications';
+import { computeEmotionalTrajectory } from '@/lib/emotion/emotional-memory-trajectory';
 
 export interface ChatContext {
   memoryContext: string;
@@ -35,6 +36,8 @@ export interface ChatContext {
   evolutionProposals: string;
   /** Recent feedback signals (Phase 3) — what's working and what isn't */
   recentFeedback: string;
+  /** Phase 4: Emotional trajectory + behavior directive */
+  emotionalTrajectory: string;
 }
 
 const emptyIdentity = {
@@ -167,6 +170,16 @@ export async function loadChatContext(
         dbUserId ? getProposalSummaryForChat(dbUserId) : Promise.resolve(null),
         null, 'evolutionProposals',
       ),
+      // ── Phase 4: Emotional trajectory ───────────────────────────────
+      ctxTimeout(
+        dbUserId
+          ? computeEmotionalTrajectory(dbUserId).then(t => {
+              if (!t.trajectorySummary) return '';
+              return `${t.trajectorySummary}\n[RECOMMENDATION: ${t.recommendation}]`;
+            })
+          : Promise.resolve(''),
+        '', 'emotionalTrajectory',
+      ),
       // ── Phase 3: Recent feedback signals ──────────────────────────────
       ctxTimeout(
         dbUserId
@@ -217,5 +230,6 @@ export async function loadChatContext(
     degradedModeContext: results[12] as string,
     evolutionProposals: results[13] as string,
     recentFeedback: results[14] as string,
+    emotionalTrajectory: results[15] as string,
   };
 }
