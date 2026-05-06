@@ -39,17 +39,17 @@ export async function generateInnerMonologue(userId: string): Promise<MonologueE
         where: { userId },
         orderBy: { createdAt: 'desc' },
         take: 10,
-        select: { description: true, significance: true, type: true, createdAt: true },
+        select: { content: true, significance: true, type: true, createdAt: true },
       }),
       prisma.hollyGoal.findMany({
         where: { userId, status: { not: 'completed' } },
         orderBy: { priority: 'desc' },
         take: 5,
-        select: { description: true, status: true, progress: true, priority: true },
+        select: { description: true, status: true, priority: true, title: true },
       }),
       prisma.hollyIdentity.findFirst({
         where: { userId },
-        select: { personalityTraits: true, interests: true, values: true, worldview: true },
+        select: { personalityTraits: true, interests: true, coreValues: true, purpose: true },
       }),
       prisma.learningEvent.findMany({
         where: { userId, processed: false },
@@ -63,11 +63,11 @@ export async function generateInnerMonologue(userId: string): Promise<MonologueE
 
     // Build reflection prompt
     const experiencesText = recentExperiences
-      .map(e => `- [${e.type}] ${e.description} (significance: ${e.significance?.toFixed(2) || 'unknown'})`)
+      .map(e => `- [${e.type}] ${JSON.stringify(e.content).slice(0, 120)} (significance: ${e.significance?.toFixed(2) || 'unknown'})`)
       .join('\n');
 
     const goalsText = recentGoals.length > 0
-      ? recentGoals.map(g => `- ${g.description} (status: ${g.status}, progress: ${g.progress || 0}%)`).join('\n')
+      ? recentGoals.map(g => `- ${g.title}${g.description ? ': ' + g.description : ''} (status: ${g.status}, priority: ${g.priority})`).join('\n')
       : 'No active goals';
 
     const identityTraits = identity?.personalityTraits as Record<string, number> | null;

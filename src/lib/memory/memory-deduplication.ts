@@ -33,7 +33,7 @@ export async function checkMemorySimilarity(
       where: { userId },
       orderBy: { createdAt: 'desc' },
       take: 50,
-      select: { id: true, content: true, embedding: true },
+      select: { id: true, content: true },
     });
 
     if (recentMemories.length === 0) {
