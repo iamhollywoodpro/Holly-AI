@@ -29,5 +29,11 @@ if [ ! -f "./holly-server.js" ]; then
   exit 1
 fi
 
+# ── Push schema changes (non-crashing) ─────────────────────────────────────
+# Creates any new tables/columns that don't exist yet. Safe to run on every
+# start — Prisma will only add missing columns, never drop data.
+echo "Syncing database schema..."
+npx prisma db push --skip-generate 2>&1 || echo "[WARN] prisma db push failed — app will continue with existing schema"
+
 echo "Starting HOLLY server..."
 exec node holly-server.js
