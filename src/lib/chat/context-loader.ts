@@ -33,6 +33,8 @@ export interface ChatContext {
   degradedModeContext: string;
   /** Evolution proposals summary (Phase 4.3) */
   evolutionProposals: string;
+  /** Recent feedback signals (Phase 3) — what's working and what isn't */
+  recentFeedback: string;
 }
 
 const emptyIdentity = {
@@ -165,6 +167,31 @@ export async function loadChatContext(
         dbUserId ? getProposalSummaryForChat(dbUserId) : Promise.resolve(null),
         null, 'evolutionProposals',
       ),
+      // ── Phase 3: Recent feedback signals ──────────────────────────────
+      ctxTimeout(
+        dbUserId
+          ? prisma.responseFeedback.findMany({
+              where: { userId: dbUserId },
+              orderBy: { createdAt: 'desc' },
+              take: 8,
+              select: { sentiment: true, lessonLearned: true, feedbackType: true, createdAt: true },
+            }).then((feedback: any[]) => {
+              if (feedback.length === 0) return '';
+              const pos = feedback.filter(f => f.sentiment === 'positive').length;
+              const neg = feedback.filter(f => f.sentiment === 'negative').length;
+              const lessons = feedback
+                .filter(f => f.lessonLearned && f.sentiment === 'negative')
+                .slice(0, 3)
+                .map(f => f.lessonLearned);
+              let block = `[FEEDBACK SIGNALS — last ${feedback.length} interactions: ${pos}👍 ${neg}👎]`;
+              if (lessons.length > 0) {
+                block += `\n[What to improve: ${lessons.join('; ')}]`;
+              }
+              return block;
+            })
+          : Promise.resolve(''),
+        '', 'recentFeedback',
+      ),
     ]),
     new Promise<any[]>((resolve) => {
       setTimeout(() => {
@@ -189,5 +216,6 @@ export async function loadChatContext(
     careSignals: results[11] as string,
     degradedModeContext: results[12] as string,
     evolutionProposals: results[13] as string,
+    recentFeedback: results[14] as string,
   };
 }

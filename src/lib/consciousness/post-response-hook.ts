@@ -67,6 +67,9 @@ export async function recordExchange(payload: PostResponsePayload): Promise<void
 
       // ── 6. Immediate consciousness for high-significance exchanges ──────
       runImmediateConsciousness(userId, userMessage, analysis.emotion),
+
+      // ── 7. Phase 3: Implicit feedback detection ──────────────────────────
+      runImplicitFeedback(userId, conversationId, userMessage, assistantResponse),
     ]);
 
     console.log(
@@ -208,6 +211,65 @@ async function runImmediateConsciousness(
     }
   } catch (err) {
     console.error('[PostHook:ImmediateConsciousness] ⚠️', err);
+  }
+}
+
+// ─── Phase 3: Implicit feedback detection ───────────────────────────────────
+
+const POSITIVE_SIGNALS = /\b(thanks|thank you|perfect|great|awesome|exactly|spot on|nailed it|love it|amazing|brilliant|helpful|appreciate|excellent|good job|well done|that works|fixed it|you rock|best| exactly what|right on|correct|yes exactly|that's it|bingo)\b/i;
+const NEGATIVE_SIGNALS = /\b(wrong|nope|try again|not right|not what i|didn't work|doesn't work|bad|terrible|useless|not helpful|missed the|off base|incorrect|that's wrong|no that's|not even close|try something else|still broken|still not working|still wrong)\b/i;
+const REPHRASE_SIGNALS = /\b(what i meant|i meant to say|let me rephrase|let me clarify|i actually wanted|to be more specific|in other words|let me explain better)\b/i;
+
+async function runImplicitFeedback(
+  userId: string,
+  conversationId: string,
+  userMessage: string,
+  assistantResponse: string,
+): Promise<void> {
+  try {
+    let sentiment: 'positive' | 'negative' | null = null;
+    let sentimentScore = 0;
+    let feedbackType = 'implicit';
+    let lesson = '';
+
+    if (POSITIVE_SIGNALS.test(userMessage)) {
+      sentiment = 'positive';
+      sentimentScore = 0.6;
+      lesson = 'User expressed satisfaction — this response style is working';
+    } else if (NEGATIVE_SIGNALS.test(userMessage)) {
+      sentiment = 'negative';
+      sentimentScore = -0.6;
+      lesson = 'User expressed dissatisfaction — adjust approach next time';
+    } else if (REPHRASE_SIGNALS.test(userMessage)) {
+      sentiment = 'negative';
+      sentimentScore = -0.4;
+      feedbackType = 'correction';
+      lesson = 'User rephrased their question — previous response likely missed the intent';
+    }
+
+    if (!sentiment) return; // No implicit signal detected
+
+    await prisma.responseFeedback.create({
+      data: {
+        userId,
+        conversationId,
+        feedbackType,
+        sentiment,
+        sentimentScore,
+        hollyResponse: assistantResponse.slice(0, 2000),
+        context: {
+          userMessage: userMessage.slice(0, 500),
+          source: 'implicit_detection',
+          trigger: sentiment === 'positive' ? 'positive_words' : feedbackType === 'correction' ? 'rephrase' : 'negative_words',
+        },
+        lessonLearned: lesson,
+        applied: false,
+      },
+    });
+
+    console.log(`[PostHook:ImplicitFeedback] ${sentiment === 'positive' ? '👍' : '👎'} implicit ${feedbackType} detected`);
+  } catch (err) {
+    console.error('[PostHook:ImplicitFeedback] ⚠️', err);
   }
 }
 
