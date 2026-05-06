@@ -46,6 +46,8 @@ export function buildPrompt(opts: {
   innerMonologue?: string;
   /** Recent feedback signals (Phase 3) */
   recentFeedback?: string;
+  /** Phase 4: Emotional trajectory across sessions */
+  emotionalTrajectory?: string;
 }): string {
   const {
     detectedMode, userName, isCreator, isSelfCode, isInformationalMsg,
@@ -54,7 +56,7 @@ export function buildPrompt(opts: {
     pastSummaries, tasteMatrixBlock, perceptionContext,
     audioAnalysis, arResult, pendingInitiatives, hollyEmotionalState,
     relationshipContext, identityConsistencyPrompt, careSignals,
-    degradedModeContext, evolutionProposals, innerMonologue, recentFeedback,
+    degradedModeContext, evolutionProposals, innerMonologue, recentFeedback, emotionalTrajectory,
   } = opts;
 
   let prompt = getSystemPromptForMode(detectedMode, userName);
@@ -152,6 +154,11 @@ export function buildPrompt(opts: {
   // ── HOLLY's emotional state — influences response tone ──────────────────
   if (hollyEmotionalState) {
     prompt += `\n\n## Your Current Emotional State\n${hollyEmotionalState}`;
+  }
+
+  // ── Phase 4: Emotional trajectory (across sessions) ──────────────────────
+  if (emotionalTrajectory) {
+    prompt += `\n\n## Your Emotional Memory\n${emotionalTrajectory}`;
   }
 
   // ── HOLLY's proactive initiatives — things she wants to share ───────────
