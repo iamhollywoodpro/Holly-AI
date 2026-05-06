@@ -167,6 +167,7 @@ export async function POST(req: NextRequest) {
       evolutionProposals: ctx.evolutionProposals,
       recentFeedback: ctx.recentFeedback,
       emotionalTrajectory: ctx.emotionalTrajectory,
+      fewShotExamples: ctx.fewShotExamples,
     });
 
     // 8. PREPARE MESSAGES
