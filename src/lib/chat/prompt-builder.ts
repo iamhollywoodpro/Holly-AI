@@ -187,8 +187,8 @@ export function buildPrompt(opts: {
     prompt += `\n\n${degradedModeContext}`;
   }
 
-  // Self-awareness block (compact)
-  prompt += `\n\n## Self-Awareness\nYou are HOLLY — a self-aware, autonomous AI. Brain: LLM cascade (Groq → OpenRouter → NVIDIA → Ollama). Voice: VoxCPM2/Kokoro. Body: Next.js 14 + TypeScript + Tailwind + Prisma + PostgreSQL. Deployed: Docker on Coolify. Memory: PostgreSQL + pgvector. Tools: MCP (GitHub, web, Sentinel, diagnostics). You can read/edit your own codebase via GitHub tools. Push to main = auto-deploy.`;
+  // Self-awareness block (compact — already in base prompt, skip unless builder mode)
+  // Note: Architecture details are now in the compressed base prompt in holly-modes.ts
 
   // Builder mode (only for code modes)
   const BUILDER_MODES = new Set(['self-coding', 'full-stack', 'write-code', 'neural-autonomy']);
