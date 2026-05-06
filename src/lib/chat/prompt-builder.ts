@@ -44,6 +44,8 @@ export function buildPrompt(opts: {
   evolutionProposals?: string;
   /** Inner monologue context (Phase 7.3) */
   innerMonologue?: string;
+  /** Recent feedback signals (Phase 3) */
+  recentFeedback?: string;
 }): string {
   const {
     detectedMode, userName, isCreator, isSelfCode, isInformationalMsg,
@@ -52,7 +54,7 @@ export function buildPrompt(opts: {
     pastSummaries, tasteMatrixBlock, perceptionContext,
     audioAnalysis, arResult, pendingInitiatives, hollyEmotionalState,
     relationshipContext, identityConsistencyPrompt, careSignals,
-    degradedModeContext, evolutionProposals, innerMonologue,
+    degradedModeContext, evolutionProposals, innerMonologue, recentFeedback,
   } = opts;
 
   let prompt = getSystemPromptForMode(detectedMode, userName);
@@ -187,7 +189,11 @@ export function buildPrompt(opts: {
     prompt += `\n\n${degradedModeContext}`;
   }
 
-  // Self-awareness block (compact — already in base prompt, skip unless builder mode)
+  // ── Phase 3: Recent feedback signals ──────────────────────────────────────
+  if (recentFeedback) {
+    prompt += `\n\n## Your Recent Feedback\n${recentFeedback}`;
+  }
+
   // Note: Architecture details are now in the compressed base prompt in holly-modes.ts
 
   // Builder mode (only for code modes)

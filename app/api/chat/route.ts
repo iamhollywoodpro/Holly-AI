@@ -165,6 +165,7 @@ export async function POST(req: NextRequest) {
       careSignals: ctx.careSignals,
       degradedModeContext: ctx.degradedModeContext,
       evolutionProposals: ctx.evolutionProposals,
+      recentFeedback: ctx.recentFeedback,
     });
 
     // 8. PREPARE MESSAGES
