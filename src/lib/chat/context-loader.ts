@@ -11,6 +11,7 @@ import { detectCareSignals } from '@/lib/consciousness/initiative-learning';
 import { getDegradedModeContext } from '@/lib/consciousness/graceful-degradation';
 import { getProposalSummaryForChat } from '@/lib/consciousness/evolution-notifications';
 import { computeEmotionalTrajectory } from '@/lib/emotion/emotional-memory-trajectory';
+import { getFewShotExamples } from '@/lib/consciousness/few-shot-curator';
 
 export interface ChatContext {
   memoryContext: string;
@@ -38,6 +39,8 @@ export interface ChatContext {
   recentFeedback: string;
   /** Phase 4: Emotional trajectory + behavior directive */
   emotionalTrajectory: string;
+  /** Phase 5: Few-shot examples from best past responses */
+  fewShotExamples: string;
 }
 
 const emptyIdentity = {
@@ -180,6 +183,11 @@ export async function loadChatContext(
           : Promise.resolve(''),
         '', 'emotionalTrajectory',
       ),
+      // ── Phase 5: Few-shot examples (best past responses) ────────────
+      ctxTimeout(
+        dbUserId ? getFewShotExamples(dbUserId, detectedMode) : Promise.resolve(''),
+        '', 'fewShotExamples',
+      ),
       // ── Phase 3: Recent feedback signals ──────────────────────────────
       ctxTimeout(
         dbUserId
@@ -231,5 +239,6 @@ export async function loadChatContext(
     evolutionProposals: results[13] as string,
     recentFeedback: results[14] as string,
     emotionalTrajectory: results[15] as string,
+    fewShotExamples: results[16] as string,
   };
 }
