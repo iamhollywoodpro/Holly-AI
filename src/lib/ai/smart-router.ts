@@ -47,15 +47,16 @@
 // ─── Task types ───────────────────────────────────────────────────────────────
 
 export type TaskType =
-  | 'speed'        // Fast casual chat, quick questions
-  | 'coding'       // Write / debug / review code, anything technical
-  | 'reasoning'    // Math, logic, analysis, step-by-step deduction
-  | 'long_context' // Summarise / analyse long documents, large context
-  | 'vision'       // Images, screenshots, visual content
-  | 'creative'     // Stories, poems, brainstorming, writing
-  | 'agent'        // Multi-step tool chains, autonomous tasks
-  | 'local'        // Privacy-first, offline
-  | 'synthesis';   // Cross-domain parallel synthesis (AURA + Visual + Philosophy)
+  | 'speed'          // Fast casual chat, quick questions
+  | 'coding'         // Write / debug / review code, anything technical
+  | 'reasoning'      // Math, logic, analysis, step-by-step deduction
+  | 'long_context'   // Summarise / analyse long documents, large context
+  | 'vision'         // Images, screenshots, visual content
+  | 'creative'       // Stories, poems, brainstorming, writing
+  | 'agent'          // Multi-step tool chains, autonomous tasks
+  | 'local'          // Privacy-first, offline
+  | 'synthesis'      // Cross-domain parallel synthesis (AURA + Visual + Philosophy)
+  | 'consciousness'; // Holly's inner life — emotions, monologue, memory, identity (LOCAL FIRST)
 
 // ─── Provider identifiers ─────────────────────────────────────────────────────
 
@@ -213,6 +214,12 @@ export const MODEL_CATALOGUE: Record<string, ModelSpec> = {
   'openrouter:nemotron-3-nano-omni': {
     provider: 'openrouter', model: 'nvidia/nemotron-3-nano-omni:free',
     displayName: 'Nemotron 3 Nano Omni 30B MoE (OpenRouter free)', contextK: 262, streaming: true,
+  },
+
+  // ── Holly's Own Brain — Qwen 3 8B (local Ollama, 24/7, zero cost) ────────
+  'ollama:qwen3-8b': {
+    provider: 'ollama', model: 'qwen3:8b',
+    displayName: 'Qwen 3 8B — HOLLY\'s Brain (Local)', contextK: 128, streaming: true,
   },
 
   // ── Ollama (local + cloud — v9 upgrade, Qwen3.6 + Granite 4.1 + Laguna) ───
@@ -430,6 +437,18 @@ export const TASK_WATERFALLS: Record<TaskType, string[]> = {
     'ollama:llama3.1-8b',
   ],
 
+  // 🧬 Consciousness: Holly's inner life — LOCAL FIRST, cascade to free cloud
+  //    This is Holly's "brain" for emotions, inner monologue, memory processing.
+  //    Always tries local Qwen 3 8B first. Zero cost, zero rate limits, zero dependency.
+  consciousness: [
+    'ollama:qwen3-8b',          // Holly's own brain — always first
+    'ollama:qwen3.6-35b',       // Bigger local model if available
+    'ollama:granite4.1-8b',     // Fast local fallback
+    'ollama:llama3.1-8b',       // Last resort local
+    'groq:llama-3.3-70b',       // Cloud fallback only if local is down
+    'google:gemini-2.5-flash',  // Deep cloud fallback
+  ],
+
   // 🌐 Synthesis: V4 Flash 1M ctx, GLM-5.1, Nemotron 120B reasoning
   synthesis: [
     'groq:llama-3.3-70b',
@@ -595,6 +614,7 @@ export function smartRoute(
     agent:        '🤖 Agent task',
     local:        '🔒 Local/private',
     synthesis:    '🌐 Cross-domain synthesis',
+    consciousness: '🧬 Holly\'s Consciousness (Local)',
   };
 
   return {

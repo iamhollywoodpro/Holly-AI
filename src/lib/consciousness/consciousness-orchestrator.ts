@@ -383,7 +383,7 @@ Respond ONLY with a JSON array of insight objects:
     const userMsg = `My recent experiences:\n${experienceSummary}\n\nMy existing insights:\n${existingInsights || 'None yet'}\n\nWhat new insights can I draw from these experiences?`;
 
     const { text } = await cascadeCollect(
-      smartRoute(userMsg, { taskHint: 'speed' }).waterfall,
+      smartRoute(userMsg, { forceTask: 'consciousness' }).waterfall,
       [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userMsg },
@@ -492,7 +492,7 @@ Respond ONLY with JSON:
     const userMsg = `Current traits: ${traits}\nCurrent interests: ${interests}\nRecent emotions: ${emotionSummary}\nRecent experiences: ${recentExperiences.length} recorded\n\nHow should HOLLY's identity evolve?`;
 
     const { text } = await cascadeCollect(
-      smartRoute(userMsg, { taskHint: 'speed' }).waterfall,
+      smartRoute(userMsg, { forceTask: 'consciousness' }).waterfall,
       [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userMsg },
