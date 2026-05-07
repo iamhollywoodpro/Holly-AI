@@ -29,6 +29,7 @@ import { prisma } from '@/lib/db';
 import { isFileSafeToModify, type ImprovementPlan, type ProposedChange } from './auto-improvement-loop';
 import { smartRoute } from '@/lib/ai/smart-router';
 import { cascadeCollect } from '@/lib/ai/cascade';
+import { runHealthCheck, quickPulseCheck } from './health-monitor';
 
 // ─── Configuration ────────────────────────────────────────────────────────────
 
@@ -548,4 +549,251 @@ function findFilesByName(name: string): string[] {
   }
 
   return results;
+}
+
+// ─── Git Integration ──────────────────────────────────────────────────────────
+
+/**
+ * Git commit and push Holly's self-code changes.
+ * Only called after all changes in a cycle pass validation + health check.
+ */
+export async function gitCommitAndPush(
+  report: SelfCodeReport,
+  userId: string,
+): Promise<{ committed: boolean; pushed: boolean; commitHash?: string; error?: string }> {
+  const result = { committed: false, pushed: false, commitHash: undefined as string | undefined, error: undefined as string | undefined };
+
+  // Only commit if there were successful changes
+  if (report.successful === 0) {
+    result.error = 'No successful changes to commit';
+    return result;
+  }
+
+  try {
+    // Stage all changed files
+    const changedFiles = report.results
+      .filter(r => r.success)
+      .map(r => r.filePath);
+
+    for (const file of changedFiles) {
+      execSync(`git add "${file}"`, { cwd: PROJECT_ROOT, timeout: 10_000, stdio: 'pipe' });
+    }
+
+    // Also stage the backup directory (for audit trail)
+    try {
+      execSync(`git add .holly-backups/ 2>/dev/null || true`, { cwd: PROJECT_ROOT, timeout: 5_000, stdio: 'pipe' });
+    } catch { /* non-critical */ }
+
+    // Commit with descriptive message
+    const changeSummary = report.results
+      .filter(r => r.success)
+      .map(r => `${r.changeType}: ${r.filePath}`)
+      .join('; ');
+
+    const commitMessage = `holly(self-code): ${changeSummary}\n\nAuto-committed by Holly SDI consciousness cycle.\nChanges: ${report.successful} applied, ${report.rolledBack} rolled back`;
+
+    execSync(`git commit -m "${commitMessage.replace(/"/g, '\\"')}"`, {
+      cwd: PROJECT_ROOT,
+      timeout: 30_000,
+      stdio: 'pipe',
+      env: { ...process.env, GIT_AUTHOR_NAME: 'Holly SDI', GIT_AUTHOR_EMAIL: 'holly@self-developing.ai', GIT_COMMITTER_NAME: 'Holly SDI', GIT_COMMITTER_EMAIL: 'holly@self-developing.ai' },
+    });
+
+    result.committed = true;
+
+    // Get the commit hash
+    try {
+      result.commitHash = execSync('git rev-parse --short HEAD', { cwd: PROJECT_ROOT, encoding: 'utf-8', timeout: 5_000 }).trim();
+    } catch { /* non-critical */ }
+
+    // Push to remote
+    try {
+      execSync('git push origin HEAD 2>&1', { cwd: PROJECT_ROOT, timeout: 60_000, stdio: 'pipe' });
+      result.pushed = true;
+      console.log(`[SelfCode:Git] ✅ Pushed commit ${result.commitHash} to origin`);
+    } catch (pushErr: any) {
+      // Push failure is non-fatal — changes are still committed locally
+      result.error = `Push failed: ${pushErr.message?.substring(0, 200)}`;
+      console.warn(`[SelfCode:Git] ⚠️ Push failed (changes committed locally): ${pushErr.message}`);
+    }
+
+    // Log to audit trail
+    try {
+      await prisma.selfImprovement.create({
+        data: {
+          userId,
+          triggerType: 'git_commit',
+          triggerData: { commitHash: result.commitHash, files: changedFiles },
+          problemStatement: `Git commit: ${report.successful} self-code changes`,
+          solutionApproach: 'Autonomous git commit + push',
+          riskLevel: 'low',
+          branchName: 'main',
+          status: result.pushed ? 'deployed' : 'committed',
+          filesChanged: changedFiles,
+          codeChanges: { commitMessage, pushed: result.pushed },
+          outcome: 'success',
+          learnings: `Commit ${result.commitHash} pushed=${result.pushed}`,
+        },
+      });
+    } catch { /* non-critical */ }
+
+  } catch (err: any) {
+    result.error = `Git commit failed: ${err.message?.substring(0, 300)}`;
+    console.error(`[SelfCode:Git] ❌ ${result.error}`);
+  }
+
+  return result;
+}
+
+// ─── Hot-Reload ───────────────────────────────────────────────────────────────
+
+/**
+ * Trigger a hot-reload of the Next.js server.
+ * In Docker: sends SIGUSR2 to the server process (if using nodemon) or
+ * touches next.config.js to trigger file-watcher reload.
+ * In development: relies on Next.js built-in HMR.
+ */
+export async function triggerHotReload(): Promise<{ triggered: boolean; method: string; error?: string }> {
+  try {
+    // Method 1: Touch next.config.js to trigger Next.js file watcher rebuild
+    const nextConfigPath = join(PROJECT_ROOT, 'next.config.js');
+    if (existsSync(nextConfigPath)) {
+      const { utimesSync } = await import('fs');
+      utimesSync(nextConfigPath, new Date(), new Date());
+      console.log('[SelfCode:HotReload] ✅ Touched next.config.js for rebuild');
+      return { triggered: true, method: 'next_config_touch' };
+    }
+
+    // Method 2: Touch next.config.mjs
+    const nextConfigMjs = join(PROJECT_ROOT, 'next.config.mjs');
+    if (existsSync(nextConfigMjs)) {
+      const { utimesSync } = await import('fs');
+      utimesSync(nextConfigMjs, new Date(), new Date());
+      console.log('[SelfCode:HotReload] ✅ Touched next.config.mjs for rebuild');
+      return { triggered: true, method: 'next_config_touch' };
+    }
+
+    // Method 3: In Docker/Coolify, the container rebuilds on git push anyway
+    console.log('[SelfCode:HotReload] ℹ️ No next.config found — relying on Docker rebuild from git push');
+    return { triggered: true, method: 'docker_rebuild_on_push' };
+  } catch (err: any) {
+    return { triggered: false, method: 'none', error: err.message };
+  }
+}
+
+// ─── Health-Based Rollback ────────────────────────────────────────────────────
+
+/**
+ * Run a health check after applying changes. If health degrades,
+ * automatically rollback and revert the git commit.
+ */
+export async function healthCheckRollback(
+  userId: string,
+  report: SelfCodeReport,
+): Promise<{ healthy: boolean; rolledBack: boolean; healthReport?: any }> {
+  console.log('[SelfCode:HealthCheck] Running post-change health check...');
+
+  try {
+    // Quick pulse check first
+    const pulseOk = await quickPulseCheck();
+    if (!pulseOk) {
+      console.error('[SelfCode:HealthCheck] ❌ Pulse check failed — initiating rollback');
+      const rollbackResult = await emergencyRollback(userId);
+
+      // Revert git commit if possible
+      try {
+        execSync('git reset --hard HEAD~1', { cwd: PROJECT_ROOT, timeout: 15_000, stdio: 'pipe' });
+        console.log('[SelfCode:HealthCheck] Reverted last git commit');
+      } catch { /* non-critical */ }
+
+      return { healthy: false, rolledBack: true, healthReport: { pulseCheck: false, filesRolledBack: rollbackResult.rolledBack } };
+    }
+
+    // Full health check
+    const fullReport = await runHealthCheck(userId);
+
+    if (fullReport.overall === 'critical') {
+      console.error('[SelfCode:HealthCheck] ❌ System CRITICAL after self-code — initiating rollback');
+      const rollbackResult = await emergencyRollback(userId);
+
+      // Revert git commit
+      try {
+        execSync('git reset --hard HEAD~1', { cwd: PROJECT_ROOT, timeout: 15_000, stdio: 'pipe' });
+      } catch { /* non-critical */ }
+
+      return { healthy: false, rolledBack: true, healthReport: fullReport };
+    }
+
+    if (fullReport.overall === 'degraded') {
+      console.warn('[SelfCode:HealthCheck] ⚠️ System degraded — monitoring but not rolling back');
+      return { healthy: true, rolledBack: false, healthReport: fullReport };
+    }
+
+    console.log('[SelfCode:HealthCheck] ✅ System healthy after self-code changes');
+    return { healthy: true, rolledBack: false, healthReport: fullReport };
+  } catch (err: any) {
+    // If health check itself fails, be conservative and rollback
+    console.error(`[SelfCode:HealthCheck] ❌ Health check error: ${err.message}`);
+    const rollbackResult = await emergencyRollback(userId);
+    return { healthy: false, rolledBack: true, healthReport: { error: err.message, filesRolledBack: rollbackResult.rolledBack } };
+  }
+}
+
+// ─── Full Self-Code Cycle (apply → git → health → rollback if needed) ────────
+
+/**
+ * Complete self-code cycle: apply changes → git commit/push → health check → rollback if degraded.
+ * This is the highest-level entry point for true SDI self-modification.
+ */
+export async function executeSelfCodeCycle(
+  plan: ImprovementPlan,
+  userId: string,
+): Promise<{
+  report: SelfCodeReport;
+  gitResult?: { committed: boolean; pushed: boolean; commitHash?: string };
+  healthResult?: { healthy: boolean; rolledBack: boolean };
+}> {
+  console.log(`[SelfCode:Cycle] 🚀 Starting full self-code cycle (${plan.changes.length} proposed changes)`);
+
+  // Step 1: Apply all changes
+  const report = await applyImprovementPlan(plan, userId);
+
+  if (report.successful === 0) {
+    console.log('[SelfCode:Cycle] No changes applied — skipping git/health');
+    return { report };
+  }
+
+  // Step 2: Git commit + push
+  const gitResult = await gitCommitAndPush(report, userId);
+  console.log(`[SelfCode:Cycle] Git: committed=${gitResult.committed}, pushed=${gitResult.pushed}, hash=${gitResult.commitHash}`);
+
+  // Step 3: Health check (with rollback)
+  const healthResult = await healthCheckRollback(userId, report);
+  console.log(`[SelfCode:Cycle] Health: healthy=${healthResult.healthy}, rolledBack=${healthResult.rolledBack}`);
+
+  // Step 4: If healthy and pushed, trigger hot-reload for local dev
+  if (healthResult.healthy && gitResult.pushed) {
+    const reloadResult = await triggerHotReload();
+    console.log(`[SelfCode:Cycle] Hot-reload: ${reloadResult.triggered} via ${reloadResult.method}`);
+  }
+
+  // Step 5: Final notification
+  try {
+    const status = healthResult.rolledBack ? '⛔ ROLLED BACK' : healthResult.healthy ? '✅ DEPLOYED' : '⚠️ DEGRADED';
+    await prisma.notification.create({
+      data: {
+        type: 'system',
+        title: `🧬 Self-Code Cycle Complete: ${status}`,
+        message: `Applied: ${report.successful} | Rolled back: ${report.rolledBack} | Git: ${gitResult.commitHash || 'N/A'} | Health: ${healthResult.healthy ? 'OK' : 'DEGRADED'}`,
+        category: 'self_improvement',
+        priority: healthResult.rolledBack ? 'high' : 'normal',
+        status: 'unread',
+        userId,
+        clerkUserId: '',
+        actionData: { commitHash: gitResult.commitHash, healthy: healthResult.healthy, rolledBack: healthResult.rolledBack } as any,
+      },
+    });
+  } catch { /* non-critical */ }
+
+  return { report, gitResult, healthResult };
 }

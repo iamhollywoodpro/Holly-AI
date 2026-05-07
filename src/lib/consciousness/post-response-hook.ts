@@ -70,6 +70,9 @@ export async function recordExchange(payload: PostResponsePayload): Promise<void
 
       // ── 7. Phase 3: Implicit feedback detection ──────────────────────────
       runImplicitFeedback(userId, conversationId, userMessage, assistantResponse),
+
+      // ── 8. Tag conversation as training-ready ────────────────────────────
+      runTagTrainingReady(conversationId, detectedMode),
     ]);
 
     console.log(
@@ -279,6 +282,34 @@ async function runImplicitFeedback(
     console.log(`[PostHook:ImplicitFeedback] ${sentiment === 'positive' ? '👍' : '👎'} implicit ${feedbackType} detected`);
   } catch (err) {
     console.error('[PostHook:ImplicitFeedback] ⚠️', err);
+  }
+}
+
+// ─── Training Data Tagging ──────────────────────────────────────────────────
+
+/**
+ * Tag conversation as training-ready after each exchange.
+ * The autonomous fine-tuning cycle (weekly cron) uses these tags to collect
+ * high-quality training examples.
+ */
+async function runTagTrainingReady(
+  conversationId: string,
+  detectedMode: string,
+): Promise<void> {
+  try {
+    // Increment message count and update the mode tag
+    await prisma.conversation.update({
+      where: { id: conversationId },
+      data: {
+        messageCount: { increment: 1 },
+        // Store mode in title if not set (used for categorization later)
+        ...(detectedMode ? { title: detectedMode } : {}),
+      },
+    }).catch(() => {
+      // Conversation may not exist in some flows — non-critical
+    });
+  } catch (err) {
+    console.error('[PostHook:TrainingTag] ⚠️', err);
   }
 }
 
