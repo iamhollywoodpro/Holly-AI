@@ -88,7 +88,7 @@ export async function sendChatMessage(
     stream: false,
     ...options,
   };
-  const { data } = await client.post<ChatResponse>('/api/v1/chat', body);
+  const { data } = await client.post<ChatResponse>('/api/chat', body);
   return data;
 }
 
@@ -100,7 +100,7 @@ export async function streamChatMessage(
   const { serverUrl, apiKey } = useSettingsStore.getState();
   const base = (serverUrl || DEFAULT_BASE_URL).replace(/\/+$/, '');
 
-  const response = await fetch(`${base}/api/v1/chat`, {
+    const response = await fetch(`${base}/api/chat`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -186,7 +186,7 @@ export async function generateLyrics(
 ): Promise<{ lyrics: string }> {
   const client = getApiClient();
   const { data } = await client.post<{ lyrics: string }>(
-    '/api/music/lyrics',
+    '/api/music/generate-lyrics',
     { prompt, style },
   );
   return data;
@@ -197,7 +197,7 @@ export async function generateCover(
 ): Promise<{ cover_url: string }> {
   const client = getApiClient();
   const { data } = await client.post<{ cover_url: string }>(
-    '/api/music/cover',
+    '/api/music/generate-cover',
     { prompt },
   );
   return data;
@@ -256,6 +256,25 @@ export async function getAuraResults(
 export async function getAuraHistory(): Promise<AuraAnalysisResponse[]> {
   const client = getApiClient();
   const { data } = await client.get<AuraAnalysisResponse[]>('/api/aura/history');
+  return data;
+}
+
+export interface ImageGenerateResponse {
+  success: boolean;
+  imageUrl: string;
+  url: string;
+  provider: string;
+}
+
+export async function generateImage(
+  prompt: string,
+  aspectRatio: string = '1:1',
+): Promise<ImageGenerateResponse> {
+  const client = getApiClient();
+  const { data } = await client.post<ImageGenerateResponse>(
+    '/api/image/generate-ultimate',
+    { prompt, aspectRatio },
+  );
   return data;
 }
 

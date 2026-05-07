@@ -147,6 +147,15 @@ async function runEmotionPersist(
         conversationId,
       },
     });
+
+    // Persist cross-session emotional continuity
+    const { persistEmotionalBaseline } = await import('./emotional-continuity');
+    await persistEmotionalBaseline(userId, {
+      primaryMood: emotion.primary,
+      valence: emotion.valence,
+      arousal: emotion.arousal,
+      intensity: emotion.intensity,
+    });
   } catch (err) {
     console.error('[PostHook:Emotion] ⚠️', err);
   }

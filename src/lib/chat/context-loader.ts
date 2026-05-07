@@ -11,7 +11,10 @@ import { detectCareSignals } from '@/lib/consciousness/initiative-learning';
 import { getDegradedModeContext } from '@/lib/consciousness/graceful-degradation';
 import { getProposalSummaryForChat } from '@/lib/consciousness/evolution-notifications';
 import { computeEmotionalTrajectory } from '@/lib/emotion/emotional-memory-trajectory';
+import { getEmotionalContinuityContext } from '@/lib/consciousness/emotional-continuity';
 import { getFewShotExamples } from '@/lib/consciousness/few-shot-curator';
+import { getRecentMonologue } from '@/lib/consciousness/inner-monologue';
+import { applyContextBudget } from '@/lib/chat/context-budget';
 
 export interface ChatContext {
   memoryContext: string;
@@ -41,6 +44,10 @@ export interface ChatContext {
   emotionalTrajectory: string;
   /** Phase 5: Few-shot examples from best past responses */
   fewShotExamples: string;
+  /** Phase 7.3: Inner monologue (HOLLY's private thoughts) */
+  innerMonologue: string;
+  /** Cross-session emotional continuity (remembers how user was last time) */
+  emotionalContinuity: string;
 }
 
 const emptyIdentity = {
@@ -188,6 +195,16 @@ export async function loadChatContext(
         dbUserId ? getFewShotExamples(dbUserId, detectedMode) : Promise.resolve(''),
         '', 'fewShotExamples',
       ),
+      // ── Phase 7.3: Inner monologue (HOLLY's private thoughts) ────────
+      ctxTimeout(
+        dbUserId ? getRecentMonologue(dbUserId) : Promise.resolve(''),
+        '', 'innerMonologue',
+      ),
+      // ── Cross-session emotional continuity ──────────────────────────────
+      ctxTimeout(
+        dbUserId ? getEmotionalContinuityContext(dbUserId) : Promise.resolve(''),
+        '', 'emotionalContinuity',
+      ),
       // ── Phase 3: Recent feedback signals ──────────────────────────────
       ctxTimeout(
         dbUserId
@@ -222,7 +239,7 @@ export async function loadChatContext(
     }),
   ]);
 
-  return {
+  const rawContext: ChatContext = {
     memoryContext: results[0] as string,
     identityCtx: results[1] as typeof emptyIdentity,
     semanticResults: results[2] as any[],
@@ -237,8 +254,14 @@ export async function loadChatContext(
     careSignals: results[11] as string,
     degradedModeContext: results[12] as string,
     evolutionProposals: results[13] as string,
-    recentFeedback: results[14] as string,
-    emotionalTrajectory: results[15] as string,
-    fewShotExamples: results[16] as string,
+    emotionalTrajectory: results[14] as string,
+    fewShotExamples: results[15] as string,
+    innerMonologue: results[16] as string,
+    emotionalContinuity: results[17] as string,
+    recentFeedback: results[18] as string,
   };
+
+  // Apply smart token budget to prevent context window bloat
+  const { context: budgetedContext } = applyContextBudget(rawContext, detectedMode);
+  return budgetedContext;
 }
