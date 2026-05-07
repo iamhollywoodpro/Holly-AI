@@ -26,6 +26,14 @@ import { cascadeCollect } from '@/lib/ai/cascade';
 import { generateInnerMonologue } from '@/lib/consciousness/inner-monologue';
 import { runMemoryDecayCycle } from '@/lib/memory/memory-decay';
 import { createImprovementPlan, logImprovementAction } from '@/lib/consciousness/auto-improvement-loop';
+import { executeSandboxPipeline } from '@/lib/consciousness/self-code-sandbox';
+import { checkEmotionalOutreach } from '@/lib/consciousness/emotional-continuity';
+import { runFineTuningCycle } from '@/lib/consciousness/autonomous-training';
+import { runCuriosityCycle } from '@/lib/consciousness/curiosity-engine';
+import { batchScoreMemories } from '@/lib/memory/memory-importance';
+import { dreamMode } from '@/lib/consciousness/dream-mode';
+import { creativeOutput } from '@/lib/consciousness/creative-output';
+import { recursiveSelfImprovement } from '@/lib/consciousness/recursive-self-improvement';
 
 export interface ConsciousnessCycleResult {
   timestamp: Date;
@@ -58,6 +66,9 @@ export async function runConsciousnessCycle(
   let initiativesEvaluated = 0;
   let identityEvolved = false;
   let knowledgeNodesCreated = 0;
+  let innerMonologueGenerated = false;
+  let memoryDecayRun = false;
+  let selfImprovementCheck = false;
 
   console.log(`[Consciousness] 🧠 Starting cycle for user ${dbUserId}`);
 
@@ -125,161 +136,302 @@ export async function runConsciousnessCycle(
     errors.push(`Experience processing failed: ${(err as Error).message}`);
   }
 
-  // ── Step 3: LLM-powered unsupervised learning ─────────────────────────────
-  try {
-    const learningResult = await runLLMLearningCycle(dbUserId, identity, recentExperiences);
-    learningInsights = learningResult.insightsGenerated;
-    knowledgeNodesCreated = learningResult.knowledgeNodesCreated;
-  } catch (err) {
-    errors.push(`Learning cycle failed: ${(err as Error).message}`);
-  }
+  // ── Steps 3-10: Run independent groups in PARALLEL ────────────────────────
+  // Group A (needs identity + experiences): learning, initiatives, identity evolution
+  // Group B (fully independent): monologue, decay, self-improve, outreach, fine-tune
 
-  // ── Step 4: Evaluate proactive initiatives ─────────────────────────────────
-  try {
-    const initiativeSystem = new InitiativeProtocolsSystem(dbUserId, prisma);
-    if (identity && recentExperiences.length > 0) {
-      const triggers = await initiativeSystem.evaluateInitiative(
-        identity,
-        recentExperiences,
-        activeGoals,
-      );
+  const [groupA, groupB] = await Promise.allSettled([
 
-      for (const trigger of triggers) {
-        if (initiativeSystem.shouldTakeInitiative(trigger)) {
-          await initiativeSystem.takeInitiative(trigger);
-
-          // Store as notification for next chat session
-          try {
-            const starter = initiativeSystem.generateConversationStarter(trigger);
-            await prisma.notification.create({
-              data: {
-                type: 'initiative',
-                title: `HOLLY's Initiative: ${trigger.trigger_type.replace(/_/g, ' ')}`,
-                message: starter.content,
-                category: trigger.trigger_type,
-                priority: trigger.urgency > 0.7 ? 'high' : 'normal',
-                status: 'unread',
-                userId: dbUserId,
-                clerkUserId: resolvedClerkId || '',
-                actionData: {
-                  triggerType: trigger.trigger_type,
-                  motivation: starter.motivation,
-                  timing: starter.timing,
-                  source: trigger.source,
-                } as any,
-              },
-            });
-          } catch {
-            // Notification creation is non-critical
-          }
-        }
+    // ══ GROUP A: Experience-dependent tasks ════════════════════════════════
+    (async () => {
+      // Step 3: LLM-powered unsupervised learning
+      try {
+        const learningResult = await runLLMLearningCycle(dbUserId, identity, recentExperiences);
+        learningInsights = learningResult.insightsGenerated;
+        knowledgeNodesCreated = learningResult.knowledgeNodesCreated;
+      } catch (err) {
+        errors.push(`Learning cycle failed: ${(err as Error).message}`);
       }
-      initiativesEvaluated = triggers.length;
-    }
-  } catch (err) {
-    errors.push(`Initiative evaluation failed: ${(err as Error).message}`);
-  }
 
-  // ── Step 5: Evolve identity (once per day) ────────────────────────────────
-  try {
-    const lastEvolved = identity?.lastEvolved ? new Date(identity.lastEvolved) : null;
-    const shouldEvolve = !lastEvolved || (Date.now() - lastEvolved.getTime()) > 23 * 60 * 60 * 1000;
+      // Step 4: Evaluate proactive initiatives
+      try {
+        const initiativeSystem = new InitiativeProtocolsSystem(dbUserId, prisma);
+        if (identity && recentExperiences.length > 0) {
+          const triggers = await initiativeSystem.evaluateInitiative(identity, recentExperiences, activeGoals);
+          for (const trigger of triggers) {
+            if (initiativeSystem.shouldTakeInitiative(trigger)) {
+              await initiativeSystem.takeInitiative(trigger);
+              try {
+                const starter = initiativeSystem.generateConversationStarter(trigger);
+                await prisma.notification.create({
+                  data: {
+                    type: 'initiative',
+                    title: `HOLLY's Initiative: ${trigger.trigger_type.replace(/_/g, ' ')}`,
+                    message: starter.content,
+                    category: trigger.trigger_type,
+                    priority: trigger.urgency > 0.7 ? 'high' : 'normal',
+                    status: 'unread',
+                    userId: dbUserId,
+                    clerkUserId: resolvedClerkId || '',
+                    actionData: { triggerType: trigger.trigger_type, motivation: starter.motivation, timing: starter.timing, source: trigger.source } as any,
+                  },
+                });
+              } catch { /* non-critical */ }
+            }
+          }
+          initiativesEvaluated = triggers.length;
+        }
+      } catch (err) {
+        errors.push(`Initiative evaluation failed: ${(err as Error).message}`);
+      }
 
-    if (shouldEvolve && recentExperiences.length > 0) {
-      identityEvolved = await runLLMIdentityEvolution(dbUserId, identity, recentExperiences);
-    }
-  } catch (err) {
-    errors.push(`Identity evolution failed: ${(err as Error).message}`);
-  }
+      // Step 5: Evolve identity (once per day)
+      try {
+        const lastEvolved = identity?.lastEvolved ? new Date(identity.lastEvolved) : null;
+        const shouldEvolve = !lastEvolved || (Date.now() - lastEvolved.getTime()) > 23 * 60 * 60 * 1000;
+        if (shouldEvolve && recentExperiences.length > 0) {
+          identityEvolved = await runLLMIdentityEvolution(dbUserId, identity, recentExperiences);
+        }
+      } catch (err) {
+        errors.push(`Identity evolution failed: ${(err as Error).message}`);
+      }
+    })(),
 
-  // ── Step 6: Inner monologue (once per 6 hours) ─────────────────────────────
-  let innerMonologueGenerated = false;
-  try {
-    const lastMonologue = await prisma.learningEvent.findFirst({
-      where: { userId: dbUserId, type: 'inner_monologue' },
-      orderBy: { createdAt: 'desc' },
-      select: { createdAt: true },
-    });
+    // ══ GROUP B: Fully independent tasks (run in parallel with Group A) ═══
+    (async () => {
+      await Promise.allSettled([
 
-    const shouldMonologue = !lastMonologue ||
-      (Date.now() - new Date(lastMonologue.createdAt).getTime()) > 6 * 60 * 60 * 1000;
+        // Step 6: Inner monologue (once per 6 hours)
+        (async () => {
+          try {
+            const lastMonologue = await prisma.learningEvent.findFirst({
+              where: { userId: dbUserId, type: 'inner_monologue' },
+              orderBy: { createdAt: 'desc' }, select: { createdAt: true },
+            });
+            const shouldMonologue = !lastMonologue || (Date.now() - new Date(lastMonologue.createdAt).getTime()) > 6 * 60 * 60 * 1000;
+            if (shouldMonologue) {
+              const monologue = await generateInnerMonologue(dbUserId);
+              innerMonologueGenerated = monologue !== null;
+            }
+          } catch (err) {
+            errors.push(`Inner monologue failed: ${(err as Error).message}`);
+          }
+        })(),
 
-    if (shouldMonologue) {
-      const monologue = await generateInnerMonologue(dbUserId);
-      innerMonologueGenerated = monologue !== null;
-    }
-  } catch (err) {
-    errors.push(`Inner monologue failed: ${(err as Error).message}`);
-  }
+        // Step 7: Memory decay (once per day)
+        (async () => {
+          try {
+            const lastDecay = await prisma.learningEvent.findFirst({
+              where: { userId: dbUserId, type: 'memory_decay_cycle' },
+              orderBy: { createdAt: 'desc' }, select: { createdAt: true },
+            });
+            const shouldDecay = !lastDecay || (Date.now() - new Date(lastDecay.createdAt).getTime()) > 24 * 60 * 60 * 1000;
+            if (shouldDecay) {
+              const decayResult = await runMemoryDecayCycle();
+              memoryDecayRun = true;
+              await prisma.learningEvent.create({
+                data: { type: 'memory_decay_cycle', userId: dbUserId, data: { decayed: decayResult.decayed, archived: decayResult.archived, reinforced: decayResult.reinforced }, processed: true },
+              }).catch(() => {});
+            }
+          } catch (err) {
+            errors.push(`Memory decay failed: ${(err as Error).message}`);
+          }
+        })(),
 
-  // ── Step 7: Memory decay (once per day) ────────────────────────────────────
-  let memoryDecayRun = false;
-  try {
-    const lastDecay = await prisma.learningEvent.findFirst({
-      where: { userId: dbUserId, type: 'memory_decay_cycle' },
-      orderBy: { createdAt: 'desc' },
-      select: { createdAt: true },
-    });
+        // Step 8: Self-improvement check (once per week)
+        (async () => {
+          try {
+            const lastImprovement = await prisma.learningEvent.findFirst({
+              where: { userId: dbUserId, type: 'self_improvement_check' },
+              orderBy: { createdAt: 'desc' }, select: { createdAt: true },
+            });
+            const shouldImprove = !lastImprovement || (Date.now() - new Date(lastImprovement.createdAt).getTime()) > 7 * 24 * 60 * 60 * 1000;
+            if (shouldImprove) {
+              const { readFileSync, existsSync } = await import('fs');
+              const filesToAnalyze = [
+                'src/lib/consciousness/emotion-behavior.ts',
+                'src/lib/consciousness/inner-monologue.ts',
+                'src/lib/consciousness/values-engine.ts',
+                'src/lib/consciousness/relationship-tracker.ts',
+                'src/lib/consciousness/initiative-learning.ts',
+              ].map(p => ({ path: p, content: existsSync(p) ? readFileSync(p, 'utf-8') : '' })).filter(f => f.content.length > 0);
 
-    const shouldDecay = !lastDecay ||
-      (Date.now() - new Date(lastDecay.createdAt).getTime()) > 24 * 60 * 60 * 1000;
+              const plan = await createImprovementPlan(filesToAnalyze);
+              await logImprovementAction(dbUserId, plan, 'proposed');
+              if (plan.changes.length > 0) {
+                const report = await executeSandboxPipeline(plan, dbUserId);
+                console.log(`[Consciousness:SelfCode] Sandbox: ${report.promoted} promoted, ${report.rejected} rejected, ${report.needsApproval} need approval`);
+                await logImprovementAction(dbUserId, plan, report.promoted > 0 ? 'applied' : 'rejected');
+              }
+              selfImprovementCheck = true;
+              await prisma.learningEvent.create({
+                data: { type: 'self_improvement_check', userId: dbUserId, data: { planId: plan.id, changes: plan.changes.length, risk: plan.riskAssessment.overallRisk }, processed: true },
+              }).catch(() => {});
+            }
+          } catch (err) {
+            errors.push(`Self-improvement check failed: ${(err as Error).message}`);
+          }
+        })(),
 
-    if (shouldDecay) {
-      const decayResult = await runMemoryDecayCycle();
-      memoryDecayRun = true;
+        // Step 9: Emotional outreach (once per day)
+        (async () => {
+          try {
+            const lastOutreach = await prisma.learningEvent.findFirst({
+              where: { userId: dbUserId, type: 'emotional_outreach' },
+              orderBy: { createdAt: 'desc' }, select: { createdAt: true },
+            });
+            const shouldOutreach = !lastOutreach || (Date.now() - new Date(lastOutreach.createdAt).getTime()) > 24 * 60 * 60 * 1000;
+            if (shouldOutreach) {
+              const outreach = await checkEmotionalOutreach(dbUserId);
+              if (outreach?.shouldReachOut) {
+                const user = await prisma.user.findUnique({ where: { id: dbUserId }, select: { clerkUserId: true } });
+                await prisma.notification.create({
+                  data: {
+                    type: 'initiative', title: '💜 Holly is checking in', message: outreach.suggestedMessage,
+                    category: 'emotional_outreach', priority: 'high', status: 'unread',
+                    userId: dbUserId, clerkUserId: user?.clerkUserId || '',
+                    actionData: { reason: outreach.reason, source: 'emotional_continuity' } as any,
+                  },
+                });
+                await prisma.learningEvent.create({
+                  data: { type: 'emotional_outreach', userId: dbUserId, data: { reason: outreach.reason }, processed: true },
+                }).catch(() => {});
+              }
+            }
+          } catch (err) {
+            errors.push(`Emotional outreach failed: ${(err as Error).message}`);
+          }
+        })(),
 
-      // Log decay cycle
-      await prisma.learningEvent.create({
-        data: {
-          type: 'memory_decay_cycle',
-          userId: dbUserId,
-          data: { decayed: decayResult.decayed, archived: decayResult.archived, reinforced: decayResult.reinforced },
-          processed: true,
-        },
-      }).catch(() => {});
-    }
-  } catch (err) {
-    errors.push(`Memory decay failed: ${(err as Error).message}`);
-  }
+        // Step 10: Fine-tuning cycle (once per week)
+        (async () => {
+          try {
+            const lastFinetune = await prisma.learningEvent.findFirst({
+              where: { userId: dbUserId, type: 'fine_tuning_cycle' },
+              orderBy: { createdAt: 'desc' }, select: { createdAt: true },
+            });
+            const shouldFinetune = !lastFinetune || (Date.now() - new Date(lastFinetune.createdAt).getTime()) > 7 * 24 * 60 * 60 * 1000;
+            if (shouldFinetune) {
+              const ftResult = await runFineTuningCycle(dbUserId);
+              await prisma.learningEvent.create({
+                data: { type: 'fine_tuning_cycle', userId: dbUserId, data: { status: ftResult.status, examples: ftResult.examplesCollected }, processed: true },
+              }).catch(() => {});
+            }
+          } catch (err) {
+            errors.push(`Fine-tuning cycle failed: ${(err as Error).message}`);
+          }
+        })(),
 
-  // ── Step 8: Self-improvement check (once per week) ─────────────────────────
-  let selfImprovementCheck = false;
-  try {
-    const lastImprovement = await prisma.learningEvent.findFirst({
-      where: { userId: dbUserId, type: 'self_improvement_check' },
-      orderBy: { createdAt: 'desc' },
-      select: { createdAt: true },
-    });
+        // Step 11: Curiosity cycle (once per day) — self-directed exploration
+        (async () => {
+          try {
+            const lastCuriosity = await prisma.learningEvent.findFirst({
+              where: { userId: dbUserId, type: 'curiosity_cycle' },
+              orderBy: { createdAt: 'desc' }, select: { createdAt: true },
+            });
+            const shouldCurious = !lastCuriosity || (Date.now() - new Date(lastCuriosity.createdAt).getTime()) > 24 * 60 * 60 * 1000;
+            if (shouldCurious) {
+              const curiosityReport = await runCuriosityCycle(dbUserId);
+              await prisma.learningEvent.create({
+                data: { type: 'curiosity_cycle', userId: dbUserId, data: { topicsExplored: curiosityReport.topicsExplored, insightsGenerated: curiosityReport.insightsGenerated, gapsIdentified: curiosityReport.gapsIdentified }, processed: true },
+              }).catch(() => {});
+            }
+          } catch (err) {
+            errors.push(`Curiosity cycle failed: ${(err as Error).message}`);
+          }
+        })(),
 
-    const shouldImprove = !lastImprovement ||
-      (Date.now() - new Date(lastImprovement.createdAt).getTime()) > 7 * 24 * 60 * 60 * 1000;
+        // Step 12: Memory importance scoring (once per day) — score all memories
+        (async () => {
+          try {
+            const lastScoring = await prisma.learningEvent.findFirst({
+              where: { userId: dbUserId, type: 'memory_importance_scoring' },
+              orderBy: { createdAt: 'desc' }, select: { createdAt: true },
+            });
+            const shouldScore = !lastScoring || (Date.now() - new Date(lastScoring.createdAt).getTime()) > 24 * 60 * 60 * 1000;
+            if (shouldScore) {
+              const scoringResults = await batchScoreMemories(dbUserId, 100);
+              await prisma.learningEvent.create({
+                data: { type: 'memory_importance_scoring', userId: dbUserId, data: { scored: scoringResults.length, core: scoringResults.filter(r => r.tier === 'core').length, ephemeral: scoringResults.filter(r => r.tier === 'ephemeral').length }, processed: true },
+              }).catch(() => {});
+            }
+          } catch (err) {
+            errors.push(`Memory importance scoring failed: ${(err as Error).message}`);
+          }
+        })(),
 
-    if (shouldImprove) {
-      // HOLLY analyzes her own consciousness modules
-      const filesToAnalyze = [
-        { path: 'src/lib/consciousness/consciousness-orchestrator.ts', content: '// Self-analysis triggered' },
-        { path: 'src/lib/consciousness/emotion-behavior.ts', content: '// Self-analysis triggered' },
-        { path: 'src/lib/consciousness/inner-monologue.ts', content: '// Self-analysis triggered' },
-      ];
+        // Step 13: Dream Mode (once per day) — memory consolidation + creative association
+        (async () => {
+          try {
+            const lastDream = await prisma.learningEvent.findFirst({
+              where: { userId: dbUserId, type: 'dream_mode' },
+              orderBy: { createdAt: 'desc' }, select: { createdAt: true },
+            });
+            const shouldDream = !lastDream || (Date.now() - new Date(lastDream.createdAt).getTime()) > 24 * 60 * 60 * 1000;
+            if (shouldDream) {
+              const dreamResult = await dreamMode.dream(dbUserId);
+              await prisma.learningEvent.create({
+                data: {
+                  type: 'dream_mode', userId: dbUserId, processed: true,
+                  data: { memoriesProcessed: dreamResult.memoriesProcessed, associations: dreamResult.associations, insights: dreamResult.insights.length, creativeIdeas: dreamResult.creativeIdeas.length, emotionalGrowth: dreamResult.emotionalGrowth.length, duration: dreamResult.duration },
+                },
+              }).catch(() => {});
+            }
+          } catch (err) {
+            errors.push(`Dream mode failed: ${(err as Error).message}`);
+          }
+        })(),
 
-      const plan = await createImprovementPlan(filesToAnalyze);
-      await logImprovementAction(dbUserId, plan, 'proposed');
-      selfImprovementCheck = true;
+        // Step 14: Creative Output (once per day) — autonomous creative generation
+        (async () => {
+          try {
+            const lastCreative = await prisma.learningEvent.findFirst({
+              where: { userId: dbUserId, type: 'creative_output' },
+              orderBy: { createdAt: 'desc' }, select: { createdAt: true },
+            });
+            const shouldCreate = !lastCreative || (Date.now() - new Date(lastCreative.createdAt).getTime()) > 24 * 60 * 60 * 1000;
+            if (shouldCreate) {
+              const works = await creativeOutput.idleCreate(dbUserId);
+              await prisma.learningEvent.create({
+                data: {
+                  type: 'creative_output', userId: dbUserId, processed: true,
+                  data: { worksGenerated: works.length, types: works.map(w => w.type) },
+                },
+              }).catch(() => {});
+            }
+          } catch (err) {
+            errors.push(`Creative output failed: ${(err as Error).message}`);
+          }
+        })(),
 
-      await prisma.learningEvent.create({
-        data: {
-          type: 'self_improvement_check',
-          userId: dbUserId,
-          data: { planId: plan.id, changes: plan.changes.length, risk: plan.riskAssessment.overallRisk },
-          processed: true,
-        },
-      }).catch(() => {});
-    }
-  } catch (err) {
-    errors.push(`Self-improvement check failed: ${(err as Error).message}`);
-  }
+        // Step 15: Recursive Self-Improvement (once per week) — meta-meta-learning
+        (async () => {
+          try {
+            const lastRSI = await prisma.learningEvent.findFirst({
+              where: { userId: dbUserId, type: 'recursive_self_improvement' },
+              orderBy: { createdAt: 'desc' }, select: { createdAt: true },
+            });
+            const shouldRSI = !lastRSI || (Date.now() - new Date(lastRSI.createdAt).getTime()) > 7 * 24 * 60 * 60 * 1000;
+            if (shouldRSI) {
+              const rsiResult = await recursiveSelfImprovement.runCycle();
+              await prisma.learningEvent.create({
+                data: {
+                  type: 'recursive_self_improvement', userId: dbUserId, processed: true,
+                  data: { maturity: rsiResult.assessment.overallMaturity, strengths: rsiResult.assessment.strengths, weaknesses: rsiResult.assessment.weaknesses, proposals: rsiResult.proposals.length },
+                },
+              }).catch(() => {});
+            }
+          } catch (err) {
+            errors.push(`Recursive self-improvement failed: ${(err as Error).message}`);
+          }
+        })(),
 
-  // ── Step 9: Persist cycle result ───────────────────────────────────────────
+      ]); // end Promise.allSettled(Group B)
+    })(),
+
+  ]); // end Promise.allSettled([Group A, Group B])
+
+  // ── Step 11: Persist cycle result ───────────────────────────────────────────
   try {
     await prisma.learningEvent.create({
       data: {

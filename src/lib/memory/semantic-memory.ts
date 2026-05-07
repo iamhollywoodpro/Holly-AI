@@ -164,10 +164,49 @@ export async function embed(text: string): Promise<number[]> {
 
 // ─── Store memory ─────────────────────────────────────────────────────────────
 
+import { checkMemorySimilarity, mergeMemories, detectActionItem, detectCreatorSpecific, getTopicFrequency } from '@/lib/memory/memory-deduplication';
+import { addKnowledge } from '@/lib/intelligence/knowledge-graph';
+
 export async function storeMemory(entry: MemoryEntry): Promise<string> {
   if (!entry.content || entry.content.length < 3) return 'too_short';
   
   try {
+    // ── Step 1: Dedup check ──────────────────────────────────────────
+    const dedup = await checkMemorySimilarity(entry.userId, entry.content);
+    
+    if (dedup.action === 'merge' && dedup.existingMemoryId) {
+      await mergeMemories(dedup.existingMemoryId, entry.content, entry.metadata as Record<string, any>);
+      console.log(`[SemanticMemory] 🔗 Merged into existing memory (similarity: ${dedup.similarity.toFixed(2)})`);
+      return 'merged';
+    }
+    
+    // ── Step 2: Score importance ─────────────────────────────────────
+    const isAction = detectActionItem(entry.content);
+    const isCreator = detectCreatorSpecific(entry.content);
+    const topicFreq = entry.metadata?.topics 
+      ? await getTopicFrequency(entry.userId, (entry.metadata.topics as string[])[0] || '')
+      : 0;
+    
+    const importance = (() => {
+      let score = 0.3;
+      score += ((entry.metadata?.emotionalSignificance as number) || 0) * 0.2;
+      if (isAction) score += 0.15;
+      score += Math.min(0.15, topicFreq * 0.05);
+      if (isCreator) score += 0.1;
+      score += 0.05; // fresh memory gets small recency bonus
+      return Math.min(1.0, Math.max(0.1, score));
+    })();
+
+    // ── Step 3: Store with importance metadata ───────────────────────
+    const enrichedMetadata = {
+      ...(entry.metadata as Record<string, unknown> || {}),
+      importance,
+      isActionItem: isAction,
+      isCreatorSpecific: isCreator,
+      dedupSimilarity: dedup.similarity,
+      storedAt: new Date().toISOString(),
+    };
+
     const vector = await embed(entry.content);
 
     // Use raw SQL to insert into pgvector column
@@ -179,14 +218,38 @@ export async function storeMemory(entry: MemoryEntry): Promise<string> {
         ${entry.content},
         ${entry.type},
         ${JSON.stringify(vector)}::vector,
-        ${JSON.stringify(entry.metadata ?? {})}::jsonb,
+        ${JSON.stringify(enrichedMetadata)}::jsonb,
         NOW(),
         NOW()
       )
     `;
     
     if (result > 0) {
-      console.log(`[SemanticMemory] ✅ Saved ${entry.type} memory (${entry.content.length} chars)`);
+      console.log(`[SemanticMemory] ✅ Saved ${entry.type} memory (${entry.content.length} chars, importance: ${importance.toFixed(2)})`);
+      
+      // ── Step 4: Create knowledge graph node for important memories ──
+      if (importance >= 0.6 && entry.content.length > 20) {
+        try {
+          await addKnowledge({
+            entityType: entry.type === 'preference' ? 'user' : 
+                        entry.type === 'goal' ? 'project' :
+                        entry.type === 'code' ? 'pattern' : 'concept',
+            name: entry.content.substring(0, 100).split(/[.!?]/)[0].trim(),
+            description: entry.content.substring(0, 500),
+            metadata: { memoryType: entry.type, importance, source: 'auto' },
+            confidence: importance,
+          });
+        } catch (kgErr) {
+          // Non-critical — knowledge graph is supplementary
+          console.warn('[SemanticMemory] Knowledge graph node creation skipped:', (kgErr as Error).message);
+        }
+      }
+      
+      // ── Step 5: Link related memories ──────────────────────────────
+      if (dedup.action === 'link' && dedup.existingMemoryId) {
+        console.log(`[SemanticMemory] 🔗 Linked to existing memory ${dedup.existingMemoryId} (similarity: ${dedup.similarity.toFixed(2)})`);
+      }
+      
       return 'stored';
     }
     return 'failed';

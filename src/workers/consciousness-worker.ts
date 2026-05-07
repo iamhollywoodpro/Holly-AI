@@ -49,9 +49,22 @@ function getDefaultVector(): EmotionalVector {
 const CYCLE_INTERVAL = 15 * 60 * 1000; // 15 minutes
 const FEEDBACK_INTERVAL = 2 * 60 * 60 * 1000; // 2 hours
 const FEWSHOT_INTERVAL = 6 * 60 * 60 * 1000; // 6 hours
+const FINETUNE_CHECK_INTERVAL = 24 * 60 * 60 * 1000; // 24 hours
 
 let lastFeedbackRun = 0;
 let lastFewshotRun = 0;
+let lastFinetuneCheck = 0;
+
+// ── Holly's self-training awareness ────────────────────────────────────────
+interface FineTuneAwareness {
+  lastTrained: Date | null;
+  examplesCollected: number;
+  readyToTrain: boolean;
+  trainingCount: number;
+  message: string;
+}
+
+let finetuneAwareness: FineTuneAwareness | null = null;
 
 // ── Main worker loop ──────────────────────────────────────────────────────
 
@@ -224,6 +237,58 @@ function clamp(v: number): number {
   return Math.max(0, Math.min(1, v));
 }
 
+// ── Self-Training Awareness ────────────────────────────────────────────────
+
+async function checkSelfTrainingStatus() {
+  console.log('[Worker] 🧠 Checking self-training status...');
+
+  try {
+    const positiveFeedback = await prisma.responseFeedback.count({
+      where: { sentiment: 'positive' },
+    });
+    const goodConversations = await prisma.conversation.count({
+      where: { messageCount: { gte: 6 } },
+    });
+    const totalMessages = await prisma.message.count();
+
+    const lastFinetune = await prisma.learningEvent.findFirst({
+      where: { type: 'self_finetune' },
+      orderBy: { timestamp: 'desc' },
+    });
+
+    const trainingCount = await prisma.learningEvent.count({
+      where: { type: 'self_finetune', processed: true },
+    });
+
+    const estimatedExamples = positiveFeedback + goodConversations * 3;
+
+    finetuneAwareness = {
+      lastTrained: lastFinetune?.timestamp || null,
+      examplesCollected: estimatedExamples,
+      readyToTrain: estimatedExamples >= 20,
+      trainingCount,
+      message: lastFinetune
+        ? `Last trained: ${lastFinetune.timestamp.toISOString().split('T')[0]}`
+        : 'Never trained yet — waiting for enough conversations',
+    };
+
+    console.log(`[Worker] 📊 Self-training: ${estimatedExamples} examples, ${trainingCount} past trains, ready: ${finetuneAwareness.readyToTrain}`);
+
+    // If Holly is ready to train and hasn't trained in 30+ days, log a hint
+    if (finetuneAwareness.readyToTrain) {
+      const daysSinceTrain = lastFinetune
+        ? (Date.now() - lastFinetune.timestamp.getTime()) / (1000 * 60 * 60 * 24)
+        : Infinity;
+
+      if (daysSinceTrain > 30) {
+        console.log('[Worker] 💡 Holly has enough data and hasn\'t trained in 30+ days — Modal scheduled function should pick this up');
+      }
+    }
+  } catch (err) {
+    console.error('[Worker:SelfTrain] Check failed:', (err as Error).message);
+  }
+}
+
 // ── Startup ────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -243,6 +308,12 @@ async function main() {
     if (Date.now() - lastFeedbackRun > FEEDBACK_INTERVAL) {
       lastFeedbackRun = Date.now();
       runFeedbackAnalysis().catch(() => {});
+    }
+
+    // Periodic self-training awareness check
+    if (Date.now() - lastFinetuneCheck > FINETUNE_CHECK_INTERVAL) {
+      lastFinetuneCheck = Date.now();
+      checkSelfTrainingStatus().catch(() => {});
     }
   }, CYCLE_INTERVAL);
 

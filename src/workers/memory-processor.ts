@@ -1,23 +1,27 @@
 /**
- * HOLLY Memory Processor Worker — Phase 6
+ * HOLLY Memory Processor Worker — Phase 6 (Upgraded)
  *
  * Background processing of memories:
- *  - Deduplicates similar memories
- *  - Applies decay scoring (older = less relevant unless reinforced)
- *  - Generates summary memories from conversation threads
- *  - Runs every 30 minutes
+ *  - Uses real deduplication module (Jaccard + substring similarity)
+ *  - Applies importance-aware decay scoring
+ *  - Generates knowledge graph nodes from important memories
+ *  - Runs every 30 minutes via cron or standalone worker
  */
 
 import { PrismaClient } from '@prisma/client';
+import { checkMemorySimilarity, mergeMemories } from '@/lib/memory/memory-deduplication';
+import { runMemoryDecayCycle } from '@/lib/memory/memory-decay';
+import { addKnowledge, queryKnowledge } from '@/lib/intelligence/knowledge-graph';
 
 const prisma = new PrismaClient();
 const CYCLE_INTERVAL = 30 * 60 * 1000; // 30 minutes
 
 async function processMemories() {
   console.log(`[MemoryProcessor] 🧠 Starting memory processing — ${new Date().toISOString()}`);
+  const stats = { deduped: 0, merged: 0, knowledgeNodes: 0, decayed: 0, archived: 0 };
 
   try {
-    // 1. Find unprocessed semantic memories and clean them up
+    // ── Phase 1: Find unprocessed experiences and run dedup ─────────
     const recentMemories = await prisma.hollyExperience.findMany({
       where: {
         timestamp: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
@@ -27,27 +31,74 @@ async function processMemories() {
       select: { id: true, userId: true, content: true, metadata: true, timestamp: true },
     });
 
-    // 2. Deduplicate: find near-identical experiences for same user
-    const seen = new Map<string, string[]>();
-    let deduped = 0;
-
     for (const mem of recentMemories) {
       const content = typeof mem.content === 'string' ? mem.content : JSON.stringify(mem.content);
-      const key = `${mem.userId}:${(content || '').substring(0, 100).toLowerCase().trim()}`;
-      const existing = seen.get(key);
-      if (existing) {
-        // Already have a very similar memory — skip
-        deduped++;
-      } else {
-        seen.set(key, [mem.id]);
+      if (!content || content.length < 10) continue;
+
+      try {
+        const dedup = await checkMemorySimilarity(mem.userId, content);
+        
+        if (dedup.action === 'merge' && dedup.existingMemoryId) {
+          await mergeMemories(dedup.existingMemoryId, content, mem.metadata as Record<string, any>);
+          stats.merged++;
+        } else if (dedup.action === 'link') {
+          // Track that this is related but keep both
+          stats.deduped++;
+        }
+      } catch {
+        // Per-memory errors shouldn't stop the whole cycle
       }
     }
 
-    if (deduped > 0) {
-      console.log(`[MemoryProcessor] Found ${deduped} potential duplicates (kept originals)`);
+    // ── Phase 2: Run decay cycle on vector memories ────────────────
+    try {
+      const decayResult = await runMemoryDecayCycle();
+      stats.decayed = decayResult.decayed;
+      stats.archived = decayResult.archived;
+    } catch (err) {
+      console.warn('[MemoryProcessor] Decay cycle failed:', (err as Error).message);
     }
 
-    // 3. Mark old learning events as processed
+    // ── Phase 3: Create knowledge graph nodes from high-importance memories ──
+    try {
+      const importantMemories = await prisma.memoryEmbedding.findMany({
+        where: {
+          metadata: { path: ['importance'], gte: 0.7 },
+          createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+        },
+        take: 20,
+        select: { id: true, content: true, type: true, metadata: true },
+      });
+
+      for (const mem of importantMemories) {
+        const content = typeof mem.content === 'string' ? mem.content : JSON.stringify(mem.content);
+        if (!content || content.length < 20) continue;
+
+        // Check if we already have a knowledge node for this
+        const existing = await queryKnowledge(content.substring(0, 50), { limit: 1 });
+        if (existing.length > 0) continue;
+
+        try {
+          const meta = (mem.metadata || {}) as Record<string, unknown>;
+          await addKnowledge({
+            entityType: mem.type === 'preference' ? 'user' :
+                        mem.type === 'goal' ? 'project' :
+                        mem.type === 'code' ? 'pattern' : 'concept',
+            name: content.substring(0, 100).split(/[.!?]/)[0].trim(),
+            description: content.substring(0, 500),
+            metadata: { memoryId: mem.id, memoryType: mem.type, importance: meta.importance || 0.5 },
+            confidence: (meta.importance as number) || 0.5,
+          });
+          stats.knowledgeNodes++;
+        } catch {
+          // Per-node errors shouldn't stop the cycle
+        }
+      }
+    } catch (err) {
+      console.warn('[MemoryProcessor] Knowledge graph phase failed:', (err as Error).message);
+    }
+
+    // ── Phase 4: Mark old learning events as processed ─────────────
     const oldEvents = await prisma.learningEvent.updateMany({
       where: {
         processed: false,
@@ -56,11 +107,11 @@ async function processMemories() {
       data: { processed: true },
     });
 
-    if (oldEvents.count > 0) {
-      console.log(`[MemoryProcessor] Marked ${oldEvents.count} old events as processed`);
-    }
-
-    console.log(`[MemoryProcessor] ✅ Processed ${recentMemories.length} memories`);
+    console.log(
+      `[MemoryProcessor] ✅ Done — deduped: ${stats.deduped}, merged: ${stats.merged}, ` +
+      `knowledge nodes: ${stats.knowledgeNodes}, decayed: ${stats.decayed}, ` +
+      `archived: ${stats.archived}, events processed: ${oldEvents.count}`
+    );
   } catch (err) {
     console.error('[MemoryProcessor] Fatal:', err);
   }
