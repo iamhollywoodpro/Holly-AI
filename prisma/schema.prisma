@@ -4119,7 +4119,7 @@ model DiscoveredTool {
   relevanceScore  Float    @default(0)   // 0-1, how relevant to Holly's needs
   qualityScore    Float    @default(0)   // 0-1, community quality signal
   overallScore    Float    @default(0)   // weighted combination
-  status          String   @default('discovered')  // 'discovered', 'evaluated', 'proposed', 'approved', 'integrated', 'rejected'
+  status          String   @default('discovered')
   evaluationNotes String?  @db.Text
   proposedBy      String?  // 'holly' or 'steve'
   metadata        Json     @default("{}")
