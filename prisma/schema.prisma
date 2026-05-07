@@ -4116,12 +4116,12 @@ model DiscoveredTool {
   category        String   // 'embedding', 'llm', 'tts', 'image', 'music', 'code', 'search', 'other'
   source          String   // 'huggingface', 'github', 'producthunt', 'reddit', 'hn'
   sourceUrl       String?
-  relevanceScore  Float    @default(0)   // 0-1, how relevant to Holly's needs
-  qualityScore    Float    @default(0)   // 0-1, community quality signal
-  overallScore    Float    @default(0)   // weighted combination
-  status          String   @default('discovered')
+  relevanceScore  Float    @default(0)
+  qualityScore    Float    @default(0)
+  overallScore    Float    @default(0)
+  status          String   @default("discovered")
   evaluationNotes String?  @db.Text
-  proposedBy      String?  // 'holly' or 'steve'
+  proposedBy      String?
   metadata        Json     @default("{}")
 
   createdAt       DateTime @default(now())
