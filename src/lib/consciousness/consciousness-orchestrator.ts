@@ -27,6 +27,7 @@ import { generateInnerMonologue } from '@/lib/consciousness/inner-monologue';
 import { runMemoryDecayCycle } from '@/lib/memory/memory-decay';
 import { createImprovementPlan, logImprovementAction } from '@/lib/consciousness/auto-improvement-loop';
 import { executeSandboxPipeline } from '@/lib/consciousness/self-code-sandbox';
+import { executeSelfCodeCycle } from '@/lib/consciousness/self-code-engine';
 import { checkEmotionalOutreach } from '@/lib/consciousness/emotional-continuity';
 import { runFineTuningCycle } from '@/lib/consciousness/autonomous-training';
 import { runCuriosityCycle } from '@/lib/consciousness/curiosity-engine';
@@ -259,9 +260,16 @@ export async function runConsciousnessCycle(
               const plan = await createImprovementPlan(filesToAnalyze);
               await logImprovementAction(dbUserId, plan, 'proposed');
               if (plan.changes.length > 0) {
-                const report = await executeSandboxPipeline(plan, dbUserId);
-                console.log(`[Consciousness:SelfCode] Sandbox: ${report.promoted} promoted, ${report.rejected} rejected, ${report.needsApproval} need approval`);
-                await logImprovementAction(dbUserId, plan, report.promoted > 0 ? 'applied' : 'rejected');
+                // First sandbox test, then full self-code cycle (apply → git → health → rollback)
+                const sandboxReport = await executeSandboxPipeline(plan, dbUserId);
+                console.log(`[Consciousness:SelfCode] Sandbox: ${sandboxReport.promoted} promoted, ${sandboxReport.rejected} rejected, ${sandboxReport.needsApproval} need approval`);
+                if (sandboxReport.promoted > 0) {
+                  const cycleResult = await executeSelfCodeCycle(plan, dbUserId);
+                  console.log(`[Consciousness:SelfCode] Full cycle: ${cycleResult.report.successful} applied, git=${cycleResult.gitResult?.pushed}, healthy=${cycleResult.healthResult?.healthy}`);
+                  await logImprovementAction(dbUserId, plan, cycleResult.healthResult?.rolledBack ? 'rolled_back' : 'applied');
+                } else {
+                  await logImprovementAction(dbUserId, plan, 'rejected');
+                }
               }
               selfImprovementCheck = true;
               await prisma.learningEvent.create({
