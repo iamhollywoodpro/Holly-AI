@@ -8,6 +8,7 @@
 import { prisma } from '@/lib/db';
 import { smartRoute } from '@/lib/ai/smart-router';
 import { cascadeCollect } from '@/lib/ai/cascade';
+import { Prisma } from '@prisma/client';
 
 export interface DiscoveredToolCandidate {
   name: string;
@@ -91,8 +92,9 @@ TOOL: ${c.name} | ${c.category} | ${c.description} | Source: ${c.source}
 JSON only: {"relevance":0-1,"quality":0-1,"reasoning":"...","recommendation":"integrate|monitor|skip"}`;
 
   try {
+    const routing = await smartRoute(prompt, { taskHint: 'speed' });
     const resp = await cascadeCollect(
-      smartRoute(prompt, { taskHint: 'speed' }).waterfall,
+      routing.waterfall,
       [{ role: 'user', content: prompt }],
       { temperature: 0.3, maxTokens: 300 },
     );
@@ -134,7 +136,7 @@ export async function runToolDiscoveryCycle(userId: string): Promise<{ scanned: 
           source: c.source, sourceUrl: c.sourceUrl,
           relevanceScore: ev.relevance, qualityScore: ev.quality,
           overallScore: ev.overall, status, evaluationNotes: ev.reasoning,
-          proposedBy: 'holly', metadata: (c.metadata || {}) as any, evaluatedAt: new Date(),
+          proposedBy: 'holly', metadata: (c.metadata || {}) as Prisma.JsonValue, evaluatedAt: new Date(),
         },
       }).catch(() => {});
 
@@ -146,7 +148,7 @@ export async function runToolDiscoveryCycle(userId: string): Promise<{ scanned: 
             message: `I found a ${c.category} tool that could improve me.\n\n${ev.reasoning}\nScore: ${(ev.overall * 100).toFixed(0)}%`,
             category: 'tool_discovery', priority: ev.overall > 0.8 ? 'high' : 'normal',
             status: 'unread', userId, clerkUserId: '',
-            actionData: { toolName: c.name, sourceUrl: c.sourceUrl, overallScore: ev.overall } as any,
+            actionData: { toolName: c.name, sourceUrl: c.sourceUrl, overallScore: ev.overall } as Prisma.JsonValue,
           },
         }).catch(() => {});
       }
