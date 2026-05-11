@@ -134,7 +134,7 @@ export async function runToolDiscoveryCycle(userId: string): Promise<{ scanned: 
           source: c.source, sourceUrl: c.sourceUrl,
           relevanceScore: ev.relevance, qualityScore: ev.quality,
           overallScore: ev.overall, status, evaluationNotes: ev.reasoning,
-          proposedBy: 'holly', metadata: c.metadata || {}, evaluatedAt: new Date(),
+          proposedBy: 'holly', metadata: (c.metadata || {}) as any, evaluatedAt: new Date(),
         },
       }).catch(() => {});
 

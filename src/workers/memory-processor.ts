@@ -28,7 +28,7 @@ async function processMemories() {
       },
       orderBy: { timestamp: 'desc' },
       take: 100,
-      select: { id: true, userId: true, content: true, metadata: true, timestamp: true },
+      select: { id: true, userId: true, content: true, timestamp: true },
     });
 
     for (const mem of recentMemories) {
@@ -39,7 +39,7 @@ async function processMemories() {
         const dedup = await checkMemorySimilarity(mem.userId, content);
         
         if (dedup.action === 'merge' && dedup.existingMemoryId) {
-          await mergeMemories(dedup.existingMemoryId, content, mem.metadata as Record<string, any>);
+          await mergeMemories(dedup.existingMemoryId, content, {} as Record<string, any>);
           stats.merged++;
         } else if (dedup.action === 'link') {
           // Track that this is related but keep both
