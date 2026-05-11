@@ -30,6 +30,7 @@ __tests__
 *.test.tsx
 *.spec.ts
 *.spec.tsx
+jest.config.js
 
 # ── Docs / CI ─────────────────────────────────────────────────────────────────
 README.md
@@ -47,13 +48,27 @@ VERCEL.md
 docs/
 mockups/
 scratch/
+*.md
+!package.md
 
 # ── PDFs and large files ──────────────────────────────────────────────────────
 *.pdf
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+stitch-overview.png
 
 # ── Non-Docker sub-projects ──────────────────────────────────────────────────
 browser-extension/
 mobile-app/
+
+# ── Scripts not needed at runtime ─────────────────────────────────────────────
+scripts/
+
+# ── Services not needed in main build ─────────────────────────────────────────
+services/
 
 # ── Logs ──────────────────────────────────────────────────────────────────────
 *.log
@@ -63,3 +78,5 @@ npm-debug.log*
 # ── Misc ──────────────────────────────────────────────────────────────────────
 .eslintcache
 *.tgz
+.eslintrc.json
+# docker/ is NOT excluded — startup.sh is copied into the image

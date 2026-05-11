@@ -14,6 +14,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { logger } from '@/lib/logging/structured-logger';
+import { providerHealthMonitor } from '@/lib/ai/provider-health';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -38,9 +40,14 @@ async function checkDatabase(): Promise<'connected' | 'disconnected' | 'timeout'
     await Promise.race([dbCheck, timeoutPromise]);
     
     clearTimeout(timeoutId);
+    logger.debug('Health', 'Database check passed');
     return 'connected';
   } catch (err: any) {
-    if (err.message === 'Timeout') return 'timeout';
+    if (err.message === 'Timeout') {
+      logger.warn('Health', 'Database check timeout');
+      return 'timeout';
+    }
+    logger.error('Health', err, { check: 'database' });
     return 'disconnected';
   }
 }
@@ -129,6 +136,14 @@ export async function GET() {
     const configuredPlatforms = Object.entries(integrations)
       .filter(([, v]) => v)
       .map(([k]) => k);
+
+    logger.info('Health', 'Health check completed', {
+      overallStatus,
+      database,
+      activeProviders,
+      activeIntegrations,
+      latency: `${Date.now() - start}ms`
+    });
 
     return NextResponse.json(
       {
