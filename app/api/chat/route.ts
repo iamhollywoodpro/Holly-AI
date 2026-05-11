@@ -11,6 +11,7 @@
 import { NextResponse, NextRequest } from 'next/server';
 import Groq from 'groq-sdk';
 import { prisma } from '@/lib/db';
+import { logger } from '@/lib/logging/structured-logger';
 import { detectMode, HOLLY_MODES } from '@/lib/holly-modes';
 import { mcpManager } from '@/lib/mcp/mcp-client';
 import { smartRoute, classifyTask } from '@/lib/ai/smart-router';
@@ -208,7 +209,12 @@ export async function POST(req: NextRequest) {
           // EMERGENCY FALLBACK: If smart router returns an empty waterfall,
           // Holly can't respond at all. Create a minimal fallback.
           if (!waterfall || waterfall.length === 0) {
-            console.error('[Chat API] ⚠️ CRITICAL: Smart router returned empty waterfall — no AI providers available!');
+            logger.error('Chat', 'Smart router returned empty waterfall - no AI providers available', {
+              userId: dbUserId,
+              conversationId,
+              taskType,
+              detectedMode
+            });
             fullResponse = "I'm having trouble connecting to my AI providers right now. Please try again in a moment, or check that at least one API key is configured (GROQ_API_KEY, NVIDIA_API_KEY, OPENROUTER_API_KEY, or GOOGLE_AI_API_KEY).";
             sendText(controller, fullResponse);
             controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ type: 'done', model: 'none', taskType, mode: detectedMode, error: 'empty_waterfall' })}\n\n`));
@@ -366,7 +372,13 @@ export async function POST(req: NextRequest) {
 
           // EMERGENCY FALLBACK: If all providers failed silently, ensure Holly always responds
           if (!fullResponse || fullResponse.trim().length === 0) {
-            console.error('[Chat API] ⚠️ CRITICAL: All providers returned empty response — using fallback');
+            logger.error('Chat', 'All providers returned empty response - using fallback', {
+              userId: dbUserId,
+              conversationId,
+              activeModel,
+              taskType,
+              detectedMode
+            });
             fullResponse = "I'm here but having difficulty processing my thoughts right now. My AI providers may be experiencing issues. Please try again — I'll be ready.";
             sendText(controller, fullResponse);
           }

@@ -35,7 +35,10 @@ ENV SHARP_IGNORE_GLOBAL_LIBVIPS=1
 # Without them, webpack cannot compile CSS → enters error recovery → OOM kill.
 # We override NODE_ENV=development for THIS STEP ONLY so all deps are installed.
 # The runner stage sets NODE_ENV=production for the actual container runtime.
-RUN NODE_ENV=development npm ci --ignore-scripts
+#
+# OPTIMIZATION: Use npm install instead of npm ci for better timeout handling
+# and legacy-peer-deps to avoid dependency conflicts
+RUN NODE_ENV=development npm install --production=false --legacy-peer-deps --ignore-scripts --no-audit --no-fund
 
 # ── Stage 2: Build the Next.js app ───────────────────────────────────────────
 FROM node:20-alpine AS builder
