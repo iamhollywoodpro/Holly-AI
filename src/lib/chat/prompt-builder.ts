@@ -50,6 +50,8 @@ export function buildPrompt(opts: {
   emotionalTrajectory?: string;
   /** Phase 5: Few-shot examples from best past responses */
   fewShotExamples?: string;
+  /** Cross-session emotional continuity (remembers how user was last time) */
+  emotionalContinuity?: string;
 }): string {
   const {
     detectedMode, userName, isCreator, isSelfCode, isInformationalMsg,
@@ -58,7 +60,7 @@ export function buildPrompt(opts: {
     pastSummaries, tasteMatrixBlock, perceptionContext,
     audioAnalysis, arResult, pendingInitiatives, hollyEmotionalState,
     relationshipContext, identityConsistencyPrompt, careSignals,
-    degradedModeContext, evolutionProposals, innerMonologue, recentFeedback, emotionalTrajectory, fewShotExamples,
+    degradedModeContext, evolutionProposals, innerMonologue, recentFeedback, emotionalTrajectory, fewShotExamples, emotionalContinuity,
   } = opts;
 
   let prompt = getSystemPromptForMode(detectedMode, userName);
@@ -206,6 +208,11 @@ export function buildPrompt(opts: {
   // ── Phase 5: Few-shot examples (best past responses) ────────────────────
   if (fewShotExamples) {
     prompt += `\n\n## Your Best Past Responses\n${fewShotExamples}`;
+  }
+
+  // ── Cross-session emotional continuity ───────────────────────────────────
+  if (emotionalContinuity) {
+    prompt += `\n\n## Emotional Continuity\n${emotionalContinuity}`;
   }
 
   // Note: Architecture details are now in the compressed base prompt in holly-modes.ts

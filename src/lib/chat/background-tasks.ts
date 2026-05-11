@@ -6,6 +6,8 @@ import { detectRelevantProject, addNote } from '@/lib/project-context/holly-proj
 import { collectFromConversation } from '@/lib/self-sovereign/training-pipeline';
 import { smartRoute } from '@/lib/ai/smart-router';
 import { cascadeCollect } from '@/lib/ai/cascade';
+import { persistEmotionalBaseline } from '@/lib/consciousness/emotional-continuity';
+import { detectEmotionsLLM } from '@/lib/emotion/ml-emotion-detector';
 
 export async function saveMessages(
   dbUserId: string,
@@ -73,16 +75,22 @@ export async function runBackgroundTasks(opts: {
 
   if (conversation && !conversation.title && conversation.messageCount <= 2) {
     const titlePrompt = `Generate a concise, descriptive title (3-6 words) for a conversation that starts with:\n\n"${latestUserMessage}"\n\nReturn ONLY the title, nothing else.`;
-    cascadeCollect(
-      smartRoute(titlePrompt, { taskHint: 'speed' }).waterfall,
-      [{ role: 'user', content: titlePrompt }],
-      { temperature: 0.3, maxTokens: 40 },
-    ).then(async ({ text: raw }) => {
-      let generatedTitle = (raw || '').trim().replace(/^["']|["']$/g, '').replace(/^Title:\s*/i, '').trim();
-      if (generatedTitle && generatedTitle.length <= 60) {
-        await prisma.conversation.update({ where: { id: conversationId }, data: { title: generatedTitle } });
+    (async () => {
+      try {
+        const routing = await smartRoute(titlePrompt, { taskHint: 'speed' });
+        const { text: raw } = await cascadeCollect(
+          routing.waterfall,
+          [{ role: 'user', content: titlePrompt }],
+          { temperature: 0.3, maxTokens: 40 },
+        );
+        let generatedTitle = (raw || '').trim().replace(/^["']|["']$/g, '').replace(/^Title:\s*/i, '').trim();
+        if (generatedTitle && generatedTitle.length <= 60) {
+          await prisma.conversation.update({ where: { id: conversationId }, data: { title: generatedTitle } });
+        }
+      } catch (err) {
+        bgLog('title-generation', err);
       }
-    }).catch(err => bgLog('title-generation', err));
+    })();
   }
 
   // Record exchange for identity/emotion/taste evolution
@@ -115,4 +123,30 @@ export async function runBackgroundTasks(opts: {
     hasPerception: !!perceptionContext?.length,
     hasAudio: !!audioAnalysis,
   }).catch(err => bgLog('training-pipeline', err));
+
+  // Emotional state persistence (Phase 4.1)
+  // Detect user's emotion from their message and save as baseline
+  (async () => {
+    try {
+      const emotionResult = await detectEmotionsLLM(latestUserMessage);
+      
+      // Determine emotional arc (simple heuristic based on valence trend)
+      // In a real implementation, you'd compare with previous sessions
+      const emotionalArc = emotionResult.valence > 0.3 ? 'improving' : 
+                          emotionResult.valence < -0.3 ? 'declining' : 'stable';
+      
+      await persistEmotionalBaseline(dbUserId, {
+        primaryMood: emotionResult.primary,
+        valence: emotionResult.valence,
+        arousal: emotionResult.arousal,
+        intensity: emotionResult.confidence,
+        topic: currentTopics.slice(0, 3).join(', ') || 'general',
+        emotionalArc,
+      });
+      
+      console.log(`[EmotionalContinuity] Saved emotional state: ${emotionResult.primary} (valence: ${emotionResult.valence.toFixed(2)})`);
+    } catch (err) {
+      bgLog('emotional-persistence', err);
+    }
+  })();
 }
