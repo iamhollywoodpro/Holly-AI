@@ -81,14 +81,36 @@ const MODE_TOOL_FILTERS: Record<string, string[]> = {
 };
 
 // SSE helpers
+function sendSSE(controller: ReadableStreamDefaultController, data: any) {
+  controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify(data)}\n\n`));
+}
+
 function sendStatus(c: ReadableStreamDefaultController, s: string) {
-  c.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ type: 'status', content: s })}\n\n`));
+  sendSSE(c, { type: 'status', content: s });
 }
+
 function sendText(c: ReadableStreamDefaultController, t: string) {
-  c.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ type: 'text', content: t })}\n\n`));
+  sendSSE(c, { type: 'text', content: t });
 }
+
 function sendTool(c: ReadableStreamDefaultController, toolName: string, status: string, result?: unknown) {
-  c.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ type: 'tool', toolName, status, result: result ?? null })}\n\n`));
+  sendSSE(c, { type: 'tool', toolName, status, result: result ?? null });
+}
+
+function sendError(
+  controller: ReadableStreamDefaultController,
+  error: Error | string,
+  provider?: string,
+  errorType?: 'network' | 'provider' | 'timeout' | 'rate_limit' | 'unknown'
+) {
+  const errorMsg = error instanceof Error ? error.message : error;
+  logger.error('Chat', 'SSE error event', { error: errorMsg, provider, errorType });
+  sendSSE(controller, {
+    type: 'error',
+    content: errorMsg,
+    provider,
+    errorType
+  });
 }
 
 function detectActionStatus(message: string): string | null {
@@ -187,7 +209,7 @@ export async function POST(req: NextRequest) {
     // 9. ROUTING
     const hasImages = imageDataUrls?.length > 0;
     const taskType = hasImages ? 'vision' : classifyTask(latestUserMessage, false, latestUserMessage.length, detectedMode);
-    const routing = smartRoute(latestUserMessage, { forceTask: taskType });
+    const routing = await smartRoute(latestUserMessage, { forceTask: taskType });
     const waterfall = routing.waterfall;
 
     const groqTools = mcpTools?.map(t => ({
@@ -233,7 +255,11 @@ export async function POST(req: NextRequest) {
                 fullResponse += token;
                 sendText(controller, token);
               }
-            } catch {
+            } catch (err: any) {
+              // Log error and send SSE error event
+              const errorMsg = err?.message || 'Cascade failed';
+              logger.error('Chat', 'Cascade error in informational mode', { error: errorMsg, waterfall });
+              sendError(controller, errorMsg, waterfall[0]?.displayName, 'provider');
               fullResponse = "I'm sorry, I'm having trouble connecting right now. Please try again.";
               sendText(controller, fullResponse);
             }
@@ -242,6 +268,7 @@ export async function POST(req: NextRequest) {
             let toolLoops = 0;
             const MAX_TOOL_LOOPS = 12;
             let pendingMessages = [...cascadeMessages];
+            let lastError: { message: string; provider: string; type: string } | null = null;
 
             while (toolLoops < MAX_TOOL_LOOPS && waterfall.length > 0) {
               toolLoops++;
