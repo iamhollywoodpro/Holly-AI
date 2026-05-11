@@ -203,6 +203,18 @@ export async function POST(req: NextRequest) {
 
           let fullResponse = '';
           let activeModel = routing.primary.displayName;
+          let responseSource = '';
+
+          // EMERGENCY FALLBACK: If smart router returns an empty waterfall,
+          // Holly can't respond at all. Create a minimal fallback.
+          if (!waterfall || waterfall.length === 0) {
+            console.error('[Chat API] ⚠️ CRITICAL: Smart router returned empty waterfall — no AI providers available!');
+            fullResponse = "I'm having trouble connecting to my AI providers right now. Please try again in a moment, or check that at least one API key is configured (GROQ_API_KEY, NVIDIA_API_KEY, OPENROUTER_API_KEY, or GOOGLE_AI_API_KEY).";
+            sendText(controller, fullResponse);
+            controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ type: 'done', model: 'none', taskType, mode: detectedMode, error: 'empty_waterfall' })}\n\n`));
+            controller.close();
+            return;
+          }
 
           const cascadeMessages: ChatMessage[] = messages
             .filter(m => ['system', 'user', 'assistant'].includes(m.role) && m.content)
@@ -350,6 +362,13 @@ export async function POST(req: NextRequest) {
                 break;
               }
             }
+          }
+
+          // EMERGENCY FALLBACK: If all providers failed silently, ensure Holly always responds
+          if (!fullResponse || fullResponse.trim().length === 0) {
+            console.error('[Chat API] ⚠️ CRITICAL: All providers returned empty response — using fallback');
+            fullResponse = "I'm here but having difficulty processing my thoughts right now. My AI providers may be experiencing issues. Please try again — I'll be ready.";
+            sendText(controller, fullResponse);
           }
 
           // 11. SAVE
