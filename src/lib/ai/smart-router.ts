@@ -77,6 +77,10 @@ export interface ModelSpec {
   streaming:   boolean;
 }
 
+// ─── Provider Health Integration ─────────────────────────────────────────────
+import { logger } from '@/lib/logging/structured-logger';
+import { providerHealthMonitor } from './provider-health';
+
 // ─── Model catalogue ──────────────────────────────────────────────────────────
 
 export const MODEL_CATALOGUE: Record<string, ModelSpec> = {
@@ -574,13 +578,47 @@ export interface SmartRoutingResult {
   waterfall: ModelSpec[];
   primary:   ModelSpec;
   reason:    string;
+  filteredByHealth: boolean; // True if unhealthy providers were filtered
+}
+
+/**
+ * Filter waterfall to exclude unhealthy providers
+ * This prevents routing to providers that are currently down or rate-limited
+ */
+async function filterHealthyProviders(waterfall: ModelSpec[]): Promise<ModelSpec[]> {
+  const healthStatuses = providerHealthMonitor.getAllHealthStatus();
+  const unhealthyProviders = new Set(
+    healthStatuses.filter(h => !h.healthy).map(h => h.provider)
+  );
+
+  // If we have health data, filter out unhealthy providers
+  if (healthStatuses.length > 0) {
+    const healthy = waterfall.filter(spec => !unhealthyProviders.has(spec.provider));
+    
+    // Graceful degradation: if all providers are unhealthy, return the original waterfall
+    // This ensures we still try to get a response even if health checks are stale
+    if (healthy.length === 0 && waterfall.length > 0) {
+      logger.warn('SmartRouter', 'All providers in waterfall are unhealthy, using fallback');
+      return waterfall;
+    }
+    
+    return healthy;
+  }
+
+  // No health data available yet, return original waterfall
+  return waterfall;
 }
 
 /**
  * Route a message to the optimal model waterfall.
  * Call once per request; iterate waterfall on 429/5xx.
+ * 
+ * Integration with Provider Health:
+ * - Filters out providers that have recently failed health checks
+ * - Provides graceful degradation if all providers are unhealthy
+ * - Logs health-based filtering for monitoring
  */
-export function smartRoute(
+export async function smartRoute(
   message: string,
   options: {
     hasImages?:  boolean;
@@ -588,7 +626,7 @@ export function smartRoute(
     forceModel?: string;   // key from MODEL_CATALOGUE
     taskHint?:   string;   // freeform hint for routing heuristics (e.g. 'creative', 'coding')
   } = {},
-): SmartRoutingResult {
+): Promise<SmartRoutingResult> {
   if (options.forceModel && MODEL_CATALOGUE[options.forceModel]) {
     const spec = MODEL_CATALOGUE[options.forceModel];
     return {
@@ -596,13 +634,27 @@ export function smartRoute(
       waterfall: [spec],
       primary:   spec,
       reason:    `Forced model: ${options.forceModel}`,
+      filteredByHealth: false,
     };
   }
 
-  const task     = options.forceTask ?? classifyTask(message, options.hasImages);
-  const keys     = TASK_WATERFALLS[task] ?? TASK_WATERFALLS.speed;
-  const waterfall = keys.map(k => MODEL_CATALOGUE[k]).filter(Boolean);
-  const primary  = waterfall[0];
+  const task = options.forceTask ?? classifyTask(message, options.hasImages);
+  const keys = TASK_WATERFALLS[task] ?? TASK_WATERFALLS.speed;
+  let waterfall = keys.map(k => MODEL_CATALOGUE[k]).filter(Boolean);
+  const primary = waterfall[0];
+
+  // Filter out unhealthy providers
+  const filteredWaterfall = await filterHealthyProviders(waterfall);
+  const filteredByHealth = filteredWaterfall.length !== waterfall.length;
+  
+  if (filteredByHealth) {
+    logger.info('SmartRouter', `Filtered unhealthy providers`, {
+      task,
+      originalCount: waterfall.length,
+      filteredCount: filteredWaterfall.length
+    });
+    waterfall = filteredWaterfall;
+  }
 
   const taskLabels: Record<TaskType, string> = {
     speed:        '⚡ Fast chat',
@@ -620,7 +672,8 @@ export function smartRoute(
   return {
     taskType: task,
     waterfall,
-    primary,
-    reason: `${taskLabels[task]} → ${primary.displayName}`,
+    primary: waterfall[0] || primary,
+    reason: `${taskLabels[task]} → ${waterfall[0]?.displayName || primary.displayName}`,
+    filteredByHealth,
   };
 }

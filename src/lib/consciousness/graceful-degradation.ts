@@ -12,6 +12,8 @@
  */
 
 import { prisma } from '@/lib/db';
+import { providerHealthMonitor } from '@/lib/ai/provider-health';
+import { logger } from '@/lib/logging/structured-logger';
 
 export type ServiceHealth = 'healthy' | 'degraded' | 'down';
 export interface SystemHealth {
@@ -55,16 +57,33 @@ export async function checkSystemHealth(): Promise<SystemHealth> {
     health.database = 'down';
   }
 
-  // Check AI providers (check if API keys are configured)
+  // Check AI providers using the provider health monitor
   try {
-    const hasGroq = !!process.env.GROQ_API_KEY;
-    const hasOpenAI = !!process.env.OPENAI_API_KEY;
-    if (hasGroq || hasOpenAI) {
-      health.aiProviders = 'healthy';
-    } else {
+    const healthStatuses = providerHealthMonitor.getAllHealthStatus();
+    const healthyProviders = healthStatuses.filter(h => h.healthy).length;
+    
+    if (healthStatuses.length === 0) {
+      // No health data yet, check if API keys exist
+      const hasAnyKey = process.env.GROQ_API_KEY || 
+                        process.env.NVIDIA_API_KEY || 
+                        process.env.OPENROUTER_API_KEY ||
+                        process.env.GOOGLE_AI_API_KEY;
+      health.aiProviders = hasAnyKey ? 'healthy' : 'down';
+    } else if (healthyProviders === 0) {
       health.aiProviders = 'down';
+    } else if (healthyProviders < healthStatuses.length) {
+      health.aiProviders = 'degraded';
+    } else {
+      health.aiProviders = 'healthy';
     }
-  } catch {
+    
+    logger.info('GracefulDegradation', 'AI provider health check', {
+      totalProviders: healthStatuses.length,
+      healthyProviders,
+      status: health.aiProviders
+    });
+  } catch (err) {
+    logger.error('GracefulDegradation', 'Failed to check provider health', { error: err instanceof Error ? err.message : err });
     health.aiProviders = 'degraded';
   }
 
@@ -185,7 +204,21 @@ export async function getDegradedModeContext(): Promise<string | null> {
 
   const parts: string[] = ['⚠️ System Status:'];
   if (health.database === 'down') parts.push('Database temporarily unavailable — using cached data');
-  if (health.aiProviders === 'degraded') parts.push('Some AI providers slow — responses may be simpler');
+  
+  if (health.aiProviders === 'degraded') {
+    const healthStatuses = providerHealthMonitor.getAllHealthStatus();
+    const unhealthyProviders = healthStatuses
+      .filter(h => !h.healthy)
+      .map(h => h.provider)
+      .join(', ');
+    
+    if (unhealthyProviders) {
+      parts.push(`Some AI providers (${unhealthyProviders}) are experiencing issues — routing to healthy alternatives`);
+    } else {
+      parts.push('Some AI providers slow — responses may be simpler');
+    }
+  }
+  
   if (health.aiProviders === 'down') parts.push('AI providers unavailable — using personality fallbacks');
   parts.push('Be authentic about limitations but stay warm and present');
 
