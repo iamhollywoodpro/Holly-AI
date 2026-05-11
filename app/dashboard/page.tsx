@@ -2,6 +2,7 @@
 
 import { MetricCard } from '@/components/dashboard/metrics/MetricCard';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/dashboard/ui/Card';
+import { AutonomousFeatures } from '@/components/dashboard/AutonomousFeatures';
 import {
   Image,
   FileText,
@@ -146,6 +147,19 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Autonomous Features Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Activity className="h-5 w-5 text-purple-600" />
+            Autonomous Features
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <AutonomousFeatures />
+        </CardContent>
+      </Card>
 
       {/* Additional Stats */}
       <div className="grid gap-6 lg:grid-cols-3">
