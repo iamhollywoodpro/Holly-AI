@@ -73,7 +73,7 @@ export class SocialIntelligence {
     const lower = message.toLowerCase();
 
     // Sarcasm indicators
-    if (/(oh (great|wonderful|perfect)|sure, (right|because)|yeah (right|sure)|thanks a lot|how (nice|kind))/i.test(lower)) {
+    if (/(?:oh (?:great|wonderful|perfect)|sure, (?:right|because)|yeah (?:right|sure)|thanks a lot|how (?:nice|kind))/i.test(lower)) {
       if (/[!?]{2,}|lol|haha|🙄|😏/i.test(lower) || this.hasContradictorySentiment(message)) {
         cues.push('sarcasm');
       }

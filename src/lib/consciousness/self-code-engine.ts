@@ -30,6 +30,7 @@ import { isFileSafeToModify, type ImprovementPlan, type ProposedChange } from '.
 import { smartRoute } from '@/lib/ai/smart-router';
 import { cascadeCollect } from '@/lib/ai/cascade';
 import { runHealthCheck, quickPulseCheck } from './health-monitor';
+import { Prisma } from '@prisma/client';
 
 // ─── Configuration ────────────────────────────────────────────────────────────
 
@@ -357,7 +358,7 @@ export async function applyCodeChange(change: ProposedChange, userId: string): P
         status: 'unread',
         userId,
         clerkUserId: '',
-        actionData: { triggerType: 'self_code', filePath: change.filePath, backupPath } as any,
+        actionData: { triggerType: 'self_code', filePath: change.filePath, backupPath } as Prisma.JsonValue,
       },
     });
   } catch { /* non-critical */ }
@@ -385,8 +386,9 @@ ${currentContent}
 Generate the COMPLETE fixed file. Output ONLY the code, no markdown fences.`;
 
   try {
+    const routing = await smartRoute(prompt, { taskHint: 'code' });
     const { text } = await cascadeCollect(
-      smartRoute(prompt, { taskHint: 'code' }).waterfall,
+      routing.waterfall,
       [{ role: 'user', content: prompt }],
       { temperature: 0.2, maxTokens: 8000 },
     );
@@ -790,7 +792,7 @@ export async function executeSelfCodeCycle(
         status: 'unread',
         userId,
         clerkUserId: '',
-        actionData: { commitHash: gitResult.commitHash, healthy: healthResult.healthy, rolledBack: healthResult.rolledBack } as any,
+        actionData: { commitHash: gitResult.commitHash, healthy: healthResult.healthy, rolledBack: healthResult.rolledBack } as Prisma.JsonValue,
       },
     });
   } catch { /* non-critical */ }

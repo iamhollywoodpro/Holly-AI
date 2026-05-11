@@ -16,6 +16,7 @@
 import { prisma } from '@/lib/db';
 import { smartRoute } from '@/lib/ai/smart-router';
 import { cascadeCollect } from '@/lib/ai/cascade';
+import { Prisma } from '@prisma/client';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -318,7 +319,7 @@ async function notifyTrainingStatus(
         status: 'unread',
         userId,
         clerkUserId: '',
-        actionData: { jobId: job.id, status: job.status } as any,
+        actionData: { jobId: job.id, status: job.status } as Prisma.JsonValue,
       },
     });
   } catch { /* non-critical */ }

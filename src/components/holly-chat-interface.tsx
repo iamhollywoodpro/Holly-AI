@@ -1493,24 +1493,40 @@ export default function HollyChatInterface() {
           const data = await res.json();
           const h = data?.health;
           if (h) {
-            setSystemHealth({
+            const health = {
               healthy: !!h.healthy,
               score: h.healthy ? 100 : 85,
               status: h.healthy ? "Stable" : "Analyzing Anomaly",
               issuesCount: Array.isArray(h.issues) ? h.issues.length : 0
-            });
+            };
+            setSystemHealth(health);
+            
+            // Set error state based on health
+            if (!health.healthy) {
+              setErrorState({
+                type: health.issuesCount > 2 ? 'fallback' : 'provider',
+                provider: h.issues?.[0]?.provider || 'AI Provider',
+                message: health.status
+              });
+            } else {
+              setErrorState({ type: 'none' });
+            }
           } else {
-            setSystemHealth({ healthy: true, score: 100, status: "Nominal", issuesCount: 0 });
+            const health = { healthy: true, score: 100, status: "Nominal", issuesCount: 0 };
+            setSystemHealth(health);
+            setErrorState({ type: 'none' });
           }
         } else {
           setSystemHealth({ healthy: false, score: 0, status: "Offline", issuesCount: 1 });
+          setErrorState({ type: 'network', message: 'Cannot connect to server' });
         }
       } catch { 
         setSystemHealth({ healthy: false, score: 0, status: "Unreachable", issuesCount: 1 });
+        setErrorState({ type: 'network', message: 'Cannot connect to server' });
       }
     };
     fetchHealth();
-    const interval = setInterval(fetchHealth, 60000 * 5); // 5 min
+    const interval = setInterval(fetchHealth, 30000); // Poll every 30 seconds
     return () => clearInterval(interval);
   }, []);
 
