@@ -53,12 +53,18 @@ scratch/
 
 # ── PDFs and large files ──────────────────────────────────────────────────────
 *.pdf
-*.png
 *.jpg
 *.jpeg
 *.gif
-*.svg
 stitch-overview.png
+
+# ── Large public assets (53MB of logo PNGs — not needed at runtime) ───────────
+# Only favicon.png/favicon.svg/manifest.json are needed from public/
+public/assets/
+public/test-audio.html
+public/api-docs.html
+public/investor-pitch-deck.html
+public/HOLLY_V2_3_MASTER_AUDIT.md
 
 # ── Non-Docker sub-projects ──────────────────────────────────────────────────
 browser-extension/
