@@ -23,6 +23,7 @@ import { loadChatContext } from '@/lib/chat/context-loader';
 import { buildPrompt } from '@/lib/chat/prompt-builder';
 import { saveMessages, runBackgroundTasks } from '@/lib/chat/background-tasks';
 import type { ChatMessage } from '@/lib/ai/providers/free-providers';
+import { chatLimiter, getRateLimitKey } from '@/lib/rate-limiter';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -128,6 +129,16 @@ function detectActionStatus(message: string): string | null {
 
 export async function POST(req: NextRequest) {
   try {
+    // 0. RATE LIMIT — 30 messages/minute per user
+    const rateKey = getRateLimitKey(req);
+    const rateResult = chatLimiter.check(rateKey);
+    if (!rateResult.allowed) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded', retryAfter: Math.ceil((rateResult.resetAt - Date.now()) / 1000) },
+        { status: 429, headers: { 'Retry-After': String(Math.ceil((rateResult.resetAt - Date.now()) / 1000)) } },
+      );
+    }
+
     // 1. AUTH
     const authResult = await authenticateAndLoadUser();
     if (!authResult) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
