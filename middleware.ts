@@ -37,7 +37,7 @@ const isPublicRoute = createRouteMatcher([
 ]);
 
 // Hard-bypass paths — returned BEFORE Clerk initialises
-const BYPASS_PATHS = new Set(['/api/health', '/api/version']);
+const BYPASS_PATHS = new Set(['/api/health', '/api/metrics', '/api/version']);
 const BYPASS_PREFIX = ['/api/clerk/'];
 
 // ─────────────────────────────────────────────────────────────────────────────

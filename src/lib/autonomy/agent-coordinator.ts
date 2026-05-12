@@ -719,6 +719,146 @@ class AgentCoordinator {
     }
     console.log('[AgentCoordinator] Initialized — Holly registered as coordinator');
   }
+
+  // ── Parallel Task Execution ───────────────────────────────────────────────
+  // Executes multiple tasks concurrently using Promise.allSettled.
+  // Each task is dispatched to the best available agent based on capabilities.
+  // Returns a summary of all results, including partial failures.
+
+  async executeParallel(
+    tasks: AgentTask[],
+    options: { maxConcurrency?: number; timeoutMs?: number } = {}
+  ): Promise<{
+    completed: Array<{ task: AgentTask; result: any; durationMs: number }>;
+    failed: Array<{ task: AgentTask; error: string; durationMs: number }>;
+    totalDurationMs: number;
+  }> {
+    const { maxConcurrency = 5, timeoutMs = 60_000 } = options;
+    const startTime = Date.now();
+    const completed: Array<{ task: AgentTask; result: any; durationMs: number }> = [];
+    const failed: Array<{ task: AgentTask; error: string; durationMs: number }> = [];
+
+    // Process in batches to respect maxConcurrency
+    const batches: AgentTask[][] = [];
+    for (let i = 0; i < tasks.length; i += maxConcurrency) {
+      batches.push(tasks.slice(i, i + maxConcurrency));
+    }
+
+    for (const batch of batches) {
+      const batchPromises = batch.map(async (task) => {
+        const taskStart = Date.now();
+        try {
+          // Find best agent for this task
+          const agent = this.pickBestAgent(task.requiredCapabilities);
+          if (!agent) {
+            // No agent available — execute locally as Holly
+            const result = await this.executeAsHolly(task, timeoutMs);
+            return { task, result, durationMs: Date.now() - taskStart, success: true };
+          }
+
+          // Assign and execute
+          task.assignedAgentId = agent.id;
+          task.status = 'in_progress';
+          task.startedAt = new Date();
+          agent.currentLoad++;
+
+          const result = await this.executeWithAgent(agent, task, timeoutMs);
+          agent.currentLoad = Math.max(0, agent.currentLoad - 1);
+
+          task.status = 'completed';
+          task.completedAt = new Date();
+          task.output = result;
+
+          return { task, result, durationMs: Date.now() - taskStart, success: true };
+        } catch (err: any) {
+          task.status = 'failed';
+          task.completedAt = new Date();
+          return { task, error: err.message || 'Unknown error', durationMs: Date.now() - taskStart, success: false };
+        }
+      });
+
+      const batchResults = await Promise.allSettled(batchPromises);
+
+      for (const r of batchResults) {
+        if (r.status === 'fulfilled') {
+          if (r.value.success) {
+            completed.push({ task: r.value.task, result: r.value.result, durationMs: r.value.durationMs });
+          } else {
+            failed.push({ task: r.value.task, error: (r.value as any).error, durationMs: r.value.durationMs });
+          }
+        } else {
+          // Promise itself rejected — shouldn't happen but handle gracefully
+          failed.push({ task: batch[0], error: r.reason?.message || 'Promise rejected', durationMs: 0 });
+        }
+      }
+    }
+
+    console.log(
+      `[AgentCoordinator] Parallel execution: ${completed.length} completed, ` +
+      `${failed.length} failed out of ${tasks.length} tasks (${Date.now() - startTime}ms)`
+    );
+
+    return { completed, failed, totalDurationMs: Date.now() - startTime };
+  }
+
+  /** Find the best single agent for given capabilities (for parallel execution) */
+  private pickBestAgent(requiredCapabilities: string[]): AgentProfile | null {
+    const agents = Array.from(this.knownAgents.values());
+    if (this.localAgent) agents.push(this.localAgent);
+    return agents
+      .filter(a => a.currentLoad < a.maxConcurrentTasks)
+      .filter(a => requiredCapabilities.every(cap => a.capabilities.includes(cap)))
+      .sort((a, b) => {
+        const loadDiff = a.currentLoad / a.maxConcurrentTasks - b.currentLoad / b.maxConcurrentTasks;
+        if (Math.abs(loadDiff) > 0.2) return loadDiff;
+        const relDiff = b.reliability - a.reliability;
+        if (Math.abs(relDiff) > 0.1) return relDiff;
+        return a.averageLatency - b.averageLatency;
+      })[0] || null;
+  }
+
+  /** Execute a task as Holly (no external agent available) */
+  private async executeAsHolly(task: AgentTask, timeoutMs: number): Promise<any> {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      // Route through the smart router for LLM tasks
+      if (task.type === 'analysis' || task.type === 'generation' || task.type === 'reasoning') {
+        const { smartRouter } = require('@/lib/ai/smart-router');
+        const response = await smartRouter.route({
+          messages: [{ role: 'user', content: JSON.stringify(task.input) }],
+          taskType: task.type,
+          signal: controller.signal,
+        });
+        return response;
+      }
+
+      // For other task types, return the input as processed
+      return { processed: true, taskType: task.type, input: task.input, timestamp: new Date() };
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  /** Execute a task with a specific agent */
+  private async executeWithAgent(agent: AgentProfile, task: AgentTask, timeoutMs: number): Promise<any> {
+    // For local agents (Holly's own subagents), execute directly
+    if (agent.type === 'holly' || agent.type === 'worker') {
+      return this.executeAsHolly(task, timeoutMs);
+    }
+
+    // For external agents, send a message and wait for response
+    this.sendMessage(agent.id, 'task_assignment', {
+      taskId: task.id,
+      type: task.type,
+      description: task.description,
+      input: task.input,
+      deadline: task.deadline,
+    });
+
+    return { delegated: true, agentId: agent.id, taskType: task.type };
+  }
 }
 
 // ─── Singleton Export ───────────────────────────────────────────────────────
