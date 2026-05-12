@@ -146,6 +146,7 @@ model Conversation {
   messages           Message[]
   summary            ConversationSummary?
 
+  archived           Boolean              @default(false)
   @@index([userId])
   @@map("conversations")
 }
@@ -4262,4 +4263,121 @@ model AgentTask {
   @@index([type])
   @@index([createdAt])
   @@map("agent_tasks")
+}
+
+// ===========================================
+// RESOURCE MANAGEMENT MODELS
+// ===========================================
+
+model ResourceConfig {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     Json     @default("{}")
+  category  String   @default("general")
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  @@index([category])
+  @@map("resource_configs")
+}
+
+model BackgroundTask {
+  id          String   @id @default(cuid())
+  type        String
+  status      String   @default("pending")
+  priority    Int      @default(5)
+  input       Json     @default("{}")
+  output      Json?
+  error       String?  @db.Text
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([status])
+  @@index([type])
+  @@index([createdAt])
+  @@map("background_tasks")
+}
+
+model Cache {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     Json
+  expiresAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([key])
+  @@index([expiresAt])
+  @@map("cache_entries")
+}
+
+model ResourceMetric {
+  id         String   @id @default(cuid())
+  category   String
+  metricName String
+  value      Float
+  unit       String?
+  metadata   Json?
+  timestamp  DateTime @default(now())
+
+  @@index([category])
+  @@index([metricName])
+  @@index([timestamp])
+  @@map("resource_metrics")
+}
+
+model CostMetric {
+  id          String   @id @default(cuid())
+  provider    String
+  model       String?
+  category    String
+  cost        Float
+  currency    String   @default("USD")
+  tokensIn    Int      @default(0)
+  tokensOut   Int      @default(0)
+  requestCount Int     @default(1)
+  metadata    Json?
+  timestamp   DateTime @default(now())
+
+  @@index([provider])
+  @@index([category])
+  @@index([timestamp])
+  @@map("cost_metrics")
+}
+
+model ResourceAllocation {
+  id          String   @id @default(cuid())
+  resource    String
+  allocatedTo String?
+  amount      Float
+  unit        String?
+  status      String   @default("active")
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([resource])
+  @@index([allocatedTo])
+  @@index([status])
+  @@map("resource_allocations")
+}
+
+model Alert {
+  id          String   @id @default(cuid())
+  type        String
+  severity    String   @default("info")
+  message     String   @db.Text
+  category    String?
+  metadata    Json?
+  acknowledged Boolean @default(false)
+  resolvedAt  DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([severity])
+  @@index([type])
+  @@index([acknowledged])
+  @@index([createdAt])
+  @@map("alerts")
 }
