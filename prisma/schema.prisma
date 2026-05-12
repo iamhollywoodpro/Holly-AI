@@ -4220,3 +4220,86 @@ model GoalExecution {
   @@index([startedAt])
   @@map("goal_executions")
 }
+
+// ===========================================
+// SELF-DIRECTED LEARNING SYSTEM
+// ===========================================
+
+// Learning Events - tracks all learning experiences
+model LearningEvent {
+  id             String   @id @default(cuid())
+  type           String   // conversation, feedback, error, success, exploration
+  userId         String?
+  conversationId String?
+  data           Json
+  timestamp      DateTime @default(now())
+  processed      Boolean  @default(true)
+  createdAt      DateTime @default(now())
+
+  @@index([userId])
+  @@index([type])
+  @@index([timestamp])
+  @@map("learning_events")
+}
+
+// Learning Patterns - recognized patterns in behavior/data
+model LearningPattern {
+  id        String   @id @default(cuid())
+  pattern   String   @db.Text
+  category  String
+  frequency Int      @default(1)
+  lastSeen  DateTime @default(now())
+  confidence Float   @default(0.5)
+  action    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category])
+  @@index([frequency])
+  @@index([lastSeen])
+  @@map("learning_patterns")
+}
+
+// ===========================================
+// MULTI-AGENT COORDINATION
+// ===========================================
+
+model AgentRegistry {
+  id                  String   @id @default(cuid())
+  agentId             String   @unique
+  name                String
+  type                String   // holly, specialist, worker, external
+  capabilities        Json     @default("[]")
+  maxConcurrentTasks  Int      @default(5)
+  reliability         Float    @default(0.9)
+  averageLatency      Int      @default(1000)
+  metadata            Json     @default("{}")
+  lastSeen            DateTime @default(now())
+  createdAt           DateTime @default(now())
+
+  @@index([lastSeen])
+  @@index([type])
+  @@map("agent_registry")
+}
+
+model AgentTask {
+  id                   String    @id @default(cuid())
+  type                 String
+  description          String    @db.Text
+  priority             String    @default("normal")
+  requiredCapabilities Json      @default("[]")
+  status               String    @default("pending")
+  input                Json      @default("{}")
+  output               Json?
+  deadline             DateTime?
+  parentTaskId         String?
+  retryCount           Int       @default(0)
+  maxRetries           Int       @default(3)
+  createdAt            DateTime  @default(now())
+  completedAt          DateTime?
+
+  @@index([status])
+  @@index([type])
+  @@index([createdAt])
+  @@map("agent_tasks")
+}
