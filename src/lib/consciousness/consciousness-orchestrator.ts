@@ -28,6 +28,8 @@ import { runMemoryDecayCycle } from '@/lib/memory/memory-decay';
 import { createImprovementPlan, logImprovementAction } from '@/lib/consciousness/auto-improvement-loop';
 import { executeSandboxPipeline } from '@/lib/consciousness/self-code-sandbox';
 import { executeSelfCodeCycle } from '@/lib/consciousness/self-code-engine';
+import { selfDirectedLearning } from '@/lib/autonomy/self-directed-learning';
+import { monitoringEngine } from '@/lib/autonomy/monitoring-engine';
 import { checkEmotionalOutreach } from '@/lib/consciousness/emotional-continuity';
 import { runFineTuningCycle } from '@/lib/consciousness/autonomous-training';
 import { runCuriosityCycle } from '@/lib/consciousness/curiosity-engine';
@@ -511,7 +513,52 @@ export async function runConsciousnessCycle(
       ]); // end Promise.allSettled(Group B)
     })(),
 
-  ]); // end Promise.allSettled([Group A, Group B])
+    // ── Group C: Autonomous Learning + System Monitoring ──
+    (async () => {
+      try {
+        // Step 17: Self-Directed Learning Cycle
+        // Feed recent experiences into the learning engine for knowledge extraction
+        const learningContext = {
+          userId: dbUserId,
+          source: 'exploration' as const,
+          data: { experiences: recentExperiences.slice(0, 10), identity },
+          timestamp: new Date(),
+        };
+        await selfDirectedLearning.learn(learningContext);
+        console.log(`[Consciousness:Learning] Self-directed learning cycle completed for user ${dbUserId}`);
+      } catch (err) {
+        errors.push(`Self-directed learning failed: ${(err as Error).message}`);
+      }
+
+      try {
+        // Step 18: System Monitoring + Auto-Remediation
+        // Checks all subsystems health and flags degraded/critical ones
+        const metrics = await monitoringEngine.runAllChecks();
+        const degradedSubsystems = Object.entries(metrics.subsystems)
+          .filter(([_, check]: [string, any]) => check.status === 'degraded' || check.status === 'critical');
+        if (degradedSubsystems.length > 0) {
+          console.warn(`[Consciousness:Monitoring] ${degradedSubsystems.length} degraded subsystems: ${degradedSubsystems.map(([n]: [string, any]) => n).join(', ')}`);
+          // Feed degraded subsystems into improvement journal for follow-up
+          for (const [name, check] of degradedSubsystems) {
+            const subsystemCheck = check as any;
+            await prisma.learningEvent.create({
+              data: {
+                type: 'monitoring_alert',
+                userId: dbUserId,
+                processed: false,
+                data: { subsystem: name, status: subsystemCheck.status, message: subsystemCheck.message || '' },
+              },
+            }).catch(() => {});
+          }
+        } else {
+          console.log(`[Consciousness:Monitoring] All ${Object.keys(metrics.subsystems).length} subsystems healthy`);
+        }
+      } catch (err) {
+        errors.push(`Monitoring cycle failed: ${(err as Error).message}`);
+      }
+    })(),
+
+  ]); // end Promise.allSettled([Group A, Group B, Group C])
 
   // ── Step 11: Persist cycle result ───────────────────────────────────────────
   try {
