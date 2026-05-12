@@ -153,13 +153,13 @@ export async function POST(req: NextRequest) {
     // 5. A&R AUTO-TRIGGER
     let arResult = arAnalysis;
     if (!arResult && audioUrl && isARRequest(latestUserMessage)) {
-      try { arResult = await runARAnalysis({ userId: dbUserId!, audioUrl, fileName: trackTitle || 'track.mp3', trackTitle, artistName, genre, userQuestion: latestUserMessage }); } catch {}
+      try { arResult = await runARAnalysis({ userId: dbUserId!, audioUrl, fileName: trackTitle || 'track.mp3', trackTitle, artistName, genre, userQuestion: latestUserMessage }); } catch (e) { console.warn('[CHAT] AR analysis failed:', e instanceof Error ? e.message : e); }
     }
 
     // 6. MCP TOOLS
     let mcpTools: import('@/lib/mcp/mcp-client').MCPTool[] | undefined;
     if (!isInformationalMsg) {
-      try { await Promise.race([mcpManager.ensureHollyTools(), new Promise(r => setTimeout(() => r(true), 15_000))]); } catch {}
+      try { await Promise.race([mcpManager.ensureHollyTools(), new Promise(r => setTimeout(() => r(true), 15_000))]); } catch (e) { console.warn('[CHAT] MCP tools init timed out or failed:', e instanceof Error ? e.message : e); }
       mcpTools = await mcpManager.getAllTools();
       const filterKey = isSelfCode ? 'self-coding' : detectedMode;
       const allowed = MODE_TOOL_FILTERS[filterKey] || MODE_TOOL_FILTERS['default'];
@@ -303,7 +303,7 @@ export async function POST(req: NextRequest) {
                       if (tool.function?.arguments) toolArgs += tool.function.arguments;
                     }
                   }
-                } catch {}
+                } catch (e) { /* SSE chunk parse error — expected for partial chunks */ }
               }
 
               if (!isToolCall && useArceeTools) {
@@ -342,11 +342,11 @@ export async function POST(req: NextRequest) {
                             if (tool.function?.name) toolName = tool.function.name;
                             if (tool.function?.arguments) toolArgs += tool.function.arguments;
                           }
-                        } catch {}
+                        } catch (e) { /* Arcee SSE chunk parse error — expected for partial chunks */ }
                       }
                     }
                   }
-                } catch {}
+                } catch (e) { console.warn('[CHAT] Arcee streaming failed:', e instanceof Error ? e.message : e); }
               }
 
               if (isToolCall && toolName) {
@@ -422,7 +422,7 @@ export async function POST(req: NextRequest) {
               dbUserId, conversationId, latestUserMessage, fullResponse,
               detectedMode, currentTopics, activeModel, messages,
               perceptionContext, audioAnalysis,
-            }).catch(() => {});
+            }).catch((e) => { console.error('[CHAT] Background tasks failed:', e instanceof Error ? e.message : e); });
           }
 
           controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ type: 'done', model: activeModel, taskType, mode: detectedMode })}\n\n`));
