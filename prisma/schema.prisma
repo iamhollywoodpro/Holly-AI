@@ -4220,46 +4220,6 @@ model GoalExecution {
   @@index([startedAt])
   @@map("goal_executions")
 }
-
-// ===========================================
-// SELF-DIRECTED LEARNING SYSTEM
-// ===========================================
-
-// Learning Events - tracks all learning experiences
-model LearningEvent {
-  id             String   @id @default(cuid())
-  type           String   // conversation, feedback, error, success, exploration
-  userId         String?
-  conversationId String?
-  data           Json
-  timestamp      DateTime @default(now())
-  processed      Boolean  @default(true)
-  createdAt      DateTime @default(now())
-
-  @@index([userId])
-  @@index([type])
-  @@index([timestamp])
-  @@map("learning_events")
-}
-
-// Learning Patterns - recognized patterns in behavior/data
-model LearningPattern {
-  id        String   @id @default(cuid())
-  pattern   String   @db.Text
-  category  String
-  frequency Int      @default(1)
-  lastSeen  DateTime @default(now())
-  confidence Float   @default(0.5)
-  action    String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([category])
-  @@index([frequency])
-  @@index([lastSeen])
-  @@map("learning_patterns")
-}
-
 // ===========================================
 // MULTI-AGENT COORDINATION
 // ===========================================
