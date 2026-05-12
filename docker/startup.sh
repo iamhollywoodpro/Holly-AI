@@ -1,4 +1,3 @@
-#!/bin/bash
 # ─────────────────────────────────────────────────────────────────────────────
 # HOLLY AI — Startup Script
 #
@@ -32,6 +31,12 @@ fi
 # ── Push schema changes (non-crashing) ─────────────────────────────────────
 # Creates any new tables/columns that don't exist yet. Safe to run on every
 # start — Prisma will only add missing columns, never drop data.
+echo "🔧 Ensuring pgvector extension..."
+npx prisma db execute --stdin <<'SQL'
+CREATE EXTENSION IF NOT EXISTS vector;
+SQL
+echo "✅ pgvector extension ready"
+
 echo "Syncing database schema..."
 npx prisma db push --skip-generate 2>&1 || echo "[WARN] prisma db push failed — app will continue with existing schema"
 
