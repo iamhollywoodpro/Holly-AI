@@ -1,6 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 // Dynamic import prevents SSR crash from browser-only APIs (Audio, localStorage, etc.)
 const HollyChatInterface = dynamic(
@@ -23,7 +24,9 @@ const HollyChatInterface = dynamic(
 export default function ChatPage() {
   return (
     <div className="h-screen w-full">
-      <HollyChatInterface />
+      <ErrorBoundary>
+        <HollyChatInterface />
+      </ErrorBoundary>
     </div>
   );
 }
