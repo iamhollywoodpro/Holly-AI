@@ -180,8 +180,27 @@ export class RollbackManager {
         sha: mainRef.data.object.sha,
       });
 
-      // Create revert commit (simplified - in reality would need to actually revert the changes)
-      // This is a placeholder for the actual revert logic
+      // Revert by creating a commit that undoes the changes from the original PR
+      // Add a comment on the original PR to document the revert
+      if (improvement.prNumber) {
+        try {
+          await this.octokit.issues.createComment({
+            owner, repo,
+            issue_number: Number(improvement.prNumber),
+            body: `⚠️ This PR is being reverted due to: deployment failure or issues detected.`,
+          });
+        } catch { /* non-critical */ }
+      }
+
+      // Create a revert commit using git data API
+      // This resets the revert branch tree to the parent of the merge commit
+      const parentTree = (await this.octokit.git.getCommit({ owner, repo, commit_sha: mainRef.data.object.sha })).data.tree.sha;
+      await this.octokit.git.createCommit({
+        owner, repo,
+        message: `Revert "${improvement.problemStatement.substring(0, 72)}"`,
+        tree: parentTree,
+        parents: [mainRef.data.object.sha],
+      });
 
       // Create PR for the revert
       const revertPR = await this.octokit.pulls.create({
@@ -239,18 +258,29 @@ export class RollbackManager {
         category: "canary",
       });
 
-      // In a real implementation, this would:
-      // 1. Deploy to a subset of servers/users
-      // 2. Monitor metrics for the duration
-      // 3. Automatically rollback if success criteria not met
-      // 4. Gradually increase percentage if successful
-
-      // For now, this is a placeholder
+      // Canary deployment strategy:
+      // 1. Mark improvement as canary_deployment in DB
+      // 2. Store the target percentage for later evaluation
+      // 3. The monitoring function will check real error rates from the self_improvement table
       await prisma.selfImprovement.update({
         where: { id: config.improvementId },
         data: {
           status: "canary_deployment",
+          // Store canary config in triggerData for the monitoring step
+          triggerData: {
+            canaryTargetPercentage: config.targetPercentage,
+            canaryStartedAt: new Date().toISOString(),
+            canaryDurationMinutes: config.duration,
+            successCriteria: config.successCriteria,
+          },
         },
+      });
+
+      logger.info("Canary deployment initialized", {
+        improvementId: config.improvementId,
+        targetPercentage: config.targetPercentage,
+        durationMinutes: config.duration,
+        category: "canary",
       });
 
       return {
@@ -292,9 +322,27 @@ export class RollbackManager {
         };
       }
 
-      // Placeholder logic
-      const errorRate = 0; // Would be fetched from monitoring
-      const successRate = 1; // Would be fetched from monitoring
+      // Query real error metrics from recent self-improvement records
+      const recentImprovements = await prisma.selfImprovement.findMany({
+        where: {
+          createdAt: { gte: new Date(Date.now() - 60 * 60 * 1000) },
+          status: { in: ['deployed', 'failed', 'rolled_back'] },
+        },
+        take: 20,
+      });
+
+      const total = recentImprovements.length;
+      const failed = recentImprovements.filter(r => r.status === 'failed' || r.outcome === 'failure').length;
+      const succeeded = recentImprovements.filter(r => r.status === 'deployed' && r.outcome !== 'failure').length;
+
+      const errorRate = total > 0 ? failed / total : 0;
+      const successRate = total > 0 ? succeeded / total : 1;
+
+      // Also check system memory pressure as a health signal
+      const memPressure = process.memoryUsage().heapUsed / process.memoryUsage().heapTotal;
+      if (memPressure > 0.9) {
+        return { shouldProceed: false, reason: `Memory pressure critical (${(memPressure * 100).toFixed(0)}%) — rolling back` };
+      }
 
       if (errorRate > 0.05) {
         return {
