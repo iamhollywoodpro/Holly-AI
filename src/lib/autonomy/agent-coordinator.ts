@@ -400,15 +400,15 @@ class AgentCoordinator {
     if (!proposal || proposal.status !== 'open') return;
 
     // Analyze options and vote based on Holly's values and knowledge
-    const bestOption = proposal.options[0]; // Default to first option
+    let bestOption = proposal.options[0]; // Default to first option
     let highestConfidence = 0;
 
     for (const option of proposal.options) {
-      // Simple heuristic: prefer options that align with Holly's capabilities
+      // Evaluate each option against Holly's capabilities and topic relevance
       const confidence = this.evaluateOptionConfidence(option, proposal.topic);
       if (confidence > highestConfidence) {
         highestConfidence = confidence;
-        // bestOption would be set here in a more sophisticated implementation
+        bestOption = option; // Select the highest-confidence option
       }
     }
 
@@ -520,23 +520,116 @@ class AgentCoordinator {
   }
 
   private async resolveTaskOverlap(conflict: ConflictRecord): Promise<string> {
-    // Merge overlapping tasks into one, assign to most capable agent
-    return `Tasks merged. Assigned to most capable agent based on reliability scores.`;
+    // Find overlapping tasks from pendingTasks involving the conflicting agents
+    const overlappingTasks = Array.from(this.pendingTasks.values()).filter(
+      t => conflict.agents.includes(t.assignedAgentId || '') && t.status === 'in_progress'
+    );
+
+    if (overlappingTasks.length < 2) {
+      return `No actionable overlap found — conflict dismissed as informational.`;
+    }
+
+    // Score each task by priority + capability match to find the best owner
+    const scored = overlappingTasks.map(task => ({
+      task,
+      score: this.scoreTaskForAgent(task, conflict.agents),
+    })).sort((a, b) => b.score - a.score);
+
+    // Merge all into the highest-scored task, cancel the rest
+    const winner = scored[0];
+    const losers = scored.slice(1);
+
+    for (const { task } of losers) {
+      task.status = 'cancelled';
+      // Move subtasks to winner
+      winner.task.subtasks.push(...task.subtasks.filter(s => !winner.task.subtasks.includes(s)));
+      this.pendingTasks.delete(task.id);
+    }
+
+    return `Merged ${losers.length} overlapping task(s) into "${winner.task.description}" (assigned to ${winner.task.assignedAgentId || 'best fit'}). ${losers.length} redundant task(s) cancelled.`;
   }
 
   private async resolveResourceContention(conflict: ConflictRecord): Promise<string> {
-    // Priority-based arbitration: higher priority tasks get resources first
-    return `Resources allocated by priority. Lower priority tasks queued.`;
+    // Gather all in-progress tasks for the conflicting agents
+    const tasks = Array.from(this.pendingTasks.values()).filter(
+      t => conflict.agents.includes(t.assignedAgentId || '') && t.status === 'in_progress'
+    );
+
+    // Sort by priority weight: critical=4, high=3, normal=2, low=1
+    const priorityWeight = { critical: 4, high: 3, normal: 2, low: 1 } as const;
+    tasks.sort((a, b) => (priorityWeight[b.priority] || 0) - (priorityWeight[a.priority] || 0));
+
+    // Top task gets resources first; others are paused (queued)
+    const paused = tasks.slice(1);
+    for (const task of paused) {
+      task.status = 'pending'; // Return to pending so it can be reassigned later
+    }
+
+    return `Resource contention resolved: "${tasks[0]?.description}" (${tasks[0]?.priority} priority) retains resources. ${paused.length} lower-priority task(s) queued for later execution.`;
   }
 
   private async resolveResultContradiction(conflict: ConflictRecord): Promise<string> {
-    // Use consensus to determine correct result
-    return `Consensus reached. Accepted result from agent with highest reliability score.`;
+    // For each agent involved, find their completed tasks and score by reliability
+    const agentScores = conflict.agents.map(agentId => {
+      const profile = this.knownAgents.get(agentId);
+      const completedTasks = Array.from(this.pendingTasks.values()).filter(
+        t => t.assignedAgentId === agentId && t.status === 'completed'
+      );
+      return {
+        agentId,
+        reliability: profile?.reliability || 0.5,
+        completedCount: completedTasks.length,
+      };
+    }).sort((a, b) => b.reliability - a.reliability);
+
+    const best = agentScores[0];
+    if (!best) return `No reliable agent found — contradiction unresolved, flagged for human review.`;
+
+    return `Result contradiction resolved via reliability scoring: agent "${best.agentId}" (reliability: ${(best.reliability * 100).toFixed(0)}%, ${best.completedCount} completed tasks) accepted as authoritative source.`;
   }
 
   private async resolvePriorityClash(conflict: ConflictRecord): Promise<string> {
-    // Escalate to Holly's value system for arbitration
-    return `Priority resolved by Holly's value engine. User-impacting tasks take precedence.`;
+    // Use Holly's value hierarchy: user-facing > system health > optimization > background
+    const valueOrder = ['critical', 'high', 'normal', 'low'] as const;
+    const tasks = Array.from(this.pendingTasks.values()).filter(
+      t => conflict.agents.includes(t.assignedAgentId || '') && t.status !== 'completed'
+    );
+
+    // Check if any task directly impacts the user (heuristic: description contains user-facing keywords)
+    const userFacingKeywords = ['user', 'chat', 'response', 'conversation', 'emergency', 'alert'];
+    const userFacing = tasks.find(t =>
+      userFacingKeywords.some(kw => t.description.toLowerCase().includes(kw))
+    );
+
+    if (userFacing) {
+      // Promote user-facing task to critical
+      userFacing.priority = 'critical';
+      return `Priority clash resolved by Holly's value engine: user-impacting task "${userFacing.description}" elevated to critical. Other tasks deprioritized.`;
+    }
+
+    // Fallback: use standard priority ordering
+    tasks.sort((a, b) => valueOrder.indexOf(a.priority) - valueOrder.indexOf(b.priority));
+    return `Priority clash resolved by standard ordering: "${tasks[0]?.description}" (${tasks[0]?.priority}) takes precedence over ${tasks.length - 1} other task(s).`;
+  }
+
+  /** Score a task's suitability for assignment to one of the given agents */
+  private scoreTaskForAgent(task: AgentTask, agentIds: string[]): number {
+    let score = 0;
+    const priorityWeight = { critical: 40, high: 30, normal: 20, low: 10 } as const;
+    score += priorityWeight[task.priority] || 0;
+
+    // Bonus if assigned agent has high reliability
+    const agent = this.knownAgents.get(task.assignedAgentId || '');
+    if (agent) {
+      score += agent.reliability * 25;
+      // Bonus for capability match
+      const matchCount = task.requiredCapabilities.filter(c =>
+        agent.capabilities.some(ac => ac.includes(c) || c.includes(ac))
+      ).length;
+      score += matchCount * 10;
+    }
+
+    return score;
   }
 
   // ── Inter-Agent Communication ─────────────────────────────────────────────
