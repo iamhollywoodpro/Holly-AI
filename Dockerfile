@@ -10,46 +10,46 @@ FROM node:20-alpine AS deps
 RUN apk add --no-cache libc6-compat openssl python3 make g++
 WORKDIR /app
 
-  # Copy prisma schema BEFORE npm ci so the postinstall
-  # "prisma generate" can find schema.prisma at install time
-  COPY prisma ./prisma
-  COPY package.json package-lock.json* ./
+# Copy prisma schema BEFORE npm ci so the postinstall
+# "prisma generate" can find schema.prisma at install time
+COPY prisma ./prisma
+COPY package.json package-lock.json* ./
 
-  # ── Skip ALL binary/model downloads during npm ci ────────────────────────────
-  # @prisma/engines downloads a ~50MB query-engine binary per platform.
-  # sharp downloads a prebuilt libvips binary (~10MB).
-  # playwright downloads browser binaries (~300MB) — test-only, not needed here.
-  # @xenova/transformers has a heavy postinstall.
-  #
-  # Solution: install with --ignore-scripts, then run ONLY prisma generate in
-  # the builder stage (after COPY . . so schema.prisma is available).
-  # This eliminates ALL network fetches during npm ci → build is fast + reliable.
-  ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
-  ENV TRANSFORMERS_OFFLINE=1
-  ENV PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1
-  ENV SHARP_IGNORE_GLOBAL_LIBVIPS=1
+# ── Skip ALL binary/model downloads during npm ci ────────────────────────────
+# @prisma/engines downloads a ~50MB query-engine binary per platform.
+# sharp downloads a prebuilt libvips binary (~10MB).
+# playwright downloads browser binaries (~300MB) — test-only, not needed here.
+# @xenova/transformers has a heavy postinstall.
+#
+# Solution: install with --ignore-scripts, then run ONLY prisma generate in
+# the builder stage (after COPY . . so schema.prisma is available).
+# This eliminates ALL network fetches during npm ci → build is fast + reliable.
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
+ENV TRANSFORMERS_OFFLINE=1
+ENV PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1
+ENV SHARP_IGNORE_GLOBAL_LIBVIPS=1
 
-  # ── CRITICAL: always install devDependencies regardless of NODE_ENV ──────────
-  # Coolify injects NODE_ENV=production as a build-arg, which causes npm to skip
-  # devDependencies (tailwind, postcss, autoprefixer, typescript, etc.).
-  # Without them, webpack cannot compile CSS → enters error recovery → OOM kill.
-  # We override NODE_ENV=development for THIS STEP ONLY so all deps are installed.
-  # The runner stage sets NODE_ENV=production for the actual container runtime.
-  #
-  # OPTIMIZATION: Use npm install with reduced memory usage:
-  # - --legacy-peer-deps: avoid dependency conflicts
-  # - --ignore-scripts: skip postinstall hooks (we run prisma generate separately)
-  # - --no-audit --no-fund: skip audit and funding messages (saves memory/time)
-  # - NODE_OPTIONS: reduce heap size to 1.5GB during install (build uses 3GB)
-  # - npm config: reduce npm cache and maxsockets to limit memory
-  # - npm config: increase timeout for slow network connections
-  RUN npm config set maxsockets 3 && \
-      npm config set fetch-retries 3 && \
-      npm config set fetch-retry-mintimeout 20000 && \
-      npm config set fetch-retry-maxtimeout 120000 && \
-      npm config set fetch-timeout 180000 && \
-      NODE_ENV=development NODE_OPTIONS="--max-old-space-size=1536" \
-      npm install --production=false --legacy-peer-deps --ignore-scripts --no-audit --no-fund
+# ── CRITICAL: always install devDependencies regardless of NODE_ENV ──────────
+# Coolify injects NODE_ENV=production as a build-arg, which causes npm to skip
+# devDependencies (tailwind, postcss, autoprefixer, typescript, etc.).
+# Without them, webpack cannot compile CSS → enters error recovery → OOM kill.
+# We override NODE_ENV=development for THIS STEP ONLY so all deps are installed.
+# The runner stage sets NODE_ENV=production for the actual container runtime.
+#
+# OPTIMIZATION: Use npm install with reduced memory usage:
+# - --legacy-peer-deps: avoid dependency conflicts
+# - --ignore-scripts: skip postinstall hooks (we run prisma generate separately)
+# - --no-audit --no-fund: skip audit and funding messages (saves memory/time)
+# - NODE_OPTIONS: reduce heap size to 1.5GB during install (build uses 3GB)
+# - npm config: reduce npm cache and maxsockets to limit memory
+# - npm config: increase timeout for slow network connections
+RUN npm config set maxsockets 3 && \
+    npm config set fetch-retries 3 && \
+    npm config set fetch-retry-mintimeout 20000 && \
+    npm config set fetch-retry-maxtimeout 120000 && \
+    npm config set fetch-timeout 180000 && \
+    NODE_ENV=development NODE_OPTIONS="--max-old-space-size=1536" \
+    npm install --production=false --legacy-peer-deps --ignore-scripts --no-audit --no-fund
 
 # ── Stage 2: Build the Next.js app ───────────────────────────────────────────
 FROM node:20-alpine AS builder
