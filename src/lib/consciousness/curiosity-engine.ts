@@ -155,7 +155,7 @@ Respond ONLY with JSON:
 
   try {
     const { text } = await cascadeCollect(
-      smartRoute(userMsg, { forceTask: 'consciousness' }).waterfall,
+      (await smartRoute(userMsg, { forceTask: 'consciousness' })).waterfall,
       [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userMsg },

@@ -11,7 +11,7 @@ type RouteContext = { params: Promise<{ id: string }>; };
 
 async function callAI(messages: { role: string; content: string }[]): Promise<string> {
   const userMsg = messages.find(m => m.role === 'user')?.content ?? '';
-  const routeResult = smartRoute(userMsg, { taskHint: 'long_context' });
+  const routeResult = await smartRoute(userMsg, { taskHint: 'long_context' });
   const { text } = await cascadeCollect(
     routeResult.waterfall,
     messages as { role: 'system' | 'user' | 'assistant'; content: string }[],

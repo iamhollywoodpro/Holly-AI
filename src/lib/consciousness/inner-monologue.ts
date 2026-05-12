@@ -93,7 +93,7 @@ Generate a JSON response with your reflections:
 }`;
 
     const { text } = await cascadeCollect(
-      smartRoute('inner reflection', { taskHint: 'reasoning' }).waterfall,
+      (await smartRoute('inner reflection', { taskHint: 'reasoning' })).waterfall,
       [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: `Here's your context for reflection:

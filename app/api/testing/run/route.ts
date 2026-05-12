@@ -33,7 +33,7 @@ export async function POST(request: Request) {
     if (code.length < 4000) {
       try {
         const reviewPrompt = `Review this ${language} code for ${testFramework} testing gaps:\n\`\`\`\n${code.slice(0, 2000)}\n\`\`\``;
-        const routeResult = smartRoute(reviewPrompt, { taskHint: 'coding' });
+        const routeResult = await smartRoute(reviewPrompt, { taskHint: 'coding' });
         const { text, model: usedModel } = await cascadeCollect(
           routeResult.waterfall,
           [

@@ -219,7 +219,7 @@ async function runAuraTask(params: AuraParams): Promise<{ data: object; model: s
       break;
   }
 
-  const routeResult = smartRoute(prompt, { taskHint: 'creative' });
+  const routeResult = await smartRoute(prompt, { taskHint: 'creative' });
   console.log(`[AURA:${params.task}] Routing via ${routeResult.taskType}: ${routeResult.reason}`);
 
   const { text: content, model: usedModel } = await cascadeCollect(

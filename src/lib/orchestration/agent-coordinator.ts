@@ -177,7 +177,7 @@ async function runAgentSubtask(
   const spec = AGENT_SPECIALIZATIONS[agentType] || AGENT_SPECIALIZATIONS.analyst;
 
   try {
-    const route = smartRoute(subtaskDescription, { forceTask: spec.taskType });
+    const route = await smartRoute(subtaskDescription, { forceTask: spec.taskType });
 
     const { text } = await cascadeCollect(
       route.waterfall,
@@ -195,7 +195,7 @@ async function runAgentSubtask(
 }
 
 async function decomposeGoal(goal: string): Promise<string[]> {
-  const route = smartRoute(goal, { forceTask: 'reasoning' });
+  const route = await smartRoute(goal, { forceTask: 'reasoning' });
 
   try {
     const { text } = await cascadeCollect(
@@ -265,7 +265,7 @@ export async function coordinateAgents(
 
     let finalSynthesis = '';
     try {
-      const synthRoute = smartRoute(goal, { forceTask: 'reasoning' });
+      const synthRoute = await smartRoute(goal, { forceTask: 'reasoning' });
       const { text } = await cascadeCollect(
         synthRoute.waterfall,
         [

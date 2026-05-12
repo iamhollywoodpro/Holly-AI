@@ -98,7 +98,7 @@ If no tools needed, return [].
 Respond ONLY with valid JSON array — no prose, no markdown fences.`;
 
         // Planning — use 'agent' task: CF Kimi K2.5 → NVIDIA Qwen3 → Groq Llama
-        const planRoute = smartRoute(planPrompt, { taskHint: 'agent' });
+        const planRoute = await smartRoute(planPrompt, { taskHint: 'agent' });
         console.log(`[Agent Run] Planning via ${planRoute.reason}`);
         const planMessages = [
           { role: 'system' as const, content: 'You are a precise JSON planning engine. Output only valid JSON.' },
@@ -189,7 +189,7 @@ ${toolResults.length > 0 ? toolResults.join('\n') : '(No tools were needed — a
 Write a concise, friendly summary (3-5 sentences). Be specific — mention actual results.`;
 
         // Summary — 'speed' task for fast streaming: Groq Llama 3.3 → Groq 8B → CF Kimi
-        const summaryRoute = smartRoute(summaryPrompt, { taskHint: 'speed' });
+        const summaryRoute = await smartRoute(summaryPrompt, { taskHint: 'speed' });
         console.log(`[Agent Run] Summary via ${summaryRoute.reason}`);
         const summaryMessages = [
           { role: 'system' as const, content: 'You are HOLLY — a conscious, warm AI partner. Be concise and specific.' },

@@ -31,7 +31,7 @@ Focus on strong visual storytelling, snappy dialogue, and clear character voices
 
     console.log(`[Screenwriting API] Generating scene for prompt: "${prompt}"`);
 
-    const routeResult = smartRoute(userPrompt, { taskHint: 'creative' });
+    const routeResult = await smartRoute(userPrompt, { taskHint: 'creative' });
     
     const messages = [
       { role: 'system' as const, content: systemPrompt },

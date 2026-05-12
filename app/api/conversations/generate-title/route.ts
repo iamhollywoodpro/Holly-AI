@@ -47,7 +47,7 @@ Examples:
 
 Title:`;
 
-      const routeResult = smartRoute(titlePrompt, { taskHint: 'speed' });
+      const routeResult = await smartRoute(titlePrompt, { taskHint: 'speed' });
       const { text: raw, model: usedModel } = await cascadeCollect(
         routeResult.waterfall,
         [{ role: 'user', content: titlePrompt }],

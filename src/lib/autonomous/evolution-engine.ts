@@ -429,7 +429,7 @@ export class EvolutionEngine {
       const { smartRoute } = await import('@/lib/ai/smart-router');
       const { cascadeCollect } = await import('@/lib/ai/cascade');
 
-      const route = smartRoute('Analyze code quality and suggest improvements', { forceTask: 'coding' });
+      const route = await smartRoute('Analyze code quality and suggest improvements', { forceTask: 'coding' });
 
       const { text } = await cascadeCollect(
         route.waterfall,
@@ -580,7 +580,7 @@ Keep each improvement to one sentence. Be specific — reference actual files an
       const { smartRoute } = await import('@/lib/ai/smart-router');
       const { cascadeCollect } = await import('@/lib/ai/cascade');
 
-      const route = smartRoute(`Evaluate this improvement proposal: ${proposal.description}`, { forceTask: 'reasoning' });
+      const route = await smartRoute(`Evaluate this improvement proposal: ${proposal.description}`, { forceTask: 'reasoning' });
 
       const { text } = await cascadeCollect(
         route.waterfall,
@@ -672,7 +672,7 @@ Score based on: clarity of the proposal, likely impact, implementation difficult
       const { smartRoute } = await import('@/lib/ai/smart-router');
       const { cascadeCollect } = await import('@/lib/ai/cascade');
 
-      const route = smartRoute(proposal.description, { forceTask: 'coding' });
+      const route = await smartRoute(proposal.description, { forceTask: 'coding' });
       const { text } = await cascadeCollect(
         route.waterfall,
         [
@@ -706,7 +706,7 @@ Only include files and changes you are confident about. Maximum 3 files.`,
       const { smartRoute } = await import('@/lib/ai/smart-router');
       const { cascadeCollect } = await import('@/lib/ai/cascade');
 
-      const route = smartRoute(proposal.description, { forceTask: 'coding' });
+      const route = await smartRoute(proposal.description, { forceTask: 'coding' });
       const { text } = await cascadeCollect(
         route.waterfall,
         [
@@ -742,7 +742,7 @@ Respond with a JSON object: { "architecture": "description of approach", "files_
       const { smartRoute } = await import('@/lib/ai/smart-router');
       const { cascadeCollect } = await import('@/lib/ai/cascade');
 
-      const route = smartRoute(proposal.description, { forceTask: 'coding' });
+      const route = await smartRoute(proposal.description, { forceTask: 'coding' });
       const { text } = await cascadeCollect(
         route.waterfall,
         [

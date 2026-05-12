@@ -62,7 +62,7 @@ RISKS: [Potential risks]
 BENEFITS: [Expected benefits]`;
 
     // Route to 'reasoning' task — NVIDIA Qwen3-235B → Groq DeepSeek-R1 → NVIDIA DeepSeek-R1 → CF Kimi
-    const routeResult = smartRoute(decisionPrompt, { taskHint: 'reasoning' });
+    const routeResult = await smartRoute(decisionPrompt, { taskHint: 'reasoning' });
     console.log(`[Autonomous Decide] Routing via ${routeResult.taskType}: ${routeResult.reason}`);
 
     const { text: decisionText, model: usedModel } = await cascadeCollect(

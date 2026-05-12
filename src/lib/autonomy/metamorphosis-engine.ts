@@ -80,7 +80,7 @@ async function detectDrift(): Promise<DriftItem[]> {
 async function generateFixCode(driftItems: DriftItem[]): Promise<{ branchName: string; fixes: Array<{ file: string; content: string }> } | null> {
   if (driftItems.length === 0) return null;
 
-  const route = smartRoute('generate code fixes for config drift', { taskHint: 'coding' });
+  const route = await smartRoute('generate code fixes for config drift', { taskHint: 'coding' });
 
   const driftDescription = driftItems.map(d =>
     `- ${d.spec}: expected active, got ${d.actual}${d.file ? ` (file: ${d.file})` : ''}`

@@ -32,7 +32,7 @@ const prisma = new PrismaClient();
       take: 50,
     });
 
-    const initiativesActedOn = initiatives.filter((i) => i.actionData?.actedOn).length;
+    const initiativesActedOn = initiatives.filter((i) => (i.actionData as Record<string, unknown> | null)?.actedOn).length;
 
     // Get training stats
     const trainingData = await prisma.learningEvent.findMany({

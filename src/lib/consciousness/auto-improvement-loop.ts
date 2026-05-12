@@ -136,7 +136,7 @@ Respond ONLY with JSON:
 
   try {
     const { text } = await cascadeCollect(
-      smartRoute(fileContent, { taskHint: 'code' }).waterfall,
+      (await smartRoute(fileContent, { taskHint: 'code' })).waterfall,
       [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: `File: ${filePath}\n\n\`\`\`typescript\n${fileContent}\n\`\`\`` },
@@ -181,7 +181,7 @@ Rules:
 
   try {
     const { text } = await cascadeCollect(
-      smartRoute(currentContent, { taskHint: 'code' }).waterfall,
+      (await smartRoute(currentContent, { taskHint: 'code' })).waterfall,
       [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: `File: ${filePath}\nIssue: ${issue.description}\nSeverity: ${issue.severity}\nSuggested fix: ${issue.suggestedFix || 'analyze and fix'}\n\nCurrent content:\n\`\`\`typescript\n${currentContent}\n\`\`\`\n\nGenerate the COMPLETE fixed file:` },

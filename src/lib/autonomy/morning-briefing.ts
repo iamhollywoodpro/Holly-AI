@@ -156,7 +156,7 @@ Respond with a JSON object:
   let briefing: { greeting: string; overnightSummary: string; systemHealth: string; recommendedActions: string[] };
 
   try {
-    const route = smartRoute('morning briefing generation', { taskHint: 'creative' });
+    const route = await smartRoute('morning briefing generation', { taskHint: 'creative' });
     const { text } = await cascadeCollect(route.waterfall, [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: contextBlock },

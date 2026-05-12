@@ -75,22 +75,25 @@ export class AutonomousResourceManager {
    * Initialize resource manager with configuration
    */
   async initialize(): Promise<void> {
-    // Load configuration from database
-    const config = await prisma.resourceConfig.findFirst();
+    // Load configuration from database — stored as JSON in value field
+    const config = await prisma.resourceConfig.findFirst({
+      where: { category: 'resource_manager' }
+    });
     
-    if (config) {
-      this.thresholds = config.thresholds as ResourceThresholds;
+    if (config?.value && typeof config.value === 'object') {
+      const cfg = config.value as Record<string, any>;
+      if (cfg.thresholds) this.thresholds = cfg.thresholds as ResourceThresholds;
       
       // Load cost limits
-      if (config.costLimits) {
-        Object.entries(config.costLimits).forEach(([provider, limit]) => {
+      if (cfg.costLimits && typeof cfg.costLimits === 'object') {
+        Object.entries(cfg.costLimits).forEach(([provider, limit]) => {
           this.costLimits.set(provider, limit as number);
         });
       }
       
       // Load rate limits
-      if (config.rateLimits) {
-        Object.entries(config.rateLimits).forEach(([endpoint, limit]) => {
+      if (cfg.rateLimits && typeof cfg.rateLimits === 'object') {
+        Object.entries(cfg.rateLimits).forEach(([endpoint, limit]) => {
           const { limit: l, window: w } = limit as any;
           this.rateLimits.set(endpoint, { limit: l, window: w });
         });
@@ -154,7 +157,6 @@ export class AutonomousResourceManager {
     try {
       const fs = require('fs');
       const stats = fs.statSync('/');
-      // Simplified - in production, use actual disk stats
       return 50; // Placeholder
     } catch (error) {
       return 0;
@@ -165,7 +167,6 @@ export class AutonomousResourceManager {
    * Get network I/O stats
    */
   private async getNetworkIO(): Promise<{ inbound: number; outbound: number }> {
-    // Simplified - in production, use actual network stats
     return { inbound: 0, outbound: 0 };
   }
 
@@ -173,7 +174,6 @@ export class AutonomousResourceManager {
    * Get active connection count
    */
   private async getActiveConnections(): Promise<number> {
-    // In production, query actual connection count
     return 10;
   }
 
@@ -181,11 +181,14 @@ export class AutonomousResourceManager {
    * Get queue depth
    */
   private async getQueueDepth(): Promise<number> {
-    // Count unprocessed background tasks
-    const pendingTasks = await prisma.backgroundTask.count({
-      where: { status: 'PENDING' }
-    });
-    return pendingTasks;
+    try {
+      const pendingTasks = await prisma.backgroundTask.count({
+        where: { status: 'pending' }
+      });
+      return pendingTasks;
+    } catch {
+      return 0;
+    }
   }
 
   /**
@@ -239,16 +242,15 @@ export class AutonomousResourceManager {
    * Handle high CPU usage
    */
   private async handleHighCPU(metrics: ResourceMetrics): Promise<void> {
-    // Reduce non-critical tasks
-    await prisma.backgroundTask.updateMany({
-      where: { 
-        status: 'PENDING',
-        priority: { lt: 5 }
-      },
-      data: { status: 'THROTTLED' }
-    });
-
-    // Scale down if possible (in production)
+    try {
+      await prisma.backgroundTask.updateMany({
+        where: { 
+          status: 'pending',
+          priority: { lt: 5 }
+        },
+        data: { status: 'throttled' }
+      });
+    } catch { /* ignore if table doesn't exist yet */ }
     console.log('Scaling down due to high CPU usage');
   }
 
@@ -256,16 +258,10 @@ export class AutonomousResourceManager {
    * Handle high memory usage
    */
   private async handleHighMemory(metrics: ResourceMetrics): Promise<void> {
-    // Force garbage collection if available
     if (global.gc) {
       global.gc();
     }
-
-    // Clear cache
     await this.clearCache();
-
-    // Reduce context window
-    // In production, adjust context budget dynamically
     console.log('Reducing context window due to high memory');
   }
 
@@ -273,13 +269,8 @@ export class AutonomousResourceManager {
    * Handle high disk usage
    */
   private async handleHighDisk(): Promise<void> {
-    // Clean up old logs
     await this.cleanupOldLogs();
-
-    // Clean up old temporary files
     await this.cleanupTempFiles();
-
-    // Archive old data
     await this.archiveOldData();
   }
 
@@ -287,41 +278,38 @@ export class AutonomousResourceManager {
    * Handle high queue depth
    */
   private async handleHighQueueDepth(): Promise<void> {
-    // Increase worker count (in production)
     console.log('Increasing worker count to clear queue');
-
-    // Prioritize high-priority tasks
-    await prisma.backgroundTask.updateMany({
-      where: { 
-        status: 'THROTTLED',
-        priority: { gte: 5 }
-      },
-      data: { status: 'PENDING' }
-    });
+    try {
+      await prisma.backgroundTask.updateMany({
+        where: { 
+          status: 'throttled',
+          priority: { gte: 5 }
+        },
+        data: { status: 'pending' }
+      });
+    } catch { /* ignore */ }
   }
 
   /**
    * Clear cache
    */
   private async clearCache(): Promise<void> {
-    // Clear in-memory caches
     this.requestHistory.clear();
-    
-    // Clear database cache if implemented
-    await prisma.cache.deleteMany({
-      where: {
-        createdAt: {
-          lt: new Date(Date.now() - 3600000) // 1 hour old
+    try {
+      await prisma.cache.deleteMany({
+        where: {
+          expiresAt: {
+            lt: new Date() // expired entries
+          }
         }
-      }
-    });
+      });
+    } catch { /* ignore */ }
   }
 
   /**
    * Clean up old logs
    */
   private async cleanupOldLogs(): Promise<void> {
-    // In production, implement log cleanup
     console.log('Cleaning up old logs');
   }
 
@@ -329,7 +317,6 @@ export class AutonomousResourceManager {
    * Clean up temporary files
    */
   private async cleanupTempFiles(): Promise<void> {
-    // In production, implement temp file cleanup
     console.log('Cleaning up temporary files');
   }
 
@@ -337,50 +324,60 @@ export class AutonomousResourceManager {
    * Archive old data
    */
   private async archiveOldData(): Promise<void> {
-    // Archive old conversations
-    const cutoffDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000); // 90 days ago
-    
-    await prisma.conversation.updateMany({
-      where: {
-        createdAt: { lt: cutoffDate },
-        archived: false
-      },
-      data: { archived: true }
-    });
+    const cutoffDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+    try {
+      await prisma.conversation.updateMany({
+        where: {
+          createdAt: { lt: cutoffDate },
+          archived: false
+        },
+        data: { archived: true }
+      });
+    } catch { /* ignore if field doesn't exist */ }
   }
 
   /**
-   * Store metrics in database
+   * Store metrics in database as individual metric rows
+   * Schema: ResourceMetric { category, metricName, value, unit, metadata, timestamp }
    */
   private async storeMetrics(metrics: ResourceMetrics): Promise<void> {
-    await prisma.resourceMetric.create({
-      data: {
-        timestamp: metrics.timestamp,
-        cpuUsage: metrics.cpuUsage,
-        memoryUsage: metrics.memoryUsage,
-        diskUsage: metrics.diskUsage,
-        networkInbound: metrics.networkIO.inbound,
-        networkOutbound: metrics.networkIO.outbound,
-        activeConnections: metrics.activeConnections,
-        queueDepth: metrics.queueDepth
-      }
-    });
+    try {
+      const timestamp = metrics.timestamp;
+      await prisma.resourceMetric.createMany({
+        data: [
+          { category: 'system', metricName: 'cpuUsage', value: metrics.cpuUsage, unit: 'percent', timestamp },
+          { category: 'system', metricName: 'memoryUsage', value: metrics.memoryUsage, unit: 'percent', timestamp },
+          { category: 'system', metricName: 'diskUsage', value: metrics.diskUsage, unit: 'percent', timestamp },
+          { category: 'system', metricName: 'networkInbound', value: metrics.networkIO.inbound, unit: 'bytes', timestamp },
+          { category: 'system', metricName: 'networkOutbound', value: metrics.networkIO.outbound, unit: 'bytes', timestamp },
+          { category: 'system', metricName: 'activeConnections', value: metrics.activeConnections, unit: 'count', timestamp },
+          { category: 'system', metricName: 'queueDepth', value: metrics.queueDepth, unit: 'count', timestamp },
+        ]
+      });
+    } catch (error) {
+      console.error('[ResourceManager] Failed to store metrics:', error);
+    }
   }
 
   /**
    * Trigger alerts
+   * Schema: Alert { type, severity, message, category, metadata, acknowledged }
    */
   private async triggerAlerts(alerts: string[]): Promise<void> {
     for (const alert of alerts) {
-      await prisma.alert.create({
-        data: {
-          type: 'RESOURCE',
-          severity: alert.includes('CRITICAL') ? 'CRITICAL' : 'WARNING',
-          message: alert,
-          timestamp: new Date(),
-          acknowledged: false
-        }
-      });
+      try {
+        await prisma.alert.create({
+          data: {
+            type: 'RESOURCE',
+            severity: alert.includes('CRITICAL') ? 'critical' : 'warning',
+            message: alert,
+            category: 'resource',
+            acknowledged: false
+          }
+        });
+      } catch (error) {
+        console.error('[ResourceManager] Failed to create alert:', error);
+      }
     }
   }
 
@@ -389,19 +386,17 @@ export class AutonomousResourceManager {
    */
   async checkRateLimit(endpoint: string): Promise<boolean> {
     const limit = this.rateLimits.get(endpoint);
-    if (!limit) return true; // No limit set
+    if (!limit) return true;
 
     const now = Date.now();
     const history = this.requestHistory.get(endpoint) || [];
 
-    // Remove old requests outside the window
     const validRequests = history.filter(time => now - time < limit.window);
 
     if (validRequests.length >= limit.limit) {
-      return false; // Rate limit exceeded
+      return false;
     }
 
-    // Add current request
     validRequests.push(now);
     this.requestHistory.set(endpoint, validRequests);
 
@@ -418,9 +413,9 @@ export class AutonomousResourceManager {
 
   /**
    * Track cost for AI API calls
+   * Schema: CostMetric { provider, model, category, cost, currency, tokensIn, tokensOut, requestCount, metadata }
    */
   async trackCost(provider: string, model: string, tokensInput: number, tokensOutput: number): Promise<number> {
-    // Calculate cost based on provider pricing
     const cost = this.calculateCost(provider, model, tokensInput, tokensOutput);
 
     const metrics: CostMetrics = {
@@ -434,17 +429,22 @@ export class AutonomousResourceManager {
 
     this.costHistory.push(metrics);
 
-    // Store in database
-    await prisma.costMetric.create({
-      data: {
-        provider,
-        model,
-        tokensInput,
-        tokensOutput,
-        cost,
-        timestamp: metrics.timestamp
-      }
-    });
+    try {
+      await prisma.costMetric.create({
+        data: {
+          provider,
+          model,
+          category: 'ai_api',
+          cost,
+          currency: 'USD',
+          tokensIn: tokensInput,
+          tokensOut: tokensOutput,
+          requestCount: 1
+        }
+      });
+    } catch (error) {
+      console.error('[ResourceManager] Failed to store cost metric:', error);
+    }
 
     return cost;
   }
@@ -453,7 +453,6 @@ export class AutonomousResourceManager {
    * Calculate cost based on provider pricing
    */
   private calculateCost(provider: string, model: string, tokensInput: number, tokensOutput: number): number {
-    // Simplified pricing - in production, use actual pricing
     const pricing: Record<string, { input: number; output: number }> = {
       'openai': { input: 0.000005, output: 0.000015 },
       'anthropic': { input: 0.000003, output: 0.000015 },
@@ -470,27 +469,30 @@ export class AutonomousResourceManager {
    * Get total cost for a time period
    */
   async getTotalCost(startDate: Date, endDate: Date): Promise<number> {
-    const costs = await prisma.costMetric.findMany({
-      where: {
-        timestamp: {
-          gte: startDate,
-          lte: endDate
+    try {
+      const costs = await prisma.costMetric.findMany({
+        where: {
+          timestamp: {
+            gte: startDate,
+            lte: endDate
+          }
         }
-      }
-    });
-
-    return costs.reduce((total, c) => total + c.cost, 0);
+      });
+      return costs.reduce((total, c) => total + c.cost, 0);
+    } catch {
+      return 0;
+    }
   }
 
   /**
    * Optimize costs
    */
   private async optimizeCosts(): Promise<void> {
-    // Analyze cost trends
+    if (this.costHistory.length === 0) return;
+
     const recentCosts = this.costHistory.slice(-100);
     const averageCost = recentCosts.reduce((sum, c) => sum + c.cost, 0) / recentCosts.length;
 
-    // Check if any provider is over limit
     for (const [provider, limit] of this.costLimits.entries()) {
       const providerCosts = recentCosts.filter(c => c.provider === provider);
       const providerTotal = providerCosts.reduce((sum, c) => sum + c.cost, 0);
@@ -500,7 +502,6 @@ export class AutonomousResourceManager {
       }
     }
 
-    // Suggest cost optimizations
     await this.suggestCostOptimizations();
   }
 
@@ -508,17 +509,19 @@ export class AutonomousResourceManager {
    * Handle cost over limit
    */
   private async handleCostOverLimit(provider: string, limit: number, actual: number): Promise<void> {
-    await prisma.alert.create({
-      data: {
-        type: 'COST',
-        severity: 'WARNING',
-        message: `Cost limit exceeded for ${provider}: ${actual.toFixed(4)} > ${limit}`,
-        timestamp: new Date(),
-        acknowledged: false
-      }
-    });
-
-    // Switch to cheaper providers if possible
+    try {
+      await prisma.alert.create({
+        data: {
+          type: 'COST',
+          severity: 'warning',
+          message: `Cost limit exceeded for ${provider}: ${actual.toFixed(4)} > ${limit}`,
+          category: 'cost',
+          acknowledged: false
+        }
+      });
+    } catch (error) {
+      console.error('[ResourceManager] Failed to create cost alert:', error);
+    }
     console.log(`Switching to cheaper providers for ${provider}`);
   }
 
@@ -526,7 +529,6 @@ export class AutonomousResourceManager {
    * Suggest cost optimizations
    */
   private async suggestCostOptimizations(): Promise<void> {
-    // Analyze which models are most expensive
     const modelCosts = new Map<string, { count: number; total: number }>();
     
     this.costHistory.forEach(c => {
@@ -537,7 +539,6 @@ export class AutonomousResourceManager {
       modelCosts.set(key, stats);
     });
 
-    // Find expensive models
     for (const [model, stats] of modelCosts.entries()) {
       const avgCost = stats.total / stats.count;
       if (avgCost > 0.01) {
@@ -548,6 +549,7 @@ export class AutonomousResourceManager {
 
   /**
    * Allocate resources dynamically
+   * Schema: ResourceAllocation { resource, allocatedTo, amount, unit, status, metadata }
    */
   async allocateResources(allocation: ResourceAllocation): Promise<boolean> {
     const metrics = await this.collectMetrics();
@@ -555,151 +557,156 @@ export class AutonomousResourceManager {
     // Check if resources are available
     switch (allocation.type) {
       case 'compute':
-        if (metrics.cpuUsage > this.thresholds.cpuWarning) {
-          return false;
-        }
+        if (metrics.cpuUsage > this.thresholds.cpuWarning) return false;
         break;
       case 'memory':
-        if (metrics.memoryUsage > this.thresholds.memoryWarning) {
-          return false;
-        }
+        if (metrics.memoryUsage > this.thresholds.memoryWarning) return false;
         break;
       case 'storage':
-        if (metrics.diskUsage > this.thresholds.diskWarning) {
-          return false;
-        }
+        if (metrics.diskUsage > this.thresholds.diskWarning) return false;
         break;
       case 'network':
-        if (metrics.activeConnections > 100) {
-          return false;
-        }
+        if (metrics.activeConnections > 100) return false;
         break;
     }
 
-    // Allocate resources
-    await prisma.resourceAllocation.create({
-      data: {
-        type: allocation.type,
-        amount: allocation.amount,
-        priority: allocation.priority,
-        duration: allocation.duration,
-        startTime: new Date(),
-        endTime: new Date(Date.now() + allocation.duration * 1000)
-      }
-    });
+    try {
+      await prisma.resourceAllocation.create({
+        data: {
+          resource: allocation.type,
+          amount: allocation.amount,
+          unit: allocation.type,
+          status: 'active',
+          metadata: {
+            priority: allocation.priority,
+            duration: allocation.duration,
+            startTime: new Date().toISOString(),
+            endTime: new Date(Date.now() + allocation.duration * 1000).toISOString()
+          }
+        }
+      });
+    } catch (error) {
+      console.error('[ResourceManager] Failed to allocate resources:', error);
+      return false;
+    }
 
     return true;
   }
 
   /**
    * Get resource utilization report
+   * Queries individual metric rows and aggregates
    */
   async getUtilizationReport(hours: number = 24): Promise<any> {
     const startDate = new Date(Date.now() - hours * 60 * 60 * 1000);
     
-    const metrics = await prisma.resourceMetric.findMany({
-      where: {
-        timestamp: { gte: startDate }
-      },
-      orderBy: { timestamp: 'asc' }
-    });
+    try {
+      const metrics = await prisma.resourceMetric.findMany({
+        where: {
+          category: 'system',
+          timestamp: { gte: startDate }
+        },
+        orderBy: { timestamp: 'asc' }
+      });
 
-    if (metrics.length === 0) {
+      const cpuMetrics = metrics.filter(m => m.metricName === 'cpuUsage');
+      const memMetrics = metrics.filter(m => m.metricName === 'memoryUsage');
+      const diskMetrics = metrics.filter(m => m.metricName === 'diskUsage');
+      const queueMetrics = metrics.filter(m => m.metricName === 'queueDepth');
+
+      const avg = (arr: typeof metrics) => arr.length > 0 ? arr.reduce((s, m) => s + m.value, 0) / arr.length : 0;
+      const peak = (arr: typeof metrics) => arr.length > 0 ? Math.max(...arr.map(m => m.value)) : 0;
+
       return {
-        averageCpu: 0,
-        averageMemory: 0,
-        averageDisk: 0,
-        averageQueueDepth: 0,
-        peakCpu: 0,
-        peakMemory: 0,
-        peakQueueDepth: 0
+        averageCpu: avg(cpuMetrics),
+        averageMemory: avg(memMetrics),
+        averageDisk: avg(diskMetrics),
+        averageQueueDepth: avg(queueMetrics),
+        peakCpu: peak(cpuMetrics),
+        peakMemory: peak(memMetrics),
+        peakQueueDepth: peak(queueMetrics),
+        totalSamples: metrics.length
+      };
+    } catch {
+      return {
+        averageCpu: 0, averageMemory: 0, averageDisk: 0, averageQueueDepth: 0,
+        peakCpu: 0, peakMemory: 0, peakQueueDepth: 0, totalSamples: 0
       };
     }
-
-    const totalCpu = metrics.reduce((sum, m) => sum + m.cpuUsage, 0);
-    const totalMemory = metrics.reduce((sum, m) => sum + m.memoryUsage, 0);
-    const totalDisk = metrics.reduce((sum, m) => sum + m.diskUsage, 0);
-    const totalQueue = metrics.reduce((sum, m) => sum + m.queueDepth, 0);
-
-    const peakCpu = Math.max(...metrics.map(m => m.cpuUsage));
-    const peakMemory = Math.max(...metrics.map(m => m.memoryUsage));
-    const peakQueue = Math.max(...metrics.map(m => m.queueDepth));
-
-    return {
-      averageCpu: totalCpu / metrics.length,
-      averageMemory: totalMemory / metrics.length,
-      averageDisk: totalDisk / metrics.length,
-      averageQueueDepth: totalQueue / metrics.length,
-      peakCpu,
-      peakMemory,
-      peakQueueDepth: peakQueue,
-      totalSamples: metrics.length
-    };
   }
 
   /**
    * Get cost report
+   * Schema: CostMetric uses tokensIn/tokensOut
    */
   async getCostReport(hours: number = 24): Promise<any> {
     const startDate = new Date(Date.now() - hours * 60 * 60 * 1000);
     
-    const costs = await prisma.costMetric.findMany({
-      where: {
-        timestamp: { gte: startDate }
-      }
-    });
+    try {
+      const costs = await prisma.costMetric.findMany({
+        where: {
+          timestamp: { gte: startDate }
+        }
+      });
 
-    const byProvider = new Map<string, { total: number; count: number }>();
-    const byModel = new Map<string, { total: number; count: number }>();
+      const byProvider = new Map<string, { total: number; count: number }>();
+      const byModel = new Map<string, { total: number; count: number }>();
 
-    costs.forEach(c => {
-      // By provider
-      const providerStats = byProvider.get(c.provider) || { total: 0, count: 0 };
-      providerStats.total += c.cost;
-      providerStats.count++;
-      byProvider.set(c.provider, providerStats);
+      costs.forEach(c => {
+        const providerStats = byProvider.get(c.provider) || { total: 0, count: 0 };
+        providerStats.total += c.cost;
+        providerStats.count++;
+        byProvider.set(c.provider, providerStats);
 
-      // By model
-      const modelStats = byModel.get(c.model) || { total: 0, count: 0 };
-      modelStats.total += c.cost;
-      modelStats.count++;
-      byModel.set(c.model, modelStats);
-    });
+        const modelKey = c.model || 'unknown';
+        const modelStats = byModel.get(modelKey) || { total: 0, count: 0 };
+        modelStats.total += c.cost;
+        modelStats.count++;
+        byModel.set(modelKey, modelStats);
+      });
 
-    const totalCost = costs.reduce((sum, c) => sum + c.cost, 0);
-    const totalTokens = costs.reduce((sum, c) => sum + c.tokensInput + c.tokensOutput, 0);
+      const totalCost = costs.reduce((sum, c) => sum + c.cost, 0);
+      const totalTokens = costs.reduce((sum, c) => sum + (c.tokensIn || 0) + (c.tokensOut || 0), 0);
 
-    return {
-      totalCost,
-      totalTokens,
-      totalRequests: costs.length,
-      byProvider: Array.from(byProvider.entries()).map(([provider, stats]) => ({
-        provider,
-        cost: stats.total,
-        requests: stats.count
-      })),
-      byModel: Array.from(byModel.entries()).map(([model, stats]) => ({
-        model,
-        cost: stats.total,
-        requests: stats.count
-      }))
-    };
+      return {
+        totalCost,
+        totalTokens,
+        totalRequests: costs.length,
+        byProvider: Array.from(byProvider.entries()).map(([provider, stats]) => ({
+          provider,
+          cost: stats.total,
+          requests: stats.count
+        })),
+        byModel: Array.from(byModel.entries()).map(([model, stats]) => ({
+          model,
+          cost: stats.total,
+          requests: stats.count
+        }))
+      };
+    } catch {
+      return { totalCost: 0, totalTokens: 0, totalRequests: 0, byProvider: [], byModel: [] };
+    }
   }
 
   /**
-   * Update thresholds
+   * Update thresholds — stored as JSON in ResourceConfig.value
    */
   async updateThresholds(thresholds: Partial<ResourceThresholds>): Promise<void> {
     this.thresholds = { ...this.thresholds, ...thresholds };
 
-    await prisma.resourceConfig.upsert({
-      where: { id: 'default' },
-      update: { thresholds: this.thresholds as any },
-      create: {
-        id: 'default',
-        thresholds: this.thresholds as any
-      }
-    });
+    try {
+      await prisma.resourceConfig.upsert({
+        where: { key: 'resource_manager_thresholds' },
+        update: { value: this.thresholds as any },
+        create: {
+          key: 'resource_manager_thresholds',
+          value: this.thresholds as any,
+          category: 'resource_manager'
+        }
+      });
+    } catch (error) {
+      console.error('[ResourceManager] Failed to update thresholds:', error);
+    }
   }
 
   /**

@@ -95,7 +95,7 @@ async function generateFix(
   allFiles: string[],
   previousAttempts: FixAttemptResult[],
 ): Promise<GeneratedFix> {
-  const route = smartRoute('fix TypeScript build errors', { taskHint: 'coding' });
+  const route = await smartRoute('fix TypeScript build errors', { taskHint: 'coding' });
 
   const attemptContext = previousAttempts.length > 0
     ? `\nPrevious fix attempts (${previousAttempts.length}):\n${previousAttempts.map(a =>

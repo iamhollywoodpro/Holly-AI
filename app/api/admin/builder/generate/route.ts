@@ -38,7 +38,7 @@ Requirement:
 ${prompt}`;
 
   // Route to 'coding' task — CF Kimi K2.5 → NVIDIA Qwen3-235B → OpenRouter Qwen Coder → Groq DeepSeek
-  const routeResult = smartRoute(userPrompt, { taskHint: 'coding' });
+  const routeResult = await smartRoute(userPrompt, { taskHint: 'coding' });
   console.log(`[Builder Generate] Routing via ${routeResult.taskType}: ${routeResult.reason}`);
 
   const { text: code, model: usedModel } = await cascadeCollect(
