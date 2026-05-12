@@ -128,8 +128,9 @@ services:
       CRON_SECRET:                      ${CRON_SECRET}
 
       # ── LiveKit WebRTC Voice ──────────────────────────────────────────────
-      LIVEKIT_API_KEY:                  ${LIVEKIT_API_KEY:-hollylivekitkey2026}
-      LIVEKIT_API_SECRET:               ${LIVEKIT_API_SECRET:-hollylivekit_secure_production_secret_32chars_long}
+      # ⚠️  No default secrets — MUST be set in Coolify env vars or LiveKit won't start
+      LIVEKIT_API_KEY:                  ${LIVEKIT_API_KEY:-}
+      LIVEKIT_API_SECRET:               ${LIVEKIT_API_SECRET:-}
       LIVEKIT_URL:                      ${LIVEKIT_URL:-ws://livekit:7880}
       LIVEKIT_NODE_IP:                  ${LIVEKIT_NODE_IP:-127.0.0.1}
 
@@ -224,7 +225,8 @@ services:
       - "7881:7881"    # RTC (UDP)
       - "7882:7882/udp"  # RTC (UDP)
     environment:
-      LIVEKIT_KEYS: "${LIVEKIT_API_KEY:-hollylivekitkey2026}: ${LIVEKIT_API_SECRET:-8f3e2a9b1c7d4e5f6a0b9c8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f}"
+      # ⚠️  No default secret — MUST be set via LIVEKIT_API_KEY/SECRET env vars
+      LIVEKIT_KEYS: "${LIVEKIT_API_KEY:?LIVEKIT_API_KEY must be set}: ${LIVEKIT_API_SECRET:?LIVEKIT_API_SECRET must be set}"
     command: >
       --node-ip ${LIVEKIT_NODE_IP:-127.0.0.1}
       --port 7880
