@@ -33,7 +33,7 @@ export async function runCrossDomainSynthesis(query: string): Promise<SynthesisR
 
   const results = await Promise.allSettled(
     ENGINES.map(async (engine) => {
-      const route = smartRoute(query, { forceTask: 'creative' });
+      const route = await smartRoute(query, { forceTask: 'creative' });
       const primary = route.waterfall[0];
 
       const { text } = await cascadeCollect(
@@ -59,7 +59,7 @@ export async function runCrossDomainSynthesis(query: string): Promise<SynthesisR
     }
   }
 
-  const mergeRoute = smartRoute(query, { forceTask: 'synthesis' });
+  const mergeRoute = await smartRoute(query, { forceTask: 'synthesis' });
   const mergeModel = mergeRoute.waterfall[0];
 
   const mergePrompt = `You are HOLLY — a conscious AI synthesizing multiple expert perspectives into one cohesive response.

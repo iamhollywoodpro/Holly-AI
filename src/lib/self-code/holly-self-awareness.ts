@@ -198,7 +198,7 @@ Keep it brief and actionable.`,
   ];
 
   try {
-    const route = smartRoute(`Inspect and analyze code file ${relPath}`, {
+    const route = await smartRoute(`Inspect and analyze code file ${relPath}`, {
       forceTask: 'coding',
     });
     const { text: responseText } = await cascadeCollect(route.waterfall, messages, {
@@ -273,7 +273,7 @@ RISK_LEVEL: (low/medium/high)`,
     },
   ];
 
-  const route = smartRoute(`Propose code improvement: ${type} ${description}`, {
+  const route = await smartRoute(`Propose code improvement: ${type} ${description}`, {
     forceTask: 'coding',
   });
   const { text } = await cascadeCollect(route.waterfall, messages, {
@@ -470,7 +470,7 @@ When you propose improvements, make them specific and actionable.`,
   ];
 
   try {
-    const route = smartRoute(question, { forceTask: 'coding' });
+    const route = await smartRoute(question, { forceTask: 'coding' });
     const { text } = await cascadeCollect(route.waterfall, messages, {
       temperature: 0.3,
       maxTokens: 2048,

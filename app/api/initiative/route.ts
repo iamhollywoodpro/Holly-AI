@@ -133,7 +133,7 @@ Respond ONLY with a JSON array of initiatives. Each initiative:
     try {
       const { smartRoute } = await import('@/lib/ai/smart-router');
       const { cascadeCollect } = await import('@/lib/ai/cascade');
-      const routeResult = smartRoute(userMsg, { taskHint: 'speed' });
+      const routeResult = await smartRoute(userMsg, { taskHint: 'speed' });
       console.log(`[Initiative API] Routing via ${routeResult.reason}`);
 
       const { text } = await cascadeCollect(

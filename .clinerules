@@ -1,0 +1,14 @@
+# Operational Stability & Execution Rules
+
+## Command Execution
+1. **Wait for Output:** Never assume a terminal command has finished until the full output is received and the prompt is returned.
+2. **Process Verification:** If a command is expected to generate a file or a build, you MUST verify the existence of that file using `ls` or `read_file` before proceeding to the next step.
+3. **No Skipping:** Do not skip "tedious" steps in multi-file refactors. Write every line requested; do not use placeholders like `// ... rest of code`.
+
+## Anti-Lockup Protocols
+1. **Batching:** For large code changes (over 100 lines), break the task into smaller sub-tasks. Verify each sub-task before moving to the next.
+2. **Memory Management:** If a file is over 500 lines, read only the relevant sections instead of the entire file to prevent context-window lag and UI freezing.
+3. **Completion Confirmation:** At the end of every task, perform a final "Sanity Check" to ensure the code compiles or the specific logic requested is actually present in the file.
+
+## Error Handling
+1. If a command hangs or provides no output for more than 10 seconds, do not "skip" it. Explicitly report the timeout to the user and ask for permission to retry or pivot.

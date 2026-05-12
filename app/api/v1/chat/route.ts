@@ -142,7 +142,7 @@ export async function POST(req: NextRequest) {
 
   // 5. Smart routing
   const taskType = body.task ?? classifyTask(latestUserMsg);
-  const routing  = smartRoute(latestUserMsg, {
+  const routing  = await smartRoute(latestUserMsg, {
     forceTask:  taskType,
     forceModel: body.model,
   });

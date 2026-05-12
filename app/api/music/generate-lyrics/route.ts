@@ -161,7 +161,7 @@ Make the lyrics emotionally resonant, culturally authentic, and lyrically powerf
     console.log(`[Lyrics API] Generating ${langConfig.name} lyrics for theme: "${theme}"`);
 
     // Route to 'creative' task — primary: OpenRouter Mistral Small → Groq Llama 3.3 → NVIDIA Mistral → CF Kimi
-    const routeResult = smartRoute(userPrompt, { taskHint: 'creative' });
+    const routeResult = await smartRoute(userPrompt, { taskHint: 'creative' });
     console.log(`[Lyrics API] Routing via ${routeResult.taskType}: ${routeResult.reason}`);
 
     const messages = [

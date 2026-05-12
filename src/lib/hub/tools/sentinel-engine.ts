@@ -17,7 +17,7 @@ import type {
 // ─── Shared LLM helper ────────────────────────────────────────────────────────
 
 async function callLLM(systemPrompt: string, userPrompt: string): Promise<string> {
-  const routing = smartRoute(userPrompt, { forceTask: 'coding' });
+  const routing = await smartRoute(userPrompt, { forceTask: 'coding' });
 
   const messages: ChatMessage[] = [
     { role: 'system', content: systemPrompt },

@@ -46,7 +46,7 @@ Return ONLY valid JSON (no markdown, no explanation):
 
   try {
     // 'creative' task — OpenRouter Mistral → Groq Llama-3.3 → NVIDIA Mistral → CF Kimi
-    const routeResult = smartRoute(prompt, { taskHint: 'creative' });
+    const routeResult = await smartRoute(prompt, { taskHint: 'creative' });
     const { text } = await cascadeCollect(
       routeResult.waterfall,
       [{ role: 'user', content: prompt }],

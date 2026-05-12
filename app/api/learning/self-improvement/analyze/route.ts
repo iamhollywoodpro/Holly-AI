@@ -13,7 +13,7 @@ export const runtime = 'nodejs';
 export const maxDuration = 30;
 
 async function callAI(prompt: string, systemPrompt: string): Promise<string> {
-  const routeResult = smartRoute(prompt, { taskHint: 'reasoning' });
+  const routeResult = await smartRoute(prompt, { taskHint: 'reasoning' });
   const { text } = await cascadeCollect(
     routeResult.waterfall,
     [

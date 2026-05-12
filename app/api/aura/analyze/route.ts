@@ -164,7 +164,7 @@ Respond ONLY with valid JSON:
 }`;
 
       try {
-        const routeResult = smartRoute(prompt, { taskHint: 'creative' });
+        const routeResult = await smartRoute(prompt, { taskHint: 'creative' });
         console.log(`[AURA analyze] Routing via ${routeResult.reason}`);
         const { text: content, model: usedModel } = await cascadeCollect(
           routeResult.waterfall,

@@ -241,7 +241,7 @@ async function generateBuildPlan(
   inspection: Awaited<ReturnType<typeof inspectWorkspace>>,
   sessionId: string
 ): Promise<BuildPlan> {
-  const route = smartRoute(prompt, { taskHint: 'coding' });
+  const route = await smartRoute(prompt, { taskHint: 'coding' });
 
   const systemPrompt = `You are HOLLY's autonomous builder engine. You generate precise, executable build plans.
 Respond ONLY with valid JSON matching this exact schema — no markdown, no explanation:
@@ -316,7 +316,7 @@ function getDefaultPlan(prompt: string): BuildPlan {
 // ─── File Scaffolding ─────────────────────────────────────────────────────────
 
 async function scaffoldFiles(sessionId: string, workspaceDir: string, plan: BuildPlan): Promise<void> {
-  const route = smartRoute('generate code files', { taskHint: 'coding' });
+  const route = await smartRoute('generate code files', { taskHint: 'coding' });
 
   // Generate each file with AI
   const batchSize = 3;
@@ -439,7 +439,7 @@ function generateGlobalsCss(): string {
 async function autoFix(sessionId: string, workspaceDir: string, plan: BuildPlan, errorOutput: string): Promise<void> {
   emit(sessionId, { type: 'fix', sessionId, ts: Date.now(), title: 'Attempting auto-fix', body: 'Analysing build errors…', level: 'warn', phase: 'fix' });
 
-  const route = smartRoute('fix build errors', { taskHint: 'coding' });
+  const route = await smartRoute('fix build errors', { taskHint: 'coding' });
 
   const systemPrompt = `You are HOLLY's error-correction engine. Analyse build errors and provide fixes.
 Respond with JSON: { "fixes": [{ "file": "path", "action": "write|command", "content": "...", "command": "..." }] }`;
@@ -502,7 +502,7 @@ async function fixVerificationIssues(
       const fileSpec = plan.files.find(f => f.path === filePath);
       if (fileSpec) {
         const content = await generateFileContent(
-          smartRoute('generate code', { taskHint: 'coding' }).waterfall,
+          (await smartRoute('generate code', { taskHint: 'coding' })).waterfall,
           plan, fileSpec
         );
         await writeFile(workspaceDir, filePath, content);

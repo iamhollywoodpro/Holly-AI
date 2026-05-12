@@ -4,7 +4,7 @@
  * Wraps the SmartRouter + provider adapters.
  * Usage:
  *
- *   const result = smartRoute(userMessage);
+ *   const result = await smartRoute(userMessage);
  *   for await (const chunk of cascade(result.waterfall, messages, controller, opts)) {
  *     controller.enqueue(encode(chunk));
  *   }

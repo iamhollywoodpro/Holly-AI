@@ -119,7 +119,7 @@ export async function detectEmotionsLLM(
       : '';
 
     const { text } = await cascadeCollect(
-      smartRoute(message, { taskHint: 'speed' }).waterfall,
+      (await smartRoute(message, { taskHint: 'speed' })).waterfall,
       [
         { role: 'system', content: EMOTION_ANALYSIS_PROMPT },
         { role: 'user', content: `Analyze this message:${contextBlock}\n\n"${message}"` },

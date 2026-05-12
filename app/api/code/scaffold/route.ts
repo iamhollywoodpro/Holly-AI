@@ -74,7 +74,7 @@ ${context ? `Additional context: ${context.slice(0, 400)}` : ''}
 
 Generate a complete, working ${name} ${type}.`;
 
-  const routeResult = smartRoute(userPrompt, { taskHint: 'coding' });
+  const routeResult = await smartRoute(userPrompt, { taskHint: 'coding' });
 
   const { text: code, model: usedModel } = await cascadeCollect(
     routeResult.waterfall,
