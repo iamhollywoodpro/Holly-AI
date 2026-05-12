@@ -127,6 +127,7 @@ model User {
   // AURA 3.0: Multi-agent workspaces
   auraWorkspaces  AuraWorkspace[]
   MemoryEmbedding MemoryEmbedding[]
+  GoalExecution   GoalExecution[] @relation("GoalExecutionsUser")
 
   @@map("users")
 }
@@ -4089,18 +4090,18 @@ model AuraMessage {
 // ===========================================
 
 model MemoryEmbedding {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  content   String   @db.Text
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  content   String  @db.Text
   type      String?
   dimension Int?
-  metadata  Json     @default("{}") // Source, topic, related entities, etc.
-  
+  metadata  Json    @default("{}") // Source, topic, related entities, etc.
+
   // Requires previewFeatures = ["postgresqlExtensions"] and extensions = [vector]
   embedding Unsupported("vector(1024)")?
-  
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -4110,23 +4111,23 @@ model MemoryEmbedding {
 
 // HOLLY Autonomous Tool Discovery — finds new AI tools/models weekly
 model DiscoveredTool {
-  id              String   @id @default(cuid())
+  id              String  @id @default(cuid())
   name            String
-  description     String   @db.Text
-  category        String   // 'embedding', 'llm', 'tts', 'image', 'music', 'code', 'search', 'other'
-  source          String   // 'huggingface', 'github', 'producthunt', 'reddit', 'hn'
+  description     String  @db.Text
+  category        String // 'embedding', 'llm', 'tts', 'image', 'music', 'code', 'search', 'other'
+  source          String // 'huggingface', 'github', 'producthunt', 'reddit', 'hn'
   sourceUrl       String?
-  relevanceScore  Float    @default(0)
-  qualityScore    Float    @default(0)
-  overallScore    Float    @default(0)
-  status          String   @default("discovered")
-  evaluationNotes String?  @db.Text
+  relevanceScore  Float   @default(0)
+  qualityScore    Float   @default(0)
+  overallScore    Float   @default(0)
+  status          String  @default("discovered")
+  evaluationNotes String? @db.Text
   proposedBy      String?
-  metadata        Json     @default("{}")
+  metadata        Json    @default("{}")
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  evaluatedAt     DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  evaluatedAt DateTime?
 
   @@index([category])
   @@index([status])
@@ -4136,48 +4137,49 @@ model DiscoveredTool {
 
 // HOLLY Goal-Driven Action System — tracks autonomous goals and their execution
 model Goal {
-  id          String   @id @default(cuid())
-  
+  id String @id @default(cuid())
+
   // Goal Definition
   title       String
-  description String   @db.Text
-  category    String   // 'learning', 'improvement', 'resource', 'collaboration', 'user_satisfaction', 'performance'
-  priority    Int      @default(5) // 1-10, higher = more important
-  
+  description String @db.Text
+  category    String // 'learning', 'improvement', 'resource', 'collaboration', 'user_satisfaction', 'performance'
+  priority    Int    @default(5) // 1-10, higher = more important
+
   // Goal Status
-  status      String   @default("pending") // 'pending', 'in_progress', 'completed', 'failed', 'blocked', 'cancelled'
-  progress    Float    @default(0) // 0-100 percentage
-  
+  status   String @default("pending") // 'pending', 'in_progress', 'completed', 'failed', 'blocked', 'cancelled'
+  progress Float  @default(0) // 0-100 percentage
+
   // Execution Details
-  actions     Json     @default("[]") // Array of action objects
-  currentStep Int      @default(0)
-  totalSteps  Int      @default(0)
-  
+  actions     Json @default("[]") // Array of action objects
+  currentStep Int  @default(0)
+  totalSteps  Int  @default(0)
+
   // Dependencies
   parentGoalId String?
   parentGoal   Goal?   @relation("GoalHierarchy", fields: [parentGoalId], references: [id], onDelete: SetNull)
-  subGoals    Goal[]   @relation("GoalHierarchy")
-  dependsOn   Json     @default("[]") // Array of goal IDs this depends on
-  
+  subGoals     Goal[]  @relation("GoalHierarchy")
+  dependsOn    Json    @default("[]") // Array of goal IDs this depends on
+
   // Constraints
-  deadline    DateTime?
-  estimatedEffort Int?  // In minutes
-  actualEffort    Int?  // In minutes
-  
+  deadline        DateTime?
+  estimatedEffort Int? // In minutes
+  actualEffort    Int? // In minutes
+
   // Outcomes
   result      Json?
-  error       String?  @db.Text
+  error       String?   @db.Text
   completedAt DateTime?
-  
+
   // Metadata
-  metadata    Json     @default("{}") // Additional context, tags, etc.
-  source      String   @default("autonomous") // 'user', 'autonomous', 'system'
-  
+  metadata Json   @default("{}") // Additional context, tags, etc.
+  source   String @default("autonomous") // 'user', 'autonomous', 'system'
+
   // Timestamps
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  startedAt   DateTime?
-  
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  startedAt        DateTime?
+  goalExecutions   GoalExecution[] @relation("GoalExecutions")
+
   @@index([status])
   @@index([category])
   @@index([priority])
@@ -4188,31 +4190,31 @@ model Goal {
 
 // HOLLY Goal Execution Log — tracks actions taken toward goals
 model GoalExecution {
-  id        String   @id @default(cuid())
-  
+  id String @id @default(cuid())
+
   // Reference
-  goalId    String
-  goal      Goal     @relation(fields: [goalId], references: [id], onDelete: Cascade)
-  
+  goalId String
+  goal   Goal   @relation("GoalExecutions", fields: [goalId], references: [id], onDelete: Cascade)
+
   // Action Details
-  action    String   // Action type
+  action      String // Action type
   description String @db.Text
-  status    String   // 'started', 'completed', 'failed'
-  
+  status      String // 'started', 'completed', 'failed'
+
   // Execution Data
-  input     Json     @default("{}")
-  output    Json?
-  error     String?  @db.Text
-  duration  Int?     // In milliseconds
-  
+  input    Json    @default("{}")
+  output   Json?
+  error    String? @db.Text
+  duration Int? // In milliseconds
+
   // Context
-  userId    String?
-  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  
+  userId String?
+  user   User?   @relation("GoalExecutionsUser", fields: [userId], references: [id], onDelete: SetNull)
+
   // Timestamps
-  startedAt DateTime @default(now())
+  startedAt   DateTime  @default(now())
   completedAt DateTime?
-  
+
   @@index([goalId])
   @@index([status])
   @@index([startedAt])
