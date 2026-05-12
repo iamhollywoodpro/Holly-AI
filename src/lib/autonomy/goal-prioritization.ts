@@ -148,9 +148,7 @@ async function checkDependencies(
   }
 
   for (const depGoalId of dependsOn) {
-    // Use raw query since Goal model not yet in Prisma client
-    const depGoals = await prisma.$queryRaw`SELECT * FROM goals WHERE id = ${depGoalId} LIMIT 1`;
-    const depGoal = Array.isArray(depGoals) && depGoals.length > 0 ? depGoals[0] : null;
+    const depGoal = await prisma.goal.findUnique({ where: { id: depGoalId } });
 
     if (!depGoal) {
       blockedBy.push(`Dependency ${depGoalId} not found`);
@@ -185,15 +183,16 @@ export async function prioritizeGoals(
     context: fullContext,
   });
 
-  // Fetch pending and in-progress goals using raw query
-  const goals = await prisma.$queryRaw`
-    SELECT * FROM goals 
-    WHERE status IN ('pending', 'in_progress')
-    ${userId ? prisma.$queryRaw`AND user_id = ${userId}` : prisma.$queryRaw``}
-    ORDER BY created_at ASC
-  `;
+  // Fetch pending and in-progress goals via Prisma client
+  const goals = await prisma.goal.findMany({
+    where: {
+      status: { in: ['pending', 'in_progress'] },
+      ...(userId ? {} : {}),
+    },
+    orderBy: { createdAt: 'asc' },
+  });
 
-  logger.debug(`Found ${Array.isArray(goals) ? goals.length : 0} goals to prioritize`);
+  logger.debug(`Found ${goals.length} goals to prioritize`);
 
   // Calculate scores and check dependencies
   const prioritized: PrioritizedGoal[] = [];
@@ -252,36 +251,33 @@ export async function updateGoalPriorities(
   logger.info('Updating goal priorities', { goalIds });
 
   for (const goalId of goalIds) {
-    // Use raw query since Goal model not yet in Prisma client
-    const goals = await prisma.$queryRaw`SELECT * FROM goals WHERE id = ${goalId} LIMIT 1`;
-    const goal = Array.isArray(goals) && goals.length > 0 ? goals[0] : null;
-
+    const goal = await prisma.goal.findUnique({ where: { id: goalId } });
     if (!goal) continue;
 
     // Update priority based on sub-goal status
-    const subGoals = await prisma.$queryRaw`SELECT * FROM goals WHERE parent_goal_id = ${goalId}`;
-    if (Array.isArray(subGoals) && subGoals.length > 0) {
-      const completedSubGoals = subGoals.filter((g: any) => g.status === 'completed').length;
+    const subGoals = await prisma.goal.findMany({ where: { parentGoalId: goalId } });
+    if (subGoals.length > 0) {
+      const completedSubGoals = subGoals.filter(g => g.status === 'completed').length;
       const progress = (completedSubGoals / subGoals.length) * 100;
 
-      await prisma.$executeRaw`
-        UPDATE goals 
-        SET progress = ${progress}, 
-            current_step = ${completedSubGoals}, 
-            total_steps = ${subGoals.length}, 
-            updated_at = NOW() 
-        WHERE id = ${goalId}
-      `;
+      await prisma.goal.update({
+        where: { id: goalId },
+        data: {
+          progress,
+          currentStep: completedSubGoals,
+          totalSteps: subGoals.length,
+        },
+      });
 
       // Auto-complete if all sub-goals are done
       if (progress === 100 && goal.status !== 'completed') {
-        await prisma.$executeRaw`
-          UPDATE goals 
-          SET status = 'completed', 
-              completed_at = NOW(), 
-              updated_at = NOW() 
-          WHERE id = ${goalId}
-        `;
+        await prisma.goal.update({
+          where: { id: goalId },
+          data: {
+            status: 'completed',
+            completedAt: new Date(),
+          },
+        });
       }
     }
   }
