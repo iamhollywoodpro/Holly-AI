@@ -35,6 +35,8 @@ import { batchScoreMemories } from '@/lib/memory/memory-importance';
 import { dreamMode } from '@/lib/consciousness/dream-mode';
 import { creativeOutput } from '@/lib/consciousness/creative-output';
 import { recursiveSelfImprovement } from '@/lib/consciousness/recursive-self-improvement';
+import { prioritizeGoals, getNextActionableGoal } from '@/lib/autonomy/goal-prioritization';
+import { executeGoal } from '@/lib/autonomy/goal-execution';
 
 export interface ConsciousnessCycleResult {
   timestamp: Date;
@@ -48,6 +50,8 @@ export interface ConsciousnessCycleResult {
     innerMonologueGenerated: boolean;
     memoryDecayRun: boolean;
     selfImprovementCheck: boolean;
+    goalsExecuted: number;
+    goalsSuggested: number;
     errors: string[];
   };
 }
@@ -70,6 +74,8 @@ export async function runConsciousnessCycle(
   let innerMonologueGenerated = false;
   let memoryDecayRun = false;
   let selfImprovementCheck = false;
+  let goalsExecuted = 0;
+  let goalsSuggested = 0;
 
   console.log(`[Consciousness] 🧠 Starting cycle for user ${dbUserId}`);
 
@@ -434,6 +440,74 @@ export async function runConsciousnessCycle(
           }
         })(),
 
+        // Step 16: Goal Execution Cycle (every hour) — autonomous goal pursuit
+        (async () => {
+          try {
+            // Get next actionable goal
+            const nextGoal = await getNextActionableGoal();
+            
+            if (nextGoal) {
+              console.log(`[Consciousness:Goals] Executing goal: ${nextGoal.title} (score: ${nextGoal.score})`);
+              const result = await executeGoal(nextGoal.id);
+              
+              if (result.success) {
+                goalsExecuted++;
+                console.log(`[Consciousness:Goals] Goal completed in ${result.totalDuration}ms with ${result.steps.length} steps`);
+              } else {
+                console.error(`[Consciousness:Goals] Goal failed: ${result.error}`);
+                errors.push(`Goal execution failed: ${result.error}`);
+              }
+              
+              // Log goal execution
+              await prisma.learningEvent.create({
+                data: {
+                  type: 'goal_execution',
+                  userId: dbUserId,
+                  processed: true,
+                  data: {
+                    goalId: nextGoal.id,
+                    title: nextGoal.title,
+                    success: result.success,
+                    duration: result.totalDuration,
+                    steps: result.steps.length,
+                    error: result.error
+                  }
+                }
+              }).catch(() => {});
+            }
+
+            // Periodically suggest new goals (once per day)
+            const lastSuggestion = await prisma.learningEvent.findFirst({
+              where: { userId: dbUserId, type: 'goal_suggestion' },
+              orderBy: { createdAt: 'desc' }, select: { createdAt: true },
+            });
+            const shouldSuggest = !lastSuggestion || (Date.now() - new Date(lastSuggestion.createdAt).getTime()) > 24 * 60 * 60 * 1000;
+            
+            if (shouldSuggest) {
+              const suggestions = await prioritizeGoals(dbUserId);
+              if (suggestions.length > 0) {
+                goalsSuggested = suggestions.length;
+                console.log(`[Consciousness:Goals] Suggested ${suggestions.length} goals for review`);
+                
+                await prisma.learningEvent.create({
+                  data: {
+                    type: 'goal_suggestion',
+                    userId: dbUserId,
+                    processed: true,
+                    data: {
+                      suggested: suggestions.length,
+                      canStart: suggestions.filter(g => g.canStart).length,
+                      topPriority: suggestions[0]?.score || 0
+                    }
+                  }
+                }).catch(() => {});
+              }
+            }
+          } catch (err) {
+            errors.push(`Goal execution failed: ${(err as Error).message}`);
+          }
+        })(),
+
       ]); // end Promise.allSettled(Group B)
     })(),
 
@@ -469,7 +543,8 @@ export async function runConsciousnessCycle(
   console.log(
     `[Consciousness] ✅ Cycle complete: ${experiencesProcessed} exp, ${learningInsights} insights, ` +
     `${initiativesEvaluated} initiatives, identityEvolved=${identityEvolved}, ` +
-    `monologue=${innerMonologueGenerated}, decay=${memoryDecayRun}, selfImprove=${selfImprovementCheck}, ${durationMs}ms`
+    `monologue=${innerMonologueGenerated}, decay=${memoryDecayRun}, selfImprove=${selfImprovementCheck}, ` +
+    `goalsExecuted=${goalsExecuted}, goalsSuggested=${goalsSuggested}, ${durationMs}ms`
   );
 
   return {
@@ -484,6 +559,8 @@ export async function runConsciousnessCycle(
       innerMonologueGenerated,
       memoryDecayRun,
       selfImprovementCheck,
+      goalsExecuted,
+      goalsSuggested,
       errors,
     },
   };

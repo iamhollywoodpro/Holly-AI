@@ -4133,3 +4133,88 @@ model DiscoveredTool {
   @@index([overallScore])
   @@map("discovered_tools")
 }
+
+// HOLLY Goal-Driven Action System — tracks autonomous goals and their execution
+model Goal {
+  id          String   @id @default(cuid())
+  
+  // Goal Definition
+  title       String
+  description String   @db.Text
+  category    String   // 'learning', 'improvement', 'resource', 'collaboration', 'user_satisfaction', 'performance'
+  priority    Int      @default(5) // 1-10, higher = more important
+  
+  // Goal Status
+  status      String   @default("pending") // 'pending', 'in_progress', 'completed', 'failed', 'blocked', 'cancelled'
+  progress    Float    @default(0) // 0-100 percentage
+  
+  // Execution Details
+  actions     Json     @default("[]") // Array of action objects
+  currentStep Int      @default(0)
+  totalSteps  Int      @default(0)
+  
+  // Dependencies
+  parentGoalId String?
+  parentGoal   Goal?   @relation("GoalHierarchy", fields: [parentGoalId], references: [id], onDelete: SetNull)
+  subGoals    Goal[]   @relation("GoalHierarchy")
+  dependsOn   Json     @default("[]") // Array of goal IDs this depends on
+  
+  // Constraints
+  deadline    DateTime?
+  estimatedEffort Int?  // In minutes
+  actualEffort    Int?  // In minutes
+  
+  // Outcomes
+  result      Json?
+  error       String?  @db.Text
+  completedAt DateTime?
+  
+  // Metadata
+  metadata    Json     @default("{}") // Additional context, tags, etc.
+  source      String   @default("autonomous") // 'user', 'autonomous', 'system'
+  
+  // Timestamps
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  startedAt   DateTime?
+  
+  @@index([status])
+  @@index([category])
+  @@index([priority])
+  @@index([deadline])
+  @@index([createdAt])
+  @@map("goals")
+}
+
+// HOLLY Goal Execution Log — tracks actions taken toward goals
+model GoalExecution {
+  id        String   @id @default(cuid())
+  
+  // Reference
+  goalId    String
+  goal      Goal     @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  
+  // Action Details
+  action    String   // Action type
+  description String @db.Text
+  status    String   // 'started', 'completed', 'failed'
+  
+  // Execution Data
+  input     Json     @default("{}")
+  output    Json?
+  error     String?  @db.Text
+  duration  Int?     // In milliseconds
+  
+  // Context
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  // Timestamps
+  startedAt DateTime @default(now())
+  completedAt DateTime?
+  
+  @@index([goalId])
+  @@index([status])
+  @@index([startedAt])
+  @@map("goal_executions")
+}
