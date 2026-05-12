@@ -1,3 +1,9 @@
+# CRITICAL: GITHUB & EXECUTION RULES
+1. NEVER wait for deployment status after a `git push`. Once the push command is sent, consider the task COMPLETE.
+2. Background Pushing: Always append `&` or use a "fire and forget" approach for git commands to prevent terminal hangs.
+3. NO SKIPPING: You are STRICTLY FORBIDDEN from skipping steps in a command chain. If you cannot verify a step, ASK the user; do not "skip" and enter a wait-state.
+4. If a command is marked as "Skipped" in the UI, immediately STOP all background processes and prompt the user for manual intervention.
+
 # Operational Stability & Execution Rules
 
 ## Command Execution
