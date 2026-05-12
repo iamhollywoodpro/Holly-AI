@@ -11,9 +11,47 @@
 
 import { PrismaClient } from '@prisma/client';
 import { createLogger } from '@/lib/logging/structured-logger';
+import { execSync } from 'child_process';
 
 const prisma = new PrismaClient();
 const logger = createLogger('goal-execution');
+
+// LLM helper — calls Groq for analysis tasks
+async function callLLM(prompt: string, systemPrompt: string = 'You are Holly, an expert AI engineer.'): Promise<string> {
+  const apiKey = process.env.GROQ_API_KEY || process.env.OPENROUTER_API_KEY;
+  const baseUrl = process.env.GROQ_API_KEY
+    ? 'https://api.groq.com/openai/v1/chat/completions'
+    : 'https://openrouter.ai/api/v1/chat/completions';
+  const model = process.env.GROQ_API_KEY ? 'llama-3.3-70b-versatile' : 'meta-llama/llama-3.3-70b-instruct';
+
+  if (!apiKey) throw new Error('No LLM API key configured for goal execution');
+
+  const res = await fetch(baseUrl, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model, messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: prompt }], temperature: 0.3, max_tokens: 4096 }),
+    signal: AbortSignal.timeout(30_000),
+  });
+  if (!res.ok) throw new Error(`LLM call failed: ${res.status}`);
+  const data = await res.json();
+  return data.choices?.[0]?.message?.content || '';
+}
+
+// GitHub API helper
+async function githubRequest(path: string, method: string = 'GET', body?: any): Promise<any> {
+  const token = process.env.GITHUB_TOKEN;
+  const owner = process.env.GITHUB_OWNER || process.env.HOLLY_GITHUB_OWNER || 'iamhollywoodpro';
+  const repo = process.env.GITHUB_REPO || process.env.HOLLY_GITHUB_REPO || 'Holly-AI';
+  if (!token) throw new Error('GITHUB_TOKEN not configured');
+
+  const res = await fetch(`https://api.github.com/repos/${owner}/${repo}${path}`, {
+    method,
+    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', 'Accept': 'application/vnd.github.v3+json' },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (!res.ok) throw new Error(`GitHub API ${path} failed: ${res.status}`);
+  return res.json();
+}
 
 export interface GoalExecutionStep {
   id: string;
@@ -170,22 +208,41 @@ async function analyzePerformance(input: any): Promise<any> {
  */
 async function optimizeCode(input: any): Promise<any> {
   const { filePath, optimizationType } = input;
-
   logger.info(`Optimizing code: ${filePath}`, { optimizationType });
 
-  // This would integrate with the self-code-engine
-  // For now, return a placeholder response
-  return {
-    success: true,
-    optimizations: [
-      {
-        type: 'caching',
-        description: 'Added caching layer for frequently accessed data',
-        impact: 'high'
-      }
-    ],
-    filePath
-  };
+  try {
+    // Read the file from GitHub
+    const fileContent = await githubRequest(`/contents/${filePath}`);
+    const content = Buffer.from(fileContent.content, 'base64').toString('utf-8');
+
+    // Ask LLM for optimization suggestions
+    const analysis = await callLLM(
+      `Analyze this code file and provide specific optimizations:\n\nFile: ${filePath}\n\`\`\`\n${content.substring(0, 8000)}\n\`\`\`\n\nType of optimization requested: ${optimizationType || 'general'}\n\nProvide a JSON array of optimizations with {type, description, code_snippet, impact} fields. Only include practical, safe changes.`,
+      'You are an expert code optimizer. Return ONLY a valid JSON array, no markdown.'
+    );
+
+    let optimizations;
+    try {
+      optimizations = JSON.parse(analysis);
+    } catch {
+      optimizations = [{ type: optimizationType || 'general', description: analysis.substring(0, 500), impact: 'medium' }];
+    }
+
+    // Store the optimization result as a learning event
+    await prisma.learningEvent.create({
+      data: {
+        type: 'code_optimization',
+        userId: 'system',
+        data: { filePath, optimizations, timestamp: new Date() },
+        timestamp: new Date(),
+      },
+    });
+
+    return { success: true, optimizations, filePath, analyzedAt: new Date() };
+  } catch (error) {
+    logger.error('optimizeCode failed', { filePath, error: String(error) });
+    return { success: false, filePath, error: String(error) };
+  }
 }
 
 /**
@@ -193,18 +250,52 @@ async function optimizeCode(input: any): Promise<any> {
  */
 async function runTests(input: any): Promise<any> {
   const { testSuite, coverage } = input;
+  logger.info(`Running tests: ${testSuite || 'all'}`);
 
-  logger.info(`Running tests: ${testSuite}`);
+  try {
+    // Run jest tests locally
+    const testPath = testSuite || '';
+    const startTime = Date.now();
+    let result: string;
+    try {
+      result = execSync(`npx jest ${testPath} --no-coverage --json 2>/dev/null || true`, {
+        timeout: 120_000,
+        encoding: 'utf-8',
+        cwd: process.cwd(),
+      });
+    } catch (e: any) {
+      // jest exits non-zero on test failures but still outputs JSON
+      result = e.stdout || e.message;
+    }
+    const duration = Date.now() - startTime;
 
-  // This would execute actual tests
-  // For now, return mock results
-  return {
-    total: 100,
-    passed: 95,
-    failed: 5,
-    coverage: coverage || 85,
-    duration: 45000
-  };
+    // Parse jest JSON output
+    let parsed: any = {};
+    try {
+      // Extract JSON from output (jest may output other text too)
+      const jsonMatch = result.match(/\{[\s\S]*\}/);
+      if (jsonMatch) parsed = JSON.parse(jsonMatch[0]);
+    } catch { /* fallback to raw output */ }
+
+    const total = parsed.numTotalTests || 0;
+    const passed = parsed.numPassedTests || 0;
+    const failed = parsed.numFailedTests || 0;
+
+    return {
+      total,
+      passed,
+      failed,
+      coverage: coverage || 0,
+      duration,
+      success: failed === 0,
+      failures: parsed.testResults?.flatMap((r: any) =>
+        r.assertionResults?.filter((a: any) => a.status === 'failed').map((a: any) => a.fullName) || []
+      ) || [],
+    };
+  } catch (error) {
+    logger.error('runTests failed', { error: String(error) });
+    return { total: 0, passed: 0, failed: 0, duration: 0, success: false, error: String(error) };
+  }
 }
 
 /**
@@ -212,18 +303,30 @@ async function runTests(input: any): Promise<any> {
  */
 async function deploy(input: any): Promise<any> {
   const { environment, version } = input;
-
   logger.info(`Deploying to ${environment}: ${version}`);
 
-  // This would trigger actual deployment
-  // For now, return mock result
-  return {
-    success: true,
-    deploymentUrl: `https://holly.nexamusicgroup.com`,
-    version,
-    environment,
-    deployedAt: new Date()
-  };
+  try {
+    // Trigger Coolify redeploy via webhook or push-based deploy
+    const deployHookUrl = process.env.COOLIFY_DEPLOY_WEBHOOK;
+    if (deployHookUrl) {
+      const res = await fetch(deployHookUrl, { method: 'POST', signal: AbortSignal.timeout(30_000) });
+      if (!res.ok) throw new Error(`Deploy webhook failed: ${res.status}`);
+      const data = await res.json().catch(() => ({}));
+      return { success: true, deploymentUrl: `https://holly.nexamusicgroup.com`, version, environment, deployedAt: new Date(), webhookResponse: data };
+    }
+
+    // Fallback: git push triggers Coolify auto-deploy
+    try {
+      execSync('git push origin main 2>&1', { timeout: 60_000, encoding: 'utf-8' });
+      return { success: true, deploymentUrl: `https://holly.nexamusicgroup.com`, version, environment, deployedAt: new Date(), method: 'git_push' };
+    } catch (gitErr: any) {
+      logger.warn('Git push deploy failed', { error: gitErr.message });
+      return { success: false, error: `Deploy failed: ${gitErr.message}`, environment };
+    }
+  } catch (error) {
+    logger.error('deploy failed', { error: String(error) });
+    return { success: false, error: String(error), environment };
+  }
 }
 
 /**

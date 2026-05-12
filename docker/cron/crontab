@@ -44,3 +44,11 @@
 # The heartbeat of HOLLY's autonomous existence: processes experiences, generates
 # LLM-powered insights, evaluates initiatives, and evolves identity daily.
 15 * * * *   /run-cron.sh /api/cron/consciousness-loop >> /proc/1/fd/1 2>&1
+
+# Tool Discovery — every 6 hours (offset 45 min)
+# Scans Holly's tool registry for new MCP tools and registers them.
+45 */6 * * *  /run-cron.sh /api/cron/tool-discovery >> /proc/1/fd/1 2>&1
+
+# Goal Evaluation — every 3 hours (offset 30 min)
+# Evaluates pending autonomous goals and triggers execution.
+30 */3 * * *  /run-cron.sh /api/goals/evaluate >> /proc/1/fd/1 2>&1
