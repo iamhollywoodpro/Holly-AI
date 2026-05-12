@@ -126,10 +126,18 @@ export async function GET() {
     
     const overallStatus = computeOverallStatus(providers, integrations);
 
-    const ttsProviders = [
-      { provider: 'voxcpm2_tts', status: process.env.VOXCPM2_TTS_URL ? 'configured' : 'not_set' },
-      { provider: 'kokoro_tts',  status: process.env.KOKORO_TTS_URL ? 'configured' : 'not_set' },
-    ];
+    // Run actual TTS reachability checks (non-blocking, 3s timeout each)
+    const [voxcpm2Tts, kokoroTts] = await Promise.all([
+      checkTtsProvider(process.env.VOXCPM2_TTS_URL, 'voxcpm2_tts'),
+      checkTtsProvider(process.env.KOKORO_TTS_URL, 'kokoro_tts'),
+    ]);
+    const ttsProviders = [voxcpm2Tts, kokoroTts];
+
+    // Get real provider health from the health monitor
+    let providerHealth: any[] = [];
+    try {
+      providerHealth = providerHealthMonitor.getAllHealthStatus();
+    } catch { /* health monitor not initialized yet */ }
 
     const activeProviders = Object.values(providers).filter(Boolean).length;
     const activeIntegrations = Object.values(integrations).filter(Boolean).length;
@@ -162,8 +170,11 @@ export async function GET() {
         },
         latency: `${Date.now() - start}ms`,
         
-        // Detailed provider status
+        // Detailed provider status (env var presence)
         providers,
+
+        // Real provider health (from health monitor — latency, last check, errors)
+        providerHealth,
 
         // Detailed integration status
         integrations,
