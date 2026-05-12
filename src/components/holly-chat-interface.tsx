@@ -1440,6 +1440,7 @@ export default function HollyChatInterface() {
   const [activeTaskType, setActiveTaskType] = useState<string | null>(null);
   // ── Phase 5: Sovereign Health ───────────────────────────────────────────────
   const [systemHealth, setSystemHealth] = useState<SystemHealth | null>(null);
+  const [errorState, setErrorState] = useState<{ type: string; provider?: string; message?: string }>({ type: 'none' });
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
