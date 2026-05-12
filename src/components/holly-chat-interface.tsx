@@ -1494,11 +1494,24 @@ export default function HollyChatInterface() {
           const data = await res.json();
           const h = data?.health;
           if (h) {
+            // Compute a real health score based on issue count + severity
+            const issues: Array<{ severity?: string }> = Array.isArray(h.issues) ? h.issues : [];
+            const severityPenalty = issues.reduce((acc: number, issue) => {
+              const s = issue.severity;
+              if (s === 'critical') return acc + 25;
+              if (s === 'high') return acc + 15;
+              if (s === 'medium') return acc + 8;
+              if (s === 'low') return acc + 3;
+              return acc + 5;
+            }, 0);
+            const score = Math.max(0, Math.min(100, 100 - severityPenalty));
+            const healthy = score >= 70;
+
             const health = {
-              healthy: !!h.healthy,
-              score: h.healthy ? 100 : 85,
-              status: h.healthy ? "Stable" : "Analyzing Anomaly",
-              issuesCount: Array.isArray(h.issues) ? h.issues.length : 0
+              healthy,
+              score,
+              status: healthy ? "Stable" : score >= 50 ? "Degraded" : "Critical",
+              issuesCount: issues.length,
             };
             setSystemHealth(health);
             
