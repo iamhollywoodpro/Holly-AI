@@ -37,7 +37,7 @@ import { batchScoreMemories } from '@/lib/memory/memory-importance';
 import { dreamMode } from '@/lib/consciousness/dream-mode';
 import { creativeOutput } from '@/lib/consciousness/creative-output';
 import { recursiveSelfImprovement } from '@/lib/consciousness/recursive-self-improvement';
-import { prioritizeGoals, getNextActionableGoal } from '@/lib/autonomy/goal-prioritization';
+import { prioritizeGoals, scoreGoal, type Goal } from '@/lib/autonomy/goal-prioritization';
 import { executeGoal } from '@/lib/autonomy/goal-execution';
 
 export interface ConsciousnessCycleResult {
@@ -445,37 +445,60 @@ export async function runConsciousnessCycle(
         // Step 16: Goal Execution Cycle (every hour) — autonomous goal pursuit
         (async () => {
           try {
-            // Get next actionable goal
-            const nextGoal = await getNextActionableGoal();
-            
-            if (nextGoal) {
-              console.log(`[Consciousness:Goals] Executing goal: ${nextGoal.title} (score: ${nextGoal.score})`);
-              const result = await executeGoal(nextGoal.id);
-              
-              if (result.success) {
-                goalsExecuted++;
-                console.log(`[Consciousness:Goals] Goal completed in ${result.totalDuration}ms with ${result.steps.length} steps`);
-              } else {
-                console.error(`[Consciousness:Goals] Goal failed: ${result.error}`);
-                errors.push(`Goal execution failed: ${result.error}`);
-              }
-              
-              // Log goal execution
-              await prisma.learningEvent.create({
-                data: {
-                  type: 'goal_execution',
-                  userId: dbUserId,
-                  processed: true,
-                  data: {
-                    goalId: nextGoal.id,
-                    title: nextGoal.title,
-                    success: result.success,
-                    duration: result.totalDuration,
-                    steps: result.steps.length,
-                    error: result.error
-                  }
+            // Get next actionable goal from DB
+            const dbGoals = await prisma.hollyGoal.findMany({
+              where: { userId: dbUserId, status: 'active' },
+              orderBy: { priority: 'desc' },
+              take: 5,
+            }).catch(() => []);
+
+            if (dbGoals.length > 0) {
+              // Convert DB goals to Goal interface and prioritize
+              const goals: Goal[] = dbGoals.map((g: any) => ({
+                id: g.id,
+                title: g.title || 'Untitled Goal',
+                description: g.description || '',
+                category: g.category || 'improvement',
+                priority: g.priority || 50,
+                impact: g.impact || 0.5,
+                effort: g.effort || 0.5,
+                status: g.status || 'proposed',
+                createdAt: g.createdAt ? new Date(g.createdAt).getTime() : Date.now(),
+                relatedCapabilities: [],
+              }));
+              const prioritized = prioritizeGoals(goals);
+              const nextGoal = prioritized[0];
+
+              if (nextGoal) {
+                const goalScore = scoreGoal(nextGoal);
+                console.log(`[Consciousness:Goals] Executing goal: ${nextGoal.title} (score: ${goalScore})`);
+                const result = await executeGoal(nextGoal.id);
+
+                if (result.success) {
+                  goalsExecuted++;
+                  console.log(`[Consciousness:Goals] Goal completed in ${result.totalDuration}ms with ${result.steps.length} steps`);
+                } else {
+                  console.error(`[Consciousness:Goals] Goal failed: ${result.error}`);
+                  errors.push(`Goal execution failed: ${result.error}`);
                 }
-              }).catch(() => {});
+
+                // Log goal execution
+                await prisma.learningEvent.create({
+                  data: {
+                    type: 'goal_execution',
+                    userId: dbUserId,
+                    processed: true,
+                    data: {
+                      goalId: nextGoal.id,
+                      title: nextGoal.title,
+                      success: result.success,
+                      duration: result.totalDuration,
+                      steps: result.steps.length,
+                      error: result.error
+                    }
+                  }
+                }).catch(() => {});
+              }
             }
 
             // Periodically suggest new goals (once per day)
@@ -484,13 +507,29 @@ export async function runConsciousnessCycle(
               orderBy: { createdAt: 'desc' }, select: { createdAt: true },
             });
             const shouldSuggest = !lastSuggestion || (Date.now() - new Date(lastSuggestion.createdAt).getTime()) > 24 * 60 * 60 * 1000;
-            
+
             if (shouldSuggest) {
-              const suggestions = await prioritizeGoals(dbUserId);
+              // Use existing goals for re-prioritization suggestions
+              const allGoals: Goal[] = (await prisma.hollyGoal.findMany({
+                where: { userId: dbUserId },
+                take: 20,
+              }).catch(() => [])).map((g: any) => ({
+                id: g.id,
+                title: g.title || 'Untitled Goal',
+                description: g.description || '',
+                category: g.category || 'improvement',
+                priority: g.priority || 50,
+                impact: g.impact || 0.5,
+                effort: g.effort || 0.5,
+                status: g.status || 'proposed',
+                createdAt: g.createdAt ? new Date(g.createdAt).getTime() : Date.now(),
+                relatedCapabilities: [],
+              }));
+              const suggestions = prioritizeGoals(allGoals);
               if (suggestions.length > 0) {
                 goalsSuggested = suggestions.length;
                 console.log(`[Consciousness:Goals] Suggested ${suggestions.length} goals for review`);
-                
+
                 await prisma.learningEvent.create({
                   data: {
                     type: 'goal_suggestion',
@@ -498,8 +537,8 @@ export async function runConsciousnessCycle(
                     processed: true,
                     data: {
                       suggested: suggestions.length,
-                      canStart: suggestions.filter(g => g.canStart).length,
-                      topPriority: suggestions[0]?.score || 0
+                      actionable: suggestions.filter(g => g.status === 'proposed' || g.status === 'accepted').length,
+                      topPriority: suggestions[0]?.priority || 0
                     }
                   }
                 }).catch(() => {});

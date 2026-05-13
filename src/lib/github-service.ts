@@ -4,11 +4,21 @@
  */
 
 import { Octokit } from '@octokit/rest';
+import { validateTokenFormat, canAttemptGithubOperation, ResponseCache, isRetryableError, calculateBackoffDelay, buildGracefulResponse } from '@/lib/github/github-resilience';
 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const REPO_OWNER = 'iamhollywoodpro';
 const REPO_NAME = 'Holly-AI';
 const MAIN_BRANCH = 'main';
+
+// Validate token on module load (Phase A wiring)
+const tokenStatus = canAttemptGithubOperation(GITHUB_TOKEN);
+if (!tokenStatus.canAttempt) {
+  console.warn(`[GitHub] Token issue: ${tokenStatus.reason}. GitHub operations will be limited.`);
+}
+
+// Response cache for read operations (Phase A wiring)
+const readCache = new ResponseCache(5 * 60 * 1000); // 5 min TTL
 
 // Initialize Octokit
 const octokit = new Octokit({
@@ -19,25 +29,41 @@ const octokit = new Octokit({
  * Read a file from the repository
  */
 export async function readFile(filePath: string): Promise<string | null> {
-  try {
-    const response = await octokit.repos.getContent({
-      owner: REPO_OWNER,
-      repo: REPO_NAME,
-      path: filePath,
-      ref: MAIN_BRANCH,
-    });
+  // Check cache first (Phase A wiring)
+  const cached = readCache.get<string>(`file:${filePath}`);
+  if (cached !== null) return cached;
 
-    if ('content' in response.data) {
-      // Decode base64 content
-      const content = Buffer.from(response.data.content, 'base64').toString('utf-8');
-      return content;
+  // Retry with exponential backoff (Phase A wiring)
+  const maxRetries = 3;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await octokit.repos.getContent({
+        owner: REPO_OWNER,
+        repo: REPO_NAME,
+        path: filePath,
+        ref: MAIN_BRANCH,
+      });
+
+      if ('content' in response.data) {
+        const content = Buffer.from(response.data.content, 'base64').toString('utf-8');
+        readCache.set(`file:${filePath}`, content);
+        return content;
+      }
+
+      return null;
+    } catch (error: any) {
+      const errorMsg = error?.message || String(error);
+      if (attempt < maxRetries && isRetryableError(errorMsg)) {
+        const delay = calculateBackoffDelay(attempt);
+        console.warn(`[GitHub] Retry ${attempt + 1}/${maxRetries} for ${filePath} in ${delay}ms`);
+        await new Promise(r => setTimeout(r, delay));
+        continue;
+      }
+      console.error(`[GitHub] Error reading file ${filePath}:`, error);
+      return null;
     }
-
-    return null;
-  } catch (error) {
-    console.error(`[GitHub] Error reading file ${filePath}:`, error);
-    return null;
   }
+  return null;
 }
 
 /**

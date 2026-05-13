@@ -11,7 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { createLogger } from '@/lib/logging/structured-logger';
-import { prioritizeGoals, suggestGoals } from '@/lib/autonomy/goal-prioritization';
+import { prioritizeGoals, generateGoalsFromGaps, type Goal } from '@/lib/autonomy/goal-prioritization';
 import { executeGoal, getGoalStats } from '@/lib/autonomy/goal-execution';
 
 const prisma = new PrismaClient();
@@ -30,18 +30,37 @@ export async function GET(request: NextRequest) {
     logger.info('GET /api/goals', { userId, action });
 
     if (action === 'suggest') {
-      // Suggest new goals based on system state
-      const suggestions = await suggestGoals(userId || 'system');
+      // Suggest new goals based on capability gaps
+      const suggestions = generateGoalsFromGaps([]); // Empty capabilities = no gap-based suggestions
       return NextResponse.json({ suggestions });
     }
 
-    // Default: return prioritized goals
-    const prioritized = await prioritizeGoals(userId);
-    
+    // Default: fetch goals from DB and prioritize
+    const dbGoals = await prisma.hollyGoal.findMany({
+      where: userId ? { userId } : undefined,
+      take: 50,
+      orderBy: { priority: 'desc' },
+    }).catch(() => []);
+
+    const goals: Goal[] = dbGoals.map((g: any) => ({
+      id: g.id,
+      title: g.title || 'Untitled',
+      description: g.description || '',
+      category: g.category || 'improvement',
+      priority: g.priority || 50,
+      impact: g.impact || 0.5,
+      effort: g.effort || 0.5,
+      status: g.status || 'proposed',
+      createdAt: g.createdAt ? new Date(g.createdAt).getTime() : Date.now(),
+      relatedCapabilities: [],
+    }));
+
+    const prioritized = prioritizeGoals(goals);
+
     return NextResponse.json({
       goals: prioritized,
       total: prioritized.length,
-      canStart: prioritized.filter(g => g.canStart).length
+      actionable: prioritized.filter(g => g.status === 'proposed' || g.status === 'accepted').length
     });
 
   } catch (error) {

@@ -24,6 +24,7 @@ import { buildPrompt } from '@/lib/chat/prompt-builder';
 import { saveMessages, runBackgroundTasks } from '@/lib/chat/background-tasks';
 import type { ChatMessage } from '@/lib/ai/providers/free-providers';
 import { chatLimiter, getRateLimitKey } from '@/lib/rate-limiter';
+import { hasSqlInjection, hasPathTraversal, sanitizePath } from '@/lib/security/input-sanitizer';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -151,6 +152,18 @@ export async function POST(req: NextRequest) {
 
     const latestUserMessage: string = userMessages[userMessages.length - 1]?.content || '';
     if (latestUserMessage.length > 50_000) return NextResponse.json({ error: 'Message too long' }, { status: 413 });
+
+    // Input security sanitization (Phase A wiring)
+    if (hasSqlInjection(latestUserMessage)) {
+      logger.warn('Chat', 'SQL injection attempt blocked', { userId: dbUserId });
+      return NextResponse.json({ error: 'Invalid input detected' }, { status: 400 });
+    }
+    for (const msg of userMessages) {
+      if (msg.content && typeof msg.content === 'string' && hasPathTraversal(msg.content)) {
+        logger.warn('Chat', 'Path traversal attempt blocked', { userId: dbUserId });
+        return NextResponse.json({ error: 'Invalid input detected' }, { status: 400 });
+      }
+    }
 
     // 3. MODE DETECTION & TOPICS
     const detectedMode = detectMode(latestUserMessage);

@@ -8,7 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { selfDiagnosisExtended, selfHealing } from '@/lib/autonomous/self-diagnosis';
 import { apiError, apiSuccess } from '@/lib/api/responses';
-import { aiRateLimit } from '@/lib/rate-limiter';
+import { applyRateLimit } from '@/lib/rate-limiter';
 
 export async function GET(request: NextRequest) {
   try {
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Rate limit healing actions
-    const rateLimitError = await aiRateLimit(request, userId);
+    const rateLimitError = applyRateLimit(request);
     if (rateLimitError) return rateLimitError;
 
     const body = await request.json();

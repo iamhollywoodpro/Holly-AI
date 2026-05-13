@@ -11,6 +11,7 @@
 
 import { PrismaClient } from '@prisma/client';
 import { createLogger } from '@/lib/logging/structured-logger';
+import { performEthicalReview, logEthicalReview, type ActionCategory } from '@/lib/safety/ethics-framework';
 import { execSync } from 'child_process';
 
 const prisma = new PrismaClient();
@@ -681,6 +682,37 @@ export async function executeGoal(goalId: string): Promise<ExecutionResult> {
         input: action.input || {},
         startedAt: new Date()
       };
+
+      // ── Ethical review before executing step (Phase A wiring) ──────────
+      const ethicalAction = {
+        type: (step.action === 'deploy' ? 'deployment'
+          : step.action === 'update_documentation' ? 'communication'
+          : step.action === 'fix_issue' ? 'code_modification'
+          : step.action === 'learn_from_feedback' ? 'learning'
+          : 'goal_execution') as ActionCategory,
+        description: step.description,
+        targetResource: step.input?.filePath || step.input?.target || 'unknown',
+        userId: goal.user_id || 'system',
+        estimatedImpact: (step.action === 'deploy' ? 'high' : step.action === 'fix_issue' ? 'medium' : 'low') as 'low' | 'medium' | 'high',
+        isReversible: step.action !== 'deploy',
+        affectsOtherUsers: step.action === 'deploy',
+        dataAccessed: step.input ? Object.keys(step.input) : [],
+      };
+      const ethicalReview = performEthicalReview(ethicalAction);
+      logEthicalReview(ethicalReview);
+
+      if (!ethicalReview.approved) {
+        logger.warn(`Goal step blocked by ethics review: ${step.action}`, {
+          stepId: step.id,
+          concerns: ethicalReview.concerns,
+        });
+        step.status = 'failed';
+        step.error = `Blocked by ethics review: ${ethicalReview.concerns.join('; ')}`;
+        step.completedAt = new Date();
+        steps.push(step);
+        lessons.push(`Ethics review blocked ${step.action}: ${ethicalReview.concerns.join(', ')}`);
+        continue; // Skip to next step
+      }
 
       // Execute step
       const result = await executeGoalStep(step);

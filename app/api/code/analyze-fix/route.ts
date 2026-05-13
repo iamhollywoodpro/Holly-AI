@@ -8,7 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { autoFixer, errorDetector } from '@/lib/code/auto-fixer';
 import { apiError, apiSuccess } from '@/lib/api/responses';
-import { aiRateLimit } from '@/lib/rate-limiter';
+import { applyRateLimit } from '@/lib/rate-limiter';
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Rate limit
-    const rateLimitError = await aiRateLimit(request, userId);
+    const rateLimitError = applyRateLimit(request);
     if (rateLimitError) return rateLimitError;
 
     const body = await request.json();

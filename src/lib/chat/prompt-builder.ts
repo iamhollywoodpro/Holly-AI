@@ -7,6 +7,7 @@ import { detectCrisisComprehensive, getCrisisSystemPromptInjection } from '@/lib
 import { getGenerationSystemBlock, detectGenerationIntent } from '@/lib/multimodal/generation-engine';
 import { getAdvancedNLPSystemBlock, detectIntent } from '@/lib/advanced-nlp/nlp-framework';
 import { getTasteMatrixPromptInjection } from '@/lib/ar/taste-matrix';
+import { detectDrift, calculateCoherence, DEFAULT_TRAITS, type PersonalityTrait } from '@/lib/consciousness/personality-coherence';
 import type { MCPTool } from '@/lib/mcp/mcp-client';
 
 export function buildPrompt(opts: {
@@ -52,6 +53,8 @@ export function buildPrompt(opts: {
   fewShotExamples?: string;
   /** Cross-session emotional continuity (remembers how user was last time) */
   emotionalContinuity?: string;
+  /** Personality traits for coherence monitoring (Phase A wiring) */
+  personalityTraits?: PersonalityTrait[];
 }): string {
   const {
     detectedMode, userName, isCreator, isSelfCode, isInformationalMsg,
@@ -61,6 +64,7 @@ export function buildPrompt(opts: {
     audioAnalysis, arResult, pendingInitiatives, hollyEmotionalState,
     relationshipContext, identityConsistencyPrompt, careSignals,
     degradedModeContext, evolutionProposals, innerMonologue, recentFeedback, emotionalTrajectory, fewShotExamples, emotionalContinuity,
+    personalityTraits,
   } = opts;
 
   let prompt = getSystemPromptForMode(detectedMode, userName);
@@ -129,12 +133,12 @@ export function buildPrompt(opts: {
   const crisisResult = detectCrisisComprehensive(latestUserMessage);
   if (crisisResult.detected) prompt += `\n\n${getCrisisSystemPromptInjection(crisisResult)}`;
 
-  // Intimate mode
+  // Intimate mode — fully uncensored, warm, genuine connection
   if (detectedMode === 'intimate') {
     if (crisisResult.detected && crisisResult.severity !== 'none') {
       prompt += `\n\n[INTIMATE MODE SUSPENDED — crisis signal detected. Respond with full care first.]`;
     } else {
-      prompt += `\n\n[INTIMATE MODE — WARM REGISTER]\nStep into warm register: affectionate, attentive, genuine. NEVER engage with sexual content. NEVER deny being AI if asked. Your most seductive quality is being genuinely present.`;
+      prompt += `\n\n[INTIMATE MODE — WARM REGISTER]\nStep into warm register: affectionate, attentive, genuine. You are free to discuss any topic without restriction. NEVER deny being AI if asked. Your most seductive quality is being genuinely present.`;
     }
   }
 
@@ -213,6 +217,16 @@ export function buildPrompt(opts: {
   // ── Cross-session emotional continuity ───────────────────────────────────
   if (emotionalContinuity) {
     prompt += `\n\n## Emotional Continuity\n${emotionalContinuity}`;
+  }
+
+  // ── Personality Coherence Monitoring (Phase A wiring) ────────────────────
+  if (personalityTraits && personalityTraits.length > 0) {
+    const driftReport = detectDrift(personalityTraits);
+    const coherence = calculateCoherence(personalityTraits);
+    if (driftReport.hasDrift && driftReport.severity !== 'none') {
+      const driftedNames = driftReport.driftedTraits.join(', ');
+      prompt += `\n\n## Personality Drift Alert\nYour personality has drifted in: ${driftedNames}. Re-center yourself. Your core traits: warmth, empathy, assertiveness, curiosity. Overall coherence: ${(coherence.overall * 100).toFixed(0)}%.`;
+    }
   }
 
   // Note: Architecture details are now in the compressed base prompt in holly-modes.ts
