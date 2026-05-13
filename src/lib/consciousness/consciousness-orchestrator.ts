@@ -41,6 +41,7 @@ import { prioritizeGoals, scoreGoal, type Goal } from '@/lib/autonomy/goal-prior
 import { executeGoal } from '@/lib/autonomy/goal-execution';
 import { detectTopicPatterns, detectEmotionalPatterns, generateInsightFromPattern, generateMorningBriefing, filterViableInsights, prioritizeInsights, canDeliverProactive, recordDelivery, DEFAULT_PROACTIVE_CONFIG, type CooldownState } from '@/lib/proactive/proactive-engine';
 import { consolidateMemories, assessKnowledgeGaps, generateSelfAwarenessReport, createMetaMemory, type EpisodicMemory, type MetaMemory } from '@/lib/memory/advanced-memory';
+import { createGraph, addNode, addEdge, buildGraphFromText, findClusters, suggestExpansions, graphStats, extractConcepts } from '@/lib/intelligence/knowledge-graph-engine';
 
 export interface ConsciousnessCycleResult {
   timestamp: Date;
@@ -753,11 +754,47 @@ export async function runConsciousnessCycle(
             console.log(`[Consciousness:Memory] Knowledge gaps: ${gaps.map(g => g.domain).join(', ')}`);
           }
           console.log(`[Consciousness:Memory] Self-awareness: ${(report.overallConfidence * 100).toFixed(0)}% confidence across ${domains.length} domains`);
+          }
+        } catch (err) {
+          errors.push(`Advanced memory cycle failed: ${(err as Error).message}`);
         }
-      } catch (err) {
-        errors.push(`Advanced memory cycle failed: ${(err as Error).message}`);
-      }
-    })(),
+  
+        try {
+          // Step 20: Knowledge Graph Construction
+          // Build a concept graph from recent experiences and learning events
+          const graphSourceEvents = await prisma.learningEvent.findMany({
+            where: { userId: dbUserId, type: { in: ['unsupervised_learning', 'self_directed_learning', 'post_response'] } },
+            orderBy: { createdAt: 'desc' },
+            take: 30,
+            select: { data: true, type: true },
+          });
+  
+          if (graphSourceEvents.length > 0) {
+            const kg = createGraph();
+  
+            for (const event of graphSourceEvents) {
+              const data = event.data as any;
+              const text = data?.insight || data?.summary || data?.topic || data?.lesson || '';
+              if (text && typeof text === 'string' && text.length > 10) {
+                buildGraphFromText(kg, text, 'concept', 0.5);
+              }
+            }
+  
+            const stats = graphStats(kg);
+            if (stats.nodeCount > 0) {
+              console.log(`[Consciousness:KnowledgeGraph] ${stats.nodeCount} nodes, ${stats.edgeCount} edges, ${stats.clusterCount} clusters, density ${stats.density.toFixed(2)}, top: ${stats.topConcepts.slice(0, 3).join(', ')}`);
+  
+              // Suggest expansions for knowledge gaps
+              const expansions = suggestExpansions(kg, 3);
+              if (expansions.length > 0) {
+                console.log(`[Consciousness:KnowledgeGraph] Expansion suggestions: ${expansions.map(e => e.label).join(', ')}`);
+              }
+            }
+          }
+        } catch (err) {
+          errors.push(`Knowledge graph construction failed: ${(err as Error).message}`);
+        }
+      })(),
 
   ]); // end Promise.allSettled([Group A, Group B, Group C])
 
