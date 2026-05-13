@@ -87,8 +87,8 @@ describe('Self-Code Engine Safety', () => {
 
   describe('TypeScript Validation', () => {
     it('should reject syntactically invalid code', () => {
-      const invalidCode = `function broken( { return; }`;
-      // Simple syntax check - balanced braces
+      // This code has UNBALANCED braces: 2 open, 1 close
+      const invalidCode = `function broken() { if (true) { return; }`;
       const openBraces = (invalidCode.match(/{/g) || []).length;
       const closeBraces = (invalidCode.match(/}/g) || []).length;
       expect(openBraces).not.toBe(closeBraces);

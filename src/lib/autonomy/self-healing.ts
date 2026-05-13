@@ -352,6 +352,10 @@ export class SelfHealingEngine {
   /**
    * Start continuous monitoring
    */
+  private autoFixCount = 0;
+  private autoFixWindowStart = Date.now();
+  private readonly MAX_AUTO_FIXES_PER_HOUR = 3;
+
   startMonitoring(userId: string): void {
     logger.info("Starting continuous health monitoring", {
       interval: this.CHECK_INTERVAL,
@@ -362,12 +366,41 @@ export class SelfHealingEngine {
       const healthCheck = await this.performHealthCheck();
 
       if (!healthCheck.healthy) {
+        // Circuit breaker: max 3 auto-fixes per hour
+        const now = Date.now();
+        if (now - this.autoFixWindowStart > 60 * 60 * 1000) {
+          this.autoFixCount = 0;
+          this.autoFixWindowStart = now;
+        }
+
+        if (this.autoFixCount >= this.MAX_AUTO_FIXES_PER_HOUR) {
+          logger.warn(`Self-healing circuit breaker: ${this.autoFixCount} fixes this hour, skipping`, {
+            category: "self-healing",
+          });
+          return;
+        }
+
         const { triggerAutonomousRepair } = await import('./autonomous-fixer');
         
-        // Trigger auto-fixes for critical issues
+        // Trigger auto-fixes for critical, high, and medium issues
         for (const issue of healthCheck.issues) {
-          if (issue.severity === "critical" || issue.severity === "high") {
-            await triggerAutonomousRepair(issue, userId);
+          if (issue.severity === "critical" || issue.severity === "high" || issue.severity === "medium") {
+            try {
+              const result = await triggerAutonomousRepair(issue, userId);
+              if (result.success) {
+                this.autoFixCount++;
+                logger.info(`Self-healing auto-fix applied: ${issue.type}`, {
+                  category: "self-healing",
+                  issueType: issue.type,
+                  severity: issue.severity,
+                });
+              }
+            } catch (err) {
+              logger.error(`Self-healing auto-fix failed: ${issue.type}`, {
+                category: "self-healing",
+                error: err instanceof Error ? err.message : String(err),
+              });
+            }
           }
         }
       }

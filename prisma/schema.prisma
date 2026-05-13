@@ -1,4 +1,3 @@
-// This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
@@ -53,6 +52,7 @@ model User {
   workLogStats            WorkLogStats?
   emotionLogs             EmotionLog[]
   emotionalBaseline       EmotionalBaseline?
+  selfCodeRollbacks       SelfCodeRollback[]
 
   // Phase 1: Metamorphosis - Self-Awareness
   userFeedbacks UserFeedback[]
@@ -4380,4 +4380,32 @@ model Alert {
   @@index([acknowledged])
   @@index([createdAt])
   @@map("alerts")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 3.3: Self-Code Rollback State (persists across restarts)
+// ─────────────────────────────────────────────────────────────────────────────
+model SelfCodeRollback {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  planId        String
+  filePath      String
+  changeType    String                    // fix, optimize, enhance, refactor
+  riskLevel     String                    // low, medium, high
+  status        String   @default("pending") // pending, applied, rolled_back, expired
+  originalHash  String                    // SHA-256 of original file content
+  backupPath    String                    // Path to .holly-backups/ file
+  proposedContentHash String?             // SHA-256 of proposed change
+  diff          String?  @db.Text         // Unified diff of the change
+  appliedAt     DateTime?
+  rolledBackAt  DateTime?
+  expiresAt     DateTime?                 // Auto-cleanup after 30 days
+  createdAt     DateTime @default(now())
+
+  @@index([userId])
+  @@index([status])
+  @@index([planId])
+  @@index([expiresAt])
+  @@map("self_code_rollbacks")
 }

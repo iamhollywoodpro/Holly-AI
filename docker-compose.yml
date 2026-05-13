@@ -127,6 +127,10 @@ services:
       # ── Cron auth secret (shared with holly-cron) ─────────────────────────
       CRON_SECRET:                      ${CRON_SECRET}
 
+      # ── Internal networking ────────────────────────────────────────────────
+      # Used by monitoring-engine to health-check itself (Docker vs localhost)
+      INTERNAL_APP_URL:                 ${INTERNAL_APP_URL:-http://localhost:3000}
+
       # ── LiveKit WebRTC Voice ──────────────────────────────────────────────
       # ⚠️  No default secrets — MUST be set in Coolify env vars or LiveKit won't start
       LIVEKIT_API_KEY:                  ${LIVEKIT_API_KEY:-}
