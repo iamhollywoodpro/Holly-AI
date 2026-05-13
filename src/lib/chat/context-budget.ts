@@ -53,6 +53,7 @@ const BASE_PRIORITIES: Record<StreamKey, StreamConfig> = {
   innerMonologue:          { maxTokens: 150, priority: 'low' },
   emotionalContinuity:     { maxTokens: 200, priority: 'high' },
   recentFeedback:          { maxTokens: 100, priority: 'medium' },
+  advancedMemoryContext:   { maxTokens: 200, priority: 'high' },
 };
 
 // Override priorities per mode

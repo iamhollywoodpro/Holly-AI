@@ -53,6 +53,8 @@ export function buildPrompt(opts: {
   fewShotExamples?: string;
   /** Cross-session emotional continuity (remembers how user was last time) */
   emotionalContinuity?: string;
+  /** Advanced memory: episodic recall + procedural skills + meta self-awareness */
+  advancedMemoryContext?: string;
   /** Personality traits for coherence monitoring (Phase A wiring) */
   personalityTraits?: PersonalityTrait[];
 }): string {
@@ -64,6 +66,7 @@ export function buildPrompt(opts: {
     audioAnalysis, arResult, pendingInitiatives, hollyEmotionalState,
     relationshipContext, identityConsistencyPrompt, careSignals,
     degradedModeContext, evolutionProposals, innerMonologue, recentFeedback, emotionalTrajectory, fewShotExamples, emotionalContinuity,
+    advancedMemoryContext,
     personalityTraits,
   } = opts;
 
@@ -217,6 +220,11 @@ export function buildPrompt(opts: {
   // ── Cross-session emotional continuity ───────────────────────────────────
   if (emotionalContinuity) {
     prompt += `\n\n## Emotional Continuity\n${emotionalContinuity}`;
+  }
+
+  // ── Advanced Memory: Episodic + Procedural + Meta ────────────────────────
+  if (advancedMemoryContext) {
+    prompt += `\n\n## Your Deep Memory\n${advancedMemoryContext}`;
   }
 
   // ── Personality Coherence Monitoring (Phase A wiring) ────────────────────

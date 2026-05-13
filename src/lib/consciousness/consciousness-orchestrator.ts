@@ -40,6 +40,7 @@ import { recursiveSelfImprovement } from '@/lib/consciousness/recursive-self-imp
 import { prioritizeGoals, scoreGoal, type Goal } from '@/lib/autonomy/goal-prioritization';
 import { executeGoal } from '@/lib/autonomy/goal-execution';
 import { detectTopicPatterns, detectEmotionalPatterns, generateInsightFromPattern, generateMorningBriefing, filterViableInsights, prioritizeInsights, canDeliverProactive, recordDelivery, DEFAULT_PROACTIVE_CONFIG, type CooldownState } from '@/lib/proactive/proactive-engine';
+import { consolidateMemories, assessKnowledgeGaps, generateSelfAwarenessReport, createMetaMemory, type EpisodicMemory, type MetaMemory } from '@/lib/memory/advanced-memory';
 
 export interface ConsciousnessCycleResult {
   timestamp: Date;
@@ -697,6 +698,64 @@ export async function runConsciousnessCycle(
         }
       } catch (err) {
         errors.push(`Monitoring cycle failed: ${(err as Error).message}`);
+      }
+
+      try {
+        // Step 19: Advanced Memory Cycle
+        // Consolidate episodic memories and assess knowledge gaps
+        const recentMemories = await prisma.learningEvent.findMany({
+          where: { userId: dbUserId, type: { in: ['consciousness_cycle', 'post_response', 'unsupervised_learning'] } },
+          orderBy: { createdAt: 'desc' },
+          take: 50,
+          select: { data: true, createdAt: true, type: true },
+        });
+
+        if (recentMemories.length > 0) {
+          // Convert to episodic memories for consolidation
+          const episodicMemories: EpisodicMemory[] = recentMemories.map((e: any, i: number) => ({
+            id: `ep_consolidate_${i}`,
+            userId: dbUserId,
+            timestamp: new Date(e.createdAt).getTime(),
+            event: `${e.type} event`,
+            context: JSON.stringify(e.data).substring(0, 200),
+            emotionalWeight: e.data?.emotionalWeight ?? 0.3,
+            participants: [],
+            location: 'chat',
+            outcome: '',
+            topics: e.data?.topics ?? [],
+            retrievalCount: e.data?.retrievalCount ?? 0,
+            lastRetrievedAt: null,
+            consolidationLevel: (e.data?.consolidationLevel ?? 'fragile') as EpisodicMemory['consolidationLevel'],
+          }));
+
+          const consolidation = consolidateMemories(episodicMemories);
+          console.log(`[Consciousness:Memory] Consolidation: ${consolidation.stabilized} stabilized, ${consolidation.permanent} permanent, ${consolidation.pruned} pruned`);
+        }
+
+        // Assess knowledge gaps from self-directed learning events
+        const learningEvents = await prisma.learningEvent.findMany({
+          where: { userId: dbUserId, type: 'self_directed_learning' },
+          orderBy: { createdAt: 'desc' },
+          take: 20,
+          select: { data: true },
+        });
+
+        if (learningEvents.length > 0) {
+          const domains: MetaMemory[] = learningEvents
+            .map((e: any) => e.data?.topic || e.data?.domain)
+            .filter(Boolean)
+            .map((domain: string) => createMetaMemory(domain, 'intermediate', 0.5));
+
+          const gaps = assessKnowledgeGaps(domains);
+          const report = generateSelfAwarenessReport(domains);
+
+          if (gaps.length > 0) {
+            console.log(`[Consciousness:Memory] Knowledge gaps: ${gaps.map(g => g.domain).join(', ')}`);
+          }
+          console.log(`[Consciousness:Memory] Self-awareness: ${(report.overallConfidence * 100).toFixed(0)}% confidence across ${domains.length} domains`);
+        }
+      } catch (err) {
+        errors.push(`Advanced memory cycle failed: ${(err as Error).message}`);
       }
     })(),
 
