@@ -16,6 +16,7 @@ import { getFewShotExamples } from '@/lib/consciousness/few-shot-curator';
 import { getRecentMonologue } from '@/lib/consciousness/inner-monologue';
 import { applyContextBudget } from '@/lib/chat/context-budget';
 import { retrieveEpisodicMemories, findRelevantProcedures, generateSelfAwarenessReport, createMetaMemory, type EpisodicMemory, type ProceduralMemory, type MetaMemory } from '@/lib/memory/advanced-memory';
+import { createGraph, buildGraphFromText, extractSubgraph, extractConcepts, topNodes, graphStats } from '@/lib/intelligence/knowledge-graph-engine';
 
 export interface ChatContext {
   memoryContext: string;
@@ -270,6 +271,44 @@ export async function loadChatContext(
                     if (report.weakDomains.length > 0) parts.push(`  Learning: ${report.weakDomains.join(', ')}`);
                   }
                 }
+
+                // Knowledge graph: build from recent learning events and extract relevant subgraph
+                try {
+                  const kgEvents = await prisma.learningEvent.findMany({
+                    where: { userId: dbUserId, type: { in: ['unsupervised_learning', 'self_directed_learning', 'post_response'] } },
+                    orderBy: { createdAt: 'desc' },
+                    take: 20,
+                    select: { data: true },
+                  });
+
+                  if (kgEvents.length > 0) {
+                    const kg = createGraph();
+                    for (const ev of kgEvents) {
+                      const d = ev.data as any;
+                      const text = d?.insight || d?.summary || d?.topic || d?.lesson || '';
+                      if (text && typeof text === 'string' && text.length > 10) {
+                        buildGraphFromText(kg, text, 'concept', 0.5);
+                      }
+                    }
+
+                    if (kg.nodes.size > 0) {
+                      const queryConcepts = extractConcepts(latestUserMessage, 5);
+                      const topConcepts = topNodes(kg, 5).map(n => n.label);
+                      if (topConcepts.length > 0) {
+                        parts.push(`[KNOWLEDGE GRAPH — top concepts: ${topConcepts.join(', ')}]`);
+                      }
+                      // Extract subgraph around query concepts if found
+                      for (const concept of queryConcepts.slice(0, 2)) {
+                        if (kg.nodes.has(concept)) {
+                          const sub = extractSubgraph(kg, concept, 1, 5);
+                          if (sub.nodes.length > 1) {
+                            parts.push(`  Related to ${concept}: ${sub.nodes.filter(n => n.id !== concept).map(n => n.label).join(', ')}`);
+                          }
+                        }
+                      }
+                    }
+                  }
+                } catch { /* non-critical */ }
 
                 return parts.length > 0 ? parts.join('\n') : '';
               } catch { return ''; }
