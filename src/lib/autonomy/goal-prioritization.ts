@@ -1,386 +1,258 @@
 /**
- * Goal Prioritization Engine
- * 
- * Analyzes and ranks goals based on multiple factors:
- * - Priority level (1-10)
- * - Deadline proximity
- * - Dependencies (blocked goals)
- * - Category importance
- * - Resource availability
- * - User preferences
+ * Goal Prioritization Engine — Autonomous goal setting and self-directed learning
+ *
+ * Features:
+ * - Capability gap analysis
+ * - Goal scoring with multi-factor prioritization
+ * - Learning curriculum generation
+ * - Learning ROI tracking
+ * - Goal lifecycle management
  */
 
-import { PrismaClient } from '@prisma/client';
-import { createLogger } from '@/lib/logging/structured-logger';
+// ─── Types ──────────────────────────────────────────────────────────────────
 
-const prisma = new PrismaClient();
-const logger = createLogger('goal-prioritization');
+export interface Capability {
+  name: string;
+  currentLevel: number; // 0-1
+  targetLevel: number;  // 0-1
+  category: string;
+}
 
-export interface PrioritizedGoal {
+export interface Goal {
   id: string;
   title: string;
-  category: string;
-  priority: number;
-  score: number;
-  reasons: string[];
-  canStart: boolean;
-  blockedBy: string[];
+  description: string;
+  category: 'improvement' | 'learning' | 'maintenance' | 'safety' | 'user_experience';
+  priority: number;     // 0-100
+  impact: number;       // 0-1, user impact
+  effort: number;       // 0-1, implementation effort
+  status: 'proposed' | 'accepted' | 'in_progress' | 'completed' | 'rejected';
+  createdAt: number;
+  relatedCapabilities: string[];
 }
 
-export interface PrioritizationContext {
-  currentTime: Date;
-  userPreferences?: {
-    preferredCategories?: string[];
-    resourceConstraints?: {
-      maxConcurrentGoals?: number;
-      allowedCategories?: string[];
+export interface LearningEntry {
+  id: string;
+  topic: string;
+  source: string;
+  learnedAt: number;
+  appliedCount: number;
+  userSatisfactionDelta: number | null; // change in satisfaction after applying
+}
+
+export interface LearningROI {
+  topic: string;
+  totalApplications: number;
+  averageSatisfactionDelta: number;
+  roi: number; // satisfaction delta per application
+}
+
+// ─── Capability Gap Analysis ────────────────────────────────────────────────
+
+/**
+ * Calculate the gap between current and target capability levels.
+ */
+export function calculateGap(capability: Capability): number {
+  return Math.max(0, capability.targetLevel - capability.currentLevel);
+}
+
+/**
+ * Identify capabilities with the largest gaps.
+ */
+export function identifyGaps(capabilities: Capability[]): Capability[] {
+  return capabilities
+    .filter(c => calculateGap(c) > 0)
+    .sort((a, b) => calculateGap(b) - calculateGap(a));
+}
+
+/**
+ * Calculate overall capability score (average of current levels).
+ */
+export function overallCapabilityScore(capabilities: Capability[]): number {
+  if (capabilities.length === 0) return 0;
+  const total = capabilities.reduce((sum, c) => sum + c.currentLevel, 0);
+  return total / capabilities.length;
+}
+
+// ─── Goal Scoring ───────────────────────────────────────────────────────────
+
+/**
+ * Score a goal based on multiple factors.
+ * Higher score = higher priority.
+ */
+export function scoreGoal(goal: Goal): number {
+  // Base priority from goal (0-100)
+  let score = goal.priority;
+
+  // Impact multiplier: high impact goals get boosted
+  score *= (0.5 + goal.impact * 0.5);
+
+  // Effort penalty: high effort reduces effective priority
+  score *= (1 - goal.effort * 0.3);
+
+  // Category bonuses
+  const categoryBonus: Record<string, number> = {
+    'safety': 20,
+    'user_experience': 15,
+    'improvement': 10,
+    'learning': 5,
+    'maintenance': 0,
+  };
+  score += categoryBonus[goal.category] ?? 0;
+
+  return Math.round(Math.min(100, Math.max(0, score)));
+}
+
+/**
+ * Prioritize a list of goals by their scores.
+ */
+export function prioritizeGoals(goals: Goal[]): Goal[] {
+  return goals
+    .filter(g => g.status === 'proposed')
+    .map(g => ({ ...g, priority: scoreGoal(g) }))
+    .sort((a, b) => b.priority - a.priority);
+}
+
+/**
+ * Select the top N goals to work on.
+ */
+export function selectTopGoals(goals: Goal[], maxGoals: number = 3): Goal[] {
+  return prioritizeGoals(goals).slice(0, maxGoals);
+}
+
+// ─── Goal Generation from Gaps ──────────────────────────────────────────────
+
+/**
+ * Generate goal proposals from capability gaps.
+ */
+export function generateGoalsFromGaps(capabilities: Capability[]): Goal[] {
+  const gaps = identifyGaps(capabilities);
+
+  return gaps.map((cap, index) => {
+    const gap = calculateGap(cap);
+    const impact = Math.min(1, gap * 2); // larger gap = higher impact
+    const effort = Math.min(1, gap);     // larger gap = more effort
+
+    return {
+      id: `gap_${cap.name.toLowerCase().replace(/\s+/g, '_')}_${Date.now()}_${index}`,
+      title: `Improve ${cap.name}`,
+      description: `Increase ${cap.name} capability from ${Math.round(cap.currentLevel * 100)}% to ${Math.round(cap.targetLevel * 100)}% (gap: ${Math.round(gap * 100)}%)`,
+      category: cap.category === 'safety' ? 'safety' as const
+        : cap.category === 'learning' ? 'learning' as const
+        : 'improvement' as const,
+      priority: Math.round(gap * 80),
+      impact,
+      effort,
+      status: 'proposed' as const,
+      createdAt: Date.now(),
+      relatedCapabilities: [cap.name],
     };
-  };
-  systemState?: {
-    cpuUsage?: number;
-    memoryUsage?: number;
-    activeGoals?: number;
-  };
-}
-
-/**
- * Calculate priority score for a goal (0-100)
- */
-async function calculateGoalScore(
-  goal: any,
-  context: PrioritizationContext
-): Promise<{ score: number; reasons: string[] }> {
-  const reasons: string[] = [];
-  let score = 0;
-
-  // Base score from priority (1-10) * 10 = 0-100
-  score += goal.priority * 10;
-  if (goal.priority >= 8) {
-    reasons.push(`High priority (${goal.priority}/10)`);
-  }
-
-  // Deadline proximity (up to 20 points)
-  if (goal.deadline) {
-    const timeUntilDeadline = new Date(goal.deadline).getTime() - context.currentTime.getTime();
-    const hoursUntilDeadline = timeUntilDeadline / (1000 * 60 * 60);
-    
-    if (hoursUntilDeadline < 1) {
-      score += 20;
-      reasons.push('Deadline imminent (< 1 hour)');
-    } else if (hoursUntilDeadline < 24) {
-      score += 15;
-      reasons.push('Deadline approaching (< 24 hours)');
-    } else if (hoursUntilDeadline < 168) { // 1 week
-      score += 10;
-      reasons.push('Deadline this week');
-    } else if (hoursUntilDeadline < 720) { // 1 month
-      score += 5;
-      reasons.push('Deadline this month');
-    }
-  }
-
-  // Category weighting (up to 15 points)
-  const categoryWeights: Record<string, number> = {
-    improvement: 15,    // Self-improvement is most important
-    learning: 12,       // Learning is critical for growth
-    performance: 10,    // Performance affects user experience
-    user_satisfaction: 10, // User-facing goals
-    resource: 8,        // Resource optimization
-    collaboration: 6,   // External integrations
-  };
-
-  const categoryScore = categoryWeights[goal.category] || 5;
-  score += categoryScore;
-  if (categoryScore >= 10) {
-    reasons.push(`Important category: ${goal.category}`);
-  }
-
-  // Progress boost (up to 10 points for in-progress goals)
-  if (goal.status === 'in_progress') {
-    score += 10;
-    reasons.push('Already in progress');
-  } else if (goal.progress > 0) {
-    score += 5;
-    reasons.push(`Already ${Math.round(goal.progress)}% complete`);
-  }
-
-  // Penalty for blocked goals (up to -30 points)
-  if (goal.status === 'blocked') {
-    score -= 30;
-    reasons.push('Currently blocked');
-  }
-
-  // Source weighting (up to 5 points)
-  if (goal.source === 'user') {
-    score += 5;
-    reasons.push('User-initiated goal');
-  } else if (goal.source === 'system') {
-    score += 3;
-    reasons.push('System-critical goal');
-  }
-
-  // Resource availability check
-  if (context.systemState?.activeGoals) {
-    const maxConcurrent = context.userPreferences?.resourceConstraints?.maxConcurrentGoals || 3;
-    if (context.systemState.activeGoals >= maxConcurrent) {
-      score -= 20;
-      reasons.push('System at capacity');
-    }
-  }
-
-  // Ensure score is in 0-100 range
-  score = Math.max(0, Math.min(100, score));
-
-  return { score, reasons };
-}
-
-/**
- * Check if goal dependencies are satisfied
- */
-async function checkDependencies(
-  goal: any
-): Promise<{ canStart: boolean; blockedBy: string[] }> {
-  const dependsOn: string[] = goal.dependsOn || [];
-  const blockedBy: string[] = [];
-
-  if (dependsOn.length === 0) {
-    return { canStart: true, blockedBy: [] };
-  }
-
-  for (const depGoalId of dependsOn) {
-    const depGoal = await prisma.goal.findUnique({ where: { id: depGoalId } });
-
-    if (!depGoal) {
-      blockedBy.push(`Dependency ${depGoalId} not found`);
-      continue;
-    }
-
-    if (depGoal.status !== 'completed') {
-      blockedBy.push(depGoal.title);
-    }
-  }
-
-  return {
-    canStart: blockedBy.length === 0,
-    blockedBy,
-  };
-}
-
-/**
- * Prioritize goals based on multiple factors
- */
-export async function prioritizeGoals(
-  userId?: string,
-  context?: Partial<PrioritizationContext>
-): Promise<PrioritizedGoal[]> {
-  const fullContext: PrioritizationContext = {
-    currentTime: new Date(),
-    ...context,
-  };
-
-  logger.info('Starting goal prioritization', {
-    userId,
-    context: fullContext,
   });
+}
 
-  // Fetch pending and in-progress goals via Prisma client
-  const goals = await prisma.goal.findMany({
-    where: {
-      status: { in: ['pending', 'in_progress'] },
-      ...(userId ? {} : {}),
-    },
-    orderBy: { createdAt: 'asc' },
-  });
+// ─── Learning ROI ───────────────────────────────────────────────────────────
 
-  logger.debug(`Found ${goals.length} goals to prioritize`);
+/**
+ * Calculate learning ROI from learning entries.
+ */
+export function calculateLearningROI(entries: LearningEntry[]): LearningROI[] {
+  const byTopic = new Map<string, LearningEntry[]>();
 
-  // Calculate scores and check dependencies
-  const prioritized: PrioritizedGoal[] = [];
-
-  if (Array.isArray(goals)) {
-    for (const goal of goals) {
-      const { score, reasons } = await calculateGoalScore(goal, fullContext);
-      const { canStart, blockedBy } = await checkDependencies(goal);
-
-      prioritized.push({
-        id: goal.id,
-        title: goal.title,
-        category: goal.category,
-        priority: goal.priority,
-        score,
-        reasons,
-        canStart,
-        blockedBy,
-      });
-    }
+  for (const entry of entries) {
+    if (!byTopic.has(entry.topic)) byTopic.set(entry.topic, []);
+    byTopic.get(entry.topic)!.push(entry);
   }
 
-  // Sort by score (highest first), then by canStart
-  prioritized.sort((a, b) => {
-    if (a.canStart !== b.canStart) {
-      return a.canStart ? -1 : 1;
-    }
-    return b.score - a.score;
-  });
+  const results: LearningROI[] = [];
 
-  logger.info('Goal prioritization complete', {
-    totalGoals: prioritized.length,
-    canStart: prioritized.filter(g => g.canStart).length,
-    topScore: prioritized[0]?.score || 0,
-  });
+  for (const [topic, topicEntries] of byTopic.entries()) {
+    const totalApplications = topicEntries.reduce((sum, e) => sum + e.appliedCount, 0);
+    const satisfactionDeltas = topicEntries
+      .map(e => e.userSatisfactionDelta)
+      .filter((d): d is number => d !== null);
 
-  return prioritized;
-}
+    const averageSatisfactionDelta = satisfactionDeltas.length > 0
+      ? satisfactionDeltas.reduce((sum, d) => sum + d, 0) / satisfactionDeltas.length
+      : 0;
 
-/**
- * Get next actionable goal (highest priority, unblocked)
- */
-export async function getNextActionableGoal(
-  userId?: string
-): Promise<PrioritizedGoal | null> {
-  const prioritized = await prioritizeGoals(userId);
-  return prioritized.find(g => g.canStart) || null;
-}
+    const roi = totalApplications > 0
+      ? averageSatisfactionDelta / totalApplications
+      : 0;
 
-/**
- * Update goal priorities based on new information
- */
-export async function updateGoalPriorities(
-  goalIds: string[]
-): Promise<void> {
-  logger.info('Updating goal priorities', { goalIds });
-
-  for (const goalId of goalIds) {
-    const goal = await prisma.goal.findUnique({ where: { id: goalId } });
-    if (!goal) continue;
-
-    // Update priority based on sub-goal status
-    const subGoals = await prisma.goal.findMany({ where: { parentGoalId: goalId } });
-    if (subGoals.length > 0) {
-      const completedSubGoals = subGoals.filter(g => g.status === 'completed').length;
-      const progress = (completedSubGoals / subGoals.length) * 100;
-
-      await prisma.goal.update({
-        where: { id: goalId },
-        data: {
-          progress,
-          currentStep: completedSubGoals,
-          totalSteps: subGoals.length,
-        },
-      });
-
-      // Auto-complete if all sub-goals are done
-      if (progress === 100 && goal.status !== 'completed') {
-        await prisma.goal.update({
-          where: { id: goalId },
-          data: {
-            status: 'completed',
-            completedAt: new Date(),
-          },
-        });
-      }
-    }
-  }
-}
-
-/**
- * Suggest new goals based on system state and user behavior
- */
-export async function suggestGoals(
-  userId: string
-): Promise<{
-  suggestedGoals: Array<{
-    title: string;
-    description: string;
-    category: string;
-    priority: number;
-    reasoning: string;
-  }>;
-}> {
-  const suggestedGoals: Array<{
-    title: string;
-    description: string;
-    category: string;
-    priority: number;
-    reasoning: string;
-  }> = [];
-
-  // Check for performance issues
-  const recentPerformanceIssues = await prisma.performanceIssue.count({
-    where: {
-      status: 'open',
-      firstDetected: {
-        gte: new Date(Date.now() - 24 * 60 * 60 * 1000), // Last 24h
-      },
-    },
-  });
-
-  if (recentPerformanceIssues > 0) {
-    suggestedGoals.push({
-      title: 'Resolve Performance Issues',
-      description: `Address ${recentPerformanceIssues} open performance issues affecting system performance`,
-      category: 'performance',
-      priority: 8,
-      reasoning: 'Multiple performance issues detected, need immediate attention',
+    results.push({
+      topic,
+      totalApplications,
+      averageSatisfactionDelta,
+      roi,
     });
   }
 
-  // Check for unreviewed code
-  const pendingCodeReviews = await prisma.codeReview.count({
-    where: {
-      status: 'pending',
-    },
-  });
+  return results.sort((a, b) => b.roi - a.roi);
+}
 
-  if (pendingCodeReviews > 5) {
-    suggestedGoals.push({
-      title: 'Process Code Reviews',
-      description: `Review and process ${pendingCodeReviews} pending code reviews`,
-      category: 'improvement',
-      priority: 7,
-      reasoning: 'Code review backlog growing, needs attention',
-    });
+/**
+ * Identify topics with the best learning ROI.
+ */
+export function getBestLearningTopics(entries: LearningEntry[], topN: number = 5): string[] {
+  const roi = calculateLearningROI(entries);
+  return roi.slice(0, topN).map(r => r.topic);
+}
+
+/**
+ * Identify topics with negative ROI (learning was harmful).
+ */
+export function getHarmfulTopics(entries: LearningEntry[]): string[] {
+  const roi = calculateLearningROI(entries);
+  return roi.filter(r => r.averageSatisfactionDelta < 0).map(r => r.topic);
+}
+
+// ─── Goal Lifecycle ─────────────────────────────────────────────────────────
+
+/**
+ * Transition a goal to a new status.
+ */
+export function transitionGoalStatus(
+  goal: Goal,
+  newStatus: Goal['status'],
+): Goal {
+  const validTransitions: Record<Goal['status'], Goal['status'][]> = {
+    'proposed': ['accepted', 'rejected'],
+    'accepted': ['in_progress', 'rejected'],
+    'in_progress': ['completed', 'rejected'],
+    'completed': [],
+    'rejected': [],
+  };
+
+  if (!validTransitions[goal.status].includes(newStatus)) {
+    return goal; // Invalid transition, return unchanged
   }
 
-  // Check for failed deployments
-  const recentFailedDeployments = await prisma.deploymentLog.count({
-    where: {
-      status: 'failed',
-      startedAt: {
-        gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // Last 7 days
-      },
-    },
-  });
+  return { ...goal, status: newStatus };
+}
 
-  if (recentFailedDeployments > 0) {
-    suggestedGoals.push({
-      title: 'Investigate Deployment Failures',
-      description: `Analyze and fix ${recentFailedDeployments} failed deployments from the past week`,
-      category: 'improvement',
-      priority: 9,
-      reasoning: 'Deployment failures need immediate investigation',
-    });
+/**
+ * Get goal statistics.
+ */
+export function getGoalStats(goals: Goal[]): {
+  total: number;
+  byStatus: Record<Goal['status'], number>;
+  byCategory: Record<string, number>;
+  averagePriority: number;
+} {
+  const byStatus: Record<Goal['status'], number> = {
+    proposed: 0, accepted: 0, in_progress: 0, completed: 0, rejected: 0,
+  };
+  const byCategory: Record<string, number> = {};
+
+  for (const goal of goals) {
+    byStatus[goal.status]++;
+    byCategory[goal.category] = (byCategory[goal.category] ?? 0) + 1;
   }
 
-  // Check for learning opportunities
-  const recentLearningEvents = await prisma.learningEvent.count({
-    where: {
-      type: 'correction',
-      timestamp: {
-        gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-      },
-    },
-  });
+  const activeGoals = goals.filter(g => g.status !== 'rejected');
+  const averagePriority = activeGoals.length > 0
+    ? activeGoals.reduce((sum, g) => sum + g.priority, 0) / activeGoals.length
+    : 0;
 
-  if (recentLearningEvents > 3) {
-    suggestedGoals.push({
-      title: 'Learn from Recent Corrections',
-      description: `Analyze ${recentLearningEvents} recent correction events to improve future performance`,
-      category: 'learning',
-      priority: 6,
-      reasoning: 'Multiple corrections suggest learning opportunity',
-    });
-  }
-
-  return { suggestedGoals };
+  return { total: goals.length, byStatus, byCategory, averagePriority };
 }
