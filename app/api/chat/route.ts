@@ -217,6 +217,7 @@ export async function POST(req: NextRequest) {
       fewShotExamples: ctx.fewShotExamples,
       innerMonologue: ctx.innerMonologue,
       emotionalContinuity: ctx.emotionalContinuity,
+      advancedMemoryContext: ctx.advancedMemoryContext,
     });
 
     // 8. PREPARE MESSAGES

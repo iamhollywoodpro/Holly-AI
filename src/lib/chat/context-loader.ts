@@ -15,6 +15,7 @@ import { getEmotionalContinuityContext } from '@/lib/consciousness/emotional-con
 import { getFewShotExamples } from '@/lib/consciousness/few-shot-curator';
 import { getRecentMonologue } from '@/lib/consciousness/inner-monologue';
 import { applyContextBudget } from '@/lib/chat/context-budget';
+import { retrieveEpisodicMemories, findRelevantProcedures, generateSelfAwarenessReport, createMetaMemory, type EpisodicMemory, type ProceduralMemory, type MetaMemory } from '@/lib/memory/advanced-memory';
 
 export interface ChatContext {
   memoryContext: string;
@@ -48,6 +49,8 @@ export interface ChatContext {
   innerMonologue: string;
   /** Cross-session emotional continuity (remembers how user was last time) */
   emotionalContinuity: string;
+  /** Advanced memory: episodic recall + procedural skills + meta self-awareness */
+  advancedMemoryContext: string;
 }
 
 const emptyIdentity = {
@@ -205,6 +208,75 @@ export async function loadChatContext(
         dbUserId ? getEmotionalContinuityContext(dbUserId) : Promise.resolve(''),
         '', 'emotionalContinuity',
       ),
+      // ── Advanced Memory: Episodic recall + procedural skills + meta self-awareness ──
+      ctxTimeout(
+        dbUserId
+          ? (async () => {
+              try {
+                const parts: string[] = [];
+
+                // Load recent episodic memories from learning events
+                const recentEvents = await prisma.learningEvent.findMany({
+                  where: { userId: dbUserId, type: { in: ['consciousness_cycle', 'post_response', 'unsupervised_learning'] } },
+                  orderBy: { createdAt: 'desc' },
+                  take: 20,
+                  select: { data: true, createdAt: true, type: true },
+                });
+
+                if (recentEvents.length > 0) {
+                  const episodicMemories: EpisodicMemory[] = recentEvents.map((e: any, i: number) => ({
+                    id: `ep_ctx_${i}`,
+                    userId: dbUserId!,
+                    timestamp: new Date(e.createdAt).getTime(),
+                    event: e.data?.timestamp ? `Cycle at ${e.data.timestamp}` : `${e.type} event`,
+                    context: JSON.stringify(e.data).substring(0, 200),
+                    emotionalWeight: 0.3,
+                    participants: [],
+                    location: 'chat',
+                    outcome: '',
+                    topics: [],
+                    retrievalCount: 0,
+                    lastRetrievedAt: null,
+                    consolidationLevel: 'stable' as const,
+                  }));
+
+                  const retrieved = retrieveEpisodicMemories(episodicMemories, latestUserMessage, currentTopics, 3);
+                  if (retrieved.length > 0) {
+                    parts.push('[EPISODIC RECALL — recent significant events]');
+                    retrieved.forEach((m, i) => {
+                      parts.push(`  ${i + 1}. ${m.event} (${new Date(m.timestamp).toLocaleDateString()})`);
+                    });
+                  }
+                }
+
+                // Meta self-awareness from knowledge domains
+                const domainEvents = await prisma.learningEvent.findMany({
+                  where: { userId: dbUserId, type: 'self_directed_learning' },
+                  orderBy: { createdAt: 'desc' },
+                  take: 10,
+                  select: { data: true },
+                });
+
+                if (domainEvents.length > 0) {
+                  const domains: MetaMemory[] = domainEvents
+                    .map((e: any) => e.data?.topic || e.data?.domain)
+                    .filter(Boolean)
+                    .map((domain: string) => createMetaMemory(domain, 'intermediate', 0.5));
+
+                  const report = generateSelfAwarenessReport(domains);
+                  if (report.overallConfidence > 0) {
+                    parts.push(`[SELF-AWARENESS — confidence: ${(report.overallConfidence * 100).toFixed(0)}%]`);
+                    if (report.strongDomains.length > 0) parts.push(`  Strong: ${report.strongDomains.join(', ')}`);
+                    if (report.weakDomains.length > 0) parts.push(`  Learning: ${report.weakDomains.join(', ')}`);
+                  }
+                }
+
+                return parts.length > 0 ? parts.join('\n') : '';
+              } catch { return ''; }
+            })()
+          : Promise.resolve(''),
+        '', 'advancedMemory',
+      ),
       // ── Phase 3: Recent feedback signals ──────────────────────────────
       ctxTimeout(
         dbUserId
@@ -259,6 +331,7 @@ export async function loadChatContext(
     innerMonologue: results[16] as string,
     emotionalContinuity: results[17] as string,
     recentFeedback: results[18] as string,
+    advancedMemoryContext: results[19] as string,
   };
 
   // Apply smart token budget to prevent context window bloat
