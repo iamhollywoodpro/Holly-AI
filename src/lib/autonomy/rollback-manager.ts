@@ -1,380 +1,239 @@
 /**
- * Rollback Manager Module
- * 
- * Handles automated rollback of failed deployments and provides
- * canary deployment capabilities for gradual rollouts.
+ * HOLLY Rollback Manager — Database-Backed
+ *
+ * Persists rollback state to PostgreSQL so it survives container restarts.
+ * Tracks every self-code change with original content hash, backup path,
+ * and diff. Supports automatic rollback on health check failure and
+ * manual rollback from the admin dashboard.
+ *
+ * Phase 3.3: Replaces in-memory rollback tracking.
  */
 
-
 import { prisma } from '@/lib/db';
-import { Octokit } from "@octokit/rest";
-import { logger } from "../monitoring/logger";
-import { errorTracker } from "../monitoring/error-tracker";
+import { createLogger } from '@/lib/logging/structured-logger';
+import { readFileSync, existsSync, writeFileSync } from 'fs';
+import { join } from 'path';
+import { createHash } from 'crypto';
 
+const logger = createLogger('rollback-manager');
+const PROJECT_ROOT = process.cwd();
+const BACKUP_DIR = join(PROJECT_ROOT, '.holly-backups');
 
-export interface RollbackResult {
-  success: boolean;
-  improvementId: string;
-  rollbackMethod: "git_revert" | "previous_deployment" | "manual";
-  message: string;
-  timestamp: Date;
+// ─── Types ──────────────────────────────────────────────────────────────────
+
+export interface RollbackEntry {
+  id: string;
+  userId: string;
+  planId: string;
+  filePath: string;
+  changeType: string;
+  riskLevel: string;
+  status: string;
+  originalHash: string;
+  backupPath: string;
+  diff?: string;
+  appliedAt?: Date;
+  rolledBackAt?: Date;
 }
 
-export interface CanaryDeploymentConfig {
-  improvementId: string;
-  targetPercentage: number; // 0-100
-  duration: number; // minutes
-  successCriteria: {
-    maxErrorRate: number;
-    minSuccessRate: number;
-  };
+// ─── Core Operations ────────────────────────────────────────────────────────
+
+/**
+ * Record a new rollback entry BEFORE applying a change.
+ * Returns the created record ID for tracking.
+ */
+export async function recordPendingChange(opts: {
+  userId: string;
+  planId: string;
+  filePath: string;
+  changeType: string;
+  riskLevel: string;
+  backupPath: string;
+  diff?: string;
+}): Promise<string> {
+  const { userId, planId, filePath, changeType, riskLevel, backupPath, diff } = opts;
+
+  // Compute hash of original file
+  const fullPath = join(PROJECT_ROOT, filePath);
+  let originalHash = 'none';
+  if (existsSync(fullPath)) {
+    const content = readFileSync(fullPath, 'utf-8');
+    originalHash = hashContent(content);
+  }
+
+  const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+
+  const record = await prisma.selfCodeRollback.create({
+    data: {
+      userId,
+      planId,
+      filePath,
+      changeType,
+      riskLevel,
+      status: 'pending',
+      originalHash,
+      backupPath,
+      diff: diff || null,
+      expiresAt,
+    },
+  });
+
+  logger.info(`Recorded pending change: ${filePath}`, { id: record.id, planId });
+  return record.id;
 }
 
-export class RollbackManager {
-  private octokit: Octokit;
+/**
+ * Mark a change as successfully applied.
+ */
+export async function markApplied(recordId: string): Promise<void> {
+  await prisma.selfCodeRollback.update({
+    where: { id: recordId },
+    data: {
+      status: 'applied',
+      appliedAt: new Date(),
+    },
+  });
+  logger.info(`Change marked as applied: ${recordId}`);
+}
 
-  constructor() {
-    this.octokit = new Octokit({
-      auth: process.env.HOLLY_GITHUB_TOKEN,
+/**
+ * Roll back a specific change by restoring from backup.
+ */
+export async function rollbackChange(recordId: string): Promise<boolean> {
+  const record = await prisma.selfCodeRollback.findUnique({
+    where: { id: recordId },
+  });
+
+  if (!record) {
+    logger.error(`Rollback record not found: ${recordId}`);
+    return false;
+  }
+
+  if (record.status === 'rolled_back') {
+    logger.warn(`Change already rolled back: ${recordId}`);
+    return true;
+  }
+
+  const fullPath = join(PROJECT_ROOT, record.filePath);
+  const backupPath = record.backupPath;
+
+  // Verify backup exists
+  if (!existsSync(backupPath)) {
+    logger.error(`Backup file not found: ${backupPath}`);
+    await prisma.selfCodeRollback.update({
+      where: { id: recordId },
+      data: { status: 'rolled_back', rolledBackAt: new Date() },
     });
+    return false;
   }
 
-  /**
-   * Automatically rollback a failed deployment
-   */
-  async rollback(improvementId: string): Promise<RollbackResult> {
-    try {
-      logger.info("Initiating automated rollback", {
-        improvementId,
-        category: "rollback",
-      });
+  // Restore from backup
+  try {
+    const backupContent = readFileSync(backupPath, 'utf-8');
 
-      // Get the improvement record
-      const improvement = await prisma.selfImprovement.findUnique({
-        where: { id: improvementId },
-      });
-
-      if (!improvement) {
-        throw new Error("Improvement not found");
-      }
-
-      // Update status to rolling back
-      await prisma.selfImprovement.update({
-        where: { id: improvementId },
-        data: {
-          status: "rolling_back",
-        },
-      });
-
-      // Attempt Git revert
-      const rollbackResult = await this.performGitRevert(improvement);
-
-      if (rollbackResult.success) {
-        // Update status to rolled back
-        await prisma.selfImprovement.update({
-          where: { id: improvementId },
-          data: {
-            status: "rolled_back",
-            outcome: "rolled_back",
-          },
-        });
-
-        logger.info("Rollback completed successfully", {
-          improvementId,
-          method: rollbackResult.rollbackMethod,
-          category: "rollback",
-        });
-
-        return rollbackResult;
-      } else {
-        // Rollback failed, mark for manual intervention
-        await prisma.selfImprovement.update({
-          where: { id: improvementId },
-          data: {
-            status: "failed",
-            outcome: "rollback_failed",
-          },
-        });
-
-        logger.error("Automated rollback failed", {
-          improvementId,
-          error: rollbackResult.message,
-          category: "rollback",
-        });
-
-        return rollbackResult;
-      }
-    } catch (error: any) {
-      logger.error("Rollback process failed", {
-        improvementId,
-        error: error.message,
-        category: "rollback",
-      });
-
-      errorTracker.trackError(error, {
-        improvementId,
-        phase: "rollback",
-      });
-
-      return {
-        success: false,
-        improvementId,
-        rollbackMethod: "manual",
-        message: `Rollback failed: ${error.message}. Manual intervention required.`,
-        timestamp: new Date(),
-      };
+    // Verify the backup hash matches what we recorded
+    const backupHash = hashContent(backupContent);
+    if (backupHash !== record.originalHash) {
+      logger.warn(`Backup hash mismatch for ${record.filePath} — restoring anyway`);
     }
-  }
 
-  /**
-   * Perform Git revert of the changes
-   */
-  private async performGitRevert(improvement: any): Promise<RollbackResult> {
-    try {
-      const owner = process.env.HOLLY_GITHUB_OWNER!;
-      const repo = process.env.HOLLY_GITHUB_REPO!;
+    writeFileSync(fullPath, backupContent, 'utf-8');
 
-      // Get the PR that was merged
-      if (!improvement.prNumber) {
-        return {
-          success: false,
-          improvementId: improvement.id,
-          rollbackMethod: "git_revert",
-          message: "No PR number found for this improvement",
-          timestamp: new Date(),
-        };
-      }
+    await prisma.selfCodeRollback.update({
+      where: { id: recordId },
+      data: { status: 'rolled_back', rolledBackAt: new Date() },
+    });
 
-      // Get the merge commit
-      const pr = await this.octokit.pulls.get({
-        owner,
-        repo,
-        pull_number: improvement.prNumber,
-      });
-
-      if (!pr.data.merged || !pr.data.merge_commit_sha) {
-        return {
-          success: false,
-          improvementId: improvement.id,
-          rollbackMethod: "git_revert",
-          message: "PR was not merged or merge commit not found",
-          timestamp: new Date(),
-        };
-      }
-
-      // Create a revert commit
-      const revertBranch = `revert/${improvement.branchName}`;
-
-      // Get the main branch ref
-      const mainRef = await this.octokit.git.getRef({
-        owner,
-        repo,
-        ref: "heads/main",
-      });
-
-      // Create revert branch
-      await this.octokit.git.createRef({
-        owner,
-        repo,
-        ref: `refs/heads/${revertBranch}`,
-        sha: mainRef.data.object.sha,
-      });
-
-      // Revert by creating a commit that undoes the changes from the original PR
-      // Add a comment on the original PR to document the revert
-      if (improvement.prNumber) {
-        try {
-          await this.octokit.issues.createComment({
-            owner, repo,
-            issue_number: Number(improvement.prNumber),
-            body: `⚠️ This PR is being reverted due to: deployment failure or issues detected.`,
-          });
-        } catch { /* non-critical */ }
-      }
-
-      // Create a revert commit using git data API
-      // This resets the revert branch tree to the parent of the merge commit
-      const parentTree = (await this.octokit.git.getCommit({ owner, repo, commit_sha: mainRef.data.object.sha })).data.tree.sha;
-      await this.octokit.git.createCommit({
-        owner, repo,
-        message: `Revert "${improvement.problemStatement.substring(0, 72)}"`,
-        tree: parentTree,
-        parents: [mainRef.data.object.sha],
-      });
-
-      // Create PR for the revert
-      const revertPR = await this.octokit.pulls.create({
-        owner,
-        repo,
-        title: `🔄 Revert: ${improvement.problemStatement.substring(0, 50)}`,
-        body: `Automated rollback of improvement #${improvement.prNumber}\n\nReason: Deployment failed or caused issues.`,
-        head: revertBranch,
-        base: "main",
-      });
-
-      // Auto-merge the revert PR
-      await this.octokit.pulls.merge({
-        owner,
-        repo,
-        pull_number: revertPR.data.number,
-        commit_title: `Revert "${improvement.problemStatement.substring(0, 50)}"`,
-        merge_method: "squash",
-      });
-
-      return {
-        success: true,
-        improvementId: improvement.id,
-        rollbackMethod: "git_revert",
-        message: `Successfully reverted changes via PR #${revertPR.data.number}`,
-        timestamp: new Date(),
-      };
-    } catch (error: any) {
-      logger.error("Git revert failed", {
-        improvementId: improvement.id,
-        error: error.message,
-        category: "rollback",
-      });
-
-      return {
-        success: false,
-        improvementId: improvement.id,
-        rollbackMethod: "git_revert",
-        message: `Git revert failed: ${error.message}`,
-        timestamp: new Date(),
-      };
-    }
-  }
-
-  /**
-   * Start a canary deployment
-   */
-  async startCanaryDeployment(
-    config: CanaryDeploymentConfig
-  ): Promise<{ success: boolean; message: string }> {
-    try {
-      logger.info("Starting canary deployment", {
-        improvementId: config.improvementId,
-        targetPercentage: config.targetPercentage,
-        category: "canary",
-      });
-
-      // Canary deployment strategy:
-      // 1. Mark improvement as canary_deployment in DB
-      // 2. Store the target percentage for later evaluation
-      // 3. The monitoring function will check real error rates from the self_improvement table
-      await prisma.selfImprovement.update({
-        where: { id: config.improvementId },
-        data: {
-          status: "canary_deployment",
-          // Store canary config in triggerData for the monitoring step
-          triggerData: {
-            canaryTargetPercentage: config.targetPercentage,
-            canaryStartedAt: new Date().toISOString(),
-            canaryDurationMinutes: config.duration,
-            successCriteria: config.successCriteria,
-          },
-        },
-      });
-
-      logger.info("Canary deployment initialized", {
-        improvementId: config.improvementId,
-        targetPercentage: config.targetPercentage,
-        durationMinutes: config.duration,
-        category: "canary",
-      });
-
-      return {
-        success: true,
-        message: `Canary deployment started for ${config.targetPercentage}% of traffic`,
-      };
-    } catch (error: any) {
-      logger.error("Failed to start canary deployment", {
-        improvementId: config.improvementId,
-        error: error.message,
-        category: "canary",
-      });
-
-      return {
-        success: false,
-        message: `Failed to start canary deployment: ${error.message}`,
-      };
-    }
-  }
-
-  /**
-   * Monitor canary deployment and decide whether to proceed or rollback
-   */
-  async monitorCanaryDeployment(
-    improvementId: string
-  ): Promise<{ shouldProceed: boolean; reason: string }> {
-    try {
-      // In a real implementation, this would monitor actual metrics
-      // For now, this is a placeholder
-
-      const improvement = await prisma.selfImprovement.findUnique({
-        where: { id: improvementId },
-      });
-
-      if (!improvement) {
-        return {
-          shouldProceed: false,
-          reason: "Improvement not found",
-        };
-      }
-
-      // Query real error metrics from recent self-improvement records
-      const recentImprovements = await prisma.selfImprovement.findMany({
-        where: {
-          createdAt: { gte: new Date(Date.now() - 60 * 60 * 1000) },
-          status: { in: ['deployed', 'failed', 'rolled_back'] },
-        },
-        take: 20,
-      });
-
-      const total = recentImprovements.length;
-      const failed = recentImprovements.filter(r => r.status === 'failed' || r.outcome === 'failure').length;
-      const succeeded = recentImprovements.filter(r => r.status === 'deployed' && r.outcome !== 'failure').length;
-
-      const errorRate = total > 0 ? failed / total : 0;
-      const successRate = total > 0 ? succeeded / total : 1;
-
-      // Also check system memory pressure as a health signal
-      const memPressure = process.memoryUsage().heapUsed / process.memoryUsage().heapTotal;
-      if (memPressure > 0.9) {
-        return { shouldProceed: false, reason: `Memory pressure critical (${(memPressure * 100).toFixed(0)}%) — rolling back` };
-      }
-
-      if (errorRate > 0.05) {
-        return {
-          shouldProceed: false,
-          reason: `Error rate (${errorRate}) exceeds threshold`,
-        };
-      }
-
-      if (successRate < 0.95) {
-        return {
-          shouldProceed: false,
-          reason: `Success rate (${successRate}) below threshold`,
-        };
-      }
-
-      return {
-        shouldProceed: true,
-        reason: "Canary deployment metrics within acceptable range",
-      };
-    } catch (error: any) {
-      logger.error("Failed to monitor canary deployment", {
-        improvementId,
-        error: error.message,
-        category: "canary",
-      });
-
-      return {
-        shouldProceed: false,
-        reason: `Monitoring failed: ${error.message}`,
-      };
-    }
+    logger.info(`Successfully rolled back: ${record.filePath}`, { recordId });
+    return true;
+  } catch (err) {
+    logger.error(`Rollback failed for ${record.filePath}: ${err}`);
+    return false;
   }
 }
 
-export const rollbackManager = new RollbackManager();
+/**
+ * Roll back ALL applied changes for a specific plan.
+ * Used when health checks fail after a self-code cycle.
+ */
+export async function rollbackPlan(planId: string): Promise<number> {
+  const applied = await prisma.selfCodeRollback.findMany({
+    where: { planId, status: 'applied' },
+    orderBy: { appliedAt: 'desc' }, // Roll back in reverse order
+  });
+
+  let rolledBack = 0;
+  for (const record of applied) {
+    const success = await rollbackChange(record.id);
+    if (success) rolledBack++;
+  }
+
+  logger.info(`Plan rollback: ${rolledBack}/${applied.length} changes rolled back`, { planId });
+  return rolledBack;
+}
+
+/**
+ * Get all pending/applied changes for a plan (loaded on startup).
+ */
+export async function loadPlanState(planId: string): Promise<RollbackEntry[]> {
+  return prisma.selfCodeRollback.findMany({
+    where: {
+      planId,
+      status: { in: ['pending', 'applied'] },
+    },
+    orderBy: { createdAt: 'asc' },
+  });
+}
+
+/**
+ * Clean up expired rollback records (older than 30 days).
+ */
+export async function cleanupExpiredRollbacks(): Promise<number> {
+  const result = await prisma.selfCodeRollback.deleteMany({
+    where: {
+      expiresAt: { lt: new Date() },
+      status: { in: ['rolled_back', 'expired'] },
+    },
+  });
+
+  // Mark remaining expired records
+  await prisma.selfCodeRollback.updateMany({
+    where: {
+      expiresAt: { lt: new Date() },
+      status: { notIn: ['rolled_back', 'expired'] },
+    },
+    data: { status: 'expired' },
+  });
+
+  if (result.count > 0) {
+    logger.info(`Cleaned up ${result.count} expired rollback records`);
+  }
+  return result.count;
+}
+
+/**
+ * Get rollback statistics for monitoring.
+ */
+export async function getRollbackStats(userId: string): Promise<{
+  total: number;
+  applied: number;
+  rolledBack: number;
+  pending: number;
+  expired: number;
+}> {
+  const [total, applied, rolledBack, pending, expired] = await Promise.all([
+    prisma.selfCodeRollback.count({ where: { userId } }),
+    prisma.selfCodeRollback.count({ where: { userId, status: 'applied' } }),
+    prisma.selfCodeRollback.count({ where: { userId, status: 'rolled_back' } }),
+    prisma.selfCodeRollback.count({ where: { userId, status: 'pending' } }),
+    prisma.selfCodeRollback.count({ where: { userId, status: 'expired' } }),
+  ]);
+
+  return { total, applied, rolledBack, pending, expired };
+}
+
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+function hashContent(content: string): string {
+  return createHash('sha256').update(content).digest('hex').substring(0, 16);
+}

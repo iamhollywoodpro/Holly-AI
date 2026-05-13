@@ -337,5 +337,3 @@ These will bring HOLLY's scores from current 6/10 autonomy to 8/10.
 
 ---
 
-*Last Updated: May 11, 2026*
-*Document Version: 1.0*

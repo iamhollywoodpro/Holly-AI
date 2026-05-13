@@ -22,12 +22,12 @@ module.exports = {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
   setupFilesAfterEnv: [],
-  globals: {
-    'ts-jest': {
+  transform: {
+    '^.+\\.tsx?$': ['ts-jest', {
       tsconfig: {
         jsx: 'react',
         esModuleInterop: true,
       },
-    },
+    }],
   },
 };

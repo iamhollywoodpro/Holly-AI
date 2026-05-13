@@ -70,7 +70,10 @@ class MonitoringEngine {
     this.registerMonitor('ai_providers', async () => {
       try {
         const start = Date.now();
-        const res = await fetch('http://localhost:3000/api/health', {
+        // Use INTERNAL_APP_URL for Docker networking (cron container → app container)
+        // Falls back to localhost:3000 for local development
+        const appUrl = process.env.INTERNAL_APP_URL || 'http://localhost:3000';
+        const res = await fetch(`${appUrl}/api/health`, {
           signal: AbortSignal.timeout(5000),
         });
         const latency = Date.now() - start;

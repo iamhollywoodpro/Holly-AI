@@ -359,38 +359,285 @@ async function learnFromFeedback(input: any): Promise<any> {
 }
 
 /**
- * Update documentation
+ * Update documentation — REAL IMPLEMENTATION
+ *
+ * Uses LLM to generate documentation content based on recent code changes,
+ * then writes the updated docs to GitHub via the API.
  */
 async function updateDocumentation(input: any): Promise<any> {
-  const { docPath, content } = input;
+  const { docPath, content, context, recentChanges } = input;
 
   logger.info(`Updating documentation: ${docPath}`);
 
-  // This would update actual documentation files
-  return {
-    success: true,
-    path: docPath,
-    updated: true,
-    timestamp: new Date()
-  };
+  try {
+    // 1. Read the current documentation file from GitHub (if it exists)
+    let currentContent = '';
+    try {
+      const fileData = await githubRequest(`/contents/${docPath}`);
+      if (fileData.content) {
+        currentContent = Buffer.from(fileData.content, 'base64').toString('utf-8');
+      }
+    } catch {
+      // File doesn't exist yet — that's fine, we'll create it
+      logger.info(`Documentation file ${docPath} does not exist yet, will create`);
+    }
+
+    // 2. Use LLM to generate/update the documentation
+    const docPrompt = `You are updating documentation for the HOLLY AI system.
+
+CURRENT DOCUMENTATION (${docPath}):
+${currentContent || '(empty — new file)'}
+
+${recentChanges ? `RECENT CHANGES TO DOCUMENT:\n${JSON.stringify(recentChanges, null, 2)}` : ''}
+
+${context ? `ADDITIONAL CONTEXT:\n${context}` : ''}
+
+${content ? `REQUESTED CONTENT:\n${content}` : ''}
+
+TASK: Generate the complete updated documentation for this file.
+- Use clear, professional markdown formatting
+- Include code examples where appropriate
+- Keep existing content that is still accurate
+- Add new sections for any new features or changes
+- Return ONLY the markdown content, no code fences or explanations`;
+
+    const newContent = await callLLM(docPrompt, 'You are a technical documentation writer. Produce clean, accurate markdown.');
+
+    if (!newContent || newContent.trim().length < 50) {
+      throw new Error('LLM generated empty or too-short documentation');
+    }
+
+    // 3. Write the updated documentation to GitHub
+    const owner = process.env.GITHUB_OWNER || 'iamhollywoodpro';
+    const repo = process.env.GITHUB_REPO || 'Holly-AI';
+
+    // Get the SHA of the existing file (needed for updates)
+    let sha: string | undefined;
+    try {
+      const fileData = await githubRequest(`/contents/${docPath}`);
+      sha = fileData.sha;
+    } catch {
+      // File doesn't exist — sha not needed for creation
+    }
+
+    const commitMessage = `docs: update ${docPath} via autonomous documentation handler`;
+    const body: any = {
+      message: commitMessage,
+      content: Buffer.from(newContent).toString('base64'),
+      branch: 'main',
+    };
+    if (sha) body.sha = sha;
+
+    const result = await githubRequest(`/contents/${docPath}`, 'PUT', body);
+
+    logger.info(`Documentation updated successfully: ${docPath}`, {
+      commitSha: result.commit?.sha,
+      path: docPath,
+    });
+
+    return {
+      success: true,
+      path: docPath,
+      updated: true,
+      commitSha: result.commit?.sha,
+      contentLength: newContent.length,
+      timestamp: new Date(),
+    };
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    logger.error(`Documentation update failed for ${docPath}: ${errorMsg}`);
+
+    // Fallback: log the documentation update as a learning event
+    await prisma.learningEvent.create({
+      data: {
+        type: 'documentation_update_failed',
+        userId: input.userId || 'system',
+        data: { docPath, error: errorMsg },
+        processed: false,
+      },
+    }).catch(() => {});
+
+    return {
+      success: false,
+      path: docPath,
+      error: errorMsg,
+      timestamp: new Date(),
+    };
+  }
 }
 
 /**
- * Fix identified issue
+ * Fix identified issue — REAL IMPLEMENTATION
+ *
+ * Uses LLM to analyze the issue and generate a fix, then creates a PR
+ * via GitHub API with the proposed changes.
  */
 async function fixIssue(input: any): Promise<any> {
-  const { issueId, fixType, fixDescription } = input;
+  const { issueId, fixType, fixDescription, filePath, userId } = input;
 
-  logger.info(`Fixing issue: ${issueId}`);
+  logger.info(`Fixing issue: ${issueId}`, { fixType, filePath });
 
-  // This would implement the actual fix
-  return {
-    success: true,
-    issueId,
-    fixType,
-    description: fixDescription,
-    fixedAt: new Date()
-  };
+  try {
+    // 1. Fetch issue details from GitHub (if it's a GitHub issue)
+    let issueDetails = fixDescription || '';
+    let issueTitle = `Fix: ${fixType || 'Issue'}`;
+    let issueNumber: number | null = null;
+
+    if (issueId && typeof issueId === 'string' && issueId.match(/^\d+$/)) {
+      try {
+        const issue = await githubRequest(`/issues/${issueId}`);
+        issueDetails = issue.body || issueDetails;
+        issueTitle = issue.title || issueTitle;
+        issueNumber = issue.number;
+      } catch {
+        logger.info(`Could not fetch GitHub issue ${issueId}, using provided description`);
+      }
+    }
+
+    // 2. Read the relevant file from GitHub (if filePath provided)
+    let currentFileContent = '';
+    let fileSha: string | undefined;
+    if (filePath) {
+      try {
+        const fileData = await githubRequest(`/contents/${filePath}`);
+        if (fileData.content) {
+          currentFileContent = Buffer.from(fileData.content, 'base64').toString('utf-8');
+          fileSha = fileData.sha;
+        }
+      } catch {
+        logger.info(`Could not read file ${filePath} from GitHub`);
+      }
+    }
+
+    // 3. Use LLM to analyze and propose a fix
+    const fixPrompt = `You are Holly's autonomous fix engine. Analyze the issue and generate a precise code fix.
+
+ISSUE: ${issueTitle}
+${issueDetails ? `DESCRIPTION:\n${issueDetails}` : ''}
+${filePath ? `FILE TO FIX: ${filePath}` : ''}
+${currentFileContent ? `CURRENT FILE CONTENT:\n\`\`\`typescript\n${currentFileContent.substring(0, 8000)}\n\`\`\`` : ''}
+${fixType ? `FIX TYPE: ${fixType}` : ''}
+
+TASK:
+1. Identify the root cause of the issue
+2. Generate the COMPLETE fixed file content
+3. Return ONLY the fixed code — no explanations, no markdown fences, no diff markers
+
+RULES:
+- Preserve all existing functionality
+- Only change what's necessary to fix the issue
+- Maintain the same code style and patterns
+- Include proper error handling`;
+
+    const fixedContent = await callLLM(fixPrompt, 'You are an expert TypeScript/JavaScript developer. Generate production-ready code fixes.');
+
+    if (!fixedContent || fixedContent.trim().length < 20) {
+      throw new Error('LLM generated empty or too-short fix');
+    }
+
+    // 4. Create a branch and commit the fix
+    const branchName = `autofix/issue-${issueId || Date.now()}-${fixType || 'general'}`;
+
+    // Get the main branch SHA
+    const mainRef = await githubRequest(`/git/ref/heads/main`);
+    const mainSha = mainRef.object.sha;
+
+    // Create a new branch
+    await githubRequest(`/git/refs`, 'POST', {
+      ref: `refs/heads/${branchName}`,
+      sha: mainSha,
+    });
+
+    // Commit the fix to the branch
+    if (filePath && fileSha) {
+      await githubRequest(`/contents/${filePath}`, 'PUT', {
+        message: `fix: ${issueTitle} (refs #${issueId || 'N/A'})`,
+        content: Buffer.from(fixedContent).toString('base64'),
+        branch: branchName,
+        sha: fileSha,
+      });
+    }
+
+    // 5. Create a Pull Request
+    const prBody = `## 🤖 Autonomous Fix by HOLLY
+
+**Issue:** ${issueTitle} (#${issueId || 'N/A'})
+**Fix Type:** ${fixType || 'general'}
+**File Modified:** ${filePath || 'N/A'}
+
+### Description
+${fixDescription || 'Autonomous fix generated by HOLLY\'s goal execution engine.'}
+
+### Changes
+- Analyzed the issue using LLM
+- Generated a targeted fix for the identified problem
+- Preserved all existing functionality
+
+---
+*This PR was created autonomously by HOLLY's fix_issue handler.*`;
+
+    const pr = await githubRequest(`/pulls`, 'POST', {
+      title: `🤖 fix: ${issueTitle}`,
+      head: branchName,
+      base: 'main',
+      body: prBody,
+    });
+
+    logger.info(`Fix PR created: ${pr.html_url}`, {
+      issueId,
+      branchName,
+      prNumber: pr.number,
+    });
+
+    // 6. Log the fix as a learning event
+    await prisma.learningEvent.create({
+      data: {
+        type: 'autonomous_fix',
+        userId: userId || 'system',
+        data: {
+          issueId,
+          fixType,
+          filePath,
+          prUrl: pr.html_url,
+          prNumber: pr.number,
+          branchName,
+        },
+        processed: true,
+      },
+    }).catch(() => {});
+
+    return {
+      success: true,
+      issueId,
+      fixType,
+      description: fixDescription,
+      prUrl: pr.html_url,
+      prNumber: pr.number,
+      branchName,
+      fixedAt: new Date(),
+    };
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    logger.error(`Fix issue failed for ${issueId}: ${errorMsg}`);
+
+    // Log the failure for learning
+    await prisma.learningEvent.create({
+      data: {
+        type: 'autonomous_fix_failed',
+        userId: userId || 'system',
+        data: { issueId, fixType, error: errorMsg },
+        processed: false,
+      },
+    }).catch(() => {});
+
+    return {
+      success: false,
+      issueId,
+      fixType,
+      error: errorMsg,
+      timestamp: new Date(),
+    };
+  }
 }
 
 /**

@@ -5,7 +5,7 @@
   "__IMPORTANT_NOTE__": "DO NOT upgrade tailwindcss to v4+ - it requires @tailwindcss/postcss. Keep at v3.4.1",
   "main": "index.js",
   "scripts": {
-    "postinstall": "prisma generate",
+    "postinstall": "prisma generate && node -e \"const fs=require('fs'),p='node_modules/@prisma/client/.prisma'; if(!fs.existsSync(p)){fs.symlinkSync('../../.prisma',p,'junction')}\"",
     "dev": "ts-node --project tsconfig.server.json server.ts",
     "build": "npm run compile-server && prisma generate && NODE_OPTIONS=\"--max-old-space-size=3072\" next build",
     "generate-architecture": "npx ts-node --transpile-only scripts/generate-architecture.ts",
@@ -110,7 +110,7 @@
   },
   "devDependencies": {
     "@jest/globals": "^29.7.0",
-    "@types/jest": "^29.5.11",
+    "@types/jest": "^29.5.14",
     "@types/node": "^20.19.39",
     "@types/react": "^18.2.46",
     "@types/react-dom": "^18.2.18",

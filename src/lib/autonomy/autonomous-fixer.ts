@@ -16,6 +16,39 @@ export interface Anomaly {
   metrics?: any;
 }
 
+/**
+ * Assess the risk level of a proposed fix.
+ * LOW: simple config/log changes, documentation fixes
+ * MEDIUM: code changes in non-critical modules
+ * HIGH: changes to auth, database, security, or core infrastructure
+ */
+function assessFixRisk(anomaly: Anomaly, fixProposal: string): 'low' | 'medium' | 'high' {
+  const desc = (anomaly.description || '').toLowerCase();
+  const fix = (fixProposal || '').toLowerCase();
+
+  // HIGH risk indicators
+  const highRiskPatterns = [
+    /auth/i, /middleware/i, /security/i, /password/i, /secret/i, /token/i,
+    /prisma\/schema/i, /migration/i, /database/i, /dockerfile/i,
+    /src\/lib\/db/i, /src\/middleware/i, /clerk/i, /env/i,
+  ];
+  for (const pattern of highRiskPatterns) {
+    if (pattern.test(desc) || pattern.test(fix)) return 'high';
+  }
+
+  // LOW risk indicators
+  const lowRiskPatterns = [
+    /typo/i, /comment/i, /log/i, /whitespace/i, /format/i, /docs/i,
+    /readme/i, /markdown/i, /\.md/i, /console\.log/i, /deprecated/i,
+  ];
+  for (const pattern of lowRiskPatterns) {
+    if (pattern.test(desc) || pattern.test(fix)) return 'low';
+  }
+
+  // Default to MEDIUM for any code change that doesn't match high or low
+  return 'medium';
+}
+
 export async function triggerAutonomousRepair(anomaly: Anomaly, userId: string) {
   const groqKey = process.env.GROQ_API_KEY;
   if (!groqKey) return { success: false, reason: 'GROQ_API_KEY missing' };
@@ -92,16 +125,127 @@ CODE:
       }
     });
 
-    // 4. (Optional) Auto-PR Logic
-    // In this phase, we stop at "Proposing" to allow the user to review the PR in the dashboard
-    // unless the anomaly is "CRITICAL".
-    
-    logger.info(`[Autonomous Fixer] ✅ Fix proposed for ${anomaly.id}. Improvement ID: ${improvement.id}`);
-    
-    return { 
-      success: true, 
-      improvementId: improvement.id, 
-      proposal: fixProposal 
+    // 4. Auto-apply logic based on risk assessment
+    // LOW risk: auto-apply via GitHub (create branch + PR)
+    // MEDIUM risk: create a PR for user review
+    // HIGH risk: propose only (current behavior — user reviews in dashboard)
+
+    const riskLevel = assessFixRisk(anomaly, fixProposal);
+
+    if (riskLevel === 'low') {
+      try {
+        // Auto-apply: parse the LLM response for FILE/FIX/CODE blocks
+        const fileMatch = fixProposal.match(/FILE:\s*\[?([^\]\n]+)\]?/);
+        const codeMatch = fixProposal.match(/```\w*\n([\s\S]*?)```/);
+
+        if (fileMatch && codeMatch) {
+          const targetFile = fileMatch[1].trim();
+          const fixedCode = codeMatch[1];
+
+          // Create a branch and commit via GitHub API
+          const owner = process.env.GITHUB_OWNER || 'iamhollywoodpro';
+          const repo = process.env.GITHUB_REPO || 'Holly-AI';
+          const token = process.env.GITHUB_TOKEN;
+
+          if (token) {
+            const branchName = `autofix/${anomaly.id}-${Date.now()}`;
+
+            // Get main branch ref
+            const refRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/ref/heads/main`, {
+              headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github.v3+json' },
+            });
+            const refData = await refRes.json();
+
+            // Create branch
+            await fetch(`https://api.github.com/repos/${owner}/${repo}/git/refs`, {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', 'Accept': 'application/vnd.github.v3+json' },
+              body: JSON.stringify({ ref: `refs/heads/${branchName}`, sha: refData.object.sha }),
+            });
+
+            // Get current file SHA
+            let fileSha: string | undefined;
+            try {
+              const fileRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${targetFile}?ref=main`, {
+                headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github.v3+json' },
+              });
+              const fileData = await fileRes.json();
+              fileSha = fileData.sha;
+            } catch { /* new file */ }
+
+            // Commit fix to branch
+            const commitBody: any = {
+              message: `fix(auto): ${anomaly.description.substring(0, 72)}`,
+              content: Buffer.from(fixedCode).toString('base64'),
+              branch: branchName,
+            };
+            if (fileSha) commitBody.sha = fileSha;
+
+            await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${targetFile}`, {
+              method: 'PUT',
+              headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', 'Accept': 'application/vnd.github.v3+json' },
+              body: JSON.stringify(commitBody),
+            });
+
+            // Create PR
+            const prRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/pulls`, {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', 'Accept': 'application/vnd.github.v3+json' },
+              body: JSON.stringify({
+                title: `🤖 auto-fix: ${anomaly.description.substring(0, 60)}`,
+                head: branchName,
+                base: 'main',
+                body: `## 🤖 Autonomous Fix (LOW RISK — auto-applied)\n\n**Anomaly:** ${anomaly.description}\n**File:** ${targetFile}\n\n${fixProposal}\n\n---\n*Auto-applied by HOLLY's autonomous fixer.*`,
+              }),
+            });
+            const prData = await prRes.json();
+
+            await prisma.selfImprovement.update({
+              where: { id: improvement.id },
+              data: {
+                status: 'applied',
+                outcome: 'auto-applied',
+                solutionApproach: fixProposal,
+                filesChanged: [targetFile],
+                branchName,
+              },
+            });
+
+            logger.info(`[Autonomous Fixer] ✅ Auto-applied fix for ${anomaly.id}. PR: ${prData.html_url}`);
+
+            return {
+              success: true,
+              improvementId: improvement.id,
+              proposal: fixProposal,
+              autoApplied: true,
+              prUrl: prData.html_url,
+              branchName,
+            };
+          }
+        }
+      } catch (autoApplyErr: any) {
+        logger.warn(`[Autonomous Fixer] Auto-apply failed, falling back to propose: ${autoApplyErr.message}`);
+        // Fall through to propose mode
+      }
+    }
+
+    // MEDIUM or HIGH risk, or auto-apply failed: propose for review
+    await prisma.selfImprovement.update({
+      where: { id: improvement.id },
+      data: {
+        status: riskLevel === 'medium' ? 'proposing' : 'proposing',
+        outcome: `proposing_fix (${riskLevel} risk)`,
+      },
+    });
+
+    logger.info(`[Autonomous Fixer] ✅ Fix proposed for ${anomaly.id} (${riskLevel} risk). Improvement ID: ${improvement.id}`);
+
+    return {
+      success: true,
+      improvementId: improvement.id,
+      proposal: fixProposal,
+      autoApplied: false,
+      riskLevel,
     };
 
   } catch (err: any) {
