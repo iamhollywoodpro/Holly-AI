@@ -39,6 +39,7 @@ import { creativeOutput } from '@/lib/consciousness/creative-output';
 import { recursiveSelfImprovement } from '@/lib/consciousness/recursive-self-improvement';
 import { prioritizeGoals, scoreGoal, type Goal } from '@/lib/autonomy/goal-prioritization';
 import { executeGoal } from '@/lib/autonomy/goal-execution';
+import { detectTopicPatterns, detectEmotionalPatterns, generateInsightFromPattern, generateMorningBriefing, filterViableInsights, prioritizeInsights, canDeliverProactive, recordDelivery, DEFAULT_PROACTIVE_CONFIG, type CooldownState } from '@/lib/proactive/proactive-engine';
 
 export interface ConsciousnessCycleResult {
   timestamp: Date;
@@ -546,6 +547,108 @@ export async function runConsciousnessCycle(
             }
           } catch (err) {
             errors.push(`Goal execution failed: ${(err as Error).message}`);
+          }
+        })(),
+
+        // Step 17: Proactive Intelligence (once per day) — pattern-based outreach
+        (async () => {
+          try {
+            const lastProactive = await prisma.learningEvent.findFirst({
+              where: { userId: dbUserId, type: 'proactive_intelligence' },
+              orderBy: { createdAt: 'desc' }, select: { createdAt: true },
+            });
+            const shouldRun = !lastProactive || (Date.now() - new Date(lastProactive.createdAt).getTime()) > 24 * 60 * 60 * 1000;
+            if (shouldRun) {
+              // Load recent conversation topics and emotions
+              const recentExperiencesForPatterns = await prisma.hollyExperience.findMany({
+                where: { userId: dbUserId },
+                orderBy: { timestamp: 'desc' },
+                take: 50,
+              }).catch(() => []);
+
+              const topics: string[] = [];
+              const emotions: string[] = [];
+              for (const exp of recentExperiencesForPatterns) {
+                if (exp.topics) topics.push(...(exp.topics as string[]));
+                if (exp.emotion) emotions.push(exp.emotion);
+              }
+
+              // Detect patterns
+              const topicPatterns = detectTopicPatterns(topics);
+              const emotionalPatterns = detectEmotionalPatterns(emotions);
+              const allPatterns = [...topicPatterns, ...emotionalPatterns];
+
+              // Generate insights from patterns
+              const insights = allPatterns
+                .map(p => generateInsightFromPattern(p))
+                .filter((i): i is NonNullable<typeof i> => i !== null);
+
+              // Check morning briefing (if morning hours)
+              const hour = new Date().getHours();
+              if (hour >= 6 && hour < 10) {
+                const activeGoals = await prisma.hollyGoal.count({
+                  where: { userId: dbUserId, status: 'active' },
+                }).catch(() => 0);
+                const briefing = generateMorningBriefing(
+                  '', // userName not available here
+                  topics.slice(0, 5),
+                  activeGoals,
+                  0, // streak not easily available
+                );
+                insights.push(briefing);
+              }
+
+              // Filter and prioritize
+              const viable = filterViableInsights(insights);
+              const prioritized = prioritizeInsights(viable);
+
+              // Deliver top insight (respecting cooldowns)
+              const cooldownState: CooldownState = {
+                lastDeliveredAt: 0,
+                deliveredToday: 0,
+                dayStart: new Date().setHours(0, 0, 0, 0),
+              };
+
+              // Check last proactive delivery from DB
+              const lastDelivery = await prisma.notification.findFirst({
+                where: { userId: dbUserId, type: 'initiative', category: 'proactive_intelligence' },
+                orderBy: { createdAt: 'desc' }, select: { createdAt: true },
+              }).catch(() => null);
+              if (lastDelivery) {
+                cooldownState.lastDeliveredAt = new Date(lastDelivery.createdAt).getTime();
+              }
+
+              const canDeliver = canDeliverProactive(cooldownState);
+              if (canDeliver.allowed && prioritized.length > 0) {
+                const topInsight = prioritized[0];
+                await prisma.notification.create({
+                  data: {
+                    type: 'initiative',
+                    title: topInsight.title,
+                    message: topInsight.message,
+                    category: 'proactive_intelligence',
+                    priority: topInsight.priority === 'high' ? 'high' : 'normal',
+                    status: 'unread',
+                    userId: dbUserId,
+                    clerkUserId: resolvedClerkId || '',
+                    actionData: { insightType: topInsight.type, confidence: topInsight.confidence, triggerReason: topInsight.triggerReason } as any,
+                  },
+                });
+                recordDelivery(cooldownState);
+                console.log(`[Consciousness:Proactive] Delivered: ${topInsight.title} (${topInsight.type})`);
+              }
+
+              await prisma.learningEvent.create({
+                data: {
+                  type: 'proactive_intelligence',
+                  userId: dbUserId,
+                  processed: true,
+                  data: { patternsDetected: allPatterns.length, insightsGenerated: insights.length, delivered: canDeliver.allowed && prioritized.length > 0 },
+                },
+              }).catch(() => {});
+            }
+          } catch (err) {
+            errors.push(`Proactive intelligence failed: ${(err as Error).message}`);
           }
         })(),
 
