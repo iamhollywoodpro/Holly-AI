@@ -10,7 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { createLogger } from '@/lib/logging/structured-logger';
-import { prioritizeGoals } from '@/lib/autonomy/goal-prioritization';
+import { prioritizeGoals, type Goal } from '@/lib/autonomy/goal-prioritization';
 import { executeGoal } from '@/lib/autonomy/goal-execution';
 
 const logger = createLogger('api-goals-evaluate');
@@ -59,8 +59,20 @@ export async function POST(req: NextRequest) {
     logger.info(`Evaluating ${pendingGoals.length} pending goals`);
 
     // Prioritize goals using the autonomy engine
-    const prioritized = await prioritizeGoals(undefined);
-    const executable = prioritized.filter(g => g.canStart);
+    const goals: Goal[] = (pendingGoals as any[]).map((g: any) => ({
+      id: g.id,
+      title: g.title || 'Untitled',
+      description: g.description || '',
+      category: g.category || 'improvement',
+      priority: g.priority || 50,
+      impact: g.impact || 0.5,
+      effort: g.effort || 0.5,
+      status: g.status || 'proposed',
+      createdAt: g.createdAt ? new Date(g.createdAt).getTime() : Date.now(),
+      relatedCapabilities: [],
+    }));
+    const prioritized = prioritizeGoals(goals);
+    const executable = prioritized.filter(g => g.status === 'proposed' || g.status === 'accepted');
 
     let executed = 0;
     let errors = 0;

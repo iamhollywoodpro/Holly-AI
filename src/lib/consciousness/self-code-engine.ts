@@ -30,6 +30,7 @@ import { isFileSafeToModify, type ImprovementPlan, type ProposedChange } from '.
 import { smartRoute } from '@/lib/ai/smart-router';
 import { cascadeCollect } from '@/lib/ai/cascade';
 import { runHealthCheck, quickPulseCheck } from './health-monitor';
+import { suggestDocUpdates, type CodeChange as DocCodeChange } from '@/lib/docs/documentation-engine';
 import { Prisma } from '@prisma/client';
 
 // ─── Configuration ────────────────────────────────────────────────────────────
@@ -777,6 +778,34 @@ export async function executeSelfCodeCycle(
   if (healthResult.healthy && gitResult.pushed) {
     const reloadResult = await triggerHotReload();
     console.log(`[SelfCode:Cycle] Hot-reload: ${reloadResult.triggered} via ${reloadResult.method}`);
+  }
+
+  // Step 4.5: Suggest documentation updates (Phase A wiring)
+  if (healthResult.healthy && report.successful > 0) {
+    try {
+      const docChanges: DocCodeChange[] = report.results
+        .filter(r => r.success)
+        .map(r => ({
+          filePath: r.filePath,
+          changeType: r.changeType as 'added' | 'modified' | 'deleted',
+          description: r.diff || `Self-code: ${r.changeType} to ${r.filePath}`,
+        }));
+      const docSuggestions = suggestDocUpdates(docChanges);
+      if (docSuggestions.length > 0) {
+        console.log(`[SelfCode:Cycle] 📝 ${docSuggestions.length} documentation update suggestions generated`);
+        // Log suggestions for later review
+        await prisma.learningEvent.create({
+          data: {
+            type: 'doc_update_suggestions',
+            userId,
+            processed: false,
+            data: { suggestions: docSuggestions.map(s => ({ file: s.targetDoc, reason: s.reason, priority: s.priority })) },
+          },
+        }).catch(() => {});
+      }
+    } catch (err) {
+      console.warn('[SelfCode:Cycle] Documentation suggestions failed (non-critical):', err);
+    }
   }
 
   // Step 5: Final notification

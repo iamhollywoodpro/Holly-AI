@@ -15,6 +15,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import path from "path";
+import { ToolHealthMonitor, DEFAULT_HEALTH_CONFIG } from '@/lib/mcp/tool-health-monitor';
 
 export interface MCPTool {
   serverId: string;
@@ -434,32 +435,48 @@ export class MCPClientManager {
   }
 
   async callTool(serverId: string, toolName: string, args: Record<string, unknown>): Promise<unknown> {
-    // HTTP proxy server
-    const httpServer = this.httpServers.get(serverId);
-    if (httpServer) {
-      // 30s timeout for HTTP tool calls
+    // Check if tool is disabled by health monitor (Phase A wiring)
+    if (typeof toolHealthMonitor !== 'undefined' && !toolHealthMonitor.isToolEnabled(toolName)) {
+      throw new Error(`[MCP] Tool ${toolName} is currently disabled due to repeated failures`);
+    }
+
+    try {
+      // HTTP proxy server
+      const httpServer = this.httpServers.get(serverId);
+      if (httpServer) {
+        // 30s timeout for HTTP tool calls
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error(`HTTP tool timeout: ${toolName} (30s)`)), 30_000)
+        );
+        const result = await Promise.race([httpServer.callHandler(toolName, args), timeoutPromise]);
+        // Track success (Phase A wiring)
+        try { toolHealthMonitor.recordSuccess(toolName); } catch { /* non-critical */ }
+        return result;
+      }
+
+      // Stdio / SSE client
+      const client = this.clients.get(serverId);
+      if (!client) {
+        throw new Error(`[MCP] Client ${serverId} not connected — tool unavailable`);
+      }
+
+      // 30s timeout — prevents hanging forever if stdio subprocess is dead
       const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error(`HTTP tool timeout: ${toolName} (30s)`)), 30_000)
+        setTimeout(() => reject(new Error(`Stdio tool timeout: ${toolName} (30s)`)), 30_000)
       );
-      return Promise.race([httpServer.callHandler(toolName, args), timeoutPromise]);
+
+      const result = await Promise.race([
+        client.callTool({ name: toolName, arguments: args }),
+        timeoutPromise,
+      ]);
+      // Track success (Phase A wiring)
+      try { toolHealthMonitor.recordSuccess(toolName); } catch { /* non-critical */ }
+      return result;
+    } catch (error) {
+      // Track failure (Phase A wiring)
+      try { toolHealthMonitor.recordFailure(toolName, error instanceof Error ? error.message : String(error)); } catch { /* non-critical */ }
+      throw error;
     }
-
-    // Stdio / SSE client
-    const client = this.clients.get(serverId);
-    if (!client) {
-      throw new Error(`[MCP] Client ${serverId} not connected — tool unavailable`);
-    }
-
-    // 30s timeout — prevents hanging forever if stdio subprocess is dead
-    const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error(`Stdio tool timeout: ${toolName} (30s)`)), 30_000)
-    );
-
-    const result = await Promise.race([
-      client.callTool({ name: toolName, arguments: args }),
-      timeoutPromise,
-    ]);
-    return result;
   }
 
   isConnected(serverId: string): boolean {
@@ -470,3 +487,6 @@ export class MCPClientManager {
 // ─── Singleton ──────────────────────────────────────────────────────────────
 // Exported once — shared across all requests in the same process.
 export const mcpManager = new MCPClientManager();
+
+// ─── Tool Health Monitor (Phase A wiring) ──────────────────────────────────
+export const toolHealthMonitor = new ToolHealthMonitor(DEFAULT_HEALTH_CONFIG);
