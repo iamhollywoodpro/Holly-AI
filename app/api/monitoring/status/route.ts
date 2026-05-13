@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { monitoringEngine } from '@/src/lib/autonomy/monitoring-engine';
+import { monitoringEngine } from '@/lib/autonomy/monitoring-engine';
 
 export const dynamic = 'force-dynamic';
 
