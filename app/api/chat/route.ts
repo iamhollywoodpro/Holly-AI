@@ -328,7 +328,11 @@ export async function POST(req: NextRequest) {
                       if (tool.function?.arguments) toolArgs += tool.function.arguments;
                     }
                   }
-                } catch (e) { /* SSE chunk parse error — expected for partial chunks */ }
+                } catch (e) {
+                  const errMsg = e instanceof Error ? e.message : String(e);
+                  console.warn('[CHAT] Groq streaming failed:', errMsg);
+                  // Don't set fullResponse — let the fallback cascade handle it
+                }
               }
 
               if (!isToolCall && useArceeTools) {
@@ -401,12 +405,26 @@ export async function POST(req: NextRequest) {
                   continue;
                 }
               } else if (!useGroqTools && !useArceeTools) {
+                // No tool-calling providers available — use cascade directly
                 if (isSelfCode) {
                   const errMsg = 'Sovereign mode requires a tool-calling engine (Groq or Arcee). Please ensure GROQ_API_KEY or ARCEE_API_KEY is set.';
                   fullResponse = errMsg;
                   sendText(controller, errMsg);
                   break;
                 }
+                try {
+                  for await (const token of cascade(waterfall, pendingMessages, { temperature: 0.7, maxTokens: 4096, sessionId: conversationId, onModelSelected: (s) => { activeModel = s.displayName; } })) {
+                    fullResponse += token;
+                    sendText(controller, token);
+                  }
+                } catch {
+                  fullResponse = "I'm sorry, I'm having trouble connecting right now. Please try again.";
+                  sendText(controller, fullResponse);
+                }
+                break;
+              } else if (!fullResponse || fullResponse.trim().length === 0) {
+                // Groq/Arcee was configured but failed silently — fall through to cascade
+                console.warn('[CHAT] Tool provider failed silently, falling back to cascade');
                 try {
                   for await (const token of cascade(waterfall, pendingMessages, { temperature: 0.7, maxTokens: 4096, sessionId: conversationId, onModelSelected: (s) => { activeModel = s.displayName; } })) {
                     fullResponse += token;
