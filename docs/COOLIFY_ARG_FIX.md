@@ -1,264 +1,191 @@
-# 🔧 FIX: Coolify "Argument list too long" Deployment Failure
+# Coolify "Argument list too long" Fix Guide
 
-## Problem
+## The Problem
 
-Coolify deployment fails with:
+Coolify v4 auto-injects ARG declarations for **every environment variable** into **each build stage** of the Dockerfile, plus `--mount=type=secret` flags on every RUN command. It then passes the modified Dockerfile as a base64-encoded string in a single command argument.
+
+With ~110 env vars × 3 stages = **~330 ARGs + ~770 mount flags** → the base64 string exceeds Linux `MAX_ARG_STRLEN` (128KB) → deployment fails with:
 
 ```
 proc_open(): posix_spawn() failed: Argument list too long
 ```
 
-**Root Cause**: Coolify v4 auto-injects an `ARG` declaration for **every environment variable** marked as "Available at Buildtime" into **every build stage** of the Dockerfile. With ~330 env vars × 3 build stages = ~990 ARG declarations. Each `RUN` command then gets ~330 `--mount=type=secret` flags, exceeding the Linux `ARG_MAX` limit (~2MB).
+## What We've Already Done (Code-Side)
 
-Coolify's deployment log confirms this:
+### Commit f28771e — Prisma + CI fixes
+- `docker/startup.sh`: Added `--skip-generate` to `prisma db push`
+- `app/api/admin/setup-db/route.ts`: Same prisma flag fix
+- `Dockerfile`: Copy prisma CLI to runner stage
+- `.github/workflows/ci.yml`: npm ci fallback + PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING
+
+### Commit a78bcb9 — Coolify ARG documentation
+- Added Dockerfile header warning about Coolify ARG injection
+- Created this fix guide
+
+### Latest commit — Dockerfile stage consolidation
+- **Merged 3 stages → 2 stages** (deps+builder → build, runner stays)
+- **Consolidated RUN commands** from 7 → 4 (minimizes mount flag injections)
+- This reduces Coolify's ARG injections from ~330 → ~220 and mount flags from ~770 → ~440
+- The base64-encoded Dockerfile should now fit under the 128KB limit
+
+## What YOU Need To Do (Coolify UI)
+
+### Option A: Delete Unused Environment Variables (RECOMMENDED)
+
+The most effective fix is to reduce the total number of env vars in Coolify. Each unused variable adds ARGs to every build stage.
+
+**Steps:**
+1. Go to your Coolify project → **holly-app** → **Environment Variables**
+2. **DELETE every variable that has an empty value or you're not using**
+3. Keep ONLY the variables listed below
+
+**Variables to KEEP (copy these exactly):**
+
+#### Critical (app won't start without these):
 ```
-Added 330 ARG declarations to Dockerfile for service holly-app (multi-stage build, added to 3 stages)
-```
-
-## Solution: Mark Non-Build Variables as "Runtime Only"
-
-Only `NEXT_PUBLIC_*` variables need to be build-time ARGs (Next.js bakes them into the client bundle at build time). **All other variables** (API keys, secrets, URLs, config) are only needed at container runtime and should be marked as "Runtime Only" in Coolify.
-
----
-
-## Step-by-Step Fix (5 minutes)
-
-### Step 1: Open Coolify Environment Variables
-
-1. Go to your Coolify dashboard
-2. Navigate to: **Project → holly-ai → Environment Variables** tab
-3. You'll see a list of all ~330 environment variables
-
-### Step 2: Identify Variables That MUST Stay as Build-Time
-
-These **17 variables** must keep "Available at Buildtime" ✅ checked:
-
-```
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
-NEXT_PUBLIC_CLERK_SIGN_IN_URL
-NEXT_PUBLIC_CLERK_SIGN_UP_URL
-NEXT_PUBLIC_CLERK_SIGN_IN_FORCE_REDIRECT_URL
-NEXT_PUBLIC_CLERK_SIGN_UP_FORCE_REDIRECT_URL
-NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL
-NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL
-NEXT_PUBLIC_CLERK_PROXY_URL
-NEXT_PUBLIC_APP_URL
-NEXT_PUBLIC_APP_NAME
-NEXT_PUBLIC_APP_VERSION
-NEXT_PUBLIC_MUSIC_STUDIO_VERSION
-NEXT_PUBLIC_ENABLE_MUSIC_GENERATION
-NEXT_PUBLIC_ENABLE_LYRICS_AI
-NEXT_PUBLIC_ENABLE_VIDEO_GENERATION
-NEXT_PUBLIC_ENABLE_ARTIST_CREATION
-NEXT_PUBLIC_ENABLE_TRUE_STREAMING
-```
-
-> **Rule of thumb**: Only variables starting with `NEXT_PUBLIC_` need to be build-time. Everything else is runtime-only.
-
-### Step 3: Uncheck "Available at Buildtime" for ALL Other Variables
-
-For every variable **NOT** in the list above:
-
-1. Click the variable to edit it
-2. **Uncheck** ❌ "Available at Buildtime" (also labeled "Is Build Variable" in some Coolify versions)
-3. **Keep** ✅ "Available at Runtime" checked
-4. Save
-
-**Variables that MUST be Runtime Only** (uncheck build-time):
-
-```
-# Auth secrets (NEVER bake into image)
+DATABASE_URL
 CLERK_SECRET_KEY
 CLERK_WEBHOOK_SECRET
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+NEXT_PUBLIC_APP_URL
+CRON_SECRET
+INTERNAL_APP_URL
+NODE_ENV
+```
 
-# Database (runtime only)
-DATABASE_URL
+#### Clerk Auth:
+```
+NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
+NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
+NEXT_PUBLIC_CLERK_SIGN_IN_FORCE_REDIRECT_URL=/chat
+NEXT_PUBLIC_CLERK_SIGN_UP_FORCE_REDIRECT_URL=/chat
+NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=/chat
+NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=/chat
+NEXT_PUBLIC_CLERK_PROXY_URL=https://holly.nexamusicgroup.com/api/clerk
+```
 
-# All API keys (runtime only)
+#### LLM Providers (only the ones you actually use):
+```
 GROQ_API_KEY
 OPENROUTER_API_KEY
-NVIDIA_API_KEY
-CF_ACCOUNT_ID_CF_AI_TOKEN
-HUGGINGFACE_API_KEY
-OPENAI_API_KEY
-GOOGLE_AI_API_KEY
-ARCEE_API_KEY
-ARCEE_BASE_URL
+```
+> Delete NVIDIA_API_KEY, CF_ACCOUNT_ID_CF_AI_TOKEN, HUGGINGFACE_API_KEY, OPENAI_API_KEY, ARCEE_API_KEY, ARCEE_BASE_URL if you're not using them.
 
-# Voice/TTS (runtime only)
-VOXCPM2_TTS_URL
-VOXCPM2_STYLE_GUIDANCE
-HOLLY_VOICE_DESCRIPTION
-HOLLY_TTS_API_KEY
+#### Voice/TTS (only if you have these services running):
+```
 KOKORO_TTS_URL
 KOKORO_VOICE
+```
+> Delete VOXCPM2_TTS_URL, VOXCPM2_STYLE_GUIDANCE, HOLLY_VOICE_DESCRIPTION, HOLLY_TTS_API_KEY if not using VoxCPM2.
 
-# Music (runtime only)
-SUNO_API_KEY
-SUNO_BASE_URL
-SONAUTO_API_KEY
-ACESTEP_MUSIC_URL
-
-# Storage (runtime only)
-BLOB_READ_WRITE_TOKEN
+#### Storage (only if using R2):
+```
 R2_ACCOUNT_ID
 R2_ACCESS_KEY_ID
 R2_SECRET_ACCESS_KEY
 R2_BUCKET_NAME
 R2_PUBLIC_URL
-
-# Search (runtime only)
-SERPER_API_KEY
-
-# Social OAuth (runtime only)
-SPOTIFY_CLIENT_ID
-SPOTIFY_CLIENT_SECRET
-SPOTIFY_REDIRECT_URI
-YOUTUBE_CLIENT_ID
-YOUTUBE_CLIENT_SECRET
-YOUTUBE_REDIRECT_URI
-SOUNDCLOUD_CLIENT_ID
-SOUNDCLOUD_CLIENT_SECRET
-SOUNDCLOUD_REDIRECT_URI
-
-# GitHub (runtime only)
-GITHUB_TOKEN
-GITHUB_CLIENT_ID
-GITHUB_CLIENT_SECRET
-GITHUB_OWNER
-GITHUB_REPO
-HOLLY_GITHUB_TOKEN
-HOLLY_GITHUB_OWNER
-HOLLY_GITHUB_REPO
-
-# Internal (runtime only)
-INTERNAL_API_SECRET
-CRON_SECRET
-HOLLY_HUB_API_KEY
-INTERNAL_APP_URL
-NODE_ENV
-
-# LiveKit (runtime only)
-LIVEKIT_API_KEY
-LIVEKIT_API_SECRET
-LIVEKIT_URL
-LIVEKIT_NODE_IP
-
-# Feature flags / Builder (runtime only)
-SANDBOX_PROVIDER
-HOLLY_DOCKER_IMAGE
-HOLLY_DOCKER_MEM
-HOLLY_DOCKER_CPU_QUOTA
-HOLLY_DOCKER_PIDS
-TERMINAL_TRANSPORT
-PREVIEW_PROXY_ENABLED
-GITHUB_INTEGRATION_ENABLED
-FIX_LOOP_MAX_ATTEMPTS
-FILE_SYNC_ENABLED
-
-# Image/Video generation (runtime only)
-MODAL_IMAGE_URL
-MODAL_VIDEO_URL
-FAL_KEY
-REPLICATE_API_KEY
-RUNWAY_API_KEY
-
-# Canva (runtime only)
-CANVA_CLIENT_ID
-CANVA_CLIENT_SECRET
-CANVA_REDIRECT_URI
-
-# Notion (runtime only)
-NOTION_CLIENT_ID
-NOTION_CLIENT_SECRET
-NOTION_REDIRECT_URI
-
-# Notifications (runtime only)
-SLACK_WEBHOOK_URL
-DISCORD_WEBHOOK_URL
-
-# Rate limiting (runtime only)
-RATE_LIMIT_MUSIC_GENERATION
-RATE_LIMIT_ARTIST_GENERATION
-RATE_LIMIT_LYRICS_GENERATION
-
-# Creator identification (runtime only)
-CREATOR_EMAILS
-CREATOR_CLERK_IDS
-CREATOR_NAME_FRAGMENTS
-
-# Ollama (runtime only)
-OLLAMA_ENABLED
-OLLAMA_BASE_URL
-OLLAMA_MODEL
-
-# HF (runtime only)
-HF_INFERENCE_ENABLED
-HF_SPENDING_SAFE
-
-# Upstash Redis (runtime only)
-KV_REST_API_URL
-KV_REST_API_TOKEN
-
-# Aura Worker (runtime only)
-AURA_WORKER_URL
-AURA_WORKER_TOKEN
 ```
 
-### Step 4: Save and Redeploy
-
-1. Click **Save** at the bottom of the Environment Variables page
-2. Go to **Deployments** tab
-3. Click **Redeploy** (or push a new commit to trigger automatic deployment)
-
----
-
-## Why This Works
-
-| Before | After |
-|--------|-------|
-| 330 ARGs × 3 stages = 990 declarations | 17 ARGs × 3 stages = 51 declarations |
-| Each RUN gets 330 `--mount=type=secret` flags | Each RUN gets 17 `--mount=type=secret` flags |
-| Command line ≈ 3MB → exceeds `ARG_MAX` | Command line ≈ 50KB → well within limits |
-
-## Verification
-
-After redeploying, check the Coolify deployment log. You should see:
+#### Feature Flags:
 ```
-Added 17 ARG declarations to Dockerfile for service holly-app (multi-stage build, added to 3 stages)
+NEXT_PUBLIC_ENABLE_MUSIC_GENERATION=true
+NEXT_PUBLIC_ENABLE_LYRICS_AI=true
+NEXT_PUBLIC_ENABLE_VIDEO_GENERATION=true
+NEXT_PUBLIC_ENABLE_ARTIST_CREATION=true
+NEXT_PUBLIC_ENABLE_TRUE_STREAMING=true
 ```
 
-Instead of the previous:
+#### App Config:
 ```
-Added 330 ARG declarations to Dockerfile for service holly-app (multi-stage build, added to 3 stages)
+NEXT_PUBLIC_APP_NAME=HOLLY
+NEXT_PUBLIC_APP_VERSION
+NEXT_PUBLIC_MUSIC_STUDIO_VERSION
 ```
 
----
+**Variables to DELETE (safe to remove — not used or optional):**
+- Any variable with an empty value
+- `BLOB_READ_WRITE_TOKEN` (legacy Vercel Blob)
+- `SUNO_API_KEY`, `SUNO_BASE_URL` (if not using Suno)
+- `SONAUTO_API_KEY` (if not using Sonauto)
+- `SERPER_API_KEY` (if not using search)
+- `SPOTIFY_*` (if not using Spotify integration)
+- `YOUTUBE_*` (if not using YouTube integration)
+- `SOUNDCLOUD_*` (if not using SoundCloud integration)
+- `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` (if not using GitHub OAuth)
+- `GITHUB_TOKEN`, `GITHUB_OWNER`, `GITHUB_REPO` (if not using GitHub integration)
+- `LIVEKIT_*` (if not using LiveKit voice)
+- `SANDBOX_PROVIDER`, `HOLLY_DOCKER_*` (if not using HOLLY Builder)
+- `INTERNAL_API_SECRET` (if not using internal API)
+- Any `COOLIFY_*` variables that Coolify auto-added
+- Any Upstash/Redis variables
+- Any Slack/Discord webhook variables
+- Any Notion/Canva integration variables
 
-## Alternative: Bulk Edit via Coolify API
+**Target: Get under 40-50 total env vars.** With 50 vars × 2 stages = 100 ARGs, the deployment will succeed.
 
-If you have many variables, you can use Coolify's API to bulk-update them:
+### Option B: Switch to Pre-Built Image (BULLETPROOF)
+
+If reducing env vars doesn't work, switch Coolify to pull a pre-built image instead of building from source. This completely bypasses Coolify's Dockerfile modification.
+
+**How it works:**
+1. GitHub Actions builds the Docker image and pushes to GitHub Container Registry (ghcr.io)
+2. Coolify pulls the pre-built image — no Dockerfile modification needed
+3. All env vars are injected at runtime only (no build-time injection)
+
+**Steps:**
+1. Ensure your GitHub repo is public (GHCR is free for public repos)
+2. In Coolify, create a **new service** using "Pre-built Image" (or "Docker Image")
+3. Set the image to: `ghcr.io/iamhollywoodpro/holly-ai:latest`
+4. Add all runtime env vars in Coolify's Environment tab
+5. Deploy — Coolify just pulls and runs, no build step
+
+**Alternative: Modify docker-compose.yml for Coolify**
+Create a `docker-compose.coolify.yml` that uses the pre-built image:
+
+```yaml
+services:
+  holly-app:
+    image: ghcr.io/iamhollywoodpro/holly-ai:latest
+    # ... rest of config same as docker-compose.yml but without build: section
+```
+
+Then in Coolify, point to `docker-compose.coolify.yml` instead of `docker-compose.yml`.
+
+### Option C: Increase Server ARG_MAX (Quick Server Fix)
+
+If you have SSH access to the Oracle Cloud server:
 
 ```bash
-# List all environment variables for the service
-curl -s http://localhost:8000/api/v1/applications/{uuid}/env-vars \
-  -H "Authorization: Bearer YOUR_COOLIFY_TOKEN" | jq .
+# Check current limit
+cat /proc/sys/kernel/argsmax
+# or
+getconf ARG_MAX
 
-# Update each variable to set is_buildtime=false (except NEXT_PUBLIC_*)
-# This requires individual PATCH requests per variable
+# Temporarily increase (until reboot)
+sudo sysctl -w kernel.argsmax=4194304
+
+# Permanently increase
+echo "kernel.argsmax=4194304" | sudo tee -a /etc/sysctl.conf
+sudo sysctl -p
 ```
 
-Or use the Coolify web UI's bulk edit feature if available in your version.
+> Note: On newer kernels, `argsmax` may not be directly tunable. The relevant limits are:
+> - `ARG_MAX` — total size of all arguments + environment
+> - `MAX_ARG_STRLEN` — max size of a single argument (128KB default, NOT tunable on most kernels)
+>
+> If `MAX_ARG_STRLEN` is the bottleneck (which it likely is), the only fix is Options A or B.
 
----
+## Troubleshooting
 
-## FAQ
+### "I unchecked 'Available at Buildtime' but it still fails"
+The "Available at Buildtime" toggle in Coolify v4 does NOT prevent ARG injection into the Dockerfile. Coolify injects ARGs for ALL variables regardless of this setting. The toggle only controls whether `--build-arg` values are passed during the build. You MUST reduce the total number of env vars (Option A) or switch to pre-built image (Option B).
 
-**Q: Will my app still work if API keys aren't build-time ARGs?**
-**A:** Yes. API keys, secrets, and all non-`NEXT_PUBLIC_*` variables are only needed at container runtime. They're injected as environment variables when the container starts, not during the Docker build. Only `NEXT_PUBLIC_*` variables need to be available during build because Next.js embeds them into the client-side JavaScript bundle at compile time.
+### "How do I know how many env vars Coolify is injecting?"
+Check the deployment logs for: `"Added N ARG declarations to Dockerfile for service holly-app"`
+- N = (number of env vars) × (number of build stages)
+- If N > 200, deployment will likely fail
+- Target: N < 100
 
-**Q: What if I add a new `NEXT_PUBLIC_*` variable?**
-**A:** Make sure to check "Available at Buildtime" for any new `NEXT_PUBLIC_*` variable you add. Also declare it as an `ARG` + `ENV` in the Dockerfile's builder stage.
-
-**Q: Can I just delete unused variables from Coolify?**
-**A:** Yes! Removing unused/empty variables also helps. But the critical fix is unchecking "Available at Buildtime" for non-build variables.
+### "Can I just increase Docker's memory?"
+No. This is an OS-level limit on command argument length, not a Docker memory issue.
