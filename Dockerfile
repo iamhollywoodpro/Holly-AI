@@ -4,6 +4,17 @@
 # Target: Coolify / any Docker host (ARM64 + AMD64)
 # Node: 20 LTS Alpine (small, fast, secure)
 # ─────────────────────────────────────────────────────────────────────────────
+#
+# ⚠️  COOLIFY DEPLOYMENT NOTE:
+# Coolify v4 auto-injects ARG declarations for every environment variable
+# marked "Available at Buildtime" into EACH build stage. With ~330 env vars
+# × 3 stages = ~990 ARGs → each RUN command gets ~330 --mount=type=secret
+# flags → exceeds OS ARG_MAX → "Argument list too long" error.
+#
+# FIX: In Coolify UI → Environment Variables → uncheck "Available at Buildtime"
+# for ALL variables EXCEPT NEXT_PUBLIC_* (only ~17 need build-time access).
+# See docs/COOLIFY_ARG_FIX.md for step-by-step instructions.
+# ─────────────────────────────────────────────────────────────────────────────
 
 # ── Stage 1: Install dependencies ────────────────────────────────────────────
 FROM node:20-alpine AS deps
