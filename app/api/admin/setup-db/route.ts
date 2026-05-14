@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     let pushOutput = '';
     let pushError = '';
     try {
-      const { stdout, stderr } = await execAsync('npx prisma db push --skip-generate', {
+      const { stdout, stderr } = await execAsync('npx prisma db push --accept-data-loss', {
         timeout: 120_000,
         env: { ...process.env },
       });
