@@ -44,10 +44,11 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm install --legacy-peer-deps
+        run: npm ci --legacy-peer-deps || npm install --legacy-peer-deps
         env:
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
           TRANSFORMERS_OFFLINE: 1
+          PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING: 1
 
       - name: Generate Prisma client
         run: npx prisma generate

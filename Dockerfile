@@ -172,6 +172,12 @@ COPY --from=builder /app/.next/static              ./.next/static
 COPY --from=builder /app/prisma                    ./prisma
 COPY --from=builder /app/node_modules/.prisma      ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma      ./node_modules/@prisma
+# ── Prisma CLI ────────────────────────────────────────────────────────────────
+# The startup.sh script runs `npx prisma db push` and `npx prisma db execute`
+# at container start. Without the prisma CLI package in node_modules, npx must
+# download it on every cold start (~30MB), which can fail in restricted networks
+# or cause health-check timeouts. Copy it from the builder stage instead.
+COPY --from=builder /app/node_modules/prisma       ./node_modules/prisma
 # ── node-pty native bindings ──────────────────────────────────────────────────
 # node-pty compiles a platform-specific .node binary during npm rebuild.
 # The standalone output doesn't bundle native addons automatically, so we copy
