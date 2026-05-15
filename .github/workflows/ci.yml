@@ -97,7 +97,6 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
-          target: runner
           push: false
           load: false
           build-args: |
