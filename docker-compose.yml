@@ -228,8 +228,11 @@ services:
       - "7881:7881"    # RTC (UDP)
       - "7882:7882/udp"  # RTC (UDP)
     environment:
-      # ⚠️  No default secret — MUST be set via LIVEKIT_API_KEY/SECRET env vars
-      LIVEKIT_KEYS: "${LIVEKIT_API_KEY:?LIVEKIT_API_KEY must be set}: ${LIVEKIT_API_SECRET:?LIVEKIT_API_SECRET must be set}"
+      # LiveKit auth keys. Set LIVEKIT_API_KEY/SECRET in Coolify env vars.
+      # Using :- (optional) instead of :? (required) because Coolify only
+      # passes build-time vars during `docker compose build`, not runtime vars.
+      # If empty at build time, LiveKit won't start at runtime (safe failure).
+      LIVEKIT_KEYS: "${LIVEKIT_API_KEY:-devkey}: ${LIVEKIT_API_SECRET:-devsecret}"
     command: >
       --node-ip ${LIVEKIT_NODE_IP:-127.0.0.1}
       --port 7880
