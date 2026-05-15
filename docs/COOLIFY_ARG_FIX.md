@@ -1,143 +1,125 @@
 # Coolify Deployment — Final Fix Guide
 
-## Current Status (commit f1a0b5e)
+## Current Status (commit 5afe55d)
 
-✅ **FIXED**: Coolify ARG injection (330→17 ARGs)
-✅ **FIXED**: LIVEKIT_KEYS required variable error
-✅ **FIXED**: Single-stage Dockerfile passes ARG_MAX
+✅ **FIXED**: Coolify ARG injection (330→17 ARGs) — single-stage Dockerfile
+✅ **FIXED**: LIVEKIT_KEYS required variable error — changed `:?` to `:-`
+✅ **FIXED**: Server OOM during build — using pre-built GHCR image
+✅ **FIXED**: Deploy.yml now builds ARM64 image and pushes to GHCR
 
-❌ **CURRENT ISSUE**: Build killed during `npm install` (exit code 255)
-   - The npm install process is killed by the OS, likely OOM (Out of Memory)
-   - The build needs ~3-4GB RAM for npm install + Next.js build
+❌ **CURRENT ISSUE**: `error from registry: denied` when Coolify pulls the image
 
-## Quick Fix: Add Swap Space on Server
+## Root Cause: GHCR Package is Private
 
-SSH into your Oracle Cloud server and run:
+By default, GitHub Container Registry packages are **private**. Your Coolify server
+cannot pull `ghcr.io/iamhollywoodpro/holly-ai:latest` without authentication.
+
+## Fix: Make the GHCR Package Public (2 minutes)
+
+### Step 1: Verify the image exists
+
+1. Go to https://github.com/iamhollywoodpro?tab=packages
+2. You should see a package named `holly-ai`
+3. If it's NOT there, the CD workflow hasn't run yet — see "Trigger the build" below
+
+### Step 2: Make the package public
+
+1. Go to https://github.com/iamhollywoodpro?tab=packages
+2. Click on the **holly-ai** package
+3. Click **Package settings** (on the right side)
+4. Scroll down to **Danger Zone** → **Change package visibility**
+5. Click **Change visibility** → select **Public**
+6. Confirm the change
+
+### Step 3: Redeploy in Coolify
+
+1. Go to your Coolify dashboard
+2. Click **Redeploy** on the holly-app service
+3. Coolify should now be able to pull the image without authentication
+
+## Trigger the Build (if image doesn't exist yet)
+
+The CD workflow triggers automatically after CI passes on `main`. But you can also
+trigger it manually:
+
+1. Go to https://github.com/iamhollywoodpro/Holly-AI/actions/workflows/deploy.yml
+2. Click **Run workflow** → **Run workflow**
+3. Wait for the build to complete (~10-15 minutes for ARM64)
+4. Then follow Step 2 above to make the package public
+
+## Alternative: Keep Package Private + Add Auth to Coolify
+
+If you want to keep the GHCR package private for security:
+
+### Step 1: Create a GitHub Personal Access Token
+
+1. Go to https://github.com/settings/tokens?type=beta (fine-grained tokens)
+2. Click **Generate new token**
+3. Name it: `coolify-pull`
+4. Repository access: **All repositories** (or just Holly-AI)
+5. Permissions → **Packages** → **Read** access
+6. Generate and copy the token
+
+### Step 2: Log in on the server
+
+SSH into your Oracle Cloud server:
 
 ```bash
-# Check current memory
-free -h
+echo "YOUR_PAT_TOKEN" | docker login ghcr.io -u iamhollywoodpro --password-stdin
+```
 
-# Create 4GB swap file
+### Step 3: Redeploy in Coolify
+
+Coolify will now use the cached Docker login to pull the private image.
+
+---
+
+## How the GHCR Pipeline Works
+
+```
+Push to main
+    ↓
+HOLLY CI workflow (tests + type checking)
+    ↓ (on success)
+HOLLY CD workflow (deploy.yml)
+    ↓
+Build ARM64 Docker image on GitHub Actions (7GB+ RAM, no server limits)
+    ↓
+Push to ghcr.io/iamhollywoodpro/holly-ai:latest
+    ↓
+Coolify pulls the pre-built image (no build on server!)
+    ↓
+Holly is live 🎉
+```
+
+## Architecture: docker-compose.coolify.yml
+
+| Service | Image | Notes |
+|---------|-------|-------|
+| holly-app | `ghcr.io/iamhollywoodpro/holly-ai:latest` | Pre-built, just pull & run |
+| holly-cron | Built from `./docker/cron/Dockerfile.cron` | Tiny Alpine image, builds on server (no OOM risk) |
+| livekit | `livekit/livekit-server:latest` | Official image, no build needed |
+
+## Troubleshooting
+
+### "error from registry: denied"
+→ The GHCR package is private. Make it public (see Step 2 above) or add Docker auth.
+
+### "manifest unknown"
+→ The image tag doesn't exist yet. Trigger the CD workflow manually (see "Trigger the build").
+
+### Build OOM (exit code 255)
+→ This shouldn't happen anymore since we're using pre-built images. If holly-cron
+   OOMs (unlikely — it's a tiny image), add swap space:
+
+```bash
 sudo fallocate -l 4G /swapfile
 sudo chmod 600 /swapfile
 sudo mkswap /swapfile
 sudo swapon /swapfile
-
-# Make it permanent (survives reboot)
 echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
-
-# Verify
-free -h
 ```
 
-Then redeploy in Coolify. The build should now have enough virtual memory.
-
-## Permanent Fix: Pre-built Image via GHCR
-
-Instead of building on the server (which needs lots of RAM), GitHub Actions builds the image and pushes to GitHub Container Registry. Coolify just pulls the pre-built image.
-
-### Step 1: Enable GHCR (one-time setup)
-
-Your repo `iamhollywoodpro/Holly-AI` needs to have GitHub Packages enabled:
-
-1. Go to https://github.com/iamhollywoodpro/Holly-AI/settings
-2. Scroll to "Danger Zone" → "Change repository visibility"
-3. Make sure the repo is **Public** (GHCR is free for public repos)
-   - Or if private, you'll need to set up a Personal Access Token with `write:packages` scope
-
-### Step 2: Change Coolify to use pre-built image
-
-In Coolify UI:
-
-1. Go to your **holly-app** service
-2. Change the **Source** from "GitHub" to "Docker Image" (or "Pre-built Image")
-3. Set the image to: `ghcr.io/iamhollywoodpro/holly-ai:latest`
-4. Keep all your environment variables as-is (they're injected at runtime)
-5. Deploy — Coolify just pulls the image, no build needed
-
-### Alternative: Use docker-compose.coolify.yml
-
-If Coolify doesn't support switching to pre-built image easily, create a separate compose file:
-
-```yaml
-# docker-compose.coolify.yml — for Coolify deployment
-# Uses pre-built image from GHCR instead of building from source
-services:
-  holly-app:
-    image: ghcr.io/iamhollywoodpro/holly-ai:latest
-    container_name: holly-app
-    restart: unless-stopped
-    ports:
-      - "3000:3000"
-    environment:
-      # All env vars are injected by Coolify at runtime
-      NODE_ENV: production
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:3000/api/health || exit 1"]
-      start_period: 180s
-      interval: 15s
-      timeout: 10s
-      retries: 5
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.services.holly-app.loadbalancer.healthcheck.path=/api/health"
-      - "traefik.http.services.holly-app.loadbalancer.healthcheck.interval=15s"
-      - "traefik.http.services.holly-app.loadbalancer.healthcheck.timeout=10s"
-      - "traefik.docker.network=coolify"
-    networks:
-      - coolify
-
-  holly-cron:
-    build:
-      context: ./docker/cron
-      dockerfile: Dockerfile.cron
-    container_name: holly-cron
-    restart: unless-stopped
-    depends_on:
-      holly-app:
-        condition: service_started
-    environment:
-      CRON_SECRET: ${CRON_SECRET}
-      APP_URL: http://holly-app:3000
-    networks:
-      - coolify
-
-  livekit:
-    image: livekit/livekit-server:latest
-    container_name: holly-livekit
-    restart: unless-stopped
-    ports:
-      - "7880:7880"
-      - "7881:7881"
-      - "7882:7882/udp"
-    environment:
-      LIVEKIT_KEYS: "${LIVEKIT_API_KEY:-devkey}: ${LIVEKIT_API_SECRET:-devsecret}"
-    command: >
-      --node-ip ${LIVEKIT_NODE_IP:-127.0.0.1}
-      --port 7880
-      --bind 0.0.0.0
-    networks:
-      - coolify
-
-networks:
-  coolify:
-    external: true
-```
-
-Then in Coolify, point to `docker-compose.coolify.yml` instead of `docker-compose.yml`.
-
-## How the GHCR Pipeline Works
-
-The `.github/workflows/deploy.yml` is already configured to:
-1. Build the Docker image on GitHub Actions (7GB+ RAM, no server limits)
-2. Push to `ghcr.io/iamhollywoodpro/holly-ai:latest`
-3. Push tagged versions with commit SHA and timestamp
-
-Every push to `main` triggers:
-- CI workflow → tests + type checking
-- CD workflow → build image + push to GHCR
-
-Then Coolify pulls the latest image on deploy.
+### Coolify ARG injection error (proc_open / posix_spawn)
+→ Resolved by using pre-built images. The `docker-compose.coolify.yml` doesn't trigger
+   Coolify's ARG injection for holly-app since there's no `build:` directive.
