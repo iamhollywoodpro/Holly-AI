@@ -236,6 +236,33 @@ def list_adapters():
     return adapters
 
 
+@app.function(
+    image=finetune_image,
+    volumes={MODEL_DIR: vol},
+    timeout=120,
+)
+def upload_data(jsonl_content: str, filename: str = None):
+    """Upload training data JSONL to Modal volume for fine-tuning."""
+    import os
+    data_dir = os.path.join(MODEL_DIR, "training-data")
+    os.makedirs(data_dir, exist_ok=True)
+
+    if not filename:
+        from datetime import datetime
+        filename = f"holly-training-{datetime.now().strftime('%Y-%m-%d')}.jsonl"
+
+    filepath = os.path.join(data_dir, filename)
+    with open(filepath, 'w') as f:
+        f.write(jsonl_content)
+
+    # Count examples
+    lines = [l for l in jsonl_content.strip().split('\n') if l.strip()]
+    vol.commit()
+
+    print(f"[Upload] ✅ Uploaded {len(lines)} examples to {filepath}")
+    return {"path": filepath, "examples": len(lines), "filename": filename}
+
+
 @app.local_entrypoint()
 def main(action: str = "finetune", data: str = None):
     if action == "finetune":
@@ -243,10 +270,19 @@ def main(action: str = "finetune", data: str = None):
         if result:
             print(f"\n✅ Fine-tuning complete!")
             print(f"Adapter: {result['adapter_path']}")
+    elif action == "upload":
+        if not data:
+            print("❌ Provide --data with path to JSONL file")
+            return
+        with open(data, 'r') as f:
+            content = f.read()
+        result = upload_data.remote(jsonl_content=content, filename=os.path.basename(data))
+        print(f"\n✅ Uploaded {result['examples']} examples to Modal volume")
+        print(f"   Run fine-tuning: modal run services/fine-tuning/finetune_holly.py --action finetune")
     elif action == "list":
         adapters = list_adapters.remote()
         print(f"\n📚 Saved adapters ({len(adapters)}):")
         for a in adapters:
             print(f"  • {a.get('adapter_name', a.get('name', 'unknown'))} — {a.get('timestamp', 'unknown')}")
     else:
-        print("Usage: modal run finetune_holly.py --action [finetune|list] --data [path]")
+        print("Usage: modal run finetune_holly.py --action [finetune|upload|list] --data [path]")
