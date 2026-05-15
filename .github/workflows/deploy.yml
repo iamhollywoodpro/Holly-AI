@@ -5,6 +5,7 @@ on:
     workflows: ["HOLLY CI"]
     types: [completed]
     branches: [main]
+  workflow_dispatch:  # allows manual trigger from GitHub Actions UI
 
 jobs:
   deploy:
