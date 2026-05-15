@@ -31,6 +31,7 @@ const isPublicRoute = createRouteMatcher([
   '/api/health',
   '/api/version',
   '/api/clerk/(.*)',
+  '/api/fine-tuning/(.*)',  // HOLLY-8B training data collection (uses CRON_SECRET auth)
   '/offline',
   '/download/(.*)',
   '/api/v1/(.*)',
