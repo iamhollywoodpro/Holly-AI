@@ -24,7 +24,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      target: runner
       # Pass NEXT_PUBLIC_* vars as build args so Next.js bakes them into
       # the client bundle. Without this, Clerk and other client-side SDKs
       # receive empty values and crash the server on startup.
