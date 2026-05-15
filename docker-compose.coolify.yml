@@ -167,6 +167,9 @@ services:
       FAL_KEY:                         ${FAL_KEY:-}
       REPLICATE_API_TOKEN:             ${REPLICATE_API_TOKEN:-}
 
+      # ── Holly's Own LLM (self-sovereign) ────────────────────────────────────
+      HOLLY_OWN_MODEL_URL:             ${HOLLY_OWN_MODEL_URL:-}
+
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:3000/api/health || exit 1"]
       start_period: 180s
@@ -176,6 +179,10 @@ services:
 
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      # ── Persistent volumes (survive container restarts) ──
+      - holly-backups:/app/.holly-backups    # Self-code modification backups
+      - holly-data:/app/data                  # Persistent memory store
+      - holly-sandbox:/app/.sandbox           # Builder sandbox workspace
 
     labels:
       - "traefik.enable=true"
@@ -224,3 +231,11 @@ services:
 networks:
   coolify:
     external: true
+
+volumes:
+  holly-backups:
+    driver: local
+  holly-data:
+    driver: local
+  holly-sandbox:
+    driver: local

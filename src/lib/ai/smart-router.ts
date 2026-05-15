@@ -61,6 +61,7 @@ export type TaskType =
 // ─── Provider identifiers ─────────────────────────────────────────────────────
 
 export type ProviderId =
+  | 'holly_own'     // Holly's fine-tuned Qwen3-8B on Modal.com — self-sovereign, $0, unlimited
   | 'groq'          // api.groq.com — Llama 3.3 70B (300+ tok/s, 14,400 req/day FREE)
   | 'cf_workers'    // api.cloudflare.com — Kimi K2.5/K2.6 (FREE tier, ~27K output tok/day — deep fallback only)
   | 'nvidia_nim'    // integrate.api.nvidia.com — Qwen3-235B-A22B (1,000 req/day FREE)
@@ -84,6 +85,13 @@ import { providerHealthMonitor } from './provider-health';
 // ─── Model catalogue ──────────────────────────────────────────────────────────
 
 export const MODEL_CATALOGUE: Record<string, ModelSpec> = {
+  // ── HOLLY-8B (Holly's own fine-tuned model — self-sovereign) ──────────────
+  // Only available when HOLLY_OWN_MODEL_URL is configured (Modal.com endpoint)
+  'holly-own:qwen3-8b': {
+    provider: 'holly_own', model: 'holly-own-qwen3-8b',
+    displayName: 'HOLLY-8B (Self-Sovereign)', contextK: 32, streaming: true,
+  },
+
   // ── Groq (fastest free inference — 300+ tok/s) ────────────────────────────
   'groq:llama-3.3-70b': {
     provider: 'groq', model: 'llama-3.3-70b-versatile',
@@ -445,7 +453,8 @@ export const TASK_WATERFALLS: Record<TaskType, string[]> = {
   //    This is Holly's "brain" for emotions, inner monologue, memory processing.
   //    Always tries local Qwen 3 8B first. Zero cost, zero rate limits, zero dependency.
   consciousness: [
-    'ollama:qwen3-8b',          // Holly's own brain — always first
+    'holly-own:qwen3-8b',       // Holly's fine-tuned brain — self-sovereign, always first when available
+    'ollama:qwen3-8b',          // Local fallback — unlimited, zero cost
     'ollama:qwen3.6-35b',       // Bigger local model if available
     'ollama:granite4.1-8b',     // Fast local fallback
     'ollama:llama3.1-8b',       // Last resort local

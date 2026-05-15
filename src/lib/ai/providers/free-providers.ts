@@ -481,9 +481,43 @@ export const googleProvider = {
   },
 };
 
+// ─── HOLLY-8B Self-Sovereign Provider ─────────────────────────────────────────
+// Holly's own fine-tuned Qwen3-8B model deployed on Modal.com
+// OpenAI-compatible API at HOLLY_OWN_MODEL_URL
+
+const HOLLY_OWN_URL = process.env.HOLLY_OWN_MODEL_URL || '';
+
+const hollyOwnProvider: { isConfigured: () => boolean; streamChat: (messages: ChatMessage[], _model: string, opts?: StreamOptions) => TokenStream } = {
+  isConfigured: () => !!HOLLY_OWN_URL,
+  async *streamChat(messages: ChatMessage[], _model: string, opts: StreamOptions = {}): TokenStream {
+    if (!HOLLY_OWN_URL) throw new Error('HOLLY_OWN_MODEL_URL not configured');
+
+    const res = await fetch(`${HOLLY_OWN_URL}/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messages,
+        temperature: opts.temperature ?? 0.7,
+        max_tokens:  opts.maxTokens   ?? 4096,
+        stream:      true,
+      }),
+    });
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => 'unknown error');
+      throw new Error(`HOLLY-8B API error ${res.status}: ${text}`);
+    }
+
+    if (!res.body) throw new Error('HOLLY-8B: empty response body');
+
+    yield* parseOpenAIStream(res.body);
+  },
+};
+
 // ─── Provider registry ────────────────────────────────────────────────────────
 
 export const PROVIDERS = {
+  holly_own:  hollyOwnProvider,
   groq:       groqProvider,
   google:     googleProvider,
   cf_workers: cloudflareProvider,
