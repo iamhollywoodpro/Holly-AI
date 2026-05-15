@@ -40,7 +40,6 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
-          target: runner
           push: true
           tags: |
             ${{ steps.meta.outputs.image }}:latest
