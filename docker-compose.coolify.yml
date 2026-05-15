@@ -1,0 +1,226 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# HOLLY AI — Docker Compose for Coolify (pre-built image)
+#
+# This file uses a pre-built image from GitHub Container Registry (GHCR)
+# instead of building from source. This eliminates:
+#   1. Coolify's ARG injection (no Dockerfile modification needed)
+#   2. Server memory requirements (no npm install / next build on server)
+#   3. Build timeouts and OOM kills
+#
+# The image is built by GitHub Actions (.github/workflows/deploy.yml)
+# and pushed to ghcr.io/iamhollywoodpro/holly-ai:latest on every push to main.
+#
+# Usage:
+#   In Coolify → Service → Source → set Compose file to this file
+#   OR rename this to docker-compose.yml and the original to docker-compose.dev.yml
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  # ── Main Next.js Application (pre-built image) ────────────────────────────
+  holly-app:
+    image: ghcr.io/iamhollywoodpro/holly-ai:latest
+    container_name: holly-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      # ── Core ──────────────────────────────────────────────────────────────
+      NODE_ENV:                         production
+      NEXT_PUBLIC_APP_URL:              ${NEXT_PUBLIC_APP_URL}
+      NEXT_PUBLIC_APP_NAME:             ${NEXT_PUBLIC_APP_NAME:-HOLLY}
+      INTERNAL_API_SECRET:              ${INTERNAL_API_SECRET}
+
+      # ── Database ──────────────────────────────────────────────────────────
+      DATABASE_URL:                     ${DATABASE_URL}
+
+      # ── Auth (Clerk) ──────────────────────────────────────────────────────
+      CLERK_SECRET_KEY:                 ${CLERK_SECRET_KEY}
+      CLERK_WEBHOOK_SECRET:             ${CLERK_WEBHOOK_SECRET}
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+
+      # ── LLM Providers ─────────────────────────────────────────────────────
+      GROQ_API_KEY:                     ${GROQ_API_KEY}
+      OPENROUTER_API_KEY:               ${OPENROUTER_API_KEY}
+      NVIDIA_API_KEY:                   ${NVIDIA_API_KEY}
+      CF_ACCOUNT_ID_CF_AI_TOKEN:        ${CF_ACCOUNT_ID_CF_AI_TOKEN}
+      HUGGINGFACE_API_KEY:              ${HUGGINGFACE_API_KEY}
+      OPENAI_API_KEY:                   ${OPENAI_API_KEY:-}
+      ARCEE_API_KEY:                    ${ARCEE_API_KEY:-}
+      ARCEE_BASE_URL:                   ${ARCEE_BASE_URL:-https://api.arcee.ai/api/v1}
+      GOOGLE_AI_API_KEY:                ${GOOGLE_AI_API_KEY:-}
+      DEEPSEEK_API_KEY:                 ${DEEPSEEK_API_KEY:-}
+      CEREBRAS_API_KEY:                 ${CEREBRAS_API_KEY:-}
+
+      # ── Voice: VoxCPM2 (primary) + Kokoro (fallback) ──────────────────────
+      VOXCPM2_TTS_URL:                  ${VOXCPM2_TTS_URL:-}
+      VOXCPM2_STYLE_GUIDANCE:           ${VOXCPM2_STYLE_GUIDANCE:-natural, warm, confident}
+      HOLLY_VOICE_DESCRIPTION:          ${HOLLY_VOICE_DESCRIPTION:-}
+      HOLLY_TTS_API_KEY:                ${HOLLY_TTS_API_KEY:-}
+      KOKORO_TTS_URL:                   ${KOKORO_TTS_URL:-}
+      KOKORO_VOICE:                     ${KOKORO_VOICE:-af_heart}
+
+      # ── Music ─────────────────────────────────────────────────────────────
+      SUNO_API_KEY:                     ${SUNO_API_KEY:-}
+      SUNO_BASE_URL:                    ${SUNO_BASE_URL:-}
+      SONAUTO_API_KEY:                  ${SONAUTO_API_KEY:-}
+      ACESTEP_MUSIC_URL:                ${ACESTEP_MUSIC_URL:-}
+
+      # ── Storage ───────────────────────────────────────────────────────────
+      R2_ACCOUNT_ID:                    ${R2_ACCOUNT_ID:-}
+      R2_ACCESS_KEY_ID:                 ${R2_ACCESS_KEY_ID:-}
+      R2_SECRET_ACCESS_KEY:             ${R2_SECRET_ACCESS_KEY:-}
+      R2_BUCKET_NAME:                   ${R2_BUCKET_NAME:-}
+      R2_PUBLIC_URL:                    ${R2_PUBLIC_URL:-}
+      BLOB_READ_WRITE_TOKEN:            ${BLOB_READ_WRITE_TOKEN:-}
+
+      # ── Search ────────────────────────────────────────────────────────────
+      SERPER_API_KEY:                   ${SERPER_API_KEY:-}
+
+      # ── Social / OAuth ────────────────────────────────────────────────────
+      SPOTIFY_CLIENT_ID:                ${SPOTIFY_CLIENT_ID:-}
+      SPOTIFY_CLIENT_SECRET:            ${SPOTIFY_CLIENT_SECRET:-}
+      SPOTIFY_REDIRECT_URI:             ${SPOTIFY_REDIRECT_URI:-}
+      YOUTUBE_CLIENT_ID:                ${YOUTUBE_CLIENT_ID:-}
+      YOUTUBE_CLIENT_SECRET:            ${YOUTUBE_CLIENT_SECRET:-}
+      YOUTUBE_REDIRECT_URI:             ${YOUTUBE_REDIRECT_URI:-}
+      SOUNDCLOUD_CLIENT_ID:             ${SOUNDCLOUD_CLIENT_ID:-}
+      SOUNDCLOUD_CLIENT_SECRET:         ${SOUNDCLOUD_CLIENT_SECRET:-}
+      SOUNDCLOUD_REDIRECT_URI:          ${SOUNDCLOUD_REDIRECT_URI:-}
+      GITHUB_CLIENT_ID:                 ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET:             ${GITHUB_CLIENT_SECRET:-}
+      GITHUB_TOKEN:                     ${GITHUB_TOKEN:-}
+      GITHUB_OWNER:                     ${GITHUB_OWNER:-iamhollywoodpro}
+      GITHUB_REPO:                      ${GITHUB_REPO:-Holly-AI}
+
+      # ── More integrations ─────────────────────────────────────────────────
+      CANVA_CLIENT_ID:                  ${CANVA_CLIENT_ID:-}
+      CANVA_CLIENT_SECRET:              ${CANVA_CLIENT_SECRET:-}
+      CANVA_REDIRECT_URI:               ${CANVA_REDIRECT_URI:-}
+      NOTION_CLIENT_ID:                 ${NOTION_CLIENT_ID:-}
+      NOTION_CLIENT_SECRET:             ${NOTION_CLIENT_SECRET:-}
+      NOTION_REDIRECT_URI:              ${NOTION_REDIRECT_URI:-}
+      INSTAGRAM_APP_ID:                 ${INSTAGRAM_APP_ID:-}
+      INSTAGRAM_APP_SECRET:             ${INSTAGRAM_APP_SECRET:-}
+      INSTAGRAM_REDIRECT_URI:           ${INSTAGRAM_REDIRECT_URI:-}
+      TIKTOK_CLIENT_KEY:                ${TIKTOK_CLIENT_KEY:-}
+      TIKTOK_CLIENT_SECRET:             ${TIKTOK_CLIENT_SECRET:-}
+      TIKTOK_REDIRECT_URI:              ${TIKTOK_REDIRECT_URI:-}
+      DROPBOX_APP_KEY:                  ${DROPBOX_APP_KEY:-}
+      DROPBOX_APP_SECRET:               ${DROPBOX_APP_SECRET:-}
+      DROPBOX_REDIRECT_URI:             ${DROPBOX_REDIRECT_URI:-}
+      GOOGLE_CLIENT_ID:                 ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET:             ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URI:              ${GOOGLE_REDIRECT_URI:-}
+      APPLE_MUSIC_KEY_ID:               ${APPLE_MUSIC_KEY_ID:-}
+      APPLE_MUSIC_TEAM_ID:              ${APPLE_MUSIC_TEAM_ID:-}
+      APPLE_MUSIC_PRIVATE_KEY:          ${APPLE_MUSIC_PRIVATE_KEY:-}
+      SLACK_CLIENT_ID:                  ${SLACK_CLIENT_ID:-}
+      SLACK_CLIENT_SECRET:              ${SLACK_CLIENT_SECRET:-}
+      SLACK_REDIRECT_URI:               ${SLACK_REDIRECT_URI:-}
+
+      # ── Feature Flags ─────────────────────────────────────────────────────
+      NEXT_PUBLIC_ENABLE_MUSIC_GENERATION:  ${NEXT_PUBLIC_ENABLE_MUSIC_GENERATION:-true}
+      NEXT_PUBLIC_ENABLE_LYRICS_AI:         ${NEXT_PUBLIC_ENABLE_LYRICS_AI:-true}
+      NEXT_PUBLIC_ENABLE_VIDEO_GENERATION:  ${NEXT_PUBLIC_ENABLE_VIDEO_GENERATION:-true}
+      NEXT_PUBLIC_ENABLE_ARTIST_CREATION:   ${NEXT_PUBLIC_ENABLE_ARTIST_CREATION:-true}
+      NEXT_PUBLIC_ENABLE_TRUE_STREAMING:    ${NEXT_PUBLIC_ENABLE_TRUE_STREAMING:-true}
+
+      # ── Cron auth secret ──────────────────────────────────────────────────
+      CRON_SECRET:                      ${CRON_SECRET}
+
+      # ── Internal networking ────────────────────────────────────────────────
+      INTERNAL_APP_URL:                 ${INTERNAL_APP_URL:-http://localhost:3000}
+
+      # ── LiveKit ────────────────────────────────────────────────────────────
+      LIVEKIT_API_KEY:                  ${LIVEKIT_API_KEY:-}
+      LIVEKIT_API_SECRET:               ${LIVEKIT_API_SECRET:-}
+      LIVEKIT_URL:                      ${LIVEKIT_URL:-ws://livekit:7880}
+      LIVEKIT_NODE_IP:                  ${LIVEKIT_NODE_IP:-127.0.0.1}
+
+      # ── Builder / Sandbox ─────────────────────────────────────────────────
+      SANDBOX_PROVIDER:               ${SANDBOX_PROVIDER:-docker}
+      HOLLY_DOCKER_IMAGE:             ${HOLLY_DOCKER_IMAGE:-node:20-slim}
+      HOLLY_DOCKER_MEM:               ${HOLLY_DOCKER_MEM:-512m}
+      HOLLY_DOCKER_CPU_QUOTA:         ${HOLLY_DOCKER_CPU_QUOTA:-50000}
+      HOLLY_DOCKER_PIDS:              ${HOLLY_DOCKER_PIDS:-100}
+      TERMINAL_TRANSPORT:             ${TERMINAL_TRANSPORT:-ws}
+      PREVIEW_PROXY_ENABLED:          ${PREVIEW_PROXY_ENABLED:-true}
+      GITHUB_INTEGRATION_ENABLED:     ${GITHUB_INTEGRATION_ENABLED:-true}
+      FIX_LOOP_MAX_ATTEMPTS:          ${FIX_LOOP_MAX_ATTEMPTS:-5}
+      FILE_SYNC_ENABLED:              ${FILE_SYNC_ENABLED:-true}
+
+      # ── Notifications ─────────────────────────────────────────────────────
+      SLACK_WEBHOOK_URL:               ${SLACK_WEBHOOK_URL:-}
+      DISCORD_WEBHOOK_URL:             ${DISCORD_WEBHOOK_URL:-}
+      RESEND_API_KEY:                  ${RESEND_API_KEY:-}
+      NOTIFICATION_FROM_EMAIL:         ${NOTIFICATION_FROM_EMAIL:-}
+      SMTP_HOST:                       ${SMTP_HOST:-}
+      SMTP_USER:                       ${SMTP_USER:-}
+      SMTP_PASS:                       ${SMTP_PASS:-}
+      SMTP_PORT:                       ${SMTP_PORT:-587}
+      CRITICAL_PUSH_WEBHOOK_URL:       ${CRITICAL_PUSH_WEBHOOK_URL:-}
+
+      # ── Media generation ──────────────────────────────────────────────────
+      MODAL_IMAGE_URL:                 ${MODAL_IMAGE_URL:-}
+      MODAL_VIDEO_URL:                 ${MODAL_VIDEO_URL:-}
+      FAL_KEY:                         ${FAL_KEY:-}
+      REPLICATE_API_TOKEN:             ${REPLICATE_API_TOKEN:-}
+
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:3000/api/health || exit 1"]
+      start_period: 180s
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.holly-app.loadbalancer.healthcheck.path=/api/health"
+      - "traefik.http.services.holly-app.loadbalancer.healthcheck.interval=15s"
+      - "traefik.http.services.holly-app.loadbalancer.healthcheck.timeout=10s"
+      - "traefik.docker.network=coolify"
+
+    networks:
+      - coolify
+
+  # ── Cron Runner ──────────────────────────────────────────────────────────
+  holly-cron:
+    build:
+      context: ./docker/cron
+      dockerfile: Dockerfile.cron
+    container_name: holly-cron
+    restart: unless-stopped
+    depends_on:
+      holly-app:
+        condition: service_started
+    environment:
+      CRON_SECRET:   ${CRON_SECRET}
+      APP_URL:       http://holly-app:3000
+    networks:
+      - coolify
+
+  # ── LiveKit WebRTC Server ──────────────────────────────────────────────────
+  livekit:
+    image: livekit/livekit-server:latest
+    container_name: holly-livekit
+    restart: unless-stopped
+    ports:
+      - "7880:7880"
+      - "7881:7881"
+      - "7882:7882/udp"
+    environment:
+      LIVEKIT_KEYS: "${LIVEKIT_API_KEY:-devkey}: ${LIVEKIT_API_SECRET:-devsecret}"
+    command: >
+      --node-ip ${LIVEKIT_NODE_IP:-127.0.0.1}
+      --port 7880
+      --bind 0.0.0.0
+    networks:
+      - coolify
+
+networks:
+  coolify:
+    external: true
