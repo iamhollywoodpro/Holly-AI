@@ -13,7 +13,7 @@
 # ─────────────────────────────────────────────────────────────────────────────
 
 FROM node:20-alpine
-RUN apk add --no-cache libc6-compat openssl python3 make g++ curl bash
+RUN apk add --no-cache libc6-compat openssl python3 make g++ curl bash ffmpeg
 WORKDIR /app
 
 # Copy prisma schema + package files
