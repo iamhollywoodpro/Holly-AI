@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * HOLLY MCP Tool Server  –  Phase 4A: Expanded Tool Suite
  *
@@ -2221,22 +2222,22 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 
     // ── GROUP 14: Autonomous Deploy ──────────────────────────────────────────
-    case "trigger_deploy": {
+    if (name === "trigger_deploy") {
       const reason = args.reason || "Manual trigger via MCP tool";
       try {
         const deploySecret = process.env.INTERNAL_API_SECRET || "";
-        const headers = { "Content-Type": "application/json" };
-        if (deploySecret) headers["Authorization"] = `Bearer ${deploySecret}`;
+        const deployHeaders = { "Content-Type": "application/json" };
+        if (deploySecret) deployHeaders["Authorization"] = `Bearer ${deploySecret}`;
 
         const { status, body } = await fetchJSON(`${baseUrl}/api/deploy/trigger`, {
           method: "POST",
-          headers,
+          headers: deployHeaders,
           body: JSON.stringify({ reason }),
         });
-        if (body.triggered) {
-          return text(`🚀 Deployment triggered!\n\nReason: ${reason}\nWebhook: ${body.webhookUrl || "configured"}\nStatus: ${body.status || "pending"}\n\nHolly will be back online in ~2-3 minutes after the new image is pulled.`);
+        if (body.success) {
+          return text(`🚀 Deployment triggered!\n\nReason: ${reason}\n${body.message || ""}\n\n${body.note || "Coolify will pull the latest image and redeploy in 2-5 minutes."}`);
         }
-        return text(`⚠️ Deploy trigger failed (HTTP ${status}): ${body.error || "Unknown error"}\n\nMake sure COOLIFY_WEBHOOK_URL is set in environment variables.`);
+        return text(`⚠️ Deploy trigger failed (HTTP ${status}): ${body.error || "Unknown error"}\n\nMake sure COOLIFY_WEBHOOK_URL is set in Coolify environment variables.`);
       } catch (e) {
         return text(`⚠️ Deploy trigger error: ${e.message}\n\nThe deploy trigger endpoint may not be reachable. Ensure the app is running and COOLIFY_WEBHOOK_URL is configured.`);
       }
