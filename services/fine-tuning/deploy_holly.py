@@ -23,11 +23,12 @@ app = modal.App("holly-api")
 vol = modal.Volume.from_name("holly-models", create_if_missing=True)
 MODEL_DIR = "/models"
 
-# Inference image
+# Inference image — PyTorch CUDA base (has python + CUDA pre-installed)
 inference_image = (
-    modal.Image.from_registry("nvidia/cuda:12.1.0-runtime-ubuntu22.04")
+    modal.Image.from_registry(
+        "pytorch/pytorch:2.1.0-cuda12.1-cudnn8-runtime",
+    )
     .pip_install(
-        "torch>=2.1.0",
         "transformers>=4.40.0",
         "peft>=0.10.0",
         "accelerate>=0.27.0",
@@ -56,7 +57,7 @@ class HollyModel:
         import torch
         from transformers import AutoModelForCausalLM, AutoTokenizer
         from peft import PeftModel
-        from bitsandbytes import BitsAndBytesConfig
+        from transformers import BitsAndBytesConfig
 
         print("[HollyAPI] Loading model...")
 
