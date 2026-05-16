@@ -28,11 +28,15 @@ app = modal.App("holly-finetune")
 vol = modal.Volume.from_name("holly-models", create_if_missing=True)
 MODEL_DIR = "/models"
 
-# Fine-tuning image with required packages
+# Fine-tuning image — PyTorch CUDA base (has python + CUDA pre-installed)
 finetune_image = (
-    modal.Image.from_registry("nvidia/cuda:12.1.0-devel-ubuntu22.04")
+    modal.Image.from_registry(
+        "pytorch/pytorch:2.1.0-cuda12.1-cudnn8-devel",
+        setup_dockerfile_commands=[
+            "RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*",
+        ],
+    )
     .pip_install(
-        "torch>=2.1.0",
         "transformers>=4.40.0",
         "peft>=0.10.0",
         "trl>=0.8.0",
@@ -62,11 +66,11 @@ def finetune(training_data_path: str = None):
     from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
     from datasets import Dataset
     from trl import SFTTrainer
-    from bitsandbytes import BitsAndBytesConfig
+    from transformers import BitsAndBytesConfig
 
     print(f"[FineTune] 🔧 Starting fine-tuning with QLoRA")
     print(f"[FineTune] GPU: {torch.cuda.get_device_name(0)}")
-    print(f"[FineTune] VRAM: {torch.cuda.get_device_properties(0).total_mem / 1e9:.1f} GB")
+    print(f"[FineTune] VRAM: {torch.cuda.get_device_properties(0).total_memory / 1e9:.1f} GB")
 
     # 1. Load training data
     if training_data_path and os.path.exists(training_data_path):
@@ -96,10 +100,11 @@ def finetune(training_data_path: str = None):
 
     # 2. Format as instruction dataset
     def format_example(ex):
+        # Truncate to ~512 tokens to fit T4 16GB VRAM
         return {
-            "text": f"<|im_start|>system\n{ex['system']}<|im_end|>\n"
-                    f"<|im_start|>user\n{ex['instruction']}<|im_end|>\n"
-                    f"<|im_start|>assistant\n{ex['output']}<|im_end|>"
+            "text": f"<|im_start|>system\n{ex['system'][:200]}<|im_end|>\n"
+                    f"<|im_start|>user\n{ex['instruction'][:500]}<|im_end|>\n"
+                    f"<|im_start|>assistant\n{ex['output'][:800]}<|im_end|>"
         }
 
     formatted = [format_example(ex) for ex in raw_examples]
@@ -157,33 +162,31 @@ def finetune(training_data_path: str = None):
     training_args = TrainingArguments(
         output_dir=output_dir,
         num_train_epochs=3,
-        per_device_train_batch_size=2,
-        gradient_accumulation_steps=4,
+        per_device_train_batch_size=1,
+        gradient_accumulation_steps=8,
         learning_rate=2e-4,
         lr_scheduler_type="cosine",
         warmup_ratio=0.1,
         logging_steps=10,
-        eval_strategy="steps",
-        eval_steps=50,
-        save_strategy="steps",
-        save_steps=50,
+        eval_strategy="no",
+        save_strategy="epoch",
         save_total_limit=2,
         bf16=True,
         gradient_checkpointing=True,
         max_grad_norm=1.0,
         report_to="none",
+        dataloader_pin_memory=False,
+        optim="adamw_torch_fused",
     )
 
     # 6. Train
     print("[FineTune] 🚀 Starting training...")
     trainer = SFTTrainer(
         model=model,
-        tokenizer=tokenizer,
+        processing_class=tokenizer,
         train_dataset=train_ds,
         eval_dataset=eval_ds,
         args=training_args,
-        max_seq_length=2048,
-        dataset_text_field="text",
     )
 
     trainer.train()

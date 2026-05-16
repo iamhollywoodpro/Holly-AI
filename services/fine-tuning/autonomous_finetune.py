@@ -207,7 +207,7 @@ def finetune():
     from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
     from datasets import Dataset
     from trl import SFTTrainer
-    from bitsandbytes import BitsAndBytesConfig
+    from transformers import BitsAndBytesConfig
 
     data_dir = os.path.join(MODEL_DIR, "training-data")
     if not os.path.exists(data_dir):
