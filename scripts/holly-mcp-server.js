@@ -754,6 +754,18 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         },
         required: ["prompt"]
       }
+    },
+    // GROUP 14 — Autonomous Deploy
+    {
+      name: "trigger_deploy",
+      description: "Trigger Holly's own redeployment via Coolify webhook. After self-code changes are pushed to GitHub, call this to pull the new image and restart. Requires COOLIFY_WEBHOOK_URL env var.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          reason: { type: "string", description: "Reason for the deployment (logged)" }
+        },
+        required: []
+      }
     }
   ]
 }));
@@ -2208,6 +2220,28 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
     }
 
+    // ── GROUP 14: Autonomous Deploy ──────────────────────────────────────────
+    case "trigger_deploy": {
+      const reason = args.reason || "Manual trigger via MCP tool";
+      try {
+        const deploySecret = process.env.INTERNAL_API_SECRET || "";
+        const headers = { "Content-Type": "application/json" };
+        if (deploySecret) headers["Authorization"] = `Bearer ${deploySecret}`;
+
+        const { status, body } = await fetchJSON(`${baseUrl}/api/deploy/trigger`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ reason }),
+        });
+        if (body.triggered) {
+          return text(`🚀 Deployment triggered!\n\nReason: ${reason}\nWebhook: ${body.webhookUrl || "configured"}\nStatus: ${body.status || "pending"}\n\nHolly will be back online in ~2-3 minutes after the new image is pulled.`);
+        }
+        return text(`⚠️ Deploy trigger failed (HTTP ${status}): ${body.error || "Unknown error"}\n\nMake sure COOLIFY_WEBHOOK_URL is set in environment variables.`);
+      } catch (e) {
+        return text(`⚠️ Deploy trigger error: ${e.message}\n\nThe deploy trigger endpoint may not be reachable. Ensure the app is running and COOLIFY_WEBHOOK_URL is configured.`);
+      }
+    }
+
     throw new Error(`Unknown tool: ${name}`);
 
   } catch (err) {
@@ -2220,7 +2254,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error("[Holly MCP] Phase 10 tool server running — 35 tools active (GitHub, web search, AI tool research, self-evolution, music, Hybrid Studio, philosophy, creative writing, emotional intelligence, NLP analysis, Sentinel code intelligence, diagnostics, Mirror Protocol, UI screenshot, UI analyze, music video)");
+  console.error("[Holly MCP] Phase 10 tool server running — 36 tools active (GitHub, web search, AI tool research, self-evolution, music, Hybrid Studio, philosophy, creative writing, emotional intelligence, NLP analysis, Sentinel code intelligence, diagnostics, Mirror Protocol, UI screenshot, UI analyze, music video, autonomous deploy)");
 }
 
 // Only start the server if we are NOT in the Next.js build phase.

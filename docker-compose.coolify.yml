@@ -228,6 +228,20 @@ services:
     networks:
       - coolify
 
+  # ── Kokoro TTS (CPU-only, 82M params, Apache-2.0) ──────────────────────────
+  # Holly's voice — fallback TTS when VoxCPM2 is unavailable
+  # API: POST http://kokoro-tts:8880/v1/audio/speech
+  kokoro-tts:
+    image: ghcr.io/remsky/kokoro-fastapi-cpu:latest
+    container_name: holly-kokoro-tts
+    restart: unless-stopped
+    ports:
+      - "8880:8880"
+    environment:
+      PYTHONUNBUFFERED: "1"
+    networks:
+      - coolify
+
 networks:
   coolify:
     external: true
