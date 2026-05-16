@@ -492,6 +492,7 @@ const hollyOwnProvider: { isConfigured: () => boolean; streamChat: (messages: Ch
   async *streamChat(messages: ChatMessage[], _model: string, opts: StreamOptions = {}): TokenStream {
     if (!HOLLY_OWN_URL) throw new Error('HOLLY_OWN_MODEL_URL not configured');
 
+    // Modal endpoint returns JSON {response: "..."} — not OpenAI SSE
     const res = await fetch(`${HOLLY_OWN_URL}/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -499,7 +500,7 @@ const hollyOwnProvider: { isConfigured: () => boolean; streamChat: (messages: Ch
         messages,
         temperature: opts.temperature ?? 0.7,
         max_tokens:  opts.maxTokens   ?? 4096,
-        stream:      true,
+        stream:      false,  // Modal endpoint returns full JSON, not SSE
       }),
     });
 
@@ -508,9 +509,9 @@ const hollyOwnProvider: { isConfigured: () => boolean; streamChat: (messages: Ch
       throw new Error(`HOLLY-8B API error ${res.status}: ${text}`);
     }
 
-    if (!res.body) throw new Error('HOLLY-8B: empty response body');
-
-    yield* parseOpenAIStream(res.body);
+    const data = await res.json() as { response?: string; error?: string };
+    if (data.error) throw new Error(`HOLLY-8B: ${data.error}`);
+    if (data.response) yield data.response;
   },
 };
 
