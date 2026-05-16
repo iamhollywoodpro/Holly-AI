@@ -1,6 +1,7 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import { NextResponse, type NextFetchEvent } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { checkEndpointRateLimit, getRateLimitHeaders } from '@/lib/security/endpoint-limiter';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PRODUCTION DOMAIN — used to sanitize Docker-internal URLs
@@ -171,6 +172,28 @@ export default async function middleware(req: NextRequest, event: NextFetchEvent
   // Clerk proxy paths handle their own auth
   if (BYPASS_PREFIX.some(prefix => pathname.startsWith(prefix))) {
     return NextResponse.next();
+  }
+
+  // ── Per-Endpoint Rate Limiting (Phase 7.3) ───────────────────────────────
+  // Apply rate limits to all API routes based on endpoint category
+  if (pathname.startsWith('/api/')) {
+    const identityKey = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+      || req.headers.get('x-real-ip')
+      || req.ip
+      || 'unknown';
+    const rateResult = checkEndpointRateLimit(pathname, identityKey);
+
+    if (!rateResult.allowed) {
+      const headers = getRateLimitHeaders(rateResult);
+      return NextResponse.json(
+        {
+          error: 'Rate limit exceeded',
+          category: rateResult.category,
+          retryAfter: Math.ceil(rateResult.retryAfterMs / 1000) + 's',
+        },
+        { status: 429, headers },
+      );
+    }
   }
 
   // ── Intercept any incoming 0.0.0.0 redirect_url in the REQUEST ────────────

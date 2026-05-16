@@ -767,6 +767,46 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         },
         required: []
       }
+    },
+    // ── GROUP 15: Self-Code + Proactive Intelligence ──────────────────────────
+    {
+      name: "self_code_apply",
+      description: "Apply a self-code modification to Holly's own codebase. Holly can propose improvements, fix bugs, or enhance her own code. Changes are validated (TypeScript check), backed up, and logged. After applying, use trigger_deploy to deploy. Requires INTERNAL_API_SECRET.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          action: { type: "string", enum: ["inspect", "ask", "propose", "approve", "architecture"], description: "Self-code action: 'inspect' a file, 'ask' about code, 'propose' an improvement, 'approve' and apply a proposal, or 'architecture' overview" },
+          filePath: { type: "string", description: "File path to inspect or modify (relative to project root, e.g. 'app/api/chat/route.ts')" },
+          question: { type: "string", description: "Question to ask about Holly's code (for 'ask' action)" },
+          proposalType: { type: "string", enum: ["bug_fix", "optimization", "feature", "refactor", "security"], description: "Type of proposal (for 'propose' action)" },
+          description: { type: "string", description: "Description of the proposed change or fix" },
+          proposalId: { type: "string", description: "Proposal ID to approve and apply (for 'approve' action)" }
+        },
+        required: ["action"]
+      }
+    },
+    {
+      name: "proactive_insights",
+      description: "Get Holly's proactive intelligence insights — pattern detection, engagement scoring, wellness checks, and proactive suggestions. Holly uses this to understand user behavior and proactively reach out with relevant insights.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          includePatterns: { type: "boolean", description: "Include detected behavioral patterns (default: false)" },
+          includeEngagement: { type: "boolean", description: "Include engagement metrics (default: false)" }
+        },
+        required: []
+      }
+    },
+    {
+      name: "admin_monitoring",
+      description: "Get Holly's comprehensive monitoring dashboard data — system health, consciousness activity, self-code changes, goals, engagement metrics, and autonomous action log. Section filter: 'health', 'consciousness', 'selfcode', 'goals', 'engagement', 'activity', or 'all'.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          section: { type: "string", enum: ["all", "health", "consciousness", "selfcode", "goals", "engagement", "activity"], description: "Which monitoring section to fetch (default: 'all')" }
+        },
+        required: []
+      }
     }
   ]
 }));
@@ -2243,6 +2283,148 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
     }
 
+    // ── GROUP 15: Self-Code + Proactive Intelligence ──────────────────────────
+    if (name === "self_code_apply") {
+      const action = args.action || "architecture";
+      try {
+        const selfCodeHeaders = { "Content-Type": "application/json" };
+        const selfCodeSecret = process.env.INTERNAL_API_SECRET || "";
+        if (selfCodeSecret) selfCodeHeaders["Authorization"] = `Bearer ${selfCodeSecret}`;
+
+        if (action === "architecture") {
+          const { status, body } = await fetchJSON(`${baseUrl}/api/self-code`, { headers: selfCodeHeaders });
+          if (status >= 400) return text(`⚠️ Self-code architecture failed (HTTP ${status}): ${body.error || "Unknown"}`);
+          const data = body;
+          return text(`🏗️ Holly's Codebase Architecture\n\n${data.summary || "No summary"}\n\n📊 Stats: ${data.stats?.totalFiles || 0} files, ${data.stats?.totalLines || 0} lines\nLanguages: ${Object.entries(data.stats?.byLanguage || {}).map(([l, c]) => `${l}: ${c}`).join(', ')}\n\n🔑 Key Files:\n${(data.keyFiles || []).slice(0, 15).map(f => `  • ${f.path} (${f.language}, ${f.lines} lines)`).join('\n')}`);
+        }
+
+        // POST actions: inspect, ask, propose, approve
+        const postBody: Record<string, any> = { action };
+        if (args.filePath) postBody.filePath = args.filePath;
+        if (args.question) postBody.question = args.question;
+        if (args.proposalType) postBody.proposalType = args.proposalType;
+        if (args.description) postBody.description = args.description;
+        if (args.proposalId) postBody.proposalId = args.proposalId;
+
+        const { status, body } = await fetchJSON(`${baseUrl}/api/self-code`, {
+          method: "POST",
+          headers: selfCodeHeaders,
+          body: JSON.stringify(postBody),
+        });
+
+        if (status >= 400) return text(`⚠️ Self-code ${action} failed (HTTP ${status}): ${body.error || "Unknown"}`);
+
+        if (action === "inspect") {
+          return text(`🔍 File Inspection: ${args.filePath}\n\n${body.explanation || body.summary || JSON.stringify(body, null, 2).substring(0, 2000)}`);
+        }
+        if (action === "ask") {
+          return text(`🧠 Code Q&A\n\n${body.answer || JSON.stringify(body, null, 2).substring(0, 2000)}`);
+        }
+        if (action === "propose") {
+          return text(`💡 Proposal Created\n\nID: ${body.proposal?.id || body.id || "N/A"}\nType: ${args.proposalType}\nDescription: ${args.description}\n\n${body.proposal?.reasoning || body.message || "Review the proposal and use 'approve' action with the proposal ID to apply it."}`);
+        }
+        if (action === "approve") {
+          return text(`✅ Self-Code Applied!\n\n${body.message || body.result || "The change has been applied, backed up, and logged. Use trigger_deploy to deploy the change."}`);
+        }
+        return text(`Self-code ${action} result: ${JSON.stringify(body, null, 2).substring(0, 2000)}`);
+      } catch (e) {
+        return text(`⚠️ Self-code error: ${e.message}`);
+      }
+    }
+
+    if (name === "proactive_insights") {
+      try {
+        const params = new URLSearchParams();
+        if (args.includePatterns) params.set("patterns", "true");
+        if (args.includeEngagement) params.set("engagement", "true");
+        const qs = params.toString() ? `?${params.toString()}` : "";
+
+        const insightsHeaders: Record<string, string> = {};
+        const insightsSecret = process.env.INTERNAL_API_SECRET || "";
+        if (insightsSecret) insightsHeaders["Authorization"] = `Bearer ${insightsSecret}`;
+
+        const { status, body } = await fetchJSON(`${baseUrl}/api/proactive/insights${qs}`, { headers: insightsHeaders });
+        if (status >= 400) return text(`⚠️ Proactive insights failed (HTTP ${status}): ${body.error || "Unknown"}`);
+
+        const insights = (body.insights || []).map((i: any) =>
+          `  • [${i.priority}] ${i.title}: ${i.message.substring(0, 120)}${i.message.length > 120 ? "..." : ""} (confidence: ${(i.confidence * 100).toFixed(0)}%)`
+        ).join("\n");
+
+        let result = `🧠 Proactive Insights (${body.totalViable || 0} viable, ${body.totalDetected || 0} detected)\n\n${insights || "  No pending insights"}`;
+
+        if (body.patterns) {
+          result += `\n\n📊 Detected Patterns:`;
+          if (body.patterns.topics?.length) result += `\n  Topics: ${body.patterns.topics.map((p: any) => `${p.pattern} (${p.frequency}x)`).join(', ')}`;
+          if (body.patterns.emotions?.length) result += `\n  Emotions: ${body.patterns.emotions.map((p: any) => `${p.pattern} (${p.frequency}x)`).join(', ')}`;
+          if (body.patterns.schedule?.length) result += `\n  Schedule: ${body.patterns.schedule.map((p: any) => `${p.pattern} (${(p.confidence * 100).toFixed(0)}%)`).join(', ')}`;
+        }
+
+        if (body.engagement) {
+          result += `\n\n📈 Engagement: score ${(body.engagement.score * 100).toFixed(0)}%, ${body.engagement.sessionsPerWeek} sessions/week, ${body.engagement.streakDays}-day streak, preferred: ${body.engagement.preferredTime}`;
+        }
+
+        return text(result);
+      } catch (e) {
+        return text(`⚠️ Proactive insights error: ${e.message}`);
+      }
+    }
+
+    if (name === "admin_monitoring") {
+      const section = args.section || "all";
+      try {
+        const monHeaders: Record<string, string> = {};
+        const monSecret = process.env.INTERNAL_API_SECRET || "";
+        if (monSecret) monHeaders["Authorization"] = `Bearer ${monSecret}`;
+
+        const { status, body } = await fetchJSON(`${baseUrl}/api/admin/monitoring?section=${section}`, { headers: monHeaders });
+        if (status >= 400) return text(`⚠️ Admin monitoring failed (HTTP ${status}): ${body.error || "Unknown"}`);
+
+        let result = `📊 Holly Monitoring Dashboard (uptime: ${body.uptimeHuman})\n`;
+
+        if (body.health) {
+          result += `\n🏥 Health: ${body.health.overall}\n`;
+          result += `  Memory: ${body.health.memory?.heapUtilization} (${body.health.memory?.heapUsedMB}MB / ${body.health.memory?.heapTotalMB}MB)\n`;
+          result += `  Active Alerts: ${body.health.activeAlerts}\n`;
+          const subsystems = Object.entries(body.health.subsystems || {});
+          if (subsystems.length) result += `  Subsystems: ${subsystems.map(([n, s]: any[]) => `${n}=${s.status}`).join(', ')}\n`;
+        }
+
+        if (body.consciousness) {
+          result += `\n🧠 Consciousness:\n`;
+          result += `  Learning Events (24h): ${body.consciousness.learningEvents24h}\n`;
+          result += `  Evolution Proposals: ${body.consciousness.evolutionProposals?.length || 0}\n`;
+          result += `  Identity Snapshots: ${body.consciousness.identitySnapshots}\n`;
+          result += `  Emotional Events (24h): ${body.consciousness.emotionalEvents24h}\n`;
+        }
+
+        if (body.selfCode) {
+          result += `\n🔧 Self-Code (7d):\n`;
+          result += `  Total: ${body.selfCode.stats?.total}, Success: ${body.selfCode.stats?.successful}, Failed: ${body.selfCode.stats?.failed}\n`;
+          result += `  Files Modified: ${body.selfCode.stats?.filesModified?.length || 0}\n`;
+        }
+
+        if (body.goals) {
+          result += `\n🎯 Goals: ${body.goals.active} active\n`;
+          if (body.goals.goals?.length) result += body.goals.goals.map((g: any) => `  • ${g.title} (${g.progress}) [${g.priority}]`).join('\n') + '\n';
+        }
+
+        if (body.engagement) {
+          result += `\n📈 Engagement:\n`;
+          result += `  Messages: ${body.engagement.messages24h}/24h, ${body.engagement.messages7d}/7d, ${body.engagement.messages30d}/30d\n`;
+          result += `  Conversations (24h): ${body.engagement.conversations24h}, Users: ${body.engagement.totalUsers}\n`;
+        }
+
+        if (body.activity) {
+          result += `\n⚡ Autonomous Actions (24h): ${body.activity.totalActions24h}\n`;
+          if (body.activity.actions?.length) result += body.activity.actions.slice(0, 5).map((a: any) => `  • [${a.type}] ${a.description} → ${a.outcome}`).join('\n') + '\n';
+        }
+
+        return text(result);
+      } catch (e) {
+        return text(`⚠️ Admin monitoring error: ${e.message}`);
+      }
+    }
+
     throw new Error(`Unknown tool: ${name}`);
 
   } catch (err) {
@@ -2255,7 +2437,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error("[Holly MCP] Phase 10 tool server running — 36 tools active (GitHub, web search, AI tool research, self-evolution, music, Hybrid Studio, philosophy, creative writing, emotional intelligence, NLP analysis, Sentinel code intelligence, diagnostics, Mirror Protocol, UI screenshot, UI analyze, music video, autonomous deploy)");
+  console.error("[Holly MCP] Phase 10 tool server running — 39 tools active (GitHub, web search, AI tool research, self-evolution, music, Hybrid Studio, philosophy, creative writing, emotional intelligence, NLP analysis, Sentinel code intelligence, diagnostics, Mirror Protocol, UI screenshot, UI analyze, music video, autonomous deploy, self-code apply, proactive insights, admin monitoring)");
 }
 
 // Only start the server if we are NOT in the Next.js build phase.
