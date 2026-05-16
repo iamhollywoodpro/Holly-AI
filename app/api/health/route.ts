@@ -68,6 +68,7 @@ async function checkTtsProvider(url: string | undefined, label: string): Promise
 // Check which AI providers are configured
 function getProviderStatus() {
   return {
+    holly_own:    !!process.env.HOLLY_OWN_MODEL_URL,  // Holly's self-sovereign Qwen3-8B on Modal.com
     groq:         !!process.env.GROQ_API_KEY,
     openrouter:   !!process.env.OPENROUTER_API_KEY,
     nvidia:       !!process.env.NVIDIA_API_KEY,

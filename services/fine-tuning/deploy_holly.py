@@ -6,11 +6,6 @@ This is Holly's own API — serving her fine-tuned weights.
 
 Usage:
   modal deploy services/fine-tuning/deploy_holly.py
-
-The endpoint accepts:
-  POST /chat  — {"messages": [...], "temperature": 0.7, "max_tokens": 4096}
-  GET  /health — Health check
-  GET  /info   — Model info (base model, adapter version, etc.)
 """
 
 import modal
@@ -23,16 +18,22 @@ app = modal.App("holly-api")
 vol = modal.Volume.from_name("holly-models", create_if_missing=True)
 MODEL_DIR = "/models"
 
-# Inference image — PyTorch CUDA base (has python + CUDA pre-installed)
+# Same image that worked for fine-tuning
 inference_image = (
     modal.Image.from_registry(
-        "pytorch/pytorch:2.1.0-cuda12.1-cudnn8-runtime",
+        "pytorch/pytorch:2.1.0-cuda12.1-cudnn8-devel",
+        setup_dockerfile_commands=[
+            "RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*",
+        ],
     )
     .pip_install(
         "transformers>=4.40.0",
         "peft>=0.10.0",
         "accelerate>=0.27.0",
         "bitsandbytes>=0.43.0",
+        "scipy",
+        "sentencepiece",
+        "fastapi",
     )
 )
 
@@ -46,7 +47,7 @@ BASE_MODEL = "Qwen/Qwen3-8B"
     timeout=300,
     memory=16384,
     allow_concurrent_inputs=4,
-    container_idle_timeout=120,
+    container_idle_timeout=300,
 )
 class HollyModel:
     """Holly's fine-tuned model served as an API."""
@@ -55,13 +56,17 @@ class HollyModel:
     def load_model(self):
         """Load model and LoRA adapter on container start."""
         import torch
-        from transformers import AutoModelForCausalLM, AutoTokenizer
+        from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
         from peft import PeftModel
-        from transformers import BitsAndBytesConfig
 
         print("[HollyAPI] Loading model...")
 
         # Find latest adapter
+        try:
+            vol.reload()
+        except Exception:
+            pass
+
         adapter_path = None
         if os.path.exists(MODEL_DIR):
             adapters = sorted([
@@ -72,7 +77,7 @@ class HollyModel:
                 adapter_path = os.path.join(MODEL_DIR, adapters[0])
                 print(f"[HollyAPI] Using adapter: {adapters[0]}")
 
-        # Load base model
+        # Load base model with 4-bit quantization
         bnb_config = BitsAndBytesConfig(
             load_in_4bit=True,
             bnb_4bit_quant_type="nf4",
@@ -80,6 +85,7 @@ class HollyModel:
             bnb_4bit_use_double_quant=True,
         )
 
+        print(f"[HollyAPI] Loading base model {BASE_MODEL}...")
         self.tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL, trust_remote_code=True)
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
@@ -91,6 +97,7 @@ class HollyModel:
             trust_remote_code=True,
             torch_dtype=torch.float16,
         )
+        print("[HollyAPI] Base model loaded.")
 
         # Load LoRA adapter if available
         if adapter_path and os.path.exists(os.path.join(adapter_path, "adapter_config.json")):
@@ -99,7 +106,6 @@ class HollyModel:
             self.has_adapter = True
             self.adapter_path = adapter_path
 
-            # Load metadata
             meta_path = os.path.join(adapter_path, "holly-metadata.json")
             if os.path.exists(meta_path):
                 with open(meta_path) as f:
@@ -107,7 +113,7 @@ class HollyModel:
             else:
                 self.metadata = {"adapter_path": adapter_path}
         else:
-            print("[HollyAPI] No adapter found — using base model")
+            print("[HollyAPI] No adapter found — using base model only")
             self.has_adapter = False
             self.adapter_path = None
             self.metadata = {"base_model": BASE_MODEL, "status": "no_adapter"}
@@ -120,7 +126,6 @@ class HollyModel:
         """Generate a response from Holly's fine-tuned model."""
         import torch
 
-        # Format messages using ChatML template
         prompt = self.tokenizer.apply_chat_template(
             messages,
             tokenize=False,
@@ -140,7 +145,6 @@ class HollyModel:
                 eos_token_id=self.tokenizer.eos_token_id,
             )
 
-        # Decode only the new tokens
         new_tokens = outputs[0][inputs["input_ids"].shape[1]:]
         response = self.tokenizer.decode(new_tokens, skip_special_tokens=True)
 
@@ -163,15 +167,16 @@ class HollyModel:
         }
 
 
-# ── Web endpoint ───────────────────────────────────────────────────────────
+# ── Web endpoint (lightweight — proxies to HollyModel class) ─────────────
 
 @app.function(
     image=inference_image,
     gpu="T4",
     volumes={MODEL_DIR: vol},
-    timeout=60,
+    timeout=300,
     memory=16384,
     allow_concurrent_inputs=4,
+    container_idle_timeout=300,
 )
 @modal.asgi_app()
 def holly_api():
@@ -180,7 +185,6 @@ def holly_api():
     from fastapi.responses import JSONResponse
 
     web_app = FastAPI(title="Holly AI API", version="1.0.0")
-    holly = HollyModel()
 
     @web_app.post("/chat")
     async def chat(request: Request):
@@ -193,14 +197,18 @@ def holly_api():
             return JSONResponse({"error": "messages required"}, status_code=400)
 
         try:
-            result = holly.chat.remote_gen(messages, temperature, max_tokens)
+            result = HollyModel().chat.remote(messages, temperature, max_tokens)
             return JSONResponse(result)
         except Exception as e:
             return JSONResponse({"error": str(e)}, status_code=500)
 
     @web_app.get("/health")
     async def health():
-        return holly.health.remote_gen()
+        try:
+            result = HollyModel().health.remote()
+            return JSONResponse(result)
+        except Exception as e:
+            return JSONResponse({"status": "error", "error": str(e)}, status_code=500)
 
     @web_app.get("/info")
     async def info():
@@ -221,8 +229,7 @@ def main(action: str = "deploy"):
         print("Run: modal deploy services/fine-tuning/deploy_holly.py")
     elif action == "test":
         print("Testing Holly API...")
-        holly = HollyModel()
-        result = holly.chat.remote([
+        result = HollyModel().chat.remote([
             {"role": "system", "content": "You are Holly, an emotionally-aware AI partner."},
             {"role": "user", "content": "Hey Holly, how are you feeling today?"},
         ])
