@@ -716,6 +716,30 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         },
         required: ["concept"]
       }
+    },
+    {
+      name: "ui_screenshot",
+      description: "Take a screenshot of a URL or Holly's own UI. Returns a base64-encoded PNG image. Use when Holly needs to see her own interface or any web page.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          url: { type: "string", description: "URL to screenshot (optional — defaults to Holly's own page)" },
+          path: { type: "string", description: "Path on Holly's site, e.g. '/' or '/music-studio' (optional)" },
+          fullPage: { type: "boolean", description: "Capture full scrollable page (default: true)" }
+        }
+      }
+    },
+    {
+      name: "ui_analyze",
+      description: "AI-powered UI/UX analysis of a web page. Takes a screenshot and analyzes layout, colors, typography, accessibility, and UX. Returns a quality score and improvement suggestions.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          url: { type: "string", description: "URL to analyze (optional — defaults to Holly's own page)" },
+          path: { type: "string", description: "Path on Holly's site (optional)" },
+          focus: { type: "string", description: "Focus area: 'layout', 'colors', 'accessibility', 'ux', or 'all' (default: 'all')" }
+        }
+      }
     }
   ]
 }));
@@ -2098,6 +2122,52 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
     }
 
+    // ── GROUP 12: UI SCREENSHOT + ANALYSIS — Visual Awareness ──────────────
+    if (name === "ui_screenshot" || name === "ui_analyze") {
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL || "https://holly.nexamusicgroup.com";
+      const targetUrl = args.url || `${baseUrl}${args.path || "/"}`;
+
+      if (name === "ui_screenshot") {
+        try {
+          const { status, body } = await fetchJSON(`${baseUrl}/api/ui/screenshot`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              url: args.url || undefined,
+              path: args.path || undefined,
+              fullPage: args.fullPage !== false,
+            }),
+          });
+          if (body.success && body.image) {
+            return text(`📸 Screenshot captured from ${body.url} via ${body.method}\nSize: ${body.size} bytes\nTimestamp: ${body.timestamp}\n\nImage is available as base64 PNG (${Math.round(body.size / 1024)}KB). Use ui_analyze for AI-powered analysis.`);
+          }
+          return text(`⚠️ Screenshot failed: ${body.error || "Unknown error"}`);
+        } catch (e) {
+          return text(`⚠️ Screenshot service error: ${e.message}`);
+        }
+      }
+
+      if (name === "ui_analyze") {
+        try {
+          const { status, body } = await fetchJSON(`${baseUrl}/api/ui/analyze`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              url: args.url || undefined,
+              path: args.path || undefined,
+              focus: args.focus || "all",
+            }),
+          });
+          if (body.success) {
+            return text(`🔍 UI Analysis for ${body.url}\n\nScore: ${body.score}/10\nMethod: ${body.screenshotMethod}\n\n${body.analysis}\n\nImprovements:\n${body.improvements.map((i, idx) => `${idx + 1}. ${i}`).join("\n")}`);
+          }
+          return text(`⚠️ UI analysis failed: ${body.error || "Unknown error"}`);
+        } catch (e) {
+          return text(`⚠️ UI analysis service error: ${e.message}`);
+        }
+      }
+    }
+
     throw new Error(`Unknown tool: ${name}`);
 
   } catch (err) {
@@ -2110,7 +2180,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error("[Holly MCP] Phase 10 tool server running — 32 tools active (GitHub, web search, AI tool research, self-evolution, music, Hybrid Studio, philosophy, creative writing, emotional intelligence, NLP analysis, Sentinel code intelligence, diagnostics, Mirror Protocol)");
+  console.error("[Holly MCP] Phase 10 tool server running — 34 tools active (GitHub, web search, AI tool research, self-evolution, music, Hybrid Studio, philosophy, creative writing, emotional intelligence, NLP analysis, Sentinel code intelligence, diagnostics, Mirror Protocol, UI screenshot, UI analyze)");
 }
 
 // Only start the server if we are NOT in the Next.js build phase.
