@@ -740,6 +740,20 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
           focus: { type: "string", description: "Focus area: 'layout', 'colors', 'accessibility', 'ux', or 'all' (default: 'all')" }
         }
       }
+    },
+    {
+      name: "generate_music_video",
+      description: "Generate a music video from a prompt. Creates scene images using AI, then composes them into a video with FFmpeg. Supports styles: cinematic, anime, abstract, neon, natural.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          prompt: { type: "string", description: "Description of the music video concept (required)" },
+          style: { type: "string", description: "Visual style: 'cinematic', 'anime', 'abstract', 'neon', 'natural' (default: 'cinematic')" },
+          scenes: { type: "number", description: "Number of scenes/images (default: 4)" },
+          durationPerScene: { type: "number", description: "Seconds per scene (default: 5)" }
+        },
+        required: ["prompt"]
+      }
     }
   ]
 }));
@@ -2168,6 +2182,32 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
     }
 
+    // ── GROUP 13: MUSIC VIDEO GENERATION ──────────────────────────────────
+    if (name === "generate_music_video") {
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL || "https://holly.nexamusicgroup.com";
+      const prompt = args.prompt;
+      if (!prompt) return text("⚠️ prompt is required for music video generation");
+
+      try {
+        const { status, body } = await fetchJSON(`${baseUrl}/api/media/music-video`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            prompt,
+            style: args.style || "cinematic",
+            scenes: args.scenes || 4,
+            durationPerScene: args.durationPerScene || 5,
+          }),
+        });
+        if (body.success) {
+          return text(`🎬 Music video generated!\n\nPrompt: ${prompt}\nStyle: ${body.style}\nScenes: ${body.scenesGenerated}\nDuration: ${body.duration}s\nSize: ${Math.round(body.size / 1024)}KB\nFormat: ${body.format}\n\n${body.note || ""}`);
+        }
+        return text(`⚠️ Music video generation failed: ${body.error || "Unknown error"}\n${body.suggestion || ""}`);
+      } catch (e) {
+        return text(`⚠️ Music video service error: ${e.message}`);
+      }
+    }
+
     throw new Error(`Unknown tool: ${name}`);
 
   } catch (err) {
@@ -2180,7 +2220,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error("[Holly MCP] Phase 10 tool server running — 34 tools active (GitHub, web search, AI tool research, self-evolution, music, Hybrid Studio, philosophy, creative writing, emotional intelligence, NLP analysis, Sentinel code intelligence, diagnostics, Mirror Protocol, UI screenshot, UI analyze)");
+  console.error("[Holly MCP] Phase 10 tool server running — 35 tools active (GitHub, web search, AI tool research, self-evolution, music, Hybrid Studio, philosophy, creative writing, emotional intelligence, NLP analysis, Sentinel code intelligence, diagnostics, Mirror Protocol, UI screenshot, UI analyze, music video)");
 }
 
 // Only start the server if we are NOT in the Next.js build phase.
