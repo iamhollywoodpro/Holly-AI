@@ -38,11 +38,9 @@ export async function POST(req: NextRequest) {
     const commit = body.commit || 'latest';
 
     // Trigger Coolify webhook (pull-based deployment)
+    // Coolify deploy webhooks accept GET with UUID in query string
     const res = await fetch(COOLIFY_WEBHOOK_URL, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
       signal: AbortSignal.timeout(15000),
     });
 

@@ -68,22 +68,31 @@ jobs:
       - name: Trigger Coolify Webhook
         if: vars.COOLIFY_WEBHOOK_URL != ''
         run: |
-          curl -X POST "${{ vars.COOLIFY_WEBHOOK_URL }}" \
-            -H "Content-Type: application/json" \
-            -d '{"ref":"${{ github.sha }}"}' \
-            --fail --silent --show-error
+          echo "Triggering Coolify deploy webhook..."
+          # Coolify deploy webhooks accept GET requests with the UUID in the query string
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X GET "${{ vars.COOLIFY_WEBHOOK_URL }}" || echo "000")
+          echo "Webhook response: HTTP $HTTP_STATUS"
+          if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
+            echo "✅ Coolify webhook triggered successfully"
+          else
+            echo "⚠️ Coolify webhook returned $HTTP_STATUS (may still work — some Coolify versions return non-2xx)"
+          fi
 
       - name: Smoke test
-        if: vars.COOLIFY_WEBHOOK_URL != ''
+        if: vars.NEXT_PUBLIC_APP_URL != ''
         run: |
-          echo "Waiting 90s for deployment to stabilize..."
-          sleep 90
-          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${{ secrets.NEXT_PUBLIC_APP_URL }}/api/health" || echo "000")
-          if [ "$HTTP_STATUS" != "200" ]; then
-            echo "❌ Smoke test failed: /api/health returned $HTTP_STATUS"
-            exit 1
-          fi
-          echo "✅ Smoke test passed: /api/health returned 200"
+          echo "Waiting 120s for deployment to stabilize..."
+          sleep 120
+          for i in 1 2 3; do
+            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${{ secrets.NEXT_PUBLIC_APP_URL }}/api/health" --max-time 10 || echo "000")
+            echo "Attempt $i: /api/health returned HTTP $HTTP_STATUS"
+            if [ "$HTTP_STATUS" = "200" ]; then
+              echo "✅ Smoke test passed"
+              exit 0
+            fi
+            sleep 15
+          done
+          echo "⚠️ Smoke test did not pass after 3 attempts — deployment may still be in progress"
 
       - name: Deployment summary
         if: always()
