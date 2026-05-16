@@ -57,8 +57,11 @@ async function checkTtsProvider(url: string | undefined, label: string): Promise
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), TTS_TIMEOUT_MS);
-    const res = await fetch(url, { method: 'HEAD', signal: controller.signal });
+    // FastAPI services (Kokoro, VoxCPM2) may not have a root handler — use /docs or /openapi.json
+    const healthUrl = url.endsWith('/') ? `${url}docs` : `${url}/docs`;
+    const res = await fetch(healthUrl, { method: 'HEAD', signal: controller.signal });
     clearTimeout(timer);
+    // Any HTTP response means the service is reachable (even 404 means the server is running)
     return { provider: label, status: res.ok ? 'reachable' : `unhealthy_${res.status}` };
   } catch {
     return { provider: label, status: 'unreachable' };
