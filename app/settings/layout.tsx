@@ -31,7 +31,7 @@ const settingsSections = [
   { name: 'Notifications', href: '/settings/notifications', icon: BellIcon },
   { name: 'Developer Tools', href: '/settings/developer', icon: CodeBracketIcon },
   { name: 'API Keys',        href: '/settings/api-keys', icon: KeyIcon },
-  { name: 'Account & Billing', href: '/account', icon: UserCircleIcon },
+  { name: 'Account & Billing', href: '/settings/account', icon: UserCircleIcon },
   { name: 'Keyboard Shortcuts', href: '/settings/shortcuts', icon: CommandLineIcon },
 ];
 
