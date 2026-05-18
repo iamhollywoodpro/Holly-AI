@@ -2245,7 +2245,7 @@ export default function HollyChatInterface() {
       </AnimatePresence>
 
       {/* ── Sovereign SDI Header ── */}
-      <header className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-white/5 flex-shrink-0 backdrop-blur-xl bg-black/20 z-30 sdi-tech-font">
+      <header className="flex items-center justify-between px-3 sm:px-6 py-3 sm:py-4 border-b border-white/5 flex-shrink-0 backdrop-blur-xl bg-black/20 z-30 sdi-tech-font">
         {/* LEFT: System Identity */}
         <div className="flex items-center gap-3">
           <button
@@ -2272,10 +2272,10 @@ export default function HollyChatInterface() {
 
         {/* CENTER: Core Branding */}
         <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-none">
-          <h1 className="text-xl sm:text-2xl font-black tracking-[0.5em] text-white uppercase drop-shadow-[0_0_20px_rgba(255,255,255,0.2)]">
+          <h1 className="text-lg sm:text-2xl font-black tracking-[0.2em] sm:tracking-[0.5em] text-white uppercase drop-shadow-[0_0_20px_rgba(255,255,255,0.2)]">
             HOLLY
           </h1>
-          <div className="flex items-center gap-2 -mt-0.5 opacity-40">
+          <div className="hidden sm:flex items-center gap-2 -mt-0.5 opacity-40">
             <div className="h-[1px] w-4 bg-primary/50" />
             <p className="text-[8px] text-primary font-bold tracking-[0.4em] uppercase">
               Sovereign Domain Intelligence
@@ -2329,7 +2329,7 @@ export default function HollyChatInterface() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             {/* Ambient toggle */}
             <button
               onClick={toggleAmbient}
@@ -2629,9 +2629,9 @@ export default function HollyChatInterface() {
       <div
         ref={scrollContainerRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto px-4 py-6 scroll-smooth relative"
+        className="flex-1 overflow-y-auto px-3 sm:px-4 py-4 sm:py-6 scroll-smooth relative scroll-smooth-touch"
       >
-      <div className="max-w-3xl mx-auto space-y-6">
+      <div className="max-w-3xl mx-auto space-y-4 sm:space-y-6">
 
         {/* Welcome screen */}
         <AnimatePresence>
@@ -2640,7 +2640,7 @@ export default function HollyChatInterface() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4"
+              className="flex flex-col items-center justify-center min-h-[50vh] sm:min-h-[60vh] text-center px-4"
             >
               {/* Phase F: Growth stats row */}
               {growthStats && (growthStats.streak > 0 || growthStats.totalMessages > 0) && (
@@ -2667,8 +2667,8 @@ export default function HollyChatInterface() {
               {/* ── Enhanced Sovereign Welcome Experience ── */}
               <div className="relative w-full flex flex-col items-center">
                 {/* Cinematic Background Glow */}
-                <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-holly-gold/5 rounded-full blur-[120px] pointer-events-none" />
-                <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-[300px] h-[300px] bg-holly-crimson/5 rounded-full blur-[80px] pointer-events-none animate-pulse" />
+                <div className="absolute -top-20 sm:-top-40 left-1/2 -translate-x-1/2 w-[300px] sm:w-[600px] h-[300px] sm:h-[600px] bg-holly-gold/5 rounded-full blur-[80px] sm:blur-[120px] pointer-events-none" />
+                <div className="absolute -top-10 sm:-top-20 left-1/2 -translate-x-1/2 w-[200px] sm:w-[300px] h-[200px] sm:h-[300px] bg-holly-crimson/5 rounded-full blur-[60px] sm:blur-[80px] pointer-events-none animate-pulse" />
 
                 {/* Central Avatar with Decorative Rings */}
                 <motion.div
@@ -2681,10 +2681,10 @@ export default function HollyChatInterface() {
                   <div className="absolute inset-0 rounded-full border border-holly-gold/10 scale-[1.3] animate-pulse" />
                   <div className="p-1 rounded-full bg-gradient-to-b from-holly-gold/10 to-transparent shadow-2xl relative">
                     <div className="sdi-scanline rounded-full" />
-                    <div className="bg-holly-void rounded-full p-8 shadow-inner border border-holly-gold/5 group-hover:border-holly-gold/40 transition-colors duration-500">
-                      <HollyOrb 
-                        emotion={emotion} 
-                        size={100} 
+                    <div className="bg-holly-void rounded-full p-4 sm:p-8 shadow-inner border border-holly-gold/5 group-hover:border-holly-gold/40 transition-colors duration-500">
+                      <HollyOrb
+                        emotion={emotion}
+                        size={70}
                         showName={false}
                         showState={false}
                       />
@@ -2696,7 +2696,7 @@ export default function HollyChatInterface() {
                 <TypingWelcome isCreator={isCreator} displayName={displayName} />
 
                 {/* Suggestion Grid */}
-                <div className="grid grid-cols-2 gap-3 justify-center max-w-md mt-10 z-10">
+                <div className="grid grid-cols-2 gap-2 sm:gap-3 justify-center max-w-sm sm:max-w-md mt-6 sm:mt-10 z-10">
                   {(isCreator ? [
                     "Rate my latest track",
                     "What's our current build status?",
@@ -2711,7 +2711,7 @@ export default function HollyChatInterface() {
                     <button
                       key={s}
                       onClick={() => { setInput(s); textareaRef.current?.focus(); }}
-                      className={`px-5 py-3 text-xs font-medium rounded-2xl transition-all duration-300 flex items-center justify-center text-center ${
+                      className={`px-3 sm:px-5 py-2.5 sm:py-3 text-[11px] sm:text-xs font-medium rounded-xl sm:rounded-2xl transition-all duration-300 flex items-center justify-center text-center ${
                         isCreator
                           ? 'text-holly-gold bg-holly-gold/5 border border-holly-gold/20 hover:bg-holly-gold/10 hover:border-holly-gold/40 hover:shadow-[0_0_15px_rgba(212,168,83,0.1)]'
                           : 'text-holly-ivory/60 bg-white/5 border border-white/10 hover:bg-white/10 hover:border-holly-gold/40 hover:text-holly-ivory hover:shadow-[0_0_15px_rgba(212,168,83,0.1)]'
@@ -2727,7 +2727,7 @@ export default function HollyChatInterface() {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => setAgentOpen(true)}
-                  className="mt-6 flex items-center gap-3 px-6 py-3.5 bg-gradient-to-r from-holly-gold/20 to-holly-crimson/20 border border-holly-gold/30 rounded-2xl text-sm font-semibold text-holly-gold hover:from-holly-gold/30 hover:to-holly-crimson/30 transition-all shadow-lg shadow-holly-gold/5 group z-10"
+                  className="mt-4 sm:mt-6 flex items-center gap-2 sm:gap-3 px-4 sm:px-6 py-3 sm:py-3.5 bg-gradient-to-r from-holly-gold/20 to-holly-crimson/20 border border-holly-gold/30 rounded-2xl text-xs sm:text-sm font-semibold text-holly-gold hover:from-holly-gold/30 hover:to-holly-crimson/30 transition-all shadow-lg shadow-holly-gold/5 group z-10"
                 >
                   <div className="p-1.5 rounded-lg bg-primary/20 group-hover:bg-primary/40 transition-colors">
                     <Bot className="w-4 h-4" />
@@ -3056,7 +3056,7 @@ export default function HollyChatInterface() {
 
       {/* ── Input area ── */}
       <div
-        className={`border-t bg-holly-void/80 backdrop-blur-xl border-white/5 px-4 py-3 flex-shrink-0 transition-colors ${
+        className={`border-t bg-holly-void/80 backdrop-blur-xl border-white/5 px-2 sm:px-4 py-2 sm:py-3 flex-shrink-0 transition-colors ${
           isDragging ? "border-holly-gold/40 bg-holly-gold/5" : "border-holly-gold/5"
         }`}
         onDragOver={handleDragOver}
@@ -3139,11 +3139,11 @@ export default function HollyChatInterface() {
         </AnimatePresence>
 
         {/* ── Sovereign SDI Input Bar ── */}
-        <div className="relative group max-w-4xl mx-auto w-full px-4 mb-10">
+        <div className="relative group max-w-4xl mx-auto w-full sm:px-4 mb-2 sm:mb-10">
 
-          <div className="flex items-end gap-3 sdi-glass rounded-[2.5rem] p-2 transition-all duration-500 focus-within:sdi-glow-gold focus-within:border-holly-gold/40 group-hover:border-white/20">
-            {/* Nav / Logo Anchor */}
-            <div className="flex-shrink-0 ml-1">
+          <div className="flex items-end gap-1 sm:gap-3 sdi-glass rounded-[2rem] sm:rounded-[2.5rem] p-1.5 sm:p-2 transition-all duration-500 focus-within:sdi-glow-gold focus-within:border-holly-gold/40 group-hover:border-white/20">
+            {/* Nav / Logo Anchor — hidden on mobile to save space */}
+            <div className="hidden md:flex-shrink-0 md:ml-1">
               <div className="flex items-center gap-3 bg-black/40 px-3 py-2 rounded-full border border-white/10 shadow-lg group/logo transition-all hover:bg-black/60 relative overflow-hidden">
                 <div className="absolute inset-0 sdi-scanline opacity-20" />
                 <div className="relative w-10 h-10 flex items-center justify-center">
@@ -3174,10 +3174,10 @@ export default function HollyChatInterface() {
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={isProcessing}
-              className="flex-shrink-0 p-3 rounded-2xl text-white/30 hover:text-primary hover:bg-primary/10 transition-all disabled:opacity-10 border border-transparent hover:border-primary/20"
+              className="flex-shrink-0 p-2 sm:p-3 rounded-xl sm:rounded-2xl text-white/30 hover:text-primary hover:bg-primary/10 transition-all disabled:opacity-10 border border-transparent hover:border-primary/20"
               title="Upload Intelligence"
             >
-              <Paperclip className="w-5 h-5" />
+              <Paperclip className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
             <input
               ref={fileInputRef}
@@ -3191,7 +3191,7 @@ export default function HollyChatInterface() {
             <button
               onClick={isListening ? stopListening : startListening}
               disabled={voicePhase === 'processing'}
-              className={`flex-shrink-0 p-3 rounded-2xl transition-all border border-transparent ${
+              className={`flex-shrink-0 p-2 sm:p-3 rounded-xl sm:rounded-2xl transition-all border border-transparent ${
                 isListening
                   ? "bg-red-500/20 text-red-400 border-red-500/30 hover:bg-red-500/30"
                   : voicePhase === 'processing'

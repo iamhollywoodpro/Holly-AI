@@ -127,11 +127,11 @@ export default function AccountPage() {
       )}
 
       {/* Profile Info — Editable */}
-      <div className="bg-[#12110F] border border-[#D4A853]/20 rounded-2xl p-8 relative overflow-hidden group shadow-2xl">
+      <div className="bg-[#12110F] border border-[#D4A853]/20 rounded-xl sm:rounded-2xl p-4 sm:p-8 relative overflow-hidden group shadow-2xl">
         <div className="absolute inset-0 bg-gradient-to-br from-[#D4A853]/5 to-transparent pointer-events-none" />
 
         {/* Edit / Save / Cancel Buttons */}
-        <div className="absolute top-6 right-6 z-20 flex gap-2">
+        <div className="absolute top-3 right-3 sm:top-6 sm:right-6 z-20 flex gap-2">
           {!editing ? (
             <button
               onClick={() => setEditing(true)}
@@ -174,17 +174,17 @@ export default function AccountPage() {
           )}
         </div>
 
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 relative z-10">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 relative z-10">
           {/* Profile Image — Clickable */}
           <div className="relative group/img cursor-pointer" onClick={() => !editing && fileInputRef.current?.click()}>
             {user?.imageUrl ? (
               <img
                 src={user.imageUrl}
                 alt={user.fullName || 'User'}
-                className="w-24 h-24 rounded-2xl object-cover border border-[#D4A853]/30 shadow-[0_0_30px_rgba(212,168,83,0.1)] transition-all duration-300 group-hover/img:brightness-75"
+                className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl sm:rounded-2xl object-cover border border-[#D4A853]/30 shadow-[0_0_30px_rgba(212,168,83,0.1)] transition-all duration-300 group-hover/img:brightness-75"
               />
             ) : (
-              <div className="w-24 h-24 rounded-2xl bg-[#1A1815] border border-[#D4A853]/30 flex items-center justify-center text-[#D4A853] text-2xl font-black">
+              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl sm:rounded-2xl bg-[#1A1815] border border-[#D4A853]/30 flex items-center justify-center text-[#D4A853] text-2xl font-black">
                 {(user?.firstName?.[0] || 'H').toUpperCase()}
               </div>
             )}
@@ -274,20 +274,20 @@ export default function AccountPage() {
       {/* Usage Statistics */}
       <div>
         <h3 className="text-[10px] font-black text-[#D4A853] uppercase tracking-[0.2em] mb-4">Neural Consumption Index</h3>
-        <div className="grid grid-cols-3 gap-4">
-          <div className="bg-[#1A1815] border border-white/5 rounded-2xl p-6 transition-all hover:border-[#D4A853]/20 group">
-            <div className="text-3xl font-black text-[#F5F0E8] uppercase tracking-tighter group-hover:text-[#D4A853] transition-colors">{usage.conversations}</div>
-            <div className="text-[9px] text-[#8C8476] font-black uppercase tracking-widest mt-2">Chronicles</div>
+        <div className="grid grid-cols-3 gap-2 sm:gap-4">
+          <div className="bg-[#1A1815] border border-white/5 rounded-xl sm:rounded-2xl p-3 sm:p-6 transition-all hover:border-[#D4A853]/20 group">
+            <div className="text-xl sm:text-3xl font-black text-[#F5F0E8] uppercase tracking-tighter group-hover:text-[#D4A853] transition-colors">{usage.conversations}</div>
+            <div className="text-[8px] sm:text-[9px] text-[#8C8476] font-black uppercase tracking-widest mt-1 sm:mt-2">Chronicles</div>
           </div>
-          <div className="bg-[#1A1815] border border-white/5 rounded-2xl p-6 transition-all hover:border-[#D4A853]/20 group">
-            <div className="text-3xl font-black text-[#F5F0E8] uppercase tracking-tighter group-hover:text-[#B84052] transition-colors">{usage.messages}</div>
-            <div className="text-[9px] text-[#8C8476] font-black uppercase tracking-widest mt-2">Exchanges</div>
+          <div className="bg-[#1A1815] border border-white/5 rounded-xl sm:rounded-2xl p-3 sm:p-6 transition-all hover:border-[#D4A853]/20 group">
+            <div className="text-xl sm:text-3xl font-black text-[#F5F0E8] uppercase tracking-tighter group-hover:text-[#B84052] transition-colors">{usage.messages}</div>
+            <div className="text-[8px] sm:text-[9px] text-[#8C8476] font-black uppercase tracking-widest mt-1 sm:mt-2">Exchanges</div>
           </div>
-          <div className="bg-[#1A1815] border border-white/5 rounded-2xl p-6 transition-all hover:border-[#D4A853]/20 group">
-            <div className="text-3xl font-black text-[#F5F0E8] uppercase tracking-tighter group-hover:text-[#D4A853] transition-colors">
+          <div className="bg-[#1A1815] border border-white/5 rounded-xl sm:rounded-2xl p-3 sm:p-6 transition-all hover:border-[#D4A853]/20 group">
+            <div className="text-xl sm:text-3xl font-black text-[#F5F0E8] uppercase tracking-tighter group-hover:text-[#D4A853] transition-colors">
               {(usage.tokens / 1000).toFixed(1)}K
             </div>
-            <div className="text-[9px] text-[#8C8476] font-black uppercase tracking-widest mt-2">Neural Bits</div>
+            <div className="text-[8px] sm:text-[9px] text-[#8C8476] font-black uppercase tracking-widest mt-1 sm:mt-2">Neural Bits</div>
           </div>
         </div>
       </div>
