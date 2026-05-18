@@ -36,14 +36,32 @@ NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_...
 CLERK_SECRET_KEY=sk_live_...
 CLERK_WEBHOOK_SECRET=whsec_...
 
+# ⚠️ CRITICAL — Server-side Clerk proxy URL.
+# Without this, @clerk/backend SDK makes internal proxy requests to
+# /clerk_XXXXX paths which bypass the /api/clerk/ proxy route,
+# causing ECONNRESET errors → session validation fails → sign-in loop.
+# MUST match NEXT_PUBLIC_CLERK_PROXY_URL.
+CLERK_PROXY_URL=https://holly.nexamusicgroup.com/api/clerk
+
+# Client-side proxy URL (used by ClerkProvider in the browser)
+NEXT_PUBLIC_CLERK_PROXY_URL=https://holly.nexamusicgroup.com/api/clerk
+
 NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
 NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
-NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/dashboard
-NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/onboarding
+NEXT_PUBLIC_CLERK_SIGN_IN_FORCE_REDIRECT_URL=/chat
+NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=/chat
+NEXT_PUBLIC_CLERK_SIGN_UP_FORCE_REDIRECT_URL=/chat
+NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=/chat
 ```
 
-> **After deploy**: Go to Clerk Dashboard → Domains → add `40.233.70.207`  
+> **After deploy**: Go to Clerk Dashboard → Domains → add `40.233.70.207`
 > Also update the webhook endpoint URL to: `https://holly.nexamusicgroup.com/api/webhooks/clerk`
+>
+> **⚠️ SIGN-IN LOOP FIX**: If users get stuck in a sign-in loop, verify that
+> `CLERK_PROXY_URL` is set (not just `NEXT_PUBLIC_CLERK_PROXY_URL`). The
+> server-side SDK (`@clerk/backend`) needs `CLERK_PROXY_URL` to route internal
+> proxy requests through the `/api/clerk/` handler. Without it, the SDK makes
+> requests to `/clerk_XXXXX` paths that fail with ECONNRESET.
 
 ---
 
