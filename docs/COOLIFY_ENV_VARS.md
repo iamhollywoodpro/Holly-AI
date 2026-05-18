@@ -1,9 +1,9 @@
 # HOLLY — Complete Coolify Environment Variables
-## Full Vercel → Coolify Migration List
+## Production Configuration
 
-> **Server**: Oracle ARM `40.233.70.207` | **Platform**: Coolify v4  
-> **Last updated**: 2026-04-02  
-> Cross-referenced: Vercel screenshots + full codebase scan + .env.example
+> **Domain**: `holly.nexamusicgroup.com` | **Server**: Oracle ARM | **Platform**: Coolify v4
+> **Last updated**: 2026-05-18 (Phase 8)
+> All Vercel references removed — Holly runs 100% on Coolify
 
 ---
 
@@ -19,7 +19,7 @@
 ```env
 NODE_ENV=production
 NEXT_PUBLIC_APP_NAME=HOLLY
-NEXT_PUBLIC_APP_URL=http://40.233.70.207:3000
+NEXT_PUBLIC_APP_URL=https://holly.nexamusicgroup.com
 
 DATABASE_URL=postgresql://neondb_owner:npg_8vybX2qBuDEe@ep-morning-unit-ad2ywa27-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
 
@@ -29,7 +29,7 @@ CRON_SECRET=← RUN: openssl rand -hex 32
 
 ---
 
-## 🔴 GROUP 2 — CLERK AUTH (copy exactly from Vercel)
+## 🔴 GROUP 2 — CLERK AUTH (configured in Coolify)
 
 ```env
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_...
@@ -43,7 +43,7 @@ NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/onboarding
 ```
 
 > **After deploy**: Go to Clerk Dashboard → Domains → add `40.233.70.207`  
-> Also update the webhook endpoint URL to: `http://40.233.70.207:3000/api/webhooks/clerk`
+> Also update the webhook endpoint URL to: `https://holly.nexamusicgroup.com/api/webhooks/clerk`
 
 ---
 
@@ -122,7 +122,7 @@ SONAUTO_API_KEY=...
 
 ```env
 # Fal.ai — images + video (free starter credits)
-FAL_KEY=...
+# FAL_KEY — REMOVED in v2.6 (replaced by Modal)
 
 # Replicate — stem separation / Demucs audio splitting
 REPLICATE_API_KEY=r8_...
@@ -151,8 +151,8 @@ SERPER_API_KEY=...
 ## 🟡 GROUP 8 — STORAGE
 
 ```env
-# Vercel Blob — file/image storage (works on Coolify too)
-BLOB_READ_WRITE_TOKEN=vercel_blob_rw_...
+# File/image storage
+# BLOB_READ_WRITE_TOKEN — not needed on Coolify
 
 # Upstash Redis — rate limiting & caching (optional)
 KV_REST_API_URL=https://...upstash.io
@@ -195,7 +195,7 @@ AURA_WORKER_TOKEN=...
 ```env
 SPOTIFY_CLIENT_ID=...
 SPOTIFY_CLIENT_SECRET=...
-SPOTIFY_REDIRECT_URI=http://40.233.70.207:3000/api/spotify/callback
+SPOTIFY_REDIRECT_URI=https://holly.nexamusicgroup.com/api/spotify/callback
 ```
 
 > **Important**: After setting a real domain, update this in Spotify Developer Dashboard too.
@@ -207,7 +207,7 @@ SPOTIFY_REDIRECT_URI=http://40.233.70.207:3000/api/spotify/callback
 ```env
 YOUTUBE_CLIENT_ID=...
 YOUTUBE_CLIENT_SECRET=...
-YOUTUBE_REDIRECT_URI=http://40.233.70.207:3000/api/youtube/callback
+YOUTUBE_REDIRECT_URI=https://holly.nexamusicgroup.com/api/youtube/callback
 ```
 
 ---
@@ -217,7 +217,7 @@ YOUTUBE_REDIRECT_URI=http://40.233.70.207:3000/api/youtube/callback
 ```env
 SOUNDCLOUD_CLIENT_ID=...
 SOUNDCLOUD_CLIENT_SECRET=...
-SOUNDCLOUD_REDIRECT_URI=http://40.233.70.207:3000/api/soundcloud/callback
+SOUNDCLOUD_REDIRECT_URI=https://holly.nexamusicgroup.com/api/soundcloud/callback
 ```
 
 ---
@@ -227,7 +227,7 @@ SOUNDCLOUD_REDIRECT_URI=http://40.233.70.207:3000/api/soundcloud/callback
 ```env
 NOTION_CLIENT_ID=...
 NOTION_CLIENT_SECRET=...
-NOTION_REDIRECT_URI=http://40.233.70.207:3000/api/notion/callback
+NOTION_REDIRECT_URI=https://holly.nexamusicgroup.com/api/notion/callback
 ```
 
 ---
@@ -237,7 +237,7 @@ NOTION_REDIRECT_URI=http://40.233.70.207:3000/api/notion/callback
 ```env
 CANVA_CLIENT_ID=...
 CANVA_CLIENT_SECRET=...
-CANVA_REDIRECT_URI=http://40.233.70.207:3000/api/canva/callback
+CANVA_REDIRECT_URI=https://holly.nexamusicgroup.com/api/canva/callback
 ```
 
 ---
@@ -369,7 +369,7 @@ openssl rand -hex 32
 # Generate CRON_SECRET
 openssl rand -hex 32
 
-# Generate HOLLY_HUB_API_KEY (if you don't have one in Vercel)
+# Generate HOLLY_HUB_API_KEY (if you don't have one in Coolify)
 openssl rand -hex 32
 ```
 
@@ -377,10 +377,10 @@ openssl rand -hex 32
 
 ## ✅ MINIMUM TO GET HOLLY RUNNING — Day 1 Checklist
 
-Copy these from Vercel + generate the secrets. Holly will boot and chat:
+Copy these from Coolify + generate the secrets. Holly will boot and chat:
 
 - [ ] `NODE_ENV=production`
-- [ ] `NEXT_PUBLIC_APP_URL=http://40.233.70.207:3000`
+- [ ] `NEXT_PUBLIC_APP_URL=https://holly.nexamusicgroup.com`
 - [ ] `NEXT_PUBLIC_APP_NAME=HOLLY`
 - [ ] `DATABASE_URL` (already known — use Neon URL)
 - [ ] `INTERNAL_API_SECRET` (generate fresh)
