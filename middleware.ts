@@ -143,29 +143,32 @@ function sanitizeClerkRedirectResponse(response: NextResponse | Response): NextR
 // ─────────────────────────────────────────────────────────────────────────────
 // CLERK MIDDLEWARE — handles authentication for all protected routes
 //
-// ARCHITECTURE NOTE:
-// clerkMiddleware parses the JWT from the __session cookie locally (no network
-// calls for valid JWTs). However, when the JWT is expired, it tries to refresh
-// via a proxy call that loops back through the network stack and hangs.
-// We wrap it with a 5-second timeout — if Clerk can't validate within 5s,
-// we fall back to a simple cookie-presence check.
+// IMPORTANT: We do NOT call auth.protect() because it triggers Next.js's
+// proxy-request.js which makes internal HTTP requests to /clerk_XXXXX paths.
+// In our Docker + Cloudflare + custom Clerk proxy setup, these requests loop
+// back through the network stack and fail with ECONNRESET, causing the
+// middleware to hang indefinitely on protected routes → sign-in loop.
 //
-// We do NOT call auth.protect() because it triggers Next.js's proxy-request.js
-// which makes internal HTTP requests to /clerk_XXXXX paths that hang.
-// Instead, we read auth.userId directly from the locally-parsed JWT.
+// Instead, we read the auth state directly from the JWT that clerkMiddleware
+// parses locally (no network calls). If userId is present, the user is
+// authenticated. If not, we redirect to /sign-in ourselves.
 // ─────────────────────────────────────────────────────────────────────────────
 const clerkHandler = clerkMiddleware(async (auth, req) => {
   if (!isPublicRoute(req)) {
+    // Resolve auth object (handle both Clerk v4 callable and v5 object shapes)
     const authResolved = (typeof auth === 'function'
       ? (auth as unknown as () => unknown)()
-      : auth) as { userId?: string; isSignedIn?: boolean } | null;
+      : auth) as { userId?: string; isSignedIn?: boolean; redirectToSignIn?: () => NextResponse } | null;
 
     const userId = authResolved?.userId;
     const isSignedIn = authResolved?.isSignedIn;
 
     if (!userId && !isSignedIn) {
+      // Not authenticated — redirect to sign-in without redirect_url
+      // (Docker-internal URLs would poison the sign-in flow)
       return NextResponse.redirect(new URL('/sign-in', PUBLIC_ORIGIN));
     }
+    // Authenticated — allow the request through (no network calls needed)
   }
 });
 
@@ -233,34 +236,13 @@ export default async function middleware(req: NextRequest, event: NextFetchEvent
     }
   }
 
-  // ── Delegate to Clerk (with timeout) ────────────────────────────────────────
-  // clerkMiddleware can hang when it tries to refresh expired JWTs via proxy
-  // calls that loop back through the network stack. We cap it at 5 seconds.
-  const CLERK_TIMEOUT_MS = 5_000;
-
-  const timeoutPromise = new Promise<null>((resolve) =>
-    setTimeout(() => resolve(null), CLERK_TIMEOUT_MS)
-  );
-
+  // ── Delegate to Clerk ──────────────────────────────────────────────────────
   try {
-    const response = await Promise.race([
-      Promise.resolve(clerkHandler(req, event)),
-      timeoutPromise,
-    ]);
-
-    // Timeout — clerkHandler didn't respond in time
-    if (response === null) {
-      console.warn(`[HOLLY] Clerk middleware timed out after ${CLERK_TIMEOUT_MS}ms on "${pathname}" — falling back to cookie check`);
-      const cookieHeader = req.headers.get('cookie') || '';
-      const hasSessionCookie = cookieHeader.includes('__session') || cookieHeader.includes('__client_uat');
-
-      if (isPublicRoute(req) || hasSessionCookie) {
-        return NextResponse.next();
-      }
-      return NextResponse.redirect(new URL('/sign-in', PUBLIC_ORIGIN));
-    }
+    const response = await Promise.resolve(clerkHandler(req, event));
 
     // Sanitize any redirect response from Clerk — fix 0.0.0.0 in Location header
+    // This catches the case where auth.protect() builds redirect_url from req.url
+    // (which is 0.0.0.0:3000 inside Docker) and puts it in the Location header.
     if (response && [301, 302, 307, 308].includes((response as Response).status)) {
       return sanitizeClerkRedirectResponse(response as NextResponse) as NextResponse;
     }
@@ -275,6 +257,13 @@ export default async function middleware(req: NextRequest, event: NextFetchEvent
     }
 
     // ── Resilient error handling ────────────────────────────────────────────
+    // If the request carries a __session cookie, the user likely HAS a valid
+    // session but Clerk's backend is temporarily unreachable (ECONNRESET,
+    // socket hang up, timeout, etc.).  Redirecting them to /sign-in would
+    // create an infinite loop because the same error will recur on the next
+    // request.  Instead, let the request through — the client-side
+    // ClerkProvider will handle re-authentication if the session is truly
+    // invalid, and the user stays on their page instead of being kicked out.
     const cookieHeader = req.headers.get('cookie') || '';
     const hasSessionCookie = cookieHeader.includes('__session') || cookieHeader.includes('__client_uat');
 
@@ -283,6 +272,10 @@ export default async function middleware(req: NextRequest, event: NextFetchEvent
       return NextResponse.next();
     }
 
+    // No session cookie at all → genuinely unauthenticated, redirect to sign-in
+    // WITHOUT redirect_url — the 0.0.0.0 URL would poison the sign-in flow
+    // and cause a 422 → infinite loop.
+    // ClerkProvider has forceRedirectUrl="/chat" which handles post-login nav.
     return NextResponse.redirect(new URL('/sign-in', PUBLIC_ORIGIN));
   }
 }
