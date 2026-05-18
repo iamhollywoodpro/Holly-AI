@@ -144,3 +144,62 @@
 .sdi-window-no-drag {
   -webkit-app-region: no-drag;
 }
+
+/* ==================== MOBILE RESPONSIVE FIXES ==================== */
+
+/* Prevent horizontal overflow on all pages */
+@layer base {
+  html, body {
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Safe area support for notched phones */
+  body {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+}
+
+/* Mobile scrollbar — thinner */
+@media (max-width: 640px) {
+  ::-webkit-scrollbar {
+    width: 3px;
+    height: 3px;
+  }
+
+  /* Prevent text selection flash on touch */
+  .no-select {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Touch-friendly tap targets — minimum 44px */
+  button, a, [role="button"] {
+    min-height: 44px;
+  }
+
+  /* Prevent iOS zoom on input focus */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
+/* Mobile keyboard handling — prevent fixed elements from overlapping */
+@media (max-width: 640px) {
+  .mobile-keyboard-aware {
+    position: relative;
+  }
+}
+
+/* Smooth momentum scrolling for mobile */
+.scroll-smooth-touch {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
