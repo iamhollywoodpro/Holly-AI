@@ -293,6 +293,41 @@ GOAL_PATTERN_DETECTION_MIN_OCCURRENCES=3
 
 ---
 
+## 🟢 GROUP 20 — PHASE 8 INTEGRATIONS (optional — add as needed)
+
+```env
+# ── Email (Resend — 100 emails/day free) ──
+# Get key at https://resend.com → Dashboard → API Keys
+RESEND_API_KEY=re_xxxxxxxxxxxxx
+RESEND_FROM_EMAIL=holly@nexamusicgroup.com
+
+# ── Calendar (Google Calendar OAuth) ──
+# Create at https://console.cloud.google.com → APIs & Services → Credentials
+GOOGLE_CALENDAR_CLIENT_ID=xxxxxxxxxxxx.apps.googleusercontent.com
+GOOGLE_CALENDAR_CLIENT_SECRET=GOCSPX-xxxxxxxxxxxx
+
+# ── SMS (Twilio — ~$1/month) ──
+# Get at https://www.twilio.com → Dashboard → Account Info
+TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxx
+TWILIO_AUTH_TOKEN=xxxxxxxxxxxx
+TWILIO_PHONE_NUMBER=+1XXXXXXXXXX
+
+# ── LiveKit Real-time Voice ──
+# Generate with: docker run livekit/generate-keys
+LIVEKIT_API_KEY=APIxxxxxxxxxxxx
+LIVEKIT_API_SECRET=xxxxxxxxxxxx
+LIVEKIT_URL=ws://livekit:7880
+
+# ── Creator Recognition (optional — hardcoded fallbacks already work) ──
+CREATOR_CLERK_IDS=user_xxxxxxxxxxxx
+CREATOR_EMAILS=iamdoregosteve@gmail.com
+CREATOR_NAME_FRAGMENTS=steve dorego,steve hollywood,dorego
+```
+
+See [docs/INTEGRATION_SETUP_GUIDE.md](INTEGRATION_SETUP_GUIDE.md) for step-by-step setup instructions.
+
+---
+
 ## ❌ DO NOT COPY — These are removed or not applicable
 
 | Variable | Why NOT to copy |
