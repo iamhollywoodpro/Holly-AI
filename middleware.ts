@@ -40,7 +40,7 @@ const isPublicRoute = createRouteMatcher([
 
 // Hard-bypass paths — returned BEFORE Clerk initialises
 const BYPASS_PATHS = new Set(['/api/health', '/api/metrics', '/api/version']);
-const BYPASS_PREFIX = ['/api/clerk/'];
+const BYPASS_PREFIX = ['/api/clerk/', '/clerk_'];
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SANITIZE REDIRECT URL
@@ -170,7 +170,15 @@ export default async function middleware(req: NextRequest, event: NextFetchEvent
   }
 
   // Clerk proxy paths handle their own auth
+  // /clerk_* paths are Clerk SDK internal proxy requests — bypass auth and
+  // rewrite them to the /api/clerk/ proxy route so they reach Clerk's backend
   if (BYPASS_PREFIX.some(prefix => pathname.startsWith(prefix))) {
+    if (pathname.startsWith('/clerk_')) {
+      // Rewrite /clerk_XXXXX → /api/clerk/clerk_XXXXX so the existing proxy handles it
+      const rewriteUrl = req.nextUrl.clone();
+      rewriteUrl.pathname = `/api/clerk${pathname}`;
+      return NextResponse.rewrite(rewriteUrl);
+    }
     return NextResponse.next();
   }
 
@@ -234,8 +242,25 @@ export default async function middleware(req: NextRequest, event: NextFetchEvent
       return NextResponse.next();
     }
 
-    // Redirect to sign-in WITHOUT redirect_url — the 0.0.0.0 URL would
-    // poison the sign-in flow and cause a 422 → infinite loop.
+    // ── Resilient error handling ────────────────────────────────────────────
+    // If the request carries a __session cookie, the user likely HAS a valid
+    // session but Clerk's backend is temporarily unreachable (ECONNRESET,
+    // socket hang up, timeout, etc.).  Redirecting them to /sign-in would
+    // create an infinite loop because the same error will recur on the next
+    // request.  Instead, let the request through — the client-side
+    // ClerkProvider will handle re-authentication if the session is truly
+    // invalid, and the user stays on their page instead of being kicked out.
+    const cookieHeader = req.headers.get('cookie') || '';
+    const hasSessionCookie = cookieHeader.includes('__session') || cookieHeader.includes('__client_uat');
+
+    if (hasSessionCookie) {
+      console.warn(`[HOLLY] Clerk error but session cookie present — letting request through to avoid sign-in loop`);
+      return NextResponse.next();
+    }
+
+    // No session cookie at all → genuinely unauthenticated, redirect to sign-in
+    // WITHOUT redirect_url — the 0.0.0.0 URL would poison the sign-in flow
+    // and cause a 422 → infinite loop.
     // ClerkProvider has forceRedirectUrl="/chat" which handles post-login nav.
     return NextResponse.redirect(new URL('/sign-in', PUBLIC_ORIGIN));
   }
