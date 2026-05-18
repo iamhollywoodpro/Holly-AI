@@ -25,13 +25,23 @@ export const useSettings = create<SettingsStore>()(
       loadSettings: async () => {
         set({ isLoading: true });
         try {
-          const response = await fetch('/api/settings');
+          // Timeout after 8s — the Clerk middleware can hang for API routes
+          // due to proxy call failures. Fall back to defaults on timeout.
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 8_000);
+          const response = await fetch('/api/settings', { signal: controller.signal });
+          clearTimeout(timeoutId);
           if (response.ok) {
             const data = await response.json();
             set({ settings: { ...DEFAULT_SETTINGS, ...data.settings } });
           }
-        } catch (error) {
-          console.error('Failed to load settings:', error);
+        } catch (error: any) {
+          if (error?.name === 'AbortError') {
+            console.warn('[HOLLY] Settings API timed out — using defaults');
+          } else {
+            console.error('Failed to load settings:', error);
+          }
+          // Keep using DEFAULT_SETTINGS (already set at init)
         } finally {
           set({ isLoading: false });
         }
@@ -48,19 +58,27 @@ export const useSettings = create<SettingsStore>()(
         set({ settings: newSettings, isSaving: true });
 
         try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 8_000);
           const response = await fetch('/api/settings', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ settings: newSettings }),
+            signal: controller.signal,
           });
+          clearTimeout(timeoutId);
 
           if (!response.ok) {
             throw new Error('Failed to save settings');
           }
-        } catch (error) {
-          console.error('Failed to save settings:', error);
-          // Rollback on error
-          set({ settings: currentSettings });
+        } catch (error: any) {
+          if (error?.name === 'AbortError') {
+            console.warn('[HOLLY] Settings save timed out — keeping optimistic update');
+          } else {
+            console.error('Failed to save settings:', error);
+            // Rollback on error (but not timeout — keep optimistic update)
+            set({ settings: currentSettings });
+          }
         } finally {
           set({ isSaving: false });
         }
