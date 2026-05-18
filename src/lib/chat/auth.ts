@@ -15,6 +15,8 @@ const CREATOR_HARDCODED_EMAILS = [
   'nexamusicgroup',
   'stevendorego',
   'stevefreshblendz',
+  'iamdoregosteve',     // Creator's new primary email (iamdoregosteve@gmail.com)
+  'iamhollywoodpro',    // Legacy email (being decommissioned)
 ];
 const CREATOR_HARDCODED_NAME_FRAGMENTS = [
   'steve hollywood',
@@ -24,6 +26,8 @@ const CREATOR_HARDCODED_NAME_FRAGMENTS = [
   'stevefreshblendz',
   'nexamusic',
   'hollywood dorego',
+  'dorego steve',
+  'iamdoregosteve',
 ];
 
 export interface AuthResult {
