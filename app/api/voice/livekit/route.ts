@@ -9,6 +9,10 @@ const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY || 'devkey';
 const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET || 'devsecret';
 const LIVEKIT_URL = process.env.LIVEKIT_URL || 'ws://localhost:7880';
 
+/**
+ * POST /api/voice/livekit — Generate a LiveKit access token
+ * Body: { room?: string, participantName?: string, agent?: boolean }
+ */
 export async function POST(req: NextRequest) {
   try {
     const { userId } = await auth();
@@ -24,6 +28,7 @@ export async function POST(req: NextRequest) {
     const token = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, {
       identity: isAgent ? 'holly-agent' : participantName,
       name: isAgent ? 'HOLLY' : participantName,
+      ttl: '1h',
     });
 
     token.addGrant({
@@ -47,4 +52,22 @@ export async function POST(req: NextRequest) {
       { status: 500 },
     );
   }
+}
+
+/**
+ * GET /api/voice/livekit — Check LiveKit configuration status
+ */
+export async function GET() {
+  return NextResponse.json({
+    configured: !!(LIVEKIT_API_KEY && LIVEKIT_API_SECRET && LIVEKIT_API_KEY !== 'devkey'),
+    url: LIVEKIT_URL,
+    provider: 'LiveKit',
+    version: '1.11.0',
+    features: [
+      'real-time voice conversation',
+      'voice activity detection',
+      'interruption handling',
+      'multi-participant rooms',
+    ],
+  });
 }
