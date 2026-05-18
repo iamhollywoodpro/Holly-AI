@@ -1,49 +1,272 @@
 'use client';
 
 import { useUser } from '@clerk/nextjs';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 
 export default function AccountPage() {
-  const { user } = useUser();
+  const { user, isLoaded } = useUser();
   const [usage, setUsage] = useState({ messages: 0, tokens: 0, conversations: 0 });
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    bio: '',
+  });
+
+  // Sync form data when user loads
   useEffect(() => {
-    // Fetch usage stats
+    if (user) {
+      setFormData({
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        bio: (user.unsafeMetadata?.bio as string) || '',
+      });
+    }
+  }, [user]);
+
+  // Fetch usage stats
+  useEffect(() => {
     fetch('/api/usage')
       .then((res) => res.json())
       .then((data) => setUsage(data))
       .catch((err) => console.error('Failed to fetch usage:', err));
   }, []);
 
+  const handleSave = useCallback(async () => {
+    if (!user) return;
+    setSaving(true);
+    setSaveMessage(null);
+    try {
+      await user.update({
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        unsafeMetadata: {
+          ...user.unsafeMetadata,
+          bio: formData.bio,
+        },
+      });
+      setEditing(false);
+      setSaveMessage({ type: 'success', text: 'Profile updated successfully' });
+    } catch (error) {
+      console.error('Failed to update profile:', error);
+      setSaveMessage({ type: 'error', text: 'Failed to update profile. Please try again.' });
+    } finally {
+      setSaving(false);
+      setTimeout(() => setSaveMessage(null), 4000);
+    }
+  }, [user, formData]);
+
+  const handleImageUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setSaveMessage({ type: 'error', text: 'Image must be under 5MB' });
+      setTimeout(() => setSaveMessage(null), 4000);
+      return;
+    }
+
+    setUploadingImage(true);
+    setSaveMessage(null);
+    try {
+      await user.setProfileImage({ file });
+      setSaveMessage({ type: 'success', text: 'Profile image updated' });
+    } catch (error) {
+      console.error('Failed to update profile image:', error);
+      setSaveMessage({ type: 'error', text: 'Failed to update profile image' });
+    } finally {
+      setUploadingImage(false);
+      setTimeout(() => setSaveMessage(null), 4000);
+      // Reset file input
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  }, [user]);
+
+  if (!isLoaded) {
+    return (
+      <div className="space-y-6">
+        <div className="animate-pulse">
+          <div className="h-8 bg-[#1A1815] rounded w-64 mb-4" />
+          <div className="h-4 bg-[#1A1815] rounded w-96 mb-8" />
+          <div className="h-48 bg-[#1A1815] rounded-2xl mb-6" />
+          <div className="grid grid-cols-3 gap-4">
+            <div className="h-24 bg-[#1A1815] rounded-2xl" />
+            <div className="h-24 bg-[#1A1815] rounded-2xl" />
+            <div className="h-24 bg-[#1A1815] rounded-2xl" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div>
         <h2 className="text-2xl font-black text-[#F5F0E8] mb-2 uppercase tracking-widest">Architectural Dossier</h2>
         <p className="text-[#8C8476] text-xs font-medium uppercase tracking-[0.15em]">Manage your sovereign identity and neural subscription</p>
       </div>
 
-      {/* Profile Info */}
+      {/* Save Message Toast */}
+      {saveMessage && (
+        <div
+          className={`px-4 py-3 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${
+            saveMessage.type === 'success'
+              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+              : 'bg-[#B84052]/10 border-[#B84052]/30 text-[#B84052]'
+          }`}
+        >
+          {saveMessage.text}
+        </div>
+      )}
+
+      {/* Profile Info — Editable */}
       <div className="bg-[#12110F] border border-[#D4A853]/20 rounded-2xl p-8 relative overflow-hidden group shadow-2xl">
         <div className="absolute inset-0 bg-gradient-to-br from-[#D4A853]/5 to-transparent pointer-events-none" />
-        <div className="flex items-center gap-6 relative z-10">
-          {user?.imageUrl && (
-            <div className="relative">
+
+        {/* Edit / Save / Cancel Buttons */}
+        <div className="absolute top-6 right-6 z-20 flex gap-2">
+          {!editing ? (
+            <button
+              onClick={() => setEditing(true)}
+              className="px-4 py-2 bg-[#D4A853]/10 hover:bg-[#D4A853]/20 border border-[#D4A853]/30 rounded-xl text-[#D4A853] text-[10px] font-black uppercase tracking-widest transition-all duration-300"
+            >
+              Edit Profile
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={() => {
+                  setEditing(false);
+                  // Reset form to current user data
+                  if (user) {
+                    setFormData({
+                      firstName: user.firstName || '',
+                      lastName: user.lastName || '',
+                      bio: (user.unsafeMetadata?.bio as string) || '',
+                    });
+                  }
+                }}
+                className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-[#8C8476] text-[10px] font-black uppercase tracking-widest transition-all duration-300"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="px-4 py-2 bg-[#D4A853] hover:bg-[#D4A853]/80 disabled:opacity-50 rounded-xl text-[#0B0A08] text-[10px] font-black uppercase tracking-widest transition-all duration-300 flex items-center gap-2"
+              >
+                {saving && (
+                  <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                )}
+                {saving ? 'Saving...' : 'Save Changes'}
+              </button>
+            </>
+          )}
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 relative z-10">
+          {/* Profile Image — Clickable */}
+          <div className="relative group/img cursor-pointer" onClick={() => !editing && fileInputRef.current?.click()}>
+            {user?.imageUrl ? (
               <img
                 src={user.imageUrl}
                 alt={user.fullName || 'User'}
-                className="w-24 h-24 rounded-2xl object-cover border border-[#D4A853]/30 shadow-[0_0_30px_rgba(212,168,83,0.1)]"
+                className="w-24 h-24 rounded-2xl object-cover border border-[#D4A853]/30 shadow-[0_0_30px_rgba(212,168,83,0.1)] transition-all duration-300 group-hover/img:brightness-75"
               />
-              <div className="absolute -bottom-2 -right-2 bg-[#D4A853] text-[#0B0A08] px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-tighter">Verified</div>
+            ) : (
+              <div className="w-24 h-24 rounded-2xl bg-[#1A1815] border border-[#D4A853]/30 flex items-center justify-center text-[#D4A853] text-2xl font-black">
+                {(user?.firstName?.[0] || 'H').toUpperCase()}
+              </div>
+            )}
+            {/* Overlay indicator */}
+            <div className="absolute inset-0 rounded-2xl bg-black/50 flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity duration-300">
+              {uploadingImage ? (
+                <svg className="animate-spin h-6 w-6 text-[#D4A853]" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+              ) : (
+                <svg className="w-6 h-6 text-[#F5F0E8]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              )}
             </div>
-          )}
+            <div className="absolute -bottom-2 -right-2 bg-[#D4A853] text-[#0B0A08] px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-tighter">Verified</div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleImageUpload}
+            />
+          </div>
+
           <div className="flex-1">
-            <h3 className="text-xl font-black text-[#F5F0E8] uppercase tracking-widest">{user?.fullName || 'Sovereign User'}</h3>
-            <p className="text-[#8C8476] text-[10px] font-black uppercase tracking-[0.2em] mt-1">{user?.primaryEmailAddress?.emailAddress}</p>
-            <div className="flex gap-2 mt-4">
-              <span className="px-3 py-1 bg-[#D4A853]/10 text-[#D4A853] text-[9px] font-black uppercase tracking-widest border border-[#D4A853]/20 rounded-lg">
-                Sentient Founding Member
-              </span>
-            </div>
+            {editing ? (
+              <div className="space-y-4 w-full max-w-md">
+                {/* First Name */}
+                <div>
+                  <label className="block text-[9px] text-[#8C8476] font-black uppercase tracking-widest mb-1.5">First Name</label>
+                  <input
+                    type="text"
+                    value={formData.firstName}
+                    onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                    className="w-full px-4 py-2.5 bg-[#1A1815] border border-[#D4A853]/20 rounded-xl text-[#F5F0E8] text-sm font-medium focus:outline-none focus:border-[#D4A853]/50 focus:ring-1 focus:ring-[#D4A853]/30 transition-all"
+                    placeholder="Enter first name"
+                  />
+                </div>
+                {/* Last Name */}
+                <div>
+                  <label className="block text-[9px] text-[#8C8476] font-black uppercase tracking-widest mb-1.5">Last Name</label>
+                  <input
+                    type="text"
+                    value={formData.lastName}
+                    onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                    className="w-full px-4 py-2.5 bg-[#1A1815] border border-[#D4A853]/20 rounded-xl text-[#F5F0E8] text-sm font-medium focus:outline-none focus:border-[#D4A853]/50 focus:ring-1 focus:ring-[#D4A853]/30 transition-all"
+                    placeholder="Enter last name"
+                  />
+                </div>
+                {/* Bio */}
+                <div>
+                  <label className="block text-[9px] text-[#8C8476] font-black uppercase tracking-widest mb-1.5">Bio</label>
+                  <textarea
+                    value={formData.bio}
+                    onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                    rows={3}
+                    className="w-full px-4 py-2.5 bg-[#1A1815] border border-[#D4A853]/20 rounded-xl text-[#F5F0E8] text-sm font-medium focus:outline-none focus:border-[#D4A853]/50 focus:ring-1 focus:ring-[#D4A853]/30 transition-all resize-none"
+                    placeholder="Tell Holly about yourself..."
+                  />
+                </div>
+              </div>
+            ) : (
+              <>
+                <h3 className="text-xl font-black text-[#F5F0E8] uppercase tracking-widest">
+                  {user?.fullName || 'Sovereign User'}
+                </h3>
+                {formData.bio && (
+                  <p className="text-[#8C8476] text-xs mt-1 max-w-md">{formData.bio}</p>
+                )}
+                <p className="text-[#8C8476] text-[10px] font-black uppercase tracking-[0.2em] mt-2">
+                  {user?.primaryEmailAddress?.emailAddress}
+                </p>
+                <div className="flex gap-2 mt-3">
+                  <span className="px-3 py-1 bg-[#D4A853]/10 text-[#D4A853] text-[9px] font-black uppercase tracking-widest border border-[#D4A853]/20 rounded-lg">
+                    Sentient Founding Member
+                  </span>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -72,31 +295,6 @@ export default function AccountPage() {
       {/* Quick Actions */}
       <div className="space-y-4">
         <h3 className="text-[10px] font-black text-[#D4A853] uppercase tracking-[0.2em]">Administrative Protocols</h3>
-
-        <a
-          href="/profile"
-          className="block w-full px-6 py-4 bg-[#1A1815] hover:bg-[#24211D] rounded-2xl border border-white/5 transition-all duration-300 group"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-[11px] font-black text-[#F5F0E8] uppercase tracking-widest group-hover:text-[#D4A853] transition-colors">Refine Identity</div>
-              <div className="text-[9px] text-[#8C8476] uppercase tracking-widest mt-1">Calibrate your name and visual representation</div>
-            </div>
-            <svg
-              className="w-4 h-4 text-[#5C564D] group-hover:text-[#D4A853] transition-colors"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={3}
-                d="M9 5l7 7-7 7"
-              />
-            </svg>
-          </div>
-        </a>
 
         <button
           className="block w-full px-6 py-4 bg-[#1A1815] hover:bg-[#24211D] rounded-2xl border border-white/5 transition-all duration-300 text-left group"
