@@ -1,0 +1,42 @@
+# LiveKit Docker Service Configuration
+# Phase 8.6.1 — Add to docker-compose.coolify.yml
+#
+# LiveKit provides real-time voice/video infrastructure.
+# This configuration runs LiveKit alongside Holly on Oracle Cloud.
+#
+# Setup:
+# 1. Copy the livekit service block below into docker-compose.coolify.yml
+# 2. Generate keys: docker run livekit/generate-keys
+# 3. Set LIVEKIT_API_KEY and LIVEKIT_API_SECRET in Coolify env vars
+# 4. Set LIVEKIT_URL=ws://livekit:7880 in Holly's env vars
+# 5. Redeploy
+
+version: "3.8"
+
+services:
+  livekit:
+    image: livekit/livekit-server:latest
+    container_name: holly-livekit
+    restart: unless-stopped
+    ports:
+      - "7880:7880"   # HTTP/WebSocket
+      - "7881:7881"   # RTC (UDP)
+      - "7882:7882/udp"  # RTC (UDP)
+    environment:
+      - LIVEKIT_KEYS=${LIVEKIT_API_KEY}: ${LIVEKIT_API_SECRET}
+    command: >
+      --dev
+      --node-ip ${HOST_IP:-127.0.0.1}
+      --port 7880
+      --rtc-port 7881
+    networks:
+      - holly-network
+    volumes:
+      - livekit-data:/livekit-data
+
+volumes:
+  livekit-data:
+
+networks:
+  holly-network:
+    external: true
