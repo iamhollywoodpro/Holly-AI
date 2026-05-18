@@ -1445,7 +1445,21 @@ export default function HollyChatInterface() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const mobileTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const desktopTextareaRef = useRef<HTMLTextAreaElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Keep textareaRef pointing to the currently visible textarea (mobile or desktop layout)
+  useEffect(() => {
+    const updateRef = () => {
+      textareaRef.current = window.innerWidth < 768
+        ? mobileTextareaRef.current
+        : desktopTextareaRef.current;
+    };
+    updateRef();
+    window.addEventListener('resize', updateRef);
+    return () => window.removeEventListener('resize', updateRef);
+  }, []);
   // Signals that submitEdit wants to auto-send after React re-renders with sliced messages
   const pendingAutoSendRef = useRef<string | null>(null);
 
@@ -3141,20 +3155,93 @@ export default function HollyChatInterface() {
         {/* ── Sovereign SDI Input Bar ── */}
         <div className="relative group max-w-4xl mx-auto w-full sm:px-4 mb-2 sm:mb-10">
 
-          <div className="flex items-end gap-1 sm:gap-3 sdi-glass rounded-[2rem] sm:rounded-[2.5rem] p-1.5 sm:p-2 transition-all duration-500 focus-within:sdi-glow-gold focus-within:border-holly-gold/40 group-hover:border-white/20">
-            {/* Nav / Logo Anchor — hidden on mobile to save space */}
-            <div className="hidden md:flex-shrink-0 md:ml-1">
+          {/* ── Mobile Layout (< md): Vertical stack ── */}
+          <div className="md:hidden sdi-glass rounded-2xl p-2 transition-all duration-500 focus-within:sdi-glow-gold focus-within:border-holly-gold/40">
+            {/* Textarea row — full width */}
+            <div className="relative">
+              <textarea
+                ref={mobileTextareaRef}
+                rows={1}
+                value={input}
+                onChange={handleTextareaChange}
+                onKeyDown={handleKeyDown}
+                placeholder={isListening ? "Listening..." : "Message Holly..."}
+                disabled={isProcessing}
+                className="w-full bg-transparent border-none focus:ring-0 focus:outline-none text-gray-100 placeholder:text-white/20 py-2 px-1 text-base resize-none max-h-[150px] scrollbar-none selection:bg-primary/30"
+                style={{ height: "auto" }}
+              />
+            </div>
+            {/* Button row */}
+            <div className="flex items-center justify-between pt-1 border-t border-white/5">
+              <div className="flex items-center gap-1">
+                {/* Upload */}
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isProcessing}
+                  className="p-2.5 rounded-xl text-white/30 hover:text-primary hover:bg-primary/10 transition-all disabled:opacity-10"
+                  title="Upload"
+                >
+                  <Paperclip className="w-5 h-5" />
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  className="hidden"
+                  onChange={e => handleFileSelect(e.target.files)}
+                />
+                {/* Voice */}
+                <button
+                  onClick={isListening ? stopListening : startListening}
+                  disabled={voicePhase === 'processing'}
+                  className={`p-2.5 rounded-xl transition-all ${
+                    isListening
+                      ? "bg-red-500/20 text-red-400"
+                      : voicePhase === 'processing'
+                      ? "opacity-30 cursor-wait text-gray-500"
+                      : isVoiceInput
+                      ? "bg-primary/20 text-primary"
+                      : "text-white/30 hover:text-white hover:bg-white/5"
+                  }`}
+                  title={voicePhase === 'listening' ? "Stop recording" : "Voice Input"}
+                >
+                  {voicePhase === 'processing' ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : isListening ? (
+                    <MicOff className="w-5 h-5" />
+                  ) : (
+                    <Mic className="w-5 h-5" />
+                  )}
+                </button>
+              </div>
+              {/* Send */}
+              <button
+                onClick={() => handleSend()}
+                disabled={isProcessing || (!input.trim() && attachments.length === 0)}
+                className={`p-2.5 rounded-xl transition-all ${
+                  input.trim() || attachments.length > 0
+                    ? "bg-primary text-white shadow-[0_0_20px_rgba(var(--primary-rgb),0.4)] active:scale-95"
+                    : "text-white/10"
+                } disabled:opacity-20`}
+              >
+                <Send className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+
+          {/* ── Desktop Layout (md+): Horizontal bar ── */}
+          <div className="hidden md:flex items-end gap-3 sdi-glass rounded-[2.5rem] p-2 transition-all duration-500 focus-within:sdi-glow-gold focus-within:border-holly-gold/40 group-hover:border-white/20">
+            {/* Nav / Logo Anchor */}
+            <div className="flex-shrink-0 ml-1">
               <div className="flex items-center gap-3 bg-black/40 px-3 py-2 rounded-full border border-white/10 shadow-lg group/logo transition-all hover:bg-black/60 relative overflow-hidden">
                 <div className="absolute inset-0 sdi-scanline opacity-20" />
                 <div className="relative w-10 h-10 flex items-center justify-center">
-                  {/* Decorative Rings */}
                   <div className="absolute inset-0 rounded-full border border-primary/20 scale-[1.2] animate-pulse" />
                   <div className="absolute inset-0 rounded-full border border-primary/10 scale-[1.5] group-hover/logo:scale-[1.6] transition-transform duration-700" />
-                  
                   <div className="relative z-10 flex items-center justify-center w-full h-full">
-                    <LivingLogo 
-                      emotion={currentStatus ? statusToEmotion(currentStatus) || 'focused' : emotion} 
-                      size={28} 
+                    <LivingLogo
+                      emotion={currentStatus ? statusToEmotion(currentStatus) || 'focused' : emotion}
+                      size={28}
                       showGlow={false}
                     />
                   </div>
@@ -3174,24 +3261,17 @@ export default function HollyChatInterface() {
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={isProcessing}
-              className="flex-shrink-0 p-2 sm:p-3 rounded-xl sm:rounded-2xl text-white/30 hover:text-primary hover:bg-primary/10 transition-all disabled:opacity-10 border border-transparent hover:border-primary/20"
+              className="flex-shrink-0 p-3 rounded-2xl text-white/30 hover:text-primary hover:bg-primary/10 transition-all disabled:opacity-10 border border-transparent hover:border-primary/20"
               title="Upload Intelligence"
             >
-              <Paperclip className="w-4 h-4 sm:w-5 sm:h-5" />
+              <Paperclip className="w-5 h-5" />
             </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              className="hidden"
-              onChange={e => handleFileSelect(e.target.files)}
-            />
 
             {/* Voice button */}
             <button
               onClick={isListening ? stopListening : startListening}
               disabled={voicePhase === 'processing'}
-              className={`flex-shrink-0 p-2 sm:p-3 rounded-xl sm:rounded-2xl transition-all border border-transparent ${
+              className={`flex-shrink-0 p-3 rounded-2xl transition-all border border-transparent ${
                 isListening
                   ? "bg-red-500/20 text-red-400 border-red-500/30 hover:bg-red-500/30"
                   : voicePhase === 'processing'
@@ -3226,7 +3306,7 @@ export default function HollyChatInterface() {
             {/* Input Field */}
             <div className="flex-1 min-w-0 relative py-1">
               <textarea
-                ref={textareaRef}
+                ref={desktopTextareaRef}
                 rows={1}
                 value={input}
                 onChange={handleTextareaChange}
