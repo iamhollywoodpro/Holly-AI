@@ -127,42 +127,54 @@
 - No STT→LLM→TTS latency (direct WebRTC)
 - Voice activity detection, interruption handling
 
-### Setup (20 minutes, FREE self-hosted)
+### Current Status: ✅ Container Running, Keys Generated
 
-1. **Generate API Keys**
-   ```bash
-   docker run livekit/generate-keys
-   ```
-   Copy the API Key and Secret.
+LiveKit is already deployed on the Oracle Cloud server via Coolify.
+- **Container**: `livekit-tx7n3f3clrlvdaiitob2vi3o-181301288880`
+- **Version**: v1.11.0
+- **API Key**: `APIcbE9QarHdoai`
+- **API Secret**: `fY4cThSqotwT3a5YwBAPfllLsbfBuLpWRi6mruc8rPuA`
 
-2. **Add LiveKit to Docker Compose**
-   - Copy the service from `docker/livekit-docker-compose.yml`
-   - Add it to your `docker-compose.coolify.yml`
+### ⚠️ Required: Open Oracle Cloud Security List
 
-3. **Add to Coolify**
-   ```
-   LIVEKIT_API_KEY=APIxxxxxxxxxxxx
-   LIVEKIT_API_SECRET=xxxxxxxxxxxx
-   LIVEKIT_URL=ws://livekit:7880
-   ```
+The OS-level iptables are configured, but **Oracle Cloud's network Security List** also needs to allow these ports. This must be done in the Oracle Cloud Console:
 
-4. **Open Firewall Ports** (Oracle Cloud)
-   ```bash
-   sudo iptables -I INPUT -p tcp --dport 7880 -j ACCEPT
-   sudo iptables -I INPUT -p tcp --dport 7881 -j ACCEPT
-   sudo iptables -I INPUT -p udp --dport 7882 -j ACCEPT
-   sudo netfilter-persistent save
-   ```
+1. Go to **Oracle Cloud Console** → **Networking** → **Virtual Cloud Networks**
+2. Click your VCN → **Subnets** → Click your subnet → **Security Lists**
+3. Click the default security list → **Add Ingress Rules**
+4. Add these rules:
 
-5. **Deploy**
-   ```bash
-   docker-compose -f docker-compose.coolify.yml up -d livekit
-   ```
+   | Source | Protocol | Destination Port | Description |
+   |--------|----------|-----------------|-------------|
+   | 0.0.0.0/0 | TCP | 7880 | LiveKit HTTP/WS signaling |
+   | 0.0.0.0/0 | TCP | 7881 | LiveKit TCP fallback |
+   | 0.0.0.0/0 | UDP | 50000-60000 | LiveKit WebRTC media |
 
-6. **Test**
-   ```bash
-   curl https://holly.nexamusicgroup.com/api/voice/livekit-token
-   ```
+5. Click **Add Ingress Rules** to save
+
+### Update Coolify Environment Variables
+
+In **Coolify** → **Holly App** → **Environment**, update:
+
+```
+LIVEKIT_API_KEY=APIcbE9QarHdoai
+LIVEKIT_API_SECRET=fY4cThSqotwT3a5YwBAPfllLsbfBuLpWRi6mruc8rPuA
+LIVEKIT_URL=ws://40.233.70.207:7880
+```
+
+Also update the **LiveKit service** in Coolify with the same API key and secret.
+
+### Test After Opening Ports
+
+```bash
+# Test external access
+curl http://40.233.70.207:7880
+# Should return: OK
+
+# Test token endpoint
+curl https://holly.nexamusicgroup.com/api/voice/livekit-token
+# Should return: { "configured": true, "url": "ws://40.233.70.207:7880", ... }
+```
 
 ---
 

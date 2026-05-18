@@ -84,9 +84,9 @@ OLLAMA_MODEL=llama3.2
 VOXCPM2_TTS_URL=https://iamhollywoodpro--tts.modal.run
 
 # LiveKit WebRTC — zero-latency voice conversations (v2.6+)
-# Generate keys at https://cloud.livekit.io or use defaults for self-hosted
-LIVEKIT_API_KEY=devkey
-LIVEKIT_API_SECRET=devsecret
+# LiveKit — production keys generated on server
+LIVEKIT_API_KEY=APIcbE9QarHdoai
+LIVEKIT_API_SECRET=fY4cThSqotwT3a5YwBAPfllLsbfBuLpWRi6mruc8rPuA
 LIVEKIT_URL=ws://livekit:7880
 LIVEKIT_NODE_IP=40.233.70.207
 
@@ -313,10 +313,14 @@ TWILIO_AUTH_TOKEN=xxxxxxxxxxxx
 TWILIO_PHONE_NUMBER=+1XXXXXXXXXX
 
 # ── LiveKit Real-time Voice ──
-# Generate with: docker run livekit/generate-keys
-LIVEKIT_API_KEY=APIxxxxxxxxxxxx
-LIVEKIT_API_SECRET=xxxxxxxxxxxx
-LIVEKIT_URL=ws://livekit:7880
+# Generated on server with: livekit-server generate-keys
+LIVEKIT_API_KEY=APIcbE9QarHdoai
+LIVEKIT_API_SECRET=fY4cThSqotwT3a5YwBAPfllLsbfBuLpWRi6mruc8rPuA
+# Client-facing URL — browsers connect to this (must be publicly reachable)
+# Option A: Direct IP (requires Oracle Cloud Security List open for 7880+UDP 50000-60000)
+LIVEKIT_URL=ws://40.233.70.207:7880
+# Option B: Through Traefik reverse proxy (add DNS A record livekit.nexamusicgroup.com → 40.233.70.207, then configure in Coolify)
+# LIVEKIT_URL=wss://livekit.nexamusicgroup.com
 
 # ── Creator Recognition (optional — hardcoded fallbacks already work) ──
 CREATOR_CLERK_IDS=user_xxxxxxxxxxxx
