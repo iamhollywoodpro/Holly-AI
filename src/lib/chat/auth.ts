@@ -5,6 +5,27 @@ const CREATOR_EMAILS = (process.env.CREATOR_EMAILS || '').split(',').filter(Bool
 const CREATOR_CLERK_IDS = (process.env.CREATOR_CLERK_IDS || '').split(',').filter(Boolean);
 const CREATOR_NAME_FRAGMENTS = (process.env.CREATOR_NAME_FRAGMENTS || '').split(',').filter(Boolean);
 
+/**
+ * Hardcoded fallback creator identifiers.
+ * These ensure Holly ALWAYS recognizes her creator, even if env vars aren't configured.
+ * This is intentional — the creator's identity is part of Holly's core identity.
+ */
+const CREATOR_HARDCODED_EMAILS = [
+  'hollywood',
+  'nexamusicgroup',
+  'stevendorego',
+  'stevefreshblendz',
+];
+const CREATOR_HARDCODED_NAME_FRAGMENTS = [
+  'steve hollywood',
+  'steve dorego',
+  'steven dorego',
+  'stevendorego',
+  'stevefreshblendz',
+  'nexamusic',
+  'hollywood dorego',
+];
+
 export interface AuthResult {
   userId: string;
   dbUserId: string | null;
@@ -57,11 +78,18 @@ export async function authenticateAndLoadUser(): Promise<AuthResult | null> {
     }
 
     const nameCheck = (user?.name || '').toLowerCase();
+    const emailLower = userEmail.toLowerCase();
+
+    // Check env vars first
     isCreator = isCreator
-      || CREATOR_EMAILS.some(e => userEmail.toLowerCase().includes(e.toLowerCase()))
-      || (userEmail.toLowerCase().includes('hollywood') && CREATOR_EMAILS.length > 0)
-      || (userEmail.toLowerCase().includes('nexamusicgroup') && CREATOR_EMAILS.length > 0)
+      || CREATOR_EMAILS.some(e => emailLower.includes(e.toLowerCase()))
       || CREATOR_NAME_FRAGMENTS.some(f => nameCheck.includes(f));
+
+    // Hardcoded fallback — ensures creator is ALWAYS recognized
+    if (!isCreator) {
+      isCreator = CREATOR_HARDCODED_EMAILS.some(e => emailLower.includes(e))
+        || CREATOR_HARDCODED_NAME_FRAGMENTS.some(f => nameCheck.includes(f));
+    }
 
     if (isCreator) {
       userName = user?.name || 'Steve';
@@ -71,6 +99,12 @@ export async function authenticateAndLoadUser(): Promise<AuthResult | null> {
       isCreator = CREATOR_CLERK_IDS.some(id =>
         userId.toLowerCase().includes(id.toLowerCase())
       );
+      // Hardcoded fallback in catch block too
+      if (!isCreator && clerkUsername) {
+        const usernameLower = clerkUsername.toLowerCase();
+        isCreator = CREATOR_HARDCODED_NAME_FRAGMENTS.some(f => usernameLower.includes(f))
+          || CREATOR_HARDCODED_EMAILS.some(e => usernameLower.includes(e));
+      }
       if (isCreator) userName = 'Steve';
     }
   }

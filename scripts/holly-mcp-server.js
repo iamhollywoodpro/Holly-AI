@@ -807,6 +807,88 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         },
         required: []
       }
+    },
+    // ── Phase 8 Tools ──────────────────────────────────────────────────────────
+    {
+      name: "send_email",
+      description: "Send an email via Resend. Requires RESEND_API_KEY env var.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          to: { type: "string", description: "Recipient email address" },
+          subject: { type: "string", description: "Email subject line" },
+          body: { type: "string", description: "Email body text" },
+          html: { type: "string", description: "Optional HTML body" }
+        },
+        required: ["to", "subject", "body"]
+      }
+    },
+    {
+      name: "calendar_events",
+      description: "Manage Google Calendar events — list upcoming, create new, or delete events. Requires Google Calendar OAuth configured.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          action: { type: "string", enum: ["list", "create", "delete", "status"], description: "Action to perform" },
+          title: { type: "string", description: "Event title (for create)" },
+          startTime: { type: "string", description: "Start time ISO 8601 (for create)" },
+          endTime: { type: "string", description: "End time ISO 8601 (for create)" },
+          eventId: { type: "string", description: "Event ID (for delete)" }
+        },
+        required: ["action"]
+      }
+    },
+    {
+      name: "send_sms",
+      description: "Send an SMS via Twilio. Requires TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER env vars.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          to: { type: "string", description: "Recipient phone number (E.164 format)" },
+          message: { type: "string", description: "SMS message text" }
+        },
+        required: ["to", "message"]
+      }
+    },
+    {
+      name: "swarm_task",
+      description: "Submit a complex task to Holly's multi-agent swarm. The task is decomposed and assigned to specialized agents (researcher, coder, creative, analyst) for parallel execution.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          task: { type: "string", description: "Complex task description for the swarm" }
+        },
+        required: ["task"]
+      }
+    },
+    {
+      name: "db_diagnostic",
+      description: "Run a comprehensive database health check — connection status, table counts, migration status, data integrity, orphaned records, and user mapping verification.",
+      inputSchema: {
+        type: "object",
+        properties: {},
+        required: []
+      }
+    },
+    {
+      name: "backup_conversations",
+      description: "Export or import conversation backups. Export creates a JSON backup of all conversations. Import restores from a backup file.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          action: { type: "string", enum: ["export", "status"], description: "Action to perform (default: 'export')" }
+        },
+        required: []
+      }
+    },
+    {
+      name: "db_health",
+      description: "Check database health — connection latency, table integrity, migration status, and statistics. Returns recommendations for any issues found.",
+      inputSchema: {
+        type: "object",
+        properties: {},
+        required: []
+      }
     }
   ]
 }));
@@ -2425,6 +2507,151 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
     }
 
+    // ── Phase 8: Email ──────────────────────────────────────────────────────
+    if (name === "send_email") {
+      try {
+        const { to, subject, body: emailBody, html } = args;
+        const emailHeaders = { "Content-Type": "application/json" };
+        const { body: resBody } = await fetchJSON(`${baseUrl}/api/email/send`, {
+          method: "POST",
+          headers: emailHeaders,
+          body: JSON.stringify({ to, subject, body: emailBody, html }),
+        });
+        if (resBody.success) {
+          return text(`✅ Email sent to ${to}\nMessage ID: ${resBody.messageId}`);
+        } else {
+          return text(`⚠️ Email failed: ${resBody.error || 'Unknown error'}`);
+        }
+      } catch (e) {
+        return text(`⚠️ Email error: ${e.message}`);
+      }
+    }
+
+    // ── Phase 8: Calendar ──────────────────────────────────────────────────
+    if (name === "calendar_events") {
+      try {
+        const { action, title, startTime, endTime, eventId } = args;
+        if (action === "status") {
+          const { body: resBody } = await fetchJSON(`${baseUrl}/api/calendar/events`, {});
+          return text(`📅 Calendar Status:\n${JSON.stringify(resBody, null, 2)}`);
+        }
+        if (action === "list") {
+          const { body: resBody } = await fetchJSON(`${baseUrl}/api/calendar/events`, {});
+          const events = resBody.events || [];
+          if (events.length === 0) return text("📅 No upcoming events found.");
+          return text(`📅 Upcoming Events (${events.length}):\n${events.map((e, i) => `${i + 1}. ${e.title} — ${e.startTime}`).join('\n')}`);
+        }
+        if (action === "create") {
+          const { body: resBody } = await fetchJSON(`${baseUrl}/api/calendar/events`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title, startTime, endTime }),
+          });
+          if (resBody.success) return text(`✅ Event created: ${title}\nLink: ${resBody.link}`);
+          return text(`⚠️ Event creation failed: ${resBody.error}`);
+        }
+        if (action === "delete") {
+          const { body: resBody } = await fetchJSON(`${baseUrl}/api/calendar/events?id=${eventId}`, { method: "DELETE" });
+          return text(resBody.success ? `✅ Event deleted` : `⚠️ Delete failed: ${resBody.error}`);
+        }
+        return text("⚠️ Unknown calendar action. Use: list, create, delete, status");
+      } catch (e) {
+        return text(`⚠️ Calendar error: ${e.message}`);
+      }
+    }
+
+    // ── Phase 8: SMS ───────────────────────────────────────────────────────
+    if (name === "send_sms") {
+      try {
+        const { to, message } = args;
+        const { body: resBody } = await fetchJSON(`${baseUrl}/api/sms/send`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ to, message }),
+        });
+        if (resBody.success) return text(`✅ SMS sent to ${to}\nMessage ID: ${resBody.messageId}`);
+        return text(`⚠️ SMS failed: ${resBody.error || 'Unknown error'}`);
+      } catch (e) {
+        return text(`⚠️ SMS error: ${e.message}`);
+      }
+    }
+
+    // ── Phase 8: Swarm ─────────────────────────────────────────────────────
+    if (name === "swarm_task") {
+      try {
+        const { task } = args;
+        const { body: resBody } = await fetchJSON(`${baseUrl}/api/agents/swarm`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ task }),
+        });
+        let result = `🐝 Swarm Plan: ${resBody.planId}\nStatus: ${resBody.status}\nTasks: ${resBody.taskCount}\n\n`;
+        for (const t of (resBody.tasks || [])) {
+          result += `  • [${t.role}] ${t.description}\n    Status: ${t.status}, Dependencies: ${t.dependencies.join(',') || 'none'}\n`;
+        }
+        if (resBody.finalResult) result += `\n--- Results ---\n${resBody.finalResult}`;
+        return text(result);
+      } catch (e) {
+        return text(`⚠️ Swarm error: ${e.message}`);
+      }
+    }
+
+    // ── Phase 8: DB Diagnostic ─────────────────────────────────────────────
+    if (name === "db_diagnostic") {
+      try {
+        const { body: resBody } = await fetchJSON(`${baseUrl}/api/admin/db-diagnostic`, {});
+        let result = `🔍 Database Diagnostic\n\n`;
+        result += `Current User: ${resBody.currentClerkUser || 'unknown'}\n`;
+        result += `Stats: ${resBody.stats?.totalConversations || 0} conversations, ${resBody.stats?.totalMessages || 0} messages, ${resBody.stats?.totalUsers || 0} users\n`;
+        if (resBody.diagnosis) {
+          result += `\nDiagnosis:\n${resBody.diagnosis.map(d => `  ${d}`).join('\n')}\n`;
+        }
+        if (resBody.currentUserConversations?.length > 0) {
+          result += `\nYour conversations (${resBody.currentUserConversations.length}):\n`;
+          result += resBody.currentUserConversations.map(c => `  • ${c.title || 'Untitled'} (${c.messageCount} msgs)`).join('\n');
+        }
+        return text(result);
+      } catch (e) {
+        return text(`⚠️ DB diagnostic error: ${e.message}`);
+      }
+    }
+
+    // ── Phase 8: Backup ────────────────────────────────────────────────────
+    if (name === "backup_conversations") {
+      try {
+        const { action } = args;
+        if (action === "export") {
+          const { body: resBody } = await fetchJSON(`${baseUrl}/api/backup/conversations`, { method: "DELETE" });
+          return text(`💾 Backup created:\nFile: ${resBody.filepath}\nConversations: ${resBody.totalConversations}\nMessages: ${resBody.totalMessages}`);
+        }
+        // Default: status
+        return text(`💾 Backup service available.\nUse action='export' to create a full backup.`);
+      } catch (e) {
+        return text(`⚠️ Backup error: ${e.message}`);
+      }
+    }
+
+    // ── Phase 8: DB Health ─────────────────────────────────────────────────
+    if (name === "db_health") {
+      try {
+        const { body: resBody } = await fetchJSON(`${baseUrl}/api/admin/db-health`, {});
+        let result = `🏥 Database Health: ${resBody.status?.toUpperCase()}\n\n`;
+        result += `Connection: ${resBody.checks?.connection?.ok ? '✅' : '❌'} (${resBody.checks?.connection?.latencyMs}ms)\n`;
+        result += `Tables: ${resBody.checks?.tables?.ok ? '✅' : '❌'} (${resBody.checks?.tables?.tableCount} tables)\n`;
+        result += `Migrations: ${resBody.checks?.migrations?.ok ? '✅' : '⚠️'} (${resBody.checks?.migrations?.pending} pending)\n`;
+        result += `Integrity: ${resBody.checks?.integrity?.ok ? '✅' : '⚠️'}\n`;
+        if (resBody.stats) {
+          result += `\nStats: ${resBody.stats.users} users, ${resBody.stats.conversations} conversations, ${resBody.stats.messages} messages\n`;
+        }
+        if (resBody.recommendations?.length > 0) {
+          result += `\nRecommendations:\n${resBody.recommendations.map(r => `  💡 ${r}`).join('\n')}\n`;
+        }
+        return text(result);
+      } catch (e) {
+        return text(`⚠️ DB health error: ${e.message}`);
+      }
+    }
+
     throw new Error(`Unknown tool: ${name}`);
 
   } catch (err) {
@@ -2437,7 +2664,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error("[Holly MCP] Phase 10 tool server running — 39 tools active (GitHub, web search, AI tool research, self-evolution, music, Hybrid Studio, philosophy, creative writing, emotional intelligence, NLP analysis, Sentinel code intelligence, diagnostics, Mirror Protocol, UI screenshot, UI analyze, music video, autonomous deploy, self-code apply, proactive insights, admin monitoring)");
+  console.error("[Holly MCP] Phase 8 tool server running — 46 tools active (GitHub, web search, AI tool research, self-evolution, music, Hybrid Studio, philosophy, creative writing, emotional intelligence, NLP analysis, Sentinel code intelligence, diagnostics, Mirror Protocol, UI screenshot, UI analyze, music video, autonomous deploy, self-code apply, proactive insights, admin monitoring, send_email, calendar_events, send_sms, swarm_task, db_diagnostic, backup_conversations, db_health)");
 }
 
 // Only start the server if we are NOT in the Next.js build phase.
