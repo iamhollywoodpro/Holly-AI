@@ -142,19 +142,33 @@ function sanitizeClerkRedirectResponse(response: NextResponse | Response): NextR
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CLERK MIDDLEWARE — handles authentication for all protected routes
+//
+// IMPORTANT: We do NOT call auth.protect() because it triggers Next.js's
+// proxy-request.js which makes internal HTTP requests to /clerk_XXXXX paths.
+// In our Docker + Cloudflare + custom Clerk proxy setup, these requests loop
+// back through the network stack and fail with ECONNRESET, causing the
+// middleware to hang indefinitely on protected routes → sign-in loop.
+//
+// Instead, we read the auth state directly from the JWT that clerkMiddleware
+// parses locally (no network calls). If userId is present, the user is
+// authenticated. If not, we redirect to /sign-in ourselves.
 // ─────────────────────────────────────────────────────────────────────────────
 const clerkHandler = clerkMiddleware(async (auth, req) => {
   if (!isPublicRoute(req)) {
-    // Defensive: handle both Clerk v4 (callable) and v5 (object) API shapes
+    // Resolve auth object (handle both Clerk v4 callable and v5 object shapes)
     const authResolved = (typeof auth === 'function'
       ? (auth as unknown as () => unknown)()
-      : auth) as { protect?: (...args: unknown[]) => unknown } | null;
+      : auth) as { userId?: string; isSignedIn?: boolean; redirectToSignIn?: () => NextResponse } | null;
 
-    if (typeof authResolved?.protect === 'function') {
-      await authResolved.protect();
-    } else {
-      console.warn('[HOLLY] Clerk auth.protect() unavailable — shape:', typeof auth);
+    const userId = authResolved?.userId;
+    const isSignedIn = authResolved?.isSignedIn;
+
+    if (!userId && !isSignedIn) {
+      // Not authenticated — redirect to sign-in without redirect_url
+      // (Docker-internal URLs would poison the sign-in flow)
+      return NextResponse.redirect(new URL('/sign-in', PUBLIC_ORIGIN));
     }
+    // Authenticated — allow the request through (no network calls needed)
   }
 });
 
