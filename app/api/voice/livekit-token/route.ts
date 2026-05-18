@@ -10,50 +10,11 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
+import { AccessToken } from 'livekit-server-sdk';
 
 const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY || '';
 const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET || '';
 const LIVEKIT_URL = process.env.LIVEKIT_URL || 'ws://localhost:7880';
-
-/**
- * Simple JWT-like token generation for LiveKit
- * In production, use the livekit-server-sdk package
- */
-function generateLiveKitToken(
-  apiKey: string,
-  apiSecret: string,
-  roomName: string,
-  participantName: string,
-  participantIdentity: string
-): string {
-  // Base64 encode a simple token structure
-  const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
-
-  const now = Math.floor(Date.now() / 1000);
-  const payload = Buffer.from(JSON.stringify({
-    iss: apiKey,
-    sub: participantIdentity,
-    iat: now,
-    exp: now + 3600, // 1 hour
-    video: {
-      room: roomName,
-      roomJoin: true,
-      canPublish: true,
-      canSubscribe: true,
-      canPublishData: true,
-      participant: {
-        name: participantName,
-        identity: participantIdentity,
-      },
-    },
-  })).toString('base64url');
-
-  // Note: In production, use proper HMAC-SHA256 signing
-  // For now, this creates a valid-looking token structure
-  const signature = Buffer.from(`${header}.${payload}.${apiSecret}`).toString('base64url');
-
-  return `${header}.${payload}.${signature}`;
-}
 
 export async function POST(req: NextRequest) {
   try {
@@ -76,16 +37,25 @@ export async function POST(req: NextRequest) {
     const name = participantName || 'User';
     const identity = `user_${authResult.userId}`;
 
-    const token = generateLiveKitToken(
-      LIVEKIT_API_KEY,
-      LIVEKIT_API_SECRET,
-      room,
+    // Use the official livekit-server-sdk to generate a properly signed JWT
+    const token = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, {
+      identity,
       name,
-      identity
-    );
+      ttl: '1h',
+    });
+
+    token.addGrant({
+      room: room,
+      roomJoin: true,
+      canPublish: true,
+      canSubscribe: true,
+      canPublishData: true,
+    });
+
+    const jwt = await token.toJwt();
 
     return NextResponse.json({
-      token,
+      token: jwt,
       url: LIVEKIT_URL,
       roomName: room,
       identity,
@@ -101,6 +71,7 @@ export async function GET() {
     configured: !!(LIVEKIT_API_KEY && LIVEKIT_API_SECRET),
     url: LIVEKIT_URL,
     provider: 'LiveKit',
+    version: '1.11.0',
     features: [
       'real-time voice conversation',
       'voice activity detection',
