@@ -199,15 +199,15 @@ export async function migrateConversations(
       // conversationSummary may not have userId — ignore
     }
 
-    // Update memories
+    // Update memories via MemoryEmbedding (no Memory model exists)
     try {
-      const memResult = await prisma.memory.updateMany({
+      const memResult = await prisma.memoryEmbedding.updateMany({
         where: { userId: oldDbUserId },
         data: { userId: newDbUserId },
       });
       migrated += memResult.count;
     } catch {
-      // Memory table may not exist — ignore
+      // MemoryEmbedding table may not have userId — ignore
     }
   } catch (error) {
     errors.push(`Migration error: ${error instanceof Error ? error.message : String(error)}`);
