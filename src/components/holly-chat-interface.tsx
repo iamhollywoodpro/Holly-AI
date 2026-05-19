@@ -2344,6 +2344,14 @@ export default function HollyChatInterface() {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
+            {/* Sandbox toggle */}
+            <button
+              onClick={() => setSandboxOpen(v => !v)}
+              className={`p-2 rounded-lg transition-all border ${sandboxOpen ? "text-primary border-primary/20 bg-primary/5" : "text-white/20 border-transparent hover:text-white/40 hover:bg-white/5"}`}
+              title="Toggle Sandbox"
+            >
+              <Terminal className="w-4 h-4" />
+            </button>
             {/* Ambient toggle */}
             <button
               onClick={toggleAmbient}

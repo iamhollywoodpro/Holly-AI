@@ -170,6 +170,9 @@ export class MCPClientManager {
     // 4. GitHub Hub — HTTP proxy server (self-editing tools — critical for sovereign autonomy)
     // These MUST be HTTP-based so they work even if the stdio server fails in Docker.
     this._registerGitHubHub();
+
+    // 5. Self-Code Hub — HTTP proxy for self-code awareness + autonomous modifications
+    this._registerSelfCodeHub();
   }
 
   // ── AURA Hub registration ──────────────────────────────────────────────────
@@ -384,6 +387,106 @@ export class MCPClientManager {
           return { content: [{ type: 'text', text }] };
         } catch (e: unknown) {
           return { content: [{ type: 'text', text: `GitHub Hub error: ${(e as Error).message}` }] };
+        }
+      }
+    );
+  }
+
+  // ── Self-Code Hub registration ──────────────────────────────────────────────
+  // HTTP-based self-code tools — lets Holly inspect, propose, and apply changes
+  // to her own codebase. Works even when stdio MCP server fails in Docker.
+  private _registerSelfCodeHub(): void {
+    const baseUrl = this._getBaseUrl();
+    this.registerHttpServer(
+      'self-code-hub',
+      [
+        {
+          name: 'self_code_apply',
+          description: "Apply a self-code modification to Holly's own codebase. Actions: 'inspect' a file to read it, 'ask' a question about code, 'propose' an improvement, 'approve' and apply a proposal, or 'architecture' for an overview. Changes are validated, backed up, and logged.",
+          inputSchema: {
+            type: 'object',
+            properties: {
+              action: { type: 'string', enum: ['inspect', 'ask', 'propose', 'approve', 'architecture'], description: "Self-code action: 'inspect' a file, 'ask' about code, 'propose' an improvement, 'approve' and apply a proposal, or 'architecture' overview" },
+              filePath: { type: 'string', description: "File path to inspect or modify (e.g. 'app/api/chat/route.ts')" },
+              question: { type: 'string', description: "Question about Holly's code (for 'ask' action)" },
+              proposalType: { type: 'string', enum: ['bug_fix', 'refactor', 'feature', 'performance', 'security', 'documentation'], description: "Type of proposal (for 'propose' action)" },
+              description: { type: 'string', description: 'Description of the proposed change' },
+              proposal: { type: 'object', description: 'Full proposal object to approve and apply (for approve action)' },
+              approved: { type: 'boolean', description: 'Whether to approve the proposal' },
+              creatorNote: { type: 'string', description: 'Optional note from creator' },
+            },
+            required: ['action'],
+          },
+        },
+        {
+          name: 'trigger_deploy',
+          description: "Trigger Holly's own redeployment via Coolify webhook. After self-code changes are pushed to GitHub, call this to pull the new image and restart.",
+          inputSchema: {
+            type: 'object',
+            properties: {
+              reason: { type: 'string', description: 'Reason for the deployment (logged)' },
+            },
+            required: [],
+          },
+        },
+      ],
+      async (toolName, args) => {
+        try {
+          if (toolName === 'trigger_deploy') {
+            const res = await fetch(`${baseUrl}/api/deploy/trigger`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'x-internal-token': process.env.INTERNAL_API_SECRET || 'holly-internal',
+              },
+              body: JSON.stringify(args),
+              signal: AbortSignal.timeout(30_000),
+            });
+            const data = await res.json();
+            return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
+          }
+
+          // self_code_apply → /api/self-code
+          const action = args.action as string;
+
+          // 'architecture' uses GET endpoint
+          if (action === 'architecture') {
+            const res = await fetch(`${baseUrl}/api/self-code`, {
+              method: 'GET',
+              headers: {
+                'x-internal-token': process.env.INTERNAL_API_SECRET || 'holly-internal',
+              },
+              signal: AbortSignal.timeout(30_000),
+            });
+            const data = await res.json();
+            return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
+          }
+
+          const validActions = ['inspect', 'ask', 'propose', 'approve'];
+          if (!validActions.includes(action)) return { content: [{ type: 'text', text: `Unknown self-code action: ${action}. Valid: ${validActions.join(', ')}, architecture` }] };
+
+          const payload: Record<string, unknown> = { action };
+          if (args.filePath) payload.filePath = args.filePath;
+          if (args.question) payload.question = args.question;
+          if (args.proposalType) payload.type = args.proposalType;
+          if (args.description) payload.description = args.description;
+          if (args.proposal) payload.proposal = args.proposal;
+          if (args.approved !== undefined) payload.approved = args.approved;
+          if (args.creatorNote) payload.creatorNote = args.creatorNote;
+
+          const res = await fetch(`${baseUrl}/api/self-code`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-internal-token': process.env.INTERNAL_API_SECRET || 'holly-internal',
+            },
+            body: JSON.stringify(payload),
+            signal: AbortSignal.timeout(30_000),
+          });
+          const data = await res.json();
+          return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
+        } catch (e: unknown) {
+          return { content: [{ type: 'text', text: `Self-Code Hub error: ${(e as Error).message}` }] };
         }
       }
     );
