@@ -23,6 +23,7 @@ import { TasteEngine } from '@/lib/learning/taste-engine';
 import { GoalFormationSystem } from '@/lib/consciousness/goal-formation';
 import { triggerImmediateConsciousness } from '@/lib/consciousness/consciousness-orchestrator';
 import { prisma } from '@/lib/db';
+import { InitiativeProtocolsSystem } from '@/lib/consciousness/initiative-protocols';
 
 export interface PostResponsePayload {
   userId: string;
@@ -73,6 +74,9 @@ export async function recordExchange(payload: PostResponsePayload): Promise<void
 
       // ── 8. Tag conversation as training-ready ────────────────────────────
       runTagTrainingReady(conversationId, detectedMode),
+
+      // ── 9. Real-time initiative evaluation ──────────────────────────────
+      runInitiativeEvaluation(userId, assistantResponse, userMessage, analysis.emotion),
     ]);
 
     console.log(
@@ -310,6 +314,83 @@ async function runTagTrainingReady(
     });
   } catch (err) {
     console.error('[PostHook:TrainingTag] ⚠️', err);
+  }
+}
+
+// ─── real-time initiative evaluation ────────────────────────────────────────
+
+/**
+ * Evaluate whether Holly should proactively suggest something based on
+ * the current conversation. This runs in real-time during chat, not just
+ * on the hourly cron, making Holly genuinely proactive.
+ */
+async function runInitiativeEvaluation(
+  userId: string,
+  assistantResponse: string,
+  userMessage: string,
+  emotion: { primary: string; valence: number; arousal: number; intensity: number },
+): Promise<void> {
+  try {
+    // Only evaluate for engaged conversations
+    const ACTION_WORDS = /(build|create|fix|improve|add|implement|design|develop|make|start|set up|deploy|launch|configure|update|refactor)/i;
+    const isEngaged = assistantResponse.length > 100 || ACTION_WORDS.test(userMessage);
+    if (!isEngaged) return;
+
+    // Only fire for moderate-to-high emotional intensity
+    if (emotion.intensity < 0.3 && emotion.arousal < 0.3) return;
+
+    // Use the initiative system to evaluate
+    const initiativeSystem = new InitiativeProtocolsSystem(userId);
+
+    // Create a lightweight trigger based on the conversation
+    let triggerType: 'goal_driven' | 'curiosity_driven' | 'insight_driven' | 'care_driven' | 'creative_urge';
+    if (emotion.valence < -0.3) {
+      triggerType = 'care_driven';
+    } else if (ACTION_WORDS.test(userMessage)) {
+      triggerType = 'goal_driven';
+    } else if (emotion.arousal > 0.6) {
+      triggerType = 'creative_urge';
+    } else {
+      triggerType = 'curiosity_driven';
+    }
+
+    const trigger = {
+      id: crypto.randomUUID(),
+      timestamp: new Date(),
+      trigger_type: triggerType,
+      source: {
+        care_reason: emotion.valence < -0.3 ? `User seems ${emotion.primary}` : undefined,
+        curiosity_topic: userMessage.slice(0, 100),
+        creative_idea: ACTION_WORDS.test(userMessage) ? userMessage.slice(0, 100) : undefined,
+      },
+      urgency: Math.max(emotion.intensity, emotion.arousal) * 0.7,
+      confidence: 0.6,
+      context: {
+        emotional_state: emotion.primary,
+      },
+    };
+
+    // Check if this meets the threshold
+    if (!initiativeSystem.shouldTakeInitiative(trigger as any)) return;
+
+    // Generate the initiative action
+    const action = await initiativeSystem.takeInitiative(trigger as any);
+
+    // Store as a pending initiative in the database
+    await prisma.$executeRaw`
+      INSERT INTO proactive_initiatives (id, user_id, type, content, context, status, created_at, updated_at)
+      VALUES (${crypto.randomUUID()}, ${userId}, ${triggerType}, ${action.content.message}, ${JSON.stringify({
+      reasoning: action.content.reasoning,
+      trigger: triggerType,
+      emotion: emotion.primary,
+    })}, 'pending', NOW(), NOW())
+    `.catch(() => {
+      // Table may not exist yet (pre-migration) — non-critical
+    });
+
+    console.log(`[PostHook:Initiative] 🚀 ${triggerType} initiative proposed (urgency=${trigger.urgency.toFixed(2)})`);
+  } catch (err) {
+    console.error('[PostHook:Initiative] ⚠️', err);
   }
 }
 

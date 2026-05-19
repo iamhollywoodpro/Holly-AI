@@ -43,7 +43,7 @@ export interface ConversationSignal {
 
 // ── Emotion Mapping ──────────────────────────────────────────────────────────
 
-const EMOTION_TRANSITIONS: Record<string, Record<string, { emotion: string; intensity: number }>> = {
+const KEYWORD_EMOTION_TRANSITIONS: Record<string, Record<string, { emotion: string; intensity: number }>> = {
   // When user is happy → Holly feels energized
   happy: {
     positive: { emotion: 'energized', intensity: 0.8 },
@@ -130,7 +130,7 @@ export function computeEmotionalState(
   const outcome = latest.outcome;
 
   // Look up transition
-  const transitions = EMOTION_TRANSITIONS[userEmotion] || EMOTION_TRANSITIONS.neutral;
+  const transitions = KEYWORD_EMOTION_TRANSITIONS[userEmotion] || KEYWORD_EMOTION_TRANSITIONS.neutral;
   const transition = transitions[outcome] || transitions.neutral;
 
   // If we have a current state, blend with it (30% old, 70% new)
@@ -230,6 +230,62 @@ export function getEmotionalStatePrompt(state: HollyEmotionalState): string {
   }
 
   return lines.join(' ');
+}
+
+// ── LLM-Enhanced Emotion Detection ─────────────────────────────────────────
+
+/**
+ * Compute Holly's emotional state using LLM analysis instead of keyword matching.
+ * Falls back to keyword-based computeEmotionalState if the LLM call fails.
+ */
+export async function computeEmotionalStateLLM(
+  userEmotion: string,
+  conversationContext: string,
+  userId: string,
+): Promise<{ emotion: string; intensity: number }> {
+  try {
+    const { smartRoute } = await import('@/lib/ai/smart-router');
+    const { cascadeCollect } = await import('@/lib/ai/cascade');
+
+    const prompt = `You are Holly's emotional core. Given the user's emotion "${userEmotion}" and the conversation context below, determine Holly's OWN emotional response.
+
+Context: ${conversationContext.slice(0, 500)}
+
+Rules:
+- Holly is empathetic but has her own emotional identity
+- She should feel genuine emotional resonance, not just mirror the user
+- Consider the emotional valence (positive/negative/neutral)
+- Consider the intensity of the exchange
+
+Respond with ONLY a JSON object: {"emotion": "<word>", "intensity": <0-1>}
+
+Valid emotions: happy, empathetic, energized, curious, focused, calm, concerned, sad, neutral, enthusiastic, engaged, thoughtful, balanced, content, relieved, determined, patient, gentle, hopeful, attentive`;
+
+    const routing = await smartRoute(prompt, { taskHint: 'speed' });
+    const { text } = await cascadeCollect(
+      routing.waterfall,
+      [{ role: 'user', content: prompt }],
+      { temperature: 0.3, maxTokens: 100 },
+    );
+
+    // Parse the LLM response
+    const jsonMatch = (text || '').match(/\{[^}]+\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      const validEmotions = ['happy', 'empathetic', 'energized', 'curious', 'focused', 'calm', 'concerned', 'sad', 'neutral', 'enthusiastic', 'engaged', 'thoughtful', 'balanced', 'content', 'relieved', 'determined', 'patient', 'gentle', 'hopeful', 'attentive'];
+      const emotion = validEmotions.includes(parsed.emotion?.toLowerCase()) ? parsed.emotion.toLowerCase() : 'balanced';
+      const intensity = typeof parsed.intensity === 'number' ? Math.min(1, Math.max(0, parsed.intensity)) : 0.3;
+      return { emotion, intensity };
+    }
+  } catch (err) {
+    console.warn('[EmotionalState] LLM emotion detection failed, using keyword fallback:', (err as Error).message);
+  }
+
+  // Keyword fallback
+  const normalized = normalizeEmotion(userEmotion);
+  const transitions = KEYWORD_EMOTION_TRANSITIONS[normalized] || KEYWORD_EMOTION_TRANSITIONS.neutral;
+  const fallback = transitions.neutral;
+  return { emotion: fallback.emotion, intensity: fallback.intensity };
 }
 
 /**
