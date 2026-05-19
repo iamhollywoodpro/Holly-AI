@@ -168,8 +168,8 @@ The autonomous builder agent is now accessible from chat conversations:
 - ✅ Autonomous consciousness cycle (hourly cron at /api/cron/consciousness-loop)
 - ✅ Goal system with progress tracking (Prisma-backed, fully wired)
 - ✅ Proactive intelligence (pattern detection, insights)
-- ⚠️ Morning briefing only fires when cron runs during morning hours (not standalone)
-- ⚠️ Initiative system fires on hourly cron only, not mid-conversation
+- ✅ Morning briefing (standalone cron at /api/cron/morning-briefing, fires independently)
+- ✅ Initiative system (real-time via post-response hook + hourly cron)
 - ✅ Personality branching
 - ✅ Self-evolution proposals
 
@@ -283,7 +283,7 @@ The autonomous builder agent is now accessible from chat conversations:
 
 2. ~~**Prisma schema alignment**~~ — FIXED in PR #73. HollyGoal now has `progress` Json field. GoalFormationSystem saveGoal/getActiveGoals/updateProgress are fully wired to Prisma. Missing /api/consciousness/goals route created. conversation-backup.ts prisma.memory -> prisma.memoryEmbedding fixed. Zero TypeScript errors remaining.
 
-3. **Mobile sandbox** — The VS Code-style sandbox works on desktop but needs responsive adjustments for mobile screens (collapsible panels, touch-friendly splitter).
+3. **Mobile sandbox** — DONE. Responsive layout with useIsMobile hook. Stacked panels on mobile, side-by-side on desktop. No drag resize on mobile. Touch-friendly.
 
 ### Medium Priority
 4. **Image generation** — DONE. FLUX.1-schnell deployed on Modal T4 GPU via media-generator waterfall. ~15,000 free images/month.
@@ -354,7 +354,7 @@ See [`docs/COOLIFY_ENV_VARS.md`](docs/COOLIFY_ENV_VARS.md) for the complete list
 1. ~~**7 pre-existing TypeScript errors**~~ — FIXED in PR #73. Zero TypeScript errors remaining after Prisma schema fixes.
 2. **Stdio MCP server may fail in Docker** — Mitigated by HTTP hub registrations (GitHub, Sentinel, Aura, Self-Code, Builder hubs all work via HTTP)
 3. **Builder sandbox requires Docker-in-Docker** — Needs configuration for production deployment
-4. **Mobile sandbox needs responsive adjustments** — Desktop-first design, works but not optimized for small screens
+4. **Mobile sandbox** — DONE. Responsive layout with useIsMobile hook, stacked panels on mobile.
 5. **Emotion detection upgraded to LLM-based** — computeEmotionalStateLLM uses Smart Router cascade (Groq/Arcee) with keyword fallback for errors.
 6. **Initiative system is real-time** — runInitiativeEvaluation in post-response hook fires during conversation, not just on hourly cron.
 
