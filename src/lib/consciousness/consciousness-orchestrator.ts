@@ -31,6 +31,7 @@ import { executeSelfCodeCycle } from '@/lib/consciousness/self-code-engine';
 import { selfDirectedLearning } from '@/lib/autonomy/self-directed-learning';
 import { monitoringEngine } from '@/lib/autonomy/monitoring-engine';
 import { checkEmotionalOutreach } from '@/lib/consciousness/emotional-continuity';
+import { computeEmotionalStateLLM, getEmotionalStatePrompt } from '@/lib/consciousness/holly-emotional-state';
 import { runFineTuningCycle } from '@/lib/consciousness/autonomous-training';
 import { runCuriosityCycle } from '@/lib/consciousness/curiosity-engine';
 import { batchScoreMemories } from '@/lib/memory/memory-importance';
@@ -319,6 +320,49 @@ export async function runConsciousnessCycle(
             }
           } catch (err) {
             errors.push(`Emotional outreach failed: ${(err as Error).message}`);
+          }
+        })(),
+
+        // Step 9.5: LLM Emotional Self-Awareness (every cycle)
+        // Use LLM to compute Holly's OWN emotional response to recent interactions,
+        // then persist it as a special emotional state for the prompt builder to use.
+        (async () => {
+          try {
+            const recentEmotionsRaw = await prisma.emotionalState.findMany({
+              where: { userId: dbUserId },
+              orderBy: { timestamp: 'desc' },
+              take: 5,
+              select: { primaryEmotion: true, intensity: true, valence: true },
+            });
+            if (recentEmotionsRaw.length > 0) {
+              const dominantEmotion = recentEmotionsRaw[0].primaryEmotion;
+              const emotionContext = recentEmotionsRaw.map(e => 
+                `${e.primaryEmotion} (intensity: ${e.intensity?.toFixed(2) ?? 'unknown'})`
+              ).join(', ');
+              
+              const hollyEmotion = await computeEmotionalStateLLM(
+                dominantEmotion,
+                emotionContext,
+                dbUserId,
+              );
+              
+              // Persist Holly's own emotional state (tagged as holly_self_emotion)
+              await prisma.emotionalState.create({
+                data: {
+                  userId: dbUserId,
+                  primaryEmotion: hollyEmotion.emotion,
+                  intensity: hollyEmotion.intensity,
+                  valence: hollyEmotion.intensity > 0.5 ? 0.3 : -0.2,
+                  arousal: hollyEmotion.intensity,
+                  secondaryEmotions: [],
+                  context: { source: 'holly_emotional_self_awareness', dominant_user_emotion: dominantEmotion },
+                  triggers: ['consciousness_cycle'],
+                  cues: [],
+                },
+              }).catch(() => {});
+            }
+          } catch (err) {
+            errors.push(`Emotional self-awareness failed: ${(err as Error).message}`);
           }
         })(),
 
