@@ -33,10 +33,10 @@ modal deploy image_generate.py
 
 Modal will print your endpoint URL:
 ```
-https://iamhollywoodpro--holly-image-generate.modal.run
+https://iamhollywoodpro--generate.modal.run
 ```
 
-Set in Coolify: `MODAL_IMAGE_URL=https://iamhollywoodpro--holly-image-generate.modal.run`
+Set in Coolify: `MODAL_IMAGE_URL=https://iamhollywoodpro--generate.modal.run`
 
 ---
 
