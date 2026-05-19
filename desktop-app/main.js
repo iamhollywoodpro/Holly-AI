@@ -64,8 +64,17 @@ function createWindow() {
 }
 
 function createTray() {
-  // Use a simple icon (in production, use a proper .ico/.icns)
-  tray = new Tray(path.join(__dirname, 'assets', 'tray-icon.png'));
+  // Use tray icon if available, otherwise use nativeImage as fallback
+  const trayIconPath = path.join(__dirname, 'assets', 'icon16.png');
+  const { nativeImage } = require('electron');
+  let trayIcon;
+  try {
+    trayIcon = nativeImage.createFromPath(trayIconPath);
+    if (trayIcon.isEmpty()) trayIcon = nativeImage.createEmpty();
+  } catch {
+    trayIcon = nativeImage.createEmpty();
+  }
+  tray = new Tray(trayIcon);
 
   const contextMenu = Menu.buildFromTemplate([
     { label: 'Open HOLLY', click: () => { mainWindow.show(); mainWindow.focus(); } },
@@ -104,7 +113,12 @@ function registerGlobalShortcut() {
 
 function showNotification(title, body) {
   if (Notification.isSupported()) {
-    new Notification({ title, body, icon: path.join(__dirname, 'assets', 'tray-icon.png') }).show();
+    const notifIcon = path.join(__dirname, 'assets', 'icon64.png');
+    const notifOptions = { title, body };
+    try {
+      if (require('fs').existsSync(notifIcon)) notifOptions.icon = notifIcon;
+    } catch {}
+    new Notification(notifOptions).show();
   }
 }
 
