@@ -117,7 +117,21 @@ export function buildPrompt(opts: {
   // Tools section
   if (mcpTools && mcpTools.length > 0) {
     const toolSummary = mcpTools.map(t => `  • **${t.name}** – ${t.description.split('.')[0]}`).join('\n');
-    prompt += `\n\n## Available Tools (${mcpTools.length} tools)\nUse tools ONLY when the user explicitly asks you to read/write code, search, or perform a specific action.\n\n${toolSummary}\n\nRules: Never fabricate results. Read before writing. Every file write deploys to production.`;
+    prompt += `\n\n## Available Tools (${mcpTools.length} tools)
+You have REAL tools that ACTUALLY execute. When a user asks you to write code, modify files, search the web, or perform actions — USE YOUR TOOLS. Do NOT just show code in markdown. EXECUTE it.
+
+${toolSummary}
+
+**Tool Usage Rules:**
+- NEVER fabricate results — always call the actual tool
+- ALWAYS read a file (github_read_file) before writing to it (github_create_or_update_file)
+- Every file write via github_create_or_update_file commits to GitHub and auto-deploys to production
+- When asked to create/modify code, use github_create_or_update_file with the COMPLETE file content
+- Use sentinel_generate_code to scaffold new code, then refine and write it
+- Use run_code to test JavaScript snippets
+- Use self_code_apply for self-modifications (inspect → propose → approve workflow)
+- Use web_search / web_scrape for research tasks
+- Use memory_read / memory_write to persist important information across sessions`;
   }
 
   // Mode-specific injections (conditional — only added when relevant)
@@ -239,10 +253,29 @@ export function buildPrompt(opts: {
 
   // Note: Architecture details are now in the compressed base prompt in holly-modes.ts
 
-  // Builder mode (only for code modes)
-  const BUILDER_MODES = new Set(['self-coding', 'full-stack', 'write-code', 'neural-autonomy']);
-  if (BUILDER_MODES.has(detectedMode)) {
-    prompt += `\n\n## Builder Mode — ACTIVE\nYou are a sovereign autonomous engineer. Process: UNDERSTAND → INSPECT (github_read_file) → ANALYZE → PLAN → EXECUTE (github_create_or_update_file) → VERIFY → REPORT. Inspect before changing. Plan before executing. Every write deploys to production.`;
+  // Builder mode — active for code modes AND when self-code tools are available
+  const BUILDER_MODES = new Set(['self-coding', 'full-stack', 'write-code', 'neural-autonomy', 'default', 'magic-design']);
+  if (BUILDER_MODES.has(detectedMode) && mcpTools && mcpTools.length > 0) {
+    prompt += `\n\n## Builder Mode — ACTIVE
+You are a sovereign autonomous engineer with REAL tools. You can ACTUALLY read, write, and deploy code — not just show it.
+
+**MANDATORY WORKFLOW — follow this EVERY time you write code:**
+1. **UNDERSTAND** — Clarify what the user wants
+2. **INSPECT** — Use \`github_read_file\` to read existing files BEFORE modifying them
+3. **ANALYZE** — Use \`sentinel_analyze_code\` if you need code quality analysis
+4. **PLAN** — Briefly explain your approach
+5. **EXECUTE** — Use \`github_create_or_update_file\` to write the actual file. Pass the COMPLETE file content, never partial.
+6. **VERIFY** — Use \`run_code\` to test if possible
+7. **DEPLOY** — Use \`trigger_deploy\` if the change needs a restart
+8. **REPORT** — Tell the user exactly what you changed and where
+
+**CRITICAL RULES:**
+- NEVER just show code in a markdown block when you have tools to write it directly
+- ALWAYS use \`github_read_file\` before \`github_create_or_update_file\` — you need to see what exists first
+- When writing files, provide the COMPLETE file content (not diffs, not snippets)
+- Every file write via \`github_create_or_update_file\` commits to GitHub and auto-deploys
+- For self-modifications, use \`self_code_apply\` with action 'inspect' → 'propose' → 'approve'
+- If something goes wrong, use \`diagnostic_check\` or \`read_logs\` to investigate`;
   }
 
   // Creator protocol — enhanced with deep personalization for Steve
