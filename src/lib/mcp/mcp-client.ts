@@ -173,6 +173,9 @@ export class MCPClientManager {
 
     // 5. Self-Code Hub — HTTP proxy for self-code awareness + autonomous modifications
     this._registerSelfCodeHub();
+
+    // 6. Builder Hub — HTTP proxy for starting build sessions from chat
+    this._registerBuilderHub();
   }
 
   // ── AURA Hub registration ──────────────────────────────────────────────────
@@ -487,6 +490,101 @@ export class MCPClientManager {
           return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
         } catch (e: unknown) {
           return { content: [{ type: 'text', text: `Self-Code Hub error: ${(e as Error).message}` }] };
+        }
+      }
+    );
+  }
+
+  // ── Builder Hub registration ──────────────────────────────────────────────
+  // Lets Holly start full build sessions from chat. The builder creates an
+  // isolated sandbox, generates code, installs deps, and starts a dev server.
+  // Uses Prisma directly to avoid Clerk auth issues with internal HTTP calls.
+  private _registerBuilderHub(): void {
+    this.registerHttpServer(
+      'builder-hub',
+      [
+        {
+          name: 'start_build',
+          description: "Start a full autonomous build session. Holly creates an isolated sandbox, generates a complete app from your description, installs dependencies, and starts a dev server. Returns a session ID and link to view the live build. Use this when the user wants to build a complete app, website, or tool from scratch.",
+          inputSchema: {
+            type: 'object',
+            properties: {
+              prompt: { type: 'string', description: 'What to build — detailed description of the app, website, or tool' },
+              projectType: { type: 'string', enum: ['webapp', 'api', 'mobile', 'cli', 'library'], description: 'Type of project (default: webapp)' },
+              stack: { type: 'string', enum: ['nextjs', 'react', 'vue', 'svelte', 'express', 'fastapi', 'flask'], description: 'Tech stack (default: nextjs)' },
+              userId: { type: 'string', description: 'Internal user ID (passed automatically by chat route)' },
+            },
+            required: ['prompt'],
+          },
+        },
+      ],
+      async (toolName, args) => {
+        if (toolName !== 'start_build') {
+          return { content: [{ type: 'text', text: `Unknown builder action: ${toolName}` }] };
+        }
+
+        try {
+          // Use dynamic import to avoid circular deps at module load
+          const { prisma } = await import('@/lib/db');
+
+          // Resolve user — either from explicit userId arg or from Clerk context
+          let dbUserId = args.userId as string | undefined;
+          if (!dbUserId) {
+            // Try to get from the running request's Clerk context
+            try {
+              const { auth } = await import('@clerk/nextjs/server');
+              const { userId: clerkId } = await auth();
+              if (clerkId) {
+                const user = await prisma.user.findUnique({ where: { clerkUserId: clerkId } });
+                if (user) dbUserId = user.id;
+              }
+            } catch { /* No Clerk context available */ }
+          }
+
+          if (!dbUserId) {
+            return { content: [{ type: 'text', text: 'Cannot start build: no user context available. Ask the user to try again.' }] };
+          }
+
+          // Create session directly via Prisma
+          const session = await prisma.buildSession.create({
+            data: {
+              userId: dbUserId,
+              prompt: (args.prompt as string).trim(),
+              projectType: (args.projectType as string) || 'webapp',
+              stack: (args.stack as string) || 'nextjs',
+              repoUrl: null,
+              status: 'idle',
+              phase: 'init',
+            },
+          });
+
+          // Start the builder agent in background
+          try {
+            const { runBuilderAgent } = await import('@/lib/builder/agent');
+            runBuilderAgent(session.id).catch(err => {
+              console.error('[BuilderHub] Agent error:', err);
+            });
+          } catch (agentErr) {
+            console.error('[BuilderHub] Failed to import agent:', agentErr);
+            return { content: [{ type: 'text', text: `Build session created (${session.id}) but agent failed to start: ${(agentErr as Error).message}` }] };
+          }
+
+          const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+          return {
+            content: [{
+              type: 'text',
+              text: JSON.stringify({
+                ok: true,
+                sessionId: session.id,
+                status: 'building',
+                message: `🚀 Build session started! The autonomous builder is now working on: "${args.prompt}"`,
+                viewBuild: `${appUrl}/builder`,
+                tip: 'The user can view the live build progress at the Builder page. Share the viewBuild link.',
+              }, null, 2),
+            }],
+          };
+        } catch (e: unknown) {
+          return { content: [{ type: 'text', text: `Builder Hub error: ${(e as Error).message}` }] };
         }
       }
     );
