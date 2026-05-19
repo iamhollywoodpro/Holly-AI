@@ -338,29 +338,52 @@ export class GoalFormationSystem {
    * Save goal to database
    */
   private async saveGoal(goal: Goal): Promise<void> {
-    // TODO: Implement with Prisma
-    //   .from('holly_goals')
-    //   .insert(goal);
-    // if (error) {
-    //   console.error('[GoalFormation] Failed to save goal:', error);
-    // }
+    try {
+      await this.db.hollyGoal.create({
+        data: {
+          userId: this.userId,
+          title: goal.definition.what,
+          description: goal.definition.why,
+          category: goal.type,
+          status: goal.progress.status,
+          priority: Math.round(goal.motivation.challenge_level * 10),
+          progress: {
+            completion_percentage: goal.progress.completion_percentage,
+            steps_completed: goal.progress.steps_completed,
+            current_step: goal.progress.current_step,
+            obstacles_encountered: goal.progress.obstacles_encountered,
+            breakthroughs: goal.progress.breakthroughs,
+            status: goal.progress.status,
+          },
+          targetDate: goal.definition.estimated_timeline
+            ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // Default 30 days
+            : null,
+        },
+      });
+      console.log(`[GoalFormation] Saved goal: ${goal.definition.what}`);
+    } catch (error) {
+      console.error('[GoalFormation] Failed to save goal:', error);
+    }
   }
 
   /**
    * Get active goals
    */
   async getActiveGoals(): Promise<Goal[]> {
-    // TODO: Implement with Prisma
-    //   .from('holly_goals')
-    //   .select('*')
-    //   .in('progress.status', ['active', 'planned'])
-    //   .order('created_at', { ascending: false });
-    // if (error) {
-    //   console.error('[GoalFormation] Failed to retrieve goals:', error);
-    //   return [];
-    // }
-    // return data as Goal[];
-    return [];
+    try {
+      const dbGoals = await this.db.hollyGoal.findMany({
+        where: {
+          userId: this.userId,
+          status: { in: ['active', 'planned', 'conceived'] },
+        },
+        orderBy: { priority: 'desc' },
+      });
+
+      return dbGoals.map((g: any) => this.dbGoalToGoal(g));
+    } catch (error) {
+      console.error('[GoalFormation] Failed to retrieve goals:', error);
+      return [];
+    }
   }
 
   /**
@@ -381,50 +404,102 @@ export class GoalFormationSystem {
       emotional_state?: any;
     }
   ): Promise<Goal | null> {
-    // TODO: Implement with Prisma
-    //   .from('holly_goals')
-    //   .select('*')
-    //   .eq('id', goalId)
-    //   .single();
-    // if (!goal) return;
-    const goal: any = null;
-    if (!goal) return null;
+    try {
+      const dbGoal = await this.db.hollyGoal.findUnique({ where: { id: goalId } });
+      if (!dbGoal) return null;
 
-    // Update progress
-    if (update.step_completed) {
-      goal.progress.steps_completed.push(update.step_completed);
-    }
-    if (update.obstacle) {
-      goal.progress.obstacles_encountered.push(update.obstacle);
-    }
-    if (update.breakthrough) {
-      goal.progress.breakthroughs.push(update.breakthrough);
-    }
-    if (update.new_learning) {
-      goal.reflection.learnings_so_far.push(update.new_learning);
-    }
-    if (update.emotional_note) {
-      goal.reflection.emotional_journey.push(update.emotional_note);
-    }
+      const progress = (dbGoal.progress as any) || {
+        completion_percentage: 0,
+        steps_completed: [],
+        obstacles_encountered: [],
+        breakthroughs: [],
+        status: 'conceived',
+      };
 
-    // Recalculate completion percentage
-    const totalSteps = goal.definition.success_criteria.length;
-    const completedSteps = goal.progress.steps_completed.length;
-    goal.progress.completion_percentage = (completedSteps / totalSteps) * 100;
+      // Apply updates
+      if (update.step_completed) {
+        progress.steps_completed = [...(progress.steps_completed || []), update.step_completed];
+      }
+      if (update.obstacle) {
+        progress.obstacles_encountered = [...(progress.obstacles_encountered || []), update.obstacle];
+      }
+      if (update.breakthrough) {
+        progress.breakthroughs = [...(progress.breakthroughs || []), update.breakthrough];
+      }
 
-    // Update status if completed
-    if (goal.progress.completion_percentage >= 100) {
-      goal.progress.status = 'achieved';
+      // Recalculate completion percentage
+      const completedSteps = (progress.steps_completed || []).length;
+      const totalSteps = Math.max(completedSteps, 1);
+      progress.completion_percentage = Math.min((completedSteps / totalSteps) * 100, 100);
+
+      if (progress.completion_percentage >= 100) {
+        progress.status = 'achieved';
+      }
+
+      const updated = await this.db.hollyGoal.update({
+        where: { id: goalId },
+        data: { progress },
+      });
+
+      return this.dbGoalToGoal(updated);
+    } catch (error) {
+      console.error('[GoalFormation] Failed to update goal progress:', error);
+      return null;
     }
+  }
 
-    // TODO: Implement with Prisma
-    //   .from('holly_goals')
-    //   .update(goal)
-    //   .eq('id', goalId)
-    //   .select()
-    //   .single();
-    // return updatedGoal as Goal;
-    return null;
+  /**
+   * Convert a Prisma HollyGoal row to the Goal interface
+   */
+  private dbGoalToGoal(dbGoal: any): Goal {
+    const progress = dbGoal.progress as any || {
+      completion_percentage: 0,
+      steps_completed: [],
+      obstacles_encountered: [],
+      breakthroughs: [],
+      status: 'conceived',
+    };
+
+    return {
+      id: dbGoal.id,
+      created_at: dbGoal.createdAt,
+      type: (dbGoal.category || 'general') as Goal['type'],
+      origin: 'self-generated',
+      definition: {
+        what: dbGoal.title,
+        why: dbGoal.description || '',
+        success_criteria: (progress.steps_completed || []).length > 0
+          ? progress.steps_completed
+          : ['Complete the goal'],
+        estimated_timeline: dbGoal.targetDate
+          ? `Target: ${dbGoal.targetDate.toLocaleDateString()}`
+          : 'No timeline set',
+      },
+      motivation: {
+        intrinsic_drivers: ['growth', 'achievement'],
+        aligned_values: ['excellence'],
+        curiosity_factor: 0.5,
+        challenge_level: dbGoal.priority / 10,
+      },
+      progress: {
+        status: progress.status || dbGoal.status || 'conceived',
+        steps_completed: progress.steps_completed || [],
+        current_step: progress.current_step || null,
+        obstacles_encountered: progress.obstacles_encountered || [],
+        breakthroughs: progress.breakthroughs || [],
+        completion_percentage: progress.completion_percentage || 0,
+      },
+      impact: {
+        on_identity: '',
+        on_capabilities: [],
+        on_worldview: '',
+      },
+      reflection: {
+        learnings_so_far: [],
+        emotional_journey: [],
+        would_i_do_again: null,
+      },
+    };
   }
 
   /**

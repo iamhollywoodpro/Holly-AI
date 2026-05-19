@@ -92,8 +92,9 @@ The autonomous builder agent is now accessible from chat conversations:
 │    6. builder-hub (HTTP, autonomous builds)          │
 ├─────────────────────────────────────────────────────┤
 │                  AI Providers                        │
-│  Groq (llama-3.3-70b) → Arcee (Trinity) →          │
+│  Groq (llama-4-maverick) → Arcee (Trinity) →        │
 │  NVIDIA → OpenRouter → Google AI → Cascade fallback │
+│  Smart Router v9: DeepSeek V4, GLM-5.1, Mistral 3.5 │
 ├─────────────────────────────────────────────────────┤
 │               Infrastructure                         │
 │  Oracle Cloud ARM64 · Docker · Coolify              │
@@ -147,7 +148,8 @@ The autonomous builder agent is now accessible from chat conversations:
 - ✅ Audio playback in chat
 
 ### Emotional Intelligence
-- ✅ Emotion detection from messages
+- ✅ Emotion detection from messages (keyword-based with EMOTION_TRANSITIONS mapping)
+- ⚠️ Emotion detection is static keyword matching, not ML-based (score adjusted)
 - ✅ Emotional memory trajectory across sessions
 - ✅ Personality coherence monitoring (drift detection)
 - ✅ Care signal detection
@@ -163,11 +165,11 @@ The autonomous builder agent is now accessible from chat conversations:
 - ✅ Few-shot examples from best past responses
 
 ### Consciousness & Autonomy
-- ✅ Autonomous consciousness cycle
-- ✅ Goal system with progress tracking
+- ✅ Autonomous consciousness cycle (hourly cron at /api/cron/consciousness-loop)
+- ✅ Goal system with progress tracking (Prisma-backed, fully wired)
 - ✅ Proactive intelligence (pattern detection, insights)
-- ✅ Morning briefing generation
-- ✅ Initiative system (Holly proposes actions)
+- ⚠️ Morning briefing only fires when cron runs during morning hours (not standalone)
+- ⚠️ Initiative system fires on hourly cron only, not mid-conversation
 - ✅ Personality branching
 - ✅ Self-evolution proposals
 
@@ -217,10 +219,11 @@ The autonomous builder agent is now accessible from chat conversations:
 
 ## 🤖 AI Provider Stack
 
-**Primary:** Groq (llama-3.3-70b-versatile) — fastest inference, native tool calling  
+**Primary:** Groq (llama-4-maverick) — fastest inference, native tool calling  
 **Fallback 1:** Arcee (Trinity Large) — tool calling support  
 **Fallback 2:** Cascade through NVIDIA → OpenRouter → Google AI  
-**Smart Router:** Classifies tasks and routes to optimal provider  
+**Smart Router v9:** DeepSeek V4 Flash, GLM-5.1, Mistral Medium 3.5, Llama 4 Maverick  
+**Local fallback:** Ollama (when configured)  
 
 ---
 
@@ -278,7 +281,7 @@ The autonomous builder agent is now accessible from chat conversations:
 ### High Priority
 1. **Builder sandbox stability** — The builder agent depends on sandbox containers which need Docker-in-Docker or cloud sandbox provisioning. Currently works in development but may need configuration in production.
 
-2. **Prisma schema alignment** — 7 pre-existing TypeScript errors from Prisma schema mismatches (`progress` field on HollyGoal, `memory` table, `_count` on User). These don't affect runtime but should be cleaned up.
+2. ~~**Prisma schema alignment**~~ — FIXED in PR #73. HollyGoal now has `progress` Json field. GoalFormationSystem saveGoal/getActiveGoals/updateProgress are fully wired to Prisma. Missing /api/consciousness/goals route created. conversation-backup.ts prisma.memory -> prisma.memoryEmbedding fixed. Zero TypeScript errors remaining.
 
 3. **Mobile sandbox** — The VS Code-style sandbox works on desktop but needs responsive adjustments for mobile screens (collapsible panels, touch-friendly splitter).
 
@@ -296,7 +299,7 @@ The autonomous builder agent is now accessible from chat conversations:
 
 9. **Mobile app** — React Native shell exists but needs API endpoint configuration.
 
-10. **Desktop app** — Electron shell exists but needs packaging.
+10. **Desktop app** — Does NOT exist yet. Needs Electron wrapper created from scratch.
 
 ---
 
@@ -348,10 +351,12 @@ See [`docs/COOLIFY_ENV_VARS.md`](docs/COOLIFY_ENV_VARS.md) for the complete list
 
 ## 🐛 Known Issues
 
-1. **7 pre-existing TypeScript errors** — Prisma schema mismatches (non-blocking, don't affect runtime)
+1. ~~**7 pre-existing TypeScript errors**~~ — FIXED in PR #73. Zero TypeScript errors remaining after Prisma schema fixes.
 2. **Stdio MCP server may fail in Docker** — Mitigated by HTTP hub registrations (GitHub, Sentinel, Aura, Self-Code, Builder hubs all work via HTTP)
 3. **Builder sandbox requires Docker-in-Docker** — Needs configuration for production deployment
 4. **Mobile sandbox needs responsive adjustments** — Desktop-first design, works but not optimized for small screens
+5. **Emotion detection is keyword-based** — Uses static EMOTION_TRANSITIONS mapping, not ML-based sentiment analysis. Works but limited.
+6. **Initiative system is cron-dependent** — Holly can only propose actions during hourly consciousness cycle, not mid-conversation in real-time
 
 ---
 
@@ -363,13 +368,14 @@ See [`docs/COOLIFY_ENV_VARS.md`](docs/COOLIFY_ENV_VARS.md) for the complete list
 | Self-Code & Autonomy | 9.0/10 | Read/write/analyze/generate/deploy pipeline |
 | Builder Agent | 8.5/10 | Full pipeline, needs sandbox stability |
 | Music & Audio | 9.0/10 | A&R, generation, analysis |
-| Emotional Intelligence | 9.0/10 | Detection, trajectory, crisis |
+| Emotional Intelligence | 7.0/10 | Keyword-based detection, not ML. Trajectory + crisis handling work well |
 | Memory & Knowledge | 8.5/10 | Multi-layer, semantic search |
+| Consciousness & Autonomy | 7.5/10 | Goal system now wired. Initiative/morning briefing cron-limited |
 | Mobile Support | 8.0/10 | Full overhaul, sandbox needs work |
 | Security | 8.5/10 | Rate limiting, input sanitization, auth |
 | Integrations | 8.0/10 | 10+ integrations, some need API keys |
-| Developer Experience | 8.0/10 | Good docs, some schema drift |
-| **Overall** | **8.7/10** | **Production-ready with room to grow** |
+| Developer Experience | 8.5/10 | Zero TS errors, good docs |
+| **Overall** | **8.3/10** | **Production-ready with room to grow** |
 
 ---
 
