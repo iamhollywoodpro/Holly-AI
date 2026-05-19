@@ -27,6 +27,9 @@ module.exports = {
       tsconfig: {
         jsx: 'react',
         esModuleInterop: true,
+        moduleResolution: 'bundler',
+        ignoreDeprecations: '6.0',
+        rootDir: '.',
       },
     }],
   },
