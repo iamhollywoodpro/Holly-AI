@@ -222,7 +222,7 @@ export async function POST(req: NextRequest) {
 
     // 8. PREPARE MESSAGES
     type ContentBlock = { type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string; detail: 'auto' } };
-    const messages: { role: string; content: string | ContentBlock[] }[] = [
+    let messages: { role: string; content: string | ContentBlock[] }[] = [
       { role: 'system', content: hollySystemPrompt },
       ...userMessages.map((msg: any, idx: number) => {
         if (idx === userMessages.length - 1 && msg.role === 'user' && imageDataUrls?.length > 0) {
@@ -242,6 +242,38 @@ export async function POST(req: NextRequest) {
       type: 'function' as const,
       function: { name: t.name, description: t.description, parameters: t.inputSchema || { type: 'object', properties: {} } },
     }));
+
+    // 9b. CONTEXT WINDOW PROTECTION — Truncate messages to prevent 400 errors
+    // Groq llama-3.3-70b has ~128K context. With tools, we target max ~100K tokens (~400K chars).
+    // Keep system prompt + most recent messages. Rough estimate: 1 token ≈ 4 chars.
+    const MAX_CONTEXT_CHARS = 400_000;
+    const systemMsg = messages[0];
+    const systemChars = typeof systemMsg?.content === 'string' ? systemMsg.content.length : 0;
+    const toolChars = groqTools ? JSON.stringify(groqTools).length : 0;
+    const availableChars = MAX_CONTEXT_CHARS - systemChars - toolChars - 20_000; // 20K buffer for response
+    if (availableChars > 0 && messages.length > 2) {
+      const conversationMsgs = messages.slice(1); // exclude system
+      let totalChars = 0;
+      let keepFromEnd = 0;
+      for (let i = conversationMsgs.length - 1; i >= 0; i--) {
+        const msgChars = typeof conversationMsgs[i].content === 'string'
+          ? conversationMsgs[i].content.length
+          : JSON.stringify(conversationMsgs[i].content).length;
+        totalChars += msgChars;
+        if (totalChars > availableChars) break;
+        keepFromEnd++;
+      }
+      if (keepFromEnd < conversationMsgs.length) {
+        const truncated = conversationMsgs.slice(-keepFromEnd);
+        messages = [systemMsg, ...truncated];
+        logger.info('Chat', 'Truncated conversation history', {
+          originalCount: conversationMsgs.length,
+          keptCount: keepFromEnd,
+          systemChars,
+          toolChars,
+        });
+      }
+    }
 
     // 10. STREAM
     const stream = new ReadableStream({
