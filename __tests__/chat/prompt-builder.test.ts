@@ -232,7 +232,7 @@ describe('Chat System — Prompt Builder', () => {
       expect(prompt).toContain('Available Tools (2 tools)');
       expect(prompt).toContain('github_read_file');
       expect(prompt).toContain('github_write_file');
-      expect(prompt).toContain('Never fabricate results');
+      expect(prompt).toContain('NEVER fabricate results');
     });
 
     it('should not include tools section when mcpTools is undefined', () => {
