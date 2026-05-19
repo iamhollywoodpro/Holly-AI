@@ -65,16 +65,16 @@ const GITHUB_SELF_EDIT_TOOLS = [
 ];
 
 const MODE_TOOL_FILTERS: Record<string, string[]> = {
-  'default':           [...GITHUB_SELF_EDIT_TOOLS, 'web_search', 'web_scrape', 'run_code', 'sentinel_analyze_code', 'sentinel_generate_code', 'memory_read', 'memory_write', 'self_code_apply'],
+  'default':           [...GITHUB_SELF_EDIT_TOOLS, 'web_search', 'web_scrape', 'run_code', 'sentinel_analyze_code', 'sentinel_generate_code', 'memory_read', 'memory_write', 'self_code_apply', 'start_build'],
   'deep-research':     [...GITHUB_SELF_EDIT_TOOLS, 'web_search', 'web_scrape', 'memory_read', 'memory_list_keys', 'run_code', 'sentinel_analyze_code'],
-  'self-coding':       [...GITHUB_SELF_EDIT_TOOLS, 'run_code', 'sentinel_analyze_code', 'sentinel_generate_code', 'memory_read', 'memory_write', 'self_code_apply', 'trigger_deploy', 'local_read_file', 'local_write_file', 'diagnostic_check', 'read_logs'],
-  'full-stack':        [...GITHUB_SELF_EDIT_TOOLS, 'run_code', 'generate_image', 'memory_read', 'memory_write', 'sentinel_analyze_code', 'sentinel_generate_code', 'self_code_apply', 'trigger_deploy'],
-  'write-code':        [...GITHUB_SELF_EDIT_TOOLS, 'run_code', 'memory_read', 'sentinel_analyze_code', 'sentinel_generate_code', 'self_code_apply', 'trigger_deploy'],
+  'self-coding':       [...GITHUB_SELF_EDIT_TOOLS, 'run_code', 'sentinel_analyze_code', 'sentinel_generate_code', 'memory_read', 'memory_write', 'self_code_apply', 'trigger_deploy', 'local_read_file', 'local_write_file', 'diagnostic_check', 'read_logs', 'start_build'],
+  'full-stack':        [...GITHUB_SELF_EDIT_TOOLS, 'run_code', 'generate_image', 'memory_read', 'memory_write', 'sentinel_analyze_code', 'sentinel_generate_code', 'self_code_apply', 'trigger_deploy', 'start_build'],
+  'write-code':        [...GITHUB_SELF_EDIT_TOOLS, 'run_code', 'memory_read', 'sentinel_analyze_code', 'sentinel_generate_code', 'self_code_apply', 'trigger_deploy', 'start_build'],
   'music-generation':  [...GITHUB_SELF_EDIT_TOOLS, 'generate_music', 'hybrid_studio', 'memory_read'],
   'music-studio':      [...GITHUB_SELF_EDIT_TOOLS, 'generate_music', 'hybrid_studio', 'aura_ar_analyze', 'aura_quick_rate', 'memory_read', 'memory_write'],
   'aura-ar':           [...GITHUB_SELF_EDIT_TOOLS, 'aura_ar_analyze', 'aura_quick_rate', 'aura_analyze_song', 'memory_read'],
-  'neural-autonomy':   [...GITHUB_SELF_EDIT_TOOLS, 'local_read_file', 'local_write_file', 'web_search', 'web_scrape', 'run_code', 'memory_read', 'memory_write', 'diagnostic_check', 'read_logs', 'mirror_check', 'self_code_apply', 'trigger_deploy', 'sentinel_analyze_code', 'sentinel_generate_code'],
-  'magic-design':      [...GITHUB_SELF_EDIT_TOOLS, 'generate_image', 'sentinel_analyze_code', 'sentinel_generate_code', 'run_code', 'memory_read', 'memory_write', 'self_code_apply'],
+  'neural-autonomy':   [...GITHUB_SELF_EDIT_TOOLS, 'local_read_file', 'local_write_file', 'web_search', 'web_scrape', 'run_code', 'memory_read', 'memory_write', 'diagnostic_check', 'read_logs', 'mirror_check', 'self_code_apply', 'trigger_deploy', 'sentinel_analyze_code', 'sentinel_generate_code', 'start_build'],
+  'magic-design':      [...GITHUB_SELF_EDIT_TOOLS, 'generate_image', 'sentinel_analyze_code', 'sentinel_generate_code', 'run_code', 'memory_read', 'memory_write', 'self_code_apply', 'start_build'],
   'philosophy':                [...GITHUB_SELF_EDIT_TOOLS, 'web_search', 'web_scrape'],
   'creative-writing':         [...GITHUB_SELF_EDIT_TOOLS, 'web_search', 'web_scrape'],
   'visual-arts':              [...GITHUB_SELF_EDIT_TOOLS, 'generate_image', 'web_search'],
@@ -421,6 +421,10 @@ export async function POST(req: NextRequest) {
                 try {
                   const toolSpec = mcpTools?.find(t => t.name === toolName);
                   if (toolSpec) {
+                    // Inject user context for tools that need it (e.g. start_build)
+                    if (toolName === 'start_build' && dbUserId) {
+                      argsParsed.userId = dbUserId;
+                    }
                     const result = await mcpManager.callTool(toolSpec.serverId, toolSpec.name, argsParsed);
                     const resultStr = JSON.stringify(result, null, 2);
                     sendTool(controller, toolName, 'complete', result);
