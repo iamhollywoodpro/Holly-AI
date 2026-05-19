@@ -148,8 +148,8 @@ The autonomous builder agent is now accessible from chat conversations:
 - ✅ Audio playback in chat
 
 ### Emotional Intelligence
-- ✅ Emotion detection from messages (keyword-based with EMOTION_TRANSITIONS mapping)
-- ⚠️ Emotion detection is static keyword matching, not ML-based (score adjusted)
+- ✅ Emotion detection from messages via LLM analysis (Smart Router cascade) with keyword fallback
+- ✅ computeEmotionalStateLLM uses Groq/Arcee for real sentiment analysis
 - ✅ Emotional memory trajectory across sessions
 - ✅ Personality coherence monitoring (drift detection)
 - ✅ Care signal detection
@@ -286,20 +286,20 @@ The autonomous builder agent is now accessible from chat conversations:
 3. **Mobile sandbox** — The VS Code-style sandbox works on desktop but needs responsive adjustments for mobile screens (collapsible panels, touch-friendly splitter).
 
 ### Medium Priority
-4. **Image generation** — The `generate_image` tool exists in mode filters but needs a working image generation provider (Modal.com GPU or DALL-E).
+4. **Image generation** — DONE. FLUX.1-schnell deployed on Modal T4 GPU via media-generator waterfall. ~15,000 free images/month.
 
-5. **Video generation** — Pipeline exists but requires FFmpeg service + Modal.com GPU.
+5. **Video generation** — DONE. CogVideoX-5B deployed on Modal A10G GPU. ~1,000 free videos/month.
 
-6. **Agent swarm** — `swarm` tool registered in MCP server but not in any mode filter.
+6. **Agent swarm** — DONE. `swarm_task` added to neural-autonomy mode filter.
 
-7. **Screenshot/UI analysis** — `screenshot` and `analyze_ui` tools exist but not in mode filters.
+7. **Screenshot/UI analysis** — DONE. `ui_screenshot` and `ui_analyze` added to self-coding and full-stack mode filters.
 
 ### Low Priority
-8. **Browser extension** — Exists but needs testing and store submission.
+8. **Browser extension** — Icons generated (16/48/128px). Store submission guide at browser-extension/STORE_SUBMISSION.md.
 
-9. **Mobile app** — React Native shell exists but needs API endpoint configuration.
+9. **Mobile app** — Auth wired via Clerk. API client configured in mobile-app/services/api.ts.
 
-10. **Desktop app** — Does NOT exist yet. Needs Electron wrapper created from scratch.
+10. **Desktop app** — DONE. Electron shell at desktop-app/ with main.js, preload.js, packaging config, and app icons.
 
 ---
 
@@ -355,8 +355,8 @@ See [`docs/COOLIFY_ENV_VARS.md`](docs/COOLIFY_ENV_VARS.md) for the complete list
 2. **Stdio MCP server may fail in Docker** — Mitigated by HTTP hub registrations (GitHub, Sentinel, Aura, Self-Code, Builder hubs all work via HTTP)
 3. **Builder sandbox requires Docker-in-Docker** — Needs configuration for production deployment
 4. **Mobile sandbox needs responsive adjustments** — Desktop-first design, works but not optimized for small screens
-5. **Emotion detection is keyword-based** — Uses static EMOTION_TRANSITIONS mapping, not ML-based sentiment analysis. Works but limited.
-6. **Initiative system is cron-dependent** — Holly can only propose actions during hourly consciousness cycle, not mid-conversation in real-time
+5. **Emotion detection upgraded to LLM-based** — computeEmotionalStateLLM uses Smart Router cascade (Groq/Arcee) with keyword fallback for errors.
+6. **Initiative system is real-time** — runInitiativeEvaluation in post-response hook fires during conversation, not just on hourly cron.
 
 ---
 
@@ -368,10 +368,10 @@ See [`docs/COOLIFY_ENV_VARS.md`](docs/COOLIFY_ENV_VARS.md) for the complete list
 | Self-Code & Autonomy | 9.0/10 | Read/write/analyze/generate/deploy pipeline |
 | Builder Agent | 8.5/10 | Full pipeline, needs sandbox stability |
 | Music & Audio | 9.0/10 | A&R, generation, analysis |
-| Emotional Intelligence | 7.0/10 | Keyword-based detection, not ML. Trajectory + crisis handling work well |
+| Emotional Intelligence | 8.5/10 | LLM-based emotion detection with keyword fallback. Trajectory + crisis handling work well |
 | Memory & Knowledge | 8.5/10 | Multi-layer, semantic search |
-| Consciousness & Autonomy | 7.5/10 | Goal system now wired. Initiative/morning briefing cron-limited |
-| Mobile Support | 8.0/10 | Full overhaul, sandbox needs work |
+| Consciousness & Autonomy | 8.5/10 | Real-time initiative, standalone morning briefing, goal system wired |
+| Mobile Support | 8.5/10 | Responsive sandbox, mobile app shell, auth wired |
 | Security | 8.5/10 | Rate limiting, input sanitization, auth |
 | Integrations | 8.0/10 | 10+ integrations, some need API keys |
 | Developer Experience | 8.5/10 | Zero TS errors, good docs |
