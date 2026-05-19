@@ -1,7 +1,7 @@
 {
   "name": "holly-desktop",
   "version": "1.0.0",
-  "description": "HOLLY AI — Desktop App",
+  "description": "HOLLY AI - Desktop App",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -24,15 +24,22 @@
     "directories": {
       "output": "dist"
     },
+    "files": [
+      "main.js",
+      "preload.js",
+      "assets/**/*"
+    ],
     "mac": {
       "category": "public.app-category.productivity",
-      "icon": "assets/icon.icns"
+      "icon": "assets/icon512.png"
     },
     "win": {
-      "icon": "assets/icon.ico"
+      "icon": "assets/icon256.png",
+      "target": ["nsis"]
     },
     "linux": {
-      "icon": "assets/icon.png",
+      "icon": "assets/icon256.png",
+      "target": ["AppImage"],
       "category": "Utility"
     }
   }
