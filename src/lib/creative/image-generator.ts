@@ -75,7 +75,7 @@ export async function generateImage(
         priority: 'normal',
         prompt,
         negativePrompt: options.negativePrompt || null,
-        model: options.model || 'pollinations-flux',
+        model: options.model || 'flux-schnell',
         parameters: {
           width: options.width || 1024,
           height: options.height || 1024,
