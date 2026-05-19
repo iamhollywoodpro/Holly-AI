@@ -247,18 +247,20 @@ describe('Chat System — Prompt Builder', () => {
   });
 
   describe('Builder mode', () => {
+    const dummyTools = [{ name: 'github_read_file', description: 'Read a file' }];
+
     it('should include builder mode for self-coding mode', () => {
-      const prompt = buildPrompt(baseOpts({ detectedMode: 'self-coding' }));
+      const prompt = buildPrompt(baseOpts({ detectedMode: 'self-coding', mcpTools: dummyTools }));
       expect(prompt).toContain('Builder Mode — ACTIVE');
     });
 
     it('should include builder mode for full-stack mode', () => {
-      const prompt = buildPrompt(baseOpts({ detectedMode: 'full-stack' }));
+      const prompt = buildPrompt(baseOpts({ detectedMode: 'full-stack', mcpTools: dummyTools }));
       expect(prompt).toContain('Builder Mode — ACTIVE');
     });
 
     it('should include builder mode for write-code mode', () => {
-      const prompt = buildPrompt(baseOpts({ detectedMode: 'write-code' }));
+      const prompt = buildPrompt(baseOpts({ detectedMode: 'write-code', mcpTools: dummyTools }));
       expect(prompt).toContain('Builder Mode — ACTIVE');
     });
 
