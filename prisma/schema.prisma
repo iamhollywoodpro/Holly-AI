@@ -527,6 +527,7 @@ model HollyGoal {
   category    String    @default("general")
   status      String    @default("active")
   priority    Int       @default(5)
+  progress    Json      @default("{\"completion_percentage\":0,\"steps_completed\":[],\"obstacles_encountered\":[],\"breakthroughs\":[],\"status\":\"conceived\"}")
   targetDate  DateTime?
   createdAt   DateTime  @default(now())
   completedAt DateTime?
