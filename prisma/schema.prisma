@@ -129,6 +129,9 @@ model User {
   MemoryEmbedding MemoryEmbedding[]
   GoalExecution   GoalExecution[] @relation("GoalExecutionsUser")
 
+  // Phase 2: Proactive Initiative System
+  proactiveInitiatives ProactiveInitiative[]
+
   @@map("users")
 }
 
@@ -4409,4 +4412,27 @@ model SelfCodeRollback {
   @@index([planId])
   @@index([expiresAt])
   @@map("self_code_rollbacks")
+}
+
+// Phase 2: Proactive Initiative System
+// Stores pending initiative suggestions generated in real-time during conversations
+model ProactiveInitiative {
+  id                  String   @id @default(cuid())
+  userId              String
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type                String                     // care_driven, curiosity_driven, goal_driven, insight_driven, creative_urge
+  content             String   @db.Text          // The proactive message Holly would say
+  reasoning           String   @db.Text          // Why Holly decided to be proactive
+  triggerEmotion      String                      // Emotion that triggered this initiative
+  triggerIntensity    Float                      // Emotional intensity at the time
+  status              String   @default("pending") // pending, delivered, dismissed, expired
+  conversationContext Json                        // Snapshot of the conversation that triggered this
+  deliveredAt         DateTime?
+  expiresAt           DateTime?                   // Auto-expire after 24 hours
+  createdAt           DateTime @default(now())
+
+  @@index([userId])
+  @@index([status])
+  @@index([expiresAt])
+  @@map("proactive_initiatives")
 }

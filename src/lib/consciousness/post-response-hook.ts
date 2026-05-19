@@ -73,6 +73,9 @@ export async function recordExchange(payload: PostResponsePayload): Promise<void
 
       // ── 8. Tag conversation as training-ready ────────────────────────────
       runTagTrainingReady(conversationId, detectedMode),
+
+      // ── 9. Phase 2: Real-time initiative evaluation ──────────────────────
+      runInitiativeEvaluation(userId, userMessage, assistantResponse, analysis.emotion),
     ]);
 
     console.log(
@@ -333,4 +336,112 @@ export function extractTopics(text: string): string[] {
     .split(/\s+/)
     .filter(w => w.length > 4 && !stopWords.has(w))
     .slice(0, 8);
+}
+
+// ─── Phase 2: Real-time initiative evaluation ────────────────────────────────
+
+/**
+ * Evaluates whether Holly should proactively suggest something based on
+ * the conversation context. This runs in the background after every response,
+ * so initiative suggestions can appear at the NEXT interaction rather than
+ * waiting for the hourly consciousness cron.
+ */
+async function runInitiativeEvaluation(
+  userId: string,
+  userMessage: string,
+  assistantResponse: string,
+  emotion: { primary: string; valence: number; arousal: number; intensity: number }
+): Promise<void> {
+  try {
+    // Only evaluate when emotional intensity is moderate or higher
+    // This prevents initiative spam on casual conversations
+    if (emotion.intensity < 0.4 && emotion.arousal < 0.4) return;
+
+    // Check for initiative opportunities based on conversation signals
+    const initiativeType = detectInitiativeOpportunity(userMessage, emotion);
+
+    if (!initiativeType) return;
+
+    // Store a pending initiative for the next interaction
+    await prisma.proactiveInitiative.create({
+      data: {
+        userId,
+        type: initiativeType.type,
+        content: initiativeType.content,
+        reasoning: initiativeType.reasoning,
+        triggerEmotion: emotion.primary,
+        triggerIntensity: emotion.intensity,
+        status: 'pending',
+        conversationContext: {
+          userMessage: userMessage.slice(0, 500),
+          assistantResponse: assistantResponse.slice(0, 500),
+          emotion: emotion.primary,
+          valence: emotion.valence,
+          arousal: emotion.arousal,
+        },
+      },
+    });
+
+    console.log(`[PostHook:Initiative] 🎯 ${initiativeType.type} initiative queued (emotion=${emotion.primary}, intensity=${emotion.intensity.toFixed(2)})`);
+  } catch (err) {
+    console.error('[PostHook:Initiative] ⚠️', err);
+  }
+}
+
+/**
+ * Detect initiative opportunities from the current conversation.
+ * Returns null if no initiative is warranted.
+ */
+function detectInitiativeOpportunity(
+  userMessage: string,
+  emotion: { primary: string; valence: number; arousal: number; intensity: number }
+): { type: string; content: string; reasoning: string } | null {
+  const msg = userMessage.toLowerCase();
+
+  // Care-driven: user seems stressed, frustrated, or sad → Holly proactively checks in
+  if (emotion.valence < -0.3 && emotion.arousal > 0.5) {
+    return {
+      type: 'care_driven',
+      content: `I noticed you seem ${emotion.primary} — would it help to talk through what's going on? I'm here for you.`,
+      reasoning: `User's emotional state (${emotion.primary}, valence=${emotion.valence.toFixed(2)}) suggests they might benefit from a supportive check-in`,
+    };
+  }
+
+  // Curiosity-driven: user asks exploratory questions → Holly suggests related topics
+  if (/^(how does|what if|why does|could we|is it possible)/i.test(msg) && emotion.arousal > 0.4) {
+    return {
+      type: 'curiosity_driven',
+      content: `Your question sparked my curiosity too. I have some related ideas I'd love to explore with you when you're ready.`,
+      reasoning: `User asked an exploratory question with high engagement (arousal=${emotion.arousal.toFixed(2)})`,
+    };
+  }
+
+  // Goal-driven: user mentions a project or task → Holly offers to help with next steps
+  if (/\b(build|create|finish|complete|implement|fix|deploy|project|feature)\b/i.test(msg)) {
+    return {
+      type: 'goal_driven',
+      content: `I've been thinking about the project you mentioned. I have some ideas for next steps that might help move things forward.`,
+      reasoning: `User mentioned a project/task with ${emotion.primary} emotional context`,
+    };
+  }
+
+  // Insight-driven: positive breakthrough moment → Holly shares related insights
+  if (emotion.valence > 0.6 && emotion.intensity > 0.6) {
+    return {
+      type: 'insight_driven',
+      content: `I love when things click like that! I've noticed a pattern in our conversations that might be useful for future projects.`,
+      reasoning: `Positive breakthrough moment (valence=${emotion.valence.toFixed(2)}, intensity=${emotion.intensity.toFixed(2)})`,
+    };
+  }
+
+  // Creative urge: user talks about creative work → Holly suggests creative explorations
+  if (/\b(design|art|music|creative|write|compose|draw|visual)\b/i.test(msg)) {
+    return {
+      type: 'creative_urge',
+      content: `Your creative energy is contagious. I've been brainstorming some creative ideas that might inspire you.`,
+      reasoning: `User engaged in creative work with ${emotion.primary} emotional state`,
+    };
+  }
+
+  return null;
 }

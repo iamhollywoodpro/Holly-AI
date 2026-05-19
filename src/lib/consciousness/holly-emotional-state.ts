@@ -43,7 +43,8 @@ export interface ConversationSignal {
 
 // ── Emotion Mapping ──────────────────────────────────────────────────────────
 
-const EMOTION_TRANSITIONS: Record<string, Record<string, { emotion: string; intensity: number }>> = {
+// Keyword-based transitions (fast fallback when LLM is unavailable)
+const KEYWORD_EMOTION_TRANSITIONS: Record<string, Record<string, { emotion: string; intensity: number }>> = {
   // When user is happy → Holly feels energized
   happy: {
     positive: { emotion: 'energized', intensity: 0.8 },
@@ -112,6 +113,9 @@ const BEHAVIOR_MAP: Record<string, {
 /**
  * Compute Holly's emotional state from recent conversation signals.
  * Takes the most recent signal and maps it to Holly's emotional response.
+ *
+ * This is the SYNCHRONOUS keyword-based version. For LLM-powered analysis,
+ * use computeEmotionalStateLLM() instead.
  */
 export function computeEmotionalState(
   signals: ConversationSignal[],
@@ -130,7 +134,7 @@ export function computeEmotionalState(
   const outcome = latest.outcome;
 
   // Look up transition
-  const transitions = EMOTION_TRANSITIONS[userEmotion] || EMOTION_TRANSITIONS.neutral;
+  const transitions = KEYWORD_EMOTION_TRANSITIONS[userEmotion] || KEYWORD_EMOTION_TRANSITIONS.neutral;
   const transition = transitions[outcome] || transitions.neutral;
 
   // If we have a current state, blend with it (30% old, 70% new)
@@ -159,6 +163,117 @@ export function computeEmotionalState(
     timestamp: new Date(),
     behavior,
   };
+}
+
+/**
+ * LLM-powered emotional state computation.
+ * Uses the message analyser's dimensional emotion output (valence, arousal, intensity)
+ * to compute a more nuanced emotional response for Holly.
+ *
+ * Falls back to keyword-based computeEmotionalState() on error.
+ */
+export async function computeEmotionalStateLLM(
+  userMessage: string,
+  assistantResponse: string,
+  currentState?: HollyEmotionalState | null,
+): Promise<HollyEmotionalState> {
+  try {
+    const { analyseMessage } = await import('@/lib/intelligence/message-analyser');
+    const analysis = await analyseMessage(userMessage, assistantResponse);
+
+    if (!analysis.fromLLM) {
+      // LLM wasn't available — use keyword fallback
+      const keywordEmotion = analysis.emotion.primary;
+      const outcome = analysis.emotion.valence > 0.2 ? 'positive'
+        : analysis.emotion.valence < -0.2 ? 'negative' : 'neutral';
+      return computeEmotionalState(
+        [{ userEmotion: keywordEmotion, outcome, helpedSuccessfully: false, topic: '', timestamp: new Date() }],
+        currentState,
+      );
+    }
+
+    // Map the dimensional emotion to Holly's response emotion
+    const { valence, arousal, intensity, primary } = analysis.emotion;
+    const hollyEmotion = mapUserEmotionToHollyResponse(primary, valence, arousal);
+    const hollyIntensity = mapDimensionalIntensity(valence, arousal, intensity);
+
+    // Blend with current state if available
+    let finalIntensity = hollyIntensity;
+    let finalEmotion = hollyEmotion;
+
+    if (currentState && currentState.emotion === hollyEmotion) {
+      finalIntensity = Math.min(1, currentState.intensity * 0.25 + hollyIntensity * 0.75);
+    } else if (currentState) {
+      finalIntensity = currentState.intensity * 0.2 + hollyIntensity * 0.8;
+    }
+
+    const behavior = BEHAVIOR_MAP[finalEmotion] || BEHAVIOR_MAP.balanced;
+
+    return {
+      emotion: finalEmotion,
+      intensity: Math.round(finalIntensity * 100) / 100,
+      trigger: `User felt ${primary} (valence=${valence.toFixed(2)}, arousal=${arousal.toFixed(2)})`,
+      timestamp: new Date(),
+      behavior,
+    };
+  } catch (err) {
+    console.warn('[HollyEmotionalState] LLM computation failed, using keyword fallback:', (err as Error).message);
+    return computeEmotionalState([], currentState);
+  }
+}
+
+/**
+ * Map user's detected emotion + dimensions to Holly's response emotion.
+ * This is where Holly's personality shines — she responds with empathy and care.
+ */
+function mapUserEmotionToHollyResponse(
+  userEmotion: string,
+  valence: number,
+  arousal: number,
+): string {
+  const lower = userEmotion.toLowerCase();
+
+  // High arousal + negative → Holly is attentive and focused
+  if (arousal > 0.7 && valence < -0.3) return 'attentive';
+  // High arousal + positive → Holly is energized and enthusiastic
+  if (arousal > 0.7 && valence > 0.3) return 'enthusiastic';
+  // Low arousal + negative → Holly is gentle and empathetic
+  if (arousal < 0.3 && valence < -0.3) return 'empathetic';
+  // Low arousal + positive → Holly is content and warm
+  if (arousal < 0.3 && valence > 0.3) return 'content';
+
+  // Nuanced emotion-specific mappings
+  const emotionMap: Record<string, string> = {
+    frustrated: 'focused',
+    angry: 'patient',
+    sad: 'empathetic',
+    depressed: 'gentle',
+    anxious: 'calm',
+    worried: 'attentive',
+    fearful: 'calm',
+    confused: 'engaged',
+    curious: 'enthusiastic',
+    interested: 'engaged',
+    excited: 'energized',
+    happy: 'energized',
+    grateful: 'content',
+    surprised: 'curious',
+    determined: 'determined',
+    bored: 'engaged',
+    neutral: 'balanced',
+  };
+
+  return emotionMap[lower] || 'balanced';
+}
+
+/**
+ * Map dimensional emotion values to an intensity score for Holly's response.
+ */
+function mapDimensionalIntensity(valence: number, arousal: number, intensity: number): number {
+  // Strong emotions (high arousal OR high absolute valence) → stronger Holly response
+  const emotionalWeight = Math.max(arousal, Math.abs(valence));
+  // Blend with the original intensity
+  return Math.min(1, (emotionalWeight * 0.6 + intensity * 0.4) * 0.85);
 }
 
 /**
