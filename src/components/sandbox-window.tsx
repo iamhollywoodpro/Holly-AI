@@ -51,6 +51,18 @@ export interface SandboxWindowProps {
   };
 }
 
+// ── Viewport detection hook ──────────────────────────────────────────────
+function useIsMobile(breakpoint = 768): boolean {
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < breakpoint);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, [breakpoint]);
+  return isMobile;
+}
+
 // ── Helper: detect Monaco language from file path ──────────────────────────
 function getLanguageFromPath(filePath: string): string {
   const ext = filePath.split('.').pop()?.toLowerCase() || '';
@@ -160,6 +172,7 @@ export default function SandboxWindow({
   const [activeLeftTab, setActiveLeftTab] = useState<'activity' | 'files'>('activity');
   const containerRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<HTMLDivElement>(null);
+  const isMobile = useIsMobile();
   const isDraggingSplit = useRef(false);
 
   // Auto-scroll terminal
@@ -195,8 +208,9 @@ export default function SandboxWindow({
     }
   }, [terminalOutput]);
 
-  // Resizable split handler
-  const handleMouseDown = useCallback(() => {
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    if (isMobile) return; // No drag resize on mobile
     isDraggingSplit.current = true;
     const handleMouseMove = (e: MouseEvent) => {
       if (!isDraggingSplit.current || !containerRef.current) return;
@@ -215,7 +229,7 @@ export default function SandboxWindow({
     document.addEventListener('mouseup', handleMouseUp);
     document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none';
-  }, []);
+  }, [isMobile]);
 
   // Detect language for Monaco
   const editorLanguage = useMemo(() => getLanguageFromPath(editorFilePath), [editorFilePath]);
@@ -231,13 +245,30 @@ export default function SandboxWindow({
 
   if (!isOpen) return null;
 
+  // Mobile: stacked layout, desktop: side-by-side
+  const mainLayoutClass = isMobile
+    ? 'flex flex-col'
+    : 'flex flex-1 overflow-hidden';
+
+  const leftPanelStyle = isMobile
+    ? { height: leftPanelOpen ? '45%' : '0px', minHeight: leftPanelOpen ? '150px' : '0px' }
+    : { width: `${splitRatio * 100}%`, minWidth: '200px' };
+
+  const leftPanelClass = isMobile
+    ? 'flex flex-col border-b border-[#333] bg-[#252526] overflow-hidden flex-shrink-0 transition-[height] duration-200'
+    : 'flex flex-col border-r border-[#333] bg-[#252526] overflow-hidden flex-shrink-0';
+
+  const splitterClass = isMobile
+    ? 'hidden' // Hide splitter on mobile (panels stack vertically)
+    : 'w-1 bg-[#333] hover:bg-[#007acc] cursor-col-resize transition-colors flex-shrink-0';
+
   return (
     <div
       ref={containerRef}
       className={`flex flex-col bg-[#1e1e1e] border-t border-[#333] ${
         isMaximized ? "fixed inset-0 z-50" : "relative"
       }`}
-      style={!isMaximized ? { height: '320px' } : undefined}
+      style={!isMaximized ? { height: isMobile ? '50vh' : '320px' } : undefined}
     >
       {/* ── Title Bar (VS Code style) ──────────────────────────────────────── */}
       <div className="flex items-center justify-between h-9 bg-[#323233] border-b border-[#252526] px-3 flex-shrink-0">
@@ -288,13 +319,13 @@ export default function SandboxWindow({
       </div>
 
       {/* ── Main Content Area ──────────────────────────────────────────────── */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className={mainLayoutClass}>
         {/* ── Left Panel: Activity / Files ─────────────────────────────────── */}
         {leftPanelOpen && (
           <>
             <div
-              className="flex flex-col border-r border-[#333] bg-[#252526] overflow-hidden flex-shrink-0"
-              style={{ width: `${splitRatio * 100}%`, minWidth: '200px' }}
+              className={leftPanelClass}
+              style={leftPanelStyle}
             >
               {/* Left panel tabs */}
               <div className="flex items-center border-b border-[#333] bg-[#252526] flex-shrink-0">
@@ -395,7 +426,7 @@ export default function SandboxWindow({
 
             {/* ── Resizable Splitter ──────────────────────────────────────────── */}
             <div
-              className="w-1 bg-[#333] hover:bg-[#007acc] cursor-col-resize transition-colors flex-shrink-0"
+              className={splitterClass}
               onMouseDown={handleMouseDown}
             />
           </>
@@ -430,19 +461,19 @@ export default function SandboxWindow({
                 options={{
                   readOnly: true,
                   minimap: { enabled: false },
-                  fontSize: 12,
-                  lineNumbers: 'on',
+                  fontSize: isMobile ? 10 : 12,
+                  lineNumbers: isMobile ? 'off' : 'on',
                   scrollBeyondLastLine: false,
                   wordWrap: 'on',
                   automaticLayout: true,
                   padding: { top: 8 },
                   renderLineHighlight: 'line',
-                  folding: true,
+                  folding: !isMobile,
                   glyphMargin: false,
                   overviewRulerBorder: false,
                   scrollbar: {
-                    verticalScrollbarSize: 8,
-                    horizontalScrollbarSize: 8,
+                    verticalScrollbarSize: isMobile ? 6 : 8,
+                    horizontalScrollbarSize: isMobile ? 6 : 8,
                   },
                 }}
               />

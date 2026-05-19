@@ -102,18 +102,48 @@ export async function generateImage(
       }
     });
 
-    // For now, simulate instant generation (replace with actual API call later)
-    // In production, this would be handled by a background worker
-    const mockResultUrl = `https://placeholder.com/generated-${job.id}.png`;
-    
+    // Update job to generating
+    await prisma.generationJob.update({
+      where: { id: job.id },
+      data: { status: 'processing', currentStep: 'generating', progress: 50 },
+    });
+
+    // Use the real media-generator waterfall (Pollinations / Modal / HF cascade)
+    let resultUrl: string;
+    let actualProvider = 'pollinations';
+    let actualModel = 'FLUX.1-schnell';
+
+    try {
+      const { generateImage: generateWithWaterfall } = await import('@/lib/ai/media-generator');
+      const result = await generateWithWaterfall({
+        prompt,
+        negativePrompt: options.negativePrompt,
+        model: options.model === 'sdxl' ? 'sdxl' : options.model === 'flux-dev' ? 'flux-dev' : 'flux-schnell',
+        width: options.width,
+        height: options.height,
+        seed: options.seed ? parseInt(options.seed) : undefined,
+        style: options.style as any,
+      });
+      resultUrl = result.url;
+      actualProvider = result.provider;
+      actualModel = result.model;
+    } catch (genError) {
+      console.warn('[ImageGenerator] Waterfall failed, using Pollinations direct:', (genError as Error).message);
+      // Fallback: direct Pollinations URL (always free, no account needed)
+      const encoded = encodeURIComponent(prompt);
+      const w = options.width || 1024;
+      const h = options.height || 1024;
+      resultUrl = `https://image.pollinations.ai/prompt/${encoded}?width=${w}&height=${h}&nologo=true&enhance=true&model=flux`;
+    }
+
     await prisma.generationJob.update({
       where: { id: job.id },
       data: {
         status: 'completed',
         progress: 100,
-        resultUrl: mockResultUrl,
-        completedAt: new Date()
-      }
+        resultUrl,
+        completedAt: new Date(),
+      },
     });
 
     // Save as asset
@@ -123,9 +153,9 @@ export async function generateImage(
       title: `Generated: ${prompt.substring(0, 50)}`,
       prompt,
       negativePrompt: options.negativePrompt,
-      model: options.model || 'pollinations-flux',
+      model: actualModel,
       generationId: job.id,
-      url: mockResultUrl,
+      url: resultUrl,
       width: options.width || 1024,
       height: options.height || 1024,
       format: 'png',
@@ -135,14 +165,14 @@ export async function generateImage(
       guidance: options.guidance,
       sampler: options.sampler,
       status: 'completed',
-      provider: 'pollinations',
-      cost: 0
+      provider: actualProvider,
+      cost: 0,
     });
 
     return {
       success: true,
       jobId: job.id,
-      assetId: assetResult.assetId
+      assetId: assetResult.assetId,
     };
   } catch (error) {
     console.error('Error generating image:', error);
