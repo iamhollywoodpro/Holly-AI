@@ -505,6 +505,10 @@ async function buildProvider(): Promise<SandboxProvider> {
       return docker;
     }
     console.warn('[Sandbox] Docker unavailable — falling back to LocalSandboxProvider');
+    console.warn('[Sandbox] To enable Docker-in-Docker for Coolify:');
+    console.warn('[Sandbox]   1. Add volume: /var/run/docker.sock:/var/run/docker.sock');
+    console.warn('[Sandbox]   2. Set SANDBOX_PROVIDER=docker in Coolify env vars');
+    console.warn('[Sandbox]   3. Or omit it to use LocalSandboxProvider (no Docker needed)');
   }
   console.log('[Sandbox] Using LocalSandboxProvider');
   return new LocalSandboxProvider();
