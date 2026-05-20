@@ -113,11 +113,11 @@ export async function POST(req: NextRequest) {
               affectedFiles: [],
               healingType: 'design_token_update',
               actionTaken: 'approved',
-              changes: {
+              changes: JSON.stringify({
                 proposalId: activeDesign.id,
-                tokens: activeDesign.tokens as unknown as Record<string, unknown>,
+                tokens: activeDesign.tokens,
                 description: activeDesign.description,
-              } as unknown as import('@prisma/client').InputJsonValue,
+              }),
               status: 'completed',
               success: true,
             },
