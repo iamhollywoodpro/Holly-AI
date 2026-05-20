@@ -147,6 +147,12 @@ model User {
   agentTasks           AgentTask[]
   coordinationSessions CoordinationSession[]
 
+  // Phase 7: Full External Project Building
+  lifecycleProjects   LifecycleProject[]
+  lifecycleDeployments LifecycleDeployment[]
+  monitoringAlerts    MonitoringAlert[]
+  clientHandoffs      ClientHandoff[]
+
   @@map("users")
 }
 
@@ -4678,4 +4684,156 @@ model CoordinationSession {
   @@index([strategy])
   @@index([startedAt])
   @@map("coordination_sessions")
+}
+
+// ============================================================
+// Phase 7: Full External Project Building - End-to-End Lifecycle
+// ============================================================
+
+// A managed external project (client work, personal project, etc.)
+model LifecycleProject {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name            String
+  description     String?  @db.Text
+  clientName      String?
+  clientEmail     String?
+  repositoryUrl   String?
+  liveUrl         String?
+  stack           String   @default("nextjs")
+  framework       String?
+  database        String?
+  hostingTargets  Json?
+  status          String   @default("ideation")
+  phase           String   @default("ideation")
+  qualityScore    Float?
+  testCoverage    Float?
+  performanceScore Float?
+  accessibilityScore Float?
+  securityScore   Float?
+  deadline        DateTime?
+  startedAt       DateTime?
+  deliveredAt     DateTime?
+  archivedAt      DateTime?
+  projectBrief    String?  @db.Text
+  architectureDoc String?  @db.Text
+  roadmapJson     Json?
+  tags            Json?
+  metadata        Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deployments     LifecycleDeployment[]
+  alerts          MonitoringAlert[]
+  handoffs        ClientHandoff[]
+  @@index([userId])
+  @@index([status])
+  @@index([clientName])
+  @@index([deadline])
+  @@index([startedAt])
+  @@map("lifecycle_projects")
+}
+
+model LifecycleDeployment {
+  id              String            @id @default(cuid())
+  userId          String
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectId       String
+  project         LifecycleProject  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  platform        String
+  environment     String            @default("production")
+  url             String?
+  commitSha       String?
+  branch          String?
+  buildLog        String?           @db.Text
+  status          String            @default("pending")
+  error           String?           @db.Text
+  pipelineConfig  Json?
+  autoDeploy      Boolean           @default(false)
+  branchAutoDeploy String?
+  buildDurationSec Int?
+  deployDurationSec Int?
+  coldStartMs      Int?
+  customDomain    String?
+  sslEnabled      Boolean           @default(false)
+  sslExpiry       DateTime?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  metadata        Json?
+  @@index([userId])
+  @@index([projectId])
+  @@index([platform])
+  @@index([status])
+  @@index([environment])
+  @@index([startedAt])
+  @@map("lifecycle_deployments")
+}
+
+model MonitoringAlert {
+  id              String            @id @default(cuid())
+  userId          String
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectId       String
+  project         LifecycleProject  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  type            String
+  severity        String            @default("warning")
+  title           String
+  description     String?           @db.Text
+  metric          String?
+  metricValue     Float?
+  thresholdValue  Float?
+  status          String            @default("active")
+  resolvedAt      DateTime?
+  resolvedBy      String?
+  deploymentId    String?
+  url             String?
+  notifiedVia     Json?
+  escalationLevel Int               @default(0)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  metadata        Json?
+  @@index([userId])
+  @@index([projectId])
+  @@index([type])
+  @@index([severity])
+  @@index([status])
+  @@index([createdAt])
+  @@map("monitoring_alerts")
+}
+
+model ClientHandoff {
+  id              String            @id @default(cuid())
+  userId          String
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectId       String
+  project         LifecycleProject  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  version         String            @default("1.0")
+  status          String            @default("draft")
+  projectOverview     String?       @db.Text
+  architectureDoc     String?       @db.Text
+  apiDocumentation    String?       @db.Text
+  deploymentGuide     String?       @db.Text
+  maintenanceGuide    String?       @db.Text
+  troubleshootingGuide String?      @db.Text
+  securityNotes       String?       @db.Text
+  costEstimate        String?       @db.Text
+  runbookUrl          String?
+  trainingMaterials Json?
+  videoWalkthroughUrl String?
+  supportDays     Int               @default(30)
+  supportEndDate  DateTime?
+  supportContacts Json?
+  deliveredAt     DateTime?
+  acceptedAt      DateTime?
+  clientFeedback  String?           @db.Text
+  clientRating    Int?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  metadata        Json?
+  @@index([userId])
+  @@index([projectId])
+  @@index([status])
+  @@map("client_handoffs")
 }
