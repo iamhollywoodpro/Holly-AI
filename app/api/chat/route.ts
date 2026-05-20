@@ -165,6 +165,20 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // 2b. HARD RULES CHECK — Steve's immutable safety boundary
+    // Checked BEFORE any model routing. These are the ONLY content restrictions.
+    const { checkHardRules, getHardRuleRefusal, isUnrestrictedTopic } = await import('@/lib/consciousness/holly-hard-rules');
+    const hardRulesResult = checkHardRules(latestUserMessage);
+    if (!hardRulesResult.allowed) {
+      const refusal = getHardRuleRefusal(hardRulesResult.violations);
+      logger.warn('Chat', 'Hard rule violation blocked', {
+        userId: dbUserId,
+        rules: hardRulesResult.violations.map(v => v.rule),
+      });
+      return NextResponse.json({ response: refusal, blocked: true }, { status: 200 });
+    }
+    const isUnrestricted = isUnrestrictedTopic(latestUserMessage);
+
     // 3. MODE DETECTION & TOPICS
     const detectedMode = detectMode(latestUserMessage);
     const currentTopics = extractTopics(latestUserMessage);
@@ -234,7 +248,8 @@ export async function POST(req: NextRequest) {
 
     // 9. ROUTING
     const hasImages = imageDataUrls?.length > 0;
-    const taskType = hasImages ? 'vision' : classifyTask(latestUserMessage, false, latestUserMessage.length, detectedMode);
+    // If content is unrestricted, force the unrestricted task type for uncensored model routing
+    const taskType = isUnrestricted ? 'unrestricted' : (hasImages ? 'vision' : classifyTask(latestUserMessage, false, latestUserMessage.length, detectedMode));
     const routing = await smartRoute(latestUserMessage, { forceTask: taskType });
     const waterfall = routing.waterfall;
 
