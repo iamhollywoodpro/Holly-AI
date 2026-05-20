@@ -189,6 +189,9 @@ export class MCPClientManager {
 
     // 10. Temporal Sense Hub — HTTP proxy for time awareness, pattern recognition, proactive insights
     this._registerTemporalHub();
+
+    // 11. Collaborative Sense Hub — HTTP proxy for multi-agent coordination, task delegation, result aggregation
+    this._registerCollaborativeHub();
   }
 
   // ── AURA Hub registration ──────────────────────────────────────────────────
@@ -1180,6 +1183,274 @@ export class MCPClientManager {
           return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
         } catch (e: unknown) {
           return { content: [{ type: 'text', text: `Temporal Hub error: ${(e as Error).message}` }] };
+        }
+      }
+    );
+  }
+
+  // ── Collaborative Sense Hub registration (Phase 6) ───────────────────────
+  private _registerCollaborativeHub(): void {
+    const baseUrl = this._getBaseUrl();
+    this.registerHttpServer(
+      'collaborative-sense-hub',
+      [
+        {
+          name: 'collab_create_session',
+          description: "Create a coordination session for multi-agent collaboration. Specify a goal, strategy (parallel, sequential, pipeline, map_reduce, swarm), and max concurrency. Returns the new session with its ID.",
+          inputSchema: {
+            type: 'object',
+            properties: {
+              title:          { type: 'string', description: 'Session name (e.g. "Build landing page", "Research competitors")' },
+              description:    { type: 'string', description: 'What the session should accomplish' },
+              goal:           { type: 'string', description: 'The overarching goal for all agents' },
+              strategy:       { type: 'string', enum: ['parallel', 'sequential', 'pipeline', 'map_reduce', 'swarm'], description: 'Coordination strategy (default: parallel)' },
+              maxConcurrency: { type: 'number', description: 'Max agents running simultaneously (default: 3)' },
+              sharedContext:  { type: 'object', description: 'Shared knowledge/context for all agents' },
+            },
+            required: ['title', 'goal'],
+          },
+        },
+        {
+          name: 'collab_spawn_agent',
+          description: "Spawn a new Holly agent instance within a coordination session. Each agent gets a role, capabilities, and an assigned task. Agents work semi-independently and report results.",
+          inputSchema: {
+            type: 'object',
+            properties: {
+              sessionId:     { type: 'string', description: 'The coordination session ID' },
+              role:          { type: 'string', enum: ['coder', 'researcher', 'reviewer', 'tester', 'coordinator', 'general'], description: "Agent's role" },
+              displayName:   { type: 'string', description: 'Human-readable name (e.g. "Holly-Coder-1")' },
+              capabilities:  { type: 'array', items: { type: 'string' }, description: 'What this agent can do: ["code_gen", "web_search", "taste", "temporal"]' },
+              assignedTask:  { type: 'string', description: 'The task description for this agent' },
+              priority:      { type: 'number', description: 'Priority 1-10, 1=highest (default: 5)' },
+              maxIterations: { type: 'number', description: 'Max tool-calling iterations (default: 15)' },
+              parentAgentId: { type: 'string', description: 'Parent agent if spawned by another agent' },
+              sharedContext: { type: 'object', description: 'Agent-specific context override' },
+            },
+            required: ['sessionId', 'role'],
+          },
+        },
+        {
+          name: 'collab_create_task',
+          description: "Create a new task in a coordination session. Tasks can have dependencies on other tasks, and are assigned to agents. Supports code, research, review, test, deploy, analyze, and design tasks.",
+          inputSchema: {
+            type: 'object',
+            properties: {
+              sessionId:    { type: 'string', description: 'The coordination session ID' },
+              title:        { type: 'string', description: 'Short task title' },
+              description:  { type: 'string', description: 'Detailed task specification' },
+              taskType:     { type: 'string', enum: ['code', 'research', 'review', 'test', 'deploy', 'analyze', 'design'], description: 'Type of task' },
+              priority:     { type: 'number', description: 'Priority 1-10 (default: 5)' },
+              dependencies: { type: 'array', items: { type: 'string' }, description: 'Task IDs that must complete before this one' },
+              inputContext: { type: 'string', description: 'Context needed to start the task' },
+              agentId:      { type: 'string', description: 'Auto-assign to this agent' },
+              deadlineAt:   { type: 'string', description: 'ISO date deadline' },
+            },
+            required: ['sessionId', 'title', 'description', 'taskType'],
+          },
+        },
+        {
+          name: 'collab_assign_task',
+          description: 'Assign a pending task to a specific agent. The agent will claim the task and begin work.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              taskId:  { type: 'string', description: 'The task ID' },
+              agentId: { type: 'string', description: 'The agent to assign it to' },
+            },
+            required: ['taskId', 'agentId'],
+          },
+        },
+        {
+          name: 'collab_update_agent_status',
+          description: "Update an agent's status. Use to report progress, completion, or failure. Can include the agent's result output.",
+          inputSchema: {
+            type: 'object',
+            properties: {
+              agentId:        { type: 'string', description: 'The agent instance ID' },
+              status:         { type: 'string', enum: ['idle', 'working', 'waiting', 'completed', 'failed', 'terminated'], description: 'New status' },
+              result:         { type: 'string', description: 'Full result output (on completion)' },
+              resultSummary:  { type: 'string', description: 'Condensed result summary' },
+              errorMessage:   { type: 'string', description: 'Error details (on failure)' },
+              iterationCount: { type: 'number', description: 'Current iteration count' },
+              metadata:       { type: 'object', description: 'Extra data: model used, tokens, timing' },
+            },
+            required: ['agentId', 'status'],
+          },
+        },
+        {
+          name: 'collab_update_task_status',
+          description: "Update a task's status and optionally attach output, quality score, or review notes.",
+          inputSchema: {
+            type: 'object',
+            properties: {
+              taskId:        { type: 'string', description: 'The task ID' },
+              status:        { type: 'string', enum: ['claimed', 'in_progress', 'review', 'completed', 'failed', 'cancelled'], description: 'New status' },
+              output:        { type: 'string', description: 'Task output/result' },
+              outputSummary: { type: 'string', description: 'Condensed output' },
+              qualityScore:  { type: 'number', description: 'Quality assessment 0.0-1.0' },
+              reviewNotes:   { type: 'string', description: 'Reviewer feedback' },
+            },
+            required: ['taskId', 'status'],
+          },
+        },
+        {
+          name: 'collab_send_message',
+          description: "Send a message between agents. Use for coordination, questions, status updates, or passing results. Leave toAgentId empty for broadcast.",
+          inputSchema: {
+            type: 'object',
+            properties: {
+              sessionId:   { type: 'string', description: 'The coordination session' },
+              fromAgentId: { type: 'string', description: 'Sending agent ID' },
+              toAgentId:   { type: 'string', description: 'Receiving agent ID (omit for broadcast)' },
+              messageType: { type: 'string', enum: ['task_assignment', 'status_update', 'result', 'question', 'answer', 'coordination', 'error'], description: 'Message type' },
+              content:     { type: 'string', description: 'Message body' },
+              metadata:    { type: 'object', description: 'Extra data' },
+            },
+            required: ['sessionId', 'fromAgentId', 'messageType', 'content'],
+          },
+        },
+        {
+          name: 'collab_get_messages',
+          description: 'Get inter-agent messages for a session. Optionally filter by agent, time, or unread status.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              sessionId:   { type: 'string', description: 'The session' },
+              agentId:     { type: 'string', description: 'Filter by agent' },
+              since:       { type: 'string', description: 'ISO date — only messages after this time' },
+              unreadOnly:  { type: 'boolean', description: 'Only unread messages' },
+            },
+            required: ['sessionId'],
+          },
+        },
+        {
+          name: 'collab_get_session_status',
+          description: "Get full session status: agents, tasks, progress percentage, and message counts.",
+          inputSchema: {
+            type: 'object',
+            properties: {
+              sessionId: { type: 'string', description: 'The session ID' },
+            },
+            required: ['sessionId'],
+          },
+        },
+        {
+          name: 'collab_decompose_goal',
+          description: "Use AI to decompose a session's goal into a structured set of subtasks. Returns suggested tasks with titles, descriptions, types, and priorities. Does NOT auto-create tasks — just returns suggestions.",
+          inputSchema: {
+            type: 'object',
+            properties: {
+              sessionId: { type: 'string', description: 'The session whose goal to decompose' },
+            },
+            required: ['sessionId'],
+          },
+        },
+        {
+          name: 'collab_aggregate_results',
+          description: "Collect all completed agent/task results from a session and use AI to synthesize a final aggregated result. Updates the session with the final output.",
+          inputSchema: {
+            type: 'object',
+            properties: {
+              sessionId: { type: 'string', description: 'The session to aggregate' },
+            },
+            required: ['sessionId'],
+          },
+        },
+        {
+          name: 'collab_get_session_history',
+          description: 'List past coordination sessions for the user. Optionally filter by status or strategy.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              status:   { type: 'string', description: 'Filter by status' },
+              strategy: { type: 'string', description: 'Filter by strategy' },
+              limit:    { type: 'number', description: 'Max sessions (default: 20)' },
+              offset:   { type: 'number', description: 'Offset for pagination' },
+            },
+          },
+        },
+        {
+          name: 'collab_cleanup_session',
+          description: 'Terminate all running agents, cancel pending tasks, and close a coordination session. Use when done or when aborting.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              sessionId: { type: 'string', description: 'The session to clean up' },
+            },
+            required: ['sessionId'],
+          },
+        },
+        {
+          name: 'collab_heartbeat',
+          description: 'Agent heartbeat signal. Updates last-seen timestamp and checks for timed-out agents. Agents should call this periodically while working.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              agentId: { type: 'string', description: 'The agent sending a heartbeat' },
+            },
+            required: ['agentId'],
+          },
+        },
+        {
+          name: 'collab_list_active_agents',
+          description: 'List all active (idle, working, or waiting) agents in a session.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              sessionId: { type: 'string', description: 'The session' },
+            },
+            required: ['sessionId'],
+          },
+        },
+        {
+          name: 'collab_get_task_queue',
+          description: 'Get the task queue for a session. Optionally filter by task status.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              sessionId: { type: 'string', description: 'The session' },
+              status:    { type: 'string', description: 'Filter by task status' },
+            },
+            required: ['sessionId'],
+          },
+        },
+      ],
+      async (toolName, args) => {
+        try {
+          const actionMap: Record<string, string> = {
+            collab_create_session:       'create_session',
+            collab_spawn_agent:          'spawn_agent',
+            collab_create_task:          'create_task',
+            collab_assign_task:          'assign_task',
+            collab_update_agent_status:  'update_agent_status',
+            collab_update_task_status:   'update_task_status',
+            collab_send_message:         'send_message',
+            collab_get_messages:         'get_messages',
+            collab_get_session_status:   'get_session_status',
+            collab_decompose_goal:       'decompose_goal',
+            collab_aggregate_results:    'aggregate_results',
+            collab_get_session_history:  'get_session_history',
+            collab_cleanup_session:      'cleanup_session',
+            collab_heartbeat:            'heartbeat',
+            collab_list_active_agents:   'list_active_agents',
+            collab_get_task_queue:       'get_task_queue',
+          };
+          const action = actionMap[toolName];
+          if (!action) return { content: [{ type: 'text', text: `Unknown Collaborative Hub action: ${toolName}` }] };
+
+          const res = await fetch(`${baseUrl}/api/hub/collaborative`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-internal-token': process.env.INTERNAL_API_SECRET || 'holly-internal',
+            },
+            body: JSON.stringify({ action, ...args }),
+            signal: AbortSignal.timeout(30_000),
+          });
+          const data = await res.json();
+          return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
+        } catch (e: unknown) {
+          return { content: [{ type: 'text', text: `Collaborative Hub error: ${(e as Error).message}` }] };
         }
       }
     );

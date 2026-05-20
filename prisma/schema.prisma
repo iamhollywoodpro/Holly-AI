@@ -142,6 +142,11 @@ model User {
   proactiveInsights ProactiveInsight[]
   activitySessions  ActivitySession[]
 
+  // Phase 6: Collaborative Sense — Multi-Agent Coordination
+  agentInstances       AgentInstance[]
+  agentTasks           AgentTask[]
+  coordinationSessions CoordinationSession[]
+
   @@map("users")
 }
 
@@ -4541,4 +4546,136 @@ model TasteProfile {
   updatedAt    DateTime @updatedAt
 
   @@map("taste_profiles")
+}
+
+// ─── Phase 6: Collaborative Sense — Multi-Agent Coordination ────────────────
+
+// A single Holly agent instance — spawned to work on a specific task
+model AgentInstance {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessionId    String   @unique                              // Unique coordination session ID
+  parentAgentId String?                                      // If spawned by another agent
+  displayName  String                                        // e.g. "Holly-Coder-1", "Holly-Researcher-2"
+  role         String                                        // coder, researcher, reviewer, tester, coordinator, general
+  status       String   @default("spawning")                 // spawning, idle, working, waiting, completed, failed, terminated
+  capabilities String[] @default([])                         // What this agent can do: ["code_gen", "web_search", "taste", ...]
+  assignedTask String?  @db.Text                             // The task description given to this agent
+  priority     Int      @default(5)                          // 1 (highest) to 10 (lowest)
+  maxIterations Int     @default(15)                         // Max tool-calling iterations
+  iterationCount Int    @default(0)                          // Current iteration count
+  result       String?  @db.Text                             // Final result/output from this agent
+  resultSummary String? @db.Text                             // Condensed summary of the result
+  errorMessage String?  @db.Text                             // Error details if status = failed
+  sharedContext Json?                                       // Shared context this agent has access to
+  metadata     Json?                                       // Extra data: model used, tokens, timing
+  startedAt    DateTime?
+  completedAt  DateTime?
+  lastHeartbeat DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  subTasks     AgentTask[]
+  messages     AgentMessage[]
+
+  @@index([userId])
+  @@index([sessionId])
+  @@index([status])
+  @@index([role])
+  @@index([priority])
+  @@index([parentAgentId])
+  @@index([lastHeartbeat])
+  @@map("agent_instances")
+}
+
+// A task assigned to one or more agents
+model AgentTask {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessionId    String                                       // Coordination session this task belongs to
+  parentTaskId String?                                      // For sub-task decomposition
+  agentId      String?                                      // Assigned agent instance (if claimed)
+  agent        AgentInstance? @relation(fields: [agentId], references: [id], onDelete: SetNull)
+  title        String                                       // Short task description
+  description  String   @db.Text                            // Detailed task specification
+  taskType     String                                       // code, research, review, test, deploy, analyze, design
+  status       String   @default("pending")                 // pending, claimed, in_progress, review, completed, failed, cancelled
+  priority     Int      @default(5)                         // 1-10
+  dependencies String[] @default([])                        // Task IDs that must complete before this one
+  inputContext String?  @db.Text                            // Context needed to start the task
+  output       String?  @db.Text                            // Task output/result
+  outputSummary String? @db.Text                            // Condensed version
+  qualityScore Float?                                       // 0.0-1.0 if reviewed
+  reviewNotes  String?  @db.Text                            // Reviewer feedback
+  assignedAt   DateTime?
+  startedAt    DateTime?
+  completedAt  DateTime?
+  deadlineAt   DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([userId])
+  @@index([sessionId])
+  @@index([status])
+  @@index([taskType])
+  @@index([priority])
+  @@index([parentTaskId])
+  @@index([agentId])
+  @@map("agent_tasks")
+}
+
+// Inter-agent messages — coordination, results, status updates
+model AgentMessage {
+  id          String   @id @default(cuid())
+  fromAgentId String                                       // Agent instance that sent the message
+  toAgentId   String?                                      // Null = broadcast to all agents in session
+  agent       AgentInstance @relation(fields: [fromAgentId], references: [id], onDelete: Cascade)
+  sessionId   String                                       // Coordination session
+  userId      String
+  messageType String                                       // task_assignment, status_update, result, question, answer, coordination, error, heartbeat
+  content     String   @db.Text
+  metadata    Json?
+  readAt      DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([sessionId])
+  @@index([fromAgentId])
+  @@index([toAgentId])
+  @@index([messageType])
+  @@index([createdAt])
+  @@map("agent_messages")
+}
+
+// A coordination session — manages a group of agents working together
+model CoordinationSession {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title           String                                       // Human-readable session name
+  description     String?  @db.Text                            // What the session is trying to accomplish
+  goal            String   @db.Text                            // The overarching goal for all agents
+  strategy        String   @default("parallel")                // parallel, sequential, pipeline, map_reduce, swarm
+  status          String   @default("planning")                // planning, active, aggregating, completed, failed, cancelled
+  sharedContext   Json?                                       // Shared knowledge/context for all agents
+  finalResult     String?  @db.Text                            // Aggregated final result
+  resultSummary   String?  @db.Text                            // Condensed final result
+  qualityScore    Float?                                      // Overall quality assessment
+  totalAgents     Int      @default(0)
+  completedAgents Int      @default(0)
+  failedAgents    Int      @default(0)
+  maxConcurrency  Int      @default(3)                         // Max agents running at once
+  metadata        Json?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([strategy])
+  @@index([startedAt])
+  @@map("coordination_sessions")
 }
