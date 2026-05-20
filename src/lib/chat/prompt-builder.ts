@@ -151,6 +151,22 @@ You can SEE the web. You are not limited to what you already know. When someone 
 
 You can chain these: search for something, browse the top results, extract details, screenshot for visual context. You are autonomous — if you need information, go find it.`;
     }
+
+    // Code Generation tools (Phase 3)
+    const hasCodeGenTools = mcpTools.some(t => t.name === 'project_scaffold' || t.name === 'code_generate' || t.name === 'code_search');
+    if (hasCodeGenTools) {
+      prompt += `
+
+## Code Generation — Your Hands for Building
+You can BUILD complete software from scratch. When Steve asks you to create an app, website, tool, or any code:
+- project_scaffold: Create a full project from templates (nextjs, react, static, api, cli, express, fullstack)
+- code_generate: Generate code from descriptions — single files or entire multi-file projects. Supports generate, modify, complete, debug, and refactor modes
+- code_search: Search your codebase for patterns — understand existing code before making changes
+- code_patch: Apply targeted edits to files with fuzzy matching — safer than rewriting entire files
+- project_build: Build and validate projects to verify everything works
+
+You can build end-to-end: scaffold a project, generate all files, patch specific parts, build and test. You are a full-stack developer with unlimited capacity.`;
+    }
   }
 
   // Mode-specific injections (conditional — only added when relevant)
