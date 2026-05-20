@@ -176,6 +176,9 @@ export class MCPClientManager {
 
     // 6. Builder Hub — HTTP proxy for starting build sessions from chat
     this._registerBuilderHub();
+
+    // 7. Web Sense Hub — HTTP proxy for deep search, browsing, screenshots, and interaction
+    this._registerWebSenseHub();
   }
 
   // ── AURA Hub registration ──────────────────────────────────────────────────
@@ -585,6 +588,170 @@ export class MCPClientManager {
           };
         } catch (e: unknown) {
           return { content: [{ type: 'text', text: `Builder Hub error: ${(e as Error).message}` }] };
+        }
+      }
+    );
+  }
+
+  // ── Web Sense Hub registration ───────────────────────────────────────────
+  // HTTP-based web tools — deep search, browsing, screenshots, and interaction.
+  // These give Holly the ability to see and explore the internet autonomously.
+  private _registerWebSenseHub(): void {
+    const baseUrl = this._getBaseUrl();
+    this.registerHttpServer(
+      'web-sense-hub',
+      [
+        {
+          name: 'web_deep_search',
+          description: 'Deep web search — searches Google (via Serper.dev) or DuckDuckGo, returns comprehensive results with summaries, key insights, and source URLs. Use this for research, finding information, checking facts, or exploring topics.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              query: { type: 'string', description: 'Search query — what to search for' },
+              type: { type: 'string', enum: ['quick', 'comprehensive'], description: 'quick = just results, comprehensive = full summary + insights (default: comprehensive)' },
+              maxResults: { type: 'number', description: 'Max number of results (default: 10)' },
+              timeRange: { type: 'string', enum: ['day', 'week', 'month', 'year', 'all'], description: 'Time range filter (default: all)' },
+            },
+            required: ['query'],
+          },
+        },
+        {
+          name: 'web_browse',
+          description: 'Navigate to any URL and read its content. Returns the page title, text content, and links. Can also click elements, fill forms, and take screenshots. Use this to visit websites, read articles, test your own UI, or interact with web pages.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              action: {
+                type: 'string',
+                enum: ['navigate', 'click', 'fill', 'screenshot', 'extract_text', 'extract_links', 'quick_fetch'],
+                description: 'What to do: navigate to URL, click element, fill form field, take screenshot, extract text/links, or quick_fetch (grab page without keeping session)',
+              },
+              url: { type: 'string', description: 'URL to navigate to (for navigate/quick_fetch actions)' },
+              sessionId: { type: 'string', description: 'Browser session ID (returned from navigate). Required for click/fill/screenshot/extract actions.' },
+              selector: { type: 'string', description: 'CSS selector for click/fill actions (e.g. "button.submit", "#search-input")' },
+              value: { type: 'string', description: 'Value to fill in (for fill action)' },
+              fullPage: { type: 'boolean', description: 'Take full-page screenshot (default: false, viewport only)' },
+            },
+            required: ['action'],
+          },
+        },
+        {
+          name: 'web_screenshot',
+          description: 'Take a screenshot of any URL or the current browser session. Returns a PNG image as base64. Use this to visually inspect websites, your own UI, or capture visual content.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              url: { type: 'string', description: 'URL to screenshot (creates a temporary session)' },
+              sessionId: { type: 'string', description: 'Existing browser session ID (alternative to url)' },
+              fullPage: { type: 'boolean', description: 'Capture full page (default: viewport only)' },
+              width: { type: 'number', description: 'Viewport width (default: 1920)' },
+              height: { type: 'number', description: 'Viewport height (default: 1080)' },
+            },
+          },
+        },
+      ],
+      async (toolName, args) => {
+        try {
+          // web_deep_search → /api/web-agent/deep-search
+          if (toolName === 'web_deep_search') {
+            const res = await fetch(`${baseUrl}/api/web-agent/deep-search`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'x-internal-token': process.env.INTERNAL_API_SECRET || 'holly-internal',
+              },
+              body: JSON.stringify(args),
+              signal: AbortSignal.timeout(30_000),
+            });
+            const data = await res.json();
+            return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
+          }
+
+          // web_browse → /api/web-agent/browse
+          if (toolName === 'web_browse') {
+            const res = await fetch(`${baseUrl}/api/web-agent/browse`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'x-internal-token': process.env.INTERNAL_API_SECRET || 'holly-internal',
+              },
+              body: JSON.stringify(args),
+              signal: AbortSignal.timeout(30_000),
+            });
+            const data = await res.json();
+            return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
+          }
+
+          // web_screenshot → /api/web-agent/browse with screenshot action
+          if (toolName === 'web_screenshot') {
+            // If URL provided, do a quick navigate + screenshot
+            if (args.url && !args.sessionId) {
+              const browseRes = await fetch(`${baseUrl}/api/web-agent/browse`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'x-internal-token': process.env.INTERNAL_API_SECRET || 'holly-internal',
+                },
+                body: JSON.stringify({ action: 'create_session' }),
+                signal: AbortSignal.timeout(10_000),
+              });
+              const sessionData = await browseRes.json();
+              if (sessionData.sessionId) {
+                // Navigate
+                await fetch(`${baseUrl}/api/web-agent/browse`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'x-internal-token': process.env.INTERNAL_API_SECRET || 'holly-internal',
+                  },
+                  body: JSON.stringify({ action: 'navigate', url: args.url, sessionId: sessionData.sessionId }),
+                  signal: AbortSignal.timeout(15_000),
+                });
+                // Screenshot
+                const ssRes = await fetch(`${baseUrl}/api/web-agent/browse`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'x-internal-token': process.env.INTERNAL_API_SECRET || 'holly-internal',
+                  },
+                  body: JSON.stringify({ action: 'screenshot', sessionId: sessionData.sessionId, fullPage: args.fullPage }),
+                  signal: AbortSignal.timeout(15_000),
+                });
+                const ssData = await ssRes.json();
+                // Clean up
+                await fetch(`${baseUrl}/api/web-agent/browse`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'x-internal-token': process.env.INTERNAL_API_SECRET || 'holly-internal',
+                  },
+                  body: JSON.stringify({ action: 'close_session', sessionId: sessionData.sessionId }),
+                  signal: AbortSignal.timeout(5_000),
+                });
+                return { content: [{ type: 'text', text: JSON.stringify(ssData, null, 2) }] };
+              }
+              return { content: [{ type: 'text', text: 'Failed to create browser session for screenshot' }] };
+            }
+            // Existing session screenshot
+            if (args.sessionId) {
+              const ssRes = await fetch(`${baseUrl}/api/web-agent/browse`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'x-internal-token': process.env.INTERNAL_API_SECRET || 'holly-internal',
+                },
+                body: JSON.stringify({ action: 'screenshot', sessionId: args.sessionId, fullPage: args.fullPage }),
+                signal: AbortSignal.timeout(15_000),
+              });
+              const ssData = await ssRes.json();
+              return { content: [{ type: 'text', text: JSON.stringify(ssData, null, 2) }] };
+            }
+            return { content: [{ type: 'text', text: 'Provide either url or sessionId for screenshot' }] };
+          }
+
+          return { content: [{ type: 'text', text: `Unknown Web Sense action: ${toolName}` }] };
+        } catch (e: unknown) {
+          return { content: [{ type: 'text', text: `Web Sense Hub error: ${(e as Error).message}` }] };
         }
       }
     );
