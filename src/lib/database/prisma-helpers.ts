@@ -14,8 +14,12 @@ type TableName =
   | 'users'
   | 'emotion_logs'
   | 'emotional_baselines'
-  // Removed: 'taste_signals' - model doesn't exist
-  // Removed: 'taste_profiles' - model doesn't exist
+  | 'taste_signals'
+  | 'taste_profiles'
+  | 'temporal_events'
+  | 'temporal_patterns'
+  | 'proactive_insights'
+  | 'activity_sessions'
   | 'projects'
   | 'milestones'
   | 'transactions'
@@ -164,8 +168,12 @@ export class PrismaQueryBuilder<T = any> {
       'users': prisma.user,
       'emotion_logs': prisma.emotionLog,
       'emotional_baselines': prisma.emotionalBaseline,
-      // 'taste_signals': prisma.tasteSignal, // Model doesn't exist
-      // 'taste_profiles': prisma.tasteProfile, // Model doesn't exist
+      'taste_signals': prisma.tasteSignal,
+      'taste_profiles': prisma.tasteProfile,
+      'temporal_events': prisma.temporalEvent,
+      'temporal_patterns': prisma.temporalPattern,
+      'proactive_insights': prisma.proactiveInsight,
+      'activity_sessions': prisma.activitySession,
       'projects': prisma.project,
       'milestones': prisma.milestone,
       'transactions': prisma.transaction,
@@ -242,8 +250,12 @@ export const db = {
       'users': prisma.user,
       'emotion_logs': prisma.emotionLog,
       'emotional_baselines': prisma.emotionalBaseline,
-      // 'taste_signals': prisma.tasteSignal, // Model doesn't exist
-      // 'taste_profiles': prisma.tasteProfile, // Model doesn't exist
+      'taste_signals': prisma.tasteSignal,
+      'taste_profiles': prisma.tasteProfile,
+      'temporal_events': prisma.temporalEvent,
+      'temporal_patterns': prisma.temporalPattern,
+      'proactive_insights': prisma.proactiveInsight,
+      'activity_sessions': prisma.activitySession,
       'projects': prisma.project,
       'milestones': prisma.milestone,
       'transactions': prisma.transaction,
