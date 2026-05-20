@@ -179,6 +179,9 @@ export class MCPClientManager {
 
     // 7. Web Sense Hub — HTTP proxy for deep search, browsing, screenshots, and interaction
     this._registerWebSenseHub();
+
+    // 8. Code Gen Hub — HTTP proxy for project scaffolding, code generation, search, and patching
+    this._registerCodeGenHub();
   }
 
   // ── AURA Hub registration ──────────────────────────────────────────────────
@@ -752,6 +755,121 @@ export class MCPClientManager {
           return { content: [{ type: 'text', text: `Unknown Web Sense action: ${toolName}` }] };
         } catch (e: unknown) {
           return { content: [{ type: 'text', text: `Web Sense Hub error: ${(e as Error).message}` }] };
+        }
+      }
+    );
+  }
+
+  // ── Code Gen Hub registration ───────────────────────────────────────────
+  // HTTP-based code generation tools — scaffold, generate, search, patch.
+  // These give Holly the ability to build complete applications from scratch.
+  private _registerCodeGenHub(): void {
+    const baseUrl = this._getBaseUrl();
+    this.registerHttpServer(
+      'code-gen-hub',
+      [
+        {
+          name: 'project_scaffold',
+          description: 'Scaffold a new project from a template. Creates a complete project structure with all necessary files. Templates: nextjs, react, static, api, cli, express, fullstack. Use this when starting a new project from scratch.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              name: { type: 'string', description: 'Project name (lowercase, hyphens allowed)' },
+              template: { type: 'string', enum: ['nextjs', 'react', 'static', 'api', 'cli', 'express', 'fullstack'], description: 'Project template type' },
+              description: { type: 'string', description: 'Brief project description' },
+              typescript: { type: 'boolean', description: 'Use TypeScript (default: true)' },
+              tailwind: { type: 'boolean', description: 'Include Tailwind CSS (nextjs/react only, default: true)' },
+              database: { type: 'string', enum: ['sqlite', 'postgres', 'mongodb', 'none'], description: 'Database to include (default: none)' },
+            },
+            required: ['name', 'template'],
+          },
+        },
+        {
+          name: 'code_generate',
+          description: 'Generate code from a description. Can generate single or multiple files. Supports generate, modify, complete, debug, and refactor modes. Uses Holly\'s Smart Router to pick the best model for the task.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              prompt: { type: 'string', description: 'What to generate — be specific about what the code should do' },
+              language: { type: 'string', description: 'Programming language (default: typescript)' },
+              framework: { type: 'string', description: 'Framework to use (e.g. react, express, nextjs)' },
+              fileName: { type: 'string', description: 'Target file name (optional)' },
+              context: { type: 'string', description: 'Additional context — existing code, related files, requirements' },
+              existingCode: { type: 'string', description: 'Existing code to modify/complete/debug (for modify/debug/refactor/complete modes)' },
+              mode: { type: 'string', enum: ['generate', 'modify', 'complete', 'debug', 'refactor'], description: 'Generation mode (default: generate)' },
+            },
+            required: ['prompt'],
+          },
+        },
+        {
+          name: 'code_search',
+          description: 'Search across a codebase for code patterns. Returns matching files with line numbers and context. Use this to understand existing code before making changes.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              query: { type: 'string', description: 'Search query — text or regex pattern' },
+              directory: { type: 'string', description: 'Directory to search in (default: current directory)' },
+              filePattern: { type: 'string', description: 'File glob pattern filter (e.g. "*.tsx", "*.py")' },
+              maxResults: { type: 'number', description: 'Maximum results (default: 50)' },
+              caseSensitive: { type: 'boolean', description: 'Case sensitive search (default: false)' },
+            },
+            required: ['query'],
+          },
+        },
+        {
+          name: 'code_patch',
+          description: 'Apply a targeted patch to a file. Finds specific content and replaces it. Uses fuzzy matching to handle minor whitespace differences. Safer than rewriting entire files.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              filePath: { type: 'string', description: 'Path to the file to patch' },
+              oldContent: { type: 'string', description: 'Content to find (provide enough context for a unique match)' },
+              newContent: { type: 'string', description: 'Replacement content' },
+              replaceAll: { type: 'boolean', description: 'Replace all occurrences (default: false — requires unique match)' },
+            },
+            required: ['filePath', 'oldContent', 'newContent'],
+          },
+        },
+        {
+          name: 'project_build',
+          description: 'Build, test, and validate a project. Runs the build command and reports results. Use this after generating or modifying code to verify everything works.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              directory: { type: 'string', description: 'Project directory to build' },
+              command: { type: 'string', description: 'Build command (default: auto-detected from package.json)' },
+              timeout: { type: 'number', description: 'Timeout in seconds (default: 120)' },
+            },
+            required: ['directory'],
+          },
+        },
+      ],
+      async (toolName, args) => {
+        try {
+          const res = await fetch(`${baseUrl}/api/code-gen`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-internal-token': process.env.INTERNAL_API_SECRET || 'holly-internal',
+            },
+            body: JSON.stringify({
+              action: toolName === 'project_scaffold' ? 'scaffold'
+                    : toolName === 'code_generate' ? 'generate'
+                    : toolName === 'code_search' ? 'search'
+                    : toolName === 'code_patch' ? 'apply-patch'
+                    : toolName === 'project_build' ? 'build'
+                    : toolName,
+              options: toolName === 'project_scaffold' ? args : undefined,
+              request: toolName === 'code_generate' ? args : undefined,
+              patch: toolName === 'code_patch' ? args : undefined,
+              searchOptions: toolName === 'code_search' ? args : undefined,
+            }),
+            signal: AbortSignal.timeout(60_000),
+          });
+          const data = await res.json();
+          return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
+        } catch (e: unknown) {
+          return { content: [{ type: 'text', text: `Code Gen Hub error: ${(e as Error).message}` }] };
         }
       }
     );
