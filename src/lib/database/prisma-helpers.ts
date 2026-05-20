@@ -27,7 +27,15 @@ type TableName =
   | 'deployments'
   | 'audit_logs'
   | 'user_stats'
-  | 'recent_activity';
+  | 'recent_activity'
+  | 'agent_instances'
+  | 'agent_tasks'
+  | 'agent_messages'
+  | 'coordination_sessions'
+  | 'lifecycle_projects'
+  | 'lifecycle_deployments'
+  | 'monitoring_alerts'
+  | 'client_handoffs';
   // Removed: 'holly-images', 'holly-audio', 'holly-video' - models don't exist
   // Removed: 'songs', 'song-stems', 'music_videos' - models don't exist
 
@@ -264,6 +272,14 @@ export const db = {
       'audit_logs': prisma.auditLog,
       'user_stats': prisma.userStats,
       'recent_activity': prisma.recentActivity,
+      'agent_instances': prisma.agentInstance,
+      'agent_tasks': prisma.agentTask,
+      'agent_messages': prisma.agentMessage,
+      'coordination_sessions': prisma.coordinationSession,
+      'lifecycle_projects': prisma.lifecycleProject,
+      'lifecycle_deployments': prisma.lifecycleDeployment,
+      'monitoring_alerts': prisma.monitoringAlert,
+      'client_handoffs': prisma.clientHandoff,
       // 'holly-images': prisma.hollyImage, // Model doesn't exist
       // 'holly-audio': prisma.hollyAudio, // Model doesn't exist
       // 'holly-video': prisma.hollyVideo, // Model doesn't exist

@@ -192,6 +192,9 @@ export class MCPClientManager {
 
     // 11. Collaborative Sense Hub — HTTP proxy for multi-agent coordination, task delegation, result aggregation
     this._registerCollaborativeHub();
+
+    // 12. Project Lifecycle Hub — HTTP proxy for full project building, deployment, monitoring, and client handoff
+    this._registerProjectHub();
   }
 
   // ── AURA Hub registration ──────────────────────────────────────────────────
@@ -1548,6 +1551,436 @@ export class MCPClientManager {
 
   isConnected(serverId: string): boolean {
     return this.clients.has(serverId) || this.httpServers.has(serverId);
+  }
+
+  // ── Project Lifecycle Hub registration (Phase 7) ──────────────────────────
+  private _registerProjectHub(): void {
+    const baseUrl = this._getBaseUrl();
+    this.registerHttpServer(
+      'project-hub',
+      [
+        // PROJECT
+        {
+          name: 'project_create',
+          description: 'HOLLY Project Lifecycle — create a new project. Input: name (required), description, clientName, clientEmail, stack (nextjs/react/static/express/fullstack), framework, database, hostingTargets, deadline, tags.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              name: { type: 'string', description: 'Project name (required)' },
+              description: { type: 'string', description: 'Project description' },
+              clientName: { type: 'string', description: 'Client or org name' },
+              clientEmail: { type: 'string', description: 'Client contact email' },
+              stack: { type: 'string', description: 'Tech stack: nextjs, react, static, express, fullstack' },
+              framework: { type: 'string', description: 'Specific framework version' },
+              database: { type: 'string', description: 'Database: postgres, mysql, sqlite, none' },
+              hostingTargets: { type: 'array', items: { type: 'string' }, description: 'Hosting platforms: vercel, netlify, aws, coolify, railway, digitalocean' },
+              deadline: { type: 'string', description: 'Project deadline (ISO date)' },
+              tags: { type: 'array', items: { type: 'string' }, description: 'Project tags' },
+            },
+            required: ['name'],
+          },
+        },
+        {
+          name: 'project_get',
+          description: 'Get a project with all deployments, alerts, and handoffs.',
+          inputSchema: {
+            type: 'object',
+            properties: { projectId: { type: 'string', description: 'Project ID' } },
+            required: ['projectId'],
+          },
+        },
+        {
+          name: 'project_list',
+          description: 'List projects with optional status filter.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              status: { type: 'string', description: 'Filter by status: ideation, planning, scaffolding, developing, testing, staging, deploying, live, maintenance, archived' },
+              limit: { type: 'number', description: 'Max results (default 50)' },
+            },
+          },
+        },
+        {
+          name: 'project_update_status',
+          description: 'Update project status. Automatically manages timestamps (startedAt, deliveredAt, archivedAt).',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              projectId: { type: 'string' },
+              status: { type: 'string', description: 'New status' },
+              phase: { type: 'string', description: 'Current workflow phase' },
+            },
+            required: ['projectId', 'status'],
+          },
+        },
+        {
+          name: 'project_update_quality',
+          description: 'Update project quality scores: qualityScore, testCoverage, performanceScore, accessibilityScore, securityScore (0-100 each).',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              projectId: { type: 'string' },
+              qualityScore: { type: 'number' },
+              testCoverage: { type: 'number' },
+              performanceScore: { type: 'number' },
+              accessibilityScore: { type: 'number' },
+              securityScore: { type: 'number' },
+            },
+            required: ['projectId'],
+          },
+        },
+        {
+          name: 'project_generate_brief',
+          description: 'AI-generate a comprehensive project brief from the project details.',
+          inputSchema: {
+            type: 'object',
+            properties: { projectId: { type: 'string' } },
+            required: ['projectId'],
+          },
+        },
+        {
+          name: 'project_generate_architecture',
+          description: 'AI-generate architecture documentation for the project.',
+          inputSchema: {
+            type: 'object',
+            properties: { projectId: { type: 'string' } },
+            required: ['projectId'],
+          },
+        },
+        {
+          name: 'project_generate_roadmap',
+          description: 'AI-generate a phased development roadmap for the project.',
+          inputSchema: {
+            type: 'object',
+            properties: { projectId: { type: 'string' } },
+            required: ['projectId'],
+          },
+        },
+        {
+          name: 'project_archive',
+          description: 'Archive a project.',
+          inputSchema: {
+            type: 'object',
+            properties: { projectId: { type: 'string' } },
+            required: ['projectId'],
+          },
+        },
+        {
+          name: 'project_delete',
+          description: 'Permanently delete a project and all associated data.',
+          inputSchema: {
+            type: 'object',
+            properties: { projectId: { type: 'string' } },
+            required: ['projectId'],
+          },
+        },
+        // DEPLOYMENT
+        {
+          name: 'deployment_create',
+          description: 'Create a deployment record for a project. Supports: vercel, netlify, aws, coolify, railway, digitalocean.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              projectId: { type: 'string' },
+              platform: { type: 'string', description: 'Hosting platform' },
+              environment: { type: 'string', description: 'production, staging, preview' },
+              branch: { type: 'string' },
+              commitSha: { type: 'string' },
+              autoDeploy: { type: 'boolean' },
+              branchAutoDeploy: { type: 'string' },
+              customDomain: { type: 'string' },
+            },
+            required: ['projectId', 'platform'],
+          },
+        },
+        {
+          name: 'deployment_update',
+          description: 'Update deployment status (pending/building/deploying/live/failed/rolled_back).',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              deploymentId: { type: 'string' },
+              status: { type: 'string' },
+              error: { type: 'string' },
+              buildLog: { type: 'string' },
+              url: { type: 'string' },
+            },
+            required: ['deploymentId', 'status'],
+          },
+        },
+        {
+          name: 'deployment_record_metrics',
+          description: 'Record build/deploy performance metrics.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              deploymentId: { type: 'string' },
+              buildDurationSec: { type: 'number' },
+              deployDurationSec: { type: 'number' },
+              coldStartMs: { type: 'number' },
+            },
+            required: ['deploymentId'],
+          },
+        },
+        {
+          name: 'deployment_generate_pipeline',
+          description: 'AI-generate CI/CD pipeline configuration for a specific platform and stack.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              platform: { type: 'string', description: 'Target platform' },
+              stack: { type: 'string', description: 'Tech stack' },
+              framework: { type: 'string' },
+              database: { type: 'string' },
+              environment: { type: 'string' },
+            },
+            required: ['platform', 'stack'],
+          },
+        },
+        {
+          name: 'deployment_history',
+          description: 'Get full deployment history for a project with success rate and metrics.',
+          inputSchema: {
+            type: 'object',
+            properties: { projectId: { type: 'string' } },
+            required: ['projectId'],
+          },
+        },
+        {
+          name: 'deployment_rollback',
+          description: 'Rollback to the last successful deployment.',
+          inputSchema: {
+            type: 'object',
+            properties: { deploymentId: { type: 'string' } },
+            required: ['deploymentId'],
+          },
+        },
+        // MONITORING
+        {
+          name: 'monitoring_create_alert',
+          description: 'Create a monitoring alert (uptime/performance/error/security/ssl/cost).',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              projectId: { type: 'string' },
+              type: { type: 'string', description: 'Alert type' },
+              severity: { type: 'string', description: 'info, warning, critical, emergency' },
+              title: { type: 'string' },
+              description: { type: 'string' },
+              metric: { type: 'string' },
+              metricValue: { type: 'number' },
+              thresholdValue: { type: 'number' },
+            },
+            required: ['projectId', 'type', 'title'],
+          },
+        },
+        {
+          name: 'monitoring_get_alerts',
+          description: 'List monitoring alerts with filters.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              projectId: { type: 'string' },
+              status: { type: 'string' },
+              severity: { type: 'string' },
+              type: { type: 'string' },
+              limit: { type: 'number' },
+            },
+          },
+        },
+        {
+          name: 'monitoring_check_uptime',
+          description: 'Run an uptime check on a project by hitting its live URL.',
+          inputSchema: {
+            type: 'object',
+            properties: { projectId: { type: 'string' } },
+            required: ['projectId'],
+          },
+        },
+        {
+          name: 'monitoring_security_scan',
+          description: 'AI-powered security scan for a project. Generates vulnerability findings and updates security score.',
+          inputSchema: {
+            type: 'object',
+            properties: { projectId: { type: 'string' } },
+            required: ['projectId'],
+          },
+        },
+        {
+          name: 'monitoring_performance_audit',
+          description: 'AI-powered performance audit. Analyzes Core Web Vitals and generates optimization recommendations.',
+          inputSchema: {
+            type: 'object',
+            properties: { projectId: { type: 'string' } },
+            required: ['projectId'],
+          },
+        },
+        {
+          name: 'monitoring_acknowledge_alert',
+          description: 'Acknowledge a monitoring alert.',
+          inputSchema: {
+            type: 'object',
+            properties: { alertId: { type: 'string' } },
+            required: ['alertId'],
+          },
+        },
+        {
+          name: 'monitoring_resolve_alert',
+          description: 'Resolve a monitoring alert.',
+          inputSchema: {
+            type: 'object',
+            properties: { alertId: { type: 'string' }, resolvedBy: { type: 'string' } },
+            required: ['alertId'],
+          },
+        },
+        {
+          name: 'monitoring_escalate_alert',
+          description: 'Escalate a monitoring alert (increases severity and escalation level).',
+          inputSchema: {
+            type: 'object',
+            properties: { alertId: { type: 'string' } },
+            required: ['alertId'],
+          },
+        },
+        {
+          name: 'monitoring_get_health',
+          description: 'Get overall project health: active alerts, quality scores, recent deployments, health status.',
+          inputSchema: {
+            type: 'object',
+            properties: { projectId: { type: 'string' } },
+            required: ['projectId'],
+          },
+        },
+        {
+          name: 'monitoring_cleanup_alerts',
+          description: 'Delete old resolved alerts (default: older than 30 days).',
+          inputSchema: {
+            type: 'object',
+            properties: { olderThanDays: { type: 'number' } },
+          },
+        },
+        // HANDOFF
+        {
+          name: 'handoff_create',
+          description: 'Create a client handoff package for a project.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              projectId: { type: 'string' },
+              version: { type: 'string', description: 'Handoff version (default 1.0)' },
+              supportDays: { type: 'number', description: 'Days of post-handoff support (default 30)' },
+            },
+            required: ['projectId'],
+          },
+        },
+        {
+          name: 'handoff_generate_all_docs',
+          description: 'AI-generate ALL client handoff documents: overview, architecture, API docs, deployment guide, maintenance guide, troubleshooting, security notes, cost estimate.',
+          inputSchema: {
+            type: 'object',
+            properties: { projectId: { type: 'string' } },
+            required: ['projectId'],
+          },
+        },
+        {
+          name: 'handoff_deliver',
+          description: 'Mark a handoff as delivered to the client. Starts the support period.',
+          inputSchema: {
+            type: 'object',
+            properties: { handoffId: { type: 'string' } },
+            required: ['handoffId'],
+          },
+        },
+        {
+          name: 'handoff_accept',
+          description: 'Record client acceptance of a handoff with optional feedback and rating.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              handoffId: { type: 'string' },
+              feedback: { type: 'string', description: 'Client feedback text' },
+              rating: { type: 'number', description: 'Client rating 1-5 stars' },
+            },
+            required: ['handoffId'],
+          },
+        },
+        {
+          name: 'handoff_get',
+          description: 'Get a handoff with project relation.',
+          inputSchema: {
+            type: 'object',
+            properties: { handoffId: { type: 'string' } },
+            required: ['handoffId'],
+          },
+        },
+        {
+          name: 'handoff_list',
+          description: 'List handoffs with optional filters.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              projectId: { type: 'string' },
+              status: { type: 'string', description: 'draft, review, delivered, accepted' },
+              limit: { type: 'number' },
+            },
+          },
+        },
+      ],
+      async (toolName: string, args: Record<string, unknown>) => {
+        try {
+          const baseUrl = this._getBaseUrl();
+          const actionMap: Record<string, string> = {
+            project_create: 'create_project',
+            project_get: 'get_project',
+            project_list: 'list_projects',
+            project_update_status: 'update_project_status',
+            project_update_quality: 'update_quality',
+            project_generate_brief: 'generate_brief',
+            project_generate_architecture: 'generate_architecture',
+            project_generate_roadmap: 'generate_roadmap',
+            project_archive: 'archive_project',
+            project_delete: 'delete_project',
+            deployment_create: 'create_deployment',
+            deployment_update: 'update_deployment',
+            deployment_record_metrics: 'record_build_metrics',
+            deployment_generate_pipeline: 'generate_pipeline',
+            deployment_history: 'deployment_history',
+            deployment_rollback: 'rollback_deployment',
+            monitoring_create_alert: 'create_alert',
+            monitoring_get_alerts: 'get_alerts',
+            monitoring_check_uptime: 'check_uptime',
+            monitoring_security_scan: 'run_security_scan',
+            monitoring_performance_audit: 'run_performance_audit',
+            monitoring_acknowledge_alert: 'acknowledge_alert',
+            monitoring_resolve_alert: 'resolve_alert',
+            monitoring_escalate_alert: 'escalate_alert',
+            monitoring_get_health: 'get_project_health',
+            monitoring_cleanup_alerts: 'cleanup_alerts',
+            handoff_create: 'create_handoff',
+            handoff_generate_all_docs: 'generate_all_docs',
+            handoff_deliver: 'deliver_handoff',
+            handoff_accept: 'accept_handoff',
+            handoff_get: 'get_handoff',
+            handoff_list: 'list_handoffs',
+          };
+
+          const action = actionMap[toolName];
+          if (!action) throw new Error(`Unknown project hub tool: ${toolName}`);
+
+          const res = await fetch(`${baseUrl}/api/hub/project`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-internal-token': process.env.INTERNAL_API_SECRET || 'holly-internal' },
+            body: JSON.stringify({ action, ...args }),
+          });
+
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || `Project Hub error: ${res.status}`);
+          return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
+        } catch (e) {
+          return { content: [{ type: 'text', text: `Project Hub error: ${(e as Error).message}` }] };
+        }
+      }
+    );
   }
 }
 

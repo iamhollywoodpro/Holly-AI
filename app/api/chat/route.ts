@@ -91,17 +91,46 @@ const TASTE_TOOLS = [
   'taste_detect_signals',  // Auto-detect implicit signals from messages
 ];
 
+// Project Lifecycle tools — Full project building, deployment, monitoring, handoff (Phase 7)
+const PROJECT_TOOLS = [
+  'project_create',              // Create a new lifecycle project
+  'project_get',                 // Get project with deployments, alerts, handoffs
+  'project_list',                // List projects with filters
+  'project_update_status',       // Update project status
+  'project_update_quality',      // Update quality scores
+  'project_generate_brief',      // AI-generate project brief
+  'project_generate_architecture',// AI-generate architecture docs
+  'project_generate_roadmap',    // AI-generate development roadmap
+  'project_archive',             // Archive a project
+  'deployment_create',           // Create deployment record
+  'deployment_update',           // Update deployment status
+  'deployment_record_metrics',   // Record build/deploy metrics
+  'deployment_generate_pipeline',// AI-generate CI/CD config
+  'deployment_history',          // Get deployment history
+  'deployment_rollback',         // Rollback deployment
+  'monitoring_create_alert',     // Create monitoring alert
+  'monitoring_get_alerts',       // List alerts
+  'monitoring_check_uptime',     // Run uptime check
+  'monitoring_security_scan',    // AI security scan
+  'monitoring_performance_audit',// AI performance audit
+  'monitoring_get_health',       // Get project health
+  'handoff_create',              // Create client handoff
+  'handoff_generate_all_docs',   // AI-generate all handoff docs
+  'handoff_deliver',             // Deliver handoff to client
+  'handoff_accept',              // Accept handoff with feedback
+];
+
 const MODE_TOOL_FILTERS: Record<string, string[]> = {
-  'default':           [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...CODE_GEN_TOOLS, ...TASTE_TOOLS, 'run_code', 'sentinel_analyze_code', 'sentinel_generate_code', 'memory_read', 'memory_write', 'self_code_apply', 'start_build'],
-  'deep-research':     [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...CODE_GEN_TOOLS, ...TASTE_TOOLS, 'memory_read', 'memory_list_keys', 'run_code', 'sentinel_analyze_code'],
-  'self-coding':       [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...CODE_GEN_TOOLS, ...TASTE_TOOLS, 'run_code', 'sentinel_analyze_code', 'sentinel_generate_code', 'memory_read', 'memory_write', 'self_code_apply', 'trigger_deploy', 'local_read_file', 'local_write_file', 'diagnostic_check', 'read_logs', 'start_build', 'ui_screenshot', 'ui_analyze'],
-  'full-stack':        [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...CODE_GEN_TOOLS, ...TASTE_TOOLS, 'run_code', 'generate_image', 'memory_read', 'memory_write', 'sentinel_analyze_code', 'sentinel_generate_code', 'self_code_apply', 'trigger_deploy', 'start_build', 'ui_screenshot', 'ui_analyze'],
-  'write-code':        [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...CODE_GEN_TOOLS, ...TASTE_TOOLS, 'run_code', 'memory_read', 'sentinel_analyze_code', 'sentinel_generate_code', 'self_code_apply', 'trigger_deploy', 'start_build'],
-  'music-generation':  [...GITHUB_SELF_EDIT_TOOLS, ...TASTE_TOOLS, 'generate_music', 'hybrid_studio', 'memory_read'],
+  'default':           [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...CODE_GEN_TOOLS, ...TASTE_TOOLS, ...PROJECT_TOOLS, 'run_code', 'sentinel_analyze_code', 'sentinel_generate_code', 'memory_read', 'memory_write', 'self_code_apply', 'start_build'],
+  'deep-research':     [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...CODE_GEN_TOOLS, ...TASTE_TOOLS, ...PROJECT_TOOLS, 'memory_read', 'memory_list_keys', 'run_code', 'sentinel_analyze_code'],
+  'self-coding':       [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...CODE_GEN_TOOLS, ...TASTE_TOOLS, ...PROJECT_TOOLS, 'run_code', 'sentinel_analyze_code', 'sentinel_generate_code', 'memory_read', 'memory_write', 'self_code_apply', 'trigger_deploy', 'local_read_file', 'local_write_file', 'diagnostic_check', 'read_logs', 'start_build', 'ui_screenshot', 'ui_analyze'],
+  'full-stack':        [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...CODE_GEN_TOOLS, ...TASTE_TOOLS, ...PROJECT_TOOLS, 'run_code', 'generate_image', 'memory_read', 'memory_write', 'sentinel_analyze_code', 'sentinel_generate_code', 'self_code_apply', 'trigger_deploy', 'start_build', 'ui_screenshot', 'ui_analyze'],
+  'write-code':        [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...CODE_GEN_TOOLS, ...TASTE_TOOLS, ...PROJECT_TOOLS, 'run_code', 'memory_read', 'sentinel_analyze_code', 'sentinel_generate_code', 'self_code_apply', 'trigger_deploy', 'start_build'],
+  'music-generation':  [...GITHUB_SELF_EDIT_TOOLS, ...TASTE_TOOLS, ...PROJECT_TOOLS, 'generate_music', 'hybrid_studio', 'memory_read'],
   'music-studio':      [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...TASTE_TOOLS, 'generate_music', 'hybrid_studio', 'aura_ar_analyze', 'aura_quick_rate', 'memory_read', 'memory_write'],
   'aura-ar':           [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...TASTE_TOOLS, 'aura_ar_analyze', 'aura_quick_rate', 'aura_analyze_song', 'memory_read'],
-  'neural-autonomy':   [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...CODE_GEN_TOOLS, ...TASTE_TOOLS, 'local_read_file', 'local_write_file', 'run_code', 'memory_read', 'memory_write', 'diagnostic_check', 'read_logs', 'mirror_check', 'self_code_apply', 'trigger_deploy', 'sentinel_analyze_code', 'sentinel_generate_code', 'start_build', 'swarm_task'],
-  'magic-design':      [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...CODE_GEN_TOOLS, ...TASTE_TOOLS, 'generate_image', 'sentinel_analyze_code', 'sentinel_generate_code', 'run_code', 'memory_read', 'memory_write', 'self_code_apply', 'start_build'],
+  'neural-autonomy':   [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...CODE_GEN_TOOLS, ...TASTE_TOOLS, ...PROJECT_TOOLS, 'local_read_file', 'local_write_file', 'run_code', 'memory_read', 'memory_write', 'diagnostic_check', 'read_logs', 'mirror_check', 'self_code_apply', 'trigger_deploy', 'sentinel_analyze_code', 'sentinel_generate_code', 'start_build', 'swarm_task'],
+  'magic-design':      [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...CODE_GEN_TOOLS, ...TASTE_TOOLS, ...PROJECT_TOOLS, 'generate_image', 'sentinel_analyze_code', 'sentinel_generate_code', 'run_code', 'memory_read', 'memory_write', 'self_code_apply', 'start_build'],
   'philosophy':                [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...TASTE_TOOLS],
   'creative-writing':         [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...TASTE_TOOLS],
   'visual-arts':              [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...TASTE_TOOLS, 'generate_image'],
