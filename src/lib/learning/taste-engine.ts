@@ -21,13 +21,16 @@ import { prisma } from '@/lib/db';
 // ─── public types ─────────────────────────────────────────────────────────────
 
 export type TasteCategory = 'tone' | 'length' | 'format' | 'humor' | 'emoji' | 'technical' | 'topic';
-export type TasteSignal = 'positive' | 'negative' | 'neutral';
+export type TasteSignalType = 'positive' | 'negative' | 'neutral';
+
+/** @deprecated Use TasteSignalType to avoid clash with Prisma TasteSignal model */
+export type TasteSignal = TasteSignalType;
 
 export interface TasteSignalInput {
   category: TasteCategory;
   /** What this signal is about: "formal_tone", "bullet_lists", "code_blocks", etc. */
   item: string;
-  signal: TasteSignal;
+  signal: TasteSignalType;
   /** Brief context (will be truncated to 500 chars) */
   context?: string;
   weight?: number;
@@ -67,6 +70,7 @@ export class TasteEngine {
         data: {
           userId: this.userId,
           category: input.category,
+          item: input.item,
           signal: input.signal,
           context: (input.context ?? '').slice(0, 500),
           weight: input.weight ?? 1.0,
@@ -91,6 +95,7 @@ export class TasteEngine {
         data: inputs.map(input => ({
           userId: this.userId,
           category: input.category,
+          item: input.item,
           signal: input.signal,
           context: (input.context ?? '').slice(0, 500),
           weight: input.weight ?? 1.0,

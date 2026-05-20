@@ -11,7 +11,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { TasteEngine, TasteCategory, TasteSignal } from '@/lib/learning/taste-engine';
+import { TasteEngine, TasteCategory, TasteSignalType } from '@/lib/learning/taste-engine';
 import { getOrCreateUser } from '@/lib/user-manager';
 
 export const runtime = 'nodejs';
@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
 
     // Validate required fields
     const validCategories: TasteCategory[] = ['tone', 'length', 'format', 'humor', 'emoji', 'technical', 'topic'];
-    const validSignals: TasteSignal[] = ['positive', 'negative', 'neutral'];
+    const validSignals: TasteSignalType[] = ['positive', 'negative', 'neutral'];
 
     if (!validCategories.includes(category)) {
       return NextResponse.json(
