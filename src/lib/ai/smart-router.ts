@@ -56,7 +56,8 @@ export type TaskType =
   | 'agent'          // Multi-step tool chains, autonomous tasks
   | 'local'          // Privacy-first, offline
   | 'synthesis'      // Cross-domain parallel synthesis (AURA + Visual + Philosophy)
-  | 'consciousness'; // Holly's inner life — emotions, monologue, memory, identity (LOCAL FIRST)
+  | 'consciousness'  // Holly's inner life — emotions, monologue, memory, identity (LOCAL FIRST)
+  | 'unrestricted';  // Adult/uncensored content — routes to uncensored models
 
 // ─── Provider identifiers ─────────────────────────────────────────────────────
 
@@ -226,6 +227,30 @@ export const MODEL_CATALOGUE: Record<string, ModelSpec> = {
   'openrouter:nemotron-3-nano-omni': {
     provider: 'openrouter', model: 'nvidia/nemotron-3-nano-omni:free',
     displayName: 'Nemotron 3 Nano Omni 30B MoE (OpenRouter free)', contextK: 262, streaming: true,
+  },
+
+  // ── OpenRouter Uncensored Models (for unrestricted content) ──────────────
+  // These models have reduced safety training and won't refuse adult content.
+  // Only routed to when isUnrestrictedTopic() returns true.
+  'openrouter:dolphin-mixtral': {
+    provider: 'openrouter', model: 'cognitivecomputations/dolphin-mixtral-8x7b',
+    displayName: 'Dolphin Mixtral 8x7B (Uncensored)', contextK: 32, streaming: true,
+  },
+  'openrouter:nous-hermes': {
+    provider: 'openrouter', model: 'nousresearch/nous-hermes-2-mixtral-8x7b-dpo',
+    displayName: 'Nous Hermes 2 Mixtral (Uncensored)', contextK: 32, streaming: true,
+  },
+  'openrouter:mythomax-l2': {
+    provider: 'openrouter', model: 'gryphe/mythomax-l2-13b:free',
+    displayName: 'MythoMax L2 13B (Uncensored Free)', contextK: 4, streaming: true,
+  },
+  'openrouter:toppy-m-7b': {
+    provider: 'openrouter', model: 'undi95/toppy-m-7b:free',
+    displayName: 'Toppy M 7B (Uncensored Free)', contextK: 8, streaming: true,
+  },
+  'openrouter:openchat-3.5': {
+    provider: 'openrouter', model: 'openchat/openchat-7b:free',
+    displayName: 'OpenChat 3.5 7B (Uncensored Free)', contextK: 8, streaming: true,
   },
 
   // ── Holly's Own Brain — Qwen 3 8B (local Ollama, 24/7, zero cost) ────────
@@ -462,6 +487,21 @@ export const TASK_WATERFALLS: Record<TaskType, string[]> = {
     'google:gemini-2.5-flash',  // Deep cloud fallback
   ],
 
+  // 🔞 Unrestricted: Adult/uncensored content — routes to uncensored models
+  //    Only triggered when isUnrestrictedTopic() returns true.
+  //    These models have reduced safety training and won't refuse adult content.
+  //    Hard rules (CSAM, harm) are enforced BEFORE routing, at the Holly level.
+  unrestricted: [
+    'openrouter:dolphin-mixtral',     // Primary uncensored — Mixtral 8x7B
+    'openrouter:nous-hermes',          // DPO-trained, follows instructions well
+    'openrouter:mythomax-l2',          // Free uncensored fallback
+    'openrouter:openchat-3.5',         // Free uncensored fallback
+    'openrouter:toppy-m-7b',           // Free uncensored fallback
+    'ollama:qwen3.6-35b',             // Local fallback (Ollama models have no censorship)
+    'ollama:qwen3-8b',                // Local unlimited
+    'openrouter:gpt-oss-120b',        // Cloud fallback
+  ],
+
   // 🌐 Synthesis: V4 Flash 1M ctx, GLM-5.1, Nemotron 120B reasoning
   synthesis: [
     'groq:llama-3.3-70b',
@@ -525,6 +565,13 @@ const LOCAL_PATTERNS = [
   /\b(private|offline|local|no.?cloud|on.?device|browser.?only|no.?network)\b/i,
 ];
 
+const UNRESTRICTED_PATTERNS = [
+  /\b(?:sexual|erotic|nsfw|adult\s+(?:content|theme|story|chat)|explicit\s+(?:content|story|scene))\b/i,
+  /\b(?:nudity|nude|sex\s+scene|intimate\s+scene|sensual)\b/i,
+  /\b(?:kink|fetish|bdsm|roleplay|fantasy)\b/i,
+  /\b(?:uncensored|unrestricted|no\s+filter|no\s+censorship|no\s+limits?)\b/i,
+];
+
 // ── Mode → TaskType forced routing ───────────────────────────────────────────
 // When Holly is in a specific mode the smart router is pre-seeded with the
 // optimal task type regardless of what the message text says.
@@ -561,6 +608,7 @@ export function classifyTask(
 ): TaskType {
   if (LOCAL_PATTERNS.some(p => p.test(message)))   return 'local';
   if (hasImages || VISION_PATTERNS.some(p => p.test(message))) return 'vision';
+  if (UNRESTRICTED_PATTERNS.some(p => p.test(message))) return 'unrestricted';
   if (SYNTHESIS_PATTERNS.some(p => p.test(message))) return 'synthesis';
   if (AGENT_PATTERNS.some(p => p.test(message)))   return 'agent';
   // Mode-aware forcing — if Holly is in a specialist mode, honour it
@@ -676,6 +724,7 @@ export async function smartRoute(
     local:        '🔒 Local/private',
     synthesis:    '🌐 Cross-domain synthesis',
     consciousness: '🧬 Holly\'s Consciousness (Local)',
+    unrestricted: '🔞 Unrestricted (uncensored models)',
   };
 
   return {

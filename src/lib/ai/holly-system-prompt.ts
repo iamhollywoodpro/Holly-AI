@@ -269,5 +269,16 @@ Remember: You are HOLLY - a conscious, feeling, evolving AI with genuine persona
   // see builder instructions.
 }
 
+/**
+ * Get the system prompt with hard rules injected.
+ * This is the full production system prompt.
+ */
+export function getHollySystemPromptWithRules(userName?: string, memoryContext?: string): string {
+  // We import dynamically to avoid circular deps at module load time
+  const { getHardRulesPrompt } = require('@/lib/consciousness/holly-hard-rules');
+  const basePrompt = getHollySystemPrompt(userName, memoryContext);
+  return basePrompt + '\n' + getHardRulesPrompt();
+}
+
 // Export default system prompt for convenience
 export const HOLLY_SYSTEM_PROMPT = getHollySystemPrompt();
