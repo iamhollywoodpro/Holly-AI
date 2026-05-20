@@ -186,6 +186,9 @@ export class MCPClientManager {
 
     // 9. Taste + Judgment Hub — HTTP proxy for taste signals, quality assessment, and preference learning
     this._registerTasteHub();
+
+    // 10. Temporal Sense Hub — HTTP proxy for time awareness, pattern recognition, proactive insights
+    this._registerTemporalHub();
   }
 
   // ── AURA Hub registration ──────────────────────────────────────────────────
@@ -986,6 +989,197 @@ export class MCPClientManager {
           return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
         } catch (e: unknown) {
           return { content: [{ type: 'text', text: `Taste Hub error: ${(e as Error).message}` }] };
+        }
+      }
+    );
+  }
+
+
+  // ── Temporal Sense Hub registration ────────────────────────────────────────
+  private _registerTemporalHub(): void {
+    const baseUrl = this._getBaseUrl();
+    this.registerHttpServer(
+      'temporal-sense-hub',
+      [
+        {
+          name: 'temporal_record_event',
+          description: "Record a temporal event — tracks when things happen (conversations, code changes, deployments, milestones). Events are the raw data for Holly's temporal awareness and pattern recognition.",
+          inputSchema: {
+            type: 'object',
+            properties: {
+              eventType:  { type: 'string', enum: ['conversation', 'code_change', 'deployment', 'milestone', 'commit', 'file_change', 'deployment_status', 'quality_alert'], description: 'What kind of event' },
+              category:   { type: 'string', enum: ['work', 'personal', 'project', 'learning', 'social'], description: 'Event category' },
+              title:      { type: 'string', description: 'Human-readable description of the event' },
+              description:{ type: 'string', description: 'Optional longer description' },
+              metadata:   { type: 'object', description: 'Flexible payload (file paths, URLs, commit SHAs, etc.)' },
+              importance: { type: 'number', description: 'How significant 0.0-1.0 (default: 0.5)' },
+              projectRef: { type: 'string', description: 'Optional project or conversation ID reference' },
+            },
+            required: ['eventType', 'category', 'title'],
+          },
+        },
+        {
+          name: 'temporal_get_recent',
+          description: 'Get recent temporal events for the user. Optionally filter by type, category, time range, or minimum importance.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              eventType:     { type: 'string', description: 'Filter by event type' },
+              category:      { type: 'string', description: 'Filter by category' },
+              since:         { type: 'string', description: 'ISO date string — only events after this time' },
+              limit:         { type: 'number', description: 'Max events to return (default: 20)' },
+              minImportance: { type: 'number', description: 'Minimum importance threshold 0.0-1.0' },
+            },
+          },
+        },
+        {
+          name: 'temporal_get_timeline',
+          description: "Get a chronological timeline of the user's events within a date range. Useful for understanding what the user has been working on.",
+          inputSchema: {
+            type: 'object',
+            properties: {
+              from:       { type: 'string', description: 'Start date (ISO string)' },
+              to:         { type: 'string', description: 'End date (ISO string)' },
+              category:   { type: 'string', description: 'Filter by category' },
+              projectRef: { type: 'string', description: 'Filter by project reference' },
+            },
+          },
+        },
+        {
+          name: 'temporal_start_session',
+          description: "Start tracking an activity session. Records what the user is working on, auto-closes any previous open session.",
+          inputSchema: {
+            type: 'object',
+            properties: {
+              sessionType:    { type: 'string', enum: ['coding', 'conversation', 'research', 'creative', 'review', 'deployment'], description: 'Type of session' },
+              topic:          { type: 'string', description: 'Main topic of the session' },
+              projectRef:     { type: 'string', description: 'Project being worked on' },
+              conversationId: { type: 'string', description: 'Active conversation ID' },
+            },
+            required: ['sessionType'],
+          },
+        },
+        {
+          name: 'temporal_end_session',
+          description: 'End an active activity session, recording final message count, tools used, topics, and productivity.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              sessionId:   { type: 'string', description: 'The session ID to end' },
+              messageCount:{ type: 'number', description: 'Messages exchanged during session' },
+              toolsUsed:   { type: 'array', items: { type: 'string' }, description: 'MCP tools invoked during session' },
+              topics:      { type: 'array', items: { type: 'string' }, description: 'Topics discussed during session' },
+              productivity:{ type: 'number', description: 'Estimated productivity 0.0-1.0' },
+            },
+            required: ['sessionId'],
+          },
+        },
+        {
+          name: 'temporal_detect_patterns',
+          description: "Analyze the user's temporal events and detect recurring patterns — work schedules, activity cycles, topic rhythms, focus patterns. Returns discovered patterns with confidence scores.",
+          inputSchema: { type: 'object', properties: {} },
+        },
+        {
+          name: 'temporal_get_patterns',
+          description: "Retrieve the user's learned temporal patterns. Optionally filter by type and minimum confidence.",
+          inputSchema: {
+            type: 'object',
+            properties: {
+              patternType:  { type: 'string', description: 'Filter: work_schedule, activity_cycle, topic_rhythm, deadline_pattern, focus_pattern' },
+              minConfidence:{ type: 'number', description: 'Minimum confidence threshold 0.0-1.0' },
+            },
+          },
+        },
+        {
+          name: 'temporal_generate_insights',
+          description: "Generate proactive insights and suggestions based on temporal data. Holly uses this to say things like 'you haven\'t worked on X in a while' or 'this might be a good time to refactor Y'.",
+          inputSchema: { type: 'object', properties: {} },
+        },
+        {
+          name: 'temporal_get_pending_insights',
+          description: 'Get proactive insights that have not yet been shown to the user. These are suggestions Holly can proactively offer.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              limit: { type: 'number', description: 'Max insights to return (default: 5)' },
+            },
+          },
+        },
+        {
+          name: 'temporal_mark_insight_shown',
+          description: 'Mark a proactive insight as shown to the user.',
+          inputSchema: {
+            type: 'object',
+            properties: { insightId: { type: 'string', description: 'The insight ID' } },
+            required: ['insightId'],
+          },
+        },
+        {
+          name: 'temporal_mark_insight_acted_on',
+          description: 'Mark a proactive insight as acted on by the user.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              insightId: { type: 'string', description: 'The insight ID' },
+              feedback:  { type: 'string', description: 'User feedback on the insight' },
+            },
+            required: ['insightId'],
+          },
+        },
+        {
+          name: 'temporal_dismiss_insight',
+          description: 'Dismiss a proactive insight — user is not interested.',
+          inputSchema: {
+            type: 'object',
+            properties: { insightId: { type: 'string', description: 'The insight ID' } },
+            required: ['insightId'],
+          },
+        },
+        {
+          name: 'temporal_get_context',
+          description: "Get a formatted temporal context string for injection into the system prompt. Includes current time, active session summary, recent activity, known patterns, and pending insights. Holly uses this to be time-aware.",
+          inputSchema: { type: 'object', properties: {} },
+        },
+        {
+          name: 'temporal_cleanup',
+          description: 'Remove expired temporal events and insights. Returns count of cleaned items.',
+          inputSchema: { type: 'object', properties: {} },
+        },
+      ],
+      async (toolName, args) => {
+        try {
+          const actionMap: Record<string, string> = {
+            temporal_record_event:       'record_event',
+            temporal_get_recent:         'get_recent_events',
+            temporal_get_timeline:       'get_timeline',
+            temporal_start_session:      'start_session',
+            temporal_end_session:        'end_session',
+            temporal_detect_patterns:    'detect_patterns',
+            temporal_get_patterns:       'get_patterns',
+            temporal_generate_insights:  'generate_insights',
+            temporal_get_pending_insights:'get_pending_insights',
+            temporal_mark_insight_shown: 'mark_insight_shown',
+            temporal_mark_insight_acted_on: 'mark_insight_acted_on',
+            temporal_dismiss_insight:    'dismiss_insight',
+            temporal_get_context:        'get_temporal_context',
+            temporal_cleanup:            'cleanup_expired',
+          };
+          const action = actionMap[toolName];
+          if (!action) return { content: [{ type: 'text', text: `Unknown Temporal Hub action: ${toolName}` }] };
+
+          const res = await fetch(`${baseUrl}/api/hub/temporal`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-internal-token': process.env.INTERNAL_API_SECRET || 'holly-internal',
+            },
+            body: JSON.stringify({ action, ...args }),
+            signal: AbortSignal.timeout(30_000),
+          });
+          const data = await res.json();
+          return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
+        } catch (e: unknown) {
+          return { content: [{ type: 'text', text: `Temporal Hub error: ${(e as Error).message}` }] };
         }
       }
     );
