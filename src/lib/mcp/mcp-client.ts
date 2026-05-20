@@ -9,6 +9,7 @@
  *   holly-tools   — stdio  — scripts/holly-mcp-server.js (25 tools)
  *   aura-hub      — HTTP   — /api/hub/aura (A&R engine)
  *   sentinel-hub  — HTTP   — /api/hub/sentinel (code intelligence)
+ *   taste-hub     — HTTP   — /api/hub/taste (taste + judgment, Phase 4)
  */
 
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
@@ -182,6 +183,9 @@ export class MCPClientManager {
 
     // 8. Code Gen Hub — HTTP proxy for project scaffolding, code generation, search, and patching
     this._registerCodeGenHub();
+
+    // 9. Taste + Judgment Hub — HTTP proxy for taste signals, quality assessment, and preference learning
+    this._registerTasteHub();
   }
 
   // ── AURA Hub registration ──────────────────────────────────────────────────
@@ -870,6 +874,118 @@ export class MCPClientManager {
           return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
         } catch (e: unknown) {
           return { content: [{ type: 'text', text: `Code Gen Hub error: ${(e as Error).message}` }] };
+        }
+      }
+    );
+  }
+
+  // ── Taste + Judgment Hub registration (Phase 4) ─────────────────────────
+  private _registerTasteHub(): void {
+    const baseUrl = this._getBaseUrl();
+    this.registerHttpServer(
+      'taste-judgment-hub',
+      [
+        {
+          name: 'taste_record_signal',
+          description: "Record a taste signal for the user — tracks their preferences across tone, format, length, humor, technical level, emoji use, and topics. Signals are positive, negative, or neutral. Holly uses these to learn the user's style over time.",
+          inputSchema: {
+            type: 'object',
+            properties: {
+              category: { type: 'string', enum: ['tone', 'length', 'format', 'humor', 'emoji', 'technical', 'topic'], description: 'What dimension this signal is about' },
+              item:      { type: 'string', description: 'What the signal refers to, e.g. "bullet_lists", "formal_tone", "code_blocks"' },
+              signal:    { type: 'string', enum: ['positive', 'negative', 'neutral'], description: 'Sentiment of the signal' },
+              context:   { type: 'string', description: 'Brief context (message snippet)' },
+              weight:    { type: 'number', description: 'Signal strength 0.0-2.0 (default: 1.0)' },
+              source:    { type: 'string', enum: ['implicit', 'explicit', 'feedback'], description: 'How this signal was detected (default: implicit)' },
+            },
+            required: ['category', 'item', 'signal'],
+          },
+        },
+        {
+          name: 'taste_batch_signals',
+          description: 'Record multiple taste signals at once. Useful when analyzing a message that reveals several preferences simultaneously.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              signals: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    category: { type: 'string' },
+                    item:      { type: 'string' },
+                    signal:    { type: 'string' },
+                    context:   { type: 'string' },
+                    weight:    { type: 'number' },
+                    source:    { type: 'string' },
+                  },
+                  required: ['category', 'item', 'signal'],
+                },
+                description: 'Array of taste signals to record',
+              },
+            },
+            required: ['signals'],
+          },
+        },
+        {
+          name: 'taste_get_profile',
+          description: "Get the user's current taste profile — their learned preferences for tone, verbosity, humor, technical level, emoji usage, preferred topics, and formats. Returns null if no profile exists yet.",
+          inputSchema: {
+            type: 'object',
+            properties: {},
+          },
+        },
+        {
+          name: 'taste_assess_quality',
+          description: 'Assess the quality of code, content, or design. Uses the Smart Router to pick the best AI model for evaluation. Returns a score (0-100), grade, strengths, weaknesses, and suggestions.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              type:    { type: 'string', enum: ['code', 'content', 'design'], description: 'What type of content to assess' },
+              input:   { type: 'string', description: 'The content to assess' },
+              context: { type: 'string', description: 'Additional context about the content' },
+            },
+            required: ['type', 'input'],
+          },
+        },
+        {
+          name: 'taste_detect_signals',
+          description: "Automatically detect implicit taste signals from a user's message and optional assistant response. Returns detected signals and auto-records them to the user's profile.",
+          inputSchema: {
+            type: 'object',
+            properties: {
+              userMessage:       { type: 'string', description: "The user's message to analyze for implicit signals" },
+              assistantResponse: { type: 'string', description: "Holly's previous response (for format detection)" },
+            },
+            required: ['userMessage'],
+          },
+        },
+      ],
+      async (toolName, args) => {
+        try {
+          const actionMap: Record<string, string> = {
+            taste_record_signal:  'record_signal',
+            taste_batch_signals:  'batch_signals',
+            taste_get_profile:    'get_profile',
+            taste_assess_quality: 'assess_quality',
+            taste_detect_signals: 'detect_signals',
+          };
+          const action = actionMap[toolName];
+          if (!action) return { content: [{ type: 'text', text: `Unknown Taste Hub action: ${toolName}` }] };
+
+          const res = await fetch(`${baseUrl}/api/hub/taste`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-internal-token': process.env.INTERNAL_API_SECRET || 'holly-internal',
+            },
+            body: JSON.stringify({ action, ...args }),
+            signal: AbortSignal.timeout(30_000),
+          });
+          const data = await res.json();
+          return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
+        } catch (e: unknown) {
+          return { content: [{ type: 'text', text: `Taste Hub error: ${(e as Error).message}` }] };
         }
       }
     );

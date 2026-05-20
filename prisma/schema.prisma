@@ -132,6 +132,10 @@ model User {
   // Phase 2.2: Real-time initiative system
   proactiveInitiatives ProactiveInitiative[]
 
+  // Phase 4: Taste + Judgment System
+  tasteSignals  TasteSignal[]
+  tasteProfile  TasteProfile?
+
   @@map("users")
 }
 
@@ -4430,4 +4434,46 @@ model ProactiveInitiative {
   @@index([userId])
   @@index([status])
   @@map("proactive_initiatives")
+}
+
+// ─── Phase 4: Taste + Judgment System ──────────────────────────────────────
+
+// Individual taste signals — implicit and explicit user preferences
+model TasteSignal {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category  String                    // tone, length, format, humor, emoji, technical, topic
+  item      String   @default("")     // What the signal is about (e.g. "bullet_lists", "formal_tone")
+  signal    String   @default("neutral") // positive, negative, neutral
+  context   String?  @db.Text         // Raw message snippet (truncated to 500 chars)
+  weight    Float    @default(1.0)    // Signal strength (0.0 - 2.0)
+  source    String   @default("implicit") // implicit, explicit, feedback
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([category])
+  @@index([signal])
+  @@index([createdAt])
+  @@map("taste_signals")
+}
+
+// Aggregated taste profile — recomputed from signals
+model TasteProfile {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tone         Float    @default(0.5)    // 0=formal … 1=casual
+  verbosity    Float    @default(0.5)    // 0=concise … 1=detailed
+  humor        Float    @default(0.5)    // 0=serious … 1=playful
+  technical    Float    @default(0.5)    // 0=simple … 1=expert
+  emoji        Float    @default(0.5)    // 0=none … 1=heavy
+  topTopics    String[] @default([])     // Most discussed topics
+  formats      String[] @default([])     // Preferred response formats
+  signalCount  Int      @default(0)      // Number of signals used to compute profile
+  lastUpdated  DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("taste_profiles")
 }

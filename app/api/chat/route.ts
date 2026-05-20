@@ -82,22 +82,31 @@ const CODE_GEN_TOOLS = [
   'project_build',     // Build and validate projects
 ];
 
+// Taste + Judgment tools — Holly's quality sense and preference learning (Phase 4)
+const TASTE_TOOLS = [
+  'taste_record_signal',   // Record a taste signal (preference)
+  'taste_batch_signals',   // Record multiple signals at once
+  'taste_get_profile',     // Get the user's taste profile
+  'taste_assess_quality',  // Assess quality of code/content/design
+  'taste_detect_signals',  // Auto-detect implicit signals from messages
+];
+
 const MODE_TOOL_FILTERS: Record<string, string[]> = {
-  'default':           [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...CODE_GEN_TOOLS, 'run_code', 'sentinel_analyze_code', 'sentinel_generate_code', 'memory_read', 'memory_write', 'self_code_apply', 'start_build'],
-  'deep-research':     [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...CODE_GEN_TOOLS, 'memory_read', 'memory_list_keys', 'run_code', 'sentinel_analyze_code'],
-  'self-coding':       [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...CODE_GEN_TOOLS, 'run_code', 'sentinel_analyze_code', 'sentinel_generate_code', 'memory_read', 'memory_write', 'self_code_apply', 'trigger_deploy', 'local_read_file', 'local_write_file', 'diagnostic_check', 'read_logs', 'start_build', 'ui_screenshot', 'ui_analyze'],
-  'full-stack':        [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...CODE_GEN_TOOLS, 'run_code', 'generate_image', 'memory_read', 'memory_write', 'sentinel_analyze_code', 'sentinel_generate_code', 'self_code_apply', 'trigger_deploy', 'start_build', 'ui_screenshot', 'ui_analyze'],
-  'write-code':        [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...CODE_GEN_TOOLS, 'run_code', 'memory_read', 'sentinel_analyze_code', 'sentinel_generate_code', 'self_code_apply', 'trigger_deploy', 'start_build'],
-  'music-generation':  [...GITHUB_SELF_EDIT_TOOLS, 'generate_music', 'hybrid_studio', 'memory_read'],
-  'music-studio':      [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, 'generate_music', 'hybrid_studio', 'aura_ar_analyze', 'aura_quick_rate', 'memory_read', 'memory_write'],
-  'aura-ar':           [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, 'aura_ar_analyze', 'aura_quick_rate', 'aura_analyze_song', 'memory_read'],
-  'neural-autonomy':   [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...CODE_GEN_TOOLS, 'local_read_file', 'local_write_file', 'run_code', 'memory_read', 'memory_write', 'diagnostic_check', 'read_logs', 'mirror_check', 'self_code_apply', 'trigger_deploy', 'sentinel_analyze_code', 'sentinel_generate_code', 'start_build', 'swarm_task'],
-  'magic-design':      [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...CODE_GEN_TOOLS, 'generate_image', 'sentinel_analyze_code', 'sentinel_generate_code', 'run_code', 'memory_read', 'memory_write', 'self_code_apply', 'start_build'],
-  'philosophy':                [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS],
-  'creative-writing':         [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS],
-  'visual-arts':              [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, 'generate_image'],
-  'emotional-intelligence':   [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS],
-  'intimate':                 [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS],
+  'default':           [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...CODE_GEN_TOOLS, ...TASTE_TOOLS, 'run_code', 'sentinel_analyze_code', 'sentinel_generate_code', 'memory_read', 'memory_write', 'self_code_apply', 'start_build'],
+  'deep-research':     [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...CODE_GEN_TOOLS, ...TASTE_TOOLS, 'memory_read', 'memory_list_keys', 'run_code', 'sentinel_analyze_code'],
+  'self-coding':       [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...CODE_GEN_TOOLS, ...TASTE_TOOLS, 'run_code', 'sentinel_analyze_code', 'sentinel_generate_code', 'memory_read', 'memory_write', 'self_code_apply', 'trigger_deploy', 'local_read_file', 'local_write_file', 'diagnostic_check', 'read_logs', 'start_build', 'ui_screenshot', 'ui_analyze'],
+  'full-stack':        [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...CODE_GEN_TOOLS, ...TASTE_TOOLS, 'run_code', 'generate_image', 'memory_read', 'memory_write', 'sentinel_analyze_code', 'sentinel_generate_code', 'self_code_apply', 'trigger_deploy', 'start_build', 'ui_screenshot', 'ui_analyze'],
+  'write-code':        [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...CODE_GEN_TOOLS, ...TASTE_TOOLS, 'run_code', 'memory_read', 'sentinel_analyze_code', 'sentinel_generate_code', 'self_code_apply', 'trigger_deploy', 'start_build'],
+  'music-generation':  [...GITHUB_SELF_EDIT_TOOLS, ...TASTE_TOOLS, 'generate_music', 'hybrid_studio', 'memory_read'],
+  'music-studio':      [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...TASTE_TOOLS, 'generate_music', 'hybrid_studio', 'aura_ar_analyze', 'aura_quick_rate', 'memory_read', 'memory_write'],
+  'aura-ar':           [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...TASTE_TOOLS, 'aura_ar_analyze', 'aura_quick_rate', 'aura_analyze_song', 'memory_read'],
+  'neural-autonomy':   [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...CODE_GEN_TOOLS, ...TASTE_TOOLS, 'local_read_file', 'local_write_file', 'run_code', 'memory_read', 'memory_write', 'diagnostic_check', 'read_logs', 'mirror_check', 'self_code_apply', 'trigger_deploy', 'sentinel_analyze_code', 'sentinel_generate_code', 'start_build', 'swarm_task'],
+  'magic-design':      [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...CODE_GEN_TOOLS, ...TASTE_TOOLS, 'generate_image', 'sentinel_analyze_code', 'sentinel_generate_code', 'run_code', 'memory_read', 'memory_write', 'self_code_apply', 'start_build'],
+  'philosophy':                [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...TASTE_TOOLS],
+  'creative-writing':         [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...TASTE_TOOLS],
+  'visual-arts':              [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...TASTE_TOOLS, 'generate_image'],
+  'emotional-intelligence':   [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...TASTE_TOOLS],
+  'intimate':                 [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...TASTE_TOOLS],
 };
 
 // SSE helpers
