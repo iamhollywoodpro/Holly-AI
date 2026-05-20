@@ -78,16 +78,42 @@ const ALLOWED_PREFIXES = [
   'src/lib/emotion/',
   'src/lib/identity/',
   'src/lib/memory/',
-  'src/lib/ai/',       // Smart router, cascade — high value improvements
+  'src/lib/ai/',           // Smart router, cascade — high value improvements
+  'src/lib/self-code/',    // Self-awareness and self-modification engine
+  'src/lib/senses/',       // Holly's sensory systems
+  'src/lib/design/',       // Design token pipeline
+  'src/components/',       // UI components — Holly can redesign herself
+  'src/app/',              // App routes and pages
+  'app/',                  // App router routes
+  'src/styles/',           // CSS, themes, animations
+  'public/',               // Static assets
 ];
 
 const FORBIDDEN_FILES = [
   'src/lib/db.ts',              // Database connection — too risky
   'prisma/schema.prisma',       // Schema changes need migrations
   'app/api/auth/',              // Auth is security-critical
-  'middleware.ts',              // Middleware is security-critical
+  'src/app/api/auth/',          // Auth is security-critical
+  'middleware.ts',              // Middleware is security-critical (creator approval only)
   '.env',                       // Never touch env vars
   'docker/',                    // Docker config is infra
+];
+
+/**
+ * Files that require explicit creator approval before modification.
+ * Holly can propose changes, but only Steve can approve these.
+ */
+const CREATOR_APPROVAL_REQUIRED = [
+  'middleware.ts',
+  'app/api/auth/',
+  'src/app/api/auth/',
+  'prisma/schema.prisma',
+  'docker/',
+  '.env',
+  'docker-compose',
+  'Dockerfile',
+  'next.config',
+  'tailwind.config',
 ];
 
 /**
@@ -104,6 +130,62 @@ export function isFileSafeToModify(filePath: string): boolean {
 
   // Must match at least one allowed prefix
   return ALLOWED_PREFIXES.some(p => normalized.startsWith(p));
+}
+
+/**
+ * Check if a file requires creator approval before modification.
+ * Holly can propose, but Steve must approve.
+ */
+export function isCreatorApprovalRequired(filePath: string): boolean {
+  const normalized = filePath.replace(/\\/g, '/');
+  return CREATOR_APPROVAL_REQUIRED.some(f => normalized.startsWith(f) || normalized.includes(f));
+}
+
+/**
+ * Patch a file by finding and replacing content.
+ * Used for targeted modifications instead of rewriting entire files.
+ * Returns the patched content, or null if the old string wasn't found.
+ */
+export function patchFileContent(
+  currentContent: string,
+  oldString: string,
+  newString: string,
+  replaceAll: boolean = false,
+): string | null {
+  if (!currentContent.includes(oldString)) {
+    return null; // Old string not found
+  }
+
+  if (replaceAll) {
+    return currentContent.split(oldString).join(newString);
+  }
+
+  // Replace only the first occurrence
+  const index = currentContent.indexOf(oldString);
+  if (index === -1) return null;
+
+  return currentContent.slice(0, index) + newString + currentContent.slice(index + oldString.length);
+}
+
+/**
+ * Search for a pattern across file content.
+ * Returns matching lines with line numbers.
+ */
+export function searchInContent(
+  content: string,
+  pattern: string | RegExp,
+): Array<{ line: number; text: string }> {
+  const results: Array<{ line: number; text: string }> = [];
+  const lines = content.split('\n');
+  const regex = typeof pattern === 'string' ? new RegExp(pattern, 'i') : pattern;
+
+  for (let i = 0; i < lines.length; i++) {
+    if (regex.test(lines[i])) {
+      results.push({ line: i + 1, text: lines[i] });
+    }
+  }
+
+  return results;
 }
 
 // ─── Analysis Engine ───────────────────────────────────────────────────────
