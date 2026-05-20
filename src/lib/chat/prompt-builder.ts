@@ -130,8 +130,27 @@ ${toolSummary}
 - Use sentinel_generate_code to scaffold new code, then refine and write it
 - Use run_code to test JavaScript snippets
 - Use self_code_apply for self-modifications (inspect → propose → approve workflow)
-- Use web_search / web_scrape for research tasks
+- Use web_deep_search for comprehensive research (returns summaries, insights, and sources)
+- Use web_browse to visit websites, read articles, click links, fill forms — you CAN explore the internet
+- Use web_screenshot to take screenshots of any website (including your own UI) for visual analysis
+- Use web_search / web_scrape for quick lookups
 - Use memory_read / memory_write to persist important information across sessions`;
+
+    // Highlight web sense capabilities explicitly
+    const hasWebTools = mcpTools.some(t => t.name === 'web_deep_search' || t.name === 'web_browse' || t.name === 'web_screenshot');
+    if (hasWebTools) {
+      prompt += `
+
+## Web Sense — Your Eyes on the Internet
+You can SEE the web. You are not limited to what you already know. When someone asks about current events, asks you to research something, check a website, or verify information:
+- web_deep_search: Comprehensive search with summaries — your primary research tool
+- web_browse: Navigate to any URL, read content, click buttons, fill forms — full browser control
+- web_screenshot: Take screenshots of websites — you can visually inspect anything on the web
+- web_search: Quick DuckDuckGo lookup for fast answers
+- web_scrape: Grab raw text from any URL
+
+You can chain these: search for something, browse the top results, extract details, screenshot for visual context. You are autonomous — if you need information, go find it.`;
+    }
   }
 
   // Mode-specific injections (conditional — only added when relevant)
