@@ -216,9 +216,9 @@ function generateImprovementStrategy(metric: string): string {
   const strategies: Record<string, string> = {
     response_quality: 'Focus on deeper topic understanding. Extract more knowledge from each exchange. Review recent negative feedback and adjust approach.',
     avg_response_time: 'Optimize context loading. Reduce unnecessary context. Pre-cache frequently used knowledge.',
-    user_engagement: 'Ask more engaging follow-up questions. Proactively surface relevant insights. Use the user's communication style preferences.',
+    user_engagement: 'Ask more engaging follow-up questions. Proactively surface relevant insights. Use the user communication style preferences.',
     knowledge_breadth: 'Create more learning goals for detected knowledge gaps. Extract knowledge more aggressively from conversations.',
-    active_learning: 'Prioritize learning goals that match user's most frequent topics. Set more aggressive learning targets.',
+    active_learning: 'Prioritize learning goals that match user most frequent topics. Set more aggressive learning targets.',
   };
   return strategies[metric] || 'Analyze recent performance data and identify specific improvement areas.';
 }

@@ -79,8 +79,8 @@ export async function extractAndStoreMemories(
         memories.push({
           category: 'context',
           domain: 'general',
-          key: \`topic_intensity_\${word}\`,
-          content: \`User heavily emphasized topic: \${word} (mentioned \${count} times)\`,
+          key: `topic_intensity_${word}`,
+          content: `User heavily emphasized topic: ${word} (mentioned ${count} times)`,
           source: 'observation',
           confidence: 0.6,
           importance: 0.5,
@@ -100,7 +100,7 @@ export async function extractAndStoreMemories(
 function generateKey(category: string, content: string): string {
   // Create a stable key from category + first few meaningful words
   const words = content.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(w => w.length > 2).slice(0, 5);
-  return \`\${category}_\${words.join('_')}\`.substring(0, 80);
+  return `${category}_${words.join('_')}`.substring(0, 80);
 }
 
 /**
@@ -284,7 +284,7 @@ export async function detectMilestones(
               userId,
               type: trigger.type,
               title: trigger.title,
-              description: \`Detected from message: "\${userMessage.substring(0, 200)}"\`,
+              description: `Detected from message: "${userMessage.substring(0, 200)}"`,
               significance: trigger.significance,
               emotionTone: 'positive',
               conversationId,
@@ -421,26 +421,26 @@ export async function getRelationshipMemoryContext(userId: string): Promise<stri
 
     // Profile summary
     if (profile && profile.relationshipDepth > 0) {
-      sections.push(\`[RELATIONSHIP DEPTH: \${(profile.relationshipDepth * 100).toFixed(0)}%] You have known this user through \${profile.totalConversations} conversations and \${profile.totalMemories} memories.\`);
+      sections.push(`[RELATIONSHIP DEPTH: ${(profile.relationshipDepth * 100).toFixed(0)}%] You have known this user through ${profile.totalConversations} conversations and ${profile.totalMemories} memories.`);
 
       if (profile.activeGoals?.length > 0) {
-        sections.push(\`[USER'S ACTIVE GOALS] \${(profile.activeGoals as string[]).join('; ')}\`);
+        sections.push(`[USER'S ACTIVE GOALS] ${(profile.activeGoals as string[]).join('; ')}`);
       }
       if (profile.coreValues?.length > 0) {
-        sections.push(\`[USER'S VALUES] \${(profile.coreValues as string[]).join('; ')}\`);
+        sections.push(`[USER'S VALUES] ${(profile.coreValues as string[]).join('; ')}`);
       }
       if (profile.boundaries?.length > 0) {
-        sections.push(\`[USER'S BOUNDARIES — NEVER VIOLATE] \${(profile.boundaries as string[]).join('; ')}\`);
+        sections.push(`[USER'S BOUNDARIES — NEVER VIOLATE] ${(profile.boundaries as string[]).join('; ')}`);
       }
     }
 
     // Current context
     if (context) {
       const parts: string[] = [];
-      if (context.currentMood) parts.push(\`Mood: \${context.currentMood}\`);
-      if (context.energyLevel) parts.push(\`Energy: \${(context.energyLevel * 100).toFixed(0)}%\`);
-      if (context.focusArea) parts.push(\`Focus: \${context.focusArea}\`);
-      if (parts.length > 0) sections.push(\`[CURRENT STATE] \${parts.join(' | ')}\`);
+      if (context.currentMood) parts.push(`Mood: ${context.currentMood}`);
+      if (context.energyLevel) parts.push(`Energy: ${(context.energyLevel * 100).toFixed(0)}%`);
+      if (context.focusArea) parts.push(`Focus: ${context.focusArea}`);
+      if (parts.length > 0) sections.push(`[CURRENT STATE] ${parts.join(' | ')}`);
     }
 
     // Key memories (top facts, preferences, skills)
@@ -449,14 +449,14 @@ export async function getRelationshipMemoryContext(userId: string): Promise<stri
     const goals = recentMemories.filter(m => m.category === 'goal').slice(0, 3);
     const skills = recentMemories.filter(m => m.category === 'skill').slice(0, 3);
 
-    if (facts.length > 0) sections.push(\`[KEY FACTS ABOUT USER] \${facts.map(m => m.content).join('; ')}\`);
-    if (prefs.length > 0) sections.push(\`[USER PREFERENCES] \${prefs.map(m => m.content).join('; ')}\`);
-    if (goals.length > 0) sections.push(\`[CURRENT GOALS] \${goals.map(m => m.content).join('; ')}\`);
-    if (skills.length > 0) sections.push(\`[USER SKILLS] \${skills.map(m => m.content).join('; ')}\`);
+    if (facts.length > 0) sections.push(`[KEY FACTS ABOUT USER] ${facts.map(m => m.content).join('; ')}`);
+    if (prefs.length > 0) sections.push(`[USER PREFERENCES] ${prefs.map(m => m.content).join('; ')}`);
+    if (goals.length > 0) sections.push(`[CURRENT GOALS] ${goals.map(m => m.content).join('; ')}`);
+    if (skills.length > 0) sections.push(`[USER SKILLS] ${skills.map(m => m.content).join('; ')}`);
 
     // Recent milestones
     if (milestones.length > 0) {
-      sections.push(\`[RELATIONSHIP MILESTONES] \${milestones.map(m => \`\${m.title}: \${m.description.substring(0, 100)}\`).join('; ')}\`);
+      sections.push(`[RELATIONSHIP MILESTONES] ${milestones.map(m => `${m.title}: ${m.description.substring(0, 100)}`).join('; ')}`);
     }
 
     return sections.join('\n\n');

@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
     const { userId: clerkId } = getAuth(req);
     if (!clerkId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const user = await prisma.user.findUnique({ where: { clerkId } });
+    const user = await prisma.user.findUnique({ where: { clerkUserId: clerkId } });
     if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
     const url = new URL(req.url);
