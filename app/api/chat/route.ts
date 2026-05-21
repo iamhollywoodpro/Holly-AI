@@ -21,7 +21,7 @@ import { extractTopics } from '@/lib/consciousness/post-response-hook';
 import { authenticateAndLoadUser } from '@/lib/chat/auth';
 import { loadChatContext } from '@/lib/chat/context-loader';
 import { buildPrompt } from '@/lib/chat/prompt-builder';
-import { saveMessages, runBackgroundTasks } from '@/lib/chat/background-tasks';
+import { saveMessages, runBackgroundTasks, markResponseStart } from '@/lib/chat/background-tasks';
 import type { ChatMessage } from '@/lib/ai/providers/free-providers';
 import { chatLimiter, getRateLimitKey } from '@/lib/rate-limiter';
 import { hasSqlInjection, hasPathTraversal, sanitizePath } from '@/lib/security/input-sanitizer';
@@ -412,6 +412,7 @@ export async function POST(req: NextRequest) {
           const reasoningAssessment = needsReasoningChain(latestUserMessage);
 
           let fullResponse = '';
+          markResponseStart();
           let activeModel = routing.primary.displayName;
           let responseSource = '';
 

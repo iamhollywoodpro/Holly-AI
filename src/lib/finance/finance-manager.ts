@@ -1,5 +1,5 @@
-// Finance Manager - Clerk + Prisma Implementation
-// Manages budgets, transactions, and financial tracking
+// Finance Manager - REAL Prisma Implementation
+// Manages budgets, transactions, and financial tracking using actual database
 
 import { prisma } from '@/lib/db';
 
@@ -16,10 +16,10 @@ export interface Transaction {
 export interface Budget {
   id: string;
   userId: string;
-  category: string;
+  name: string;
   amount: number;
-  period: 'monthly' | 'yearly';
   spent: number;
+  period: string;
 }
 
 export class FinanceManager {
@@ -30,7 +30,7 @@ export class FinanceManager {
   }
 
   /**
-   * Create a new transaction
+   * Create a new transaction in the database
    */
   async createTransaction(data: {
     amount: number;
@@ -38,22 +38,39 @@ export class FinanceManager {
     description: string;
     type: 'income' | 'expense';
     date?: Date;
+    budgetId?: string;
   }): Promise<Transaction> {
-    // Simplified implementation - returns placeholder
-    // TODO: Add Prisma model for transactions
+    const txn = await prisma.transaction.create({
+      data: {
+        userId: this.userId,
+        amount: data.type === 'expense' ? -Math.abs(data.amount) : Math.abs(data.amount),
+        description: data.description,
+        category: data.category,
+        budgetId: data.budgetId,
+      },
+    });
+
+    // Update budget spent amount if linked
+    if (data.budgetId && data.type === 'expense') {
+      await prisma.budget.update({
+        where: { id: data.budgetId },
+        data: { spent: { increment: Math.abs(data.amount) } },
+      }).catch(() => {});
+    }
+
     return {
-      id: `txn_${Date.now()}`,
-      userId: this.userId,
-      amount: data.amount,
-      category: data.category,
-      description: data.description,
-      date: data.date || new Date(),
-      type: data.type
+      id: txn.id,
+      userId: txn.userId,
+      amount: txn.amount,
+      category: txn.category,
+      description: txn.description,
+      date: txn.createdAt,
+      type: txn.amount >= 0 ? 'income' : 'expense',
     };
   }
 
   /**
-   * Get all transactions
+   * Get all transactions from the database
    */
   async getTransactions(filters?: {
     category?: string;
@@ -61,74 +78,142 @@ export class FinanceManager {
     startDate?: Date;
     endDate?: Date;
   }): Promise<Transaction[]> {
-    // Simplified implementation - returns empty array
-    // TODO: Query from Prisma database
-    return [];
+    const where: Record<string, unknown> = { userId: this.userId };
+
+    if (filters?.category) where.category = filters.category;
+    if (filters?.type === 'income') where.amount = { gt: 0 };
+    else if (filters?.type === 'expense') where.amount = { lt: 0 };
+    if (filters?.startDate || filters?.endDate) {
+      const createdAt: Record<string, Date> = {};
+      if (filters?.startDate) createdAt.gte = filters.startDate;
+      if (filters?.endDate) createdAt.lte = filters.endDate;
+      where.createdAt = createdAt;
+    }
+
+    const txns = await prisma.transaction.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return txns.map(t => ({
+      id: t.id,
+      userId: t.userId,
+      amount: t.amount,
+      category: t.category,
+      description: t.description,
+      date: t.createdAt,
+      type: t.amount >= 0 ? 'income' as const : 'expense' as const,
+    }));
   }
 
   /**
-   * Create or update budget
+   * Create or update a budget in the database
    */
   async setBudget(data: {
-    category: string;
+    name: string;
     amount: number;
-    period: 'monthly' | 'yearly';
+    period: string;
   }): Promise<Budget> {
-    // Simplified implementation - returns placeholder
-    // TODO: Add Prisma model for budgets
+    // Check if budget with same name exists
+    const existing = await prisma.budget.findFirst({
+      where: { userId: this.userId, name: data.name },
+    });
+
+    if (existing) {
+      const updated = await prisma.budget.update({
+        where: { id: existing.id },
+        data: { amount: data.amount, period: data.period },
+      });
+      return {
+        id: updated.id,
+        userId: updated.userId,
+        name: updated.name,
+        amount: updated.amount,
+        spent: updated.spent,
+        period: updated.period,
+      };
+    }
+
+    const budget = await prisma.budget.create({
+      data: {
+        userId: this.userId,
+        name: data.name,
+        amount: data.amount,
+        period: data.period,
+      },
+    });
+
     return {
-      id: `budget_${Date.now()}`,
-      userId: this.userId,
-      category: data.category,
-      amount: data.amount,
-      period: data.period,
-      spent: 0
+      id: budget.id,
+      userId: budget.userId,
+      name: budget.name,
+      amount: budget.amount,
+      spent: budget.spent,
+      period: budget.period,
     };
   }
 
   /**
-   * Get all budgets
+   * Get all budgets from the database
    */
   async getBudgets(): Promise<Budget[]> {
-    // Simplified implementation - returns empty array
-    // TODO: Query from Prisma database
-    return [];
+    const budgets = await prisma.budget.findMany({
+      where: { userId: this.userId },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return budgets.map(b => ({
+      id: b.id,
+      userId: b.userId,
+      name: b.name,
+      amount: b.amount,
+      spent: b.spent,
+      period: b.period,
+    }));
   }
 
   /**
-   * Get financial summary
+   * Get financial summary computed from REAL data
    */
-  async getSummary(period: 'month' | 'year'): Promise<{
+  async getSummary(): Promise<{
     totalIncome: number;
     totalExpenses: number;
-    netBalance: number;
-    budgetUtilization: Record<string, number>;
+    netAmount: number;
+    budgetUtilization: number;
+    topCategories: Array<{ category: string; total: number }>;
   }> {
-    // Simplified implementation - returns zeros
-    // TODO: Calculate from actual transactions
+    const [income, expenses, budgets, categoryTotals] = await Promise.all([
+      prisma.transaction.aggregate({
+        where: { userId: this.userId, amount: { gt: 0 } },
+        _sum: { amount: true },
+      }),
+      prisma.transaction.aggregate({
+        where: { userId: this.userId, amount: { lt: 0 } },
+        _sum: { amount: true },
+      }),
+      prisma.budget.findMany({ where: { userId: this.userId } }),
+      prisma.transaction.groupBy({
+        by: ['category'],
+        where: { userId: this.userId },
+        _sum: { amount: true },
+        orderBy: { _sum: { amount: { sort: 'desc', nulls: 'last' } } },
+      }),
+    ]);
+
+    const totalIncome = income._sum.amount ?? 0;
+    const totalExpenses = Math.abs(expenses._sum.amount ?? 0);
+    const totalBudget = budgets.reduce((sum, b) => sum + b.amount, 0);
+    const totalSpent = budgets.reduce((sum, b) => sum + b.spent, 0);
+
     return {
-      totalIncome: 0,
-      totalExpenses: 0,
-      netBalance: 0,
-      budgetUtilization: {}
+      totalIncome,
+      totalExpenses,
+      netAmount: totalIncome - totalExpenses,
+      budgetUtilization: totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0,
+      topCategories: categoryTotals.slice(0, 10).map(c => ({
+        category: c.category,
+        total: c._sum.amount ?? 0,
+      })),
     };
-  }
-
-  /**
-   * Delete transaction
-   */
-  async deleteTransaction(transactionId: string): Promise<boolean> {
-    // Simplified implementation
-    // TODO: Delete from Prisma database
-    return true;
-  }
-
-  /**
-   * Update transaction
-   */
-  async updateTransaction(transactionId: string, data: Partial<Transaction>): Promise<Transaction | null> {
-    // Simplified implementation
-    // TODO: Update in Prisma database
-    return null;
   }
 }

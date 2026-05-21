@@ -14,6 +14,9 @@ import { detectKnowledgeGaps, createLearningGoalsFromGaps, extractKnowledgeFromC
 import { learnCommunicationStyle } from '@/lib/personality/adaptive-personality';
 import { assessConversation } from '@/lib/growth/sovereign-growth';
 
+let _lastResponseStart = 0;
+export function markResponseStart(): void { _lastResponseStart = Date.now(); }
+
 export async function saveMessages(
   dbUserId: string,
   conversationId: string,
@@ -192,7 +195,7 @@ export async function runBackgroundTasks(opts: {
     messageCount: messages.length,
     mode: detectedMode,
     topics: currentTopics,
-    responseTimeMs: 0, // placeholder — actual timing would need instrumentation
+    responseTimeMs: _lastResponseStart > 0 ? Date.now() - _lastResponseStart : 0,
     hadFeedback: false,
   }).catch(err => bgLog('self-assessment', err));
 
