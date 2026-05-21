@@ -3,7 +3,7 @@
  * Analyzes code before commits to catch bugs, suggest improvements, and ensure quality
  */
 
-import type { GitHubFile } from './github-api';
+import type { GitHubFile } from './github-operations';
 
 export type IssueSeverity = 'error' | 'warning' | 'info' | 'suggestion';
 

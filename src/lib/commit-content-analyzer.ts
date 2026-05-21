@@ -3,7 +3,7 @@
  * Analyzes code changes and generates semantic commit messages
  */
 
-import type { GitHubFile } from './github-api';
+import type { GitHubFile } from './github-operations';
 
 export interface CommitMessageResult {
   title: string;

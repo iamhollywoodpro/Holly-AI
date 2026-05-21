@@ -54,8 +54,28 @@ export interface TasteStyle {
 export class TasteEngine {
   private userId: string;
 
+  /** Debounce timers keyed by userId — prevents redundant recomputeProfile calls */
+  private static pendingRecomputes = new Map<string, NodeJS.Timeout>();
+
   constructor(userId: string) {
     this.userId = userId;
+  }
+
+  /**
+   * Debounced wrapper around recomputeProfile().
+   * Resets the timer on every call so the profile is only recomputed once
+   * after the caller goes quiet for `delayMs` milliseconds.
+   */
+  private static debounceRecompute(userId: string, engine: TasteEngine, delayMs = 5000): void {
+    const existing = TasteEngine.pendingRecomputes.get(userId);
+    if (existing) clearTimeout(existing);
+
+    const timer = setTimeout(() => {
+      TasteEngine.pendingRecomputes.delete(userId);
+      void engine.recomputeProfile();
+    }, delayMs);
+
+    TasteEngine.pendingRecomputes.set(userId, timer);
   }
 
   // ── recording ──────────────────────────────────────────────────────────────
@@ -78,8 +98,8 @@ export class TasteEngine {
         },
       });
 
-      // Recompute profile async — don't block the caller
-      void this.recomputeProfile();
+      // Debounced recompute — coalesces rapid-fire signals into one profile update
+      TasteEngine.debounceRecompute(this.userId, this);
     } catch (err) {
       console.error('[TasteEngine] recordSignal error:', err);
     }
@@ -103,7 +123,8 @@ export class TasteEngine {
         })),
         skipDuplicates: false,
       });
-      void this.recomputeProfile();
+      // Single debounced recompute after all bulk signals are persisted
+      TasteEngine.debounceRecompute(this.userId, this);
     } catch (err) {
       console.error('[TasteEngine] recordSignals error:', err);
     }

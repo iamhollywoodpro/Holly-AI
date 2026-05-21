@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { reviewCode, getSeverityColor, getCategoryIcon } from '@/lib/code-reviewer';
 import type { CodeReviewResult, CodeIssue } from '@/lib/code-reviewer';
-import type { GitHubFile } from '@/lib/github-api';
+import type { GitHubFile } from '@/lib/github-operations';
 import { 
   CheckCircleIcon, 
   ExclamationTriangleIcon,

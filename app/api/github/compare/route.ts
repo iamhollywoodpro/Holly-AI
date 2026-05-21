@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/db';
-import { compareBranches, getCommits } from '@/lib/github-api';
+import { compareBranches, getCommits } from '@/lib/github-operations';
 
 export const runtime = 'nodejs';
 

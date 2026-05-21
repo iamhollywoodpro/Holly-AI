@@ -12,7 +12,7 @@ import { useVoiceSettings } from '@/hooks/useVoiceSettings';
 import { CommitButton } from './chat/CommitButton';
 import { DeployButton } from './chat/DeployButton';
 import { useActiveRepo } from '@/hooks/useActiveRepos';
-import type { GitHubFile } from '@/lib/github-api';
+import type { GitHubFile } from '@/lib/github-operations';
 import { MediaMessage, parseMediaFromMessage } from './chat/MediaMessage';
 
 interface ChatMessageProps {

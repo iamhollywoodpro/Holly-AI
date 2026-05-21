@@ -4,7 +4,7 @@ import { Fragment, useState, useEffect } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { Search, X, MessageSquare, Clock } from 'lucide-react';
 import { cyberpunkTheme } from '@/styles/themes/cyberpunk';
-import { getConversations } from '@/lib/conversation-manager';
+import { getConversations } from '@/lib/conversation-client';
 import { formatDistanceToNow } from 'date-fns';
 import type { Conversation } from '@/types/conversation';
 

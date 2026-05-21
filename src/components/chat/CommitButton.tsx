@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import { ArrowUpTrayIcon } from '@heroicons/react/24/outline';
 import { CommitDialog } from './CommitDialog';
-import type { GitHubFile } from '@/lib/github-api';
-import { generateCommitMessage, formatCommitMessage } from '@/lib/commit-message-generator';
+import type { GitHubFile } from '@/lib/github-operations';
+import { generateCommitMessage, formatCommitMessage } from '@/lib/commit-content-analyzer';
 
 interface CommitButtonProps {
   files: GitHubFile[];
