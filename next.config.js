@@ -1,19 +1,10 @@
 /** @type {import('next').NextConfig} */
 
 const nextConfig = {
-  // ── Clerk SDK internal proxy rewrites ──────────────────────────────────────
-  // The @clerk/backend SDK makes internal proxy requests to /clerk_XXXXX paths.
-  // Without CLERK_PROXY_URL set, these go to the app root instead of /api/clerk/.
-  // This rewrite catches them and routes through the existing Clerk proxy.
-  // The middleware also handles this, but this is a safety net.
-  async rewrites() {
-    return [
-      {
-        source: '/clerk_:id(.*)',
-        destination: '/api/clerk/clerk_:id',
-      },
-    ];
-  },
+  // ── Clerk proxy rewrites removed ────────────────────────────────────────
+  // CLERK_PROXY_URL is set in the runtime environment, so @clerk/backend
+  // sends requests directly to /api/clerk/ instead of /clerk_XXXXX.
+  // The rewrite was causing double middleware processing.
 
   // ── Standalone output — always on (required for Docker runner image)
   // .next/standalone bundles everything needed to run without node_modules

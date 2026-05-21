@@ -214,18 +214,18 @@ async function proxyToClerk(req: NextRequest, pathSegments?: string[]): Promise<
     Object.entries(response.headers).forEach(([key, value]) => {
       const lower = key.toLowerCase();
       // Strip hop-by-hop headers; pass everything else including content-encoding
-      if (!['transfer-encoding', 'connection'].includes(lower) && value) {
+      if (!['transfer-encoding', 'connection', 'content-encoding'].includes(lower) && value) {
         if (Array.isArray(value)) {
           value.forEach(v => {
-            // CRITICAL PROXY FIX: 
-            // Clerk's backend sets `Domain=clerk.holly.nexamusicgroup.com` because
-            // we sent `x-forwarded-host: clerk.holly.nexamusicgroup.com`.
-            // The browser is at `holly.nexamusicgroup.com` and STRICTLY REJECTS 
-            // the cookie because a parent domain cannot set a subdomain cookie.
-            // We must rewrite the domain to the app's root domain, or strip it.
+            // CRITICAL PROXY FIX:
+            // Clerk's backend sets `Domain=<clerk-domain>` based on the
+            // x-forwarded-host header we send. The browser is at
+            // holly.nexamusicgroup.com and STRICTLY REJECTS the cookie if the
+            // domain doesn't match. We rewrite to the app's root domain.
             let cleanCookie = v;
             if (lower === 'set-cookie') {
-              cleanCookie = cleanCookie.replace(/Domain=[^;]+/i, 'Domain=holly.nexamusicgroup.com');
+              const appDomain = process.env.NEXT_PUBLIC_APP_URL?.replace(/^https?:\/\//, '') || 'holly.nexamusicgroup.com';
+              cleanCookie = cleanCookie.replace(/Domain=[^;]+/i, `Domain=${appDomain}`);
             }
             
             if (Object.prototype.toString.call(responseHeaders) === '[object Headers]') {

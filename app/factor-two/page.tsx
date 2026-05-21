@@ -72,8 +72,8 @@ export default function FactorTwoPage() {
                 alertText: 'text-red-400 text-xs',
               },
             }}
-            forceRedirectUrl="/chat"
-            fallbackRedirectUrl="/chat"
+            forceRedirectUrl={typeof window !== "undefined" ? `${window.location.origin}/chat` : "/chat"}
+            fallbackRedirectUrl={typeof window !== "undefined" ? `${window.location.origin}/chat` : "/chat"}
           />
         </div>
 

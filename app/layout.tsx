@@ -95,7 +95,7 @@ export default function RootLayout({
          *
          * ─── CLERK JS URL ────────────────────────────────────────────────────────
          *
-         * The Clerk publishable key encodes "clerk.holly.nexamusicgroup.com"
+         * The Clerk publishable key encodes "clerk.nexamusicgroup.com"
          * as the frontend API domain. That subdomain has a TLS certificate
          * misconfiguration (sslv3 alert handshake failure), so Clerk's
          * browser.js bundle fails to load → the sign-in/sign-up forms never mount.
@@ -120,7 +120,7 @@ export default function RootLayout({
          */}
         <ClerkProvider
           // ── Clerk API Proxy ──────────────────────────────────────────────────
-          // The publishable key encodes "clerk.holly.nexamusicgroup.com" as the
+          // The publishable key encodes "clerk.nexamusicgroup.com" as the
           // Frontend API domain. That subdomain has a broken TLS cert (SSLv3
           // alert handshake failure), so ALL Clerk API calls fail from the browser.
           //
@@ -145,7 +145,7 @@ export default function RootLayout({
           afterSignOutUrl="/"
 
           // Force redirect to /chat after auth.
-          // Because we use a proxy (x-forwarded-host: clerk.holly.nexamusicgroup.com),
+          // Because we use a proxy (x-forwarded-host: dynamically extracted from key),
           // Clerk rejects relative URLs like '/chat' because it resolves them against
           // the frontend API subdomain instead of the main app domain. Absolute URLs fix this.
           signInForceRedirectUrl={`${APP_URL}/chat`}
