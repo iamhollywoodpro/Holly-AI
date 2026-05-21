@@ -18,6 +18,7 @@ import { applyContextBudget } from '@/lib/chat/context-budget';
 import { retrieveEpisodicMemories, findRelevantProcedures, generateSelfAwarenessReport, createMetaMemory, type EpisodicMemory, type ProceduralMemory, type MetaMemory } from '@/lib/memory/advanced-memory';
 import { createGraph, buildGraphFromText, extractSubgraph, extractConcepts, topNodes, graphStats } from '@/lib/intelligence/knowledge-graph-engine';
 import { getRelationshipMemoryContext } from '@/lib/relationship/relationship-engine';
+import { getProactiveInsightsForChat, getPatternContextForChat } from '@/lib/proactive/proactive-engine';
 
 export interface ChatContext {
   memoryContext: string;
@@ -55,6 +56,10 @@ export interface ChatContext {
   advancedMemoryContext: string;
   /** Phase 8: Deep relationship memory — Holly's living model of who you are */
   relationshipMemoryContext: string;
+  /** Phase 10: Proactive insights — things Holly noticed */
+  proactiveInsights: string;
+  /** Phase 10: User's patterns — topics, behaviors, schedule */
+  patternContext: string;
 }
 
 const emptyIdentity = {
@@ -349,6 +354,15 @@ export async function loadChatContext(
         dbUserId ? getRelationshipMemoryContext(dbUserId) : Promise.resolve(''),
         '', 'relationshipMemoryContext',
       ),
+      // ── Phase 10: Proactive insights + pattern context ──────────────────
+      ctxTimeout(
+        dbUserId ? getProactiveInsightsForChat(dbUserId) : Promise.resolve(''),
+        '', 'proactiveInsights',
+      ),
+      ctxTimeout(
+        dbUserId ? getPatternContextForChat(dbUserId) : Promise.resolve(''),
+        '', 'patternContext',
+      ),
     ]),
     new Promise<any[]>((resolve) => {
       setTimeout(() => {
@@ -380,6 +394,8 @@ export async function loadChatContext(
     recentFeedback: results[18] as string,
     advancedMemoryContext: results[19] as string,
     relationshipMemoryContext: results[20] as string,
+    proactiveInsights: results[21] as string,
+    patternContext: results[22] as string,
   };
 
   // Apply smart token budget to prevent context window bloat

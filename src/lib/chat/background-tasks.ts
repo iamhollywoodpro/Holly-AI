@@ -9,6 +9,7 @@ import { cascadeCollect } from '@/lib/ai/cascade';
 import { persistEmotionalBaseline } from '@/lib/consciousness/emotional-continuity';
 import { detectEmotionsLLM } from '@/lib/emotion/ml-emotion-detector';
 import { extractAndStoreMemories, detectMilestones, updateRelationshipContext, rebuildRelationshipProfile } from '@/lib/relationship/relationship-engine';
+import { detectAndTrackPatterns, generateProactiveInsights } from '@/lib/proactive/proactive-engine';
 
 export async function saveMessages(
   dbUserId: string,
@@ -124,6 +125,17 @@ export async function runBackgroundTasks(opts: {
     hasPerception: !!perceptionContext?.length,
     hasAudio: !!audioAnalysis,
   }).catch(err => bgLog('training-pipeline', err));
+
+  // Phase 10: Proactive Intelligence — pattern tracking, insight generation
+  detectAndTrackPatterns({
+    userId: dbUserId,
+    topics: currentTopics,
+    mode: detectedMode,
+    messageLength: latestUserMessage.length,
+    timeOfDay: new Date().getHours(),
+    dayOfWeek: new Date().getDay(),
+  }).catch(err => bgLog('pattern-tracking', err));
+  generateProactiveInsights(dbUserId).catch(err => bgLog('insight-generation', err));
 
   // Phase 8: Deep Relationship Engine — extract memories, detect milestones, update context
   extractAndStoreMemories(dbUserId, latestUserMessage, fullResponse, conversationId).catch(err => bgLog('relationship-memories', err));
