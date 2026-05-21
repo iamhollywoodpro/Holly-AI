@@ -188,6 +188,7 @@ model Conversation {
   updatedAt          DateTime             @updatedAt
   messages           Message[]
   summary            ConversationSummary?
+  syncPoints         ConversationSyncPoint[]
 
   archived           Boolean              @default(false)
   @@index([userId])
@@ -5240,3 +5241,21 @@ model ConversationAnalytics {
   @@map("conversation_analytics")
 }
 
+
+// Phase 19: Conversation Sync Points
+model ConversationSyncPoint {
+  id             String   @id
+  userId         String
+  conversationId String
+  lastMessageId  String
+  device         String
+  platform       String
+  syncedAt       DateTime @updatedAt
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([conversationId])
+  @@index([userId, device])
+  @@map("conversation_sync_points")
+}
