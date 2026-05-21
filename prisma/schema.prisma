@@ -5102,4 +5102,54 @@ model KnowledgeEntry {
   @@map("knowledge_entries")
 }
 
+// ─── Phase 12: ADAPTIVE PERSONALITY ─────────────────────────────────────────
+// Holly adapts HOW she communicates based on WHO she's talking to.
+
+model CommunicationStyle {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  
+  // Detected preferences
+  formality     Float    @default(0.5)  // 0=casual, 1=formal
+  verbosity     Float    @default(0.5)  // 0=concise, 1=verbose
+  technicalLevel Float   @default(0.3)  // 0=simple, 1=expert
+  humorLevel    Float    @default(0.5)  // 0=serious, 1=playful
+  empathyLevel  Float    @default(0.7)  // 0=direct, 1=very empathetic
+  directness    Float    @default(0.6)  // 0=gentle, 1=bluntly honest
+  
+  // Communication patterns Holly noticed
+  preferredResponseLength String @default("medium") // short, medium, long
+  usesEmoji     Boolean  @default(true)
+  likesMarkdown Boolean  @default(true)
+  prefersLists  Boolean  @default(false)
+  
+  // Adaptive context
+  lastAdjustmentReason String? @db.Text
+  confidence    Float    @default(0.3)
+  dataPoints    Int      @default(0) // how many exchanges shaped this
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([userId])
+  @@map("communication_styles")
+}
+
+model ToneAdjustment {
+  id          String   @id @default(cuid())
+  userId      String
+  
+  // What triggered the adjustment
+  trigger     String   // feedback, pattern, explicit_request, correction
+  dimension   String   // formality, verbosity, technical, humor, empathy, directness
+  direction   String   // increase, decrease
+  magnitude   Float    // 0-1 how much to adjust
+  reason      String   @db.Text
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([userId, dimension])
+  @@map("tone_adjustments")
+}
 
