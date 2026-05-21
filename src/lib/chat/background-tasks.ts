@@ -156,7 +156,16 @@ export async function runBackgroundTasks(opts: {
     timeOfDay: new Date().getHours(),
     dayOfWeek: new Date().getDay(),
   }).catch(err => bgLog('pattern-tracking', err));
-  generateProactiveInsights(dbUserId).catch(err => bgLog('insight-generation', err));
+  (async () => {
+    try {
+      const created = await generateProactiveInsights(dbUserId);
+      if (created > 0) {
+        // Phase 15: Push new insights to user in real-time if online
+        const { notificationDispatcher } = await import('@/lib/notifications/notification-dispatcher');
+        notificationDispatcher.dispatchPendingInsights(dbUserId).catch(err => bgLog('insight-push', err));
+      }
+    } catch (err) { bgLog('insight-generation', err); }
+  })();
 
   // Phase 8: Deep Relationship Engine — extract memories, detect milestones, update context
   extractAndStoreMemories(dbUserId, latestUserMessage, fullResponse, conversationId).catch(err => bgLog('relationship-memories', err));

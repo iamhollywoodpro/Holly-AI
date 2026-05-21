@@ -226,6 +226,12 @@ export async function persistBriefingNotification(
       },
     });
 
+    // Phase 15: Push briefing via SSE if user is online
+    try {
+      const { notificationDispatcher } = await import('@/lib/notifications/notification-dispatcher');
+      notificationDispatcher.dispatchMorningBriefing(dbUserId, body).catch(() => {});
+    } catch {}
+
     logger.info('[MorningBriefing] Notification persisted', { category: 'morning-briefing' });
   } catch (err) {
     logger.error('[MorningBriefing] Failed to persist notification', { category: 'morning-briefing', error: String(err) });
