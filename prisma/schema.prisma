@@ -173,7 +173,8 @@ model User {
   pushSubscriptions PushSubscription[]
 
   // Phase 21: ONBOARDING THAT COMPOUNDS
-  onboardingState OnboardingState?
+  onboardingState     OnboardingState?
+  pluginInstallations PluginInstallation[]
 
   @@map("users")
 }
@@ -5277,4 +5278,32 @@ model OnboardingState {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("onboarding_states")
+}
+
+/// Installed plugin instance — persisted across restarts
+model PluginInstallation {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  pluginId      String   // unique plugin identifier from manifest
+  name          String
+  version       String
+  description   String   @default("")
+  author        String   @default("")
+  permissions   String[] @default([])
+  dependencies  String[] @default([])
+  hooks         String[] @default([])
+  manifest      Json     @default("{}") // full manifest JSON
+
+  state         String   @default("installed") // installed, enabled, disabled, error
+  config        Json     @default("{}")
+  errorMessage  String?
+
+  lastActivatedAt DateTime?
+  installedAt     DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([userId, pluginId])
+  @@map("plugin_installations")
 }
