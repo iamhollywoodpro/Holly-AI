@@ -165,8 +165,21 @@ export const voiceService = getVoiceService();
 /**
  * TTS helper — delegates to VoxCPM2 (primary) / Kokoro (fallback) via enhanced-voice-output.
  * NEVER uses browser speechSynthesis.
+ * 
+ * Phase 18: Now accepts optional userId for personality-adapted voice.
  */
-export async function speakText(text: string): Promise<void> {
+export async function speakText(text: string, userId?: string): Promise<void> {
   const { speakText: speak } = await import('./enhanced-voice-output');
+  
+  if (userId) {
+    try {
+      const { getVoiceOutputOptions } = await import('./voice-personality');
+      const voiceOpts = await getVoiceOutputOptions(userId);
+      return speak(text, { volume: 0.9, ...voiceOpts });
+    } catch {
+      // Fall back to default voice if personality load fails
+    }
+  }
+  
   return speak(text, { volume: 0.9 });
 }
