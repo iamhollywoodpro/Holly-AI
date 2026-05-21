@@ -236,6 +236,16 @@ export async function POST(req: NextRequest) {
     if (!authResult) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const { userId, dbUserId, userName, isCreator } = authResult;
 
+    // 1b. ONBOARDING CHECK — Phase 21
+    // If user hasn't completed onboarding, add a gentle nudge in the system prompt
+    let onboardingNudge = '';
+    try {
+      const { needsOnboarding } = await import('@/lib/onboarding/onboarding-engine');
+      if (await needsOnboarding(dbUserId)) {
+        onboardingNudge = '\n[NOTE: This user hasn\'t completed onboarding yet. If this is early in the conversation, gently encourage them to visit /onboarding so you can get to know them properly. Don\'t force it — just mention it naturally once.]';
+      }
+    } catch {}
+
     // 2. PARSE
     const body = await req.json();
     const { messages: userMessages, conversationId, perceptionContext, imageDataUrls, audioAnalysis, arAnalysis, audioUrl, trackTitle, artistName, genre } = body;
@@ -330,7 +340,7 @@ export async function POST(req: NextRequest) {
       learningStatus: ctx.learningStatus,
       communicationStyle: ctx.communicationStyle,
       growthContext: ctx.growthContext,
-    });
+    }) + onboardingNudge;
 
     // 8. PREPARE MESSAGES
     type ContentBlock = { type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string; detail: 'auto' } };
