@@ -18,6 +18,7 @@ import { applyContextBudget } from '@/lib/chat/context-budget';
 import { retrieveEpisodicMemories, findRelevantProcedures, generateSelfAwarenessReport, createMetaMemory, type EpisodicMemory, type ProceduralMemory, type MetaMemory } from '@/lib/memory/advanced-memory';
 import { createGraph, buildGraphFromText, extractSubgraph, extractConcepts, topNodes, graphStats } from '@/lib/intelligence/knowledge-graph-engine';
 import { getRelationshipMemoryContext } from '@/lib/relationship/relationship-engine';
+import { getResonancePrompt } from '@/lib/emotion/emotional-resonance';
 import { getProactiveInsightsForChat, getPatternContextForChat } from '@/lib/proactive/proactive-engine';
 import { getRelevantKnowledge, getLearningStatusContext } from '@/lib/learning/autonomous-learning';
 import { getCommunicationStylePrompt } from '@/lib/personality/adaptive-personality';
@@ -171,6 +172,11 @@ export async function loadChatContext(
             })
           : Promise.resolve(''),
         '', 'hollyEmotionalState',
+      ),
+      // ── Phase 24: Emotional Resonance (long-term emotional arc) ──────
+      ctxTimeout(
+        dbUserId ? getResonancePrompt(dbUserId) : Promise.resolve(''),
+        '', 'emotionalResonance',
       ),
       // ── Phase 7.5: Relationship context ────────────────────────────────
       ctxTimeout(
