@@ -11,6 +11,7 @@ import { detectEmotionsLLM } from '@/lib/emotion/ml-emotion-detector';
 import { extractAndStoreMemories, detectMilestones, updateRelationshipContext, rebuildRelationshipProfile } from '@/lib/relationship/relationship-engine';
 import { detectAndTrackPatterns, generateProactiveInsights } from '@/lib/proactive/proactive-engine';
 import { detectKnowledgeGaps, createLearningGoalsFromGaps, extractKnowledgeFromConversation } from '@/lib/learning/autonomous-learning';
+import { learnCommunicationStyle } from '@/lib/personality/adaptive-personality';
 
 export async function saveMessages(
   dbUserId: string,
@@ -126,6 +127,9 @@ export async function runBackgroundTasks(opts: {
     hasPerception: !!perceptionContext?.length,
     hasAudio: !!audioAnalysis,
   }).catch(err => bgLog('training-pipeline', err));
+
+  // Phase 12: Adaptive Personality — learn communication style
+  learnCommunicationStyle(dbUserId, latestUserMessage, fullResponse).catch(err => bgLog('style-learning', err));
 
   // Phase 11: Autonomous Learning — extract knowledge, detect gaps
   extractKnowledgeFromConversation(dbUserId, latestUserMessage, fullResponse).catch(err => bgLog('knowledge-extraction', err));

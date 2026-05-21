@@ -20,6 +20,7 @@ import { createGraph, buildGraphFromText, extractSubgraph, extractConcepts, topN
 import { getRelationshipMemoryContext } from '@/lib/relationship/relationship-engine';
 import { getProactiveInsightsForChat, getPatternContextForChat } from '@/lib/proactive/proactive-engine';
 import { getRelevantKnowledge, getLearningStatusContext } from '@/lib/learning/autonomous-learning';
+import { getCommunicationStylePrompt } from '@/lib/personality/adaptive-personality';
 
 export interface ChatContext {
   memoryContext: string;
@@ -65,6 +66,8 @@ export interface ChatContext {
   learnedKnowledge: string;
   /** Phase 11: Learning goal status */
   learningStatus: string;
+  /** Phase 12: Adaptive communication style */
+  communicationStyle: string;
 }
 
 const emptyIdentity = {
@@ -377,6 +380,11 @@ export async function loadChatContext(
         dbUserId ? getLearningStatusContext(dbUserId) : Promise.resolve(''),
         '', 'learningStatus',
       ),
+      // ── Phase 12: Adaptive communication style ─────────────────────────
+      ctxTimeout(
+        dbUserId ? getCommunicationStylePrompt(dbUserId) : Promise.resolve(''),
+        '', 'communicationStyle',
+      ),
     ]),
     new Promise<any[]>((resolve) => {
       setTimeout(() => {
@@ -412,6 +420,7 @@ export async function loadChatContext(
     patternContext: results[22] as string,
     learnedKnowledge: results[23] as string,
     learningStatus: results[24] as string,
+    communicationStyle: results[25] as string,
   };
 
   // Apply smart token budget to prevent context window bloat

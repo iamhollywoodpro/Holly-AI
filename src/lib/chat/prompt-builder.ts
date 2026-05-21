@@ -65,6 +65,8 @@ export function buildPrompt(opts: {
   learnedKnowledge?: string;
   /** Phase 11: Learning status */
   learningStatus?: string;
+  /** Phase 12: Communication style adaptation */
+  communicationStyle?: string;
   /** Personality traits for coherence monitoring (Phase A wiring) */
   personalityTraits?: PersonalityTrait[];
 }): string {
@@ -82,6 +84,7 @@ export function buildPrompt(opts: {
     patternContext,
     learnedKnowledge,
     learningStatus,
+    communicationStyle,
     personalityTraits,
   } = opts;
 
@@ -307,6 +310,11 @@ You can build end-to-end: scaffold a project, generate all files, patch specific
 
   if (learningStatus) {
     prompt += `\n\n## Your Learning Status\n${learningStatus}`;
+  }
+
+  // ── Phase 12: Adaptive Communication Style ───────────────────────────
+  if (communicationStyle) {
+    prompt += `\n\n${communicationStyle}`;
   }
 
   // ── Phase 8: Deep Relationship Memory — WHO THIS PERSON IS ────────────

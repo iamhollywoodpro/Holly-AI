@@ -328,6 +328,7 @@ export async function POST(req: NextRequest) {
       patternContext: ctx.patternContext,
       learnedKnowledge: ctx.learnedKnowledge,
       learningStatus: ctx.learningStatus,
+      communicationStyle: ctx.communicationStyle,
     });
 
     // 8. PREPARE MESSAGES
