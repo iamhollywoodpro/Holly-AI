@@ -23,6 +23,7 @@ import { getProactiveInsightsForChat, getPatternContextForChat } from '@/lib/pro
 import { getRelevantKnowledge, getLearningStatusContext } from '@/lib/learning/autonomous-learning';
 import { getCommunicationStylePrompt } from '@/lib/personality/adaptive-personality';
 import { getGrowthContext } from '@/lib/growth/sovereign-growth';
+import { getVisualIdentityContext } from '@/lib/visual/visual-identity-engine';
 
 export interface ChatContext {
   memoryContext: string;
@@ -72,6 +73,7 @@ export interface ChatContext {
   communicationStyle: string;
   /** Phase 13: Holly's growth and self-assessment */
   growthContext: string;
+  visualIdentity: string;
 }
 
 const emptyIdentity = {
@@ -399,6 +401,11 @@ export async function loadChatContext(
         getGrowthContext(),
         '', 'growthContext',
       ),
+      // ── Phase 25: Visual Identity context ──────────────────────────────
+      ctxTimeout(
+        dbUserId ? getVisualIdentityContext(dbUserId) : Promise.resolve(''),
+        '', 'visualIdentity',
+      ),
     ]),
     new Promise<any[]>((resolve) => {
       setTimeout(() => {
@@ -436,6 +443,7 @@ export async function loadChatContext(
     learningStatus: results[24] as string,
     communicationStyle: results[25] as string,
     growthContext: results[26] as string,
+    visualIdentity: results[27] as string,
   };
 
   // Apply smart token budget to prevent context window bloat

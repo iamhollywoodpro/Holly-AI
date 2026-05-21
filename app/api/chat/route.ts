@@ -340,6 +340,7 @@ export async function POST(req: NextRequest) {
       learningStatus: ctx.learningStatus,
       communicationStyle: ctx.communicationStyle,
       growthContext: ctx.growthContext,
+      visualIdentity: ctx.visualIdentity,
     }) + onboardingNudge;
 
     // 8. PREPARE MESSAGES

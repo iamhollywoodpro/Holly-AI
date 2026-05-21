@@ -176,6 +176,9 @@ model User {
   onboardingState     OnboardingState?
   pluginInstallations PluginInstallation[]
 
+  // Phase 25: Visual Identity and Presence
+  visualIdentity     VisualIdentity?
+
   @@map("users")
 }
 
@@ -5331,4 +5334,47 @@ model CollectivePattern {
   @@index([isPublished, confidence])
   @@index([createdAt])
   @@map("collective_patterns")
+}
+
+// Phase 25: Visual Identity and Presence
+model VisualIdentity {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Core visual state
+  primaryHue        Float    @default(220)   // 0-360 color wheel
+  primarySaturation Float    @default(0.7)   // 0-1
+  primaryLightness  Float    @default(0.6)   // 0-1
+  secondaryHue      Float    @default(280)
+  secondarySaturation Float  @default(0.5)
+  secondaryLightness Float   @default(0.5)
+  accentHue         Float    @default(45)
+  
+  // Visual style parameters
+  style             String   @default("organic") // organic, geometric, minimal, expressive, cosmic
+  complexity        Float    @default(0.5)   // 0-1, how detailed the visuals are
+  animationSpeed    Float    @default(0.5)   // 0-1, how fast animations move
+  symmetry          Float    @default(0.5)   // 0-1, balanced vs asymmetric
+  
+  // Expression parameters
+  expressiveness    Float    @default(0.6)   // 0-1, how visually reactive
+  glowIntensity     Float    @default(0.3)   // 0-1, aura/presence strength
+  particleDensity   Float    @default(0.4)   // 0-1, ambient particle count
+  formRigidity      Float    @default(0.3)   // 0-1, solid shape vs fluid
+  
+  // Relationship-driven visuals
+  relationshipDepth Float    @default(0)     // 0-1, evolves with relationship
+  trustGlow         Float    @default(0)     // 0-1, visual warmth from trust
+  collaborationMarks Int     @default(0)     // visual marks from working together
+  
+  // Metadata
+  generationCount   Int      @default(0)
+  lastEvolutionEvent String?  // what triggered the last change
+  lastEvolvedAt     DateTime @default(now())
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@map("visual_identities")
 }
