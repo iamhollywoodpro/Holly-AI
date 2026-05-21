@@ -139,7 +139,10 @@ export async function runBackgroundTasks(opts: {
       const gaps = await detectKnowledgeGaps(dbUserId, currentTopics);
       if (gaps.length > 0) {
         const patterns = await prisma.patternTracker.findMany({ where: { userId: dbUserId, significance: { in: ['high', 'medium'] } }, take: 10 });
-        await createLearningGoalsFromGaps(dbUserId, gaps, patterns.map(p => ({ patternName: p.patternName, frequency: p.frequency, occurrences: p.occurrences })));
+        const created = await createLearningGoalsFromGaps(dbUserId, gaps, patterns.map(p => ({ patternName: p.patternName, frequency: p.frequency, occurrences: p.occurrences })));
+        if (created > 0) {
+          console.log(`[StudyScheduler] Queued ${created} new learning goals for next study cycle: ${gaps.join(', ')}`);
+        }
       }
     } catch (err) { bgLog('gap-detection', err); }
   })();
