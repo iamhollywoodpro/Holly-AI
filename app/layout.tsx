@@ -1,11 +1,18 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
+// @ts-ignore CSS side-effect import
 import './globals.css';
+// @ts-ignore CSS side-effect import
 import '@/styles/holly2.css';
+// @ts-ignore CSS side-effect import
 import '@/styles/animations.css';
+// @ts-ignore CSS side-effect import
 import '@/styles/mobile-responsive.css';
+// @ts-ignore CSS side-effect import
 import '@/styles/mobile.css';
+// @ts-ignore CSS side-effect import
 import '@/styles/mobile-viewport.css';
+// @ts-ignore CSS side-effect import
 import '@/styles/reading-mode.css';
 import { ClerkProvider } from '@clerk/nextjs';
 import { Providers } from '@/components/Providers';

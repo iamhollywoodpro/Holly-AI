@@ -5,6 +5,7 @@ import {
   LiveKitRoom,
   RoomAudioRenderer,
 } from '@livekit/components-react';
+// @ts-ignore
 import '@livekit/components-styles';
 import {
   Room,

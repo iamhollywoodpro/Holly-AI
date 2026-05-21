@@ -133,8 +133,8 @@ export async function getResonanceProfile(userId: string): Promise<EmotionalReso
     where: { userId },
   });
 
-  if (settings?.metadata && typeof settings.metadata === 'object') {
-    const meta = settings.metadata as Record<string, unknown>;
+  if (settings?.settings && typeof settings.settings === 'object') {
+    const meta = settings.settings as Record<string, unknown>;
     const resonance = meta.emotionalResonance as EmotionalResonanceProfile | undefined;
     if (resonance && resonance.userId === userId) {
       return resonance;
@@ -450,15 +450,15 @@ async function persistResonanceProfile(profile: EmotionalResonanceProfile): Prom
     where: { userId: profile.userId },
   });
 
-  const metadata = ((settings?.metadata as Record<string, unknown>) || {}) as Record<string, unknown>;
-  metadata.emotionalResonance = profile;
+  const settingsData = ((settings?.settings as Record<string, unknown>) || {}) as Record<string, unknown>;
+  settingsData.emotionalResonance = profile;
 
   await prisma.userSettings.upsert({
     where: { userId: profile.userId },
-    update: { metadata },
+    update: { settings: settingsData as any },
     create: {
       userId: profile.userId,
-      metadata,
+      settings: settingsData as any,
     },
   });
 }

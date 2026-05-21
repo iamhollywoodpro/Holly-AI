@@ -76,7 +76,7 @@ export class TemporalEngine {
           category:    event.category,
           title:       event.title,
           description: event.description ?? null,
-          metadata:    event.metadata ?? undefined,
+          metadata:    event.metadata as any ?? undefined,
           importance:  event.importance ?? 5,
           projectRef:  event.projectRef ?? null,
           timestamp:   event.timestamp ?? new Date(),
@@ -281,7 +281,7 @@ export class TemporalEngine {
             pattern: `Active roughly ${hourRanges.map(h => `${h}:00`).join(', ')}`,
             context: { peakHours, peakDays, totalEvents: total },
             confidence,
-            frequency: 'daily',
+            frequency: 1,
             peakHours: hourRanges,
             peakDays,
           },
@@ -317,7 +317,7 @@ export class TemporalEngine {
             pattern: `Most active in "${dominantCategory}" (${dominantCount} events), followed by ${topCategories.slice(1).map(([c, n]) => `"${c}" (${n})`).join(', ')}`,
             context: { categories: topCategories.map(([c, n]) => ({ category: c, count: n })) },
             confidence,
-            frequency: 'weekly',
+            frequency: 1,
             peakHours: [],
             peakDays: [],
           },
@@ -356,7 +356,7 @@ export class TemporalEngine {
               pattern: `Average session ${Math.round(avgDuration / 60)}min. ${longSessions.length} deep sessions, ${shortSessions.length} brief sessions in the last 30 days.`,
               context: { avgDuration, longSessions: longSessions.length, shortSessions: shortSessions.length, totalSessions: sessions.length },
               confidence,
-              frequency: 'weekly',
+              frequency: 1,
               peakHours: [],
               peakDays: [],
             },
@@ -393,7 +393,7 @@ export class TemporalEngine {
             pattern: `Most-used tools: ${sortedTools.slice(0, 5).map(([t, n]) => `${t} (${n}x)`).join(', ')}`,
             context: { tools: sortedTools.map(([t, n]) => ({ tool: t, count: n })) },
             confidence,
-            frequency: 'weekly',
+            frequency: 1,
             peakHours: [],
             peakDays: [],
           },
@@ -487,13 +487,12 @@ export class TemporalEngine {
             const insight = await prisma.proactiveInsight.create({
               data: {
                 userId,
-                insightType: 'reminder',
+                type: 'reminder',
                 category: 'project',
                 title,
-                description: `You last worked on "${project}" ${daysSince} days ago. Consider revisiting it or archiving it if it's complete.`,
-                reasoning: `No events recorded for project "${project}" in ${daysSince} days`,
-                priority: daysSince > 14 ? 7 : 5,
-                context: { project, daysSince, lastActive: lastActive.toISOString() },
+                body: `You last worked on "${project}" ${daysSince} days ago. Consider revisiting it or archiving it if it's complete.`,
+                suggestedAction: `No events recorded for project "${project}" in ${daysSince} days`,
+                urgency: daysSince > 14 ? 'high' : 'medium',
               },
             });
             insights.push(insight);
@@ -516,13 +515,12 @@ export class TemporalEngine {
               const insight = await prisma.proactiveInsight.create({
                 data: {
                   userId,
-                  insightType: 'observation',
+                  type: 'observation',
                   category: 'productivity',
                   title,
-                  description: 'Your recent sessions show lower productivity scores compared to earlier sessions. Consider taking a break or switching to a lighter task.',
-                  reasoning: `Recent avg productivity: ${recentAvg.toFixed(2)} vs earlier: ${olderAvg.toFixed(2)}`,
-                  priority: 6,
-                  context: { recentAvg, olderAvg, recentSessions: recent3.length, olderSessions: older3.length },
+                  body: 'Your recent sessions show lower productivity scores compared to earlier sessions. Consider taking a break or switching to a lighter task.',
+                  suggestedAction: `Recent avg productivity: ${recentAvg.toFixed(2)} vs earlier: ${olderAvg.toFixed(2)}`,
+                  urgency: 'medium',
                 },
               });
               insights.push(insight);
@@ -533,13 +531,12 @@ export class TemporalEngine {
               const insight = await prisma.proactiveInsight.create({
                 data: {
                   userId,
-                  insightType: 'observation',
+                  type: 'observation',
                   category: 'productivity',
                   title,
-                  description: 'Your recent sessions are more productive than usual. Great momentum! Consider tackling challenging tasks while in this flow.',
-                  reasoning: `Recent avg productivity: ${recentAvg.toFixed(2)} vs earlier: ${olderAvg.toFixed(2)}`,
-                  priority: 4,
-                  context: { recentAvg, olderAvg },
+                  body: 'Your recent sessions are more productive than usual. Great momentum! Consider tackling challenging tasks while in this flow.',
+                  suggestedAction: `Recent avg productivity: ${recentAvg.toFixed(2)} vs earlier: ${olderAvg.toFixed(2)}`,
+                  urgency: 'low',
                 },
               });
               insights.push(insight);
@@ -562,13 +559,12 @@ export class TemporalEngine {
             const insight = await prisma.proactiveInsight.create({
               data: {
                 userId,
-                insightType: 'suggestion',
+                type: 'suggestion',
                 category: 'workflow',
                 title,
-                description: `It's ${currentHour}:00 and you're usually most active around ${workHoursPattern.peakHours.sort((a, b) => a - b).map(h => `${h}:00`).join(', ')}. If you're working on something, I'm here to help!`,
-                reasoning: `Current hour ${currentHour} not in peak hours ${workHoursPattern.peakHours.join(',')}`,
-                priority: 3,
-                context: { currentHour, peakHours: workHoursPattern.peakHours, nextPeak },
+                body: `It's ${currentHour}:00 and you're usually most active around ${workHoursPattern.peakHours.sort((a: number, b: number) => a - b).map((h: number) => `${h}:00`).join(', ')}. If you're working on something, I'm here to help!`,
+                suggestedAction: `Current hour ${currentHour} not in peak hours ${workHoursPattern.peakHours.join(',')}`,
+                urgency: 'low',
               },
             });
             insights.push(insight);
@@ -590,13 +586,12 @@ export class TemporalEngine {
             const insight = await prisma.proactiveInsight.create({
               data: {
                 userId,
-                insightType: 'suggestion',
+                type: 'suggestion',
                 category: 'learning',
                 title,
-                description: `Over ${Math.round(ratio * 100)}% of your recent activity has been in "${dominant[0]}". Consider diversifying into other areas for a more balanced workflow.`,
-                reasoning: `${dominant[0]} accounts for ${dominant[1]}/${recentEvents.length} events`,
-                priority: 4,
-                context: { dominantCategory: dominant[0], ratio, categoryBreakdown: Object.fromEntries(categoryBreakdown) },
+                body: `Over ${Math.round(ratio * 100)}% of your recent activity has been in "${dominant[0]}". Consider diversifying into other areas for a more balanced workflow.`,
+                suggestedAction: `${dominant[0]} accounts for ${dominant[1]}/${recentEvents.length} events`,
+                urgency: 'low',
               },
             });
             insights.push(insight);
@@ -614,13 +609,12 @@ export class TemporalEngine {
             const insight = await prisma.proactiveInsight.create({
               data: {
                 userId,
-                insightType: 'warning',
+                type: 'warning',
                 category: 'health',
                 title,
-                description: `Your current ${activeSession.sessionType} session has been running for ${elapsedMin} minutes. Consider taking a short break to stay fresh.`,
-                reasoning: `Session started ${elapsedMin} minutes ago`,
-                priority: 8,
-                context: { sessionId: activeSession.id, sessionType: activeSession.sessionType, elapsedMin },
+                body: `Your current ${activeSession.sessionType} session has been running for ${elapsedMin} minutes. Consider taking a short break to stay fresh.`,
+                suggestedAction: `Session started ${elapsedMin} minutes ago`,
+                urgency: 'high',
               },
             });
             insights.push(insight);
@@ -650,7 +644,7 @@ export class TemporalEngine {
             { expiresAt: { gt: now } },
           ],
         },
-        orderBy: { priority: 'desc' },
+        orderBy: { confidence: 'desc' },
         take: opts?.limit ?? 10,
       });
     } catch (error) {
@@ -682,8 +676,8 @@ export class TemporalEngine {
         where: { id: insightId },
         data: {
           status: 'acted_on',
-          actedOnAt: new Date(),
-          ...(feedback && { userFeedback: feedback }),
+          actedAt: new Date(),
+          ...(feedback && { suggestedAction: feedback }),
         },
       });
     } catch (error) {
@@ -752,7 +746,7 @@ export class TemporalEngine {
       // Pending insights (top 3)
       const pending = await this.getPendingInsights(userId, { limit: 3 });
       if (pending.length > 0) {
-        const insightDesc = pending.map(i => `${i.title} [${i.insightType}]`).join('; ');
+        const insightDesc = pending.map(i => `${i.title} [${i.type}]`).join('; ');
         sections.push(`Pending insights: ${insightDesc}`);
       }
 

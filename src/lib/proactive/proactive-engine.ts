@@ -242,12 +242,12 @@ export async function generateDailyBriefing(userId: string): Promise<string | nu
     prisma.proactiveInsight.findMany({ where: { userId, status: 'pending', urgency: { in: ['high', 'medium'] } }, take: 5 }),
     prisma.relationshipMemory.findMany({ where: { userId, verified: true }, orderBy: { updatedAt: 'desc' }, take: 10 }),
     prisma.conversation.findMany({ where: { userId }, orderBy: { updatedAt: 'desc' }, take: 5, select: { title: true, updatedAt: true } }),
-    prisma.relationshipMilestone.findMany({ where: { userId }, orderBy: { timestamp: 'desc' }, take: 3 }),
+    prisma.relationshipMilestone.findMany({ where: { userId }, orderBy: { createdAt: 'desc' }, take: 3 }),
     prisma.relationshipProfile.findFirst({ where: { userId } }),
   ]);
 
   // Build briefing
-  const userName = profile?.preferredName || 'there';
+  const userName = ((profile?.metadata as Record<string, unknown>)?.preferredName as string) || 'there';
   const parts: string[] = [];
 
   parts.push(`Good morning, ${userName}! Here's what Holly has for you today:`);
@@ -294,7 +294,7 @@ export async function generateDailyBriefing(userId: string): Promise<string | nu
   if (milestones.length > 0) {
     parts.push('**Recent milestones:**');
     for (const m of milestones) {
-      parts.push(`- ${m.label}`);
+      parts.push(`- ${m.title}`);
     }
   }
 
@@ -310,7 +310,7 @@ export async function generateDailyBriefing(userId: string): Promise<string | nu
         priorities: pendingInsights.map(i => ({ title: i.title, reason: i.body.substring(0, 100), urgency: i.urgency })),
         insights: pendingInsights.map(i => ({ title: i.title, body: i.body.substring(0, 200) })),
         reminders: goalMemories.map(g => g.content),
-        mood: profile?.currentMood || undefined,
+        mood: (profile?.emotionalBaseline as string) || undefined,
       },
     });
   } catch { /* unique constraint — already created */ }

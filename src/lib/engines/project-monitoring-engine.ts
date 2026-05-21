@@ -280,7 +280,7 @@ Respond in JSON format with this structure:
 Only report realistic, actionable findings. If the project appears secure, return an empty findings array with a high risk score.`;
 
     try {
-      const routing = await smartRoute(prompt, { forceTask: 'analysis' });
+      const routing = await smartRoute(prompt, { forceTask: 'reasoning' });
       const messages: ChatMessage[] = [{ role: 'user', content: prompt }];
       const { text } = await cascadeCollect(
         routing.waterfall,
@@ -426,7 +426,7 @@ Respond in JSON format:
 Be specific and actionable. If performance looks good, return a high score with informational tips.`;
 
     try {
-      const routing = await smartRoute(prompt, { forceTask: 'analysis' });
+      const routing = await smartRoute(prompt, { forceTask: 'reasoning' });
       const messages: ChatMessage[] = [{ role: 'user', content: prompt }];
       const { text } = await cascadeCollect(
         routing.waterfall,
