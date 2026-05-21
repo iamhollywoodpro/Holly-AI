@@ -40,10 +40,8 @@ import https from 'https';
 // Both are on the same Cloudflare infrastructure.
 const CLERK_SNI_HOST = 'clerk.clerk.com';
 
-// Holly's publishable key — used to identify the app on Clerk's backend.
-const PUBLISHABLE_KEY =
-  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ||
-  'pk_live_Y2xlcmsuaG9sbHkubmV4YW11c2ljZ3JvdXAuY29tJA';
+// Holly's publishable key is read dynamically from env inside proxyToClerk()
+// to extract the correct clerk domain for x-forwarded-host.
 
 export async function GET(req: NextRequest, { params }: { params: { clerk?: string[] } }) {
   return proxyToClerk(req, params.clerk);
@@ -161,8 +159,15 @@ async function proxyToClerk(req: NextRequest, pathSegments?: string[]): Promise<
     reqHeaders['host'] = CLERK_SNI_HOST;
     reqHeaders['origin'] = 'https://holly.nexamusicgroup.com';
     // CRITICAL: x-forwarded-host identifies Holly's Clerk app instance.
-    // Must be clerk.holly.nexamusicgroup.com — NOT holly.nexamusicgroup.com
-    reqHeaders['x-forwarded-host'] = 'clerk.holly.nexamusicgroup.com';
+    // Must match the domain encoded in the publishable key.
+    // Key format: pk_live_<base64-encoded-domain>$
+    const pk = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || '';
+    let clerkDomain = 'clerk.nexamusicgroup.com'; // safe default
+    try {
+      const encoded = pk.replace(/^pk_(live|test)_/, '').replace(/\$$/, '');
+      clerkDomain = Buffer.from(encoded, 'base64').toString('utf-8');
+    } catch {}
+    reqHeaders['x-forwarded-host'] = clerkDomain;
     reqHeaders['x-forwarded-proto'] = 'https';
     if (body) reqHeaders['content-length'] = String(body.byteLength);
 
