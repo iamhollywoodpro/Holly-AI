@@ -1,21 +1,14 @@
 /**
  * Clerk API + JS Proxy
  *
- * Routes ALL Clerk traffic through Holly's own domain, bypassing the broken
- * TLS certificate on clerk.holly.nexamusicgroup.com.
+ * Routes ALL Clerk traffic through Holly's own domain.
  *
- * THE PROBLEM:
- *   The publishable key encodes 'clerk.holly.nexamusicgroup.com' as the Frontend API.
- *   That subdomain is on Cloudflare but has NO valid SSL certificate —
- *   every TLS handshake fails with "SSLv3 alert handshake failure".
- *   Browsers refuse to connect → ALL Clerk auth calls AND the JS bundle fail.
- *
- * THE FIX (server-side SNI override):
- *   clerk.clerk.com and clerk.holly.nexamusicgroup.com resolve to the same
- *   Cloudflare infrastructure, but only clerk.clerk.com has a valid cert.
- *   We connect using clerk.clerk.com as the TLS hostname (SNI), set the
- *   x-forwarded-host to clerk.holly.nexamusicgroup.com so Clerk identifies
- *   Holly's app, and inject __clerk_publishable_key for API routes.
+ * HOW IT WORKS:
+ *   1. The publishable key (NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) is base64-decoded
+ *      at runtime to extract the Clerk Frontend API domain dynamically.
+ *   2. We connect to clerk.clerk.com for TLS (valid certificate) and set
+ *      x-forwarded-host to the extracted domain so Clerk identifies Holly's app.
+ *   3. Cookie domains are rewritten to holly.nexamusicgroup.com.
  *
  * WHAT THIS PROXY HANDLES:
  *   /api/clerk/v1/*          → Clerk auth API (sign-in, tokens, sessions, etc.)
@@ -36,8 +29,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import https from 'https';
 
-// clerk.clerk.com has a valid TLS cert. clerk.holly.nexamusicgroup.com does not.
-// Both are on the same Cloudflare infrastructure.
+// clerk.clerk.com has a valid TLS cert.
+// We use it for TLS and set x-forwarded-host to the actual Clerk domain.
 const CLERK_SNI_HOST = 'clerk.clerk.com';
 
 // Holly's publishable key is read dynamically from env inside proxyToClerk()
