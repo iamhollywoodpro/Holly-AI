@@ -74,6 +74,12 @@ export interface ChatContext {
   /** Phase 13: Holly's growth and self-assessment */
   growthContext: string;
   visualIdentity: string;
+  /** Phase 24: Emotional resonance prompt */
+  resonancePrompt: string;
+  /** Phase 21: Onboarding nudge for new users */
+  onboardingNudge: string;
+  /** Phase 14: Study status context */
+  studyStatus: string;
 }
 
 const emptyIdentity = {
@@ -444,6 +450,9 @@ export async function loadChatContext(
     communicationStyle: results[25] as string,
     growthContext: results[26] as string,
     visualIdentity: results[27] as string,
+    resonancePrompt: (results[28] as string) || '',
+    onboardingNudge: (results[29] as string) || '',
+    studyStatus: (results[30] as string) || '',
   };
 
   // Apply smart token budget to prevent context window bloat

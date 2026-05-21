@@ -53,7 +53,18 @@ const BASE_PRIORITIES: Record<StreamKey, StreamConfig> = {
   innerMonologue:          { maxTokens: 150, priority: 'low' },
   emotionalContinuity:     { maxTokens: 200, priority: 'high' },
   recentFeedback:          { maxTokens: 100, priority: 'medium' },
-  advancedMemoryContext:   { maxTokens: 200, priority: 'high' },
+advancedMemoryContext: { maxTokens: 800, priority: 'medium' as const },
+  communicationStyle: { maxTokens: 200, priority: 'medium' as const },
+  visualIdentity: { maxTokens: 150, priority: 'low' as const },
+  relationshipMemoryContext: { maxTokens: 400, priority: 'high' as const },
+  proactiveInsights: { maxTokens: 300, priority: 'medium' as const },
+  learningStatus: { maxTokens: 200, priority: 'medium' as const },
+  resonancePrompt: { maxTokens: 200, priority: 'low' as const },
+  onboardingNudge: { maxTokens: 150, priority: 'low' as const },
+  studyStatus: { maxTokens: 200, priority: 'low' as const },
+  patternContext: { maxTokens: 300, priority: 'medium' as const },
+  learnedKnowledge: { maxTokens: 400, priority: 'medium' as const },
+  growthContext: { maxTokens: 200, priority: 'medium' as const },
 };
 
 // Override priorities per mode

@@ -423,13 +423,13 @@ export async function getRelationshipMemoryContext(userId: string): Promise<stri
     if (profile && profile.relationshipDepth > 0) {
       sections.push(`[RELATIONSHIP DEPTH: ${(profile.relationshipDepth * 100).toFixed(0)}%] You have known this user through ${profile.totalConversations} conversations and ${profile.totalMemories} memories.`);
 
-      if (profile.activeGoals?.length > 0) {
+      if (Array.isArray(profile.activeGoals) && (profile.activeGoals as string[]).length > 0) {
         sections.push(`[USER'S ACTIVE GOALS] ${(profile.activeGoals as string[]).join('; ')}`);
       }
-      if (profile.coreValues?.length > 0) {
+      if (Array.isArray(profile.coreValues) && (profile.coreValues as string[]).length > 0) {
         sections.push(`[USER'S VALUES] ${(profile.coreValues as string[]).join('; ')}`);
       }
-      if (profile.boundaries?.length > 0) {
+      if (Array.isArray(profile.boundaries) && (profile.boundaries as string[]).length > 0) {
         sections.push(`[USER'S BOUNDARIES — NEVER VIOLATE] ${(profile.boundaries as string[]).join('; ')}`);
       }
     }

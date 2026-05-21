@@ -96,7 +96,7 @@ export class DeploymentManager {
         autoDeploy: opts.autoDeploy ?? false,
         branchAutoDeploy: opts.branchAutoDeploy,
         customDomain: opts.customDomain,
-        pipelineConfig: opts.pipelineConfig ?? undefined,
+        pipelineConfig: (opts.pipelineConfig ?? undefined) as any,
       },
       include: { project: true },
     });

@@ -451,7 +451,7 @@ export class ClientHandoffManager {
 
     const updated = await prisma.clientHandoff.update({
       where: { id: handoffId },
-      data: updates,
+      data: updates as any,
       include: { project: true },
     });
 
