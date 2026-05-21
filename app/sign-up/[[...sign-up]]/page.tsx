@@ -88,7 +88,7 @@ export default function SignUpPage() {
           handle multi-step flows (fill form → email verify → continue) correctly.
 
           REDIRECT: Use absolute URLs because Clerk with proxyUrl resolves relative
-          paths against the proxy subdomain (clerk.holly.nexamusicgroup.com) instead
+          paths against the proxy subdomain (clerk.nexamusicgroup.com) instead
           of the main app domain, causing "invalid redirect_url" 422 errors.
         */}
         {clerkReady && !redirecting && (
