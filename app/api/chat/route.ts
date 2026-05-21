@@ -329,6 +329,7 @@ export async function POST(req: NextRequest) {
       learnedKnowledge: ctx.learnedKnowledge,
       learningStatus: ctx.learningStatus,
       communicationStyle: ctx.communicationStyle,
+      growthContext: ctx.growthContext,
     });
 
     // 8. PREPARE MESSAGES

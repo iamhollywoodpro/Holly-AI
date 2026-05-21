@@ -12,6 +12,7 @@ import { extractAndStoreMemories, detectMilestones, updateRelationshipContext, r
 import { detectAndTrackPatterns, generateProactiveInsights } from '@/lib/proactive/proactive-engine';
 import { detectKnowledgeGaps, createLearningGoalsFromGaps, extractKnowledgeFromConversation } from '@/lib/learning/autonomous-learning';
 import { learnCommunicationStyle } from '@/lib/personality/adaptive-personality';
+import { assessConversation } from '@/lib/growth/sovereign-growth';
 
 export async function saveMessages(
   dbUserId: string,
@@ -168,6 +169,17 @@ export async function runBackgroundTasks(opts: {
       }
     } catch {}
   })();
+
+  // Phase 13: Sovereign Growth — self-assess this conversation
+  assessConversation({
+    userId: dbUserId,
+    conversationId,
+    messageCount: messages.length,
+    mode: detectedMode,
+    topics: currentTopics,
+    responseTimeMs: 0, // placeholder — actual timing would need instrumentation
+    hadFeedback: false,
+  }).catch(err => bgLog('self-assessment', err));
 
   // Emotional state persistence (Phase 4.1)
   // Detect user's emotion from their message and save as baseline

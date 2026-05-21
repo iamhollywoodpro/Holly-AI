@@ -21,6 +21,7 @@ import { getRelationshipMemoryContext } from '@/lib/relationship/relationship-en
 import { getProactiveInsightsForChat, getPatternContextForChat } from '@/lib/proactive/proactive-engine';
 import { getRelevantKnowledge, getLearningStatusContext } from '@/lib/learning/autonomous-learning';
 import { getCommunicationStylePrompt } from '@/lib/personality/adaptive-personality';
+import { getGrowthContext } from '@/lib/growth/sovereign-growth';
 
 export interface ChatContext {
   memoryContext: string;
@@ -68,6 +69,8 @@ export interface ChatContext {
   learningStatus: string;
   /** Phase 12: Adaptive communication style */
   communicationStyle: string;
+  /** Phase 13: Holly's growth and self-assessment */
+  growthContext: string;
 }
 
 const emptyIdentity = {
@@ -385,6 +388,11 @@ export async function loadChatContext(
         dbUserId ? getCommunicationStylePrompt(dbUserId) : Promise.resolve(''),
         '', 'communicationStyle',
       ),
+      // ── Phase 13: Sovereign Growth context ─────────────────────────────
+      ctxTimeout(
+        getGrowthContext(),
+        '', 'growthContext',
+      ),
     ]),
     new Promise<any[]>((resolve) => {
       setTimeout(() => {
@@ -421,6 +429,7 @@ export async function loadChatContext(
     learnedKnowledge: results[23] as string,
     learningStatus: results[24] as string,
     communicationStyle: results[25] as string,
+    growthContext: results[26] as string,
   };
 
   // Apply smart token budget to prevent context window bloat
