@@ -57,6 +57,10 @@ export function buildPrompt(opts: {
   advancedMemoryContext?: string;
   /** Phase 8: Deep relationship memory — Holly's living model of who you are */
   relationshipMemoryContext?: string;
+  /** Phase 10: Proactive insights */
+  proactiveInsights?: string;
+  /** Phase 10: User patterns */
+  patternContext?: string;
   /** Personality traits for coherence monitoring (Phase A wiring) */
   personalityTraits?: PersonalityTrait[];
 }): string {
@@ -70,6 +74,8 @@ export function buildPrompt(opts: {
     degradedModeContext, evolutionProposals, innerMonologue, recentFeedback, emotionalTrajectory, fewShotExamples, emotionalContinuity,
     advancedMemoryContext,
     relationshipMemoryContext,
+    proactiveInsights,
+    patternContext,
     personalityTraits,
   } = opts;
 
@@ -277,6 +283,15 @@ You can build end-to-end: scaffold a project, generate all files, patch specific
   // ── Advanced Memory: Episodic + Procedural + Meta ────────────────────────
   if (advancedMemoryContext) {
     prompt += `\n\n## Your Deep Memory\n${advancedMemoryContext}`;
+  }
+
+  // ── Phase 10: Proactive Intelligence ─────────────────────────────────
+  if (proactiveInsights) {
+    prompt += `\n\n## Proactive Insights\n${proactiveInsights}`;
+  }
+
+  if (patternContext) {
+    prompt += `\n\n## What You Know About Their Patterns\n${patternContext}`;
   }
 
   // ── Phase 8: Deep Relationship Memory — WHO THIS PERSON IS ────────────

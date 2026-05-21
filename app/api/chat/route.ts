@@ -324,6 +324,8 @@ export async function POST(req: NextRequest) {
       emotionalContinuity: ctx.emotionalContinuity,
       advancedMemoryContext: ctx.advancedMemoryContext,
       relationshipMemoryContext: ctx.relationshipMemoryContext,
+      proactiveInsights: ctx.proactiveInsights,
+      patternContext: ctx.patternContext,
     });
 
     // 8. PREPARE MESSAGES

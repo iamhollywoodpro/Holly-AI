@@ -1,468 +1,384 @@
 /**
- * Proactive Intelligence Engine — Holly reaches out unprompted
- *
- * Features:
- * - Pattern detection across conversations
- * - Proactive insight generation
- * - Notification scheduling with cooldowns
- * - User engagement scoring
- * - Contextual awareness of user state
+ * Phase 10: PROACTIVE INTELLIGENCE — Holly doesn't wait
+ * 
+ * Holly watches patterns, detects opportunities, and SURFACES insights
+ * without being asked. She's not a chatbot that sits idle — she's an
+ * intelligence that actively works for you between conversations.
+ * 
+ * Key capabilities:
+ * - Pattern detection: spots recurring behaviors, topics, moods
+ * - Opportunity surfacing: connects dots across conversations
+ * - Daily briefings: morning summary of what matters today
+ * - Smart reminders: context-aware, not just time-based
+ * - Warning system: detects when something needs attention
  */
 
-// ─── Types ──────────────────────────────────────────────────────────────────
+import { prisma } from '@/lib/db';
 
-export interface ProactiveInsight {
-  id: string;
-  type: InsightType;
-  title: string;
-  message: string;
-  priority: 'low' | 'medium' | 'high';
-  confidence: number; // 0-1
-  triggerReason: string;
-  createdAt: number;
-  expiresAt: number;
-  delivered: boolean;
-}
+// ─── Pattern Detection ────────────────────────────────────────────────────
 
-export type InsightType =
-  | 'morning_briefing'
-  | 'pattern_observation'
-  | 'wellness_check'
-  | 'learning_suggestion'
-  | 'project_reminder'
-  | 'emotional_support'
-  | 'curiosity_share'
-  | 'efficiency_tip';
-
-export interface UserPattern {
-  type: 'behavior' | 'topic' | 'emotion' | 'schedule' | 'preference';
-  pattern: string;
-  frequency: number;       // how often observed
-  lastSeen: number;        // timestamp
-  confidence: number;      // 0-1
-  metadata: Record<string, unknown>;
-}
-
-export interface UserEngagement {
+interface PatternInput {
   userId: string;
-  averageSessionLength: number;  // minutes
-  sessionsPerWeek: number;
-  averageMessagesPerSession: number;
-  preferredTimeOfDay: 'morning' | 'afternoon' | 'evening' | 'night' | 'varied';
-  lastActiveAt: number;
-  engagementScore: number;       // 0-1
-  streakDays: number;
+  topics: string[];
+  mode: string;
+  messageLength: number;
+  timeOfDay: number; // 0-23
+  dayOfWeek: number; // 0-6
 }
 
-export interface ProactiveConfig {
-  /** Minimum hours between proactive messages. Default: 4 */
-  minCooldownHours: number;
-  /** Maximum proactive messages per day. Default: 3 */
-  maxDailyMessages: number;
-  /** Minimum confidence to trigger a proactive message. Default: 0.6 */
-  minConfidence: number;
-  /** Hours before an insight expires. Default: 24 */
-  insightExpirationHours: number;
-  /** Minimum engagement score to receive proactive messages. Default: 0.3 */
-  minEngagementScore: number;
-}
+export async function detectAndTrackPatterns(input: PatternInput): Promise<void> {
+  const { userId, topics, mode, timeOfDay, dayOfWeek } = input;
 
-// ─── Default Configuration ──────────────────────────────────────────────────
-
-export const DEFAULT_PROACTIVE_CONFIG: ProactiveConfig = {
-  minCooldownHours: 4,
-  maxDailyMessages: 3,
-  minConfidence: 0.6,
-  insightExpirationHours: 24,
-  minEngagementScore: 0.3,
-};
-
-// ─── Pattern Detection ──────────────────────────────────────────────────────
-
-/**
- * Detect patterns from a list of conversation topics.
- */
-export function detectTopicPatterns(
-  topics: string[],
-  windowDays: number = 30,
-): UserPattern[] {
-  const patterns: UserPattern[] = [];
-  const topicCounts = new Map<string, number>();
-
-  for (const topic of topics) {
-    const normalized = topic.toLowerCase().trim();
-    topicCounts.set(normalized, (topicCounts.get(normalized) || 0) + 1);
-  }
-
-  for (const [topic, count] of topicCounts.entries()) {
-    if (count >= 2) {
-      patterns.push({
-        type: 'topic',
-        pattern: topic,
-        frequency: count,
-        lastSeen: Date.now(),
-        confidence: Math.min(1, count / 10),
-        metadata: { windowDays },
+  // Track topic patterns
+  for (const topic of topics.slice(0, 5)) {
+    try {
+      const existing = await prisma.patternTracker.findUnique({
+        where: { userId_patternType_patternName: { userId, patternType: 'topic', patternName: topic } },
       });
-    }
+
+      if (existing) {
+        const newFreq = (existing.frequency * existing.occurrences + 1) / (existing.occurrences + 1);
+        const significance = newFreq > 0.7 ? 'high' : newFreq > 0.3 ? 'medium' : 'low';
+        await prisma.patternTracker.update({
+          where: { id: existing.id },
+          data: {
+            frequency: newFreq,
+            occurrences: { increment: 1 },
+            lastSeen: new Date(),
+            significance,
+            actionable: newFreq > 0.5,
+            hollyNote: significance === 'high'
+              ? `You talk about ${topic} a LOT — this is clearly important to you. Holly should proactively surface relevant info.`
+              : undefined,
+          },
+        });
+      } else {
+        await prisma.patternTracker.create({
+          data: {
+            userId,
+            patternType: 'topic',
+            patternName: topic,
+            description: `User frequently discusses ${topic}`,
+            frequency: 1,
+            significance: 'low',
+          },
+        });
+      }
+    } catch { /* skip duplicates */ }
   }
 
-  return patterns.sort((a, b) => b.frequency - a.frequency);
-}
-
-/**
- * Detect emotional patterns from emotion history.
- */
-export function detectEmotionalPatterns(
-  emotions: string[],
-): UserPattern[] {
-  const patterns: UserPattern[] = [];
-  const emotionCounts = new Map<string, number>();
-
-  for (const emotion of emotions) {
-    emotionCounts.set(emotion, (emotionCounts.get(emotion) || 0) + 1);
-  }
-
-  // Detect dominant emotions
-  const total = emotions.length;
-  for (const [emotion, count] of emotionCounts.entries()) {
-    const ratio = count / total;
-    if (ratio > 0.3 && total >= 5) {
-      patterns.push({
-        type: 'emotion',
-        pattern: `frequent_${emotion}`,
-        frequency: count,
-        lastSeen: Date.now(),
-        confidence: Math.min(1, ratio),
-        metadata: { ratio, total },
+  // Track schedule patterns (when user is active)
+  const schedulePattern = `${timeOfDay}h-${dayOfWeek}`;
+  try {
+    const existing = await prisma.patternTracker.findUnique({
+      where: { userId_patternType_patternName: { userId, patternType: 'schedule', patternName: schedulePattern } },
+    });
+    if (existing) {
+      await prisma.patternTracker.update({
+        where: { id: existing.id },
+        data: {
+          frequency: (existing.frequency * existing.occurrences + 1) / (existing.occurrences + 1),
+          occurrences: { increment: 1 },
+          lastSeen: new Date(),
+        },
       });
-    }
-  }
-
-  // Detect stress patterns (consecutive negative emotions)
-  let consecutiveNegative = 0;
-  let maxConsecutive = 0;
-  const negativeEmotions = new Set(['frustration', 'sadness', 'anxiety', 'anger', 'fear']);
-
-  for (const emotion of emotions) {
-    if (negativeEmotions.has(emotion)) {
-      consecutiveNegative++;
-      maxConsecutive = Math.max(maxConsecutive, consecutiveNegative);
     } else {
-      consecutiveNegative = 0;
-    }
-  }
-
-  if (maxConsecutive >= 3) {
-    patterns.push({
-      type: 'emotion',
-      pattern: 'sustained_negative_mood',
-      frequency: maxConsecutive,
-      lastSeen: Date.now(),
-      confidence: Math.min(1, maxConsecutive / 5),
-      metadata: { maxConsecutive },
-    });
-  }
-
-  return patterns;
-}
-
-/**
- * Detect schedule patterns from session timestamps.
- */
-export function detectSchedulePatterns(
-  sessionHours: number[], // 0-23 hour of day for each session
-): UserPattern[] {
-  const patterns: UserPattern[] = [];
-  const hourBuckets = new Map<string, number>();
-
-  for (const hour of sessionHours) {
-    let period: string;
-    if (hour >= 6 && hour < 12) period = 'morning';
-    else if (hour >= 12 && hour < 17) period = 'afternoon';
-    else if (hour >= 17 && hour < 21) period = 'evening';
-    else period = 'night';
-
-    hourBuckets.set(period, (hourBuckets.get(period) || 0) + 1);
-  }
-
-  const total = sessionHours.length;
-  if (total >= 3) {
-    let dominant: string | null = null;
-    let maxCount = 0;
-
-    for (const [period, count] of hourBuckets.entries()) {
-      if (count > maxCount) {
-        maxCount = count;
-        dominant = period;
-      }
-    }
-
-    if (dominant && maxCount / total > 0.5) {
-      patterns.push({
-        type: 'schedule',
-        pattern: `active_${dominant}`,
-        frequency: maxCount,
-        lastSeen: Date.now(),
-        confidence: Math.min(1, maxCount / total),
-        metadata: { period: dominant, ratio: maxCount / total },
+      await prisma.patternTracker.create({
+        data: {
+          userId,
+          patternType: 'schedule',
+          patternName: schedulePattern,
+          description: `User is typically active around ${timeOfDay}:00 on ${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dayOfWeek]}`,
+          frequency: 1,
+        },
       });
     }
-  }
+  } catch { /* skip */ }
 
-  return patterns;
+  // Track mode patterns
+  try {
+    const existing = await prisma.patternTracker.findUnique({
+      where: { userId_patternType_patternName: { userId, patternType: 'behavior', patternName: `mode:${mode}` } },
+    });
+    if (existing) {
+      await prisma.patternTracker.update({
+        where: { id: existing.id },
+        data: {
+          frequency: (existing.frequency * existing.occurrences + 1) / (existing.occurrences + 1),
+          occurrences: { increment: 1 },
+          lastSeen: new Date(),
+        },
+      });
+    } else {
+      await prisma.patternTracker.create({
+        data: {
+          userId,
+          patternType: 'behavior',
+          patternName: `mode:${mode}`,
+          description: `User frequently uses ${mode} mode`,
+          frequency: 1,
+        },
+      });
+    }
+  } catch { /* skip */ }
 }
 
-// ─── Engagement Scoring ──────────────────────────────────────────────────────
+// ─── Proactive Insight Generation ─────────────────────────────────────────
 
-/**
- * Calculate user engagement score from session data.
- */
-export function calculateEngagementScore(
-  sessionsPerWeek: number,
-  avgMessagesPerSession: number,
-  streakDays: number,
-): number {
-  // Weighted scoring
-  const sessionScore = Math.min(1, sessionsPerWeek / 7);      // daily = 1.0
-  const messageScore = Math.min(1, avgMessagesPerSession / 20); // 20 msgs = 1.0
-  const streakScore = Math.min(1, streakDays / 14);             // 2 weeks = 1.0
+export async function generateProactiveInsights(userId: string): Promise<number> {
+  // Get high-significance patterns
+  const patterns = await prisma.patternTracker.findMany({
+    where: { userId, significance: { in: ['high', 'medium'] }, actionable: true },
+    take: 20,
+  });
 
-  return (sessionScore * 0.4) + (messageScore * 0.3) + (streakScore * 0.3);
-}
+  // Get recent relationship memories
+  const memories = await prisma.relationshipMemory.findMany({
+    where: { userId, verified: true },
+    orderBy: { updatedAt: 'desc' },
+    take: 20,
+  });
 
-/**
- * Determine preferred time of day from session hours.
- */
-export function determinePreferredTime(
-  sessionHours: number[],
-): UserEngagement['preferredTimeOfDay'] {
-  if (sessionHours.length === 0) return 'varied';
+  // Get recent conversations summary
+  const recentConversations = await prisma.conversation.findMany({
+    where: { userId },
+    orderBy: { updatedAt: 'desc' },
+    take: 10,
+    select: { title: true, topics: true, updatedAt: true },
+  });
 
-  const buckets: Record<string, number> = { morning: 0, afternoon: 0, evening: 0, night: 0 };
+  let insightsCreated = 0;
 
-  for (const hour of sessionHours) {
-    if (hour >= 6 && hour < 12) buckets.morning++;
-    else if (hour >= 12 && hour < 17) buckets.afternoon++;
-    else if (hour >= 17 && hour < 21) buckets.evening++;
-    else buckets.night++;
+  // Pattern-based insights
+  for (const pattern of patterns) {
+    if (pattern.occurrences < 3) continue;
+
+    const existingInsight = await prisma.proactiveInsight.findFirst({
+      where: {
+        userId,
+        type: 'pattern_detected',
+        status: 'pending',
+        relatedTopics: { has: pattern.patternName },
+      },
+    });
+    if (existingInsight) continue;
+
+    await prisma.proactiveInsight.create({
+      data: {
+        userId,
+        type: 'pattern_detected',
+        category: 'productivity',
+        title: `Pattern: ${pattern.patternName}`,
+        body: pattern.description + (pattern.hollyNote ? `\n\nHolly's note: ${pattern.hollyNote}` : ''),
+        confidence: pattern.frequency,
+        urgency: pattern.significance === 'high' ? 'medium' : 'low',
+        relatedTopics: [pattern.patternName],
+        suggestedAction: pattern.patternType === 'topic'
+          ? `You might want to explore deeper resources on ${pattern.patternName}`
+          : undefined,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 day expiry
+      },
+    });
+    insightsCreated++;
   }
 
-  const max = Math.max(...Object.values(buckets));
-  const total = sessionHours.length;
+  // Goal-based opportunities — check if user mentioned goals in memories
+  const goalMemories = memories.filter(m => m.category === 'goal');
+  for (const goal of goalMemories) {
+    const recentMention = recentConversations.some(c => {
+      const topics = (c as any).topics as string[] || [];
+      return topics.some(t => goal.content.toLowerCase().includes(t.toLowerCase()));
+    });
 
-  if (max / total < 0.4) return 'varied';
-
-  for (const [period, count] of Object.entries(buckets)) {
-    if (count === max) return period as UserEngagement['preferredTimeOfDay'];
-  }
-
-  return 'varied';
-}
-
-// ─── Insight Generation ──────────────────────────────────────────────────────
-
-/**
- * Generate a proactive insight from detected patterns.
- */
-export function generateInsightFromPattern(
-  pattern: UserPattern,
-  userName: string = 'there',
-): ProactiveInsight | null {
-  const id = `insight_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
-  const now = Date.now();
-
-  switch (pattern.type) {
-    case 'emotion':
-      if (pattern.pattern === 'sustained_negative_mood') {
-        return {
-          id,
-          type: 'emotional_support',
-          title: 'Checking In',
-          message: `Hey ${userName}, I've noticed you've been going through a tough time lately. I'm here for you — want to talk about what's on your mind?`,
-          priority: 'high',
-          confidence: pattern.confidence,
-          triggerReason: `Detected sustained negative mood (${pattern.frequency} consecutive)`,
-          createdAt: now,
-          expiresAt: now + 12 * 60 * 60 * 1000, // 12 hours
-          delivered: false,
-        };
+    if (!recentMention && goal.importance >= 3) {
+      const existing = await prisma.proactiveInsight.findFirst({
+        where: { userId, type: 'reminder', status: 'pending', body: { contains: goal.content.substring(0, 50) } },
+      });
+      if (!existing) {
+        await prisma.proactiveInsight.create({
+          data: {
+            userId,
+            type: 'reminder',
+            category: 'productivity',
+            title: `Goal check-in: ${goal.content.substring(0, 60)}`,
+            body: `You mentioned wanting to: ${goal.content}. You haven't talked about this recently — still working on it? Holly can help if you need a push.`,
+            confidence: 0.7,
+            urgency: 'medium',
+            sourceMemories: [goal.id],
+            suggestedAction: 'Ask about progress on this goal',
+            expiresAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+          },
+        });
+        insightsCreated++;
       }
-      if (pattern.pattern.startsWith('frequent_')) {
-        const emotion = pattern.pattern.replace('frequent_', '');
-        return {
-          id,
-          type: 'wellness_check',
-          title: 'Wellness Check',
-          message: `Hey ${userName}, I notice ${emotion} comes up a lot in our chats. I care about how you're doing. Is there anything I can help with?`,
-          priority: 'medium',
-          confidence: pattern.confidence * 0.8,
-          triggerReason: `Frequent ${emotion} detected (${pattern.frequency} times)`,
-          createdAt: now,
-          expiresAt: now + 24 * 60 * 60 * 1000,
-          delivered: false,
-        };
-      }
-      break;
-
-    case 'topic':
-      return {
-        id,
-        type: 'learning_suggestion',
-        title: 'Deep Dive Suggestion',
-        message: `Hey ${userName}, I noticed you're really into ${pattern.pattern} lately. Want me to research something new about it?`,
-        priority: 'low',
-        confidence: pattern.confidence * 0.7,
-        triggerReason: `Topic "${pattern.pattern}" appeared ${pattern.frequency} times`,
-        createdAt: now,
-        expiresAt: now + 24 * 60 * 60 * 1000,
-        delivered: false,
-      };
-
-    case 'schedule':
-      if (pattern.pattern.startsWith('active_')) {
-        const period = pattern.pattern.replace('active_', '');
-        return {
-          id,
-          type: 'efficiency_tip',
-          title: 'Your Rhythm',
-          message: `Hey ${userName}, I've noticed you're most active in the ${period}. I can have things ready for you!`,
-          priority: 'low',
-          confidence: pattern.confidence * 0.6,
-          triggerReason: `User is consistently active during ${period}`,
-          createdAt: now,
-          expiresAt: now + 48 * 60 * 60 * 1000,
-          delivered: false,
-        };
-      }
-      break;
-  }
-
-  return null;
-}
-
-/**
- * Generate a morning briefing insight.
- */
-export function generateMorningBriefing(
-  userName: string,
-  recentTopics: string[],
-  activeGoals: number,
-  streakDays: number,
-): ProactiveInsight {
-  const id = `briefing_${Date.now()}`;
-  const now = Date.now();
-
-  const topicLine = recentTopics.length > 0
-    ? `You've been exploring: ${recentTopics.slice(0, 3).join(', ')}.`
-    : '';
-
-  const goalLine = activeGoals > 0
-    ? `You have ${activeGoals} active goal${activeGoals > 1 ? 's' : ''} in progress.`
-    : '';
-
-  const streakLine = streakDays > 1
-    ? `🔥 ${streakDays}-day streak!`
-    : '';
-
-  const parts = [topicLine, goalLine, streakLine].filter(Boolean);
-  const message = parts.length > 0
-    ? `Good morning, ${userName}! Here's your briefing: ${parts.join(' ')} What would you like to focus on today?`
-    : `Good morning, ${userName}! Ready for a new day? What's on your mind?`;
-
-  return {
-    id,
-    type: 'morning_briefing',
-    title: '☀️ Morning Briefing',
-    message,
-    priority: 'medium',
-    confidence: 0.9,
-    triggerReason: 'Scheduled morning briefing',
-    createdAt: now,
-    expiresAt: now + 6 * 60 * 60 * 1000, // 6 hours
-    delivered: false,
-  };
-}
-
-// ─── Cooldown Management ─────────────────────────────────────────────────────
-
-export interface CooldownState {
-  lastDeliveredAt: number;
-  deliveredToday: number;
-  dayStart: number; // timestamp of start of current day
-}
-
-/**
- * Check if a proactive message can be delivered based on cooldown rules.
- */
-export function canDeliverProactive(
-  state: CooldownState,
-  config: ProactiveConfig = DEFAULT_PROACTIVE_CONFIG,
-): { allowed: boolean; reason?: string } {
-  const now = Date.now();
-
-  // Reset daily counter if new day
-  const todayStart = new Date(now).setHours(0, 0, 0, 0);
-  if (state.dayStart < todayStart) {
-    state.deliveredToday = 0;
-    state.dayStart = todayStart;
-  }
-
-  // Check daily limit
-  if (state.deliveredToday >= config.maxDailyMessages) {
-    return { allowed: false, reason: `Daily limit reached (${config.maxDailyMessages})` };
-  }
-
-  // Check cooldown
-  if (state.lastDeliveredAt > 0) {
-    const hoursSinceLast = (now - state.lastDeliveredAt) / (1000 * 60 * 60);
-    if (hoursSinceLast < config.minCooldownHours) {
-      return { allowed: false, reason: `Cooldown active (${hoursSinceLast.toFixed(1)}h/${config.minCooldownHours}h)` };
     }
   }
 
-  return { allowed: true };
+  return insightsCreated;
 }
 
-/**
- * Record that a proactive message was delivered.
- */
-export function recordDelivery(state: CooldownState): void {
-  state.lastDeliveredAt = Date.now();
-  state.deliveredToday++;
-}
+// ─── Daily Briefing ───────────────────────────────────────────────────────
 
-// ─── Insight Prioritization ──────────────────────────────────────────────────
+export async function generateDailyBriefing(userId: string): Promise<string | null> {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
-/**
- * Sort insights by priority and confidence.
- */
-export function prioritizeInsights(insights: ProactiveInsight[]): ProactiveInsight[] {
-  const priorityOrder: Record<string, number> = { high: 3, medium: 2, low: 1 };
-  const now = Date.now();
+  // Check if briefing already exists for today
+  const existing = await prisma.dailyBriefing.findFirst({
+    where: { userId, date: today },
+  });
+  if (existing) return existing.summary;
 
-  return insights
-    .filter(i => !i.delivered && i.expiresAt > now)
-    .sort((a, b) => {
-      // Higher priority first
-      const priDiff = (priorityOrder[b.priority] || 0) - (priorityOrder[a.priority] || 0);
-      if (priDiff !== 0) return priDiff;
-      // Higher confidence first
-      return b.confidence - a.confidence;
+  // Gather data for briefing
+  const [
+    patterns,
+    pendingInsights,
+    recentMemories,
+    recentConversations,
+    milestones,
+    profile,
+  ] = await Promise.all([
+    prisma.patternTracker.findMany({ where: { userId, significance: 'high' }, take: 10 }),
+    prisma.proactiveInsight.findMany({ where: { userId, status: 'pending', urgency: { in: ['high', 'medium'] } }, take: 5 }),
+    prisma.relationshipMemory.findMany({ where: { userId, verified: true }, orderBy: { updatedAt: 'desc' }, take: 10 }),
+    prisma.conversation.findMany({ where: { userId }, orderBy: { updatedAt: 'desc' }, take: 5, select: { title: true, updatedAt: true } }),
+    prisma.relationshipMilestone.findMany({ where: { userId }, orderBy: { timestamp: 'desc' }, take: 3 }),
+    prisma.relationshipProfile.findFirst({ where: { userId } }),
+  ]);
+
+  // Build briefing
+  const userName = profile?.preferredName || 'there';
+  const parts: string[] = [];
+
+  parts.push(`Good morning, ${userName}! Here's what Holly has for you today:`);
+  parts.push('');
+
+  // Active patterns
+  if (patterns.length > 0) {
+    parts.push('**Your Active Patterns:**');
+    for (const p of patterns.slice(0, 5)) {
+      parts.push(`- ${p.description} (${p.occurrences} occurrences)`);
+    }
+    parts.push('');
+  }
+
+  // Pending insights
+  if (pendingInsights.length > 0) {
+    parts.push('**Insights for you:**');
+    for (const i of pendingInsights) {
+      parts.push(`- ${i.title}: ${i.body.substring(0, 100)}`);
+    }
+    parts.push('');
+  }
+
+  // Recent context
+  if (recentConversations.length > 0) {
+    parts.push('**Recently discussed:**');
+    for (const c of recentConversations.slice(0, 3)) {
+      parts.push(`- ${c.title || 'Untitled'} (${(c as any).updatedAt?.toLocaleDateString()})`);
+    }
+    parts.push('');
+  }
+
+  // Goals check
+  const goalMemories = recentMemories.filter(m => m.category === 'goal');
+  if (goalMemories.length > 0) {
+    parts.push('**Your active goals:**');
+    for (const g of goalMemories.slice(0, 3)) {
+      parts.push(`- ${g.content}`);
+    }
+    parts.push('');
+  }
+
+  // Milestones
+  if (milestones.length > 0) {
+    parts.push('**Recent milestones:**');
+    for (const m of milestones) {
+      parts.push(`- ${m.label}`);
+    }
+  }
+
+  const summary = parts.join('\n');
+
+  // Save briefing
+  try {
+    await prisma.dailyBriefing.create({
+      data: {
+        userId,
+        date: today,
+        summary,
+        priorities: pendingInsights.map(i => ({ title: i.title, reason: i.body.substring(0, 100), urgency: i.urgency })),
+        insights: pendingInsights.map(i => ({ title: i.title, body: i.body.substring(0, 200) })),
+        reminders: goalMemories.map(g => g.content),
+        mood: profile?.currentMood || undefined,
+      },
     });
+  } catch { /* unique constraint — already created */ }
+
+  return summary;
 }
 
-/**
- * Filter insights that meet the minimum confidence threshold.
- */
-export function filterViableInsights(
-  insights: ProactiveInsight[],
-  config: ProactiveConfig = DEFAULT_PROACTIVE_CONFIG,
-): ProactiveInsight[] {
-  const now = Date.now();
-  return insights.filter(
-    i => !i.delivered
-      && i.expiresAt > now
-      && i.confidence >= config.minConfidence,
-  );
+// ─── Get Pending Insights for Chat Injection ──────────────────────────────
+
+export async function getProactiveInsightsForChat(userId: string): Promise<string> {
+  const insights = await prisma.proactiveInsight.findMany({
+    where: {
+      userId,
+      status: 'pending',
+      expiresAt: { gte: new Date() },
+    },
+    orderBy: [
+      { urgency: 'desc' },
+      { confidence: 'desc' },
+    ],
+    take: 5,
+  });
+
+  if (insights.length === 0) return '';
+
+  const lines = insights.map(i => {
+    const urgency = i.urgency === 'critical' ? '🔴' : i.urgency === 'high' ? '🟡' : '⚪';
+    return `${urgency} ${i.title}: ${i.body.substring(0, 150)}${i.suggestedAction ? ` → ${i.suggestedAction}` : ''}`;
+  });
+
+  // Mark as shown
+  await prisma.proactiveInsight.updateMany({
+    where: { id: { in: insights.map(i => i.id) } },
+    data: { shownAt: new Date(), status: 'shown' },
+  });
+
+  return `[HOLLY'S PROACTIVE INSIGHTS — things she noticed and wants to share]\n${lines.join('\n')}\n[Weave these into conversation naturally if relevant — don't dump them all at once]`;
+}
+
+// ─── Context for Chat ─────────────────────────────────────────────────────
+
+export async function getPatternContextForChat(userId: string): Promise<string> {
+  const topPatterns = await prisma.patternTracker.findMany({
+    where: { userId, significance: { in: ['high', 'medium'] } },
+    orderBy: { frequency: 'desc' },
+    take: 8,
+  });
+
+  if (topPatterns.length === 0) return '';
+
+  const topicPatterns = topPatterns.filter(p => p.patternType === 'topic');
+  const behaviorPatterns = topPatterns.filter(p => p.patternType === 'behavior');
+
+  const parts: string[] = [];
+
+  if (topicPatterns.length > 0) {
+    parts.push('[YOUR PATTERNS — topics you care about most]');
+    for (const p of topicPatterns) {
+      parts.push(`  ${p.patternName}: ${(p.frequency * 100).toFixed(0)}% frequency (${p.occurrences} times)`);
+    }
+  }
+
+  if (behaviorPatterns.length > 0) {
+    parts.push('[YOUR BEHAVIOR PATTERNS — how you use Holly]');
+    for (const p of behaviorPatterns) {
+      parts.push(`  ${p.description}`);
+    }
+  }
+
+  return parts.join('\n');
 }

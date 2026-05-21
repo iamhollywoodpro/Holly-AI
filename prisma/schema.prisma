@@ -4964,4 +4964,79 @@ model RelationshipContext {
   @@map("relationship_contexts")
 }
 
+// ─── Phase 10: PROACTIVE INTELLIGENCE ────────────────────────────────────────
+// Holly doesn't wait. She thinks ahead, connects dots, surfaces insights proactively.
+
+model ProactiveInsight {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  
+  type        String   // pattern_detected, opportunity, reminder, connection, warning, learning
+  category    String   // productivity, creative, relationship, health, learning, financial
+  title       String
+  body        String   @db.Text
+  confidence  Float    @default(0.5)
+  urgency     String   @default("low")
+  
+  sourceMemories  String[]  @default([])
+  relatedTopics   String[]  @default([])
+  suggestedAction String?   @db.Text
+  
+  status      String   @default("pending")
+  shownAt     DateTime?
+  actedAt     DateTime?
+  expiresAt   DateTime?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([userId, status, urgency])
+  @@index([userId, type])
+  @@map("proactive_insights")
+}
+
+model DailyBriefing {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  
+  date        DateTime @unique
+  summary     String   @db.Text
+  priorities  Json     @default([])
+  insights    Json     @default([])
+  reminders   Json     @default([])
+  mood        String?
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([userId, date])
+  @@map("daily_briefings")
+}
+
+model PatternTracker {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  
+  patternType String
+  patternName String
+  description String   @db.Text
+  frequency   Float    @default(0)
+  firstSeen   DateTime @default(now())
+  lastSeen    DateTime @default(now())
+  occurrences Int      @default(1)
+  
+  significance String  @default("low")
+  hollyNote    String?  @db.Text
+  actionable   Boolean @default(false)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([userId, patternType, patternName])
+  @@index([userId, patternType])
+  @@map("pattern_trackers")
+}
+
 
