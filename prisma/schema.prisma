@@ -5153,3 +5153,86 @@ model ToneAdjustment {
   @@map("tone_adjustments")
 }
 
+// ─── Phase 13: SOVEREIGN GROWTH ─────────────────────────────────────────────
+// Holly evolves on her own. She identifies weaknesses, sets goals, measures progress.
+
+model GrowthMetric {
+  id          String   @id @default(cuid())
+  
+  // What Holly is tracking about herself
+  metric      String   // response_quality, knowledge_breadth, user_satisfaction, response_time, creativity, empathy_accuracy
+  category    String   // quality, speed, knowledge, personality, relationship
+  value       Float
+  previousValue Float?
+  change      Float?
+  
+  // Context
+  period      String   // daily, weekly, monthly
+  periodStart DateTime
+  periodEnd   DateTime
+  sampleSize  Int      @default(1)
+  
+  // Holly's self-assessment
+  hollyNote   String?  @db.Text
+  trend       String   @default("stable") // improving, stable, declining
+  
+  createdAt   DateTime @default(now())
+  
+  @@unique([metric, period, periodStart])
+  @@index([category, period])
+  @@map("growth_metrics")
+}
+
+model SelfImprovementAction {
+  id          String   @id @default(cuid())
+  
+  // What Holly decided to improve
+  area        String   // response_quality, knowledge, empathy, creativity, speed, personality
+  description String   @db.Text
+  strategy    String   @db.Text // How she plans to improve
+  
+  // Tracking
+  status      String   @default("planned") // planned, in_progress, completed, abandoned
+  priority    String   @default("medium")
+  progress    Float    @default(0)
+  
+  // Evidence
+  triggerMetric String? // metric that triggered this improvement
+  triggerValue  Float?
+  targetValue   Float?
+  evidence    Json     @default([]) // [{date, observation, action}]
+  
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([status, priority])
+  @@index([area])
+  @@map("self_improvement_actions")
+}
+
+model ConversationAnalytics {
+  id              String   @id @default(cuid())
+  userId          String
+  conversationId  String
+  
+  // Quality metrics (computed post-conversation)
+  responseCount   Int      @default(0)
+  avgResponseTime Float?   // ms
+  userEngagement  Float    @default(0.5) // 0-1 based on follow-up rate
+  topicDepth      Float    @default(0.5) // how deep the conversation went
+  modeUsed        String?
+  
+  // Self-assessment
+  qualityScore    Float    @default(0.5) // Holly's self-rated quality
+  strengths       String[] @default([])
+  weaknesses      String[] @default([])
+  
+  createdAt       DateTime @default(now())
+  
+  @@index([userId, createdAt])
+  @@unique([conversationId])
+  @@map("conversation_analytics")
+}
+
