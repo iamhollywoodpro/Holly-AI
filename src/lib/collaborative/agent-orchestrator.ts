@@ -514,21 +514,27 @@ export class AgentOrchestrator {
   // ── 9. getSessionStatus ───────────────────────────────────────────────────
 
   async getSessionStatus(
-
     sessionId: string,
   ): Promise<OrchestratorResult<Record<string, unknown>>> {
     try {
       const session = await prisma.coordinationSession.findFirst({
         where: { id: sessionId, userId: this.userId },
-        include: {
-          agents: true,
-          tasks: true,
-        },
       });
 
       if (!session) {
         return { ok: false, error: 'Session not found or access denied' };
       }
+
+      // CoordinationSession has no direct relations to AgentInstance/AgentTask.
+      // Fetch them separately.
+      const [agents, tasks] = await Promise.all([
+        prisma.agentInstance.findMany({
+          where: { sessionId, userId: this.userId },
+        }),
+        prisma.agentTask.findMany({
+          where: { sessionId, userId: this.userId },
+        }),
+      ]);
 
       // Get message counts
       const messageCount = await prisma.agentMessage.count({
@@ -541,8 +547,8 @@ export class AgentOrchestrator {
 
       const summary = {
         session:   session as unknown as Record<string, unknown>,
-        agents:    (session as unknown as { agents?: unknown[] }).agents ?? [],
-        tasks:     (session as unknown as { tasks?: unknown[] }).tasks ?? [],
+        agents,
+        tasks,
         messages: {
           total:   messageCount,
           unread:  unreadCount,
@@ -703,11 +709,6 @@ export class AgentOrchestrator {
         orderBy: { startedAt: 'desc' },
         take:    opts?.limit  ?? 20,
         skip:    opts?.offset ?? 0,
-        include: {
-          _count: {
-            select: { agents: true, tasks: true },
-          },
-        },
       });
 
       return { ok: true, data: sessions as unknown as Record<string, unknown>[] };

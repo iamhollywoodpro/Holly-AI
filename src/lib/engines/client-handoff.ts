@@ -79,7 +79,7 @@ async function aiGenerate(
 // ClientHandoffManager Class
 // ---------------------------------------------------------------------------
 
-class ClientHandoffManager {
+export class ClientHandoffManager {
   private userId: string;
 
   constructor(userId: string) {

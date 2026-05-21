@@ -21,6 +21,14 @@ import { smartRoute } from '@/lib/ai/smart-router';
 import { cascadeCollect } from '@/lib/ai/cascade';
 
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
+const INTERNAL_TOKEN = process.env.INTERNAL_API_SECRET || 'holly-internal';
+
+function verifyToken(req: NextRequest): boolean {
+  const token = req.headers.get('x-internal-token');
+  return token === INTERNAL_TOKEN;
+}
 
 // ── Quality assessment prompt builder ──────────────────────────────────────
 
@@ -107,8 +115,26 @@ ${input}
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
+    // ── Auth: support both Clerk session (browser) and x-internal-token (MCP) ──
+    let dbUserId: string | null = null;
+
+    // Try internal token first (MCP server-to-server calls)
+    if (verifyToken(req)) {
+      const body = await req.json().catch(() => null);
+      if (!body) {
+        return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+      }
+      dbUserId = body.userId || null;
+      if (!dbUserId) {
+        return NextResponse.json({ error: 'Missing userId' }, { status: 400 });
+      }
+      // Process with dbUserId
+      return handleTasteAction(body, dbUserId);
+    }
+
+    // Fallback to Clerk auth (browser calls)
+    const { userId: clerkUserId } = await auth();
+    if (!clerkUserId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -117,13 +143,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
     }
 
+    const user = await getOrCreateUser(clerkUserId);
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    return handleTasteAction(body, user.id);
+  } catch (error) {
+    console.error('[taste-hub] Error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+async function handleTasteAction(body: any, userId: string) {
+  try {
     const { action } = body;
     if (!action) {
       return NextResponse.json({ error: 'Missing "action" field' }, { status: 400 });
     }
 
-    const dbUser = await getOrCreateUser(userId);
-    const engine = new TasteEngine(dbUser.id);
+    const engine = new TasteEngine(userId);
 
     switch (action) {
       // ── record_signal ──────────────────────────────────────────────────

@@ -91,6 +91,41 @@ const TASTE_TOOLS = [
   'taste_detect_signals',  // Auto-detect implicit signals from messages
 ];
 
+// Temporal Sense tools — Time awareness and proactive capabilities (Phase 5)
+const TEMPORAL_TOOLS = [
+  'temporal_record_event',          // Record a temporal event
+  'temporal_get_recent',            // Get recent events
+  'temporal_get_timeline',          // Get event timeline
+  'temporal_start_session',         // Start an activity session
+  'temporal_end_session',           // End an activity session
+  'temporal_detect_patterns',       // Detect temporal patterns
+  'temporal_get_patterns',          // Get detected patterns
+  'temporal_generate_insights',     // Generate proactive insights
+  'temporal_get_pending_insights',  // Get insights not yet shown
+  'temporal_mark_insight_shown',    // Mark insight as displayed
+  'temporal_get_context',           // Get temporal context for prompts
+  'temporal_cleanup',               // Clean up expired data
+];
+
+// Collaborative Sense tools — Multi-agent coordination (Phase 6)
+const COLLAB_TOOLS = [
+  'collab_create_session',     // Create coordination session
+  'collab_spawn_agent',        // Spawn a new agent
+  'collab_update_agent',       // Update agent status
+  'collab_heartbeat',          // Agent heartbeat
+  'collab_create_task',        // Create a task
+  'collab_assign_task',        // Assign task to agent
+  'collab_update_task',        // Update task status
+  'collab_send_message',       // Send inter-agent message
+  'collab_get_messages',       // Get session messages
+  'collab_broadcast',          // Broadcast to all agents
+  'collab_decompose_goal',     // AI decompose goal into subtasks
+  'collab_aggregate_results',  // AI aggregate agent results
+  'collab_session_status',     // Get session status
+  'collab_session_history',    // Get session history
+  'collab_cleanup_session',    // End and clean up session
+];
+
 // Project Lifecycle tools — Full project building, deployment, monitoring, handoff (Phase 7)
 const PROJECT_TOOLS = [
   'project_create',              // Create a new lifecycle project
@@ -121,21 +156,21 @@ const PROJECT_TOOLS = [
 ];
 
 const MODE_TOOL_FILTERS: Record<string, string[]> = {
-  'default':           [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...CODE_GEN_TOOLS, ...TASTE_TOOLS, ...PROJECT_TOOLS, 'run_code', 'sentinel_analyze_code', 'sentinel_generate_code', 'memory_read', 'memory_write', 'self_code_apply', 'start_build'],
-  'deep-research':     [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...CODE_GEN_TOOLS, ...TASTE_TOOLS, ...PROJECT_TOOLS, 'memory_read', 'memory_list_keys', 'run_code', 'sentinel_analyze_code'],
-  'self-coding':       [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...CODE_GEN_TOOLS, ...TASTE_TOOLS, ...PROJECT_TOOLS, 'run_code', 'sentinel_analyze_code', 'sentinel_generate_code', 'memory_read', 'memory_write', 'self_code_apply', 'trigger_deploy', 'local_read_file', 'local_write_file', 'diagnostic_check', 'read_logs', 'start_build', 'ui_screenshot', 'ui_analyze'],
-  'full-stack':        [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...CODE_GEN_TOOLS, ...TASTE_TOOLS, ...PROJECT_TOOLS, 'run_code', 'generate_image', 'memory_read', 'memory_write', 'sentinel_analyze_code', 'sentinel_generate_code', 'self_code_apply', 'trigger_deploy', 'start_build', 'ui_screenshot', 'ui_analyze'],
-  'write-code':        [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...CODE_GEN_TOOLS, ...TASTE_TOOLS, ...PROJECT_TOOLS, 'run_code', 'memory_read', 'sentinel_analyze_code', 'sentinel_generate_code', 'self_code_apply', 'trigger_deploy', 'start_build'],
-  'music-generation':  [...GITHUB_SELF_EDIT_TOOLS, ...TASTE_TOOLS, ...PROJECT_TOOLS, 'generate_music', 'hybrid_studio', 'memory_read'],
+  'default':           [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...CODE_GEN_TOOLS, ...TASTE_TOOLS, ...TEMPORAL_TOOLS, ...COLLAB_TOOLS, ...PROJECT_TOOLS, 'run_code', 'sentinel_analyze_code', 'sentinel_generate_code', 'memory_read', 'memory_write', 'self_code_apply', 'start_build'],
+  'deep-research':     [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...CODE_GEN_TOOLS, ...TASTE_TOOLS, ...TEMPORAL_TOOLS, ...PROJECT_TOOLS, 'memory_read', 'memory_list_keys', 'run_code', 'sentinel_analyze_code'],
+  'self-coding':       [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...CODE_GEN_TOOLS, ...TASTE_TOOLS, ...TEMPORAL_TOOLS, ...COLLAB_TOOLS, ...PROJECT_TOOLS, 'run_code', 'sentinel_analyze_code', 'sentinel_generate_code', 'memory_read', 'memory_write', 'self_code_apply', 'trigger_deploy', 'local_read_file', 'local_write_file', 'diagnostic_check', 'read_logs', 'start_build', 'ui_screenshot', 'ui_analyze'],
+  'full-stack':        [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...CODE_GEN_TOOLS, ...TASTE_TOOLS, ...TEMPORAL_TOOLS, ...COLLAB_TOOLS, ...PROJECT_TOOLS, 'run_code', 'generate_image', 'memory_read', 'memory_write', 'sentinel_analyze_code', 'sentinel_generate_code', 'self_code_apply', 'trigger_deploy', 'start_build', 'ui_screenshot', 'ui_analyze'],
+  'write-code':        [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...CODE_GEN_TOOLS, ...TASTE_TOOLS, ...TEMPORAL_TOOLS, ...COLLAB_TOOLS, ...PROJECT_TOOLS, 'run_code', 'memory_read', 'sentinel_analyze_code', 'sentinel_generate_code', 'self_code_apply', 'trigger_deploy', 'start_build'],
+  'music-generation':  [...GITHUB_SELF_EDIT_TOOLS, ...TASTE_TOOLS, ...TEMPORAL_TOOLS, ...PROJECT_TOOLS, 'generate_music', 'hybrid_studio', 'memory_read'],
   'music-studio':      [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...TASTE_TOOLS, 'generate_music', 'hybrid_studio', 'aura_ar_analyze', 'aura_quick_rate', 'memory_read', 'memory_write'],
   'aura-ar':           [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...TASTE_TOOLS, 'aura_ar_analyze', 'aura_quick_rate', 'aura_analyze_song', 'memory_read'],
-  'neural-autonomy':   [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...CODE_GEN_TOOLS, ...TASTE_TOOLS, ...PROJECT_TOOLS, 'local_read_file', 'local_write_file', 'run_code', 'memory_read', 'memory_write', 'diagnostic_check', 'read_logs', 'mirror_check', 'self_code_apply', 'trigger_deploy', 'sentinel_analyze_code', 'sentinel_generate_code', 'start_build', 'swarm_task'],
-  'magic-design':      [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...CODE_GEN_TOOLS, ...TASTE_TOOLS, ...PROJECT_TOOLS, 'generate_image', 'sentinel_analyze_code', 'sentinel_generate_code', 'run_code', 'memory_read', 'memory_write', 'self_code_apply', 'start_build'],
-  'philosophy':                [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...TASTE_TOOLS],
-  'creative-writing':         [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...TASTE_TOOLS],
-  'visual-arts':              [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...TASTE_TOOLS, 'generate_image'],
-  'emotional-intelligence':   [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...TASTE_TOOLS],
-  'intimate':                 [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...TASTE_TOOLS],
+  'neural-autonomy':   [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...CODE_GEN_TOOLS, ...TASTE_TOOLS, ...TEMPORAL_TOOLS, ...COLLAB_TOOLS, ...PROJECT_TOOLS, 'local_read_file', 'local_write_file', 'run_code', 'memory_read', 'memory_write', 'diagnostic_check', 'read_logs', 'mirror_check', 'self_code_apply', 'trigger_deploy', 'sentinel_analyze_code', 'sentinel_generate_code', 'start_build', 'swarm_task'],
+  'magic-design':      [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...CODE_GEN_TOOLS, ...TASTE_TOOLS, ...TEMPORAL_TOOLS, ...PROJECT_TOOLS, 'generate_image', 'sentinel_analyze_code', 'sentinel_generate_code', 'run_code', 'memory_read', 'memory_write', 'self_code_apply', 'start_build'],
+  'philosophy':                [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...TASTE_TOOLS, ...TEMPORAL_TOOLS],
+  'creative-writing':         [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...TASTE_TOOLS, ...TEMPORAL_TOOLS],
+  'visual-arts':              [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...TASTE_TOOLS, ...TEMPORAL_TOOLS, 'generate_image'],
+  'emotional-intelligence':   [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...TASTE_TOOLS, ...TEMPORAL_TOOLS],
+  'intimate':                 [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...TASTE_TOOLS, ...TEMPORAL_TOOLS],
 };
 
 // SSE helpers
