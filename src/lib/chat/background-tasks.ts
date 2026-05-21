@@ -8,6 +8,7 @@ import { smartRoute } from '@/lib/ai/smart-router';
 import { cascadeCollect } from '@/lib/ai/cascade';
 import { persistEmotionalBaseline } from '@/lib/consciousness/emotional-continuity';
 import { detectEmotionsLLM } from '@/lib/emotion/ml-emotion-detector';
+import { extractAndStoreMemories, detectMilestones, updateRelationshipContext, rebuildRelationshipProfile } from '@/lib/relationship/relationship-engine';
 
 export async function saveMessages(
   dbUserId: string,
@@ -123,6 +124,21 @@ export async function runBackgroundTasks(opts: {
     hasPerception: !!perceptionContext?.length,
     hasAudio: !!audioAnalysis,
   }).catch(err => bgLog('training-pipeline', err));
+
+  // Phase 8: Deep Relationship Engine — extract memories, detect milestones, update context
+  extractAndStoreMemories(dbUserId, latestUserMessage, fullResponse, conversationId).catch(err => bgLog('relationship-memories', err));
+  detectMilestones(dbUserId, latestUserMessage, conversationId).catch(err => bgLog('relationship-milestones', err));
+  updateRelationshipContext(dbUserId, latestUserMessage, detectedMode).catch(err => bgLog('relationship-context', err));
+
+  // Rebuild profile every ~10 conversations (check message count)
+  (async () => {
+    try {
+      const conv = await prisma.conversation.findUnique({ where: { id: conversationId }, select: { messageCount: true } });
+      if (conv && conv.messageCount % 20 === 0) {
+        await rebuildRelationshipProfile(dbUserId);
+      }
+    } catch {}
+  })();
 
   // Emotional state persistence (Phase 4.1)
   // Detect user's emotion from their message and save as baseline

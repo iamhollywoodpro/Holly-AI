@@ -17,6 +17,7 @@ import { getRecentMonologue } from '@/lib/consciousness/inner-monologue';
 import { applyContextBudget } from '@/lib/chat/context-budget';
 import { retrieveEpisodicMemories, findRelevantProcedures, generateSelfAwarenessReport, createMetaMemory, type EpisodicMemory, type ProceduralMemory, type MetaMemory } from '@/lib/memory/advanced-memory';
 import { createGraph, buildGraphFromText, extractSubgraph, extractConcepts, topNodes, graphStats } from '@/lib/intelligence/knowledge-graph-engine';
+import { getRelationshipMemoryContext } from '@/lib/relationship/relationship-engine';
 
 export interface ChatContext {
   memoryContext: string;
@@ -52,6 +53,8 @@ export interface ChatContext {
   emotionalContinuity: string;
   /** Advanced memory: episodic recall + procedural skills + meta self-awareness */
   advancedMemoryContext: string;
+  /** Phase 8: Deep relationship memory — Holly's living model of who you are */
+  relationshipMemoryContext: string;
 }
 
 const emptyIdentity = {
@@ -341,6 +344,11 @@ export async function loadChatContext(
           : Promise.resolve(''),
         '', 'recentFeedback',
       ),
+      // ── Phase 8: Deep Relationship Memory Context ──────────────────────
+      ctxTimeout(
+        dbUserId ? getRelationshipMemoryContext(dbUserId) : Promise.resolve(''),
+        '', 'relationshipMemoryContext',
+      ),
     ]),
     new Promise<any[]>((resolve) => {
       setTimeout(() => {
@@ -371,6 +379,7 @@ export async function loadChatContext(
     emotionalContinuity: results[17] as string,
     recentFeedback: results[18] as string,
     advancedMemoryContext: results[19] as string,
+    relationshipMemoryContext: results[20] as string,
   };
 
   // Apply smart token budget to prevent context window bloat
