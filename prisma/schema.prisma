@@ -5039,4 +5039,67 @@ model PatternTracker {
   @@map("pattern_trackers")
 }
 
+// ─── Phase 11: AUTONOMOUS LEARNING ──────────────────────────────────────────
+// Holly teaches herself. She identifies knowledge gaps, researches, and grows.
+
+model LearningGoal {
+  id          String   @id @default(cuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+  
+  // What Holly wants to learn
+  domain      String   // coding, science, art, music, philosophy, psychology, etc.
+  topic       String
+  description String   @db.Text
+  source      String   @default("self_identified") // self_identified, user_requested, gap_detected, trending
+  priority    String   @default("medium") // low, medium, high, critical
+  
+  // Progress tracking
+  status      String   @default("active") // active, learning, completed, paused
+  progress    Float    @default(0) // 0-1
+  lessonsLearned Json  @default([]) // [{summary, source, confidence, learnedAt}]
+  
+  // Why Holly chose to learn this
+  motivation  String?  @db.Text
+  relatedPatterns String[] @default([]) // pattern IDs that triggered this
+  
+  completedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([status, priority])
+  @@index([domain])
+  @@map("learning_goals")
+}
+
+model KnowledgeEntry {
+  id          String   @id @default(cuid())
+  userId      String?
+  
+  // The knowledge itself
+  domain      String
+  topic       String
+  title       String
+  content     String   @db.Text
+  source      String   // research, conversation, reasoning, synthesis
+  sourceUrl   String?
+  
+  // Quality metrics
+  confidence  Float    @default(0.5) // 0-1
+  timesUsed   Int      @default(0)
+  lastUsedAt  DateTime?
+  verified    Boolean  @default(false)
+  
+  // Connections
+  relatedTopics String[] @default([])
+  relatedEntries String[] @default([]) // other KnowledgeEntry IDs
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([domain, topic])
+  @@index([userId])
+  @@map("knowledge_entries")
+}
+
 
