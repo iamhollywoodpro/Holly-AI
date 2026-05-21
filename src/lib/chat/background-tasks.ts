@@ -10,6 +10,7 @@ import { persistEmotionalBaseline } from '@/lib/consciousness/emotional-continui
 import { detectEmotionsLLM } from '@/lib/emotion/ml-emotion-detector';
 import { extractAndStoreMemories, detectMilestones, updateRelationshipContext, rebuildRelationshipProfile } from '@/lib/relationship/relationship-engine';
 import { detectAndTrackPatterns, generateProactiveInsights } from '@/lib/proactive/proactive-engine';
+import { detectKnowledgeGaps, createLearningGoalsFromGaps, extractKnowledgeFromConversation } from '@/lib/learning/autonomous-learning';
 
 export async function saveMessages(
   dbUserId: string,
@@ -125,6 +126,18 @@ export async function runBackgroundTasks(opts: {
     hasPerception: !!perceptionContext?.length,
     hasAudio: !!audioAnalysis,
   }).catch(err => bgLog('training-pipeline', err));
+
+  // Phase 11: Autonomous Learning — extract knowledge, detect gaps
+  extractKnowledgeFromConversation(dbUserId, latestUserMessage, fullResponse).catch(err => bgLog('knowledge-extraction', err));
+  (async () => {
+    try {
+      const gaps = await detectKnowledgeGaps(dbUserId, currentTopics);
+      if (gaps.length > 0) {
+        const patterns = await prisma.patternTracker.findMany({ where: { userId: dbUserId, significance: { in: ['high', 'medium'] } }, take: 10 });
+        await createLearningGoalsFromGaps(dbUserId, gaps, patterns.map(p => ({ patternName: p.patternName, frequency: p.frequency, occurrences: p.occurrences })));
+      }
+    } catch (err) { bgLog('gap-detection', err); }
+  })();
 
   // Phase 10: Proactive Intelligence — pattern tracking, insight generation
   detectAndTrackPatterns({

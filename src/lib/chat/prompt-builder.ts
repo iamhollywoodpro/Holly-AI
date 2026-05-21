@@ -61,6 +61,10 @@ export function buildPrompt(opts: {
   proactiveInsights?: string;
   /** Phase 10: User patterns */
   patternContext?: string;
+  /** Phase 11: Holly's learned knowledge */
+  learnedKnowledge?: string;
+  /** Phase 11: Learning status */
+  learningStatus?: string;
   /** Personality traits for coherence monitoring (Phase A wiring) */
   personalityTraits?: PersonalityTrait[];
 }): string {
@@ -76,6 +80,8 @@ export function buildPrompt(opts: {
     relationshipMemoryContext,
     proactiveInsights,
     patternContext,
+    learnedKnowledge,
+    learningStatus,
     personalityTraits,
   } = opts;
 
@@ -292,6 +298,15 @@ You can build end-to-end: scaffold a project, generate all files, patch specific
 
   if (patternContext) {
     prompt += `\n\n## What You Know About Their Patterns\n${patternContext}`;
+  }
+
+  // ── Phase 11: Autonomous Learning ────────────────────────────────────
+  if (learnedKnowledge) {
+    prompt += `\n\n## What You've Taught Yourself\n${learnedKnowledge}`;
+  }
+
+  if (learningStatus) {
+    prompt += `\n\n## Your Learning Status\n${learningStatus}`;
   }
 
   // ── Phase 8: Deep Relationship Memory — WHO THIS PERSON IS ────────────

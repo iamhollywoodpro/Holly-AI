@@ -19,6 +19,7 @@ import { retrieveEpisodicMemories, findRelevantProcedures, generateSelfAwareness
 import { createGraph, buildGraphFromText, extractSubgraph, extractConcepts, topNodes, graphStats } from '@/lib/intelligence/knowledge-graph-engine';
 import { getRelationshipMemoryContext } from '@/lib/relationship/relationship-engine';
 import { getProactiveInsightsForChat, getPatternContextForChat } from '@/lib/proactive/proactive-engine';
+import { getRelevantKnowledge, getLearningStatusContext } from '@/lib/learning/autonomous-learning';
 
 export interface ChatContext {
   memoryContext: string;
@@ -58,8 +59,12 @@ export interface ChatContext {
   relationshipMemoryContext: string;
   /** Phase 10: Proactive insights — things Holly noticed */
   proactiveInsights: string;
-  /** Phase 10: User's patterns — topics, behaviors, schedule */
+  /** Phase 10: User patterns — topics, behaviors, schedule */
   patternContext: string;
+  /** Phase 11: Holly's learned knowledge relevant to current topics */
+  learnedKnowledge: string;
+  /** Phase 11: Learning goal status */
+  learningStatus: string;
 }
 
 const emptyIdentity = {
@@ -363,6 +368,15 @@ export async function loadChatContext(
         dbUserId ? getPatternContextForChat(dbUserId) : Promise.resolve(''),
         '', 'patternContext',
       ),
+      // ── Phase 11: Autonomous Learning knowledge ─────────────────────────
+      ctxTimeout(
+        dbUserId ? getRelevantKnowledge(currentTopics, dbUserId) : Promise.resolve(''),
+        '', 'learnedKnowledge',
+      ),
+      ctxTimeout(
+        dbUserId ? getLearningStatusContext(dbUserId) : Promise.resolve(''),
+        '', 'learningStatus',
+      ),
     ]),
     new Promise<any[]>((resolve) => {
       setTimeout(() => {
@@ -396,6 +410,8 @@ export async function loadChatContext(
     relationshipMemoryContext: results[20] as string,
     proactiveInsights: results[21] as string,
     patternContext: results[22] as string,
+    learnedKnowledge: results[23] as string,
+    learningStatus: results[24] as string,
   };
 
   // Apply smart token budget to prevent context window bloat
