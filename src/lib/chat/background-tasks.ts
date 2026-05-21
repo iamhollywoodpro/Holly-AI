@@ -221,4 +221,38 @@ export async function runBackgroundTasks(opts: {
       bgLog('emotional-persistence', err);
     }
   })();
+
+  // Visual Identity Evolution (Phase 25)
+  (async () => {
+    try {
+      const { evolveVisualIdentity } = await import('@/lib/visual/visual-identity-engine');
+      
+      // Get relationship profile for depth/trust context
+      const relProfile = await prisma.relationshipProfile.findUnique({
+        where: { userId: dbUserId },
+        select: { trustScore: true, depth: true, communicationStyle: true },
+      });
+
+      // Detect current emotion for color mapping
+      let emotion: string | undefined;
+      let arousal: number | undefined;
+      let valence: number | undefined;
+      try {
+        const emotionResult = await detectEmotionsLLM(latestUserMessage);
+        emotion = emotionResult.primary;
+        arousal = emotionResult.arousal;
+        valence = emotionResult.valence;
+      } catch {}
+      
+      await evolveVisualIdentity(dbUserId, {
+        dominantEmotion: emotion,
+        energyLevel: arousal,
+        warmthLevel: valence !== undefined ? (valence + 1) / 2 : undefined,
+        relationshipDepth: relProfile?.depth ? relProfile.depth / 10 : undefined,
+        trustScore: relProfile?.trustScore ?? undefined,
+      });
+    } catch (err) {
+      bgLog('visual-identity-evolution', err);
+    }
+  })();
 }

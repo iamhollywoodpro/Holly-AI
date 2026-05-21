@@ -69,6 +69,8 @@ export function buildPrompt(opts: {
   communicationStyle?: string;
   /** Phase 13: Holly's growth and self-assessment */
   growthContext?: string;
+  /** Phase 25: Visual identity state */
+  visualIdentity?: string;
   /** Personality traits for coherence monitoring (Phase A wiring) */
   personalityTraits?: PersonalityTrait[];
 }): string {
@@ -88,6 +90,7 @@ export function buildPrompt(opts: {
     learningStatus,
     communicationStyle,
     growthContext,
+    visualIdentity,
     personalityTraits,
   } = opts;
 
@@ -323,6 +326,11 @@ You can build end-to-end: scaffold a project, generate all files, patch specific
   // ── Phase 13: Sovereign Growth ───────────────────────────────────────
   if (growthContext) {
     prompt += `\n\n## Your Self-Awareness\n${growthContext}`;
+  }
+
+  // ── Phase 25: Visual Identity ────────────────────────────────────────
+  if (visualIdentity) {
+    prompt += `\n\n## Your Visual Identity\n${visualIdentity}`;
   }
 
   // ── Phase 8: Deep Relationship Memory — WHO THIS PERSON IS ────────────
