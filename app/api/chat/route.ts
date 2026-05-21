@@ -323,6 +323,7 @@ export async function POST(req: NextRequest) {
       innerMonologue: ctx.innerMonologue,
       emotionalContinuity: ctx.emotionalContinuity,
       advancedMemoryContext: ctx.advancedMemoryContext,
+      relationshipMemoryContext: ctx.relationshipMemoryContext,
     });
 
     // 8. PREPARE MESSAGES

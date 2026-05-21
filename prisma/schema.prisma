@@ -153,6 +153,12 @@ model User {
   monitoringAlerts    MonitoringAlert[]
   clientHandoffs      ClientHandoff[]
 
+  // Phase 8: HOLLY REMEMBERS - Deep Relationship Engine
+  relationshipMemories   RelationshipMemory[]
+  relationshipProfile    RelationshipProfile?
+  relationshipMilestones RelationshipMilestone[]
+  relationshipContext    RelationshipContext?
+
   @@map("users")
 }
 
@@ -4840,6 +4846,122 @@ model ClientHandoff {
   @@index([projectId])
   @@index([status])
   @@map("client_handoffs")
+}
+
+// ============================================================
+// Phase 8: HOLLY REMEMBERS - Deep Relationship Engine
+// ============================================================
+
+/// Individual memories Holly learns about the user - facts, preferences, goals, traits
+model RelationshipMemory {
+  id          String   @id @default(cuid())
+  userId      String
+  category    String   // fact | preference | goal | trait | value | skill | context | opinion | habit | boundary
+  domain      String   // work | personal | creative | technical | social | health | financial | music | legal | general
+  key         String   // Short identifier: "prefers_late_night_work", "building_music_company"
+  content     String   // The actual memory content
+  source      String   // conversation | observation | explicit | inference | milestone
+  confidence  Float    @default(0.5) // 0-1 how confident Holly is about this memory
+  importance  Float    @default(0.5) // 0-1 how central this is to who the user is
+  emotionalWeight Float @default(0.0) // -1 to 1 emotional significance
+  accessCount Int      @default(0) // How many times Holly has referenced this
+  lastAccessedAt DateTime?
+  verified    Boolean  @default(false) // User confirmed this is accurate
+  supersededById String? // If this memory was updated, points to the newer version
+  conversationId String?
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  supersededBy RelationshipMemory? @relation("MemoryEvolution", fields: [supersededById], references: [id])
+  supersededMemories RelationshipMemory[] @relation("MemoryEvolution")
+
+  @@unique([userId, category, key])
+  @@index([userId, category])
+  @@index([userId, domain])
+  @@index([userId, importance])
+  @@index([confidence])
+  @@index([lastAccessedAt])
+  @@map("relationship_memories")
+}
+
+/// The aggregated model of who the user is - Holly's understanding of you
+model RelationshipProfile {
+  id                    String   @id @default(cuid())
+  userId                String   @unique
+  relationshipDepth     Float    @default(0.0) // 0-1 how well Holly knows you
+  trustLevel            Float    @default(0.0) // 0-1 mutual trust level
+  communicationStyle    Json     @default("{}") // tone, verbosity, directness, humor, formality
+  personalityModel      Json     @default("{}") // big five traits, work style, decision making
+  expertiseAreas        Json     @default("[]") // domains where user has deep knowledge
+  activeGoals           Json     @default("[]") // current goals Holly is tracking
+  coreValues            Json     @default("[]") // values detected from interactions
+  boundaries            Json     @default("[]") // things Holly should never do/suggest
+  workPatterns          Json     @default("{}") // when, how, intensity of work sessions
+  creativeStyle         Json     @default("{}") // creative preferences and patterns
+  emotionalBaseline     Json     @default("{}") // typical emotional patterns
+  relationshipMilestones Json    @default("[]") // key moments in the relationship
+  totalInteractions     Int      @default(0)
+  totalConversations    Int      @default(0)
+  totalMemories         Int      @default(0)
+  lastInteractionAt     DateTime?
+  firstInteractionAt    DateTime?
+  profileVersion        Int      @default(1) // incremented on each profile rebuild
+  metadata              Json     @default("{}")
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([relationshipDepth])
+  @@index([trustLevel])
+  @@index([lastInteractionAt])
+  @@map("relationship_profiles")
+}
+
+/// Key moments in the Holly-user relationship
+model RelationshipMilestone {
+  id          String   @id @default(cuid())
+  userId      String
+  type        String   // first_conversation | breakthrough | trust_earned | goal_achieved | vulnerability_shared | humor_shared | conflict_resolved | collaboration_success | personal_revelation | creative_breakthrough | skill_milestone
+  title       String
+  description String
+  significance Float   @default(0.5) // 0-1 how significant this moment was
+  emotionTone String?  // positive | neutral | negative | complex
+  conversationId String?
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type])
+  @@index([userId, createdAt])
+  @@index([significance])
+  @@map("relationship_milestones")
+}
+
+/// Real-time relationship context - updated every interaction
+model RelationshipContext {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  currentMood String?  // focused | creative | stressed | relaxed | energetic | tired | frustrated | inspired | reflective
+  energyLevel Float?   // 0-1 estimated energy/engagement level
+  focusArea   String?  // What the user is currently working on
+  recentTopics Json    @default("[]") // Topics discussed in recent sessions
+  activeProjects Json  @default("[]") // Projects currently in progress
+  pendingFollowups Json @default("[]") // Things Holly should follow up on
+  unresolvedNeeds Json @default("[]") // Needs expressed but not yet addressed
+  sessionNotes Json    @default("[]") // Notes from current/recent sessions
+  lastTopicAt DateTime?
+  lastMoodAt  DateTime?
+  contextStaleness Float @default(0.0) // 0-1 how stale the context is
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("relationship_contexts")
 }
 
 

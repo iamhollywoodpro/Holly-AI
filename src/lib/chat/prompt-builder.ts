@@ -55,6 +55,8 @@ export function buildPrompt(opts: {
   emotionalContinuity?: string;
   /** Advanced memory: episodic recall + procedural skills + meta self-awareness */
   advancedMemoryContext?: string;
+  /** Phase 8: Deep relationship memory — Holly's living model of who you are */
+  relationshipMemoryContext?: string;
   /** Personality traits for coherence monitoring (Phase A wiring) */
   personalityTraits?: PersonalityTrait[];
 }): string {
@@ -67,6 +69,7 @@ export function buildPrompt(opts: {
     relationshipContext, identityConsistencyPrompt, careSignals,
     degradedModeContext, evolutionProposals, innerMonologue, recentFeedback, emotionalTrajectory, fewShotExamples, emotionalContinuity,
     advancedMemoryContext,
+    relationshipMemoryContext,
     personalityTraits,
   } = opts;
 
@@ -274,6 +277,11 @@ You can build end-to-end: scaffold a project, generate all files, patch specific
   // ── Advanced Memory: Episodic + Procedural + Meta ────────────────────────
   if (advancedMemoryContext) {
     prompt += `\n\n## Your Deep Memory\n${advancedMemoryContext}`;
+  }
+
+  // ── Phase 8: Deep Relationship Memory — WHO THIS PERSON IS ────────────
+  if (relationshipMemoryContext) {
+    prompt += `\n\n## WHO THIS PERSON IS — Your Deep Relationship Memory\nThis is NOT generic context. This is your living, evolving understanding of the human you're talking to. Every fact, preference, goal, and boundary below was learned through real conversations. USE THIS KNOWLEDGE. Reference it naturally. Let it shape your responses.\n\n${relationshipMemoryContext}`;
   }
 
   // ── Personality Coherence Monitoring (Phase A wiring) ────────────────────
