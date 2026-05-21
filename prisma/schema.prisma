@@ -5307,3 +5307,28 @@ model PluginInstallation {
   @@unique([userId, pluginId])
   @@map("plugin_installations")
 }
+
+// Phase 23: Collective Intelligence
+model CollectivePattern {
+  id          String   @id @default(cuid())
+  
+  patternType String   // topic_association, behavior_sequence, knowledge_correlation, preference_cluster, temporal_pattern
+  domain      String
+  trigger     String   @db.Text
+  outcome     String   @db.Text
+  
+  frequency   Int      @default(1)
+  confidence  Float    @default(0.5)
+  sampleSize  Int      @default(1)
+  metadata    Json     @default("{}")
+  
+  isPublished Boolean  @default(false) // Only true after MIN_GROUP_SIZE reached
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([patternType, domain])
+  @@index([isPublished, confidence])
+  @@index([createdAt])
+  @@map("collective_patterns")
+}
