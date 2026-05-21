@@ -178,6 +178,9 @@ export async function runBackgroundTasks(opts: {
       const conv = await prisma.conversation.findUnique({ where: { id: conversationId }, select: { messageCount: true } });
       if (conv && conv.messageCount % 20 === 0) {
         await rebuildRelationshipProfile(dbUserId);
+        // Phase 17: Invalidate cached context after profile rebuild
+        const { invalidateUserCache } = await import('@/lib/multi-tenant/user-context-cache');
+        invalidateUserCache(dbUserId);
       }
     } catch {}
   })();
