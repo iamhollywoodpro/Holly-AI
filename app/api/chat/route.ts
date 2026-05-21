@@ -395,6 +395,11 @@ export async function POST(req: NextRequest) {
           const actionStatus = detectActionStatus(latestUserMessage);
           sendStatus(controller, actionStatus || '✨ Thinking…');
 
+          // Phase 20: Advanced Reasoning Chains
+          // Detect complex queries and optionally stream reasoning steps
+          const { needsReasoningChain } = await import('@/lib/reasoning/reasoning-chains');
+          const reasoningAssessment = needsReasoningChain(latestUserMessage);
+
           let fullResponse = '';
           let activeModel = routing.primary.displayName;
           let responseSource = '';
