@@ -74,7 +74,7 @@ async function aiGenerate(
 // ProjectLifecycle Class
 // ---------------------------------------------------------------------------
 
-class ProjectLifecycle {
+export class ProjectLifecycle {
   private userId: string;
 
   constructor(userId: string) {
@@ -98,7 +98,7 @@ class ProjectLifecycle {
         database: opts.database ?? null,
         hostingTargets: opts.hostingTargets ?? [],
         status: 'ideation',
-        phase: 1,
+        phase: 'planning',
         qualityScore: 0,
         testCoverage: 0,
         performanceScore: 0,
