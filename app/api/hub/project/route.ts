@@ -60,7 +60,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import ProjectLifecycle from '@/lib/engines/project-lifecycle';
 import DeploymentManager from '@/lib/engines/deployment-manager';
-import MonitoringEngine from '@/lib/engines/monitoring-engine';
+import MonitoringEngine from '@/lib/engines/project-monitoring-engine';
 import ClientHandoffManager from '@/lib/engines/client-handoff';
 
 export const runtime = 'nodejs';

@@ -4,7 +4,7 @@ import { useState, useEffect, Fragment } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon, CheckCircleIcon, ExclamationCircleIcon } from '@heroicons/react/24/outline';
 import { useActiveRepo } from '@/hooks/useActiveRepos';
-import type { GitHubFile } from '@/lib/github-api';
+import type { GitHubFile } from '@/lib/github-operations';
 import { CodeReviewPanel } from './CodeReviewPanel';
 import type { CodeReviewResult } from '@/lib/code-reviewer';
 

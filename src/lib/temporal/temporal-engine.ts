@@ -266,14 +266,7 @@ export class TemporalEngine {
 
         const hourRanges = peakHours.sort((a, b) => a - b);
         const pattern = await prisma.temporalPattern.upsert({
-          where: {
-            id: (
-              await prisma.temporalPattern.findFirst({
-                where: { userId, patternType: 'work_hours' },
-                select: { id: true },
-              })
-            )?.id ?? '___none___',
-          },
+          where: { userId_patternType: { userId, patternType: 'work_hours' } },
           update: {
             pattern: `Active roughly ${hourRanges.map(h => `${h}:00`).join(', ')}`,
             context: { peakHours, peakDays, totalEvents: total },
@@ -310,12 +303,8 @@ export class TemporalEngine {
         const dominantCount = topCategories[0][1];
         const confidence = Math.min(dominantCount / events.length, 1.0);
 
-        const existing = await prisma.temporalPattern.findFirst({
-          where: { userId, patternType: 'topic_rhythm' },
-        });
-
         const pattern = await prisma.temporalPattern.upsert({
-          where: { id: existing?.id ?? '___none___' },
+          where: { userId_patternType: { userId, patternType: 'topic_rhythm' } },
           update: {
             pattern: `Most active in "${dominantCategory}" (${dominantCount} events), followed by ${topCategories.slice(1).map(([c, n]) => `"${c}" (${n})`).join(', ')}`,
             context: { categories: topCategories.map(([c, n]) => ({ category: c, count: n })) },
@@ -352,13 +341,9 @@ export class TemporalEngine {
         const shortSessions = sessions.filter(s => (s.duration ?? 0) < avgDuration * 0.5);
 
         if (longSessions.length > 0 || shortSessions.length > 0) {
-          const existing = await prisma.temporalPattern.findFirst({
-            where: { userId, patternType: 'activity_cycle' },
-          });
-
           const confidence = Math.min(sessions.length / 20, 1.0);
           const pattern = await prisma.temporalPattern.upsert({
-            where: { id: existing?.id ?? '___none___' },
+            where: { userId_patternType: { userId, patternType: 'activity_cycle' } },
             update: {
               pattern: `Average session ${Math.round(avgDuration / 60)}min. ${longSessions.length} deep sessions, ${shortSessions.length} brief sessions in the last 30 days.`,
               context: { avgDuration, longSessions: longSessions.length, shortSessions: shortSessions.length, totalSessions: sessions.length },
@@ -393,13 +378,9 @@ export class TemporalEngine {
       }
       if (toolCounts.size >= 2) {
         const sortedTools = [...toolCounts.entries()].sort((a, b) => b[1] - a[1]);
-        const existing = await prisma.temporalPattern.findFirst({
-          where: { userId, patternType: 'tool_usage' },
-        });
-
         const confidence = Math.min(sortedTools[0][1] / events.length, 0.9);
         const pattern = await prisma.temporalPattern.upsert({
-          where: { id: existing?.id ?? '___none___' },
+          where: { userId_patternType: { userId, patternType: 'tool_usage' } },
           update: {
             pattern: `Most-used tools: ${sortedTools.slice(0, 5).map(([t, n]) => `${t} (${n}x)`).join(', ')}`,
             context: { tools: sortedTools.map(([t, n]) => ({ tool: t, count: n })) },

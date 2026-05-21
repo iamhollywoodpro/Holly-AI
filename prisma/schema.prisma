@@ -1349,6 +1349,7 @@ model CodebaseKnowledge {
 
   @@index([layer])
   @@index([lastAnalyzed])
+  @@map("codebase_knowledge")
 }
 
 model ArchitectureSnapshot {
@@ -1365,6 +1366,7 @@ model ArchitectureSnapshot {
   timestamp         DateTime @default(now())
 
   @@index([timestamp])
+  @@map("architecture_snapshots")
 }
 
 model DependencyGraph {
@@ -1381,6 +1383,7 @@ model DependencyGraph {
 
   @@index([isCritical])
   @@index([lastAnalyzed])
+  @@map("dependency_graphs")
 }
 
 // ============================================================================
@@ -1441,6 +1444,7 @@ model SelfHealingAction {
   @@index([status])
   @@index([severity])
   @@index([detectedAt])
+  @@index([codeChangeId])
   @@map("self_healing_actions")
 }
 
@@ -2445,6 +2449,7 @@ model Notification {
   @@index([priority])
   @@index([createdAt])
   @@index([groupKey])
+  @@index([integrationId])
   @@map("notifications")
 }
 
@@ -2835,6 +2840,8 @@ model CreativeAsset {
   @@index([type])
   @@index([status])
   @@index([createdAt])
+  @@index([generationId])
+  @@map("creative_assets")
 }
 
 // Generation Job - Track generation requests & status
@@ -2892,6 +2899,8 @@ model GenerationJob {
   @@index([status])
   @@index([type])
   @@index([createdAt])
+  @@index([templateId])
+  @@map("generation_jobs")
 }
 
 // Creative Template - Reusable templates
@@ -2930,6 +2939,7 @@ model CreativeTemplate {
   @@index([userId])
   @@index([type])
   @@index([isPublic])
+  @@map("creative_templates")
 }
 
 // Asset Metadata - Extended asset information
@@ -2966,6 +2976,7 @@ model AssetMetadata {
   updatedAt DateTime @updatedAt
 
   @@index([assetId])
+  @@map("asset_metadata")
 }
 
 // ============================================================================
@@ -3030,6 +3041,9 @@ model GeneratedCode {
   @@index([approvalStatus])
   @@index([language])
   @@index([templateId])
+  @@index([previousVersionId])
+  @@index([codeGenJobId])
+  @@map("generated_codes")
 }
 
 // Code Templates - Reusable patterns
@@ -3073,6 +3087,7 @@ model CodeTemplate {
   @@index([userId])
   @@index([category])
   @@index([language])
+  @@map("code_templates")
 }
 
 // Code Generation Jobs - Track code generation processes
@@ -3126,6 +3141,7 @@ model CodeGenerationJob {
   @@index([status])
   @@index([jobType])
   @@index([createdAt])
+  @@map("code_generation_jobs")
 }
 
 // Code Patterns - Learned patterns from existing codebase
@@ -3169,6 +3185,7 @@ model CodePattern {
   @@index([patternType])
   @@index([language])
   @@index([confidence])
+  @@map("code_patterns")
 }
 
 // HOLLY Generated Media - Images, Videos, Audio created by HOLLY
@@ -3197,6 +3214,7 @@ model GeneratedMedia {
   @@index([conversationId])
   @@index([type])
   @@index([createdAt])
+  @@map("generated_media")
 }
 
 // ============================================
@@ -3296,6 +3314,7 @@ model Experience {
   @@index([type, outcome])
   @@index([createdAt])
   @@index([wouldRepeat])
+  @@index([hypothesisId])
   @@map("experiences")
 }
 
@@ -3794,7 +3813,7 @@ model TemporalPattern {
   peakDays        Int[]    @default([])     // Days of week (0=Sun, 6=Sat)
   relatedPatterns String[] @default([])     // IDs of related patterns
 
-  @@unique([userId, patternType, pattern(255)])
+  @@unique([userId, patternType])
   @@index([userId])
   @@index([patternType])
   @@index([confidence])
@@ -4135,6 +4154,7 @@ model AuraWorkspace {
   agents   AuraAgent[]
   messages AuraMessage[]
 
+  @@index([userId])
   @@map("aura_workspaces")
 }
 
@@ -4152,6 +4172,7 @@ model AuraAgent {
 
   messages AuraMessage[]
 
+  @@index([workspaceId])
   @@map("aura_agents")
 }
 
@@ -4167,6 +4188,8 @@ model AuraMessage {
   metadata    Json          @default("{}")
   createdAt   DateTime      @default(now())
 
+  @@index([workspaceId])
+  @@index([agentId])
   @@map("aura_messages")
 }
 
@@ -4270,6 +4293,7 @@ model Goal {
   @@index([priority])
   @@index([deadline])
   @@index([createdAt])
+  @@index([parentGoalId])
   @@map("goals")
 }
 
@@ -4816,4 +4840,56 @@ model ClientHandoff {
   @@index([projectId])
   @@index([status])
   @@map("client_handoffs")
+}
+
+// Self-Improvement tracking
+model SelfImprovement {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Trigger information
+  triggerType       String   // 'error', 'feedback', 'audit', 'metric', 'reflection'
+  triggerData       Json?    @default("{}")
+  
+  // Problem and solution
+  problemStatement  String   @db.Text
+  solutionApproach  String   @db.Text
+  riskLevel         String   // 'low', 'medium', 'high'
+  
+  // Git and PR information
+  branchName        String
+  prNumber          Int?
+  prUrl             String?
+  
+  // Status tracking
+  status            String   // 'planned', 'coding', 'pr_created', 'approved', 'merged', 'deployed', 'failed', 'rolled_back'
+  
+  // Code changes
+  filesChanged      String[]
+  codeChanges       Json?    @default("{}")
+  
+  // Testing and quality
+  testCoverage      Float?
+  testsAdded        Int      @default(0)
+  lintingPassed     Boolean  @default(false)
+  
+  // Deployment
+  deploymentUrl     String?
+  deployedAt        DateTime?
+  
+  // Outcome and learning
+  outcome           String?  // 'success', 'failure', 'rolled_back', 'pending'
+  metricsImproved   Json?    @default("{}")
+  learnings         String?  @db.Text
+  
+  // Timestamps
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([status])
+  @@index([triggerType])
+  @@index([createdAt])
+  @@map("self_improvements")
 }

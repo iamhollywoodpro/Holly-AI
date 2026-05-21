@@ -522,7 +522,7 @@ Be specific and actionable. If performance looks good, return a high score with 
   async acknowledgeAlert(alertId: string) {
     const alert = await prisma.monitoringAlert.findUnique({
       where: { id: alertId },
-      select: { userId: true, status: true },
+      select: { userId: true, status: true, metadata: true },
     });
 
     if (!alert) {
@@ -537,11 +537,13 @@ Be specific and actionable. If performance looks good, return a high score with 
       throw new Error(`Cannot acknowledge alert in "${alert.status}" status`);
     }
 
+    const existingMetadata = (alert.metadata ?? {}) as Record<string, unknown>;
+
     return prisma.monitoringAlert.update({
       where: { id: alertId },
       data: {
         status: 'acknowledged',
-        metadata: { acknowledgedAt: new Date().toISOString() },
+        metadata: { ...existingMetadata, acknowledgedAt: new Date().toISOString() },
       },
     });
   }
@@ -583,7 +585,7 @@ Be specific and actionable. If performance looks good, return a high score with 
   async muteAlert(alertId: string) {
     const alert = await prisma.monitoringAlert.findUnique({
       where: { id: alertId },
-      select: { userId: true, status: true },
+      select: { userId: true, status: true, metadata: true },
     });
 
     if (!alert) {
@@ -598,11 +600,13 @@ Be specific and actionable. If performance looks good, return a high score with 
       throw new Error('Cannot mute a resolved alert');
     }
 
+    const existingMetadata = (alert.metadata ?? {}) as Record<string, unknown>;
+
     return prisma.monitoringAlert.update({
       where: { id: alertId },
       data: {
         status: 'muted',
-        metadata: { mutedAt: new Date().toISOString() },
+        metadata: { ...existingMetadata, mutedAt: new Date().toISOString() },
       },
     });
   }
@@ -614,7 +618,7 @@ Be specific and actionable. If performance looks good, return a high score with 
   async escalateAlert(alertId: string) {
     const alert = await prisma.monitoringAlert.findUnique({
       where: { id: alertId },
-      select: { userId: true, escalationLevel: true, status: true },
+      select: { userId: true, escalationLevel: true, status: true, metadata: true },
     });
 
     if (!alert) {
@@ -636,9 +640,12 @@ Be specific and actionable. If performance looks good, return a high score with 
     if (newLevel === 2) severityBump = 'critical';
     if (newLevel === 3) severityBump = 'emergency';
 
+    const existingMetadata = (alert.metadata ?? {}) as Record<string, unknown>;
+
     const updateData: Record<string, unknown> = {
       escalationLevel: newLevel,
       metadata: {
+        ...existingMetadata,
         escalatedAt: new Date().toISOString(),
         escalationLevel: newLevel,
       },
