@@ -2,7 +2,6 @@
 
 import { SignIn } from '@clerk/nextjs';
 import { useAuth } from '@clerk/nextjs';
-import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState, Suspense } from 'react';
 
 const PUBLIC_ORIGIN = 'https://holly.nexamusicgroup.com';
@@ -13,14 +12,10 @@ function getSafeRedirectUrl(rawParam: string | null): string {
   if (!rawParam) return '/chat';
   try {
     const decoded = decodeURIComponent(rawParam);
-    // If it's relative, it's safe
     if (decoded.startsWith('/')) return decoded;
-    // If it's our public domain, extract the path
     const url = new URL(decoded);
     if (url.origin === PUBLIC_ORIGIN) return url.pathname + url.search;
-    // Any Docker/localhost URL → discard
     if (DOCKER_ORIGINS.some(h => url.hostname === h)) return '/chat';
-    // Any other absolute URL → discard
     return '/chat';
   } catch {
     return '/chat';
@@ -29,37 +24,41 @@ function getSafeRedirectUrl(rawParam: string | null): string {
 
 function SignInContent() {
   const { isSignedIn, isLoaded } = useAuth();
-  const router = useRouter();
-  const searchParams = useSearchParams();
   const [clerkReady, setClerkReady] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
 
-  // Sanitize the redirect_url param — MUST happen before Clerk reads it.
-  // If the URL bar contains ?redirect_url=https://0.0.0.0:3000/chat,
-  // strip it immediately so Clerk never sees it and returns 422.
+  // Sanitize bad redirect_url from URL bar (Docker/localhost URLs)
   useEffect(() => {
-    const rawRedirect = searchParams.get('redirect_url');
+    const params = new URLSearchParams(window.location.search);
+    const rawRedirect = params.get('redirect_url');
     if (rawRedirect && DOCKER_ORIGINS.some(h => rawRedirect.includes(h))) {
-      console.warn('[HOLLY] Stripping bad redirect_url from sign-in URL:', rawRedirect);
-      // Replace URL without the bad param — no history entry
+      console.warn('[HOLLY] Stripping bad redirect_url:', rawRedirect);
       window.history.replaceState({}, '', '/sign-in');
     }
-  }, [searchParams]);
+  }, []);
 
-  // Already signed in → go straight to chat
+  // ── SIGN-IN LOOP FIX ──────────────────────────────────────────────────
+  // Previously used router.replace('/chat') which is a SOFT navigation.
+  // The middleware would run, find no __session cookie yet (race condition),
+  // and redirect back to /sign-in → LOOP.
+  //
+  // Now: use window.location.href (HARD navigation) with a 1.5s delay.
+  // This gives the Clerk proxy time to set the __session cookie before the
+  // browser navigates to /chat. Combined with the middleware's
+  // __client_uat check, this eliminates the loop entirely.
   useEffect(() => {
     if (isLoaded && isSignedIn && !redirecting) {
-      console.log('[HOLLY] Sign-in detected, redirecting to /chat...');
+      console.log('[HOLLY] Sign-in detected, waiting for session to propagate...');
       setRedirecting(true);
-      router.replace('/chat');
+
+      // Wait 1.5 seconds for the __session cookie to propagate through the proxy,
+      // then do a hard navigation (full page load) to /chat
       setTimeout(() => {
-        if (window.location.pathname === '/sign-in') {
-          console.warn('[HOLLY] router.replace failed, forcing hard redirect');
-          window.location.href = '/chat';
-        }
-      }, 1000);
+        console.log('[HOLLY] Redirecting to /chat via hard navigation');
+        window.location.href = '/chat';
+      }, 1500);
     }
-  }, [isLoaded, isSignedIn, router, redirecting]);
+  }, [isLoaded, isSignedIn, redirecting]);
 
   useEffect(() => {
     if (isLoaded) setClerkReady(true);
@@ -97,23 +96,22 @@ function SignInContent() {
           <div className="flex flex-col items-center justify-center py-16 gap-4">
             <div className="w-8 h-8 border-2 border-green-500 border-t-transparent rounded-full animate-spin" />
             <p className="text-green-400 text-sm font-medium">Signing you in...</p>
-            <p className="text-gray-600 text-xs">Redirecting to HOLLY chat</p>
+            <p className="text-gray-600 text-xs">Establishing your session with Holly</p>
           </div>
         )}
 
         {/*
           Clerk SignIn component.
-          - forceRedirectUrl="/chat" is the highest-priority redirect — always goes to /chat
-          - Do NOT pass redirect_url from searchParams — it may contain 0.0.0.0 URLs
-            which Clerk validates and rejects with 422 Unprocessable Content.
-          - The ClerkProvider in layout.tsx also has forceRedirectUrl="/chat" as a backstop.
+          - forceRedirectUrl tells Clerk where to redirect after sign-in.
+          - Our useEffect above also redirects as a backstop.
+          - Both use hard navigation (window.location.href) to avoid race conditions.
         */}
         {clerkReady && !redirecting && (
           <SignIn
             routing="path"
             path="/sign-in"
-            forceRedirectUrl="https://holly.nexamusicgroup.com/chat"
-            fallbackRedirectUrl="https://holly.nexamusicgroup.com/chat"
+            forceRedirectUrl={`${PUBLIC_ORIGIN}/chat`}
+            fallbackRedirectUrl={`${PUBLIC_ORIGIN}/chat`}
             signUpUrl="/sign-up"
             appearance={{
               variables: {
@@ -152,7 +150,7 @@ function SignInContent() {
 
       {/* Footer */}
       <div className="absolute bottom-6 left-0 w-full text-center pointer-events-none">
-        <p className="text-[10px] text-gray-700 tracking-widest uppercase">HOLLY — Living AI · Phase 10</p>
+        <p className="text-[10px] text-gray-700 tracking-widest uppercase">HOLLY — Living AI</p>
       </div>
     </div>
   );
