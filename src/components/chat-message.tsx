@@ -14,6 +14,7 @@ import { DeployButton } from './chat/DeployButton';
 import { useActiveRepo } from '@/hooks/useActiveRepos';
 import type { GitHubFile } from '@/lib/github-operations';
 import { MediaMessage, parseMediaFromMessage } from './chat/MediaMessage';
+import { useSettings } from '@/lib/settings/settings-store';
 
 interface ChatMessageProps {
   message: Message;
@@ -25,6 +26,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
   const [isLoading, setIsLoading] = useState(false);
   const voiceSettings = useVoiceSettings();
   const { activeRepo } = useActiveRepo();
+  const showTimestamps = useSettings((s) => s.settings.chat.showTimestamps);
 
   // Check if message contains generated media
   const mediaContent = parseMediaFromMessage(message.content);
@@ -210,7 +212,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
 
           {/* Timestamp, Model, and Voice Controls */}
           <div className={`flex items-center gap-2 mt-2 text-xs ${isAssistant ? 'text-gray-500' : 'text-white/60'}`}>
-            <span>{message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+            {showTimestamps && <span>{message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>}
             
             {/* Voice Button (only for assistant messages) */}
             {isAssistant && voiceSettings.enabled && (
