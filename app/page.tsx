@@ -466,8 +466,10 @@ export default function LandingPage() {
   const [showWhatSheCan, setShowWhatSheCan] = useState(false);
 
   useEffect(() => {
-    if (isLoaded && isSignedIn) router.replace('/chat');
-  }, [isLoaded, isSignedIn, router]);
+    if (isLoaded && isSignedIn) {
+      window.location.href = '/chat';
+    }
+  }, [isLoaded, isSignedIn]);
 
   if (!isLoaded || isSignedIn) {
     return (

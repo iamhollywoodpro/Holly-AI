@@ -2,7 +2,6 @@
 
 import { SignUp } from '@clerk/nextjs';
 import { useAuth } from '@clerk/nextjs';
-import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 const PUBLIC_ORIGIN = 'https://holly.nexamusicgroup.com';
@@ -10,32 +9,18 @@ const DOCKER_ORIGINS = ['0.0.0.0', 'localhost', '127.0.0.1'];
 
 export default function SignUpPage() {
   const { isSignedIn, isLoaded } = useAuth();
-  const router = useRouter();
   const [clerkReady, setClerkReady] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
 
-  // Already signed in → go to chat
+  // Already signed in → go to chat (client-side only, no server redirect)
   useEffect(() => {
     if (isLoaded && isSignedIn && !redirecting) {
-      console.log('[HOLLY] Sign-up complete, redirecting to /chat...', {
-        isLoaded,
-        isSignedIn,
-        timestamp: new Date().toISOString(),
-      });
+      console.log('[HOLLY] Sign-up complete, redirecting to /chat');
       setRedirecting(true);
-      
-      // Try router.replace first (Next.js client-side navigation)
-      router.replace('/chat');
-      
-      // Backup: force hard redirect after 1 second if router.replace doesn't work
-      setTimeout(() => {
-        if (window.location.pathname === '/sign-up') {
-          console.warn('[HOLLY] router.replace failed, forcing hard redirect');
-          window.location.href = `${PUBLIC_ORIGIN}/chat`;
-        }
-      }, 1000);
+      // Hard navigation only — no router.replace which can race with middleware
+      window.location.href = '/chat';
     }
-  }, [isLoaded, isSignedIn, router, redirecting]);
+  }, [isLoaded, isSignedIn, redirecting]);
 
   // Show content once Clerk has initialised
   useEffect(() => {
@@ -95,8 +80,6 @@ export default function SignUpPage() {
           <SignUp
             routing="path"
             path="/sign-up"
-            forceRedirectUrl={`${PUBLIC_ORIGIN}/chat`}
-            fallbackRedirectUrl={`${PUBLIC_ORIGIN}/chat`}
             signInUrl="/sign-in"
             appearance={{
               variables: {

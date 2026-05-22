@@ -37,26 +37,20 @@ function SignInContent() {
     }
   }, []);
 
-  // ── SIGN-IN LOOP FIX ──────────────────────────────────────────────────
-  // Previously used router.replace('/chat') which is a SOFT navigation.
-  // The middleware would run, find no __session cookie yet (race condition),
-  // and redirect back to /sign-in → LOOP.
-  //
-  // Now: use window.location.href (HARD navigation) with a 1.5s delay.
-  // This gives the Clerk proxy time to set the __session cookie before the
-  // browser navigates to /chat. Combined with the middleware's
-  // __client_uat check, this eliminates the loop entirely.
+  // ── SIGN-IN REDIRECT (client-side only) ──────────────────────────────
+  // DO NOT use forceRedirectUrl on the Clerk <SignIn> component.
+  // That causes a SERVER-SIDE 302 redirect which races with middleware
+  // and creates the sign-in loop. Instead, we handle the redirect here
+  // with window.location.href (hard navigation) after Clerk confirms
+  // the session is established.
   useEffect(() => {
     if (isLoaded && isSignedIn && !redirecting) {
-      console.log('[HOLLY] Sign-in detected, waiting for session to propagate...');
+      console.log('[HOLLY] Sign-in confirmed, redirecting to /chat');
       setRedirecting(true);
 
-      // Wait 1.5 seconds for the __session cookie to propagate through the proxy,
-      // then do a hard navigation (full page load) to /chat
-      setTimeout(() => {
-        console.log('[HOLLY] Redirecting to /chat via hard navigation');
-        window.location.href = '/chat';
-      }, 1500);
+      // Hard navigation to /chat. Since middleware no longer redirects
+      // page routes, this will always succeed.
+      window.location.href = '/chat';
     }
   }, [isLoaded, isSignedIn, redirecting]);
 
@@ -102,16 +96,14 @@ function SignInContent() {
 
         {/*
           Clerk SignIn component.
-          - forceRedirectUrl tells Clerk where to redirect after sign-in.
-          - Our useEffect above also redirects as a backstop.
-          - Both use hard navigation (window.location.href) to avoid race conditions.
+          NO forceRedirectUrl — we handle the redirect in the useEffect above
+          using client-side window.location.href. This avoids the server-side
+          302 redirect that was causing the sign-in loop.
         */}
         {clerkReady && !redirecting && (
           <SignIn
             routing="path"
             path="/sign-in"
-            forceRedirectUrl={`${PUBLIC_ORIGIN}/chat`}
-            fallbackRedirectUrl={`${PUBLIC_ORIGIN}/chat`}
             signUpUrl="/sign-up"
             appearance={{
               variables: {
