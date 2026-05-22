@@ -236,6 +236,24 @@ export async function POST(req: NextRequest) {
     if (!authResult) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const { userId, dbUserId, userName, isCreator } = authResult;
 
+    // 1a. LOAD USER AI SETTINGS — from database (falls back to defaults)
+    let userAiSettings = { creativity: 0.7, responseStyle: 'casual' as string, codeComments: 'standard' as string, contextWindow: 50 };
+    try {
+      const userSettingsRow = await prisma.userSettings.findUnique({
+        where: { userId: dbUserId },
+      });
+      if (userSettingsRow?.settings) {
+        const saved = userSettingsRow.settings as Record<string, any>;
+        const ai = saved.ai || {};
+        userAiSettings = {
+          creativity: typeof ai.creativity === 'number' ? ai.creativity : 0.7,
+          responseStyle: ai.responseStyle || 'casual',
+          codeComments: ai.codeComments || 'standard',
+          contextWindow: typeof ai.contextWindow === 'number' ? ai.contextWindow : 50,
+        };
+      }
+    } catch {}
+
     // 1b. ONBOARDING CHECK — Phase 21
     // If user hasn't completed onboarding, add a gentle nudge in the system prompt
     let onboardingNudge = '';
@@ -343,10 +361,26 @@ export async function POST(req: NextRequest) {
       visualIdentity: ctx.visualIdentity,
     }) + onboardingNudge;
 
+    // 7b. INJECT AI BEHAVIOR SETTINGS — response style and code comment directives
+    let aiBehaviorDirectives = '';
+    if (userAiSettings.responseStyle === 'professional') {
+      aiBehaviorDirectives += '\n\n[BEHAVIOR DIRECTIVE: Keep responses professional, polished, and formal in tone.]';
+    } else if (userAiSettings.responseStyle === 'technical') {
+      aiBehaviorDirectives += '\n\n[BEHAVIOR DIRECTIVE: Provide thorough, detailed responses with technical explanations and depth.]';
+    }
+    // 'casual' is Holly's default personality — no extra directive needed
+    if (userAiSettings.codeComments === 'detailed') {
+      aiBehaviorDirectives += '\n\n[BEHAVIOR DIRECTIVE: Include detailed inline comments in all code you write.]';
+    } else if (userAiSettings.codeComments === 'minimal') {
+      aiBehaviorDirectives += '\n\n[BEHAVIOR DIRECTIVE: Keep code comments to a bare minimum.]';
+    }
+    // 'standard' is the default — no extra directive
+    const finalSystemPrompt = hollySystemPrompt + aiBehaviorDirectives;
+
     // 8. PREPARE MESSAGES
     type ContentBlock = { type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string; detail: 'auto' } };
     let messages: { role: string; content: string | ContentBlock[] }[] = [
-      { role: 'system', content: hollySystemPrompt },
+      { role: 'system', content: finalSystemPrompt },
       ...userMessages.map((msg: any, idx: number) => {
         if (idx === userMessages.length - 1 && msg.role === 'user' && imageDataUrls?.length > 0) {
           return { role: msg.role, content: [{ type: 'text' as const, text: msg.content || 'Please analyze the attached file(s).' }, ...imageDataUrls.map((url: string) => ({ type: 'image_url' as const, image_url: { url, detail: 'auto' as const } }))] };
@@ -354,6 +388,13 @@ export async function POST(req: NextRequest) {
         return { role: msg.role, content: msg.content };
       }),
     ];
+
+    // 8b. CONTEXT WINDOW LIMIT — Use user's ai.contextWindow setting to cap message count
+    const maxHistoryMessages = userAiSettings.contextWindow;
+    const convOnly = messages.slice(1); // exclude system prompt
+    if (convOnly.length > maxHistoryMessages) {
+      messages = [messages[0], ...convOnly.slice(-maxHistoryMessages)];
+    }
 
     // 9. ROUTING
     const hasImages = imageDataUrls?.length > 0;
@@ -439,7 +480,7 @@ export async function POST(req: NextRequest) {
           // Informational: pure text, no tools
           if (isInformationalMsg) {
             try {
-              for await (const token of cascade(waterfall, cascadeMessages, { temperature: 0.7, maxTokens: 4096, sessionId: conversationId, onModelSelected: (s) => { activeModel = s.displayName; } })) {
+              for await (const token of cascade(waterfall, cascadeMessages, { temperature: userAiSettings.creativity, maxTokens: 4096, sessionId: conversationId, onModelSelected: (s) => { activeModel = s.displayName; } })) {
                 fullResponse += token;
                 sendText(controller, token);
               }
@@ -476,7 +517,7 @@ export async function POST(req: NextRequest) {
                 if (si !== -1) gm[si].content += TOOL_PROTOCOL;
                 try {
                   const completion = await groqClient.chat.completions.create({
-                    messages: gm as any, model: 'llama-3.3-70b-versatile', temperature: 0.3, max_tokens: 16384,
+                    messages: gm as any, model: 'llama-3.3-70b-versatile', temperature: userAiSettings.creativity, max_tokens: 16384,
                     tools: groqTools as any, tool_choice: 'auto', stream: true,
                   }, { timeout: 60_000 });
                   for await (const chunk of completion) {
@@ -506,7 +547,7 @@ export async function POST(req: NextRequest) {
                   const res = await fetch(`${arceeBaseUrl}/chat/completions`, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${arceeApiKey}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ model: 'arcee-ai/trinity-large-preview', messages: am, stream: true, temperature: 0.3, max_tokens: 16384, tools: groqTools }),
+                    body: JSON.stringify({ model: 'arcee-ai/trinity-large-preview', messages: am, stream: true, temperature: userAiSettings.creativity, max_tokens: 16384, tools: groqTools }),
                     signal: AbortSignal.timeout(15_000),
                   });
                   if (res.ok && res.body) {
@@ -555,6 +596,10 @@ export async function POST(req: NextRequest) {
                     if (toolName === 'start_build' && dbUserId) {
                       argsParsed.userId = dbUserId;
                     }
+                    // Inject userId for self-code tools so internal auth + creator gate work
+                    if ((toolName === 'self_code_apply' || toolName === 'trigger_deploy') && dbUserId) {
+                      argsParsed.userId = dbUserId;
+                    }
                     const result = await mcpManager.callTool(toolSpec.serverId, toolSpec.name, argsParsed);
                     const resultStr = JSON.stringify(result, null, 2);
                     sendTool(controller, toolName, 'complete', result);
@@ -579,7 +624,7 @@ export async function POST(req: NextRequest) {
                   break;
                 }
                 try {
-                  for await (const token of cascade(waterfall, pendingMessages, { temperature: 0.7, maxTokens: 4096, sessionId: conversationId, onModelSelected: (s) => { activeModel = s.displayName; } })) {
+                  for await (const token of cascade(waterfall, pendingMessages, { temperature: userAiSettings.creativity, maxTokens: 4096, sessionId: conversationId, onModelSelected: (s) => { activeModel = s.displayName; } })) {
                     fullResponse += token;
                     sendText(controller, token);
                   }
@@ -592,7 +637,7 @@ export async function POST(req: NextRequest) {
                 // Groq/Arcee was configured but failed silently — fall through to cascade
                 console.warn('[CHAT] Tool provider failed silently, falling back to cascade');
                 try {
-                  for await (const token of cascade(waterfall, pendingMessages, { temperature: 0.7, maxTokens: 4096, sessionId: conversationId, onModelSelected: (s) => { activeModel = s.displayName; } })) {
+                  for await (const token of cascade(waterfall, pendingMessages, { temperature: userAiSettings.creativity, maxTokens: 4096, sessionId: conversationId, onModelSelected: (s) => { activeModel = s.displayName; } })) {
                     fullResponse += token;
                     sendText(controller, token);
                   }

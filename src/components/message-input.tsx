@@ -3,6 +3,7 @@
 import { useState, KeyboardEvent } from 'react';
 import { motion } from 'framer-motion';
 import { Send, Paperclip, Mic } from 'lucide-react';
+import { useSettings } from '@/lib/settings/settings-store';
 
 interface MessageInputProps {
   onSend: (message: string) => void;
@@ -11,6 +12,7 @@ interface MessageInputProps {
 
 export function MessageInput({ onSend, disabled }: MessageInputProps) {
   const [message, setMessage] = useState('');
+  const enterToSend = useSettings((s) => s.settings.chat.enterToSend);
 
   const handleSend = () => {
     if (message.trim() && !disabled) {
@@ -20,7 +22,7 @@ export function MessageInput({ onSend, disabled }: MessageInputProps) {
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter' && !e.shiftKey && enterToSend) {
       e.preventDefault();
       handleSend();
     }
@@ -83,7 +85,11 @@ export function MessageInput({ onSend, disabled }: MessageInputProps) {
 
         {/* Keyboard hint */}
         <p className="text-xs text-gray-600 mt-2 text-center">
-          Press <kbd className="px-1.5 py-0.5 bg-white/5 rounded">Enter</kbd> to send, <kbd className="px-1.5 py-0.5 bg-white/5 rounded">Shift+Enter</kbd> for new line
+          {enterToSend ? (
+            <>Press <kbd className="px-1.5 py-0.5 bg-white/5 rounded">Enter</kbd> to send, <kbd className="px-1.5 py-0.5 bg-white/5 rounded">Shift+Enter</kbd> for new line</>
+          ) : (
+            <>Press <kbd className="px-1.5 py-0.5 bg-white/5 rounded">Enter</kbd> for new line, click the send button to send</>
+          )}
         </p>
       </div>
     </div>

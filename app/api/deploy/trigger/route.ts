@@ -15,12 +15,15 @@ const COOLIFY_WEBHOOK_URL = process.env.COOLIFY_WEBHOOK_URL || '';
 const GITHUB_REPO = process.env.GITHUB_REPOSITORY || 'iamhollywoodpro/Holly-AI';
 
 export async function POST(req: NextRequest) {
-  // Auth: Clerk user OR internal secret
+  // Auth: Clerk user OR internal secret (x-internal-token OR Authorization: Bearer)
   const { userId } = await auth();
   const authHeader = req.headers.get('authorization');
   const internalSecret = process.env.INTERNAL_API_SECRET;
+  const xInternalToken = req.headers.get('x-internal-token');
+  const isInternalToken = !!(xInternalToken && xInternalToken === (internalSecret || 'holly-internal'));
+  const isBearerValid = !!(authHeader && internalSecret && authHeader === `Bearer ${internalSecret}`);
 
-  if (!userId && (!authHeader || !internalSecret || authHeader !== `Bearer ${internalSecret}`)) {
+  if (!userId && !isInternalToken && !isBearerValid) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

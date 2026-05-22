@@ -21,8 +21,9 @@ import {
   Bot,
   Image,
   Code2,
+  LogOut,
 } from 'lucide-react';
-import { UserButton } from '@clerk/nextjs';
+import { UserButton, useClerk } from '@clerk/nextjs';
 import { useSidebar } from '@/hooks/use-sidebar';
 import { NewTaskMenu } from './NewTaskMenu';
 import { ChatHistorySection } from '@/components/chat/ChatHistorySection';
@@ -40,6 +41,7 @@ export function Sidebar2({
   onNewConversation?: () => void;
 }) {
   const pathname = usePathname();
+  const { signOut } = useClerk();
   const { isCollapsed, isMobileOpen, toggleCollapse, toggleMobile, closeAll } = useSidebar();
   const [conversations, setConversations] = useState<any[]>([]);
   const [showAllChats, setShowAllChats] = useState(true);
@@ -208,6 +210,21 @@ export function Sidebar2({
         <NavLink href="/settings" icon={Settings} label="Settings" />
         <NavLink href="/autonomy" icon={Activity} label="Autonomy" />
         <NavLink href="/onboarding" icon={Users} label="Partner Setup" />
+        
+        {/* Sign Out Button */}
+        <button
+          onClick={() => signOut({ redirectUrl: '/' })}
+          className={`
+            flex items-center gap-3 px-3 py-2 rounded-lg text-sm w-full
+            transition-all duration-200
+            ${isCollapsed ? 'justify-center' : ''}
+            text-gray-400 hover:text-red-400 hover:bg-red-500/10
+          `}
+          title={isCollapsed ? 'Sign Out' : undefined}
+        >
+          <LogOut className="w-5 h-5" />
+          {!isCollapsed && <span>Sign Out</span>}
+        </button>
         
         {/* User Button (not collapsed) */}
         {!isCollapsed && (

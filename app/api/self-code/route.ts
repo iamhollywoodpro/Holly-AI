@@ -27,11 +27,23 @@ import {
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+// ─── Auth helper: accept Clerk auth OR internal x-internal-token ──────────────
+
+function resolveAuth(req: NextRequest, clerkUserId: string | null, body?: Record<string, unknown>): { userId: string | null; isInternal: boolean } {
+  const internalToken = req.headers.get('x-internal-token');
+  const isInternal = !!(internalToken && internalToken === (process.env.INTERNAL_API_SECRET || 'holly-internal'));
+  // Internal calls may pass userId in the body; Clerk calls use the session
+  // For GET/readonly calls, internal token alone is sufficient (userId defaults to 'internal')
+  const userId = clerkUserId || (isInternal && body?.userId ? String(body.userId) : null) || (isInternal ? 'internal' : null);
+  return { userId, isInternal };
+}
+
 // ─── GET: architecture overview ───────────────────────────────────────────────
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const { userId } = await auth();
+    const { userId: clerkUserId } = await auth();
+    const { userId } = resolveAuth(req, clerkUserId);
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -71,12 +83,13 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId } = await auth();
+    const { userId: clerkUserId } = await auth();
+    const body   = await req.json();
+    const { userId, isInternal } = resolveAuth(req, clerkUserId, body);
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body   = await req.json();
     const action = body.action as string;
 
     switch (action) {

@@ -495,6 +495,7 @@ export class MCPClientManager {
           if (args.proposal) payload.proposal = args.proposal;
           if (args.approved !== undefined) payload.approved = args.approved;
           if (args.creatorNote) payload.creatorNote = args.creatorNote;
+          if (args.userId) payload.userId = args.userId;
 
           const res = await fetch(`${baseUrl}/api/self-code`, {
             method: 'POST',
