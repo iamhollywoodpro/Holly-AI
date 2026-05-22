@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter } from 'next/font/google';
+import localFont from 'next/font/local';
 // @ts-ignore CSS side-effect import
 import './globals.css';
 // @ts-ignore CSS side-effect import
@@ -22,7 +22,13 @@ import { ServiceWorkerRegistration } from '@/components/ServiceWorkerRegistratio
 import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
 import { Toaster } from 'sonner';
 
-const inter = Inter({ subsets: ['latin'] });
+// Use local Inter variable font to avoid Google Fonts CDN dependency during Docker builds.
+// Docker builds were failing with ETIMEDOUT fetching from fonts.googleapis.com.
+const inter = localFont({
+  src: './InterVariable.woff2',
+  variable: '--font-inter',
+  display: 'swap',
+});
 
 // Force all pages to render dynamically — this app is 100% auth-gated (Clerk),
 // so static pre-rendering is meaningless and causes OOM crashes during Docker builds
@@ -82,7 +88,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body className={`${inter.variable} ${inter.className}`}>
         {/*
          * ─── PROVIDER ORDER IS CRITICAL ────────────────────────────────────────
          *
