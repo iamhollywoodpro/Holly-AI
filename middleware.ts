@@ -1,13 +1,22 @@
 /**
- * HOLLY AI — Middleware
+ * HOLLY AI — Middleware (Sign-In Loop Fix v3)
  *
- * Uses clerkMiddleware as the default export with custom logic in the callback.
- * Auth checking uses auth() (reads __session JWT locally, zero network calls)
- * instead of auth.protect() which triggers internal /clerk_XXXXX rewrites that
- * break in Docker when the Clerk FAPI domain has SSL issues.
+ * ROOT CAUSE OF SIGN-IN LOOPS:
+ *   1. User signs in → Clerk client SDK immediately sets __client_uat and says "signed in"
+ *   2. Sign-in page detects isSignedIn → redirects to /chat
+ *   3. Middleware runs auth() on the server → __session cookie not set yet → no userId
+ *   4. Middleware redirects BACK to /sign-in
+ *   5. Clerk client says "still signed in!" → redirects to /chat → LOOP
  *
- * For protected routes without a valid session, we do a simple 302 redirect
- * to /sign-in — no internal rewrite dance, no proxying Clerk nonce paths.
+ * FIX (two layers):
+ *   Layer 1 (middleware): When auth() says "no user" but __client_uat cookie exists,
+ *     the user JUST signed in and the session is propagating. Return a "loading" page
+ *     that retries after 2 seconds instead of redirecting to sign-in.
+ *   Layer 2 (sign-in page): After detecting isSignedIn, use window.location.href (hard
+ *     navigation) with a delay, NOT router.replace (soft navigation which races).
+ *
+ * Uses clerkMiddleware as default export. Auth checking uses auth() (reads __session
+ * JWT locally, zero network calls).
  */
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
@@ -15,7 +24,7 @@ import type { NextRequest } from 'next/server';
 import { checkEndpointRateLimit, getRateLimitHeaders } from '@/lib/security/endpoint-limiter';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PRODUCTION DOMAIN — used to sanitize Docker-internal URLs
+// PRODUCTION DOMAIN
 // ─────────────────────────────────────────────────────────────────────────────
 const PUBLIC_ORIGIN = 'https://holly.nexamusicgroup.com';
 const DOCKER_ORIGINS = [
@@ -28,7 +37,7 @@ const DOCKER_ORIGINS = [
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PUBLIC ROUTES — never require authentication
+// PUBLIC ROUTES
 // ─────────────────────────────────────────────────────────────────────────────
 const isPublicRoute = createRouteMatcher([
   '/',
@@ -45,11 +54,10 @@ const isPublicRoute = createRouteMatcher([
   '/api/v1/(.*)',
 ]);
 
-// Paths that bypass ALL middleware logic (health checks must always work)
 const BYPASS_PATHS = new Set(['/api/health', '/api/metrics', '/api/version']);
 
 // ─────────────────────────────────────────────────────────────────────────────
-// URL SANITIZATION — replace Docker-internal origins with the real public domain
+// URL SANITIZATION
 // ─────────────────────────────────────────────────────────────────────────────
 function sanitizeUrl(url: string): string {
   let clean = url;
@@ -75,46 +83,84 @@ function sanitizeRedirectUrl(redirectUrl: string | null): string | null {
   return PUBLIC_ORIGIN + '/chat';
 }
 
-function sanitizeClerkRedirectResponse(
-  response: NextResponse | Response,
-): NextResponse | Response {
-  const location = response.headers.get('location');
-  if (!location) return response;
-
-  let cleanLocation = sanitizeUrl(location);
-
-  try {
-    const locationUrl = new URL(cleanLocation, PUBLIC_ORIGIN);
-    const redirectParam = locationUrl.searchParams.get('redirect_url');
-    const sanitized = sanitizeRedirectUrl(redirectParam);
-
-    if (redirectParam && sanitized !== redirectParam) {
-      if (sanitized) {
-        locationUrl.searchParams.set('redirect_url', sanitized);
-      } else {
-        locationUrl.searchParams.delete('redirect_url');
-      }
-      cleanLocation = locationUrl.toString();
+// ─────────────────────────────────────────────────────────────────────────────
+// SESSION LOADING PAGE — returned when client says "signed in" but server
+// hasn't received the __session cookie yet. Prevents redirect loop.
+// ─────────────────────────────────────────────────────────────────────────────
+function sessionLoadingResponse(targetPath: string): NextResponse {
+  const safePath = targetPath.startsWith('/') ? targetPath : '/chat';
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HOLLY — Establishing Connection...</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #050508;
+      color: #fff;
+      font-family: Inter, system-ui, -apple-system, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow: hidden;
     }
-  } catch {}
-
-  if (cleanLocation === location) return response;
-
-  const newResponse = new NextResponse(null, {
-    status: (response as Response).status,
-    headers: new Headers(response.headers),
+    .orb {
+      width: 64px; height: 64px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #a855f7, #6366f1);
+      animation: pulse 1.5s ease-in-out infinite;
+      box-shadow: 0 0 40px rgba(168, 85, 247, 0.3);
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 0.8; }
+      50% { transform: scale(1.15); opacity: 1; }
+    }
+    h2 {
+      margin-top: 24px;
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+    }
+    p {
+      margin-top: 8px;
+      font-size: 13px;
+      color: #9ca3af;
+    }
+  </style>
+</head>
+<body>
+  <div class="orb"></div>
+  <h2>Establishing Connection...</h2>
+  <p>Holly is syncing your session</p>
+  <script>
+    // Hard redirect after 2 seconds — by then the __session cookie should be set
+    setTimeout(function() {
+      window.location.replace("${safePath}");
+    }, 2000);
+  </script>
+</body>
+</html>`;
+  return new NextResponse(html, {
+    status: 200,
+    headers: {
+      'Content-Type': 'text/html; charset=utf-8',
+      // Don't cache this transitional page
+      'Cache-Control': 'no-store, no-cache, must-revalidate',
+    },
   });
-  newResponse.headers.set('location', cleanLocation);
-  return newResponse;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MAIN MIDDLEWARE — clerkMiddleware as default export
+// MAIN MIDDLEWARE
 // ─────────────────────────────────────────────────────────────────────────────
 export default clerkMiddleware(async (auth, req) => {
   const pathname = req.nextUrl.pathname;
 
-  // Hard bypass: health checks must always work regardless of Clerk state
+  // Hard bypass
   if (BYPASS_PATHS.has(pathname)) {
     return NextResponse.next();
   }
@@ -157,25 +203,33 @@ export default clerkMiddleware(async (auth, req) => {
     }
   }
 
-  // ── PUBLIC ROUTES: pass through, no auth required ──────────────────────
+  // ── PUBLIC ROUTES ──────────────────────────────────────────────────────
   if (isPublicRoute(req)) {
     return NextResponse.next();
   }
 
-  // ── PROTECTED ROUTES: check session via auth() ─────────────────────────
-  // auth() reads the __session JWT cookie and verifies it locally using
-  // CLERK_SECRET_KEY — zero network calls, no /clerk_XXXXX rewrites.
+  // ── PROTECTED ROUTES ───────────────────────────────────────────────────
   const { userId } = await auth();
 
   if (userId) {
-    // Authenticated — pass through
     return NextResponse.next();
   }
 
-  // Not authenticated — redirect to sign-in with a sanitized redirect_url
+  // ── SIGN-IN LOOP PREVENTION ────────────────────────────────────────────
+  // Clerk sets __client_uat immediately when the client SDK detects a session.
+  // The __session JWT cookie takes a moment to propagate through the proxy.
+  // If __client_uat exists but auth() returned no userId, the user JUST signed in
+  // and the session is still propagating. Return a loading page instead of
+  // redirecting to /sign-in (which causes the loop).
+  const clientUat = req.cookies.get('__client_uat')?.value;
+  if (clientUat && clientUat !== '0') {
+    console.log(`[HOLLY MW] Session race detected: __client_uat=${clientUat} but no userId. Showing loading page for ${pathname}`);
+    return sessionLoadingResponse(pathname);
+  }
+
+  // Not authenticated at all — redirect to sign-in
   const signInUrl = new URL('/sign-in', PUBLIC_ORIGIN);
   const redirectPath = sanitizeUrl(req.url);
-  // Only set redirect_url if it's a meaningful path (not just the home page)
   if (redirectPath !== PUBLIC_ORIGIN + '/' && redirectPath !== PUBLIC_ORIGIN) {
     signInUrl.searchParams.set('redirect_url', redirectPath);
   }
