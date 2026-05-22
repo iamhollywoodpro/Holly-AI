@@ -13,19 +13,17 @@
 import { SignIn } from '@clerk/nextjs';
 import { useEffect } from 'react';
 import { useAuth } from '@clerk/nextjs';
-import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 
 export default function FactorTwoPage() {
   const { isSignedIn, isLoaded } = useAuth();
-  const router = useRouter();
 
-  // If already fully authenticated — skip straight to chat
+  // If already fully authenticated — skip straight to chat (client-side only)
   useEffect(() => {
     if (isLoaded && isSignedIn) {
-      router.replace('/chat');
+      window.location.href = '/chat';
     }
-  }, [isLoaded, isSignedIn, router]);
+  }, [isLoaded, isSignedIn]);
 
   return (
     <div className="min-h-screen bg-[#050508] flex flex-col items-center justify-center px-4">
@@ -72,8 +70,6 @@ export default function FactorTwoPage() {
                 alertText: 'text-red-400 text-xs',
               },
             }}
-            forceRedirectUrl={typeof window !== "undefined" ? `${window.location.origin}/chat` : "/chat"}
-            fallbackRedirectUrl={typeof window !== "undefined" ? `${window.location.origin}/chat` : "/chat"}
           />
         </div>
 
