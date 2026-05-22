@@ -63,6 +63,12 @@ export async function authenticateAndLoadUser(): Promise<AuthResult | null> {
     userId!.toLowerCase().includes(id.toLowerCase())
   ) || (clerkUsername ? CREATOR_CLERK_IDS.some(id =>
     clerkUsername.toLowerCase().includes(id.toLowerCase())
+  ) : false)
+  // Also check hardcoded fragments against clerkUsername
+  || (clerkUsername ? CREATOR_HARDCODED_NAME_FRAGMENTS.some(f =>
+    clerkUsername.toLowerCase().includes(f)
+  ) || CREATOR_HARDCODED_EMAILS.some(e =>
+    clerkUsername.toLowerCase().includes(e)
   ) : false);
 
   if (earlyCreatorCheck) {
@@ -112,6 +118,9 @@ export async function authenticateAndLoadUser(): Promise<AuthResult | null> {
       if (isCreator) userName = 'Steve';
     }
   }
+
+  // Debug: log creator recognition status
+  console.log(`[AUTH] userId=${userId} userName=${userName} isCreator=${isCreator} clerkUsername=${clerkUsername || 'none'}`);
 
   return { userId, dbUserId, userName, userEmail, isCreator };
 }
