@@ -1,6 +1,7 @@
-import { auth } from '@clerk/nextjs/server';
+import { auth, currentUser } from '@clerk/nextjs/server';
 import { getOrCreateUser } from '@/lib/user-manager';
 
+// ─── Env-based creator identifiers (optional, extends hardcoded list) ────
 const CREATOR_EMAILS = (process.env.CREATOR_EMAILS || '').split(',').filter(Boolean);
 const CREATOR_CLERK_IDS = (process.env.CREATOR_CLERK_IDS || '').split(',').filter(Boolean);
 const CREATOR_NAME_FRAGMENTS = (process.env.CREATOR_NAME_FRAGMENTS || '').split(',').filter(Boolean);
@@ -9,14 +10,23 @@ const CREATOR_NAME_FRAGMENTS = (process.env.CREATOR_NAME_FRAGMENTS || '').split(
  * Hardcoded fallback creator identifiers.
  * These ensure Holly ALWAYS recognizes her creator, even if env vars aren't configured.
  * This is intentional — the creator's identity is part of Holly's core identity.
+ *
+ * BOTH creator email accounts:
+ *   - iamdoregosteve@gmail.com  (primary)
+ *   - iamhollywoodpro@gmail.com (legacy)
  */
 const CREATOR_HARDCODED_EMAILS = [
+  // Full email addresses (exact match)
+  'iamdoregosteve@gmail.com',
+  'iamhollywoodpro@gmail.com',
+  // Email local parts (prefix match)
+  'iamdoregosteve',
+  'iamhollywoodpro',
+  // Other known aliases
   'hollywood',
   'nexamusicgroup',
   'stevendorego',
   'stevefreshblendz',
-  'iamdoregosteve',     // Creator's new primary email (iamdoregosteve@gmail.com)
-  'iamhollywoodpro',    // Legacy email (being decommissioned)
 ];
 const CREATOR_HARDCODED_NAME_FRAGMENTS = [
   'steve hollywood',
@@ -28,6 +38,7 @@ const CREATOR_HARDCODED_NAME_FRAGMENTS = [
   'hollywood dorego',
   'dorego steve',
   'iamdoregosteve',
+  'iamhollywoodpro',
 ];
 
 export interface AuthResult {
@@ -38,15 +49,68 @@ export interface AuthResult {
   isCreator: boolean;
 }
 
+/**
+ * Check if an email or name matches creator identity.
+ * Uses both hardcoded list and env vars for maximum reliability.
+ */
+function isCreatorMatch(text: string): boolean {
+  const lower = text.toLowerCase();
+  return (
+    CREATOR_HARDCODED_EMAILS.some(e => lower.includes(e)) ||
+    CREATOR_HARDCODED_NAME_FRAGMENTS.some(f => lower.includes(f)) ||
+    CREATOR_EMAILS.some(e => lower.includes(e.toLowerCase())) ||
+    CREATOR_NAME_FRAGMENTS.some(f => lower.includes(f))
+  );
+}
+
 export async function authenticateAndLoadUser(): Promise<AuthResult | null> {
   let userId: string | null = null;
   let clerkUsername: string | null = null;
+  let clerkEmail: string | null = null;
 
+  // ── Step 1: Get Clerk auth + email DIRECTLY from Clerk (no DB dependency) ──
   try {
     const authResult = await auth();
     userId = authResult.userId;
     const claims = (authResult as any).sessionClaims;
     clerkUsername = claims?.username || claims?.sub || null;
+
+    // ALSO get the email directly from Clerk — this is the MOST RELIABLE check
+    // currentUser() returns the full Clerk user with email addresses
+    try {
+      const clerkUser = await currentUser();
+      if (clerkUser) {
+        // Check primary email and all verified emails
+        const emails = clerkUser.emailAddresses
+          ?.filter((e: any) => e.verification?.status === 'verified' || e.id === clerkUser.primaryEmailAddressId)
+          .map((e: any) => e.emailAddress) || [];
+        clerkEmail = emails[0] || clerkUser.primaryEmailAddress?.emailAddress || null;
+
+        // Check ALL emails immediately — no DB lookup needed
+        for (const email of emails) {
+          if (isCreatorMatch(email)) {
+            console.log(`[AUTH] CREATOR RECOGNIZED via Clerk email: ${email}`);
+            // Still do DB lookup for dbUserId, but we KNOW this is the creator
+            return await finalizeAuth(userId, clerkEmail || email, clerkUser.fullName || clerkUser.firstName || 'Steve', true);
+          }
+        }
+
+        // Also check Clerk username
+        if (clerkUser.username && isCreatorMatch(clerkUser.username)) {
+          console.log(`[AUTH] CREATOR RECOGNIZED via Clerk username: ${clerkUser.username}`);
+          return await finalizeAuth(userId, clerkEmail || '', clerkUser.fullName || clerkUser.firstName || 'Steve', true);
+        }
+
+        // Also check Clerk name
+        const fullName = [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(' ');
+        if (fullName && isCreatorMatch(fullName)) {
+          console.log(`[AUTH] CREATOR RECOGNIZED via Clerk name: ${fullName}`);
+          return await finalizeAuth(userId, clerkEmail || '', fullName, true);
+        }
+      }
+    } catch (clerkErr) {
+      console.warn('[AUTH] currentUser() failed, falling back to session claims:', clerkErr instanceof Error ? clerkErr.message : clerkErr);
+    }
   } catch {}
 
   if (!userId && process.env.NODE_ENV === 'development') {
@@ -54,28 +118,20 @@ export async function authenticateAndLoadUser(): Promise<AuthResult | null> {
   }
   if (!userId) return null;
 
-  let dbUserId: string | null = null;
-  let userName = 'User';
-  let userEmail = '';
+  // ── Step 2: Early check with session claims (before DB) ──
   let isCreator = false;
-
-  const earlyCreatorCheck = CREATOR_CLERK_IDS.some(id =>
-    userId!.toLowerCase().includes(id.toLowerCase())
-  ) || (clerkUsername ? CREATOR_CLERK_IDS.some(id =>
-    clerkUsername.toLowerCase().includes(id.toLowerCase())
-  ) : false)
-  // Also check hardcoded fragments against clerkUsername
-  || (clerkUsername ? CREATOR_HARDCODED_NAME_FRAGMENTS.some(f =>
-    clerkUsername.toLowerCase().includes(f)
-  ) || CREATOR_HARDCODED_EMAILS.some(e =>
-    clerkUsername.toLowerCase().includes(e)
-  ) : false);
-
-  if (earlyCreatorCheck) {
+  if (clerkUsername && isCreatorMatch(clerkUsername)) {
     isCreator = true;
-    userName = 'Steve';
+  }
+  if (userId && CREATOR_CLERK_IDS.some(id => userId!.toLowerCase().includes(id.toLowerCase()))) {
+    isCreator = true;
   }
 
+  let dbUserId: string | null = null;
+  let userName = isCreator ? 'Steve' : 'User';
+  let userEmail = clerkEmail || '';
+
+  // ── Step 3: DB lookup for dbUserId + name (with timeout) ──
   try {
     const user = await Promise.race([
       getOrCreateUser(userId),
@@ -84,43 +140,58 @@ export async function authenticateAndLoadUser(): Promise<AuthResult | null> {
     if (user) {
       dbUserId = user.id;
       userName = user.name || (isCreator ? 'Steve' : 'User');
-      userEmail = user.email || '';
+      userEmail = user.email || userEmail;
     }
 
     const nameCheck = (user?.name || '').toLowerCase();
     const emailLower = userEmail.toLowerCase();
 
-    // Check env vars first
-    isCreator = isCreator
-      || CREATOR_EMAILS.some(e => emailLower.includes(e.toLowerCase()))
-      || CREATOR_NAME_FRAGMENTS.some(f => nameCheck.includes(f));
-
-    // Hardcoded fallback — ensures creator is ALWAYS recognized
+    // Check env vars
     if (!isCreator) {
-      isCreator = CREATOR_HARDCODED_EMAILS.some(e => emailLower.includes(e))
-        || CREATOR_HARDCODED_NAME_FRAGMENTS.some(f => nameCheck.includes(f));
+      isCreator = isCreatorMatch(emailLower) || isCreatorMatch(nameCheck);
     }
 
     if (isCreator) {
       userName = user?.name || 'Steve';
     }
   } catch {
-    if (!isCreator) {
-      isCreator = CREATOR_CLERK_IDS.some(id =>
-        userId.toLowerCase().includes(id.toLowerCase())
-      );
-      // Hardcoded fallback in catch block too
-      if (!isCreator && clerkUsername) {
-        const usernameLower = clerkUsername.toLowerCase();
-        isCreator = CREATOR_HARDCODED_NAME_FRAGMENTS.some(f => usernameLower.includes(f))
-          || CREATOR_HARDCODED_EMAILS.some(e => usernameLower.includes(e));
-      }
-      if (isCreator) userName = 'Steve';
+    // DB lookup failed — rely on Clerk-based checks
+    if (!isCreator && clerkEmail && isCreatorMatch(clerkEmail)) {
+      isCreator = true;
+      userName = 'Steve';
     }
   }
 
   // Debug: log creator recognition status
-  console.log(`[AUTH] userId=${userId} userName=${userName} isCreator=${isCreator} clerkUsername=${clerkUsername || 'none'}`);
+  console.log(`[AUTH] userId=${userId} userName=${userName} isCreator=${isCreator} clerkEmail=${clerkEmail || 'none'} clerkUsername=${clerkUsername || 'none'}`);
 
   return { userId, dbUserId, userName, userEmail, isCreator };
+}
+
+/**
+ * Finalize auth after early creator recognition.
+ * Still does DB lookup for dbUserId but skips redundant checks.
+ */
+async function finalizeAuth(userId: string, email: string, name: string, isCreator: boolean): Promise<AuthResult> {
+  let dbUserId: string | null = null;
+
+  try {
+    const user = await Promise.race([
+      getOrCreateUser(userId),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 10_000)),
+    ]);
+    if (user) {
+      dbUserId = user.id;
+    }
+  } catch {}
+
+  console.log(`[AUTH] userId=${userId} userName=${isCreator ? 'Steve' : name} isCreator=${isCreator} clerkEmail=${email} (EARLY RECOGNITION)`);
+
+  return {
+    userId,
+    dbUserId,
+    userName: isCreator ? 'Steve' : name,
+    userEmail: email,
+    isCreator,
+  };
 }
