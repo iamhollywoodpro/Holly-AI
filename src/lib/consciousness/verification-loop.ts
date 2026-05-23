@@ -53,7 +53,7 @@ export async function verifyAppliedChange(
     // Step 1: TypeScript check
     console.log(`[Verification] Running TypeScript check for proposal ${proposalId}...`);
     try {
-      const { stdout, stderr } = await execAsync('npx tsc --noEmit 2>&1', {
+      const { stdout, stderr } = await execAsync('npx --package=typescript tsc --noEmit 2>&1', {
         cwd: process.cwd(),
         timeout: 120_000,
       });
@@ -213,7 +213,7 @@ async function autoRevert(
  */
 export async function quickTypeCheck(): Promise<boolean> {
   try {
-    const { stdout, stderr } = await execAsync('npx tsc --noEmit 2>&1', {
+    const { stdout, stderr } = await execAsync('npx --package=typescript tsc --noEmit 2>&1', {
       cwd: process.cwd(),
       timeout: 120_000,
     });

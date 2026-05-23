@@ -103,7 +103,7 @@ export class PreDeploymentValidator {
     try {
       // Run TypeScript compiler in check mode (no emit)
       const { stdout, stderr } = await execAsync(
-        'npx tsc --noEmit --pretty false',
+        'npx --package=typescript tsc --noEmit --pretty false',
         { cwd: this.projectRoot, timeout: 120000 } // 2 minute timeout
       );
 
