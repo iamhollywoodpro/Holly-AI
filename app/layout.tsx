@@ -150,12 +150,15 @@ export default function RootLayout({
           signUpUrl="/sign-up"
           afterSignOutUrl="/"
 
-          // DO NOT set signInForceRedirectUrl or signInFallbackRedirectUrl here.
-          // These cause Clerk to redirect BEFORE the session cookie is fully
-          // established through the proxy, creating an infinite redirect loop:
-          //   Clerk redirects to /chat → session not ready → chat redirects to /sign-in → LOOP
-          // Instead, each page handles its own redirect client-side after
-          // Clerk's useAuth() confirms the session is established.
+          // NUCLEAR FIX: Explicitly set these to empty strings to override
+          // any NEXT_PUBLIC_CLERK_* env vars that Coolify or build systems
+          // might inject. These cause an infinite redirect loop because Clerk
+          // redirects BEFORE the session cookie is established through the proxy.
+          // Empty string = Clerk won't force-redirect, pages handle it client-side.
+          signInForceRedirectUrl=""
+          signUpForceRedirectUrl=""
+          signInFallbackRedirectUrl=""
+          signUpFallbackRedirectUrl=""
 
           appearance={{
             baseTheme: undefined,
