@@ -150,14 +150,12 @@ export default function RootLayout({
           signUpUrl="/sign-up"
           afterSignOutUrl="/"
 
-          // Force redirect to /chat after auth.
-          // Because we use a proxy (x-forwarded-host: dynamically extracted from key),
-          // Clerk rejects relative URLs like '/chat' because it resolves them against
-          // the frontend API subdomain instead of the main app domain. Absolute URLs fix this.
-          signInForceRedirectUrl={`${APP_URL}/chat`}
-          signUpForceRedirectUrl={`${APP_URL}/chat`}
-          signInFallbackRedirectUrl={`${APP_URL}/chat`}
-          signUpFallbackRedirectUrl={`${APP_URL}/chat`}
+          // DO NOT set signInForceRedirectUrl or signInFallbackRedirectUrl here.
+          // These cause Clerk to redirect BEFORE the session cookie is fully
+          // established through the proxy, creating an infinite redirect loop:
+          //   Clerk redirects to /chat → session not ready → chat redirects to /sign-in → LOOP
+          // Instead, each page handles its own redirect client-side after
+          // Clerk's useAuth() confirms the session is established.
 
           appearance={{
             baseTheme: undefined,
