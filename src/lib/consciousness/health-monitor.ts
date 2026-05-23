@@ -29,12 +29,30 @@ export interface HollyHealthReport {
   recommendations: string[];
 }
 
-// ─── Individual Checks ────────────────────────────────────────────────────────
+/**
+ * Helper to retry a database query with exponential back-off.
+ * Prevents false-negative health check failures during brief serverless cold starts or connection spikes.
+ */
+async function retryQuery<T>(fn: () => Promise<T>, retries = 3, delayMs = 300): Promise<T> {
+  let lastError: any;
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastError = err;
+      if (i < retries - 1) {
+        // Exponential back-off: 300ms, then 600ms, etc.
+        await new Promise(resolve => setTimeout(resolve, delayMs * Math.pow(2, i)));
+      }
+    }
+  }
+  throw lastError;
+}
 
 async function checkDatabase(): Promise<HealthCheck> {
   const start = Date.now();
   try {
-    await prisma.$queryRaw`SELECT 1`;
+    await retryQuery(() => prisma.$queryRaw`SELECT 1`);
     const latency = Date.now() - start;
     return {
       name: 'database',
@@ -292,7 +310,7 @@ function formatTimeAgo(ms: number): string {
  */
 export async function quickPulseCheck(): Promise<boolean> {
   try {
-    await prisma.$queryRaw`SELECT 1`;
+    await retryQuery(() => prisma.$queryRaw`SELECT 1`);
     return true;
   } catch {
     return false;

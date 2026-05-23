@@ -64,8 +64,39 @@ class Logger {
         break;
     }
 
-    // TODO: In production, send to error tracking service (Sentry, Datadog, etc.)
-    // TODO: Persist critical errors to database
+    // Save errors and warnings to PostgreSQL audit logs asynchronously
+    if (level === 'error' || level === 'warn') {
+      this.persistToDatabase(entry);
+    }
+  }
+
+  /**
+   * Save critical log entry to PostgreSQL audit logs.
+   * Insulated with robust try-catch boundaries to prevent recursive logging loops on database errors.
+   */
+  private async persistToDatabase(entry: LogEntry): Promise<void> {
+    try {
+      // Dynamic import to prevent circular dependency/order-of-load issues
+      const { prisma } = await import('@/lib/db');
+      await prisma.auditLog.create({
+        data: {
+          action: `SYSTEM_${entry.level.toUpperCase()}`,
+          ipAddress: '127.0.0.1',
+          details: {
+            context: entry.context,
+            message: entry.message,
+            timestamp: entry.timestamp.toISOString(),
+            meta: entry.meta || {},
+          },
+        },
+      });
+    } catch (dbErr) {
+      // Insulated boundary: write ONLY to raw console to prevent infinite logging recursion
+      console.error(
+        `[StructuredLogger:Persistence] Failed to write ${entry.level} to PostgreSQL audit logs:`,
+        dbErr
+      );
+    }
   }
 
   /**
