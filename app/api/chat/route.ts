@@ -692,6 +692,10 @@ export async function POST(req: NextRequest) {
       headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' },
     });
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Internal server error' }, { status: 500 });
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : '';
+    console.error('[CHAT] FATAL ERROR:', errorMsg, errorStack);
+    logger.error('Chat', 'Fatal error in chat route', { error: errorMsg, stack: errorStack });
+    return NextResponse.json({ error: errorMsg, stack: process.env.NODE_ENV === 'development' ? errorStack : undefined }, { status: 500 });
   }
 }

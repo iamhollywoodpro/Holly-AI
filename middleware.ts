@@ -88,7 +88,7 @@ export default clerkMiddleware(async (auth, req) => {
   const pathname = req.nextUrl.pathname;
 
   // Hard bypass
-  if (BYPASS_PATHS.has(pathname)) {
+  if (BYPASS_PATHS.has(pathname) || pathname.startsWith('/api/health')) {
     return NextResponse.next();
   }
 
