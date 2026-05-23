@@ -141,7 +141,7 @@ function validateTypeScript(filePath: string, newContent: string): { valid: bool
 
   try {
     // Run TypeScript type-check on the specific file
-    execSync(`npx tsc --noEmit --strict "${fullPath}" 2>&1`, {
+    execSync(`npx --package=typescript tsc --noEmit --strict "${fullPath}" 2>&1`, {
       cwd: PROJECT_ROOT,
       timeout: 30_000,
       encoding: 'utf-8',

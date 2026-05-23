@@ -205,7 +205,7 @@ export function validateChange(sandboxChange: SandboxChange): SandboxValidationR
   try {
     // Use tsc with the sandbox path directly — no production file swap needed
     const tsOutput = execSync(
-      `npx tsc --noEmit --skipLibCheck "${sandboxPath}" 2>&1`,
+      `npx --package=typescript tsc --noEmit --skipLibCheck "${sandboxPath}" 2>&1`,
       {
         cwd: PROJECT_ROOT,
         timeout: 60_000,
