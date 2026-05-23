@@ -3,6 +3,8 @@
  * Consistent logging with levels, context, and formatting
  */
 
+import { logger as structuredLogger } from './logging/structured-logger';
+
 type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'fatal';
 
 interface LogEntry {
@@ -81,6 +83,31 @@ function formatLog(entry: LogEntry): string {
 // Log to appropriate destination
 function outputLog(entry: LogEntry): void {
   if (!shouldLog(entry.level)) return;
+
+  // Consolidate logs in structured-logger in-memory buffer and trigger DB persistence
+  try {
+    const mappedLevel = entry.level === 'fatal' ? 'error' : entry.level;
+    const context = entry.context || 'APP';
+    const meta = {
+      ...entry.data,
+      userId: entry.userId,
+      requestId: entry.requestId,
+      ...(entry.error ? {
+        errorName: entry.error.name,
+        errorMessage: entry.error.message,
+        errorStack: entry.error.stack,
+      } : {}),
+    };
+
+    if (mappedLevel === 'error') {
+      structuredLogger.error(context, entry.message, meta);
+    } else {
+      structuredLogger[mappedLevel](context, entry.message, meta);
+    }
+  } catch (err) {
+    // Insulated boundary to ensure console logging still happens if structuredLogger throws
+    console.error('[Logger:Consolidation] Failed to forward log to structuredLogger:', err);
+  }
 
   const formatted = formatLog(entry);
 
