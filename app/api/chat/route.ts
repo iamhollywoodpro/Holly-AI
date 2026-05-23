@@ -682,7 +682,25 @@ export async function POST(req: NextRequest) {
           controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ type: 'done', model: activeModel, taskType, mode: detectedMode })}\n\n`));
           controller.close();
         } catch (error) {
-          controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ type: 'error', content: error instanceof Error ? error.message : 'Unknown error' })}\n\n`));
+          const errorMsg = error instanceof Error ? error.message : String(error);
+          console.error('[CHAT] Stream execution error:', errorMsg);
+          logger.error('Chat', 'Stream execution error', { error: errorMsg });
+
+          const fallbackText = "\n\nI'm having a hard time reaching my brain networks right now (my AI providers are fully rate-limited or unavailable). Please give me a second or check my API key configuration in `.env.local` — I'll be right here!";
+          
+          try {
+            sendText(controller, fallbackText);
+            
+            // Save fallback message to database so history is preserved
+            if (dbUserId && conversationId) {
+              const savedResponse = fullResponse ? `${fullResponse}${fallbackText}` : fallbackText;
+              await saveMessages(dbUserId, conversationId, latestUserMessage, savedResponse);
+            }
+          } catch (dbErr) {
+            console.error('[CHAT] Failed to save fallback message:', dbErr);
+          }
+
+          controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ type: 'done', model: 'none', taskType, mode: detectedMode, error: errorMsg })}\n\n`));
           controller.close();
         }
       },

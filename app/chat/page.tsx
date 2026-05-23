@@ -26,8 +26,8 @@ const HollyChatInterface = dynamic(
 export default function ChatPage() {
   const { isLoaded, isSignedIn } = useAuth();
   const [redirecting, setRedirecting] = useState(false);
-  const retryCount = useRef(0);
-  const maxRetries = 3;
+  const [sessionCheckAttempts, setSessionCheckAttempts] = useState(0);
+  const maxAttempts = 3;
 
   useEffect(() => {
     // Wait for Clerk to fully load before deciding
@@ -35,19 +35,16 @@ export default function ChatPage() {
 
     if (isSignedIn) {
       // Authenticated — done, show the chat
-      retryCount.current = 0;
       return;
     }
 
     // NOT signed in. But with the Clerk proxy, the session might take a moment
-    // to establish. Retry a few times before giving up and redirecting.
-    if (retryCount.current < maxRetries) {
-      retryCount.current++;
-      console.log(`[HOLLY] Session not confirmed yet, retry ${retryCount.current}/${maxRetries}...`);
+    // to establish. Wait a few seconds reactively without reloading the page.
+    if (sessionCheckAttempts < maxAttempts) {
+      console.log(`[HOLLY] Session not confirmed yet, waiting... attempt ${sessionCheckAttempts + 1}/${maxAttempts}`);
       const timer = setTimeout(() => {
-        // Force Clerk to re-check the session by reloading the page
-        window.location.reload();
-      }, 2000 * retryCount.current); // 2s, 4s, 6s
+        setSessionCheckAttempts(prev => prev + 1);
+      }, 1500); // Check every 1.5s reactively
       return () => clearTimeout(timer);
     }
 
@@ -55,10 +52,10 @@ export default function ChatPage() {
     console.log('[HOLLY] No session after retries, redirecting to sign-in');
     setRedirecting(true);
     window.location.href = '/sign-in';
-  }, [isLoaded, isSignedIn]);
+  }, [isLoaded, isSignedIn, sessionCheckAttempts]);
 
-  // Show loading while Clerk initializes or during retries
-  if (!isLoaded || (!isSignedIn && retryCount.current > 0 && retryCount.current <= maxRetries)) {
+  // Show loading while Clerk initializes or during reactive wait attempts
+  if (!isLoaded || (!isSignedIn && sessionCheckAttempts < maxAttempts)) {
     return (
       <div className="flex flex-col h-screen w-full bg-[#0B0A08] items-center justify-center">
         <div className="flex flex-col items-center gap-4">
