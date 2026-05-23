@@ -24,7 +24,6 @@ import { buildPrompt } from '@/lib/chat/prompt-builder';
 import { saveMessages, runBackgroundTasks, markResponseStart } from '@/lib/chat/background-tasks';
 import type { ChatMessage } from '@/lib/ai/providers/free-providers';
 import { chatLimiter, getRateLimitKey } from '@/lib/rate-limiter';
-import { hasSqlInjection, hasPathTraversal, sanitizePath } from '@/lib/security/input-sanitizer';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -272,18 +271,6 @@ export async function POST(req: NextRequest) {
     const latestUserMessage: string = userMessages[userMessages.length - 1]?.content || '';
     if (latestUserMessage.length > 50_000) return NextResponse.json({ error: 'Message too long' }, { status: 413 });
 
-    // Input security sanitization (Phase A wiring)
-    if (hasSqlInjection(latestUserMessage)) {
-      logger.warn('Chat', 'SQL injection attempt blocked', { userId: dbUserId });
-      return NextResponse.json({ error: 'Invalid input detected' }, { status: 400 });
-    }
-    for (const msg of userMessages) {
-      if (msg.content && typeof msg.content === 'string' && hasPathTraversal(msg.content)) {
-        logger.warn('Chat', 'Path traversal attempt blocked', { userId: dbUserId });
-        return NextResponse.json({ error: 'Invalid input detected' }, { status: 400 });
-      }
-    }
-
     // 2b. HARD RULES CHECK — Steve's immutable safety boundary
     // Checked BEFORE any model routing. These are the ONLY content restrictions.
     const { checkHardRules, getHardRuleRefusal, isUnrestrictedTopic } = await import('@/lib/consciousness/holly-hard-rules');
@@ -416,18 +403,26 @@ export async function POST(req: NextRequest) {
     const systemChars = typeof systemMsg?.content === 'string' ? systemMsg.content.length : 0;
     const toolChars = groqTools ? JSON.stringify(groqTools).length : 0;
     const availableChars = MAX_CONTEXT_CHARS - systemChars - toolChars - 20_000; // 20K buffer for response
-    if (availableChars > 0 && messages.length > 2) {
+    if (messages.length > 2) {
       const conversationMsgs = messages.slice(1); // exclude system
-      let totalChars = 0;
       let keepFromEnd = 0;
-      for (let i = conversationMsgs.length - 1; i >= 0; i--) {
-        const msgChars = typeof conversationMsgs[i].content === 'string'
-          ? conversationMsgs[i].content.length
-          : JSON.stringify(conversationMsgs[i].content).length;
-        totalChars += msgChars;
-        if (totalChars > availableChars) break;
-        keepFromEnd++;
+
+      if (availableChars <= 0) {
+        // Safe baseline: if system prompt is massive, keep at least the latest 2 conversation messages (last assistant + latest user message)
+        keepFromEnd = Math.min(2, conversationMsgs.length);
+        console.warn('[CHAT] System prompt is extremely large, keeping only the latest 2 messages as safe baseline.');
+      } else {
+        let totalChars = 0;
+        for (let i = conversationMsgs.length - 1; i >= 0; i--) {
+          const msgChars = typeof conversationMsgs[i].content === 'string'
+            ? conversationMsgs[i].content.length
+            : JSON.stringify(conversationMsgs[i].content).length;
+          totalChars += msgChars;
+          if (totalChars > availableChars) break;
+          keepFromEnd++;
+        }
       }
+
       if (keepFromEnd < conversationMsgs.length) {
         const truncated = conversationMsgs.slice(-keepFromEnd);
         messages = [systemMsg, ...truncated];
