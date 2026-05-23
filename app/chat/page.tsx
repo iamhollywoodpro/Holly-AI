@@ -2,8 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import { useAuth } from '@clerk/nextjs';
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
 import ErrorBoundary from '@/components/ErrorBoundary';
 
 // Dynamic import prevents SSR crash from browser-only APIs (Audio, localStorage, etc.)
@@ -26,18 +25,40 @@ const HollyChatInterface = dynamic(
 
 export default function ChatPage() {
   const { isLoaded, isSignedIn } = useAuth();
-  const router = useRouter();
+  const [redirecting, setRedirecting] = useState(false);
+  const retryCount = useRef(0);
+  const maxRetries = 3;
 
   useEffect(() => {
     // Wait for Clerk to fully load before deciding
-    if (isLoaded && !isSignedIn) {
-      // Not signed in — redirect to sign-in page (client-side, no server race condition)
-      window.location.href = '/sign-in';
-    }
-  }, [isLoaded, isSignedIn, router]);
+    if (!isLoaded) return;
 
-  // Show loading while Clerk initializes
-  if (!isLoaded) {
+    if (isSignedIn) {
+      // Authenticated — done, show the chat
+      retryCount.current = 0;
+      return;
+    }
+
+    // NOT signed in. But with the Clerk proxy, the session might take a moment
+    // to establish. Retry a few times before giving up and redirecting.
+    if (retryCount.current < maxRetries) {
+      retryCount.current++;
+      console.log(`[HOLLY] Session not confirmed yet, retry ${retryCount.current}/${maxRetries}...`);
+      const timer = setTimeout(() => {
+        // Force Clerk to re-check the session by reloading the page
+        window.location.reload();
+      }, 2000 * retryCount.current); // 2s, 4s, 6s
+      return () => clearTimeout(timer);
+    }
+
+    // Exhausted retries — genuinely not signed in
+    console.log('[HOLLY] No session after retries, redirecting to sign-in');
+    setRedirecting(true);
+    window.location.href = '/sign-in';
+  }, [isLoaded, isSignedIn]);
+
+  // Show loading while Clerk initializes or during retries
+  if (!isLoaded || (!isSignedIn && retryCount.current > 0 && retryCount.current <= maxRetries)) {
     return (
       <div className="flex flex-col h-screen w-full bg-[#0B0A08] items-center justify-center">
         <div className="flex flex-col items-center gap-4">
@@ -50,8 +71,8 @@ export default function ChatPage() {
     );
   }
 
-  // Not signed in — show nothing while redirect happens
-  if (!isSignedIn) {
+  // Redirecting to sign-in
+  if (redirecting) {
     return (
       <div className="flex flex-col h-screen w-full bg-[#0B0A08] items-center justify-center">
         <div className="flex flex-col items-center gap-4">
@@ -62,11 +83,23 @@ export default function ChatPage() {
     );
   }
 
+  // Not signed in (will trigger redirect via useEffect)
+  if (!isSignedIn) {
+    return (
+      <div className="flex flex-col h-screen w-full bg-[#0B0A08] items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#D4A853] to-[#B84052] animate-pulse shadow-[0_0_20px_rgba(212,168,83,0.3)]" />
+          <p className="text-[#D4A853] text-xs font-bold tracking-[0.3em] uppercase animate-pulse">
+            Establishing Nexus Link...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="h-screen w-full">
-      <ErrorBoundary>
-        <HollyChatInterface />
-      </ErrorBoundary>
-    </div>
+    <ErrorBoundary>
+      <HollyChatInterface />
+    </ErrorBoundary>
   );
 }
