@@ -43,13 +43,15 @@ COPY . .
 ARG NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
 ARG NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
 ARG NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
-# DO NOT set NEXT_PUBLIC_CLERK_SIGN_IN_FORCE_REDIRECT_URL here.
-# These were causing the infinite sign-in loop:
-#   Clerk force-redirects to /chat the instant credentials are validated,
-#   BEFORE the session cookie is established through the proxy.
-#   The browser navigates to /chat, session isn't ready, redirects back to /sign-in.
-#   This happens at the framework level and OVERRIDES any code-level fixes.
-# Instead, the sign-in page handles redirect client-side after confirming the session.
+# NUCLEAR FIX: Explicitly set these to empty strings to override ANY
+# Coolify build args or environment variables. These MUST be empty or
+# Clerk will force-redirect before the session cookie is established,
+# causing an infinite sign-in loop. The empty string overrides any value
+# that Coolify might inject.
+ARG NEXT_PUBLIC_CLERK_SIGN_IN_FORCE_REDIRECT_URL=""
+ARG NEXT_PUBLIC_CLERK_SIGN_UP_FORCE_REDIRECT_URL=""
+ARG NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=""
+ARG NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=""
 ARG NEXT_PUBLIC_CLERK_PROXY_URL=https://holly.nexamusicgroup.com/api/clerk
 ARG NEXT_PUBLIC_APP_URL
 ARG NEXT_PUBLIC_APP_NAME=HOLLY
@@ -64,7 +66,11 @@ ARG NEXT_PUBLIC_ENABLE_TRUE_STREAMING=true
 ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=$NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
 ENV NEXT_PUBLIC_CLERK_SIGN_IN_URL=$NEXT_PUBLIC_CLERK_SIGN_IN_URL
 ENV NEXT_PUBLIC_CLERK_SIGN_UP_URL=$NEXT_PUBLIC_CLERK_SIGN_UP_URL
-# (force redirect ENV vars removed — see ARG section above for explanation)
+# NUCLEAR FIX: Override any Coolify-injected redirect URLs with empty strings
+ENV NEXT_PUBLIC_CLERK_SIGN_IN_FORCE_REDIRECT_URL=""
+ENV NEXT_PUBLIC_CLERK_SIGN_UP_FORCE_REDIRECT_URL=""
+ENV NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=""
+ENV NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=""
 ENV NEXT_PUBLIC_CLERK_PROXY_URL=$NEXT_PUBLIC_CLERK_PROXY_URL
 ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
 ENV NEXT_PUBLIC_APP_NAME=$NEXT_PUBLIC_APP_NAME

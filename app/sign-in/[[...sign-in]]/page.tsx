@@ -28,11 +28,14 @@ function SignInContent() {
   const [redirecting, setRedirecting] = useState(false);
 
   // Sanitize bad redirect_url from URL bar (Docker/localhost URLs)
+  // AND strip redirect_url entirely so Clerk can't use it for its own
+  // redirect (which would race with the session cookie through the proxy).
+  // Our useEffect below handles the redirect instead.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const rawRedirect = params.get('redirect_url');
-    if (rawRedirect && DOCKER_ORIGINS.some(h => rawRedirect.includes(h))) {
-      console.warn('[HOLLY] Stripping bad redirect_url:', rawRedirect);
+    if (rawRedirect) {
+      console.warn('[HOLLY] Stripping redirect_url from URL to prevent Clerk auto-redirect:', rawRedirect);
       window.history.replaceState({}, '', '/sign-in');
     }
   }, []);
