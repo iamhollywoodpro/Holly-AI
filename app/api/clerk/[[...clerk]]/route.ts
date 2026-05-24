@@ -159,6 +159,7 @@ async function proxyToClerk(req: NextRequest, pathSegments?: string[]): Promise<
     try {
       const encoded = pk.replace(/^pk_(live|test)_/, '').replace(/\$$/, '');
       clerkDomain = Buffer.from(encoded, 'base64').toString('utf-8');
+      clerkDomain = clerkDomain.replace(/[^a-zA-Z0-9.-]/g, '');
     } catch {}
     reqHeaders['x-forwarded-host'] = clerkDomain;
     reqHeaders['x-forwarded-proto'] = 'https';
