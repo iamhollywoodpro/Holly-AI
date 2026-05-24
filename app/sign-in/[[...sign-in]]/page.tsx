@@ -6,6 +6,7 @@ import { useEffect, useState, Suspense } from 'react';
 // ── Self-healing: Append missing trailing '$' to Clerk Publishable Key if missing ──
 if (
   process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY &&
+  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.length > 30 &&
   !process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.endsWith('$')
 ) {
   process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY += '$';
