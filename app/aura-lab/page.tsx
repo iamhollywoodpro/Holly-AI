@@ -7,6 +7,7 @@ import {
   Radio, Zap, Users, ListMusic, Star
 } from 'lucide-react';
 import { sovereignTheme } from '@/styles/themes/sovereign';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface AnalysisResult {
   // Core scores
@@ -124,9 +125,16 @@ export default function AuraLabPage() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: C.background.primary, color: C.text.primary }}>
+    <div className="relative overflow-x-hidden min-h-screen" style={{ background: C.background.primary, color: C.text.primary }}>
+      {/* Dynamic gradients background */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        <div className="absolute top-[-20%] left-[10%] w-[600px] h-[600px] rounded-full bg-[#D4A853]/10 blur-[150px]" />
+        <div className="absolute top-[30%] right-[-10%] w-[500px] h-[500px] rounded-full bg-[#B84052]/8 blur-[120px]" />
+        <div className="absolute bottom-[-10%] left-[30%] w-[400px] h-[400px] rounded-full bg-[#1F3D30]/8 blur-[100px]" />
+      </div>
+
       {/* Header */}
-      <div style={{ background: C.background.secondary, borderBottom: `1px solid ${C.border.primary}`, padding: '1.5rem 2rem' }}>
+      <div className="relative z-10" style={{ background: 'rgba(18, 17, 15, 0.4)', backdropFilter: 'blur(12px)', borderBottom: `1px solid ${C.border.primary}`, padding: '1.5rem 2rem' }}>
         <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.25rem' }}>
             <button
@@ -157,9 +165,9 @@ export default function AuraLabPage() {
         <div style={{ display: 'grid', gridTemplateColumns: analysis ? '340px 1fr' : '480px', gap: '2rem', justifyContent: analysis ? undefined : 'center' }}>
 
           {/* ── Input Panel ── */}
-          <div style={{
+          <div className="sdi-glass-warm shadow-2xl relative z-10" style={{
             padding: '1.75rem', borderRadius: '16px',
-            background: C.background.secondary, border: `1px solid ${C.border.primary}`,
+            background: 'rgba(18, 17, 15, 0.75)', border: `1px solid rgba(212, 168, 83, 0.25)`,
             height: 'fit-content',
           }}>
             <h2 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '1.25rem', color: C.text.primary }}>
@@ -273,10 +281,17 @@ export default function AuraLabPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
               {/* Score row */}
-              <div style={{
-                padding: '1.75rem', borderRadius: '16px',
-                background: C.background.secondary, border: `1px solid ${C.border.primary}`,
-              }}>
+              <motion.div
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                whileHover={{ scale: 1.01, y: -2 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                className="sdi-glass-warm shadow-xl relative z-10"
+                style={{
+                  padding: '1.75rem', borderRadius: '16px',
+                  background: 'rgba(18, 17, 15, 0.75)', border: `1px solid rgba(212, 168, 83, 0.25)`,
+                }}
+              >
                 <h2 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '1.5rem' }}>Overall Scores</h2>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '1rem' }}>
                   <ScoreCircle score={analysis.overall_score}       label="Overall"    color={C.primary.gold} />
@@ -287,14 +302,22 @@ export default function AuraLabPage() {
                     ? <ScoreCircle score={analysis.hit_potential}   label="Hit Potential" color={C.primary.crimson} />
                     : <div />}
                 </div>
-              </div>
+              </motion.div>
 
               {/* A&R Verdict */}
               {analysis.a_and_r_verdict && (
-                <div style={{
-                  padding: '1.25rem 1.5rem', borderRadius: '12px',
-                  background: `${C.primary.pink}12`, border: `1px solid ${C.primary.pink}40`,
-                }}>
+                <motion.div
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  whileHover={{ scale: 1.01, y: -2 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                  className="shadow-xl relative z-10"
+                  style={{
+                    padding: '1.25rem 1.5rem', borderRadius: '12px',
+                    background: 'rgba(201, 107, 139, 0.08)', border: `1px solid rgba(201, 107, 139, 0.25)`,
+                    backdropFilter: 'blur(12px)',
+                  }}
+                >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.6rem' }}>
                     <Star size={18} style={{ color: C.primary.gold }} />
                     <span style={{ fontWeight: 700, color: C.primary.gold, fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Sovereign Verdict</span>
@@ -305,7 +328,7 @@ export default function AuraLabPage() {
                   <p style={{ color: C.text.primary, fontSize: '0.92rem', lineHeight: 1.6, margin: 0 }}>
                     {analysis.a_and_r_verdict}
                   </p>
-                </div>
+                </motion.div>
               )}
 
               {/* Radio / Sync / Market row */}
@@ -315,14 +338,20 @@ export default function AuraLabPage() {
                   { icon: Zap,       label: 'Sync Potential',   val: analysis.sync_potential  },
                   { icon: TrendingUp, label: 'Market Potential', val: analysis.market_potential },
                 ].map(({ icon: Icon, label, val }) => val ? (
-                  <div key={label} style={{
-                    padding: '1.25rem', borderRadius: '12px',
-                    background: C.background.secondary, border: `1px solid ${C.border.primary}`,
-                  }}>
+                  <motion.div
+                    key={label}
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                    className="sdi-glass shadow-md relative z-10"
+                    style={{
+                      padding: '1.25rem', borderRadius: '12px',
+                      background: 'rgba(18, 17, 15, 0.65)', border: `1px solid rgba(212, 168, 83, 0.15)`,
+                    }}
+                  >
                     <Icon size={20} style={{ color: viabilityColor(val), marginBottom: '0.5rem' }} />
                     <div style={{ fontSize: '0.75rem', color: C.text.tertiary, marginBottom: '0.25rem' }}>{label}</div>
                     <div style={{ fontSize: '0.88rem', fontWeight: 600, color: C.text.primary }}>{val}</div>
-                  </div>
+                  </motion.div>
                 ) : null)}
               </div>
 
@@ -333,23 +362,34 @@ export default function AuraLabPage() {
                   { icon: Target, label: 'Target Audience',  val: analysis.target_audience },
                   { icon: Users,  label: 'Similar Artists',  val: analysis.similar_artists?.join(', ') ?? null },
                 ].map(({ icon: Icon, label, val }) => val ? (
-                  <div key={label} style={{
-                    padding: '1.25rem', borderRadius: '12px',
-                    background: C.background.secondary, border: `1px solid ${C.border.primary}`,
-                  }}>
+                  <motion.div
+                    key={label}
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                    className="sdi-glass shadow-md relative z-10"
+                    style={{
+                      padding: '1.25rem', borderRadius: '12px',
+                      background: 'rgba(18, 17, 15, 0.65)', border: `1px solid rgba(212, 168, 83, 0.15)`,
+                    }}
+                  >
                     <Icon size={20} style={{ color: C.primary.cyan, marginBottom: '0.5rem' }} />
                     <div style={{ fontSize: '0.75rem', color: C.text.tertiary, marginBottom: '0.25rem' }}>{label}</div>
                     <div style={{ fontSize: '0.88rem', fontWeight: 600, color: C.text.primary }}>{val}</div>
-                  </div>
+                  </motion.div>
                 ) : null)}
               </div>
 
               {/* Playlist Targets */}
               {analysis.playlist_targets?.length ? (
-                <div style={{
-                  padding: '1.25rem 1.5rem', borderRadius: '12px',
-                  background: C.background.secondary, border: `1px solid ${C.border.primary}`,
-                }}>
+                <motion.div
+                  whileHover={{ scale: 1.01, y: -1 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                  className="sdi-glass shadow-md relative z-10"
+                  style={{
+                    padding: '1.25rem 1.5rem', borderRadius: '12px',
+                    background: 'rgba(18, 17, 15, 0.65)', border: `1px solid rgba(212, 168, 83, 0.15)`,
+                  }}
+                >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
                     <ListMusic size={18} style={{ color: C.primary.cyan }} />
                     <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>Playlist Targets</span>
@@ -359,16 +399,21 @@ export default function AuraLabPage() {
                       <Badge key={i} text={p} color={C.primary.cyan} />
                     ))}
                   </div>
-                </div>
+                </motion.div>
               ) : null}
 
               {/* Strengths + Weaknesses + Recommendations row */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 {/* Strengths */}
-                <div style={{
-                  padding: '1.25rem 1.5rem', borderRadius: '12px',
-                  background: C.background.secondary, border: `1px solid ${C.border.primary}`,
-                }}>
+                <motion.div
+                  whileHover={{ scale: 1.01, y: -2 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                  className="sdi-glass shadow-md relative z-10"
+                  style={{
+                    padding: '1.25rem 1.5rem', borderRadius: '12px',
+                    background: 'rgba(18, 17, 15, 0.65)', border: `1px solid rgba(212, 168, 83, 0.15)`,
+                  }}
+                >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
                     <CheckCircle size={18} style={{ color: '#10b981' }} />
                     <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>Strengths</span>
@@ -376,13 +421,18 @@ export default function AuraLabPage() {
                   <ul style={{ margin: 0, paddingLeft: '1.25rem', color: C.text.secondary, fontSize: '0.87rem' }}>
                     {analysis.strengths.map((s, i) => <li key={i} style={{ marginBottom: '0.4rem' }}>{s}</li>)}
                   </ul>
-                </div>
+                </motion.div>
 
                 {/* Weaknesses */}
-                <div style={{
-                  padding: '1.25rem 1.5rem', borderRadius: '12px',
-                  background: C.background.secondary, border: `1px solid ${C.border.primary}`,
-                }}>
+                <motion.div
+                  whileHover={{ scale: 1.01, y: -2 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                  className="sdi-glass shadow-md relative z-10"
+                  style={{
+                    padding: '1.25rem 1.5rem', borderRadius: '12px',
+                    background: 'rgba(18, 17, 15, 0.65)', border: `1px solid rgba(212, 168, 83, 0.15)`,
+                  }}
+                >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
                     <AlertCircle size={18} style={{ color: '#ef4444' }} />
                     <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>Areas to Improve</span>
@@ -390,14 +440,19 @@ export default function AuraLabPage() {
                   <ul style={{ margin: 0, paddingLeft: '1.25rem', color: C.text.secondary, fontSize: '0.87rem' }}>
                     {analysis.weaknesses.map((w, i) => <li key={i} style={{ marginBottom: '0.4rem' }}>{w}</li>)}
                   </ul>
-                </div>
+                </motion.div>
               </div>
 
               {/* Recommendations */}
-              <div style={{
-                padding: '1.25rem 1.5rem', borderRadius: '12px',
-                background: C.background.secondary, border: `1px solid ${C.border.primary}`,
-              }}>
+              <motion.div
+                whileHover={{ scale: 1.01, y: -2 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                className="sdi-glass shadow-md relative z-10"
+                style={{
+                  padding: '1.25rem 1.5rem', borderRadius: '12px',
+                  background: 'rgba(18, 17, 15, 0.65)', border: `1px solid rgba(212, 168, 83, 0.15)`,
+                }}
+              >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
                   <Award size={18} style={{ color: C.primary.gold }} />
                   <span style={{ fontWeight: 600, fontSize: '0.9rem', textTransform: 'uppercase' }}>Recommendations</span>
@@ -407,7 +462,7 @@ export default function AuraLabPage() {
                     <li key={i} style={{ marginBottom: '0.5rem' }}>{r}</li>
                   ))}
                 </ol>
-              </div>
+              </motion.div>
 
               {analysis.analyzed_at && (
                 <div style={{ textAlign: 'right', fontSize: '0.72rem', color: C.text.tertiary }}>

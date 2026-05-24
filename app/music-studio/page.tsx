@@ -14,6 +14,7 @@ import Link from 'next/link';
 import { RemixSongModal } from '@/components/music/remix-song-modal';
 import { StemSeparationModal } from '@/components/music/stem-separation-modal';
 import { ExtendSongModal } from '@/components/music/extend-song-modal';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -202,7 +203,7 @@ function MiniPlayer({
             <input
               type="range" min="0" max="100" value={progress}
               onChange={e => onSeek(Number(e.target.value))}
-              className="flex-1 h-1 accent-purple-500 cursor-pointer"
+              className="flex-1 h-1 accent-[#D4A853] bg-white/10 rounded-full cursor-pointer transition-all"
             />
             <span className="text-white/40 text-xs w-8">{fmtDur(track.duration)}</span>
           </div>
@@ -216,7 +217,7 @@ function MiniPlayer({
             <input
               type="range" min="0" max="1" step="0.01" value={volume}
               onChange={e => onVolume(Number(e.target.value))}
-              className="w-20 h-1 accent-purple-500 cursor-pointer"
+              className="w-20 h-1 accent-[#D4A853] bg-white/10 rounded-full cursor-pointer transition-all"
             />
           </div>
           <button onClick={onClose} className="text-white/40 hover:text-white ml-2">
@@ -292,11 +293,13 @@ function TrackCard({
   }
 
   return (
-    <div
+    <motion.div
+      whileHover={{ y: -4, scale: 1.01 }}
+      transition={{ type: "spring", stiffness: 300, damping: 20 }}
       className={`group relative rounded-2xl overflow-hidden border transition-all duration-200 ${
         isActive
-          ? 'bg-white/10 border-purple-500/50 shadow-lg shadow-purple-500/10'
-          : 'bg-white/5 border-white/10 hover:bg-white/8 hover:border-white/20'
+          ? 'bg-[#D4A853]/15 border-[#D4A853]/45 shadow-lg shadow-[#D4A853]/10'
+          : 'sdi-glass border-white/5 hover:border-[#D4A853]/20 hover:bg-white/5'
       }`}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
@@ -383,7 +386,7 @@ function TrackCard({
           </button>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -864,15 +867,15 @@ export default function MusicStudio() {
   const charPct    = Math.min(charCount / charLimit, 1);
 
   return (
-    <div className="flex h-screen bg-[#0a0a0f] text-white overflow-hidden">
+    <div className="flex h-screen bg-[#0B0A08] text-white overflow-hidden">
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-        <div className="absolute top-[-20%] left-[10%] w-[600px] h-[600px] rounded-full bg-purple-600/8 blur-[120px]" />
-        <div className="absolute top-[30%] right-[-10%] w-[500px] h-[500px] rounded-full bg-pink-600/6 blur-[100px]" />
-        <div className="absolute bottom-[-10%] left-[30%] w-[400px] h-[400px] rounded-full bg-blue-600/5 blur-[80px]" />
+        <div className="absolute top-[-20%] left-[10%] w-[600px] h-[600px] rounded-full bg-[#D4A853]/10 blur-[150px]" />
+        <div className="absolute top-[30%] right-[-10%] w-[500px] h-[500px] rounded-full bg-[#B84052]/8 blur-[120px]" />
+        <div className="absolute bottom-[-10%] left-[30%] w-[400px] h-[400px] rounded-full bg-[#1F3D30]/8 blur-[100px]" />
       </div>
 
       {/* LEFT PANE - Creation Controls */}
-      <div className="relative z-10 w-[380px] h-full flex flex-col bg-[#0a0a0f]/80 backdrop-blur-xl border-r border-white/10 flex-shrink-0">
+      <div className="relative z-10 w-[380px] h-full flex flex-col sdi-glass border-r border-[#D4A853]/15 flex-shrink-0">
         
         {/* Header */}
         <div className="p-5 border-b border-white/5 flex items-center justify-between shrink-0">
@@ -928,12 +931,14 @@ export default function MusicStudio() {
               </button>
             </div>
 
-            <button
+            <motion.button
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.99 }}
               onClick={() => setInstrumental(p => !p)}
               className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-all ${
                 instrumental
-                  ? 'bg-purple-500/20 border-purple-500/50 text-purple-300'
-                  : 'bg-white/5 border-white/10 text-white/60 hover:border-white/20 hover:text-white/80'
+                  ? 'bg-[#D4A853]/20 border-[#D4A853]/50 text-[#D4A853]'
+                  : 'sdi-glass border-white/10 text-white/60 hover:border-white/25 hover:text-white'
               }`}
             >
               <span className="flex items-center gap-2 text-sm font-medium">
@@ -941,13 +946,13 @@ export default function MusicStudio() {
                 Instrumental (no vocals)
               </span>
               <div className={`w-10 h-5 rounded-full transition-all relative ${
-                instrumental ? 'bg-purple-500' : 'bg-white/10'
+                instrumental ? 'bg-[#D4A853]' : 'bg-white/10'
               }`}>
                 <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all shadow-sm ${
                   instrumental ? 'left-[calc(100%-18px)]' : 'left-0.5'
                 }`} />
               </div>
-            </button>
+            </motion.button>
 
             {mode === 'describe' && (
               <div className="space-y-3">
@@ -1220,11 +1225,13 @@ export default function MusicStudio() {
               </div>
             )}
 
-            <button
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
               onClick={handleGenerate}
               disabled={isGenerating}
-              className="w-full py-4 rounded-2xl font-semibold text-base transition-all relative overflow-hidden disabled:opacity-60 disabled:cursor-not-allowed group"
-              style={{ background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)' }}
+              className="w-full py-4 rounded-2xl font-semibold text-base transition-all relative overflow-hidden disabled:opacity-60 disabled:cursor-not-allowed group shadow-lg shadow-[#D4A853]/10"
+              style={{ background: 'linear-gradient(135deg, #D4A853 0%, #B84052 100%)' }}
             >
               <div className="absolute inset-0 bg-white/0 group-hover:bg-white/10 transition-all" />
               {isGenerating ? (
@@ -1238,7 +1245,7 @@ export default function MusicStudio() {
                   Create with {ENGINE_OPTIONS.find(e => e.value === engine)?.label}
                 </span>
               )}
-            </button>
+            </motion.button>
 
             <p className="text-center text-white/20 text-xs">
               {engine === 'hybrid' ? '~5-10 min · 4-phase pipeline · Best quality' :

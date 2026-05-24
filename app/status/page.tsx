@@ -30,6 +30,10 @@ export default function StatusPage() {
   const [loading, setLoading] = useState(true);
   const [lastCheck, setLastCheck] = useState<Date>(new Date());
 
+  const [showAiProviders, setShowAiProviders] = useState(false);
+  const [showIntegrations, setShowIntegrations] = useState(false);
+  const [showSystemInfo, setShowSystemInfo] = useState(false);
+
   async function checkHealth() {
     setLoading(true);
     try {
@@ -168,75 +172,111 @@ export default function StatusPage() {
               </div>
             </div>
 
-            <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-5">
-              <h2 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
-                <Zap className="w-4 h-4 text-purple-400" />
-                AI Providers
-              </h2>
-              <div className="space-y-2">
-                {Object.entries(health.providers).map(([key, active]) => {
-                  const info = providerLabels[key] || { label: key, icon: <Server className="w-4 h-4" /> };
-                  return (
-                    <div key={key} className={`flex items-center gap-3 p-3 rounded-lg ${active ? 'bg-[#D4A853]/5 border border-[#D4A853]/20' : 'bg-[#1A1815]/30 border border-[#1A1815]/30'}`}>
-                      <span className={active ? 'text-[#D4A853]' : 'text-[#5C564D]'}>{info.icon}</span>
-                      <span className={`text-sm flex-1 font-medium ${active ? 'text-[#F5F0E8]' : 'text-[#5C564D]'}`}>{info.label}</span>
-                      {active ? (
-                        <span className="text-[10px] text-[#D4A853] flex items-center gap-1 uppercase font-black tracking-tighter"><CheckCircle className="w-3 h-3" /> Active</span>
-                      ) : (
-                        <span className="text-[10px] text-[#5C564D] uppercase font-bold tracking-tighter">Standby</span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+            {/* AI Providers Collapsible */}
+            <div className="sdi-glass border border-white/5 rounded-2xl p-5 transition-all">
+              <button
+                onClick={() => setShowAiProviders(v => !v)}
+                className="w-full flex items-center justify-between text-sm font-bold text-[#F5F0E8] uppercase tracking-wider"
+              >
+                <span className="flex items-center gap-2">
+                  <Zap className="w-4 h-4 text-[#D4A853]" />
+                  AI Providers
+                </span>
+                <span className="text-xs text-[#D4A853] hover:text-white transition-colors font-mono">
+                  {showAiProviders ? '[-]' : '[+]'}
+                </span>
+              </button>
+              
+              {showAiProviders && (
+                <div className="space-y-2 mt-4">
+                  {Object.entries(health.providers).map(([key, active]) => {
+                    const info = providerLabels[key] || { label: key, icon: <Server className="w-4 h-4" /> };
+                    return (
+                      <div key={key} className={`flex items-center gap-3 p-3 rounded-lg ${active ? 'bg-[#D4A853]/5 border border-[#D4A853]/20' : 'bg-[#1A1815]/30 border border-[#1A1815]/30'}`}>
+                        <span className={active ? 'text-[#D4A853]' : 'text-[#5C564D]'}>{info.icon}</span>
+                        <span className={`text-sm flex-1 font-medium ${active ? 'text-[#F5F0E8]' : 'text-[#5C564D]'}`}>{info.label}</span>
+                        {active ? (
+                          <span className="text-[10px] text-[#D4A853] flex items-center gap-1 uppercase font-black tracking-tighter"><CheckCircle className="w-3 h-3" /> Active</span>
+                        ) : (
+                          <span className="text-[10px] text-[#5C564D] uppercase font-bold tracking-tighter">Standby</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
-            <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-5">
-              <h2 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
-                <Database className="w-4 h-4 text-blue-400" />
-                Integrations & Services
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {Object.entries(health.integrations).map(([key, active]) => {
-                  const info = integrationLabels[key] || { label: key, icon: <Server className="w-4 h-4" />, category: 'other' };
-                  return (
-                    <div key={key} className={`flex items-center gap-2.5 p-2.5 rounded-lg ${active ? 'bg-[#12110F]/60' : 'bg-[#12110F]/20 opacity-50'}`}>
-                      <span className={active ? 'text-[#D4A853]' : 'text-[#5C564D]'}>{info.icon}</span>
-                      <span className={`text-[11px] flex-1 font-medium ${active ? 'text-[#D1C8B8]' : 'text-[#5C564D]'}`}>{info.label}</span>
-                      {active ? (
-                        <span className="w-2 h-2 rounded-full bg-[#D4A853] shadow-[0_0_5px_#D4A853]" />
-                      ) : (
-                        <span className="w-2 h-2 rounded-full bg-[#1A1815]" />
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+            {/* Integrations Collapsible */}
+            <div className="sdi-glass border border-white/5 rounded-2xl p-5 transition-all">
+              <button
+                onClick={() => setShowIntegrations(v => !v)}
+                className="w-full flex items-center justify-between text-sm font-bold text-[#F5F0E8] uppercase tracking-wider"
+              >
+                <span className="flex items-center gap-2">
+                  <Database className="w-4 h-4 text-[#D4A853]" />
+                  Integrations & Services
+                </span>
+                <span className="text-xs text-[#D4A853] hover:text-white transition-colors font-mono">
+                  {showIntegrations ? '[-]' : '[+]'}
+                </span>
+              </button>
+
+              {showIntegrations && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4">
+                  {Object.entries(health.integrations).map(([key, active]) => {
+                    const info = integrationLabels[key] || { label: key, icon: <Server className="w-4 h-4" />, category: 'other' };
+                    return (
+                      <div key={key} className={`flex items-center gap-2.5 p-2.5 rounded-lg ${active ? 'bg-[#12110F]/60 border border-white/5' : 'bg-[#12110F]/20 opacity-50'}`}>
+                        <span className={active ? 'text-[#D4A853]' : 'text-[#5C564D]'}>{info.icon}</span>
+                        <span className={`text-[11px] flex-1 font-medium ${active ? 'text-[#D1C8B8]' : 'text-[#5C564D]'}`}>{info.label}</span>
+                        {active ? (
+                          <span className="w-2 h-2 rounded-full bg-[#D4A853] shadow-[0_0_5px_#D4A853]" />
+                        ) : (
+                          <span className="w-2 h-2 rounded-full bg-[#1A1815]" />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
-            <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-5">
-              <h2 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
-                <Activity className="w-4 h-4 text-cyan-400" />
-                System Info
-              </h2>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div>
-                  <p className="text-[10px] text-gray-600 uppercase tracking-wider">Node</p>
-                  <p className="text-sm text-white">{health.system.nodeVersion}</p>
+            {/* System Info Collapsible */}
+            <div className="sdi-glass border border-white/5 rounded-2xl p-5 transition-all">
+              <button
+                onClick={() => setShowSystemInfo(v => !v)}
+                className="w-full flex items-center justify-between text-sm font-bold text-[#F5F0E8] uppercase tracking-wider"
+              >
+                <span className="flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-[#D4A853]" />
+                  System Info
+                </span>
+                <span className="text-xs text-[#D4A853] hover:text-white transition-colors font-mono">
+                  {showSystemInfo ? '[-]' : '[+]'}
+                </span>
+              </button>
+
+              {showSystemInfo && (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
+                  <div>
+                    <p className="text-[10px] text-gray-600 uppercase tracking-wider">Node</p>
+                    <p className="text-sm text-white">{health.system.nodeVersion}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-gray-600 uppercase tracking-wider">Platform</p>
+                    <p className="text-sm text-white">{health.system.platform}/{health.system.arch}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-gray-600 uppercase tracking-wider">Environment</p>
+                    <p className="text-sm text-white capitalize">{health.environment}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-gray-600 uppercase tracking-wider">Version</p>
+                    <p className="text-sm text-white">{health.version}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-[10px] text-gray-600 uppercase tracking-wider">Platform</p>
-                  <p className="text-sm text-white">{health.system.platform}/{health.system.arch}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-gray-600 uppercase tracking-wider">Environment</p>
-                  <p className="text-sm text-white capitalize">{health.environment}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-gray-600 uppercase tracking-wider">Version</p>
-                  <p className="text-sm text-white">{health.version}</p>
-                </div>
-              </div>
+              )}
             </div>
           </div>
         )}
