@@ -13,7 +13,7 @@ function WorkspaceInner({ children }: { children: React.ReactNode }) {
 
   return (
     <LivingBackground emotion={emotion} intensity={0.25}>
-      <div className="flex h-screen overflow-hidden bg-background text-foreground sdi-window-drag">
+      <div className="chat-layout flex bg-background text-foreground sdi-window-drag">
         
         {/* Navigation Sidebar */}
         <div className="sdi-window-no-drag max-h-screen">
