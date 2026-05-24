@@ -196,7 +196,7 @@ export class FinanceManager {
         by: ['category'],
         where: { userId: this.userId },
         _sum: { amount: true },
-        orderBy: { _sum: { amount: { sort: 'desc', nulls: 'last' } } },
+        orderBy: { _sum: { amount: 'desc' } },
       }),
     ]);
 
@@ -214,6 +214,98 @@ export class FinanceManager {
         category: c.category,
         total: c._sum.amount ?? 0,
       })),
+    };
+  }
+
+  /**
+   * Delete a transaction
+   */
+  async deleteTransaction(transactionId: string): Promise<void> {
+    const txn = await prisma.transaction.findUnique({
+      where: { id: transactionId },
+    });
+
+    if (!txn || txn.userId !== this.userId) {
+      throw new Error('Transaction not found or unauthorized');
+    }
+
+    await prisma.transaction.delete({
+      where: { id: transactionId },
+    });
+
+    // Revert budget spent amount if linked
+    if (txn.budgetId && txn.amount < 0) {
+      await prisma.budget.update({
+        where: { id: txn.budgetId },
+        data: { spent: { decrement: Math.abs(txn.amount) } },
+      }).catch(() => {});
+    }
+  }
+
+  /**
+   * Update an existing transaction
+   */
+  async updateTransaction(
+    transactionId: string,
+    updates: {
+      amount?: number;
+      category?: string;
+      description?: string;
+      type?: 'income' | 'expense';
+    }
+  ): Promise<Transaction> {
+    const existing = await prisma.transaction.findUnique({
+      where: { id: transactionId },
+    });
+
+    if (!existing || existing.userId !== this.userId) {
+      throw new Error('Transaction not found or unauthorized');
+    }
+
+    const data: Record<string, any> = {};
+    if (updates.description !== undefined) data.description = updates.description;
+    if (updates.category !== undefined) data.category = updates.category;
+    
+    let newAmount = existing.amount;
+    if (updates.amount !== undefined) {
+      const type = updates.type || (existing.amount >= 0 ? 'income' : 'expense');
+      newAmount = type === 'expense' ? -Math.abs(updates.amount) : Math.abs(updates.amount);
+      data.amount = newAmount;
+    } else if (updates.type !== undefined) {
+      newAmount = updates.type === 'expense' ? -Math.abs(existing.amount) : Math.abs(existing.amount);
+      data.amount = newAmount;
+    }
+
+    const updated = await prisma.transaction.update({
+      where: { id: transactionId },
+      data,
+    });
+
+    // Adjust budget spent if amount or budgetId changed
+    if (existing.budgetId && existing.amount < 0) {
+      // Revert old budget
+      await prisma.budget.update({
+        where: { id: existing.budgetId },
+        data: { spent: { decrement: Math.abs(existing.amount) } },
+      }).catch(() => {});
+    }
+
+    if (existing.budgetId && newAmount < 0) {
+      // Apply new budget amount
+      await prisma.budget.update({
+        where: { id: existing.budgetId },
+        data: { spent: { increment: Math.abs(newAmount) } },
+      }).catch(() => {});
+    }
+
+    return {
+      id: updated.id,
+      userId: updated.userId,
+      amount: updated.amount,
+      category: updated.category,
+      description: updated.description,
+      date: updated.createdAt,
+      type: updated.amount >= 0 ? 'income' : 'expense',
     };
   }
 }

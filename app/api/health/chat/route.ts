@@ -81,6 +81,18 @@ export async function GET() {
       isSelfCode: false,
       isInformationalMsg: false,
       latestUserMessage: 'Hi',
+      mcpTools: undefined,
+      identityCtx: { promptBlock: '', tasteDirectives: '', partnerDirectives: '', raw: null },
+      memoryContext: '',
+      semanticResults: [],
+      projectContextBlock: '',
+      recentLearnings: '',
+      pastSummaries: [],
+      tasteMatrixBlock: '',
+      perceptionContext: undefined,
+      audioAnalysis: null,
+      arResult: null,
+      imageDataUrls: undefined,
     });
     results['prompt_builder'] = {
       status: 'ok',

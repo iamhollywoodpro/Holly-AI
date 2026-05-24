@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
         });
 
       case 'get_summary':
-        const summary = await finance.getSummary(data.period || 'month');
+        const summary = await finance.getSummary();
         return NextResponse.json({ 
           success: true,
           summary
