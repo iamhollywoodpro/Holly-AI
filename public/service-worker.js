@@ -52,6 +52,11 @@ self.addEventListener('fetch', (event) => {
   // Only handle same-origin requests
   if (url.origin !== self.location.origin) return;
 
+  // Bypass service worker caching entirely for localhost/development
+  if (self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1') {
+    return;
+  }
+
   // Skip Clerk auth proxy — must always hit network
   if (url.pathname.startsWith('/api/clerk')) return;
 
