@@ -158,7 +158,7 @@ function AuthPanel() {
         href="/sign-up"
         className="flex items-center justify-center gap-2 w-full py-4 bg-gradient-to-r from-holly-gold to-holly-crimson hover:from-holly-gold/90 hover:to-holly-crimson/90 text-holly-void rounded-xl font-bold text-base transition-all shadow-xl shadow-holly-gold/20 active:scale-95"
       >
-        ✦ Establish Your Protocol
+        ✦ Create Account (Sign Up)
       </Link>
 
       {/* Secondary — Sign In */}
@@ -166,12 +166,12 @@ function AuthPanel() {
         href="/sign-in"
         className="flex items-center justify-center gap-2 w-full py-3.5 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-holly-gold/30 text-holly-gold/80 hover:text-holly-ivory rounded-xl font-semibold text-sm transition-all active:scale-95"
       >
-        Resynchronize
+        Sign In to HOLLY
       </Link>
 
       <div className="flex items-center gap-3 my-2">
         <div className="flex-1 h-px bg-white/5" />
-        <span className="text-[10px] text-holly-gold/30 uppercase tracking-[0.2em]">authentication layer</span>
+        <span className="text-[10px] text-holly-gold/30 uppercase tracking-[0.2em]">or continue with</span>
         <div className="flex-1 h-px bg-white/5" />
       </div>
 
@@ -667,14 +667,13 @@ export default function LandingPage() {
                   <div className="flex items-center gap-4 mb-8 sm:mb-10">
                     <HollyOrb size="sm" />
                     <div>
-                      <p className="text-holly-ivory font-bold text-lg tracking-tight">Identity Protocol</p>
-                      <p className="text-holly-gold/50 text-[10px] uppercase tracking-widest font-bold">Accessing sovereign core</p>
+                      <p className="text-holly-ivory font-bold text-lg tracking-tight">Access HOLLY</p>
+                      <p className="text-holly-gold/50 text-[10px] uppercase tracking-widest font-bold">Connect to your AI Partner</p>
                     </div>
                   </div>
                   <AuthPanel />
                   <p className="text-center text-[11px] text-holly-gold/30 mt-6 leading-relaxed font-medium uppercase tracking-wider">
-                    New protocols require verification.<br />
-                    Session persistence active.
+                    Secure, persistent encrypted authentication.
                   </p>
                 </div>
               </div>
