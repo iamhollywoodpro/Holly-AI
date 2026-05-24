@@ -74,6 +74,7 @@ interface CachedContext {
   taste: CachedTasteProfile | null;
   recentTopics: string[];
   activeProjects: string[];
+  semanticMemories?: Array<{ key: string; content: string }>;
   cachedAt: number;
   ttl: number; // ms
 }
@@ -93,6 +94,9 @@ const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 const MAX_CACHED_USERS = 200;
 const PREWARM_INTERVAL = 10 * 60 * 1000; // 10 minutes
 const PREWARM_TOP_N = 50; // top 50 active users
+const PREWARM_TARGET_LATENCY_MS = 35; // Sovereign target: <35ms cached reads
+const REDIS_CONTEXT_PREFIX = 'holly:ctx:';
+const REDIS_CONTEXT_TTL_SECONDS = 300; // 5min Redis L2
 
 // ── In-Memory Cache (fast LRU for per-request) ─────────────────────────
 
@@ -167,6 +171,7 @@ export async function getUserContext(userId: string): Promise<CachedContext> {
     preferences,
     tasteProfile,
     relContext,
+    memories,
   ] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
@@ -189,6 +194,12 @@ export async function getUserContext(userId: string): Promise<CachedContext> {
     }),
     prisma.relationshipContext.findFirst({
       where: { userId },
+    }),
+    prisma.relationshipMemory.findMany({
+      where: { userId, supersededById: null },
+      orderBy: { importance: 'desc' },
+      take: 20,
+      select: { key: true, content: true }
     }),
   ]);
 
@@ -241,6 +252,7 @@ export async function getUserContext(userId: string): Promise<CachedContext> {
       ? (relContext as Record<string, unknown> | null)!.recentTopics as string[] : [],
     activeProjects: Array.isArray((relContext as Record<string, unknown> | null)?.activeProjects)
       ? (relContext as Record<string, unknown> | null)!.activeProjects as string[] : [],
+    semanticMemories: memories.map(m => ({ key: m.key, content: m.content })),
     cachedAt: Date.now(),
     ttl: CACHE_TTL,
   };
@@ -375,3 +387,108 @@ export function getOptimizedDatabaseUrl(): string {
   const separator = baseUrl.includes('?') ? '&' : '?';
   return `${baseUrl}${separator}connection_limit=${pool.connection_limit}&pool_timeout=${pool.pool_timeout}`;
 }
+
+// ── Semantic Pre-warming (Phase 17 Sovereign) ─────────────────────────
+
+/**
+ * Pre-warm a single user's context into both LRU and Redis L2 on session init.
+ * Target latency: <35ms for subsequent cached reads.
+ * Call this from auth middleware or session-start hooks.
+ */
+export async function prewarmUserSession(userId: string): Promise<{
+  latencyMs: number;
+  source: 'lru' | 'redis' | 'db';
+  withinTarget: boolean;
+}> {
+  const start = performance.now();
+
+  // 1. Check LRU (fastest path — sub-1ms)
+  const lruHit = userCache.get(userId);
+  if (lruHit) {
+    const latencyMs = performance.now() - start;
+    return { latencyMs, source: 'lru', withinTarget: latencyMs < PREWARM_TARGET_LATENCY_MS };
+  }
+
+  // 2. Check Redis L2 cache (cross-instance warm read — ~5-15ms)
+  try {
+    const redisKey = `${REDIS_CONTEXT_PREFIX}${userId}`;
+    const redisHit = await cache.get<CachedContext>(redisKey);
+    if (redisHit && (Date.now() - redisHit.cachedAt < redisHit.ttl)) {
+      userCache.set(userId, redisHit); // Promote to L1
+      const latencyMs = performance.now() - start;
+      return { latencyMs, source: 'redis', withinTarget: latencyMs < PREWARM_TARGET_LATENCY_MS };
+    }
+  } catch {
+    // Redis unavailable — fall through to DB
+  }
+
+  // 3. Full DB load + cache population
+  const context = await getUserContext(userId);
+
+  // Async write to Redis L2 (fire-and-forget)
+  try {
+    const redisKey = `${REDIS_CONTEXT_PREFIX}${userId}`;
+    cache.set(redisKey, context, { ttl: REDIS_CONTEXT_TTL_SECONDS } as CacheOptions).catch(() => {});
+  } catch {
+    // Non-critical — Redis write failure doesn't block session
+  }
+
+  const latencyMs = performance.now() - start;
+  return { latencyMs, source: 'db', withinTarget: latencyMs < PREWARM_TARGET_LATENCY_MS };
+}
+
+/**
+ * Bulk pre-warm with Redis L2 cache writeback.
+ * Enhanced version of prewarmActiveUsers that also populates Redis.
+ */
+export async function prewarmWithRedisL2(): Promise<{
+  warmed: number;
+  avgLatencyMs: number;
+  withinTarget: number;
+  errors: string[];
+}> {
+  const result = await prewarmActiveUsers();
+  const latencies: number[] = [];
+  let withinTarget = 0;
+
+  // Re-warm into Redis L2 for cross-instance sharing
+  try {
+    const activeUsers = await prisma.user.findMany({
+      where: {
+        conversations: {
+          some: { createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } },
+        },
+      },
+      select: { id: true },
+      orderBy: { updatedAt: 'desc' },
+      take: PREWARM_TOP_N,
+    });
+
+    for (const u of activeUsers) {
+      const start = performance.now();
+      const cached = userCache.get(u.id);
+      if (cached) {
+        try {
+          await cache.set(`${REDIS_CONTEXT_PREFIX}${u.id}`, cached, { ttl: REDIS_CONTEXT_TTL_SECONDS } as CacheOptions);
+        } catch { /* Non-critical */ }
+      }
+      const elapsed = performance.now() - start;
+      latencies.push(elapsed);
+      if (elapsed < PREWARM_TARGET_LATENCY_MS) withinTarget++;
+    }
+  } catch {
+    // Non-critical L2 failure
+  }
+
+  const avgLatencyMs = latencies.length > 0
+    ? latencies.reduce((a, b) => a + b, 0) / latencies.length
+    : 0;
+
+  return {
+    warmed: result.warmed,
+    avgLatencyMs: Math.round(avgLatencyMs * 100) / 100,
+    withinTarget,
+    errors: result.errors,
+  };
+}
+

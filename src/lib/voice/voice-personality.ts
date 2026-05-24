@@ -14,6 +14,7 @@
  */
 
 import { prisma } from '@/lib/db';
+import { getAmbientSoundscape, type SoundscapeParameters } from '@/lib/voice/ambient-synthesizer';
 
 // ── Types ──────────────────────────────────────────────────────────────
 
@@ -47,6 +48,7 @@ export interface VoicePersonalityResult {
   params: VoicePersonalityParams;
   traits: PersonalityTraits;
   source: 'cached' | 'loaded' | 'default';
+  soundscape?: SoundscapeParameters;
 }
 
 // ── Voice Profiles ─────────────────────────────────────────────────────
@@ -191,11 +193,18 @@ const DEFAULT_TRAITS: PersonalityTraits = {
  */
 export async function getVoicePersonality(
   userId: string,
+  biometrics?: {
+    speechPace?: number;
+    vocalPitchJitter?: number;
+    responseLatency?: number;
+  }
 ): Promise<VoicePersonalityResult> {
-  // Check cache
-  const cached = personalityCache.get(userId);
-  if (cached && Date.now() - cached.cachedAt < CACHE_TTL) {
-    return { ...cached.result, source: 'cached' };
+  // Check cache (only bypass cache if live biometrics are passed to preserve accuracy)
+  if (!biometrics) {
+    const cached = personalityCache.get(userId);
+    if (cached && Date.now() - cached.cachedAt < CACHE_TTL) {
+      return { ...cached.result, source: 'cached' };
+    }
   }
 
   try {
@@ -213,25 +222,49 @@ export async function getVoicePersonality(
           empathyLevel: style.empathyLevel,
           directness: style.directness,
         }
-      : DEFAULT_TRAITS;
+      : { ...DEFAULT_TRAITS };
+
+    // Apply biometric dynamic tracking on the fly (Phase 18 Voice personalization)
+    if (biometrics) {
+      if (biometrics.speechPace && biometrics.speechPace > 150) {
+        // User is talking fast, adapt directness and speed
+        traits.directness = Math.min(1.0, traits.directness + 0.15);
+      }
+      if (biometrics.vocalPitchJitter && biometrics.vocalPitchJitter > 0.08) {
+        // High tension/stress detected, raise empathy level significantly
+        traits.empathyLevel = Math.min(1.0, traits.empathyLevel + 0.2);
+      }
+    }
 
     const params = mapTraitsToVoiceParams(traits);
+
+    // Compute dynamic soundscape synth drone parameters based on active emotional registers
+    const activeEmotion = biometrics?.vocalPitchJitter && biometrics.vocalPitchJitter > 0.08 
+      ? 'stressed' 
+      : (traits.empathyLevel > 0.7 ? 'warm' : 'focused');
+    const soundscape = getAmbientSoundscape(activeEmotion, traits.directness);
+
     const result: VoicePersonalityResult = {
       params,
       traits,
       source: style ? 'loaded' : 'default',
+      soundscape
     };
 
-    // Cache it
-    personalityCache.set(userId, { result, cachedAt: Date.now() });
+    // Cache it if it's a standard call (no live overrides)
+    if (!biometrics) {
+      personalityCache.set(userId, { result, cachedAt: Date.now() });
+    }
 
     return result;
   } catch (error) {
     console.error('[VoicePersonality] Failed to load style:', error);
+    const soundscape = getAmbientSoundscape('focused', 0.6);
     return {
       params: mapTraitsToVoiceParams(DEFAULT_TRAITS),
       traits: DEFAULT_TRAITS,
       source: 'default',
+      soundscape
     };
   }
 }

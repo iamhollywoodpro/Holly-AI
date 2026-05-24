@@ -172,11 +172,207 @@ self.addEventListener('sync', (event) => {
   if (event.tag === 'sync-messages') {
     event.waitUntil(syncPendingMessages());
   }
+  if (event.tag === 'sync-cursor') {
+    event.waitUntil(syncCursorPositions());
+  }
 });
 
+// ─── IndexedDB Offline Message Queue ──────────────────────────────────────────
+
+const IDB_NAME = 'holly-offline';
+const IDB_VERSION = 1;
+const MSG_STORE = 'pending-messages';
+const CURSOR_STORE = 'cursor-positions';
+
+function openOfflineDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(IDB_NAME, IDB_VERSION);
+    req.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains(MSG_STORE)) {
+        const store = db.createObjectStore(MSG_STORE, { keyPath: 'id', autoIncrement: true });
+        store.createIndex('timestamp', 'timestamp', { unique: false });
+        store.createIndex('conversationId', 'conversationId', { unique: false });
+      }
+      if (!db.objectStoreNames.contains(CURSOR_STORE)) {
+        db.createObjectStore(CURSOR_STORE, { keyPath: 'conversationId' });
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+/**
+ * Queue a message for later delivery when offline.
+ * Called from the client via postMessage.
+ */
+async function queueOfflineMessage(message) {
+  try {
+    const db = await openOfflineDB();
+    const tx = db.transaction(MSG_STORE, 'readwrite');
+    tx.objectStore(MSG_STORE).add({
+      ...message,
+      timestamp: Date.now(),
+      status: 'pending',
+    });
+    await new Promise((resolve, reject) => {
+      tx.oncomplete = resolve;
+      tx.onerror = reject;
+    });
+    db.close();
+    console.log('[SW] Queued offline message:', message.conversationId);
+    // Notify clients about pending message count
+    broadcastToClients({ type: 'OFFLINE_QUEUE_UPDATE', pending: await getPendingCount() });
+  } catch (err) {
+    console.error('[SW] Failed to queue offline message:', err);
+  }
+}
+
+/**
+ * Save cursor/scroll position for a conversation.
+ */
+async function saveCursorPosition(data) {
+  try {
+    const db = await openOfflineDB();
+    const tx = db.transaction(CURSOR_STORE, 'readwrite');
+    tx.objectStore(CURSOR_STORE).put({
+      conversationId: data.conversationId,
+      scrollTop: data.scrollTop,
+      inputDraft: data.inputDraft,
+      timestamp: Date.now(),
+    });
+    await new Promise((resolve, reject) => {
+      tx.oncomplete = resolve;
+      tx.onerror = reject;
+    });
+    db.close();
+  } catch (err) {
+    console.error('[SW] Failed to save cursor position:', err);
+  }
+}
+
+/**
+ * Count pending messages in the queue.
+ */
+async function getPendingCount() {
+  try {
+    const db = await openOfflineDB();
+    const tx = db.transaction(MSG_STORE, 'readonly');
+    const count = await new Promise((resolve) => {
+      const req = tx.objectStore(MSG_STORE).count();
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => resolve(0);
+    });
+    db.close();
+    return count;
+  } catch {
+    return 0;
+  }
+}
+
+/**
+ * Flush all pending messages to the server.
+ * Called by background sync when connectivity restores.
+ */
 async function syncPendingMessages() {
-  // Placeholder — extend for offline-composed messages
-  console.log('[SW] Background sync: sync-messages');
+  let db;
+  try {
+    db = await openOfflineDB();
+    const tx = db.transaction(MSG_STORE, 'readonly');
+    const store = tx.objectStore(MSG_STORE);
+    const messages = await new Promise((resolve, reject) => {
+      const req = store.index('timestamp').getAll();
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+
+    if (!messages || messages.length === 0) {
+      console.log('[SW] No pending messages to sync.');
+      db.close();
+      return;
+    }
+
+    console.log(`[SW] Syncing ${messages.length} offline message(s)...`);
+    let synced = 0;
+    let failed = 0;
+
+    for (const msg of messages) {
+      try {
+        const response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: msg.content,
+            conversationId: msg.conversationId,
+            model: msg.model || 'default',
+            offlineQueued: true,
+            originalTimestamp: msg.timestamp,
+          }),
+        });
+
+        if (response.ok) {
+          // Remove from queue
+          const deleteTx = db.transaction(MSG_STORE, 'readwrite');
+          deleteTx.objectStore(MSG_STORE).delete(msg.id);
+          await new Promise((resolve) => { deleteTx.oncomplete = resolve; });
+          synced++;
+        } else {
+          failed++;
+        }
+      } catch (err) {
+        console.error(`[SW] Failed to sync message ${msg.id}:`, err);
+        failed++;
+      }
+    }
+
+    console.log(`[SW] Sync complete: ${synced} sent, ${failed} failed.`);
+    broadcastToClients({
+      type: 'OFFLINE_SYNC_COMPLETE',
+      synced,
+      failed,
+      remaining: await getPendingCount(),
+    });
+  } catch (err) {
+    console.error('[SW] syncPendingMessages error:', err);
+  } finally {
+    if (db) db.close();
+  }
+}
+
+/**
+ * Sync cursor positions — restore scroll + draft on reconnect.
+ */
+async function syncCursorPositions() {
+  try {
+    const db = await openOfflineDB();
+    const tx = db.transaction(CURSOR_STORE, 'readonly');
+    const positions = await new Promise((resolve) => {
+      const req = tx.objectStore(CURSOR_STORE).getAll();
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => resolve([]);
+    });
+    db.close();
+
+    if (positions && positions.length > 0) {
+      broadcastToClients({
+        type: 'CURSOR_RESTORE',
+        positions,
+      });
+    }
+  } catch (err) {
+    console.error('[SW] syncCursorPositions error:', err);
+  }
+}
+
+/**
+ * Broadcast a message to all connected client windows.
+ */
+async function broadcastToClients(message) {
+  const allClients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+  for (const client of allClients) {
+    client.postMessage(message);
+  }
 }
 
 // ─── Push notifications ────────────────────────────────────────────────────────
@@ -220,7 +416,7 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-// ─── Message handling (skip-waiting on demand) ────────────────────────────────
+// ─── Message handling (skip-waiting + offline queue commands) ──────────────────
 self.addEventListener('message', (event) => {
   if (event.data?.type === 'SKIP_WAITING') {
     self.skipWaiting();
@@ -228,4 +424,19 @@ self.addEventListener('message', (event) => {
   if (event.data?.type === 'GET_VERSION') {
     event.ports[0]?.postMessage({ version: CACHE_VERSION });
   }
+  // Offline message queuing from client
+  if (event.data?.type === 'QUEUE_OFFLINE_MESSAGE') {
+    queueOfflineMessage(event.data.payload);
+  }
+  // Cursor position saving from client
+  if (event.data?.type === 'SAVE_CURSOR_POSITION') {
+    saveCursorPosition(event.data.payload);
+  }
+  // Request pending count
+  if (event.data?.type === 'GET_PENDING_COUNT') {
+    getPendingCount().then(count => {
+      event.ports[0]?.postMessage({ type: 'PENDING_COUNT', count });
+    });
+  }
 });
+
