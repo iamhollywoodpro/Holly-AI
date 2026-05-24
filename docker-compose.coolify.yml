@@ -20,6 +20,7 @@ services:
   # ── Main Next.js Application (pre-built image) ────────────────────────────
   holly-app:
     image: ghcr.io/iamhollywoodpro/holly-ai:latest
+    pull_policy: always
     container_name: holly-app
     restart: unless-stopped
     ports:
