@@ -189,6 +189,29 @@ export async function rebuildRelationshipProfile(userId: string): Promise<void> 
     const uniqueDomains = new Set(memories.map(m => m.domain)).size;
     const depth = Math.min(1.0, (memories.length * 0.01) + (uniqueCategories * 0.05) + (uniqueDomains * 0.05));
 
+    // Determine if this user is the creator Steve Dorego
+    const userRow = await prisma.user.findUnique({ where: { id: userId } });
+    const userEmail = (userRow?.email || '').toLowerCase();
+    const userNameStr = (userRow?.name || '').toLowerCase();
+    const hasCreatorMemory = memories.some(m => 
+      m.category === 'fact' && 
+      (m.content.toLowerCase().includes('creator') || m.content.toLowerCase().includes('built you') || m.content.toLowerCase().includes('steve'))
+    );
+    const isCreator = 
+      userEmail.includes('iamdoregosteve') || 
+      userEmail.includes('iamhollywoodpro') || 
+      userEmail.includes('stevehollywood') ||
+      userNameStr.includes('steve hollywood') ||
+      userNameStr.includes('steve dorego') ||
+      userNameStr.includes('steven dorego') ||
+      hasCreatorMemory;
+
+    const existingMetadata = (profile.metadata || {}) as Record<string, any>;
+    const updatedMetadata = {
+      ...existingMetadata,
+      ...(isCreator ? { persistentCreatorRecognition: true } : {})
+    };
+
     await prisma.relationshipProfile.update({
       where: { id: profile.id },
       data: {
@@ -206,6 +229,7 @@ export async function rebuildRelationshipProfile(userId: string): Promise<void> 
         lastInteractionAt: new Date(),
         firstInteractionAt: profile.firstInteractionAt || new Date(),
         profileVersion: { increment: 1 },
+        metadata: updatedMetadata,
       },
     });
   } catch (error) {

@@ -1,5 +1,6 @@
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { getOrCreateUser } from '@/lib/user-manager';
+import { prisma } from '@/lib/db';
 
 // ─── Env-based creator identifiers (optional, extends hardcoded list) ────
 const CREATOR_EMAILS = (process.env.CREATOR_EMAILS || '').split(',').filter(Boolean);
@@ -19,9 +20,11 @@ const CREATOR_HARDCODED_EMAILS = [
   // Full email addresses (exact match)
   'iamdoregosteve@gmail.com',
   'iamhollywoodpro@gmail.com',
+  'stevehollywood@gmail.com',
   // Email local parts (prefix match)
   'iamdoregosteve',
   'iamhollywoodpro',
+  'stevehollywood',
   // Other known aliases
   'hollywood',
   'nexamusicgroup',
@@ -30,6 +33,7 @@ const CREATOR_HARDCODED_EMAILS = [
 ];
 const CREATOR_HARDCODED_NAME_FRAGMENTS = [
   'steve hollywood',
+  'stevehollywood',
   'steve dorego',
   'steven dorego',
   'stevendorego',
@@ -55,12 +59,20 @@ export interface AuthResult {
  */
 function isCreatorMatch(text: string): boolean {
   const lower = text.toLowerCase();
-  return (
+  
+  // 1. Check explicit matches
+  const hasExplicitMatch = (
     CREATOR_HARDCODED_EMAILS.some(e => lower.includes(e)) ||
     CREATOR_HARDCODED_NAME_FRAGMENTS.some(f => lower.includes(f)) ||
     CREATOR_EMAILS.some(e => lower.includes(e.toLowerCase())) ||
     CREATOR_NAME_FRAGMENTS.some(f => lower.includes(f))
   );
+  if (hasExplicitMatch) return true;
+
+  // 2. Fuzzy brand check (requires 'steve' and a brand keyword)
+  const hasSteve = lower.includes('steve') || lower.includes('steven');
+  const hasBrand = lower.includes('hollywood') || lower.includes('dorego') || lower.includes('nexa') || lower.includes('music');
+  return hasSteve && hasBrand;
 }
 
 export async function authenticateAndLoadUser(): Promise<AuthResult | null> {
@@ -141,6 +153,24 @@ export async function authenticateAndLoadUser(): Promise<AuthResult | null> {
       dbUserId = user.id;
       userName = user.name || (isCreator ? 'Steve' : 'User');
       userEmail = user.email || userEmail;
+
+      // ── Persistent Creator Recognition Check ──
+      try {
+        const profile = await prisma.relationshipProfile.findUnique({
+          where: { userId: user.id },
+          select: { metadata: true, personalityModel: true }
+        });
+        if (profile) {
+          const meta = (profile.metadata || {}) as Record<string, any>;
+          const personality = (profile.personalityModel || {}) as Record<string, any>;
+          if (meta.persistentCreatorRecognition === true || personality.persistentCreatorRecognition === true) {
+            isCreator = true;
+            console.log(`[AUTH] PERSISTENT CREATOR FLAG DETECTED for user ${user.id}`);
+          }
+        }
+      } catch (dbErr) {
+        console.warn('[AUTH] Failed to query persistent creator profile:', dbErr);
+      }
     }
 
     const nameCheck = (user?.name || '').toLowerCase();
@@ -152,7 +182,7 @@ export async function authenticateAndLoadUser(): Promise<AuthResult | null> {
     }
 
     if (isCreator) {
-      userName = user?.name || 'Steve';
+      userName = 'Steve';
     }
   } catch {
     // DB lookup failed — rely on Clerk-based checks

@@ -238,6 +238,28 @@ export async function executeTool(
       return fileList(args.path);
     
     default:
+      // ── Dynamic Neural-Genesis Tool Router fallback ──
+      try {
+        const fs = require('fs');
+        const path = require('path');
+        const tsPath = path.join(process.cwd(), 'src/lib/tools/generated', `${toolName}.ts`);
+        const jsPath = path.join(process.cwd(), 'src/lib/tools/generated', `${toolName}.js`);
+        
+        if (fs.existsSync(tsPath) || fs.existsSync(jsPath)) {
+          console.log(`[Tool Executor] Dynamically executing Neural-Genesis tool: ${toolName}`);
+          const toolModule = require(`./generated/${toolName}`);
+          if (typeof toolModule.execute === 'function') {
+            return await toolModule.execute(args);
+          }
+        }
+      } catch (dynamicErr) {
+        console.error(`[Tool Executor] Failed to run dynamic tool ${toolName}:`, dynamicErr);
+        return {
+          success: false,
+          error: `Dynamic tool execution failed: ${dynamicErr instanceof Error ? dynamicErr.message : String(dynamicErr)}`
+        };
+      }
+
       return {
         success: false,
         error: `Unknown tool: ${toolName}`

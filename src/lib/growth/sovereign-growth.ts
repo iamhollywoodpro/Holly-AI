@@ -202,12 +202,44 @@ export async function runDailySelfReview(): Promise<{
     }
   }
 
+  // ─── Sovereign Self-Healing Hook ──────────────────────────────────────
+  // If any declining metric drops below 80%, trigger autonomous repair.
+  // This connects sovereign growth to the neural self-healing pipeline.
+  const criticalDeclines = decliningMetrics.filter(m => m.value < 0.8);
+  if (criticalDeclines.length > 0) {
+    try {
+      const { triggerAutonomousRepair } = await import('@/lib/autonomy/autonomous-fixer');
+      for (const metric of criticalDeclines) {
+        const anomaly = {
+          id: `growth-decline-${metric.metric}-${Date.now()}`,
+          type: 'performance_regression',
+          description: `Sovereign growth metric "${metric.metric}" declined below 80% threshold: ${(metric.value * 100).toFixed(1)}% (was ${((metric.previousValue || 0) * 100).toFixed(1)}%). Category: ${metric.category}. Strategy: ${generateImprovementStrategy(metric.metric)}`,
+          metrics: {
+            metric: metric.metric,
+            currentValue: metric.value,
+            previousValue: metric.previousValue,
+            trend: metric.trend,
+            category: metric.category,
+          },
+        };
+        // Fire repair asynchronously — don't block the review pipeline
+        triggerAutonomousRepair(anomaly, 'system').catch((err: Error) => {
+          console.error(`[SovereignGrowth] Self-healing repair failed for ${metric.metric}:`, err.message);
+        });
+      }
+      console.log(`[SovereignGrowth] 🔧 Triggered autonomous repair for ${criticalDeclines.length} critical metric(s)`);
+    } catch (healErr) {
+      console.error('[SovereignGrowth] Self-healing hook failed to load:', healErr);
+    }
+  }
+
   const summary = `Daily review: ${todayAnalytics.length} conversations. ` +
     `Quality: ${(avgQuality * 100).toFixed(0)}%. ` +
     `Engagement: ${(avgEngagement * 100).toFixed(0)}%. ` +
     `Knowledge: ${totalKnowledge} entries. ` +
     `Active learning: ${activeLearningGoals} goals. ` +
-    `${decliningMetrics.length > 0 ? `⚠️ ${decliningMetrics.length} declining metrics.` : 'All metrics stable or improving.'}`;
+    `${decliningMetrics.length > 0 ? `⚠️ ${decliningMetrics.length} declining metrics.` : 'All metrics stable or improving.'}` +
+    `${criticalDeclines.length > 0 ? ` 🔧 ${criticalDeclines.length} auto-repair(s) triggered.` : ''}`;
 
   return { summary, improvementsCreated };
 }
