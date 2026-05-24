@@ -438,6 +438,7 @@ export async function POST(req: NextRequest) {
     // 10. STREAM
     const stream = new ReadableStream({
       async start(controller) {
+        let fullResponse = '';
         try {
           const actionStatus = detectActionStatus(latestUserMessage);
           sendStatus(controller, actionStatus || '✨ Thinking…');
@@ -447,7 +448,7 @@ export async function POST(req: NextRequest) {
           const { needsReasoningChain } = await import('@/lib/reasoning/reasoning-chains');
           const reasoningAssessment = needsReasoningChain(latestUserMessage);
 
-          let fullResponse = '';
+          fullResponse = '';
           markResponseStart();
           let activeModel = routing.primary.displayName;
           let responseSource = '';

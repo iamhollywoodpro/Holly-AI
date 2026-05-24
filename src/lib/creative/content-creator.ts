@@ -7,7 +7,7 @@
 
 import { smartRoute } from '@/lib/ai/smart-router';
 import { cascadeCollect } from '@/lib/ai/cascade';
-import type { ChatMessage } from '@/lib/ai/smart-router';
+import type { ChatMessage } from '@/lib/ai/providers/free-providers';
 
 // ================== TYPE DEFINITIONS ==================
 
@@ -63,7 +63,7 @@ export async function generateContent(
       { role: 'user', content: prompt },
     ];
 
-    const routing = await smartRoute('creative', prompt, messages);
+    const routing = await smartRoute(prompt, { forceTask: 'creative' });
     const result = await cascadeCollect(routing.waterfall, messages, {
       maxTokens: options.length ? Math.min(options.length * 2, 4096) : 2048,
     });
@@ -122,7 +122,7 @@ CHANGES MADE:
       },
     ];
 
-    const routing = await smartRoute('creative', goal, messages);
+    const routing = await smartRoute(goal, { forceTask: 'creative' });
     const result = await cascadeCollect(routing.waterfall, messages, { maxTokens: 2048 });
 
     if (!result.text) {
@@ -179,7 +179,7 @@ Return ONLY valid JSON, no other text.`,
       { role: 'user', content: topic },
     ];
 
-    const routing = await smartRoute('creative', topic, messages);
+    const routing = await smartRoute(topic, { forceTask: 'creative' });
     const result = await cascadeCollect(routing.waterfall, messages, { maxTokens: 1024 });
 
     if (!result.text) {
@@ -200,6 +200,24 @@ Return ONLY valid JSON, no other text.`,
     return { ideas: [] };
   } catch (error) {
     return { ideas: [] };
+  }
+}
+
+/**
+ * Create content from a template
+ */
+export async function createFromTemplate(
+  templateId: string,
+  variables: Record<string, any>
+): Promise<ContentResult> {
+  try {
+    const prompt = `Template: ${templateId}\nVariables: ${JSON.stringify(variables)}`;
+    return generateContent('system', 'template', prompt, {});
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Template expansion failed',
+    };
   }
 }
 
