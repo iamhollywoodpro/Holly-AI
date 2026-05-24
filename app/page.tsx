@@ -131,8 +131,14 @@ function FeatureCard({ icon, title, desc, index }: { icon: string; title: string
       initial={{ opacity: 0, y: 30 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      transition={{ delay: index * 0.08, duration: 0.6 }}
-      className="group bg-white/[0.03] border border-white/5 rounded-2xl p-6 backdrop-blur-md transition-all duration-500 hover:bg-white/[0.06] hover:border-holly-gold/30 hover:shadow-2xl hover:shadow-holly-gold/5"
+      whileHover={{ y: -6, scale: 1.02 }}
+      transition={{ 
+        type: "spring",
+        stiffness: 300,
+        damping: 20,
+        delay: index * 0.08,
+      }}
+      className="group sdi-glass hover:sdi-glass-warm rounded-2xl p-6 transition-all duration-500 hover:border-holly-gold/40 hover:shadow-2xl"
     >
       <div className="w-12 h-12 rounded-xl bg-holly-gold/10 border border-holly-gold/20 flex items-center justify-center text-2xl mb-5 group-hover:scale-110 group-hover:bg-holly-gold/20 transition-all duration-500">
         {icon}
@@ -618,18 +624,22 @@ export default function LandingPage() {
 
                 {/* CTA buttons */}
                 <div className="flex flex-wrap gap-5 sm:gap-6 mb-12 sm:mb-16">
-                  <button
+                  <motion.button
                     onClick={() => setShowMeetHolly(true)}
-                    className="flex items-center gap-3 px-8 sm:px-10 py-4 sm:py-5 bg-gradient-to-r from-holly-gold to-holly-crimson hover:from-holly-gold/90 hover:to-holly-crimson/90 text-holly-void rounded-2xl font-bold text-base uppercase tracking-widest transition-all shadow-2xl shadow-holly-gold/20 hover:shadow-holly-gold/40 active:scale-95"
+                    whileHover={{ scale: 1.03, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="flex items-center gap-3 px-8 sm:px-10 py-4 sm:py-5 bg-gradient-to-r from-holly-gold to-holly-crimson hover:from-holly-gold/90 hover:to-holly-crimson/90 text-holly-void rounded-2xl font-bold text-base uppercase tracking-widest transition-all shadow-2xl shadow-holly-gold/20 hover:shadow-holly-gold/40"
                   >
                     ✦ Meet HOLLY
-                  </button>
-                  <button
+                  </motion.button>
+                  <motion.button
                     onClick={() => setShowWhatSheCan(true)}
-                    className="flex items-center gap-3 px-8 sm:px-10 py-4 sm:py-5 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-holly-gold/40 text-holly-ivory rounded-2xl font-bold text-base uppercase tracking-widest transition-all active:scale-95"
+                    whileHover={{ scale: 1.03, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="flex items-center gap-3 px-8 sm:px-10 py-4 sm:py-5 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-holly-gold/40 text-holly-ivory rounded-2xl font-bold text-base uppercase tracking-widest transition-all"
                   >
                     Capabilities
-                  </button>
+                  </motion.button>
                 </div>
 
                 {/* Trust chips */}
@@ -652,8 +662,8 @@ export default function LandingPage() {
               className="w-full max-w-md mx-auto lg:mx-0 lg:ml-auto"
             >
               <div className="relative">
-                <div className="absolute -inset-1 rounded-3xl bg-gradient-to-br from-holly-gold/30 via-holly-crimson/20 to-holly-gold/10 blur-xl opacity-50" />
-                <div className="relative bg-[#12110F]/90 border border-white/10 rounded-3xl p-8 sm:p-10 backdrop-blur-2xl shadow-2xl">
+                <div className="absolute -inset-1 rounded-[2rem] bg-gradient-to-br from-holly-gold/30 via-holly-crimson/20 to-holly-gold/10 blur-xl opacity-50 animate-pulse" />
+                <div className="relative sdi-glass-warm rounded-[2rem] p-8 sm:p-10 shadow-2xl border border-holly-gold/25 focus-within:sdi-glow-gold transition-all duration-500">
                   <div className="flex items-center gap-4 mb-8 sm:mb-10">
                     <HollyOrb size="sm" />
                     <div>
