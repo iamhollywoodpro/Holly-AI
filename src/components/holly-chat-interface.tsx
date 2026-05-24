@@ -2235,7 +2235,7 @@ export default function HollyChatInterface() {
   const showWelcome = messages.length === 0 && !isProcessing;
 
   return (
-    <div className="flex flex-col h-full bg-background text-white overflow-hidden sdi-neural-bg transition-colors duration-700">
+    <div className="chat-layout flex flex-col bg-background text-white overflow-hidden sdi-neural-bg transition-colors duration-700">
 
       {/* ── Mode transition overlay ── */}
       <AnimatePresence>
@@ -3078,7 +3078,7 @@ export default function HollyChatInterface() {
 
       {/* ── Input area ── */}
       <div
-        className={`border-t bg-holly-void/80 backdrop-blur-xl border-white/5 px-2 sm:px-4 py-2 sm:py-3 flex-shrink-0 transition-colors ${
+        className={`border-t bg-holly-void/80 backdrop-blur-xl border-white/5 px-2 sm:px-4 pt-2 pb-safe sm:py-3 flex-shrink-0 transition-colors ${
           isDragging ? "border-holly-gold/40 bg-holly-gold/5" : "border-holly-gold/5"
         }`}
         onDragOver={handleDragOver}
