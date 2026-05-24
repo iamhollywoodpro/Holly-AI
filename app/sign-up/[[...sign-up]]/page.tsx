@@ -3,6 +3,13 @@
 import { SignUp } from '@clerk/nextjs';
 import { useAuth } from '@clerk/nextjs';
 import { useEffect, useState } from 'react';
+// ── Self-healing: Append missing trailing '$' to Clerk Publishable Key if missing ──
+if (
+  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY &&
+  !process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.endsWith('$')
+) {
+  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY += '$';
+}
 
 const PUBLIC_ORIGIN = 'https://holly.nexamusicgroup.com';
 const DOCKER_ORIGINS = ['0.0.0.0', 'localhost', '127.0.0.1'];

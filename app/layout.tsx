@@ -23,7 +23,14 @@ import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
 import { Toaster } from 'sonner';
 
 // Use local Inter variable font to avoid Google Fonts CDN dependency during Docker builds.
-// Docker builds were failing with ETIMEDOUT fetching from fonts.googleapis.com.
+// ── Self-healing: Append missing trailing '$' to Clerk Publishable Key if missing ──
+if (
+  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY &&
+  !process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.endsWith('$')
+) {
+  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY += '$';
+}
+
 const inter = localFont({
   src: './InterVariable.woff2',
   variable: '--font-inter',
