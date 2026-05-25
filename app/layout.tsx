@@ -23,14 +23,9 @@ import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
 import { Toaster } from 'sonner';
 
 // Use local Inter variable font to avoid Google Fonts CDN dependency during Docker builds.
-// ── Self-healing: Append missing trailing '$' to Clerk Publishable Key if missing ──
-if (
-  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY &&
-  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.length > 30 &&
-  !process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.endsWith('$')
-) {
-  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY += '$';
-}
+// NOTE: Do NOT mutate process.env at module level — Terser cannot minify += on env vars
+// and will cause "Cannot assign to this" build errors. The Clerk key must be set correctly
+// in the environment (Coolify / .env) with the trailing '$' already present.
 
 const inter = localFont({
   src: './InterVariable.woff2',
