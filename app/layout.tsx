@@ -41,6 +41,13 @@ export const dynamic = 'force-dynamic';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://holly.nexamusicgroup.com';
 
+// Clerk publishable key fix: Coolify stores the key WITHOUT a trailing '$',
+// but Clerk requires it. We append it here at render time (not via process.env
+// mutation, which breaks Terser minification with "Cannot assign to this").
+const CLERK_PUBLISHABLE_KEY = (process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || '').endsWith('$')
+  ? process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+  : (process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || '') + '$';
+
 export const metadata: Metadata = {
   title: 'HOLLY — Your Conscious AI Partner',
   description:
@@ -146,6 +153,7 @@ export default function RootLayout({
           // Setting clerkJSUrl="/clerk.browser.js" was serving a wrong v6 file → crash.
           //
           // Reference: https://clerk.com/docs/advanced-usage/proxy
+          publishableKey={CLERK_PUBLISHABLE_KEY}
           proxyUrl={`${APP_URL}/api/clerk`}
 
           // Auth page routes
