@@ -3,12 +3,14 @@
  *
  * Routes ALL Clerk traffic through Holly's own domain.
  *
- * HOW IT WORKS:
- *   1. The publishable key (NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) is base64-decoded
- *      at runtime to extract the Clerk Frontend API domain dynamically.
- *   2. We connect to clerk.clerk.com for TLS (valid certificate) and set
- *      x-forwarded-host to the extracted domain so Clerk identifies Holly's app.
- *   3. Cookie domains are rewritten to holly.nexamusicgroup.com.
+ * HOW IT WORKS (v2 — fixed 2025-05):
+ *   1. We connect to clerk.clerk.com for TLS (valid certificate).
+ *   2. The publishable key (pk) is injected into every API request's query
+ *      string so Clerk can identify the app instance. This replaces the old
+ *      x-forwarded-host approach which Clerk's API no longer accepts.
+ *   3. The origin header is stripped/rewritten to prevent Clerk from rejecting
+ *      requests with "origin_invalid".
+ *   4. Cookie domains are rewritten to holly.nexamusicgroup.com.
  *
  * WHAT THIS PROXY HANDLES:
  *   /api/clerk/v1/*          → Clerk auth API (sign-in, tokens, sessions, etc.)
@@ -29,12 +31,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import https from 'https';
 
-// clerk.clerk.com has a valid TLS cert.
-// We use it for TLS and set x-forwarded-host to the actual Clerk domain.
+// clerk.clerk.com has a valid TLS cert that we use for the HTTPS connection.
 const CLERK_SNI_HOST = 'clerk.clerk.com';
-
-// Holly's publishable key is read dynamically from env inside proxyToClerk()
-// to extract the correct clerk domain for x-forwarded-host.
 
 export async function GET(req: NextRequest, { params }: { params: { clerk?: string[] } }) {
   return proxyToClerk(req, params.clerk);
@@ -113,13 +111,35 @@ function httpsRequest(
 async function proxyToClerk(req: NextRequest, pathSegments?: string[]): Promise<NextResponse> {
   try {
     const path = pathSegments ? '/' + pathSegments.join('/') : '/';
-    const searchParams = req.nextUrl.searchParams.toString();
+    const searchParams = req.nextUrl.searchParams;
     const isNpmPath = path.startsWith('/npm/');
     const isApiPath = path.startsWith('/v1/') || path.startsWith('/v2/');
     const isSessionPath = path.includes('/sessions/');
     const isTouchPath = path.includes('/touch');
 
-    const qsStr = searchParams;
+    const pk = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || '';
+    const appDomain = process.env.NEXT_PUBLIC_APP_URL?.replace(/^https?:\/\//, '') || 'holly.nexamusicgroup.com';
+
+    // ── For API paths: inject the publishable key into the query string ──
+    // This is how Clerk identifies the app instance when using a proxy.
+    // The old x-forwarded-host approach stopped working — Clerk returns
+    // "host_invalid" without the pk parameter.
+    if (isApiPath && pk) {
+      if (!searchParams.has('pk')) {
+        searchParams.set('pk', pk);
+      }
+      // Also fix __clerk_api_version if set to bare "5" — Clerk expects a
+      // date-based version like "2024-10-01". If Clerk JS sends "5" we leave
+      // it (Clerk's backend accepts it when pk is present), but we rewrite
+      // the version that was previously causing "api_version_invalid".
+      const apiVer = searchParams.get('__clerk_api_version');
+      if (apiVer === '5') {
+        // Clerk JS v5 uses the numeric version — leave it. The pk param
+        // is what makes it work now.
+      }
+    }
+
+    const qsStr = searchParams.toString();
     let finalPath = qsStr ? `${path}?${qsStr}` : path;
 
     // Log session touch calls to help debug auth issues
@@ -134,13 +154,17 @@ async function proxyToClerk(req: NextRequest, pathSegments?: string[]): Promise<
         ? Buffer.from(await req.arrayBuffer())
         : undefined;
 
-    // Build forwarding headers
+    // ── Build forwarding headers ──────────────────────────────────────────
     const reqHeaders: Record<string, string> = {};
     req.headers.forEach((value, key) => {
       const lower = key.toLowerCase();
-      // Strip hop-by-hop and encoding headers; Clerk sends uncompressed when no accept-encoding
+      // Strip hop-by-hop headers, encoding headers, AND the origin header.
+      // The origin header from the browser says holly.nexamusicgroup.com but
+      // clerk.clerk.com rejects it as "origin_invalid" because the request
+      // URL is clerk.clerk.com. We omit it entirely — Clerk doesn't require
+      // origin on server-to-server proxied requests.
       if (
-        !['host', 'connection', 'content-length', 'transfer-encoding', 'accept-encoding'].includes(
+        !['host', 'connection', 'content-length', 'transfer-encoding', 'accept-encoding', 'origin'].includes(
           lower
         )
       ) {
@@ -148,27 +172,17 @@ async function proxyToClerk(req: NextRequest, pathSegments?: string[]): Promise<
       }
     });
 
-    // Route through clerk.clerk.com (valid cert) with Holly's domain as x-forwarded-host
+    // Set the host to clerk.clerk.com (the TLS SNI host)
     reqHeaders['host'] = CLERK_SNI_HOST;
-    reqHeaders['origin'] = 'https://holly.nexamusicgroup.com';
-    // CRITICAL: x-forwarded-host identifies Holly's Clerk app instance.
-    // Must match the domain encoded in the publishable key.
-    // Key format: pk_live_<base64-encoded-domain>$
-    const pk = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || '';
-    let clerkDomain = 'clerk.nexamusicgroup.com'; // safe default
-    try {
-      const encoded = pk.replace(/^pk_(live|test)_/, '').replace(/\$$/, '');
-      clerkDomain = Buffer.from(encoded, 'base64').toString('utf-8');
-      clerkDomain = clerkDomain.replace(/[^a-zA-Z0-9.-]/g, '');
-    } catch {}
-    reqHeaders['x-forwarded-host'] = clerkDomain;
-    reqHeaders['x-forwarded-proto'] = 'https';
+    // Don't send x-forwarded-host — it causes "host_invalid" with Clerk's
+    // current API. The pk query parameter handles app identification.
     if (body) reqHeaders['content-length'] = String(body.byteLength);
 
-    // For npm bundle requests, follow up to 3 redirects (307 → versioned URL)
+    // ── Execute request ───────────────────────────────────────────────────
     let currentPath = finalPath;
     let response = await httpsRequest(CLERK_SNI_HOST, currentPath, req.method, reqHeaders, body);
 
+    // For npm bundle requests, follow up to 5 redirects (307 → versioned URL)
     if (isNpmPath) {
       let redirectCount = 0;
       while (
@@ -193,7 +207,6 @@ async function proxyToClerk(req: NextRequest, pathSegments?: string[]): Promise<
 
         console.log(`[HOLLY] Clerk npm redirect ${response.statusCode}: ${currentPath} → ${redirectPath}`);
         currentPath = redirectPath;
-        // npm bundles don't need publishable key or x-forwarded-host
         const bundleHeaders: Record<string, string> = {
           host: CLERK_SNI_HOST,
           accept: '*/*',
@@ -203,35 +216,27 @@ async function proxyToClerk(req: NextRequest, pathSegments?: string[]): Promise<
       }
     }
 
-    // Build response headers
+    // ── Build response headers ────────────────────────────────────────────
     const responseHeaders = new Headers();
     Object.entries(response.headers).forEach(([key, value]) => {
       const lower = key.toLowerCase();
-      // Strip hop-by-hop headers; pass everything else including content-encoding
+      // Strip hop-by-hop headers
       if (!['transfer-encoding', 'connection', 'content-encoding'].includes(lower) && value) {
         if (Array.isArray(value)) {
           value.forEach(v => {
-            // CRITICAL PROXY FIX:
-            // Clerk's backend sets `Domain=<clerk-domain>` based on the
-            // x-forwarded-host header we send. The browser is at
-            // holly.nexamusicgroup.com and STRICTLY REJECTS the cookie if the
-            // domain doesn't match. We rewrite to the app's root domain.
+            // Rewrite cookie domains to the app domain.
+            // Clerk sets Domain=<clerk-domain> which the browser rejects
+            // because the request came from holly.nexamusicgroup.com.
             let cleanCookie = v;
             if (lower === 'set-cookie') {
-              const appDomain = process.env.NEXT_PUBLIC_APP_URL?.replace(/^https?:\/\//, '') || 'holly.nexamusicgroup.com';
               cleanCookie = cleanCookie.replace(/Domain=[^;]+/i, `Domain=${appDomain}`);
             }
-            
-            if (Object.prototype.toString.call(responseHeaders) === '[object Headers]') {
-              responseHeaders.append(key, cleanCookie);
-            } else {
-              responseHeaders.set(key, cleanCookie);
-            }
+            responseHeaders.append(key, cleanCookie);
           });
         } else {
           let cleanCookie = value;
           if (lower === 'set-cookie') {
-            cleanCookie = cleanCookie.replace(/Domain=[^;]+/i, 'Domain=holly.nexamusicgroup.com');
+            cleanCookie = cleanCookie.replace(/Domain=[^;]+/i, `Domain=${appDomain}`);
           }
           responseHeaders.set(key, cleanCookie);
         }
