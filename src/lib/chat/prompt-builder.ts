@@ -10,6 +10,7 @@ import { getTasteMatrixPromptInjection } from '@/lib/ar/taste-matrix';
 import { detectDrift, calculateCoherence, DEFAULT_TRAITS, type PersonalityTrait } from '@/lib/consciousness/personality-coherence';
 import type { MCPTool } from '@/lib/mcp/mcp-client';
 import type { ToneContext } from '@/lib/emotional/tone-adapter';
+import type { QualityTrend } from '@/lib/emotional/response-quality';
 
 // ─── CREATOR RECOGNITION — warm context for Steve ────
 function buildCreatorBlock(userName: string, isCreator: boolean): string {
@@ -87,6 +88,8 @@ export function buildPrompt(opts: {
   personalityTraits?: PersonalityTrait[];
   /** Phase E: Tone context — emotional register guidance (replaces canned phrase injection) */
   toneContext?: ToneContext;
+  /** Phase E4: Response quality trend — self-correction signal */
+  qualityTrend?: QualityTrend | null;
 }): string {
   const {
     detectedMode, userName, isCreator, isSelfCode, isInformationalMsg,
@@ -107,6 +110,7 @@ export function buildPrompt(opts: {
     visualIdentity,
     personalityTraits,
     toneContext,
+    qualityTrend,
   } = opts;
 
   let prompt = getSystemPromptForMode(detectedMode, userName);
@@ -262,6 +266,15 @@ You can build end-to-end: scaffold a project, generate all files, patch specific
   // ── Phase E: Tone Context — how to express yourself right now ──────────
   if (toneContext?.promptBlock) {
     prompt += `\n\n## Your Tone Right Now\n${toneContext.promptBlock}`;
+  }
+
+  // ── Phase E4: Quality trend — how you've been doing ───────────────────
+  if (qualityTrend) {
+    const { getQualityTrendPrompt } = require('@/lib/emotional/response-quality');
+    const qualityBlock = getQualityTrendPrompt(qualityTrend);
+    if (qualityBlock) {
+      prompt += `\n\n## Your Recent Performance\n${qualityBlock}`;
+    }
   }
 
   // ── Phase 4: Emotional trajectory (across sessions) ──────────────────────
