@@ -65,12 +65,27 @@ const MEDIUM_RISK_FILES = [
 
 /**
  * Check if a file path matches any pattern in a list
+ *
+ * Converts glob-like patterns to regex:
+ *   **  → .*        (any path segments)
+ *   *   → [^/]*     (any characters except /)
+ *   .   → \.        (literal dot)
+ *
+ * IMPORTANT: regex special chars are escaped BEFORE glob expansion
+ * so patterns like `.env` and `.github` match literally.
  */
 function matchesPattern(filePath: string, patterns: string[]): boolean {
   return patterns.some(pattern => {
-    const regex = new RegExp(
-      '^' + pattern.replace(/\*\*/g, '.*').replace(/\*/g, '[^/]*') + '$'
-    );
+    // 1. Escape regex special characters (except * which we handle as globs)
+    let regexStr = pattern
+      .replace(/[.+^${}()|[\]\\]/g, '\\$&'); // escape . + ^ $ { } ( ) | [ ] \
+
+    // 2. Convert glob patterns to regex
+    regexStr = regexStr
+      .replace(/\*\*/g, '.*')       // ** → .* (match across path segments)
+      .replace(/\*/g, '[^/]*');     // *  → [^/]* (match within single segment)
+
+    const regex = new RegExp('^' + regexStr + '$');
     return regex.test(filePath);
   });
 }
