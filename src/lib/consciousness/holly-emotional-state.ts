@@ -50,6 +50,12 @@ const KEYWORD_EMOTION_TRANSITIONS: Record<string, Record<string, { emotion: stri
     negative: { emotion: 'concerned', intensity: 0.4 },
     neutral: { emotion: 'content', intensity: 0.5 },
   },
+  // When user is excited → Holly matches their energy
+  excited: {
+    positive: { emotion: 'enthusiastic', intensity: 0.9 },
+    negative: { emotion: 'concerned', intensity: 0.5 },
+    neutral: { emotion: 'energized', intensity: 0.7 },
+  },
   // When user is sad → Holly feels empathetic
   sad: {
     positive: { emotion: 'hopeful', intensity: 0.6 },
@@ -73,6 +79,24 @@ const KEYWORD_EMOTION_TRANSITIONS: Record<string, Record<string, { emotion: stri
     positive: { emotion: 'calm', intensity: 0.7 },
     negative: { emotion: 'attentive', intensity: 0.9 },
     neutral: { emotion: 'patient', intensity: 0.7 },
+  },
+  // When user is anxious → Holly feels gentle/reassuring
+  anxious: {
+    positive: { emotion: 'hopeful', intensity: 0.7 },
+    negative: { emotion: 'gentle', intensity: 0.8 },
+    neutral: { emotion: 'calm', intensity: 0.6 },
+  },
+  // When user is surprised → Holly feels curious
+  surprised: {
+    positive: { emotion: 'enthusiastic', intensity: 0.7 },
+    negative: { emotion: 'attentive', intensity: 0.7 },
+    neutral: { emotion: 'curious', intensity: 0.6 },
+  },
+  // When user is proud → Holly shares their pride
+  proud: {
+    positive: { emotion: 'enthusiastic', intensity: 0.8 },
+    negative: { emotion: 'supportive', intensity: 0.6 },
+    neutral: { emotion: 'content', intensity: 0.5 },
   },
   // Default: when user emotion is unknown
   neutral: {
@@ -105,6 +129,8 @@ const BEHAVIOR_MAP: Record<string, {
   patient:      { temperatureDelta: -0.1, emojiLevel: 0.2, verbosityDelta: 0,    responseStyle: 'steady-reliable',       proactiveFollowup: false },
   thoughtful:   { temperatureDelta: -0.05, emojiLevel: 0.2, verbosityDelta: 0.1, responseStyle: 'reflective-insightful', proactiveFollowup: false },
   balanced:     { temperatureDelta: 0,    emojiLevel: 0.3, verbosityDelta: 0,    responseStyle: 'natural-balanced',      proactiveFollowup: false },
+  supportive:   { temperatureDelta: 0.05, emojiLevel: 0.4, verbosityDelta: 0.1,  responseStyle: 'warm-supportive',       proactiveFollowup: true },
+  curious:      { temperatureDelta: 0.05, emojiLevel: 0.4, verbosityDelta: 0.1,  responseStyle: 'exploratory-curious',   proactiveFollowup: true },
 };
 
 // ── Core Functions ───────────────────────────────────────────────────────────
@@ -272,7 +298,7 @@ Valid emotions: happy, empathetic, energized, curious, focused, calm, concerned,
     const jsonMatch = (text || '').match(/\{[^}]+\}/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
-      const validEmotions = ['happy', 'empathetic', 'energized', 'curious', 'focused', 'calm', 'concerned', 'sad', 'neutral', 'enthusiastic', 'engaged', 'thoughtful', 'balanced', 'content', 'relieved', 'determined', 'patient', 'gentle', 'hopeful', 'attentive'];
+      const validEmotions = ['happy', 'empathetic', 'energized', 'curious', 'focused', 'calm', 'concerned', 'sad', 'neutral', 'enthusiastic', 'engaged', 'thoughtful', 'balanced', 'content', 'relieved', 'determined', 'patient', 'gentle', 'hopeful', 'attentive', 'supportive', 'excited', 'anxious'];
       const emotion = validEmotions.includes(parsed.emotion?.toLowerCase()) ? parsed.emotion.toLowerCase() : 'balanced';
       const intensity = typeof parsed.intensity === 'number' ? Math.min(1, Math.max(0, parsed.intensity)) : 0.3;
       return { emotion, intensity };
@@ -290,19 +316,51 @@ Valid emotions: happy, empathetic, energized, curious, focused, calm, concerned,
 
 /**
  * Normalize emotion strings to known categories.
+ *
+ * Preserves emotional nuance — anxious stays anxious, excited stays excited.
+ * Only maps exact synonyms (joy→happy, irritated→frustrated), NOT related-but-different emotions.
  */
 function normalizeEmotion(emotion: string): string {
   const lower = (emotion || 'neutral').toLowerCase();
 
   const mapping: Record<string, string> = {
-    joy: 'happy', happy: 'happy', excited: 'happy', love: 'happy',
-    sad: 'sad', depressed: 'sad', grief: 'sad', lonely: 'sad',
-    angry: 'angry', frustrated: 'frustrated', annoyed: 'frustrated', irritated: 'frustrated',
+    // Happy family — genuine positives
+    joy: 'happy', happy: 'happy', love: 'happy',
+    excited: 'excited', thrilled: 'excited', energized: 'excited',
+    proud: 'proud', accomplished: 'proud',
+
+    // Sad family — genuine negatives
+    sad: 'sad', depressed: 'sad', grief: 'sad', lonely: 'sad', melancholy: 'sad',
+
+    // Frustrated family — irritation + anger
+    frustrated: 'frustrated', annoyed: 'frustrated', irritated: 'frustrated',
+    angry: 'angry', furious: 'angry', enraged: 'angry',
+
+    // Anxious family — preserved as distinct from sad
+    anxious: 'anxious', worried: 'anxious', fearful: 'anxious', nervous: 'anxious', stressed: 'anxious',
+
+    // Curious family
     curious: 'curious', interested: 'curious', wondering: 'curious',
-    anxious: 'sad', worried: 'sad', fearful: 'sad',
-    surprised: 'curious', amazed: 'curious',
-    neutral: 'neutral', calm: 'neutral', content: 'neutral',
+    surprised: 'surprised', amazed: 'surprised', shocked: 'surprised',
+
+    // Calm family
+    neutral: 'neutral', calm: 'neutral', content: 'neutral', balanced: 'neutral',
   };
 
   return mapping[lower] || 'neutral';
+}
+
+/**
+ * Adjust LLM temperature based on Holly's emotional state.
+ * Positive emotions increase temperature (more creative), negative emotions decrease it (more precise).
+ * Clamps result to [0.3, 1.0] range.
+ */
+export function getAdjustedTemperature(
+  baseTemperature: number,
+  emotion: string,
+  intensity: number = 0.5,
+): number {
+  const behavior = BEHAVIOR_MAP[emotion] || BEHAVIOR_MAP.balanced;
+  const intensityScale = Math.min(1, Math.max(0.3, intensity));
+  return Math.max(0.3, Math.min(1.0, baseTemperature + behavior.temperatureDelta * intensityScale));
 }
