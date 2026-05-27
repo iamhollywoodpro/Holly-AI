@@ -5311,6 +5311,111 @@ model PluginInstallation {
   @@map("plugin_installations")
 }
 
+// ─── Plugin Data Models (Phase F) ───────────────────────────────────────
+
+// Holly Notes Plugin
+model PluginNote {
+  id             String   @id @default(cuid())
+  userId         String
+  title          String
+  content        String   @db.Text
+  tags           String[] @default([])
+  pinned         Boolean  @default(false)
+  conversationId String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([userId])
+  @@index([userId, tags])
+  @@map("plugin_notes")
+}
+
+// Mood Tracker Plugin
+model PluginMoodEntry {
+  id        String   @id @default(cuid())
+  userId    String
+  mood      String                    // happy, sad, anxious, angry, calm, excited, frustrated, neutral
+  intensity Float                      // 0-1
+  source    String   @default("checkin") // checkin, conversation, detected
+  note      String?  @db.Text
+  tags      String[] @default([])
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([userId, createdAt])
+  @@map("plugin_mood_entries")
+}
+
+// Daily Digest Plugin
+model PluginDailyDigest {
+  id           String   @id @default(cuid())
+  userId       String
+  date         DateTime
+  greeting     String
+  moodSummary  String   @db.Text
+  topInsights  String[] @default([])
+  reminders    String[] @default([])
+  progressNote String   @db.Text
+  suggestion   String   @db.Text
+  createdAt    DateTime @default(now())
+
+  @@unique([userId, date])
+  @@index([userId])
+  @@map("plugin_daily_digests")
+}
+
+// Project Planner Plugin
+model PluginProject {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  description String   @db.Text
+  goal        String   @db.Text
+  status      String   @default("active") // active, completed, paused
+  dueDate     DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tasks       PluginTask[]
+
+  @@index([userId])
+  @@index([userId, status])
+  @@map("plugin_projects")
+}
+
+model PluginTask {
+  id          String    @id @default(cuid())
+  projectId   String
+  project     PluginProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title       String
+  description String?   @db.Text
+  priority    String    @default("medium") // low, medium, high
+  status      String    @default("todo")   // todo, in_progress, done
+  dueDate     DateTime?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([projectId])
+  @@index([projectId, status])
+  @@map("plugin_tasks")
+}
+
+// Language Tutor Plugin
+model PluginLanguageSession {
+  id                 String    @id @default(cuid())
+  userId             String
+  language           String                     // spanish, french, etc.
+  level              String    @default("beginner") // beginner, intermediate, advanced
+  score              Float     @default(0)
+  exercisesCompleted Int       @default(0)
+  startedAt          DateTime  @default(now())
+  endedAt            DateTime?
+
+  @@index([userId])
+  @@index([userId, language])
+  @@map("plugin_language_sessions")
+}
+
 // Phase 23: Collective Intelligence
 model CollectivePattern {
   id          String   @id @default(cuid())
