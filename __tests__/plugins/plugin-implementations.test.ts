@@ -205,11 +205,11 @@ describe('Phase F — Plugin Implementations', () => {
 
     it('should detect eval() in static analysis', async () => {
       const service = new CodeReviewService();
-      const result = await service.staticAnalysis({ language: 'javascript', code: 'eval("alert(1)")' });
+      const result = await (service as any).staticAnalysis({ language: 'javascript', code: 'eval("alert(1)")' });
 
       // Access private method via any cast for testing
       const findings = result.findings;
-      const evalFinding = findings.find(f => f.message.includes('eval()'));
+      const evalFinding = findings.find((f: any) => f.message.includes('eval()'));
       expect(evalFinding).toBeDefined();
       expect(evalFinding?.severity).toBe('critical');
     });
