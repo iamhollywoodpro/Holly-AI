@@ -152,7 +152,7 @@ describe('SandboxExecutor - JavaScript execution', () => {
     // a generic message is acceptable -- the key is success=false and error is set.
     expect(result.error).toBeDefined();
     expect(typeof result.error).toBe('string');
-    expect(result.error.length).toBeGreaterThan(0);
+    expect(result.error!.length).toBeGreaterThan(0);
   });
 
   it('returns undefined output when expression has no result', async () => {

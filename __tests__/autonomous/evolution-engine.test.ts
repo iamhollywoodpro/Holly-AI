@@ -675,31 +675,31 @@ describe('EvolutionEngine', () => {
       //   if (proposal.risk === 'low' && proposal.impact !== 'low')
 
       // risk='low', impact='medium' => SHOULD be tested
-      const shouldTest1 = 'low' === 'low' && 'medium' !== 'low';
+      const shouldTest1 = ('low' as string) === 'low' && ('medium' as string) !== 'low';
       expect(shouldTest1).toBe(true);
 
       // risk='low', impact='low' => should NOT be tested
-      const shouldTest2 = 'low' === 'low' && 'low' !== 'low';
+      const shouldTest2 = ('low' as string) === 'low' && ('low' as string) !== 'low';
       expect(shouldTest2).toBe(false);
 
       // risk='medium', impact='high' => should NOT be tested
-      const shouldTest3 = 'medium' === 'low' && 'high' !== 'low';
+      const shouldTest3 = ('medium' as string) === 'low' && ('high' as string) !== 'low';
       expect(shouldTest3).toBe(false);
 
       // risk='high', impact='critical' => should NOT be tested
-      const shouldTest4 = 'high' === 'low' && 'critical' !== 'low';
+      const shouldTest4 = ('high' as string) === 'low' && ('critical' as string) !== 'low';
       expect(shouldTest4).toBe(false);
     });
 
     it('should skip proposals with low impact even with low risk', () => {
-      const risk = 'low';
-      const impact = 'low';
+      const risk: string = 'low';
+      const impact: string = 'low';
       expect(risk === 'low' && impact !== 'low').toBe(false);
     });
 
     it('should skip proposals with non-low risk even with high impact', () => {
-      const risk = 'medium';
-      const impact = 'high';
+      const risk: string = 'medium';
+      const impact: string = 'high';
       expect(risk === 'low' && impact !== 'low').toBe(false);
     });
   });
