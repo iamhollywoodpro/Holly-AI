@@ -63,7 +63,7 @@ export class CodeGenerator {
     const prompt = this.buildGenerationPrompt(request);
 
     try {
-      const completion = await this.groq.chat.completions.create({
+      const completion = await this.groq!.chat.completions.create({
         messages: [
           {
             role: 'system',
@@ -143,7 +143,7 @@ ${context || 'No additional context'}
 \`\`\``;
 
     try {
-      const completion = await this.groq.chat.completions.create({
+      const completion = await this.groq!.chat.completions.create({
         messages: [
           {
             role: 'system',
@@ -185,7 +185,7 @@ Include:
 - Clear test descriptions`;
 
     try {
-      const completion = await this.groq.chat.completions.create({
+      const completion = await this.groq!.chat.completions.create({
         messages: [
           {
             role: 'system',
@@ -246,7 +246,7 @@ Respond in JSON format:
 \`\`\``;
 
     try {
-      const completion = await this.groq.chat.completions.create({
+      const completion = await this.groq!.chat.completions.create({
         messages: [
           {
             role: 'system',

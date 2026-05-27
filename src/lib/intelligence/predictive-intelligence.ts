@@ -16,6 +16,7 @@
  */
 
 import { prisma } from '@/lib/db';
+import { Prisma } from '@prisma/client';
 
 // ================== TYPE DEFINITIONS ==================
 
@@ -73,7 +74,7 @@ export async function makePrediction(input: PredictionInput): Promise<{
         confidence: input.confidence,
         context: input.context || {},
         wasAccurate: null,
-        actualOutcome: null,
+        actualOutcome: Prisma.JsonNull,
         accuracy: null
       }
     });

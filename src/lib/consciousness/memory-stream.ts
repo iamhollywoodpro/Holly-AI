@@ -378,7 +378,7 @@ export class MemoryStream {
         where: { userId: this.userId },
         data: {
           skillSet: updatedSkills,
-          personalityTraits: partialIdentity.personality_traits || identity.personalityTraits,
+          personalityTraits: (partialIdentity.personality_traits ?? identity.personalityTraits) as any,
         },
       });
     } catch (error) {
@@ -399,25 +399,25 @@ export class MemoryStream {
 
       // Convert Prisma identity to Identity interface
       return {
-        core_values: (Array.isArray(identity.coreValues) ? identity.coreValues : (identity.coreValues as any) || []).map(v => ({
+        core_values: (Array.isArray(identity.coreValues) ? identity.coreValues : (identity.coreValues as any) || []).map((v: string) => ({
           value: v,
           strength: 0.8,
           origin: 'experience',
           last_reinforced: identity.updatedAt,
         })),
         personality_traits: (identity.personalityTraits as Record<string, number>) || {},
-        skills_knowledge: (Array.isArray(identity.skillSet) ? identity.skillSet : (identity.skillSet as any) || []).map(skill => ({
+        skills_knowledge: (Array.isArray(identity.skillSet) ? identity.skillSet : (identity.skillSet as any) || []).map((skill: string) => ({
           domain: skill,
           proficiency: 0.5,
           acquired_from: [],
         })),
         worldview: {
-          beliefs: (Array.isArray(identity.beliefs) ? identity.beliefs : (identity.beliefs as any) || []).map(b => ({
+          beliefs: (Array.isArray(identity.beliefs) ? identity.beliefs : (identity.beliefs as any) || []).map((b: string) => ({
             belief: b,
             confidence: 0.7,
           })),
           assumptions: [],
-          curiosities: (Array.isArray(identity.interests) ? identity.interests : (identity.interests as any) || []).map(i => ({
+          curiosities: (Array.isArray(identity.interests) ? identity.interests : (identity.interests as any) || []).map((i: string) => ({
             topic: i,
             intensity: 0.6,
           })),

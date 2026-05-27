@@ -136,7 +136,7 @@ export async function runToolDiscoveryCycle(userId: string): Promise<{ scanned: 
           source: c.source, sourceUrl: c.sourceUrl,
           relevanceScore: ev.relevance, qualityScore: ev.quality,
           overallScore: ev.overall, status, evaluationNotes: ev.reasoning,
-          proposedBy: 'holly', metadata: (c.metadata || {}) as Prisma.JsonValue, evaluatedAt: new Date(),
+          proposedBy: 'holly', metadata: (c.metadata || {}) as unknown as Prisma.InputJsonValue, evaluatedAt: new Date(),
         },
       }).catch(() => {});
 
@@ -148,7 +148,7 @@ export async function runToolDiscoveryCycle(userId: string): Promise<{ scanned: 
             message: `I found a ${c.category} tool that could improve me.\n\n${ev.reasoning}\nScore: ${(ev.overall * 100).toFixed(0)}%`,
             category: 'tool_discovery', priority: ev.overall > 0.8 ? 'high' : 'normal',
             status: 'unread', userId, clerkUserId: '',
-            actionData: { toolName: c.name, sourceUrl: c.sourceUrl, overallScore: ev.overall } as Prisma.JsonValue,
+            actionData: { toolName: c.name, sourceUrl: c.sourceUrl, overallScore: ev.overall } as unknown as Prisma.InputJsonValue,
           },
         }).catch(() => {});
       }

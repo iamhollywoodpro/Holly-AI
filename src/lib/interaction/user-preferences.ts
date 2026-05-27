@@ -197,7 +197,7 @@ export async function resetPreferences(clerkUserId: string): Promise<{ success: 
         timezone: null,
         dateFormat: 'MM/DD/YYYY',
         timeFormat: '12h',
-        dashboardLayout: null,
+        dashboardLayout: undefined,
         pinnedFeatures: [],
         hiddenFeatures: [],
         favoritePages: [],

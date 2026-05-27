@@ -176,13 +176,28 @@ export async function rollbackPlan(planId: string): Promise<number> {
  * Get all pending/applied changes for a plan (loaded on startup).
  */
 export async function loadPlanState(planId: string): Promise<RollbackEntry[]> {
-  return prisma.selfCodeRollback.findMany({
+  const records = await prisma.selfCodeRollback.findMany({
     where: {
       planId,
       status: { in: ['pending', 'applied'] },
     },
     orderBy: { createdAt: 'asc' },
   });
+
+  return records.map(r => ({
+    id: r.id,
+    userId: r.userId,
+    planId: r.planId,
+    filePath: r.filePath,
+    changeType: r.changeType,
+    riskLevel: r.riskLevel,
+    status: r.status,
+    originalHash: r.originalHash,
+    backupPath: r.backupPath,
+    diff: r.diff ?? undefined,
+    appliedAt: r.appliedAt ?? undefined,
+    rolledBackAt: r.rolledBackAt ?? undefined,
+  }));
 }
 
 /**

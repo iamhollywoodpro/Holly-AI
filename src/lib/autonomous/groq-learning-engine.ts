@@ -116,7 +116,7 @@ Respond in JSON format:
 \`\`\``;
 
     try {
-      const completion = await this.groq.chat.completions.create({
+      const completion = await this.groq!.chat.completions.create({
         messages: [
           {
             role: 'system',
@@ -195,7 +195,7 @@ Respond in JSON format:
 }
 \`\`\``;
 
-      const completion = await this.groq.chat.completions.create({
+      const completion = await this.groq!.chat.completions.create({
         messages: [
           {
             role: 'system',
@@ -282,7 +282,7 @@ Identify patterns in:
 Respond in JSON format with patterns found.`;
 
     try {
-      const completion = await this.groq.chat.completions.create({
+      const completion = await this.groq!.chat.completions.create({
         messages: [
           {
             role: 'system',
@@ -351,7 +351,7 @@ Respond in JSON format:
 \`\`\``;
 
     try {
-      const completion = await this.groq.chat.completions.create({
+      const completion = await this.groq!.chat.completions.create({
         messages: [
           {
             role: 'system',
@@ -390,7 +390,7 @@ Respond in JSON format:
           });
         }
 
-        return strategies.map(s => ({
+        return strategies.map((s: { trigger: string; action: string; reasoning: string; expected_success_rate?: number }) => ({
           trigger: s.trigger,
           action: s.action,
           reasoning: s.reasoning,

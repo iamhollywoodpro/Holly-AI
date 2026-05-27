@@ -485,7 +485,7 @@ export function RepoSelector() {
           {/* Commits Helper Text */}
           {commits.length > 0 && (
             <div className="text-xs text-gray-500 pt-2 border-t border-gray-800">
-              🕒 Showing {commits.length} most recent commits on {activeRepo.branch || activeRepo.defaultBranch}
+              🕒 Showing {commits.length} most recent commits on {activeRepo?.branch || activeRepo?.defaultBranch}
             </div>
           )}
         </>

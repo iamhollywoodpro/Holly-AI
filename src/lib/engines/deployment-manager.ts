@@ -9,6 +9,7 @@
  */
 
 import { prisma } from '@/lib/db';
+import { Prisma } from '@prisma/client';
 import { smartRoute } from '@/lib/ai/smart-router';
 import { cascadeCollect } from '@/lib/ai/cascade';
 import type { ChatMessage } from '@/lib/ai/providers/free-providers';
@@ -477,7 +478,7 @@ Make it specific to ${opts.platform} — do NOT return a generic config.`;
         commitSha: lastSuccessful.commitSha,
         autoDeploy: false,
         customDomain: current.customDomain,
-        pipelineConfig: lastSuccessful.pipelineConfig,
+        pipelineConfig: lastSuccessful.pipelineConfig as Prisma.InputJsonValue | undefined,
         metadata: {
           rollbackFrom: deploymentId,
           rollbackTo: lastSuccessful.id,

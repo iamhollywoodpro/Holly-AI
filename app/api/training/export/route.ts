@@ -24,6 +24,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { getOrCreateUser } from '@/lib/user-manager';
 
@@ -56,7 +57,7 @@ export async function GET(req: NextRequest) {
     if (since) feedbackWhere.createdAt = { gte: since };
 
     const feedbackRows = await prisma.responseFeedback.findMany({
-      where:   feedbackWhere as Parameters<typeof prisma.responseFeedback.findMany>[0]['where'],
+      where:   feedbackWhere as Prisma.ResponseFeedbackWhereInput,
       orderBy: { createdAt: 'desc' },
       take:    Math.floor(limit * 0.7), // 70 % from explicit feedback
       select: {
@@ -86,7 +87,7 @@ export async function GET(req: NextRequest) {
     if (since) eventWhere.createdAt = { gte: since };
 
     const learningRows = await prisma.learningEvent.findMany({
-      where:   eventWhere as Parameters<typeof prisma.learningEvent.findMany>[0]['where'],
+      where:   eventWhere as Prisma.LearningEventWhereInput,
       orderBy: { timestamp: 'desc' },
       take:    Math.floor(limit * 0.3), // 30 % from implicit signals
       select: {
