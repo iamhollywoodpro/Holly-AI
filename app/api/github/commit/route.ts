@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
       }
 
       // Get commit history (default operation)
-      const commits = await githubService.getCommitHistory(owner, repo, branch, limit);
+      const commits = await githubService.getCommitHistory(owner, repo, branch ?? undefined, limit);
       
       return NextResponse.json({
         success: true,

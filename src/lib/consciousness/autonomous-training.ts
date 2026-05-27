@@ -319,7 +319,7 @@ async function notifyTrainingStatus(
         status: 'unread',
         userId,
         clerkUserId: '',
-        actionData: { jobId: job.id, status: job.status } as Prisma.JsonValue,
+        actionData: { jobId: job.id, status: job.status } as unknown as Prisma.InputJsonValue,
       },
     });
   } catch { /* non-critical */ }

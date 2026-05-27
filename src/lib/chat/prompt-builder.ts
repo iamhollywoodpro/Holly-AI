@@ -151,7 +151,7 @@ export function buildPrompt(opts: {
     prompt += `\n\n## What You Remember From Past Sessions\nYou have worked with ${userName} before:\n${block}`;
   }
 
-  if (perceptionContext?.length > 0) {
+  if (perceptionContext && perceptionContext.length > 0) {
     const block = perceptionContext
       .map((p: any) => `[Attached File: ${p.fileName} (${p.fileType})]\n${p.contextBlock}`)
       .join('\n\n');

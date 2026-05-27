@@ -539,7 +539,7 @@ export async function exportFullRelationship(
       user: {
         name: user.name,
         email: user.email,
-        clerkUserId: user.clerkUserId,
+        clerkUserId: user.clerkUserId!,
       },
       data: {
         conversations: conversationExports,

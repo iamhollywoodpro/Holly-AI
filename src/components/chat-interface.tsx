@@ -367,7 +367,7 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
         }
         
         conversationToUse = newConv;
-        console.log('[handleSubmit] Created:', conversationToUse.id);
+        console.log('[handleSubmit] Created:', newConv.id);
         
         // No need to wait - we pass conversationId explicitly to addMessage
       }

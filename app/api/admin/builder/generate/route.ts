@@ -322,7 +322,7 @@ export async function POST(request: NextRequest) {
           testCoverage: 0,
           securityScore: aiError ? 50 : 80,
           testsPass: null,
-          lintErrors: lintErrors.length > 0 ? lintErrors : aiError ? [aiError] : null,
+          lintErrors: lintErrors.length > 0 ? lintErrors : aiError ? [aiError] : undefined,
           codeGenJobId: job.id,
         },
         include: {

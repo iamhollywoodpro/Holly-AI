@@ -409,12 +409,23 @@ export class SelfDirectedLearningEngine {
 
     // Check if current context matches existing patterns
     for (const pattern of recentPatterns) {
-      if (this.matchesPattern(context, pattern)) {
+      if (this.matchesPattern(context, {
+        id: pattern.id,
+        pattern: pattern.pattern,
+        category: pattern.category,
+        frequency: pattern.frequency,
+        lastSeen: pattern.lastSeen,
+        confidence: pattern.confidence,
+        action: pattern.action ?? undefined,
+      })) {
         patterns.push({
-          ...pattern,
+          id: pattern.id,
+          pattern: pattern.pattern,
+          category: pattern.category,
           frequency: pattern.frequency + 1,
           lastSeen: new Date(),
-          confidence: Math.min(1, pattern.confidence + 0.05)
+          confidence: Math.min(1, pattern.confidence + 0.05),
+          action: pattern.action ?? undefined,
         });
       }
     }
@@ -718,9 +729,9 @@ export class SelfDirectedLearningEngine {
 
     return knowledgeNodes.map(node => ({
       id: node.id,
-      type: node.entityType as any,
-      content: node.description,
-      metadata: node.metadata,
+      type: node.entityType as KnowledgeNode['type'],
+      content: node.description ?? '',
+      metadata: node.metadata as Record<string, unknown>,
       confidence: node.confidence,
       accessCount: node.accessCount,
       lastAccessed: node.lastAccessed

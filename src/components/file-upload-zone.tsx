@@ -269,8 +269,9 @@ export function FileUploadZone({
       {uploadedFiles.length > 0 && (
         <div className="space-y-2">
           {uploadedFiles.map((uploadedFile) => {
-            const TypeIcon = FILE_TYPE_CONFIG[uploadedFile.type]?.icon || File;
-            const typeColor = FILE_TYPE_CONFIG[uploadedFile.type]?.color || 'text-gray-500';
+            const config = FILE_TYPE_CONFIG[uploadedFile.type as keyof typeof FILE_TYPE_CONFIG];
+            const TypeIcon = config?.icon || File;
+            const typeColor = config?.color || 'text-gray-500';
 
             return (
               <div

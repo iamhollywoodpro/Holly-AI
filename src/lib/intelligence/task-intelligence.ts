@@ -16,6 +16,7 @@
  */
 
 import { prisma } from '@/lib/db';
+import { Prisma } from '@prisma/client';
 
 // ================== TYPE DEFINITIONS ==================
 
@@ -94,7 +95,7 @@ export async function analyzeTask(input: TaskInput): Promise<{
         approach,
         status: 'pending',
         actualTime: null,
-        outcome: null,
+        outcome: Prisma.JsonNull,
         learnings: []
       }
     });

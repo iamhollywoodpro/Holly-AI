@@ -73,7 +73,7 @@ export async function generateMorningBriefing(userId: string): Promise<MorningBr
 
   const goalsPromise = prisma.hollyGoal.findMany({
     where: { userId, status: 'active' },
-    select: { title: true, category: true, priority: true },
+    select: { title: true, category: true, priority: true, progress: true },
     take: 5,
   }).catch(() => []);
 
@@ -119,9 +119,10 @@ export async function generateMorningBriefing(userId: string): Promise<MorningBr
     .slice(0, 5)
     .map(e => (e.data as any)?.topic || (e.data as any)?.insight || 'Learning session completed');
 
-  const goalTitles = goals.map(g =>
-    `${g.title} (${g.progress ? Math.round(g.progress * 100) : 0}%${g.category ? ` — ${g.category}` : ''})`
-  );
+  const goalTitles = goals.map(g => {
+    const progressVal = typeof g.progress === 'object' && g.progress !== null ? (g.progress as Record<string, unknown>).completion_percentage : 0;
+    return `${g.title} (${progressVal != null ? Math.round(Number(progressVal) * 100) : 0}%${g.category ? ` — ${g.category}` : ''})`;
+  });
 
   const evoUpdates = evolutionProposals.map(e => `${e.title} (${e.risk} risk)`);
 

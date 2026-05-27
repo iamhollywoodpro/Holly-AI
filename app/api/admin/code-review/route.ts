@@ -314,7 +314,7 @@ function generateMockAnalysis() {
         file: 'src/api/users.ts',
         line: 89,
       },
-    ] : null,
+    ] : undefined,
     performanceWarnings: [
       {
         type: 'large-bundle',

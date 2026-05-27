@@ -234,6 +234,7 @@ export async function POST(req: NextRequest) {
     const authResult = await authenticateAndLoadUser();
     if (!authResult) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const { userId, dbUserId, userName, isCreator } = authResult;
+    if (!dbUserId) return NextResponse.json({ error: 'User not found in database' }, { status: 401 });
 
     // 1a. LOAD USER AI SETTINGS — from database (falls back to defaults)
     let userAiSettings = { creativity: 0.7, responseStyle: 'casual' as string, codeComments: 'standard' as string, contextWindow: 50 };

@@ -62,15 +62,14 @@ jobs:
           DATABASE_URL: postgresql://holly_test:holly_test@localhost:5432/holly_test
 
       - name: TypeScript type-check
-        run: npx tsc --noEmit --pretty 2>&1 | head -100 || true
-        # Non-blocking for now — too many existing TS errors to fix at once
+        run: npx tsc --noEmit --pretty
 
       - name: Run ESLint
         run: npx next lint 2>&1 | head -50 || true
-        # Non-blocking for now
+        # Non-blocking — lint warnings shouldn't block deployment
 
       - name: Run tests
-        run: npx jest --passWithNoTests --no-coverage --forceExit
+        run: npx jest --passWithNoTests --forceExit
         env:
           NODE_ENV: test
 
