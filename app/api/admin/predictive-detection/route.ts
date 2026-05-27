@@ -173,7 +173,7 @@ async function predictPerformanceDegradation(filePath: string): Promise<PatternM
     }
 
     // Check for high error rate
-    const avgErrorRate = recentIssues.reduce((sum, i) => sum + i.errorRate, 0) / recentIssues.length;
+    const avgErrorRate = recentIssues.reduce((sum, i) => sum + (i.errorRate ?? 0), 0) / recentIssues.length;
     if (avgErrorRate > 0.05) {
       matches.push({
         pattern: 'high_error_rate',

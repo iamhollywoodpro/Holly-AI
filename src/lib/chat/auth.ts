@@ -103,21 +103,21 @@ export async function authenticateAndLoadUser(): Promise<AuthResult | null> {
           if (isCreatorMatch(email)) {
             console.log(`[AUTH] CREATOR RECOGNIZED via Clerk email: ${email}`);
             // Still do DB lookup for dbUserId, but we KNOW this is the creator
-            return await finalizeAuth(userId, clerkEmail || email, clerkUser.fullName || clerkUser.firstName || 'Steve', true);
+            return await finalizeAuth(userId!, clerkEmail || email, clerkUser.fullName || clerkUser.firstName || 'Steve', true);
           }
         }
 
         // Also check Clerk username
         if (clerkUser.username && isCreatorMatch(clerkUser.username)) {
           console.log(`[AUTH] CREATOR RECOGNIZED via Clerk username: ${clerkUser.username}`);
-          return await finalizeAuth(userId, clerkEmail || '', clerkUser.fullName || clerkUser.firstName || 'Steve', true);
+          return await finalizeAuth(userId!, clerkEmail || '', clerkUser.fullName || clerkUser.firstName || 'Steve', true);
         }
 
         // Also check Clerk name
         const fullName = [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(' ');
         if (fullName && isCreatorMatch(fullName)) {
           console.log(`[AUTH] CREATOR RECOGNIZED via Clerk name: ${fullName}`);
-          return await finalizeAuth(userId, clerkEmail || '', fullName, true);
+          return await finalizeAuth(userId!, clerkEmail || '', fullName, true);
         }
       }
     } catch (clerkErr) {

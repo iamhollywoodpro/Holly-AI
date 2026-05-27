@@ -125,7 +125,7 @@ Be specific and actionable. Focus on:
       console.error('[Root Cause] AI analysis failed:', error);
       
       // Fallback to rule-based analysis
-      return this.fallbackAnalysis(error);
+      return this.fallbackAnalysis(error instanceof Error ? error.message : String(error));
     }
   }
 

@@ -258,7 +258,7 @@ export async function applyCodeChange(change: ProposedChange, userId: string): P
     if (change.description) {
       try {
         const currentContent = existsSync(fullPath) ? readFileSync(fullPath, 'utf-8') : '';
-        change.newContent = await llmGenerateFix(change.filePath, currentContent, change.description);
+        change.newContent = (await llmGenerateFix(change.filePath, currentContent, change.description)) ?? undefined;
         if (!change.newContent) {
           result.error = 'LLM failed to generate fix content';
           return result;
@@ -359,7 +359,7 @@ export async function applyCodeChange(change: ProposedChange, userId: string): P
         status: 'unread',
         userId,
         clerkUserId: '',
-        actionData: { triggerType: 'self_code', filePath: change.filePath, backupPath } as Prisma.JsonValue,
+        actionData: { triggerType: 'self_code', filePath: change.filePath, backupPath } as unknown as Prisma.InputJsonValue,
       },
     });
   } catch { /* non-critical */ }
@@ -821,7 +821,7 @@ export async function executeSelfCodeCycle(
         status: 'unread',
         userId,
         clerkUserId: '',
-        actionData: { commitHash: gitResult.commitHash, healthy: healthResult.healthy, rolledBack: healthResult.rolledBack } as Prisma.JsonValue,
+        actionData: { commitHash: gitResult.commitHash, healthy: healthResult.healthy, rolledBack: healthResult.rolledBack } as unknown as Prisma.InputJsonValue,
       },
     });
   } catch { /* non-critical */ }

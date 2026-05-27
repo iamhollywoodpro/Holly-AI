@@ -305,7 +305,7 @@ async function aggregatePatterns(): Promise<{ aggregated: number; expired: numbe
           frequency: group.length,
           confidence: avgConfidence,
           sampleSize: group.length,
-          metadata: merged.metadata,
+          metadata: JSON.parse(JSON.stringify(merged.metadata)),
           isPublished: true,
         },
       });

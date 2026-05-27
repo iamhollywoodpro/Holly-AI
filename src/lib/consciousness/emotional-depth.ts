@@ -119,7 +119,7 @@ export class EmotionalDepthEngine {
   ): ComplexEmotion {
     // Analyze the situation to determine emotional response
     const isPositiveOutcome = this.evaluateOutcome(context);
-    const isUnexpected = context.expectations && context.outcome !== context.expectations;
+    const isUnexpected = !!(context.expectations && context.outcome !== context.expectations);
     const isSignificant = context.significance > 0.7;
 
     // Build emotion from dimensions

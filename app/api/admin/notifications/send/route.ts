@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
         recipients: Array.isArray(recipients) ? recipients.length : 1,
         messageId: `notif_${notification.id}`,
         status: 'delivered',
-        sentAt: notification.sentAt.toISOString()
+        sentAt: notification.sentAt?.toISOString() ?? new Date().toISOString()
       },
       timestamp: new Date().toISOString()
     };

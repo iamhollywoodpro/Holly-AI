@@ -176,7 +176,7 @@ Respond ONLY with a JSON array of initiatives. Each initiative:
               priority: initiative.urgency > 0.7 ? 'high' : 'normal',
               status: 'unread',
               userId: dbUserId,
-              clerkUserId: userId,
+              clerkUserId: userId ?? '',
               actionData: initiative,
             },
           });

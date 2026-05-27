@@ -17,7 +17,7 @@ interface UserInfo {
  * Get or create user - SINGLE SOURCE OF TRUTH
  * Always call this instead of creating users directly
  */
-export async function getOrCreateUser(clerkUserId: string): Promise<{ id: string; clerkUserId: string; email: string; name?: string | null; imageUrl?: string | null }> {
+export async function getOrCreateUser(clerkUserId: string): Promise<{ id: string; clerkUserId: string | null; email: string; name?: string | null; imageUrl?: string | null }> {
   try {
     console.log('👤 [UserManager] Getting/creating user for Clerk ID:', clerkUserId);
 
