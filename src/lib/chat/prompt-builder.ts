@@ -9,6 +9,7 @@ import { getAdvancedNLPSystemBlock, detectIntent } from '@/lib/advanced-nlp/nlp-
 import { getTasteMatrixPromptInjection } from '@/lib/ar/taste-matrix';
 import { detectDrift, calculateCoherence, DEFAULT_TRAITS, type PersonalityTrait } from '@/lib/consciousness/personality-coherence';
 import type { MCPTool } from '@/lib/mcp/mcp-client';
+import type { ToneContext } from '@/lib/emotional/tone-adapter';
 
 // ─── CREATOR RECOGNITION — always at top of prompt for maximum model attention ────
 function buildCreatorBlock(userName: string, isCreator: boolean): string {
@@ -95,6 +96,8 @@ export function buildPrompt(opts: {
   visualIdentity?: string;
   /** Personality traits for coherence monitoring (Phase A wiring) */
   personalityTraits?: PersonalityTrait[];
+  /** Phase E: Tone context — emotional register guidance (replaces canned phrase injection) */
+  toneContext?: ToneContext;
 }): string {
   const {
     detectedMode, userName, isCreator, isSelfCode, isInformationalMsg,
@@ -114,6 +117,7 @@ export function buildPrompt(opts: {
     growthContext,
     visualIdentity,
     personalityTraits,
+    toneContext,
   } = opts;
 
   let prompt = getSystemPromptForMode(detectedMode, userName);
@@ -264,6 +268,11 @@ You can build end-to-end: scaffold a project, generate all files, patch specific
   // ── HOLLY's emotional state — influences response tone ──────────────────
   if (hollyEmotionalState) {
     prompt += `\n\n## Your Current Emotional State\n${hollyEmotionalState}`;
+  }
+
+  // ── Phase E: Tone Context — how to express yourself right now ──────────
+  if (toneContext?.promptBlock) {
+    prompt += `\n\n## Your Tone Right Now\n${toneContext.promptBlock}`;
   }
 
   // ── Phase 4: Emotional trajectory (across sessions) ──────────────────────
