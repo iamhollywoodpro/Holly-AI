@@ -273,10 +273,10 @@ GitHub Push → HOLLY CI (lint/test) → HOLLY CD (Docker build ARM64 + push GHC
 
 ### Environment
 
-- **Server**: Oracle Cloud ARM64 (40.233.70.207)
-- **SSH**: `ssh -i ~/.ssh/holly_server ubuntu@40.233.70.207`
+- **Server**: Oracle Cloud ARM64 (your_server_ip)
+- **SSH**: `ssh -i ~/.ssh/holly_server ubuntu@your_server_ip`
 - **Domain**: `holly.nexamusicgroup.com` (Cloudflare DNS → server IP)
-- **Coolify**: `http://40.233.70.207:8000`
+- **Coolify**: `http://your_server_ip:8000`
 - **GHCR**: `ghcr.io/iamhollywoodpro/holly-ai:latest` (PUBLIC)
 
 ### Quick Deploy (Automatic)
@@ -290,7 +290,7 @@ GitHub Push → HOLLY CI (lint/test) → HOLLY CD (Docker build ARM64 + push GHC
 
 ```bash
 # SSH into server
-ssh -i ~/.ssh/holly_server ubuntu@40.233.70.207
+ssh -i ~/.ssh/holly_server ubuntu@your_server_ip
 
 # Pull latest image
 sudo docker pull ghcr.io/iamhollywoodpro/holly-ai:latest

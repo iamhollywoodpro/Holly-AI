@@ -70,3 +70,7 @@ plans/
 # One-off debug scripts
 check-db.js
 test-fetch.js
+
+# Docs with sensitive credentials — use Coolify dashboard for actual values
+docs/COOLIFY_ENV_VARS.md
+docs/INTEGRATION_SETUP_GUIDE.md
