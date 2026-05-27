@@ -494,28 +494,28 @@ describe('Multi-Tenant User Context Cache', () => {
   // ─────────────────────────────────────────────────────────────────────────
 
   describe('getPoolConfig', () => {
-    const originalNodeEnv = process.env.NODE_ENV;
+    const originalNodeEnv = (process.env as any).NODE_ENV;
 
     afterEach(() => {
-      process.env.NODE_ENV = originalNodeEnv;
+      (process.env as any).NODE_ENV = originalNodeEnv;
     });
 
     it('returns production config when NODE_ENV is production', () => {
-      process.env.NODE_ENV = 'production';
+      (process.env as any).NODE_ENV = 'production';
       const config = getPoolConfig();
       expect(config.connection_limit).toBe(20);
       expect(config.pool_timeout).toBe(30);
     });
 
     it('returns development config when NODE_ENV is not production', () => {
-      process.env.NODE_ENV = 'development';
+      (process.env as any).NODE_ENV = 'development';
       const config = getPoolConfig();
       expect(config.connection_limit).toBe(5);
       expect(config.pool_timeout).toBe(30);
     });
 
     it('returns development config when NODE_ENV is test', () => {
-      process.env.NODE_ENV = 'test';
+      (process.env as any).NODE_ENV = 'test';
       const config = getPoolConfig();
       expect(config.connection_limit).toBe(5);
     });
@@ -527,16 +527,16 @@ describe('Multi-Tenant User Context Cache', () => {
 
   describe('getOptimizedDatabaseUrl', () => {
     const originalDbUrl = process.env.DATABASE_URL;
-    const originalNodeEnv = process.env.NODE_ENV;
+    const originalNodeEnv = (process.env as any).NODE_ENV;
 
     afterEach(() => {
       process.env.DATABASE_URL = originalDbUrl;
-      process.env.NODE_ENV = originalNodeEnv;
+      (process.env as any).NODE_ENV = originalNodeEnv;
     });
 
     it('appends pool params to a URL without existing query string', () => {
       process.env.DATABASE_URL = 'postgresql://user:pass@host:5432/db';
-      process.env.NODE_ENV = 'development';
+      (process.env as any).NODE_ENV = 'development';
       const url = getOptimizedDatabaseUrl();
       expect(url).toBe(
         'postgresql://user:pass@host:5432/db?connection_limit=5&pool_timeout=30'
@@ -545,7 +545,7 @@ describe('Multi-Tenant User Context Cache', () => {
 
     it('appends pool params with & when URL already has query string', () => {
       process.env.DATABASE_URL = 'postgresql://user:pass@host:5432/db?sslmode=require';
-      process.env.NODE_ENV = 'development';
+      (process.env as any).NODE_ENV = 'development';
       const url = getOptimizedDatabaseUrl();
       expect(url).toBe(
         'postgresql://user:pass@host:5432/db?sslmode=require&connection_limit=5&pool_timeout=30'
@@ -554,7 +554,7 @@ describe('Multi-Tenant User Context Cache', () => {
 
     it('uses production pool limits when NODE_ENV is production', () => {
       process.env.DATABASE_URL = 'postgresql://user:pass@host:5432/db';
-      process.env.NODE_ENV = 'production';
+      (process.env as any).NODE_ENV = 'production';
       const url = getOptimizedDatabaseUrl();
       expect(url).toContain('connection_limit=20');
     });

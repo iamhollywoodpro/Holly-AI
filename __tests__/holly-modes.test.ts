@@ -75,19 +75,19 @@ describe('HOLLY_MODES', () => {
 
   it('every mode has a non-empty systemPrompt', () => {
     for (const [modeId, mode] of Object.entries(HOLLY_MODES)) {
-      expect(mode.systemPrompt.length).toBeGreaterThan(0, `Mode "${modeId}" has an empty systemPrompt`);
+      expect(mode.systemPrompt.length).toBeGreaterThan(0);
     }
   });
 
   it('every mode has a non-empty name', () => {
     for (const [modeId, mode] of Object.entries(HOLLY_MODES)) {
-      expect(mode.name.length).toBeGreaterThan(0, `Mode "${modeId}" has an empty name`);
+      expect(mode.name.length).toBeGreaterThan(0);
     }
   });
 
   it('every mode has a non-empty description', () => {
     for (const [modeId, mode] of Object.entries(HOLLY_MODES)) {
-      expect(mode.description.length).toBeGreaterThan(0, `Mode "${modeId}" has an empty description`);
+      expect(mode.description.length).toBeGreaterThan(0);
     }
   });
 

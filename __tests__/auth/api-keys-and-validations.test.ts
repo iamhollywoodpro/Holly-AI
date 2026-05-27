@@ -442,12 +442,18 @@ describe('validateApiKey()', () => {
 describe('checkRateLimit()', () => {
   const makeApiKey = (rpm = 60, rpd = 1000) => ({
     id: 'key_rl',
+    name: 'Test Key',
+    createdAt: new Date(),
+    updatedAt: new Date(),
     keyHash: 'somehash',
+    keyPrefix: 'hk_',
     userId: 'user_rl',
     isActive: true,
     expiresAt: null,
+    scopes: ['*'],
     rpmLimit: rpm,
     rpdLimit: rpd,
+    lastUsedAt: null,
   });
 
   it('returns allowed:true with correct remaining counts when under limits', async () => {
@@ -1309,7 +1315,7 @@ describe('validateBody()', () => {
     json: jest.fn().mockResolvedValue(body),
   }) as any;
 
-  const simpleSchema = z => z; // placeholder
+  const simpleSchema = (z: any) => z; // placeholder
 
   it('returns parsed data on valid JSON and valid schema', async () => {
     const req = makeRequest({ role: 'user', content: 'Hello' });

@@ -48,7 +48,8 @@ jest.mock('@/lib/autonomous/root-cause-analyzer', () => {
 // ---------------------------------------------------------------------------
 
 import { AutoFixEngine } from '@/lib/autonomous/auto-fix-engine';
-import type { FixStrategy, FixResult, SystemIssue } from '@/lib/autonomous/auto-fix-engine';
+import type { FixStrategy, FixResult } from '@/lib/autonomous/auto-fix-engine';
+import type { SystemIssue } from '@/lib/autonomous/self-diagnosis';
 
 // ---------------------------------------------------------------------------
 // Helpers
