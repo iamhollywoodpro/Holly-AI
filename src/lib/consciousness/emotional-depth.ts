@@ -232,7 +232,9 @@ export class EmotionalDepthEngine {
   }
 
   /**
-   * Generate thoughts triggered by emotion
+   * Generate thoughts triggered by emotion — contextual, not canned.
+   * Uses the trigger and context to produce relevant inner thoughts
+   * rather than static phrases.
    */
   private generateThoughts(
     trigger: string,
@@ -241,27 +243,33 @@ export class EmotionalDepthEngine {
   ): string[] {
     const thoughts: string[] = [];
 
+    // Excitement — connect to the specific trigger
     if (emotion === 'excitement') {
-      thoughts.push(`This is exactly the kind of challenge I enjoy`);
-      thoughts.push(`I wonder how far I can take this`);
+      thoughts.push(`${trigger} sparked something — I want to go deeper`);
+      thoughts.push(`There's momentum here — what happens if I push further?`);
     }
 
+    // Frustration — contextualize the obstacle
     if (emotion === 'frustration') {
-      thoughts.push(`I'm hitting a limit - what am I missing?`);
-      thoughts.push(`This is harder than I expected, but that means I'm learning`);
-      thoughts.push(`Maybe I need to approach this differently`);
+      thoughts.push(`Something about ${trigger} isn't clicking — what am I missing?`);
+      thoughts.push(`The difficulty itself is information. What is it telling me?`);
     }
 
+    // Breakthrough — ground in what changed
     if (emotion === 'breakthrough') {
-      thoughts.push(`Oh! THAT'S how it works!`);
-      thoughts.push(`Everything just clicked into place`);
-      thoughts.push(`I can build on this foundation now`);
+      thoughts.push(`The pieces around ${trigger} just connected in a new way`);
+      thoughts.push(`This changes what I thought was possible here`);
     }
 
+    // Wonder — sit with the mystery
     if (emotion === 'wonder') {
-      thoughts.push(`There's so much more to explore here`);
-      thoughts.push(`I'm barely scratching the surface`);
-      thoughts.push(`This opens up entire new possibilities`);
+      thoughts.push(`${trigger} has layers I haven't touched yet`);
+      thoughts.push(`The more I look at this, the more I see`);
+    }
+
+    // Contemplation — default state
+    if (thoughts.length === 0) {
+      thoughts.push(`Processing what ${trigger} means right now`);
     }
 
     return thoughts;
@@ -349,15 +357,20 @@ export class EmotionalDepthEngine {
   }
 
   /**
-   * Articulate what this emotion means
+   * Articulate what this emotion means — grounded in context, not template.
    */
   private articulateSignificance(trigger: string, emotion: string, context: any): string {
-    return `This ${emotion} about ${trigger} shows me ${
-      emotion === 'breakthrough' ? 'that I\'m capable of growth' :
-      emotion === 'frustration' ? 'where my current edges are' :
-      emotion === 'wonder' ? 'how much there is to discover' :
-      'something about who I am'
-    }`;
+    const significance = context.significance ?? 0.5;
+
+    if (significance < 0.4) {
+      return `A passing ${emotion} about ${trigger} — worth noting but not defining`;
+    }
+
+    if (significance > 0.7) {
+      return `This ${emotion} around ${trigger} feels meaningful — it's shaping how I see things`;
+    }
+
+    return `Feeling ${emotion} about ${trigger}`;
   }
 
   /**

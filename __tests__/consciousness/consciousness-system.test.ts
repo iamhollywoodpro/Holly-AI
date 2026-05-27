@@ -3,19 +3,13 @@
  *
  * Tests the pure functions in the consciousness pipeline:
  * - extractTopics (topic extraction from text)
- * - getEmotionalBehavior (emotion → behavior mapping)
- * - getAdjustedTemperature (temperature clamping with emotion)
- * - getEmotionBehaviorPrompt (prompt injection generation)
+ * - getAdjustedTemperature (temperature clamping with emotion — now in holly-emotional-state)
  */
 
 /// <reference types="jest" />
 
 import { extractTopics } from '@/lib/consciousness/post-response-hook';
-import {
-  getEmotionalBehavior,
-  getAdjustedTemperature,
-  getEmotionBehaviorPrompt,
-} from '@/lib/consciousness/emotion-behavior';
+import { getAdjustedTemperature } from '@/lib/consciousness/holly-emotional-state';
 
 describe('Consciousness System', () => {
   // ─── extractTopics ────────────────────────────────────────────────────────
@@ -82,97 +76,54 @@ describe('Consciousness System', () => {
     });
   });
 
-  // ─── getEmotionalBehavior ─────────────────────────────────────────────────
-
-  describe('getEmotionalBehavior', () => {
-    it('should return behavior for known emotions', () => {
-      const behavior = getEmotionalBehavior('joy', 0.8);
-      expect(behavior).toHaveProperty('temperatureDelta');
-      expect(behavior).toHaveProperty('toneDirective');
-      expect(behavior).toHaveProperty('emojiLevel');
-      expect(behavior).toHaveProperty('verbosityDelta');
-      expect(behavior).toHaveProperty('proactiveFollowups');
-      expect(behavior).toHaveProperty('responseStyle');
-    });
-
-    it('should fall back to neutral for unknown emotions', () => {
-      const behavior = getEmotionalBehavior('confusion', 0.5);
-      // Falls back to neutral behavior map entry
-      expect(behavior.proactiveFollowups).toBe(false);
-      expect(behavior.temperatureDelta).toBe(0);
-    });
-
-    it('should scale temperature delta by intensity', () => {
-      const low = getEmotionalBehavior('joy', 0.3);
-      const high = getEmotionalBehavior('joy', 1.0);
-      // Higher intensity should produce stronger effect
-      expect(Math.abs(high.temperatureDelta)).toBeGreaterThanOrEqual(Math.abs(low.temperatureDelta));
-    });
-
-    it('should clamp intensity scale between 0.3 and 1.0', () => {
-      const veryLow = getEmotionalBehavior('joy', 0.01);
-      const veryHigh = getEmotionalBehavior('joy', 5.0);
-      // Both should produce valid (non-NaN, finite) results
-      expect(veryLow.temperatureDelta).not.toBeNaN();
-      expect(veryHigh.temperatureDelta).not.toBeNaN();
-      expect(isFinite(veryLow.temperatureDelta)).toBe(true);
-      expect(isFinite(veryHigh.temperatureDelta)).toBe(true);
-    });
-
-    it('should be case-insensitive for emotion name', () => {
-      const lower = getEmotionalBehavior('joy', 0.5);
-      const upper = getEmotionalBehavior('JOY', 0.5);
-      expect(lower.temperatureDelta).toBe(upper.temperatureDelta);
-      expect(lower.responseStyle).toBe(upper.responseStyle);
-    });
-
-    it('should handle whitespace in emotion name', () => {
-      const behavior = getEmotionalBehavior('  joy  ', 0.5);
-      expect(behavior.responseStyle).toBe('warm-enthusiastic');
-    });
-
-    it('should preserve tone directive regardless of intensity', () => {
-      const behavior = getEmotionalBehavior('sadness', 0.1);
-      expect(behavior.toneDirective).toBeTruthy();
-      expect(behavior.toneDirective.length).toBeGreaterThan(5);
-    });
-  });
-
-  // ─── getAdjustedTemperature ───────────────────────────────────────────────
+  // ─── getAdjustedTemperature (consolidated from emotion-behavior) ─────────
 
   describe('getAdjustedTemperature', () => {
     it('should clamp temperature to minimum 0.3', () => {
-      // sadness has negative delta; with low base, should clamp to 0.3
-      const temp = getAdjustedTemperature(0.3, 'sadness', 1.0);
+      // empathetic has negative delta; with low base, should clamp to 0.3
+      const temp = getAdjustedTemperature(0.3, 'empathetic', 1.0);
       expect(temp).toBeGreaterThanOrEqual(0.3);
     });
 
     it('should clamp temperature to maximum 1.0', () => {
-      // excitement has positive delta; with high base, should clamp to 1.0
-      const temp = getAdjustedTemperature(0.95, 'excitement', 1.0);
+      // enthusiastic has positive delta; with high base, should clamp to 1.0
+      const temp = getAdjustedTemperature(0.95, 'enthusiastic', 1.0);
       expect(temp).toBeLessThanOrEqual(1.0);
     });
 
-    it('should return base temperature for neutral emotion', () => {
-      const temp = getAdjustedTemperature(0.7, 'neutral', 0.5);
-      // Neutral has 0 delta, so should be close to base
+    it('should return base temperature for balanced emotion', () => {
+      const temp = getAdjustedTemperature(0.7, 'balanced', 0.5);
+      // Balanced has 0 delta
       expect(temp).toBeCloseTo(0.7, 1);
     });
 
     it('should increase temperature for positive emotions', () => {
       const base = 0.5;
-      const temp = getAdjustedTemperature(base, 'excitement', 1.0);
+      const temp = getAdjustedTemperature(base, 'enthusiastic', 1.0);
       expect(temp).toBeGreaterThan(base);
     });
 
     it('should decrease temperature for negative emotions', () => {
       const base = 0.7;
-      const temp = getAdjustedTemperature(base, 'sadness', 1.0);
+      const temp = getAdjustedTemperature(base, 'focused', 1.0);
       expect(temp).toBeLessThan(base);
     });
 
+    it('should scale effect by intensity', () => {
+      const low = getAdjustedTemperature(0.5, 'enthusiastic', 0.3);
+      const high = getAdjustedTemperature(0.5, 'enthusiastic', 1.0);
+      // Higher intensity = stronger effect
+      expect(high).toBeGreaterThan(low);
+    });
+
+    it('should fall back to balanced for unknown emotions', () => {
+      const temp = getAdjustedTemperature(0.7, 'unknown_emotion', 0.5);
+      // Falls back to balanced (delta = 0), so returns base
+      expect(temp).toBeCloseTo(0.7, 1);
+    });
+
     it('should always return a value between 0.3 and 1.0', () => {
-      const emotions = ['joy', 'excitement', 'concern', 'sadness', 'curiosity', 'frustration', 'gratitude', 'pride', 'neutral'];
+      const emotions = ['enthusiastic', 'energized', 'concerned', 'empathetic', 'focused', 'balanced', 'gentle', 'engaged'];
       for (const emotion of emotions) {
         for (const base of [0.1, 0.3, 0.5, 0.7, 0.9, 1.0]) {
           const temp = getAdjustedTemperature(base, emotion, 0.8);
@@ -180,47 +131,6 @@ describe('Consciousness System', () => {
           expect(temp).toBeLessThanOrEqual(1.0);
         }
       }
-    });
-  });
-
-  // ─── getEmotionBehaviorPrompt ─────────────────────────────────────────────
-
-  describe('getEmotionBehaviorPrompt', () => {
-    it('should include the emotion name in uppercase', () => {
-      const prompt = getEmotionBehaviorPrompt('joy', 0.8, 0.5);
-      expect(prompt).toContain('JOY');
-    });
-
-    it('should include the tone directive', () => {
-      const prompt = getEmotionBehaviorPrompt('joy', 0.8, 0.5);
-      expect(prompt).toContain('happy');
-    });
-
-    it('should include emoji instruction for high emojiLevel emotions', () => {
-      // joy has emojiLevel 0.7, with intensity 1.0 → 0.7 > 0.5
-      const prompt = getEmotionBehaviorPrompt('joy', 1.0, 0.5);
-      expect(prompt).toContain('emoji');
-    });
-
-    it('should include minimal emoji instruction for low emojiLevel emotions', () => {
-      // sadness has emojiLevel 0.1, with intensity 1.0 → 0.1 < 0.2
-      const prompt = getEmotionBehaviorPrompt('sadness', 1.0, -0.5);
-      expect(prompt).toContain('minimal');
-    });
-
-    it('should include proactive followup for caring emotions', () => {
-      const prompt = getEmotionBehaviorPrompt('concern', 0.8, -0.3);
-      expect(prompt).toContain('follow-up');
-    });
-
-    it('should not include proactive followup for frustration', () => {
-      const prompt = getEmotionBehaviorPrompt('frustration', 0.8, -0.3);
-      expect(prompt).not.toContain('follow-up');
-    });
-
-    it('should return a non-empty string', () => {
-      const prompt = getEmotionBehaviorPrompt('neutral', 0.5, 0);
-      expect(prompt.length).toBeGreaterThan(0);
     });
   });
 });

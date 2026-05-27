@@ -206,11 +206,12 @@ describe('Emotional State Computation', () => {
       expect(state.emotion).toBe('energized');
     });
 
-    it('should map excited to happy', () => {
+    it('should map excited to excited (preserved nuance)', () => {
       const state = computeEmotionalState([
         makeSignal({ userEmotion: 'excited', outcome: 'positive' }),
       ]);
-      expect(state.emotion).toBe('energized');
+      // excited is now a first-class emotion, not collapsed to happy
+      expect(state.emotion).toBe('enthusiastic');
     });
 
     it('should map depressed to sad', () => {
@@ -220,11 +221,13 @@ describe('Emotional State Computation', () => {
       expect(state.emotion).toBe('empathetic');
     });
 
-    it('should map anxious to sad', () => {
+    it('should map anxious to anxious (preserved nuance)', () => {
       const state = computeEmotionalState([
         makeSignal({ userEmotion: 'anxious', outcome: 'negative' }),
       ]);
-      expect(state.emotion).toBe('empathetic');
+      // anxious is now a first-class emotion, not collapsed to sad
+      // anxious + negative outcome → gentle (reassuring response)
+      expect(state.emotion).toBe('gentle');
     });
 
     it('should map unknown emotions to neutral', () => {
