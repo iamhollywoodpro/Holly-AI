@@ -83,9 +83,9 @@ async function generateArchitecture() {
             totalInterfaces: architecture.summary.totalInterfaces,
             apiEndpoints: architecture.summary.apiEndpoints,
             featureModules: JSON.parse(JSON.stringify(architecture.features)),
-            layers: architecture.layers,
-            techStack: architecture.techStack,
-            integrationPoints: architecture.integrationPoints,
+            layers: JSON.parse(JSON.stringify(architecture.layers)),
+            techStack: JSON.parse(JSON.stringify(architecture.techStack)),
+            integrationPoints: JSON.parse(JSON.stringify(architecture.integrationPoints)),
           },
         });
         console.log(`✅ Architecture snapshot saved (ID: ${snapshot.id})\n`);

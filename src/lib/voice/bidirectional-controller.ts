@@ -144,12 +144,14 @@ export class BidirectionalController {
 
       // Clean up old cache entries (keep last 50)
       if (this.audioCache.size > 50) {
-        const firstKey = this.audioCache.keys().next().value;
-        const oldUrl = this.audioCache.get(firstKey);
-        if (oldUrl) {
-          URL.revokeObjectURL(oldUrl);
+        const firstKey = this.audioCache.keys().next().value as string | undefined;
+        if (firstKey !== undefined) {
+          const oldUrl = this.audioCache.get(firstKey);
+          if (oldUrl) {
+            URL.revokeObjectURL(oldUrl);
+          }
+          this.audioCache.delete(firstKey);
         }
-        this.audioCache.delete(firstKey);
       }
 
       logger.info("Voice response generated", {

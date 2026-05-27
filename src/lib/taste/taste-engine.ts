@@ -247,8 +247,8 @@ CONTENT QUALITY DIMENSIONS:
 - Completeness (covers the topic thoroughly)
 
 USER TASTE PROFILE:
-Preferred Tone: ${tasteProfile?.tone > 0.6 ? 'formal' : 'casual'}
-Verbosity: ${tasteProfile?.verbosity > 0.6 ? 'detailed' : 'concise'}
+Preferred Tone: ${(tasteProfile?.tone ?? 0.5) > 0.6 ? 'formal' : 'casual'}
+Verbosity: ${(tasteProfile?.verbosity ?? 0.5) > 0.6 ? 'detailed' : 'concise'}
 Humor Level: ${tasteProfile?.humor || 0.3}
 Technical Level: ${tasteProfile?.technical || 0.5}
 Top Topics: ${tasteProfile?.topTopics?.join(', ') || 'various'}

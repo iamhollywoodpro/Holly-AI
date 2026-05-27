@@ -99,7 +99,7 @@ Respond in JSON format:
 \`\`\``;
 
     try {
-      const completion = await this.groq.chat.completions.create({
+      const completion = await this.groq!.chat.completions.create({
         messages: [
           {
             role: 'system',

@@ -275,11 +275,11 @@ async function handleAssign(clerkUserId: string, testId: string, variant?: strin
   }
 
   // Auto-assign variant if not provided
-  let assignedVariant = variant;
+  let assignedVariant: string = variant ?? '';
   if (!assignedVariant) {
     const testVariantsArray = test.testVariants as any[];
     const controlVariantData = test.controlVariant as any;
-    
+
     // Simple random assignment (50/50 control vs test for now)
     const random = Math.random();
     if (random < 0.5 || testVariantsArray.length === 0) {
@@ -287,7 +287,7 @@ async function handleAssign(clerkUserId: string, testId: string, variant?: strin
     } else {
       // Pick random test variant
       const randomIndex = Math.floor(Math.random() * testVariantsArray.length);
-      assignedVariant = testVariantsArray[randomIndex]?.id || 'control';
+      assignedVariant = testVariantsArray[randomIndex]?.id ?? 'control';
     }
   }
 

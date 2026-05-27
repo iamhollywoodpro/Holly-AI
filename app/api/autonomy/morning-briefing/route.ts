@@ -35,7 +35,7 @@ async function resolveUserIdentity(req: NextRequest): Promise<{ dbUserId: string
       select: { id: true, clerkUserId: true },
     });
     if (!firstUser) return NextResponse.json({ error: 'No users found' }, { status: 404 });
-    return { dbUserId: firstUser.id, clerkUserId: firstUser.clerkUserId };
+    return { dbUserId: firstUser.id, clerkUserId: firstUser.clerkUserId ?? '' };
   } catch {
     return NextResponse.json({ error: 'No users found' }, { status: 404 });
   }

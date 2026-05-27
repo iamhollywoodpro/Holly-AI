@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
           priority: 'high',
           status: 'unread',
           userId: admin.id,
-          clerkUserId: admin.clerkUserId,
+          clerkUserId: admin.clerkUserId ?? '',
           actionData: { issue, severity, details, prUrl, timestamp: new Date().toISOString() },
         },
       });

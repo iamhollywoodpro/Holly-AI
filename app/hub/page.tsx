@@ -666,12 +666,12 @@ export default function HubPage() {
                           ⚠ {latestLog.error}
                         </p>
                       )}
-                      {latestLog.output && (
+                      {latestLog.output ? (
                         <div className="space-y-3">
                           {/* Highlight key fields from response */}
-                          {latestLog.status === 'success' && latestLog.output && typeof latestLog.output === 'object' && (latestLog.output as Record<string, unknown>).data && (
+                          {latestLog.status === 'success' && typeof latestLog.output === 'object' && (latestLog.output as Record<string, unknown>).data ? (
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                              {activeTool === 'aura' && activeAction === 'analyze_song' && (() => {
+                              {activeTool === 'aura' && activeAction === 'analyze_song' ? (() => {
                                 const d = (latestLog.output as Record<string, unknown>).data as Record<string, unknown>;
                                 return [
                                   { label: 'Quality Score', value: `${d?.overallScore ?? '—'}/100`, color: 'green' },
@@ -684,8 +684,8 @@ export default function HubPage() {
                                     <p className={`text-base font-bold text-${color}-400 mt-0.5`}>{value}</p>
                                   </div>
                                 ));
-                              })()}
-                              {activeTool === 'aura' && activeAction === 'identify_hit_potential' && (() => {
+                              })() : null}
+                              {activeTool === 'aura' && activeAction === 'identify_hit_potential' ? (() => {
                                 const d = (latestLog.output as Record<string, unknown>).data as Record<string, unknown>;
                                 return [
                                   { label: 'Hit Score', value: `${d?.hitScore ?? '—'}/100`, color: 'green' },
@@ -698,8 +698,8 @@ export default function HubPage() {
                                     <p className={`text-base font-bold text-${color}-400 mt-0.5`}>{value}</p>
                                   </div>
                                 ));
-                              })()}
-                              {activeTool === 'sentinel' && activeAction === 'analyze_code' && (() => {
+                              })() : null}
+                              {activeTool === 'sentinel' && activeAction === 'analyze_code' ? (() => {
                                 const d = (latestLog.output as Record<string, unknown>).data as Record<string, unknown>;
                                 const m = d?.metrics as Record<string, unknown> ?? {};
                                 return [
@@ -713,12 +713,12 @@ export default function HubPage() {
                                     <p className={`text-base font-bold text-${color}-400 mt-0.5`}>{value}</p>
                                   </div>
                                 ));
-                              })()}
+                              })() : null}
                             </div>
-                          )}
+                          ) : null}
                           <JsonViewer data={latestLog.output} maxHeight="500px" />
                         </div>
-                      )}
+                      ) : null}
                     </div>
                   </motion.div>
                 )}
@@ -1115,11 +1115,11 @@ export default function HubPage() {
                       <span className="text-xs text-gray-600 font-mono">{new Date(log.timestamp).toLocaleTimeString()}</span>
                       {log.error && <span className="text-xs text-red-400 ml-auto">⚠ {log.error}</span>}
                     </div>
-                    {log.output && (
+                    {log.output ? (
                       <div className="mt-3">
                         <JsonViewer data={log.output} maxHeight="250px" />
                       </div>
-                    )}
+                    ) : null}
                   </motion.div>
                 ))}
               </div>

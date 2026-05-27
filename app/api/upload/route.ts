@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
         const vision = new MultiModelVision();
 
         // Use fast BLIP for initial caption, optionally add GPT-4 for detailed analysis
-        const analysis = await vision.analyzeImage(result.url, {
+        const analysis = await vision.analyzeImage(result.url ?? '', {
           taskType: 'general',
           useMultipleModels: false // Set to true for more detailed analysis
         });
@@ -150,7 +150,7 @@ export async function POST(request: NextRequest) {
         console.log('[Upload] 🎵 Analyzing music with HOLLY\'s Ears...');
         const musicEngine = new MusicAnalysisEngine();
 
-        const analysis = await musicEngine.analyzeTrack(result.url);
+        const analysis = await musicEngine.analyzeTrack(result.url ?? '');
 
         musicAnalysis = {
           bpm: analysis.technical.bpm,

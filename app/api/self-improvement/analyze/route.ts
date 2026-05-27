@@ -172,7 +172,7 @@ async function getHistoricalData(
     };
   } catch (error) {
     logger.error("Failed to fetch historical data", {
-      error: error.message,
+      error: error instanceof Error ? error.message : String(error),
       category: "autonomy",
     });
 

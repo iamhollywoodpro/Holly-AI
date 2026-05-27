@@ -116,7 +116,7 @@ export class SelfImprovement {
           type: 'optimize',
           target: metric.metric,
           description: `${metric.metric} declining: ${(metric.value * 100).toFixed(0)}% (was ${(Number(metric.previousValue || 0) * 100).toFixed(0)}%)`,
-          impact: metric.change < -0.1 ? 'high' : 'medium',
+          impact: (metric.change ?? 0) < -0.1 ? 'high' : 'medium',
           implemented: false,
         });
       }

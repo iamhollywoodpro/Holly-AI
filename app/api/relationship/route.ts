@@ -47,6 +47,7 @@ export async function POST(req: NextRequest) {
   const auth = await authenticateAndLoadUser();
   if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const { dbUserId } = auth;
+  if (!dbUserId) return NextResponse.json({ error: 'User not found' }, { status: 401 });
 
   try {
     const body = await req.json();

@@ -122,7 +122,7 @@ export async function saveAsset(
         width: asset.width || null,
         height: asset.height || null,
         format: asset.format || null,
-        parameters: asset.parameters || null,
+        parameters: asset.parameters ?? undefined,
         seed: asset.seed || null,
         steps: asset.steps || null,
         guidance: asset.guidance || null,
@@ -131,7 +131,7 @@ export async function saveAsset(
         isPublic: asset.isPublic || false,
         isFavorite: false,
         tags: asset.tags || [],
-        metadata: null,
+        metadata: undefined,
         provider: asset.provider || null,
         cost: asset.cost || null
       }

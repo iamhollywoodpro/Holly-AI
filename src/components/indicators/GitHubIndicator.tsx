@@ -87,7 +87,7 @@ export function GitHubIndicator() {
             {status.stats && (
               <div className="flex items-center gap-2 ml-2 pl-2 border-l border-purple-500/20">
                 <span className="text-[10px] text-purple-400/60">
-                  {status.stats.publicRepos + (status.stats.privateRepos || 0)} repos
+                  {(status.stats.publicRepos ?? 0) + (status.stats.privateRepos || 0)} repos
                 </span>
               </div>
             )}

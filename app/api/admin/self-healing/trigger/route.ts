@@ -178,7 +178,7 @@ export async function POST(req: NextRequest) {
 
     const { actionId, actionType } = await req.json();
 
-    console.log(`[Self-Healing] Triggered by admin: ${user.email}`);
+    console.log(`[Self-Healing] Triggered by admin: ${user?.email ?? 'unknown'}`);
 
     // Get pending actions or specific action
     const actions = actionId 

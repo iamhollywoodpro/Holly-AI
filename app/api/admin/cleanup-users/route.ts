@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
 
     // Find or create Hollywood's legitimate account
     let hollywoodUser = allUsers.find(u => u.clerkUserId === clerkUserId);
-    
+
     if (!hollywoodUser) {
       console.log('📝 [CLEANUP] Creating legitimate Hollywood account');
       const newUser = await prisma.user.create({
@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
           fileUploads: true,
           googleDriveIntegrations: true,
         },
-      }) || newUser as any;
+      }) ?? newUser as any;
     } else {
       // Update email if wrong
       if (hollywoodUser.email !== primaryEmail) {
@@ -88,8 +88,12 @@ export async function POST(req: NextRequest) {
             fileUploads: true,
             googleDriveIntegrations: true,
           },
-        }) || hollywoodUser;
+        }) ?? hollywoodUser;
       }
+    }
+
+    if (!hollywoodUser) {
+      return NextResponse.json({ error: 'Failed to initialize Hollywood user' }, { status: 500 });
     }
 
     console.log('✅ [CLEANUP] Hollywood user:', hollywoodUser.id, hollywoodUser.email);

@@ -102,8 +102,8 @@ export async function exchangeCodeForTokens(
     refreshToken: tokens.refresh_token,
     expiryDate: tokens.expiry_date || Date.now() + 3600 * 1000,
     email: data.email!,
-    name: data.name,
-    picture: data.picture,
+    name: data.name ?? undefined,
+    picture: data.picture ?? undefined,
   };
 }
 
