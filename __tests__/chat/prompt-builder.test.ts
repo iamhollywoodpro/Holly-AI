@@ -271,15 +271,15 @@ describe('Chat System — Prompt Builder', () => {
   });
 
   describe('Creator protocol', () => {
-    it('should include creator protocol when isCreator is true', () => {
+    it('should include creator block when isCreator is true', () => {
       const prompt = buildPrompt(baseOpts({ isCreator: true, userName: 'Steve' }));
-      expect(prompt).toContain('CREATOR RECOGNITION');
+      expect(prompt).toContain('Your Creator, Steve');
       expect(prompt).toContain('Steve');
     });
 
     it('should NOT include creator block when isCreator is false', () => {
       const prompt = buildPrompt(baseOpts({ isCreator: false, userName: 'SomeUser' }));
-      expect(prompt).not.toContain('CREATOR RECOGNITION');
+      expect(prompt).not.toContain('Your Creator');
     });
   });
 
