@@ -13,6 +13,7 @@ import { detectAndTrackPatterns, generateProactiveInsights } from '@/lib/proacti
 import { detectKnowledgeGaps, createLearningGoalsFromGaps, extractKnowledgeFromConversation } from '@/lib/learning/autonomous-learning';
 import { learnCommunicationStyle } from '@/lib/personality/adaptive-personality';
 import { assessConversation } from '@/lib/growth/sovereign-growth';
+import { assessResponseQuality, storeQualityScores } from '@/lib/emotional/response-quality';
 
 let _lastResponseStart = 0;
 export function markResponseStart(): void { _lastResponseStart = Date.now(); }
@@ -198,6 +199,17 @@ export async function runBackgroundTasks(opts: {
     responseTimeMs: _lastResponseStart > 0 ? Date.now() - _lastResponseStart : 0,
     hadFeedback: false,
   }).catch(err => bgLog('self-assessment', err));
+
+  // Phase E4: Response Quality Assessment — measures empathy, warmth, relevance, tone match
+  (async () => {
+    try {
+      const scores = await assessResponseQuality(latestUserMessage, fullResponse);
+      await storeQualityScores(dbUserId, scores, conversationId);
+      console.log(`[ResponseQuality] Scores: empathy=${scores.empathy} warmth=${scores.warmth} relevance=${scores.relevance} tone=${scores.toneMatch} overall=${scores.overall}`);
+    } catch (err) {
+      bgLog('response-quality', err);
+    }
+  })();
 
   // Emotional state persistence (Phase 4.1)
   // Detect user's emotion from their message and save as baseline
