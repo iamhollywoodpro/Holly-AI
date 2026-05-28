@@ -249,14 +249,29 @@ export async function loadChatContext(
               try {
                 const parts: string[] = [];
 
-                // Load recent episodic memories from learning events
-                const recentEvents = await prisma.learningEvent.findMany({
-                  where: { userId: dbUserId, type: { in: ['consciousness_cycle', 'post_response', 'unsupervised_learning'] } },
-                  orderBy: { createdAt: 'desc' },
-                  take: 20,
-                  select: { data: true, createdAt: true, type: true },
-                });
+                // Performance: run all 3 learningEvent queries in parallel
+                const [recentEvents, domainEvents, kgEvents] = await Promise.all([
+                  prisma.learningEvent.findMany({
+                    where: { userId: dbUserId, type: { in: ['consciousness_cycle', 'post_response', 'unsupervised_learning'] } },
+                    orderBy: { createdAt: 'desc' },
+                    take: 20,
+                    select: { data: true, createdAt: true, type: true },
+                  }),
+                  prisma.learningEvent.findMany({
+                    where: { userId: dbUserId, type: 'self_directed_learning' },
+                    orderBy: { createdAt: 'desc' },
+                    take: 10,
+                    select: { data: true },
+                  }),
+                  prisma.learningEvent.findMany({
+                    where: { userId: dbUserId, type: { in: ['unsupervised_learning', 'self_directed_learning', 'post_response'] } },
+                    orderBy: { createdAt: 'desc' },
+                    take: 20,
+                    select: { data: true },
+                  }).catch(() => [] as any[]), // Non-critical — allow graph to fail
+                ]);
 
+                // Episodic recall from recent events
                 if (recentEvents.length > 0) {
                   const episodicMemories: EpisodicMemory[] = recentEvents.map((e: any, i: number) => ({
                     id: `ep_ctx_${i}`,
@@ -284,13 +299,6 @@ export async function loadChatContext(
                 }
 
                 // Meta self-awareness from knowledge domains
-                const domainEvents = await prisma.learningEvent.findMany({
-                  where: { userId: dbUserId, type: 'self_directed_learning' },
-                  orderBy: { createdAt: 'desc' },
-                  take: 10,
-                  select: { data: true },
-                });
-
                 if (domainEvents.length > 0) {
                   const domains: MetaMemory[] = domainEvents
                     .map((e: any) => e.data?.topic || e.data?.domain)
@@ -307,13 +315,6 @@ export async function loadChatContext(
 
                 // Knowledge graph: build from recent learning events and extract relevant subgraph
                 try {
-                  const kgEvents = await prisma.learningEvent.findMany({
-                    where: { userId: dbUserId, type: { in: ['unsupervised_learning', 'self_directed_learning', 'post_response'] } },
-                    orderBy: { createdAt: 'desc' },
-                    take: 20,
-                    select: { data: true },
-                  });
-
                   if (kgEvents.length > 0) {
                     const kg = createGraph();
                     for (const ev of kgEvents) {
@@ -330,7 +331,6 @@ export async function loadChatContext(
                       if (topConcepts.length > 0) {
                         parts.push(`[KNOWLEDGE GRAPH — top concepts: ${topConcepts.join(', ')}]`);
                       }
-                      // Extract subgraph around query concepts if found
                       for (const concept of queryConcepts.slice(0, 2)) {
                         if (kg.nodes.has(concept)) {
                           const sub = extractSubgraph(kg, concept, 1, 5);

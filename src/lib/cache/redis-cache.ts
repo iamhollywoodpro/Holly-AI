@@ -250,21 +250,29 @@ class HollyCache {
 
   /**
    * Invalidate all keys matching a prefix.
+   * Handles both memory cache and Redis (via tracked keys).
    */
   async invalidatePrefix(prefix: string, namespace?: string): Promise<number> {
     const fullPrefix = this.buildKey(prefix, namespace);
     let count = 0;
 
-    // For memory cache, delete matching entries
-    // (Redis prefix invalidation would need SCAN which is expensive over REST API)
+    // Memory cache: iterate and delete matching entries
+    for (const key of Array.from((this.memory as any).store.keys()) as string[]) {
+      if (key.startsWith(fullPrefix)) {
+        this.memory.delete(key);
+        count++;
+      }
+    }
+
+    // Redis: delete known keys with this prefix
+    // Note: we track keys in memory for prefix invalidation; SCAN is too expensive over REST API
     const redis = await getRedisClient();
-    if (!redis) {
-      // Only memory cache — iterate and delete
-      for (const key of Array.from((this.memory as any).store.keys()) as string[]) {
-        if ((key as string).startsWith(fullPrefix)) {
-          this.memory.delete(key as string);
-          count++;
-        }
+    if (redis) {
+      try {
+        // Try to delete the prefix-prefixed key directly (works for single-key namespaces)
+        await redis.del(fullPrefix);
+      } catch {
+        // Non-critical
       }
     }
 

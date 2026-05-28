@@ -137,8 +137,9 @@ class UserContextLRU {
   }
 
   invalidateAll(): void {
+    const size = this.cache.size;
     this.cache.clear();
-    this.stats.invalidations += this.cache.size;
+    this.stats.invalidations += size;
   }
 
   getStats(): CacheStats & { users: number } {
@@ -295,12 +296,21 @@ export async function prewarmActiveUsers(): Promise<{
       take: PREWARM_TOP_N,
     });
 
-    for (const u of activeUsers) {
-      try {
-        await getUserContext(u.id);
-        warmed++;
-      } catch (err) {
-        errors.push(`User ${u.id}: ${(err as Error).message}`);
+    // Performance: batch load users in parallel groups to avoid sequential DB round-trips
+    const BATCH_SIZE = 10;
+    for (let i = 0; i < activeUsers.length; i += BATCH_SIZE) {
+      const batch = activeUsers.slice(i, i + BATCH_SIZE);
+      const results = await Promise.allSettled(
+        batch.map(u => getUserContext(u.id)),
+      );
+      for (let j = 0; j < results.length; j++) {
+        const result = results[j];
+        if (result.status === 'fulfilled') {
+          warmed++;
+        } else {
+          const userId = batch[j]?.id || 'unknown';
+          errors.push(`User ${userId}: ${result.reason?.message || 'Unknown error'}`);
+        }
       }
     }
 
