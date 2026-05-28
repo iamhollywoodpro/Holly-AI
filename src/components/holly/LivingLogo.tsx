@@ -14,7 +14,9 @@ export type HollyEmotion =
   | 'researching'
   | 'generating'
   | 'dreaming'
-  | 'idle';
+  | 'idle'
+  | 'intimate'
+  | 'passionate';
 
 interface EmotionProfile {
   primaryColor: string;
@@ -36,6 +38,8 @@ const EMOTION_PROFILES: Record<HollyEmotion, EmotionProfile> = {
   generating:    { primaryColor: '#D4A853', secondaryColor: '#B84052', glowColor: 'rgba(212,168,83,0.5)',  bpm: 85,  scale: 1.05 },
   dreaming:      { primaryColor: '#D4A853', secondaryColor: '#0B0A08', glowColor: 'rgba(212,168,83,0.2)',  bpm: 40,  scale: 0.9 },
   idle:          { primaryColor: '#D4A853', secondaryColor: '#0B0A08', glowColor: 'rgba(212,168,83,0.15)', bpm: 50,  scale: 0.95 },
+  intimate:      { primaryColor: '#B84052', secondaryColor: '#F5F0E8', glowColor: 'rgba(184,64,82,0.45)',  bpm: 55,  scale: 1.0 },
+  passionate:    { primaryColor: '#B84052', secondaryColor: '#D4A853', glowColor: 'rgba(184,64,82,0.7)',   bpm: 88,  scale: 1.08 },
 };
 
 interface LivingLogoProps {

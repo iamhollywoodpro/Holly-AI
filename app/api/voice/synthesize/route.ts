@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { logger } from "@/lib/monitoring/logger";
+import { synthesizeWithCharacter, type VoiceCharacterInput } from "@/lib/voice/holly-voice-character";
+import type { HollyEmotion } from "@/components/holly/LivingLogo";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -8,12 +10,14 @@ export const maxDuration = 60;
 /**
  * POST /api/voice/synthesize
  *
- * HOLLY's Voice — VoxCPM2 (primary) + Kokoro (fallback)
+ * Holly's Voice Character Engine — NVIDIA Magpie (primary) → Kokoro (fallback)
  *
- * VoxCPM2 (OpenBMB):
- *   - 48kHz studio-quality synthesis
- *   - Emotion style tags, voice design
- *   - Self-hosted Docker on Oracle ARM
+ * Pipeline: Text + Emotion → Verbal Markers → Voice Style → TTS → Audio
+ *
+ * NVIDIA Magpie TTS Multilingual:
+ *   - Free API with emotional style control (Happy, Calm, Sad, Angry, Neutral)
+ *   - 5 English voices: Sofia (primary), Aria, Jason, Leo, John
+ *   - 22kHz audio, gRPC/REST streaming
  *
  * Kokoro-FastAPI (hexgrad/Kokoro-82M, Apache 2.0):
  *   - Ultra-low latency fallback (~300ms CPU)
@@ -305,11 +309,71 @@ export async function POST(req: NextRequest) {
       temperature = 1.0,
       voice,
       speed = 1.0,
+      // Voice Character Engine params
+      emotion,
+      previousEmotion,
+      blendRatio,
+      isGreeting,
+      isHumorResponse,
+      isProcessing,
     } = body;
 
     if (!text) {
       return NextResponse.json({ error: "Text is required" }, { status: 400 });
     }
+
+    // ── Voice Character Engine Path (emotion-aware) ──────────────────────────
+    //
+    // When an emotion is provided, route through the full character engine
+    // which handles: verbal markers → voice style mapping → NVIDIA Magpie → Kokoro fallback
+    const validEmotion = emotion as HollyEmotion | undefined;
+    if (validEmotion) {
+      const result = await synthesizeWithCharacter(
+        {
+          text,
+          emotion: validEmotion,
+          previousEmotion: previousEmotion as HollyEmotion | undefined,
+          blendRatio,
+          speed,
+          voice,
+          isGreeting,
+          isHumorResponse,
+          isProcessing,
+          userId,
+        },
+        // Inject Kokoro as fallback synthesizer
+        async (txt, v, s) => {
+          if (!KOKORO_TTS_URL) throw new Error("Kokoro not configured");
+          return generateWithKokoro(preprocessText(txt, true), v, s);
+        }
+      );
+
+      if (result.audio) {
+        const providerHeader = result.provider === "nvidia-magpie"
+          ? "nvidia-magpie"
+          : "kokoro";
+
+        return new NextResponse(result.audio as unknown as BodyInit, {
+          status: 200,
+          headers: {
+            "Content-Type":    result.contentType || "audio/wav",
+            "Content-Length":  result.audio.length.toString(),
+            "Cache-Control":   "private, max-age=3600",
+            "X-Voice-Provider": providerHeader,
+            "X-Voice-Emotion":  validEmotion,
+            "X-Voice-Style":    result.prosody.style,
+            "X-Voice-Speed":   result.prosody.speed.toString(),
+            "X-Voice-Markers": result.markersApplied.join(","),
+          },
+        });
+      }
+
+      // No audio from character engine — fall through to legacy path
+    }
+
+    // ── Legacy Path (no emotion specified) ───────────────────────────────────
+    //
+    // Maintains backward compatibility for callers that don't send emotion.
 
     if (!VOXCPM2_TTS_URL && !KOKORO_TTS_URL) {
       return NextResponse.json(
@@ -317,14 +381,14 @@ export async function POST(req: NextRequest) {
           error: "Voice not available",
           detail:
             "No TTS provider configured. " +
-            "Start VoxCPM2: docker run -p 7860:7860 openbmb/voxcpm2 " +
-            "then set VOXCPM2_TTS_URL=http://localhost:7860 in your environment.",
+            "Set NVIDIA_API_KEY for Magpie TTS or " +
+            "KOKORO_TTS_URL for Kokoro fallback.",
         },
         { status: 503 }
       );
     }
 
-    logger.info("Voice synthesis requested", {
+    logger.info("Voice synthesis requested (legacy path)", {
       userId,
       textLength: text.length,
       primaryProvider: KOKORO_TTS_URL ? "kokoro" : "voxcpm2",
@@ -419,14 +483,26 @@ export async function POST(req: NextRequest) {
 
 export async function GET() {
   return NextResponse.json({
-    service: "HOLLY Voice Synthesis",
-    voice_identity: "HOLLY — AI character voice",
+    service: "Holly Voice Character Engine",
+    voice_identity: "Holly — AI partner with emotional voice",
+    engine: {
+      name: "Voice Character Engine",
+      description: "Text + Emotion → Verbal Markers → Voice Style → TTS → Audio",
+      features: [
+        "11 emotion-to-voice mappings with noticeable vocal shifts",
+        "Verbal personality markers (laughs, hmms, sighs, natural fillers)",
+        "Emotion blending for smooth transitions",
+        "Provider-agnostic architecture (swap TTS without rework)",
+      ],
+    },
     providers: {
       primary: {
-        name:        "VoxCPM2",
-        description: "48kHz studio-quality synthesis with emotion style tags",
-        configured:  !!VOXCPM2_TTS_URL,
-        url:         VOXCPM2_TTS_URL || "not set",
+        name:        "NVIDIA Magpie TTS Multilingual",
+        description: "Emotion-aware TTS with 5 styles and 5 English voices",
+        configured:  !!(process.env.NVIDIA_API_KEY),
+        voices:      ["Sofia", "Aria", "Jason", "Leo", "John"],
+        styles:      ["Happy", "Calm", "Sad", "Angry", "Neutral"],
+        cost:        "Free tier (1,000–5,000 credits, 40 req/min)",
       },
       fallback: {
         name:        "Kokoro-FastAPI",
@@ -443,6 +519,12 @@ export async function GET() {
         ],
         active_voice: KOKORO_VOICE,
       },
+      legacy: {
+        name:        "VoxCPM2",
+        description: "48kHz studio-quality synthesis (GPU-based, Modal credits)",
+        configured:  !!VOXCPM2_TTS_URL,
+        url:         VOXCPM2_TTS_URL || "not set",
+      },
     },
     text_preprocessing: {
       description: "Comprehensive TTS text cleaning for natural speech",
@@ -454,8 +536,16 @@ export async function GET() {
         "Emoji removal (all Unicode emoji ranges)",
         "Newline preservation (double newlines → sentence pauses, single → continuation)",
         "Code block replacement (→ brief pause instead of reading code)",
-        "URL/domain normalization",
+        "Verbal marker injection (personality sounds based on emotion)",
       ],
+    },
+    api_params: {
+      emotion:   "HollyEmotion: focused | curious | creative | excited | contemplative | empathetic | analyzing | researching | generating | dreaming | idle",
+      previousEmotion: "HollyEmotion (optional, for blending)",
+      blendRatio: "0.0–1.0 (optional, 1.0 = fully current emotion)",
+      isGreeting: "boolean (optional, adds warm laugh)",
+      isHumorResponse: "boolean (optional, adds chuckle)",
+      isProcessing: "boolean (optional, adds thoughtful hmm)",
     },
   });
 }

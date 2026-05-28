@@ -17,3 +17,4 @@ This directory contains records of major architectural decisions made in the Hol
 | ADR-011 | Visual Identity Engine | 2026-05-28 | accepted |
 | ADR-012 | Performance Parallelization | 2026-05-28 | accepted |
 | ADR-013 | Mobile App with Expo SDK 51 | 2026-05-28 | accepted |
+| ADR-014 | Voice Character Engine with NVIDIA Magpie TTS | 2026-05-28 | accepted |

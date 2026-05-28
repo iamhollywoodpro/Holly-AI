@@ -34,6 +34,8 @@ const STATE_LABELS: Record<string, string> = {
   generating: 'generating',
   dreaming: 'dreaming',
   idle: 'awake',
+  intimate: 'close',
+  passionate: 'yearning',
 };
 
 /**
