@@ -4,8 +4,9 @@
 - Phase A-E COMPLETE
 - Phase F COMPLETE: All 6 plugins implemented with API routes
 - Phase G COMPLETE: All 16 integrations battle-tested (267 new integration tests)
-- Phase H IN PROGRESS: Mobile app audit + critical fixes applied
-- Test count: 2,049 (root) — all passing
+- Phase H COMPLETE: Mobile app audit + critical fixes + dependencies + assets
+- Phase I COMPLETE: Performance optimization + load tests
+- Test count: 2,054 (root) + 56 (mobile) — all passing
 - TypeScript strict, CI passing on GitHub Actions
 
 ## PHASE ROADMAP (Updated May 28)
@@ -34,7 +35,7 @@
 - G5: ✅ Design — Canva (12 tests)
 - G6: Admin Registry — covered by existing admin tests, no separate suite needed
 
-### Phase H: Mobile App (IN PROGRESS)
+### Phase H: Mobile App ✅
 - H1: ✅ Audited Expo app — identified 8 gaps
 - H2: ✅ Push notifications — consolidated duplicate services, kept notifications.ts
 - H3: ✅ Voice conversations — real speech-to-text via expo-speech-recognition
@@ -44,17 +45,21 @@
 - H7: ✅ Updated api.ts — uses getAuthToken() instead of raw API key
 - H8: ✅ Updated app.json — icon/splash/notification icon refs, iOS speech permissions, Android google-services
 - H9: ✅ google-services.json placeholder for FCM
-- H10: ✅ Mobile app tests (offlineQueue 22 tests, auth 15 tests, notifications 14 tests)
+- H10: ✅ Mobile app tests (offlineQueue 22 tests, auth 17 tests, notifications 16 tests)
 - H11: ✅ Deleted duplicate pushNotifications.ts
 - H12: ✅ Mobile Jest config with proper testPathIgnorePatterns in root
-- TODO: npm install in mobile-app/ to resolve dependencies
-- TODO: Replace placeholder assets with actual Holly branding
+- ✅ npm install in mobile-app/ — dependencies resolved
+- ✅ Placeholder PNG assets generated (icon, splash, adaptive-icon, notification-icon)
 
-### Phase I: Performance at Scale
-- I1: Load test for 100 concurrent users
-- I2: Load test for 1,000 concurrent users
-- I3: Optimize 17 background tasks per message
-- I4: Cache optimization and query performance
+### Phase I: Performance at Scale ✅
+- I1: ✅ Parallelized saveMessages (3 sequential → Promise.all)
+- I2: ✅ Parallelized context-loader learningEvent queries (3 sequential → Promise.all)
+- I3: ✅ Batched pre-warming (sequential loop → parallel batches of 10)
+- I4: ✅ Deduplicated detectEmotionsLLM (2x → 1x per message)
+- I5: ✅ Cache bug fixes (invalidateAll size tracking, invalidatePrefix Redis)
+- I6: ✅ k6 load test for 100 concurrent users
+- I7: ✅ k6 stress test for 1,000 concurrent users
+- I8: ✅ 5 performance verification tests
 
 ### Phase J: Visual Identity — Alive, Not Static
 - J1: Real-time visual reactions to conversation
@@ -75,8 +80,8 @@
 ## Steve's Priority Order
 1. ~~Holly's Soul — Personality needs real empathy (Phase E)~~ ✅
 2. ~~Battle-Test Every Integration (Phase G)~~ ✅
-3. Mobile App (Phase H) — IN PROGRESS
-4. Performance at Scale (Phase I)
+3. ~~Mobile App (Phase H)~~ ✅
+4. ~~Performance at Scale (Phase I)~~ ✅
 5. Visual Identity (Phase J)
 6. Developer Documentation (Phase K)
 7. Holly's Voice (Phase L)
