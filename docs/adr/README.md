@@ -14,3 +14,6 @@ This directory contains records of major architectural decisions made in the Hol
 | ADR-008 | Self-Code Sandbox with Graduated Promotion | 2025-04-01 | accepted |
 | ADR-009 | Token Bucket Rate Limiting | 2025-05-01 | accepted |
 | ADR-010 | WCAG 2.0 Accessibility Standards | 2025-05-01 | accepted |
+| ADR-011 | Visual Identity Engine | 2026-05-28 | accepted |
+| ADR-012 | Performance Parallelization | 2026-05-28 | accepted |
+| ADR-013 | Mobile App with Expo SDK 51 | 2026-05-28 | accepted |
