@@ -25,23 +25,27 @@ export async function saveMessages(
   fullResponse: string,
 ): Promise<void> {
   try {
-    await prisma.conversation.upsert({
-      where: { id: conversationId },
-      create: {
-        id: conversationId,
-        userId: dbUserId,
-        title: null,
-        messageCount: 2,
-        lastMessagePreview: fullResponse.substring(0, 100) + (fullResponse.length > 100 ? '...' : ''),
-      },
-      update: {
-        messageCount: { increment: 2 },
-        lastMessagePreview: fullResponse.substring(0, 100) + (fullResponse.length > 100 ? '...' : ''),
-        updatedAt: new Date(),
-      },
-    });
-    await prisma.message.create({ data: { conversationId, role: 'user', content: latestUserMessage, userId: dbUserId } });
-    await prisma.message.create({ data: { conversationId, role: 'assistant', content: fullResponse, userId: dbUserId } });
+    // Performance: run upsert and both message creates in parallel
+    // The upsert ensures the conversation exists; message creates are independent
+    await Promise.all([
+      prisma.conversation.upsert({
+        where: { id: conversationId },
+        create: {
+          id: conversationId,
+          userId: dbUserId,
+          title: null,
+          messageCount: 2,
+          lastMessagePreview: fullResponse.substring(0, 100) + (fullResponse.length > 100 ? '...' : ''),
+        },
+        update: {
+          messageCount: { increment: 2 },
+          lastMessagePreview: fullResponse.substring(0, 100) + (fullResponse.length > 100 ? '...' : ''),
+          updatedAt: new Date(),
+        },
+      }),
+      prisma.message.create({ data: { conversationId, role: 'user', content: latestUserMessage, userId: dbUserId } }),
+      prisma.message.create({ data: { conversationId, role: 'assistant', content: fullResponse, userId: dbUserId } }),
+    ]);
   } catch (dbErr) {
     console.error('[Chat API] ⚠️ DB save failed:', dbErr);
   }
@@ -211,17 +215,22 @@ export async function runBackgroundTasks(opts: {
     }
   })();
 
-  // Emotional state persistence (Phase 4.1)
-  // Detect user's emotion from their message and save as baseline
+  // Emotional state persistence (Phase 4.1) + Visual Identity Evolution (Phase 25)
+  // Performance: share one detectEmotionsLLM call between both tasks (was called twice)
+  const emotionPromise = detectEmotionsLLM(latestUserMessage).catch(err => {
+    bgLog('emotion-detection', err);
+    return null;
+  });
+
+  // Emotional state persistence
   (async () => {
     try {
-      const emotionResult = await detectEmotionsLLM(latestUserMessage);
-      
-      // Determine emotional arc (simple heuristic based on valence trend)
-      // In a real implementation, you'd compare with previous sessions
-      const emotionalArc = emotionResult.valence > 0.3 ? 'improving' : 
+      const emotionResult = await emotionPromise;
+      if (!emotionResult) return;
+
+      const emotionalArc = emotionResult.valence > 0.3 ? 'improving' :
                           emotionResult.valence < -0.3 ? 'declining' : 'stable';
-      
+
       await persistEmotionalBaseline(dbUserId, {
         primaryMood: emotionResult.primary,
         valence: emotionResult.valence,
@@ -230,39 +239,31 @@ export async function runBackgroundTasks(opts: {
         topic: currentTopics.slice(0, 3).join(', ') || 'general',
         emotionalArc,
       });
-      
+
       console.log(`[EmotionalContinuity] Saved emotional state: ${emotionResult.primary} (valence: ${emotionResult.valence.toFixed(2)})`);
     } catch (err) {
       bgLog('emotional-persistence', err);
     }
   })();
 
-  // Visual Identity Evolution (Phase 25)
+  // Visual Identity Evolution (Phase 25) — reuses shared emotion result
   (async () => {
     try {
       const { evolveVisualIdentity } = await import('@/lib/visual/visual-identity-engine');
-      
-      // Get relationship profile for depth/trust context
-      const relProfile = await prisma.relationshipProfile.findUnique({
-        where: { userId: dbUserId },
-        select: { trustScore: true, depth: true, communicationStyle: true },
-      });
 
-      // Detect current emotion for color mapping
-      let emotion: string | undefined;
-      let arousal: number | undefined;
-      let valence: number | undefined;
-      try {
-        const emotionResult = await detectEmotionsLLM(latestUserMessage);
-        emotion = emotionResult.primary;
-        arousal = emotionResult.arousal;
-        valence = emotionResult.valence;
-      } catch {}
-      
+      // Parallel: load relationship profile + shared emotion detection
+      const [relProfile, emotionResult] = await Promise.all([
+        prisma.relationshipProfile.findUnique({
+          where: { userId: dbUserId },
+          select: { trustScore: true, depth: true, communicationStyle: true },
+        }).catch(() => null),
+        emotionPromise,
+      ]);
+
       await evolveVisualIdentity(dbUserId, {
-        dominantEmotion: emotion,
-        energyLevel: arousal,
-        warmthLevel: valence !== undefined ? (valence + 1) / 2 : undefined,
+        dominantEmotion: emotionResult?.primary,
+        energyLevel: emotionResult?.arousal,
+        warmthLevel: emotionResult?.valence !== undefined ? (emotionResult.valence + 1) / 2 : undefined,
         relationshipDepth: relProfile?.depth ? relProfile.depth / 10 : undefined,
         trustScore: relProfile?.trustScore ?? undefined,
       });
