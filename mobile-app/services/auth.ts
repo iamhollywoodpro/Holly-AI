@@ -13,6 +13,16 @@
 import { useSettingsStore } from '../store/settingsStore';
 import { resetApiClient } from './api';
 
+/**
+ * Create an AbortSignal with a timeout.
+ * Works across all TypeScript targets (React Native, Node, browser).
+ */
+function timeoutSignal(ms: number): AbortSignal {
+  const controller = new AbortController();
+  setTimeout(() => controller.abort(), ms);
+  return controller.signal;
+}
+
 // ─── Clerk Token Provider ────────────────────────────────────────────────────
 
 // This will be set from the React tree via setClerkTokenGetter()
@@ -74,7 +84,7 @@ export async function initializeAuth(): Promise<void> {
     const base = (serverUrl || 'https://holly.nexamusicgroup.com').replace(/\/+$/, '');
     const resp = await fetch(`${base}/api/health`, {
       method: 'GET',
-      signal: AbortSignal.timeout(5000),
+      signal: timeoutSignal(5000),
     });
 
     if (resp.ok) {
@@ -111,7 +121,7 @@ export async function validateApiKey(key: string): Promise<boolean> {
     const resp = await fetch(`${base}/api/health`, {
       method: 'GET',
       headers: key ? { Authorization: `Bearer ${key}` } : {},
-      signal: AbortSignal.timeout(8000),
+      signal: timeoutSignal(8000),
     });
     return resp.ok;
   } catch {
