@@ -25,6 +25,8 @@ const STATE_LABELS: Record<string, string> = {
   generating: 'generating',
   dreaming: 'dreaming',
   idle: 'awake',
+  intimate: 'close',
+  passionate: 'yearning',
 };
 
 // The Living Palette: Semantic tokens mapping emotions to Gold, Crimson, Ivory
@@ -57,6 +59,8 @@ const ORB_PROFILES: Record<HollyEmotion, OrbProfile> = {
   researching:   { primary: COLORS.Gold, secondary: COLORS.Void, glow: 'rgba(212,168,83,0.4)', bpm: 68, scale: 1.0 },
   generating:    { primary: COLORS.Crimson, secondary: COLORS.Gold, glow: 'rgba(184,64,82,0.5)', bpm: 85, scale: 1.05 },
   dreaming:      { primary: COLORS.Gold, secondary: COLORS.Void, glow: 'rgba(212,168,83,0.15)', bpm: 40, scale: 0.9 },
+  intimate:      { primary: COLORS.Crimson, secondary: COLORS.Ivory, glow: 'rgba(184,64,82,0.45)', bpm: 55, scale: 1.0 },
+  passionate:    { primary: COLORS.Crimson, secondary: COLORS.Gold, glow: 'rgba(184,64,82,0.7)', bpm: 88, scale: 1.08 },
 };
 
 export function HollyOrb({

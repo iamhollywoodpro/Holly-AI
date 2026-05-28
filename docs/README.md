@@ -16,7 +16,7 @@
 
 ### Architecture Decision Records
 
-[docs/adr/](./adr/) — 13 records of major architectural decisions:
+[docs/adr/](./adr/) — 14 records of major architectural decisions:
 
 | # | Decision | Date |
 |---|----------|------|
@@ -33,6 +33,7 @@
 | ADR-011 | Visual Identity Engine | 2026-05-28 |
 | ADR-012 | Performance Parallelization | 2026-05-28 |
 | ADR-013 | Mobile App with Expo SDK 51 | 2026-05-28 |
+| ADR-014 | Voice Character Engine with NVIDIA Magpie TTS | 2026-05-28 |
 
 ---
 
