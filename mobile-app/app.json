@@ -7,17 +7,29 @@
     "scheme": "holly-ai",
     "userInterfaceStyle": "dark",
     "backgroundColor": "#0a060e",
+    "icon": "./assets/icon.png",
     "splash": {
+      "image": "./assets/splash.png",
       "backgroundColor": "#0a060e",
       "resizeMode": "contain"
+    },
+    "notification": {
+      "icon": "./assets/notification-icon.png",
+      "color": "#22d3ee",
+      "iosDisplayInForeground": true
     },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.nexamusicgroup.holly",
-      "buildNumber": "1"
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "Holly needs microphone access for voice conversations.",
+        "NSSpeechRecognitionUsageDescription": "Holly needs speech recognition to understand your voice messages."
+      }
     },
     "android": {
       "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0a060e"
       },
       "package": "com.nexamusicgroup.holly",
@@ -26,14 +38,23 @@
         "CAMERA",
         "RECORD_AUDIO",
         "NOTIFICATIONS"
-      ]
+      ],
+      "googleServicesFile": "./google-services.json"
     },
     "plugins": [
       "expo-router",
       [
         "expo-notifications",
         {
+          "icon": "./assets/notification-icon.png",
           "color": "#22d3ee"
+        }
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Allow Holly to access your microphone for voice conversations.",
+          "speechRecognitionPermission": "Allow Holly to use speech recognition to understand you."
         }
       ]
     ]

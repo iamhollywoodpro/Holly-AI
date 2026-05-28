@@ -1,30 +1,82 @@
+/**
+ * Holly AI — Authentication Service
+ *
+ * Real Clerk Expo integration using useAuth() for token management.
+ * Falls back to API key mode when Clerk is not configured.
+ *
+ * Usage:
+ *   - Wrap your app in <ClerkProvider publishableKey="pk_...">
+ *   - Call getClerkToken() to get a JWT for API requests
+ *   - For API key mode (dev/legacy), set apiKey in settings
+ */
+
 import { useSettingsStore } from '../store/settingsStore';
 import { resetApiClient } from './api';
 
+// ─── Clerk Token Provider ────────────────────────────────────────────────────
+
+// This will be set from the React tree via setClerkTokenGetter()
+let _clerkTokenGetter: (() => Promise<string | null>) | null = null;
+
+/**
+ * Register the Clerk token getter from the React component tree.
+ * Called once from the root layout after ClerkProvider is mounted.
+ *
+ * Usage in your root layout:
+ *   const { getToken } = useAuth();
+ *   useEffect(() => { setClerkTokenGetter(getToken); }, [getToken]);
+ */
+export function setClerkTokenGetter(getter: (() => Promise<string | null>) | null): void {
+  _clerkTokenGetter = getter;
+}
+
+/**
+ * Get an authentication token for API requests.
+ *
+ * Priority:
+ * 1. Clerk JWT (if token getter is registered → production)
+ * 2. API key from settings (if set → dev/legacy)
+ * 3. null (unauthenticated)
+ */
+export async function getAuthToken(): Promise<string | null> {
+  // Try Clerk first
+  if (_clerkTokenGetter) {
+    try {
+      const token = await _clerkTokenGetter();
+      if (token) return token;
+    } catch (err) {
+      console.warn('[Auth] Clerk token error:', err);
+    }
+  }
+
+  // Fallback to API key from settings
+  const { apiKey } = useSettingsStore.getState();
+  return apiKey || null;
+}
+
+/**
+ * Backwards-compatible alias for getAuthToken.
+ * Existing code that calls getClerkToken() continues to work.
+ */
+export const getClerkToken = getAuthToken;
+
+// ─── Auth Lifecycle ──────────────────────────────────────────────────────────
+
 /**
  * Initialize authentication for the mobile app.
- * 
- * For Clerk-based auth:
- * - The mobile app sends requests with a Bearer token
- * - Tokens are obtained from Holly's web app or API key
- * - Set the API key in Settings screen
- * 
- * For development:
- * - Set server URL to your local/dev instance
- * - Use the API key from your Holly settings page
+ *
+ * Verifies server reachability and logs connection status.
  */
-
 export async function initializeAuth(): Promise<void> {
   const { serverUrl } = useSettingsStore.getState();
-  
-  // Verify server is reachable
+
   try {
     const base = (serverUrl || 'https://holly.nexamusicgroup.com').replace(/\/+$/, '');
     const resp = await fetch(`${base}/api/health`, {
       method: 'GET',
       signal: AbortSignal.timeout(5000),
     });
-    
+
     if (resp.ok) {
       console.log('[Auth] Server reachable:', base);
     } else {
@@ -36,36 +88,25 @@ export async function initializeAuth(): Promise<void> {
 }
 
 /**
- * Get a session token from Clerk.
- * This is used when the mobile app authenticates via Clerk.
- */
-export async function getClerkToken(): Promise<string | null> {
-  // In a production mobile app, you would use:
-  // import * as Clerk from '@clerk/clerk-expo';
-  // const { getToken } = Clerk.useAuth();
-  // return await getToken();
-  //
-  // For now, we use the API key from settings as the auth mechanism.
-  const { apiKey } = useSettingsStore.getState();
-  return apiKey || null;
-}
-
-/**
  * Sign out and clear auth state.
+ * Clears the API key from settings and resets the API client.
+ * Clerk sign-out should be called separately via useAuth().signOut().
  */
 export async function signOut(): Promise<void> {
   useSettingsStore.getState().setApiKey('');
+  _clerkTokenGetter = null;
   resetApiClient();
   console.log('[Auth] Signed out');
 }
 
 /**
  * Validate an API key against the server.
+ * Used in settings screen to verify the key works.
  */
 export async function validateApiKey(key: string): Promise<boolean> {
   const { serverUrl } = useSettingsStore.getState();
   const base = (serverUrl || 'https://holly.nexamusicgroup.com').replace(/\/+$/, '');
-  
+
   try {
     const resp = await fetch(`${base}/api/health`, {
       method: 'GET',

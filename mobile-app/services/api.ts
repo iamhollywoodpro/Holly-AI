@@ -1,10 +1,11 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import { useSettingsStore } from '../store/settingsStore';
+import { getAuthToken } from './auth';
 
 const DEFAULT_BASE_URL = 'https://holly.nexamusicgroup.com';
 
 function createApiClient(): AxiosInstance {
-  const { serverUrl, apiKey } = useSettingsStore.getState();
+  const { serverUrl } = useSettingsStore.getState();
   const base = (serverUrl || DEFAULT_BASE_URL).replace(/\/+$/, '');
 
   const client = axios.create({
@@ -16,10 +17,11 @@ function createApiClient(): AxiosInstance {
     },
   });
 
-  client.interceptors.request.use((config) => {
-    const { apiKey: key } = useSettingsStore.getState();
-    if (key) {
-      config.headers.Authorization = `Bearer ${key}`;
+  // Use real Clerk token or API key for auth
+  client.interceptors.request.use(async (config) => {
+    const token = await getAuthToken();
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   });
@@ -97,15 +99,17 @@ export async function streamChatMessage(
   onChunk: (text: string) => void,
   options?: { model?: string; temperature?: number },
 ): Promise<string> {
-  const { serverUrl, apiKey } = useSettingsStore.getState();
+  const { serverUrl } = useSettingsStore.getState();
   const base = (serverUrl || DEFAULT_BASE_URL).replace(/\/+$/, '');
+
+  const token = await getAuthToken();
 
     const response = await fetch(`${base}/api/chat`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Accept: 'text/event-stream',
-      ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     body: JSON.stringify({
       messages,
