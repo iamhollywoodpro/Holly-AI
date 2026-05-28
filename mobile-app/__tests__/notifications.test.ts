@@ -5,11 +5,9 @@
  * Covers: registration, listeners, local scheduling, token management.
  */
 
-// Mock expo-device
-jest.mock('expo-device', () => ({
-  isDevice: true,
-  modelName: 'Test Device',
-}));
+// Mock expo-device — use a mutable object so tests can override isDevice
+const deviceMock = { isDevice: true, modelName: 'Test Device' };
+jest.mock('expo-device', () => deviceMock);
 
 // Mock expo-notifications
 const mockGetPermissions = jest.fn();
@@ -70,14 +68,26 @@ beforeEach(() => {
 });
 
 describe('Notification Service', () => {
+  // IMPORTANT: Test ordering matters because module-level state (expoPushToken) persists.
+  // "getPushToken > should return null before registration" MUST run before any
+  // successful registerForPushNotifications() call.
+
+  describe('getPushToken', () => {
+    it('should return null before any registration', () => {
+      // This MUST be the first test — expoPushToken starts as null
+      const token = getPushToken();
+      expect(token).toBeNull();
+    });
+  });
+
   describe('registerForPushNotifications', () => {
     it('should return null on simulator (non-device)', async () => {
-      (Device as any).isDevice = false;
+      deviceMock.isDevice = false;
 
       const token = await registerForPushNotifications();
       expect(token).toBeNull();
 
-      (Device as any).isDevice = true;
+      deviceMock.isDevice = true;
     });
 
     it('should request permissions when not granted', async () => {
@@ -249,7 +259,7 @@ describe('Notification Service', () => {
     });
   });
 
-  describe('getPushToken', () => {
+  describe('getPushToken (after registration)', () => {
     it('should return stored push token after registration', async () => {
       mockGetPermissions.mockResolvedValueOnce({ status: 'granted' });
       mockGetExpoPushToken.mockResolvedValueOnce({
@@ -260,11 +270,6 @@ describe('Notification Service', () => {
 
       const token = getPushToken();
       expect(token).toBe('ExponentPushToken[token123]');
-    });
-
-    it('should return null before registration', () => {
-      const token = getPushToken();
-      expect(token).toBeNull();
     });
   });
 
