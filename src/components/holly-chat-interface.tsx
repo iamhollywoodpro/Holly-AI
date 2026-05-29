@@ -54,6 +54,7 @@ import { useNotifications } from "../lib/notifications/notification-polling";
 import { useVoiceLoop } from '../lib/voice/use-voice-loop';
 import { WaveformVisualizer } from './holly2/WaveformVisualizer';
 import { HollyOrb } from './holly/HollyOrb';
+import { HollyAvatar } from './holly/HollyAvatar';
 import { useHollyEmotion } from './holly/HollyEmotionContext';
 import type { HollyEmotion } from './holly/LivingLogo';
 import { LivingLogo } from './holly/LivingLogo';
@@ -2931,12 +2932,11 @@ export default function HollyChatInterface() {
                   <div className="absolute inset-0 rounded-full border border-holly-gold/10 scale-[1.3] animate-pulse" />
                   <div className="p-1 rounded-full bg-gradient-to-b from-holly-gold/10 to-transparent shadow-2xl relative">
                     <div className="sdi-scanline rounded-full" />
-                    <div className="bg-holly-void rounded-full p-4 sm:p-8 shadow-inner border border-holly-gold/5 group-hover:border-holly-gold/40 transition-colors duration-500">
-                      <HollyOrb
-                        emotion={emotion}
-                        size={70}
-                        showName={false}
-                        showState={false}
+                    <div className="bg-holly-void rounded-full p-3 sm:p-5 shadow-inner border border-holly-gold/5 group-hover:border-holly-gold/40 transition-colors duration-500">
+                      <HollyAvatar
+                        size={120}
+                        showGlow={true}
+                        showLabel={false}
                       />
                     </div>
                   </div>

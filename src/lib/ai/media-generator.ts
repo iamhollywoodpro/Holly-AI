@@ -185,6 +185,18 @@ function hfInferenceUrl(model: string): string {
 const MODAL_IMAGE_URL = process.env.MODAL_IMAGE_URL || '';  // set after deploying image_generate.py
 const MODAL_VIDEO_URL = process.env.MODAL_VIDEO_URL || '';  // set after deploying video_generate.py
 
+// ─── Holly SDXL + LoRA endpoint (self-portraits with consistent face) ──────────
+// Deployed from services/modal-media/image_generate_sdxl.py
+// Only spins up when generating images OF Holly (h0lly trigger word detected)
+// Cost: ~$0.003/image | barely touches the $30/mo free budget
+const MODAL_SDXL_LORA_URL = process.env.MODAL_SDXL_LORA_URL || '';
+const HOLLY_TRIGGER_WORD = 'h0lly';
+
+/** Check if a prompt is requesting Holly's likeness */
+function isHollySelfPortrait(prompt: string): boolean {
+  return prompt.toLowerCase().includes(HOLLY_TRIGGER_WORD);
+}
+
 // ─── HuggingFace Inference Gate ─────────────────────────────────────────────
 //
 // HF_INFERENCE_ENABLED=false (DEFAULT — PERMANENT)
@@ -233,6 +245,51 @@ function checkHFCreditError(status: number, body: string, model: string): void {
   if (isCreditError) {
     throw new HFCreditExhaustedError(`${model} HTTP ${status}: ${body.slice(0, 120)}`);
   }
+}
+
+// ─── Image Provider 0a: Holly SDXL + LoRA (self-portraits with consistent face) ──
+// Deployed from services/modal-media/image_generate_sdxl.py
+// ONLY used when prompt contains 'h0lly' trigger word
+// Uses SDXL base + fine-tuned LoRA for face consistency
+
+async function generateWithHollyLoRA(req: ImageRequest): Promise<ImageResult> {
+  if (!MODAL_SDXL_LORA_URL) throw new Error('MODAL_SDXL_LORA_URL not configured');
+
+  const { width, height } = getDimensions(req.aspectRatio, { width: req.width, height: req.height });
+
+  const res = await fetch(MODAL_SDXL_LORA_URL.replace(/\/$/, ''), {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      prompt:               req.prompt,
+      width:                Math.min(width, 1024),
+      height:               Math.min(height, 1024),
+      num_inference_steps:  30,       // SDXL needs more steps than FLUX
+      lora_scale:           0.8,       // Strong LoRA influence for face consistency
+      seed:                 req.seed,
+      format:               'jpeg',
+    }),
+    signal: AbortSignal.timeout(120_000),  // SDXL is slower than FLUX
+  });
+
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Holly SDXL+LoRA error ${res.status}: ${body.slice(0, 200)}`);
+  }
+
+  const arrayBuf = await res.arrayBuffer();
+  const base64   = Buffer.from(arrayBuf).toString('base64');
+  const dataUri  = `data:image/jpeg;base64,${base64}`;
+
+  return {
+    url:      dataUri,
+    provider: 'modal-sdxl-lora',
+    model:    'SDXL + Holly LoRA',
+    width,
+    height,
+    cost:     0,
+    licence:  'Apache-2.0',
+  };
 }
 
 // ─── Image Provider 0: Modal.com (GPU-quality, uses $30/mo free credits) ──────
@@ -481,6 +538,17 @@ async function generateWithHuggingFace(req: ImageRequest): Promise<ImageResult> 
 export async function generateImage(req: ImageRequest): Promise<ImageResult> {
   const errors: string[] = [];
   let hfCreditExhausted = false;
+
+  // -1. Holly self-portrait: SDXL + LoRA (consistent face, only for h0lly trigger)
+  if (isHollySelfPortrait(req.prompt) && MODAL_SDXL_LORA_URL) {
+    try {
+      console.info('[MediaGen] Holly self-portrait detected — using SDXL + LoRA');
+      return await generateWithHollyLoRA(req);
+    } catch (e) {
+      errors.push(`Holly SDXL+LoRA: ${(e as Error).message}`);
+      console.warn('[MediaGen] Holly SDXL+LoRA failed, falling back:', (e as Error).message);
+    }
+  }
 
   // 0. Modal.com (GPU quality, $0.0001/img from $30/mo free credits)
   //    Only tried when MODAL_IMAGE_URL is configured in env
