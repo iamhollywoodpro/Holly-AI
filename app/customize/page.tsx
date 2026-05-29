@@ -2,22 +2,31 @@
 
 import { useState } from 'react';
 import { ArrowLeft, Palette, Layout, Type, Monitor } from 'lucide-react';
-import { cyberpunkTheme } from '@/styles/themes/cyberpunk';
 import Link from 'next/link';
 
+// Holly emerald/copper color palette
+const H = {
+  bg: { dark: '#0A0908', surface: '#141210', raised: '#1E1B18' },
+  text: { primary: '#F5F0E8', secondary: '#8C8476', tertiary: '#5C564D' },
+  primary: '#2D8B5E',
+  border: '#2A2520',
+  gradient: 'linear-gradient(135deg, #2D8B5E 0%, #C47A4A 100%)',
+  holographic: 'linear-gradient(135deg, #C47A4A 0%, #2D8B5E 50%, #D4A853 100%)',
+};
+
 export default function CustomizePage() {
-  const [primaryColor, setPrimaryColor] = useState('#00F0FF');
+  const [primaryColor, setPrimaryColor] = useState('#2D8B5E');
   const [fontSize, setFontSize] = useState('base');
   const [density, setDensity] = useState('comfortable');
   const [layout, setLayout] = useState('default');
 
   const colorPresets = [
-    { name: 'Cyan', value: '#00F0FF' },
-    { name: 'Purple', value: '#B026FF' },
-    { name: 'Pink', value: '#FF006E' },
-    { name: 'Green', value: '#10B981' },
-    { name: 'Blue', value: '#3B82F6' },
-    { name: 'Orange', value: '#F59E0B' },
+    { name: 'Emerald', value: '#2D8B5E' },
+    { name: 'Copper', value: '#C47A4A' },
+    { name: 'Gold', value: '#D4A853' },
+    { name: 'Jade', value: '#3DAF76' },
+    { name: 'Rose', value: '#B84052' },
+    { name: 'Sage', value: '#5C564D' },
   ];
 
   const fontSizes = [
@@ -42,14 +51,14 @@ export default function CustomizePage() {
   return (
     <div 
       className="min-h-screen p-6"
-      style={{ backgroundColor: cyberpunkTheme.colors.background.primary }}
+      style={{ backgroundColor: H.bg.dark }}
     >
       {/* Header */}
       <div className="max-w-4xl mx-auto mb-8">
         <Link
           href="/"
           className="inline-flex items-center gap-2 mb-4 hover:opacity-80 transition-opacity"
-          style={{ color: cyberpunkTheme.colors.text.secondary }}
+          style={{ color: H.text.secondary }}
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Chat
@@ -58,14 +67,14 @@ export default function CustomizePage() {
         <h1 
           className="text-4xl font-bold mb-2"
           style={{
-            background: cyberpunkTheme.colors.gradients.holographic,
+            background: H.holographic,
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
           }}
         >
           🎨 Customize HOLLY
         </h1>
-        <p style={{ color: cyberpunkTheme.colors.text.secondary }}>
+        <p style={{ color: H.text.secondary }}>
           Personalize your experience with custom themes and preferences
         </p>
       </div>
@@ -75,20 +84,20 @@ export default function CustomizePage() {
         <div 
           className="p-6 rounded-xl"
           style={{
-            backgroundColor: cyberpunkTheme.colors.background.secondary,
-            border: `1px solid ${cyberpunkTheme.colors.border.primary}`,
+            backgroundColor: H.bg.surface,
+            border: `1px solid ${H.border}`,
           }}
         >
           <h2 
             className="text-2xl font-bold mb-4 flex items-center gap-2"
-            style={{ color: cyberpunkTheme.colors.text.primary }}
+            style={{ color: H.text.primary }}
           >
             <Palette className="w-6 h-6" />
             Theme Colors
           </h2>
           <p 
             className="mb-6"
-            style={{ color: cyberpunkTheme.colors.text.secondary }}
+            style={{ color: H.text.secondary }}
           >
             Choose your primary accent color
           </p>
@@ -118,13 +127,13 @@ export default function CustomizePage() {
         <div 
           className="p-6 rounded-xl"
           style={{
-            backgroundColor: cyberpunkTheme.colors.background.secondary,
-            border: `1px solid ${cyberpunkTheme.colors.border.primary}`,
+            backgroundColor: H.bg.surface,
+            border: `1px solid ${H.border}`,
           }}
         >
           <h2 
             className="text-2xl font-bold mb-4 flex items-center gap-2"
-            style={{ color: cyberpunkTheme.colors.text.primary }}
+            style={{ color: H.text.primary }}
           >
             <Type className="w-6 h-6" />
             Font Size
@@ -138,12 +147,12 @@ export default function CustomizePage() {
                 className="p-4 rounded-lg transition-all"
                 style={{
                   backgroundColor: fontSize === size.value 
-                    ? cyberpunkTheme.colors.background.primary
+                    ? H.bg.dark
                     : 'transparent',
                   border: `1px solid ${fontSize === size.value 
-                    ? cyberpunkTheme.colors.primary.cyan
-                    : cyberpunkTheme.colors.border.primary}`,
-                  color: cyberpunkTheme.colors.text.primary,
+                    ? H.primary
+                    : H.border}`,
+                  color: H.text.primary,
                 }}
               >
                 {size.name}
@@ -156,13 +165,13 @@ export default function CustomizePage() {
         <div 
           className="p-6 rounded-xl"
           style={{
-            backgroundColor: cyberpunkTheme.colors.background.secondary,
-            border: `1px solid ${cyberpunkTheme.colors.border.primary}`,
+            backgroundColor: H.bg.surface,
+            border: `1px solid ${H.border}`,
           }}
         >
           <h2 
             className="text-2xl font-bold mb-4 flex items-center gap-2"
-            style={{ color: cyberpunkTheme.colors.text.primary }}
+            style={{ color: H.text.primary }}
           >
             <Layout className="w-6 h-6" />
             Density
@@ -176,19 +185,19 @@ export default function CustomizePage() {
                 className="w-full p-4 rounded-lg text-left transition-all"
                 style={{
                   backgroundColor: density === d.value 
-                    ? cyberpunkTheme.colors.background.primary
+                    ? H.bg.dark
                     : 'transparent',
                   border: `1px solid ${density === d.value 
-                    ? cyberpunkTheme.colors.primary.cyan
-                    : cyberpunkTheme.colors.border.primary}`,
+                    ? H.primary
+                    : H.border}`,
                 }}
               >
-                <div style={{ color: cyberpunkTheme.colors.text.primary }}>
+                <div style={{ color: H.text.primary }}>
                   {d.name}
                 </div>
                 <div 
                   className="text-sm"
-                  style={{ color: cyberpunkTheme.colors.text.tertiary }}
+                  style={{ color: H.text.tertiary }}
                 >
                   {d.description}
                 </div>
@@ -201,13 +210,13 @@ export default function CustomizePage() {
         <div 
           className="p-6 rounded-xl"
           style={{
-            backgroundColor: cyberpunkTheme.colors.background.secondary,
-            border: `1px solid ${cyberpunkTheme.colors.border.primary}`,
+            backgroundColor: H.bg.surface,
+            border: `1px solid ${H.border}`,
           }}
         >
           <h2 
             className="text-2xl font-bold mb-4 flex items-center gap-2"
-            style={{ color: cyberpunkTheme.colors.text.primary }}
+            style={{ color: H.text.primary }}
           >
             <Monitor className="w-6 h-6" />
             Layout
@@ -221,19 +230,19 @@ export default function CustomizePage() {
                 className="w-full p-4 rounded-lg text-left transition-all"
                 style={{
                   backgroundColor: layout === l.value 
-                    ? cyberpunkTheme.colors.background.primary
+                    ? H.bg.dark
                     : 'transparent',
                   border: `1px solid ${layout === l.value 
-                    ? cyberpunkTheme.colors.primary.cyan
-                    : cyberpunkTheme.colors.border.primary}`,
+                    ? H.primary
+                    : H.border}`,
                 }}
               >
-                <div style={{ color: cyberpunkTheme.colors.text.primary }}>
+                <div style={{ color: H.text.primary }}>
                   {l.name}
                 </div>
                 <div 
                   className="text-sm"
-                  style={{ color: cyberpunkTheme.colors.text.tertiary }}
+                  style={{ color: H.text.tertiary }}
                 >
                   {l.description}
                 </div>
@@ -246,14 +255,14 @@ export default function CustomizePage() {
         <div className="flex justify-end gap-3">
           <button
             className="px-6 py-3 rounded-lg hover:bg-white/5 transition-colors"
-            style={{ color: cyberpunkTheme.colors.text.secondary }}
+            style={{ color: H.text.secondary }}
           >
             Reset to Default
           </button>
           <button
             className="px-6 py-3 rounded-lg transition-colors"
             style={{
-              background: cyberpunkTheme.colors.gradients.primary,
+              background: H.gradient,
               color: '#FFFFFF',
             }}
           >

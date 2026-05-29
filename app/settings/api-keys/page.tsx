@@ -91,7 +91,7 @@ function formatDate(dateStr: string | null): string {
 
 function ScopeTag({ scope }: { scope: string }) {
   return (
-    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-[#D4A853]/10 text-[#D4A853] border border-[#D4A853]/20">
+    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-[#2D8B5E]/10 text-[#2D8B5E] border border-[#2D8B5E]/20">
       {SCOPE_LABELS[scope] ?? scope}
     </span>
   );
@@ -101,15 +101,15 @@ function StatusBadge({ isActive, expiresAt }: { isActive: boolean; expiresAt: st
   const expired = expiresAt && new Date(expiresAt) < new Date();
   if (!isActive || expired) {
     return (
-      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-[#B84052]/10 text-[#B84052] border border-[#B84052]/20">
-        <span className="w-1.5 h-1.5 rounded-full bg-[#B84052]" />
+      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-[#C47A4A]/10 text-[#C47A4A] border border-[#C47A4A]/20">
+        <span className="w-1.5 h-1.5 rounded-full bg-[#C47A4A]" />
         {expired ? 'Severed (Expired)' : 'Severed (Revoked)'}
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-[#D4A853]/10 text-[#D4A853] border border-[#D4A853]/20">
-      <span className="w-1.5 h-1.5 rounded-full bg-[#D4A853] animate-pulse shadow-[0_0_8px_#D4A853]" />
+    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-[#2D8B5E]/10 text-[#2D8B5E] border border-[#2D8B5E]/20">
+      <span className="w-1.5 h-1.5 rounded-full bg-[#2D8B5E] animate-pulse shadow-[0_0_8px_#2D8B5E]" />
       Active
     </span>
   );
@@ -231,12 +231,12 @@ export default function ApiKeysPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-black text-[#F5F0E8] flex items-center gap-3 uppercase tracking-widest">
-            <Key className="w-6 h-6 text-[#D4A853]" />
+            <Key className="w-6 h-6 text-[#2D8B5E]" />
             Neural Access Protocols
           </h2>
           <p className="text-[#8C8476] mt-2 text-[11px] font-medium uppercase tracking-[0.15em]">
             Manage programmatic links for the{' '}
-            <code className="text-[#D4A853] bg-[#D4A853]/10 px-1.5 py-0.5 rounded font-black tracking-tighter">
+            <code className="text-[#2D8B5E] bg-[#2D8B5E]/10 px-1.5 py-0.5 rounded font-black tracking-tighter">
               /api/v1/
             </code>{' '}
             architectural grid.
@@ -246,7 +246,7 @@ export default function ApiKeysPage() {
           onClick={() => setShowCreate(true)}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
-          className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-[#D4A853] to-[#B84052] text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(212,168,83,0.15)]"
+          className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-[#2D8B5E] to-[#C47A4A] text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(45,139,94,0.15)]"
         >
           <Plus className="w-4 h-4" />
           Initialize Protocol
@@ -254,18 +254,18 @@ export default function ApiKeysPage() {
       </div>
 
       {/* Docs banner */}
-      <div className="flex items-center gap-4 p-4 bg-[#D4A853]/5 border border-[#D4A853]/10 rounded-2xl text-[10px] text-[#8C8476] font-black uppercase tracking-widest leading-relaxed">
-        <Shield className="w-4 h-4 shrink-0 text-[#D4A853]" />
+      <div className="flex items-center gap-4 p-4 bg-[#2D8B5E]/5 border border-[#2D8B5E]/10 rounded-2xl text-[10px] text-[#8C8476] font-black uppercase tracking-widest leading-relaxed">
+        <Shield className="w-4 h-4 shrink-0 text-[#2D8B5E]" />
         <span>
           PROMISSORY KEYS UTILIZE SHA-256 HASHING — THE RAW PROTOCOL IS DISCLOSED <strong>EXCLUSIVELY</strong> AT INITIALIZATION.
-          AUTHORIZATION VIA <code className="bg-[#D4A853]/10 px-1.5 rounded text-[#D4A853]">Bearer holly_xxxx</code> OR{' '}
-          <code className="bg-[#D4A853]/10 px-1.5 rounded text-[#D4A853]">x-api-key: holly_xxxx</code>.
+          AUTHORIZATION VIA <code className="bg-[#2D8B5E]/10 px-1.5 rounded text-[#2D8B5E]">Bearer holly_xxxx</code> OR{' '}
+          <code className="bg-[#2D8B5E]/10 px-1.5 rounded text-[#2D8B5E]">x-api-key: holly_xxxx</code>.
         </span>
         <a
           href="https://holly-ai.dev/docs/api"
           target="_blank"
           rel="noopener noreferrer"
-          className="ml-auto shrink-0 flex items-center gap-2 text-[#D4A853] hover:text-[#F5F0E8] transition-colors"
+          className="ml-auto shrink-0 flex items-center gap-2 text-[#2D8B5E] hover:text-[#F5F0E8] transition-colors"
         >
           Protocols <ExternalLink className="w-3.5 h-3.5" />
         </a>
@@ -278,7 +278,7 @@ export default function ApiKeysPage() {
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
-            className="relative p-6 bg-[#D4A853]/10 border border-[#D4A853]/30 rounded-3xl"
+            className="relative p-6 bg-[#2D8B5E]/10 border border-[#2D8B5E]/30 rounded-3xl"
           >
             <button
               onClick={() => setNewKeyResult(null)}
@@ -287,23 +287,23 @@ export default function ApiKeysPage() {
               <X className="w-4 h-4" />
             </button>
             <div className="flex items-center gap-3 mb-3">
-              <Check className="w-4 h-4 text-[#D4A853]" />
-              <span className="font-black text-[#D4A853] uppercase tracking-widest text-xs">PROTOCOL ESTABLISHED — COMMIT TO SECURE ARCHIVE</span>
+              <Check className="w-4 h-4 text-[#2D8B5E]" />
+              <span className="font-black text-[#2D8B5E] uppercase tracking-widest text-xs">PROTOCOL ESTABLISHED — COMMIT TO SECURE ARCHIVE</span>
             </div>
             <p className="text-[10px] text-[#8C8476] font-black uppercase tracking-widest mb-5">
               THIS IS THE SOLE DISCLOSURE OF THE RAW NEURAL KEY. ENCRYPT THIS DATA IMMEDIATELY.
             </p>
-            <div className="flex items-center gap-4 bg-[#0B0A08] border border-[#D4A853]/20 rounded-2xl px-5 py-4 font-mono text-sm text-[#F5F0E8] break-all">
+            <div className="flex items-center gap-4 bg-[#0A0908] border border-[#2D8B5E]/20 rounded-2xl px-5 py-4 font-mono text-sm text-[#F5F0E8] break-all">
               <span className="flex-1 select-all tracking-wider">{newKeyResult.rawKey}</span>
               <button
                 onClick={copyRawKey}
-                className="shrink-0 text-[#8C8476] hover:text-[#D4A853] transition-colors"
+                className="shrink-0 text-[#8C8476] hover:text-[#2D8B5E] transition-colors"
               >
-                {rawKeyCopied ? <Check className="w-5 h-5 text-[#D4A853]" /> : <Copy className="w-5 h-5" />}
+                {rawKeyCopied ? <Check className="w-5 h-5 text-[#2D8B5E]" /> : <Copy className="w-5 h-5" />}
               </button>
             </div>
             {rawKeyCopied && (
-              <p className="text-[9px] text-[#D4A853] font-black uppercase tracking-[0.2em] mt-3">✓ PROTOCOL COPIED TO BUFFER</p>
+              <p className="text-[9px] text-[#2D8B5E] font-black uppercase tracking-[0.2em] mt-3">✓ PROTOCOL COPIED TO BUFFER</p>
             )}
           </motion.div>
         )}
@@ -322,11 +322,11 @@ export default function ApiKeysPage() {
               initial={{ scale: 0.95, y: 20 }}
               animate={{ scale: 1,    y: 0  }}
               exit={{ scale: 0.95,    y: 20 }}
-              className="w-full max-w-lg bg-[#12110F] border border-[#D4A853]/20 rounded-3xl p-8 space-y-6 shadow-2xl"
+              className="w-full max-w-lg bg-[#12110F] border border-[#2D8B5E]/20 rounded-3xl p-8 space-y-6 shadow-2xl"
             >
               <div className="flex items-center justify-between">
                 <h3 className="text-xl font-black text-[#F5F0E8] flex items-center gap-3 uppercase tracking-widest">
-                  <Plus className="w-5 h-5 text-[#D4A853]" />
+                  <Plus className="w-5 h-5 text-[#2D8B5E]" />
                   Initialize Protocol
                 </h3>
                 <button onClick={() => setShowCreate(false)} className="text-[#8C8476] hover:text-[#F5F0E8]">
@@ -336,20 +336,20 @@ export default function ApiKeysPage() {
 
               {/* Name */}
               <div>
-                <label className="text-[10px] font-black text-[#D4A853] uppercase tracking-[0.2em] block mb-2">PROTOCOL IDENTIFIER</label>
+                <label className="text-[10px] font-black text-[#2D8B5E] uppercase tracking-[0.2em] block mb-2">PROTOCOL IDENTIFIER</label>
                 <input
                   type="text"
                   placeholder="e.g. CORE ANALYTICS, PROD GRID"
                   maxLength={64}
                   value={formName}
                   onChange={e => setFormName(e.target.value)}
-                  className="w-full bg-[#0B0A08] border border-[#D4A853]/10 rounded-xl px-4 py-3 text-[#F5F0E8] text-sm placeholder-[#5C564D] focus:outline-none focus:border-[#D4A853] transition-colors uppercase tracking-widest"
+                  className="w-full bg-[#0A0908] border border-[#2D8B5E]/10 rounded-xl px-4 py-3 text-[#F5F0E8] text-sm placeholder-[#5C564D] focus:outline-none focus:border-[#2D8B5E] transition-colors uppercase tracking-widest"
                 />
               </div>
 
               {/* Scopes */}
               <div>
-                <label className="text-[10px] font-black text-[#D4A853] uppercase tracking-[0.2em] block mb-3">PERMISSION SCOPES</label>
+                <label className="text-[10px] font-black text-[#2D8B5E] uppercase tracking-[0.2em] block mb-3">PERMISSION SCOPES</label>
                 <div className="flex flex-wrap gap-2">
                   {ALL_SCOPES.map(scope => (
                     <button
@@ -363,8 +363,8 @@ export default function ApiKeysPage() {
                       }
                       className={`px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest border transition-all duration-300 ${
                         formScopes.includes(scope)
-                          ? 'bg-[#D4A853] border-[#D4A853] text-[#0B0A08] shadow-[0_0_15px_rgba(212,168,83,0.3)]'
-                          : 'bg-[#0B0A08] border-white/10 text-[#8C8476] hover:border-[#D4A853]/30'
+                          ? 'bg-[#2D8B5E] border-[#2D8B5E] text-[#0A0908] shadow-[0_0_15px_rgba(45,139,94,0.3)]'
+                          : 'bg-[#0A0908] border-white/10 text-[#8C8476] hover:border-[#2D8B5E]/30'
                       }`}
                     >
                       {SCOPE_LABELS[scope] ?? scope}
@@ -384,7 +384,7 @@ export default function ApiKeysPage() {
                     min={1} max={100}
                     value={formRpm}
                     onChange={e => setFormRpm(Number(e.target.value))}
-                    className="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                    className="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#2D8B5E]"
                   />
                 </div>
                 <div>
@@ -396,7 +396,7 @@ export default function ApiKeysPage() {
                     min={1} max={10000}
                     value={formRpd}
                     onChange={e => setFormRpd(Number(e.target.value))}
-                    className="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500"
+                    className="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#2D8B5E]"
                   />
                 </div>
               </div>
@@ -411,7 +411,7 @@ export default function ApiKeysPage() {
                   value={formExpiry}
                   onChange={e => setFormExpiry(e.target.value)}
                   min={new Date().toISOString().split('T')[0]}
-                  className="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500 [color-scheme:dark]"
+                  className="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#2D8B5E] [color-scheme:dark]"
                 />
               </div>
 
@@ -425,14 +425,14 @@ export default function ApiKeysPage() {
               <div className="flex gap-4 pt-2">
                 <button
                   onClick={() => setShowCreate(false)}
-                  className="flex-1 py-3 rounded-xl bg-[#1A1815] hover:bg-[#24211D] text-[#8C8476] text-[10px] font-black uppercase tracking-widest transition-colors"
+                  className="flex-1 py-3 rounded-xl bg-[#1E1B18] hover:bg-[#24211D] text-[#8C8476] text-[10px] font-black uppercase tracking-widest transition-colors"
                 >
                   Abort
                 </button>
                 <button
                   onClick={handleCreate}
                   disabled={creating}
-                  className="flex-1 py-3 rounded-xl bg-gradient-to-r from-[#D4A853] to-[#B84052] disabled:opacity-30 text-white text-[10px] font-black uppercase tracking-widest transition-all hover:opacity-90 flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(212,168,83,0.2)]"
+                  className="flex-1 py-3 rounded-xl bg-gradient-to-r from-[#2D8B5E] to-[#C47A4A] disabled:opacity-30 text-white text-[10px] font-black uppercase tracking-widest transition-all hover:opacity-90 flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(45,139,94,0.2)]"
                 >
                   {creating ? (
                     <RefreshCw className="w-4 h-4 animate-spin" />
@@ -465,7 +465,7 @@ export default function ApiKeysPage() {
           <p className="text-sm mt-1">Create a key to start using the HOLLY Public API.</p>
           <button
             onClick={() => setShowCreate(true)}
-            className="mt-4 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-sm font-medium transition-colors"
+            className="mt-4 px-4 py-2 bg-[#2D8B5E] hover:bg-[#2D8B5E]/80 text-white rounded-lg text-sm font-medium transition-colors"
           >
             Create your first key
           </button>
@@ -478,13 +478,13 @@ export default function ApiKeysPage() {
               layout
               className={`border rounded-2xl overflow-hidden transition-all duration-500 ${
                 key.isActive && !(key.expiresAt && new Date(key.expiresAt) < new Date())
-                  ? 'bg-[#12110F] border-white/5 hover:border-[#D4A853]/20 shadow-xl'
-                  : 'bg-[#0B0A08] border-white/5 opacity-50'
+                  ? 'bg-[#12110F] border-white/5 hover:border-[#2D8B5E]/20 shadow-xl'
+                  : 'bg-[#0A0908] border-white/5 opacity-50'
               }`}
             >
               {/* Key row */}
               <div className="flex items-center gap-3 px-4 py-3">
-                <Key className="w-4 h-4 text-purple-400 shrink-0" />
+                <Key className="w-4 h-4 text-[#2D8B5E] shrink-0" />
 
                 {/* Name + prefix */}
                 <div className="flex-1 min-w-0">
@@ -604,7 +604,7 @@ export default function ApiKeysPage() {
                       <div className="text-[#5C564D] text-[9px] font-black uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
                         <Copy className="w-3.5 h-3.5" /> ARCHITECTURAL CURL SNIPPET
                       </div>
-                      <pre className="bg-[#0B0A08] rounded-xl p-5 text-[11px] text-[#8C8476] overflow-x-auto whitespace-pre-wrap border border-white/5 font-mono leading-relaxed">
+                      <pre className="bg-[#0A0908] rounded-xl p-5 text-[11px] text-[#8C8476] overflow-x-auto whitespace-pre-wrap border border-white/5 font-mono leading-relaxed">
 {`curl -X POST https://your-domain.com/api/v1/chat \\
   -H "Authorization: Bearer ${key.keyPrefix}••••" \\
   -H "Content-Type: application/json" \\

@@ -62,13 +62,13 @@ export default function ShortcutsPage() {
       </div>
 
       {/* Info Box */}
-      <div className="bg-[#D4A853]/5 border border-[#D4A853]/20 rounded-2xl p-6">
+      <div className="bg-[#2D8B5E]/5 border border-[#2D8B5E]/20 rounded-2xl p-6">
         <div className="flex items-start gap-4">
           <div className="text-xl">⌨️</div>
           <div className="flex-1">
-            <div className="text-[10px] font-black text-[#D4A853] uppercase tracking-[0.2em] mb-2">Architectural Pro-Tip</div>
-            <p className="text-[9px] text-[#D4A853]/70 uppercase tracking-widest font-medium leading-relaxed">
-              INITIALIZE THE SOVEREIGN VIEWPORT COMMANDER BY PRESSING <kbd className="px-2.5 py-0.5 bg-[#0B0A08] border border-[#D4A853]/30 rounded text-[#D4A853] font-black mx-1">?</kbd> ANYWHERE WITHIN THE GRID.
+            <div className="text-[10px] font-black text-[#2D8B5E] uppercase tracking-[0.2em] mb-2">Architectural Pro-Tip</div>
+            <p className="text-[9px] text-[#2D8B5E]/70 uppercase tracking-widest font-medium leading-relaxed">
+              INITIALIZE THE SOVEREIGN VIEWPORT COMMANDER BY PRESSING <kbd className="px-2.5 py-0.5 bg-[#0A0908] border border-[#2D8B5E]/30 rounded text-[#2D8B5E] font-black mx-1">?</kbd> ANYWHERE WITHIN THE GRID.
             </p>
           </div>
         </div>
@@ -78,15 +78,15 @@ export default function ShortcutsPage() {
       <div className="space-y-10">
         {shortcuts.map((section) => (
           <div key={section.category}>
-            <h3 className="text-[10px] font-black text-[#D4A853] uppercase tracking-[0.3em] mb-4 border-b border-white/5 pb-2">{section.category} Protocols</h3>
+            <h3 className="text-[10px] font-black text-[#2D8B5E] uppercase tracking-[0.3em] mb-4 border-b border-white/5 pb-2">{section.category} Protocols</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {section.items.map((shortcut) => (
                 <div
                   key={shortcut.key}
-                  className="flex items-center justify-between px-6 py-4 bg-[#1A1815] border border-white/5 rounded-2xl hover:border-[#D4A853]/20 transition-all duration-300 group"
+                  className="flex items-center justify-between px-6 py-4 bg-[#1E1B18] border border-white/5 rounded-2xl hover:border-[#2D8B5E]/20 transition-all duration-300 group"
                 >
-                  <span className="text-[11px] font-black text-[#F5F0E8] uppercase tracking-widest group-hover:text-[#D4A853] transition-colors">{shortcut.description}</span>
-                  <kbd className="px-3 py-1 bg-[#0B0A08] border border-white/10 rounded-xl text-[9px] text-[#D4A853] font-black uppercase tracking-tighter shadow-inner">
+                  <span className="text-[11px] font-black text-[#F5F0E8] uppercase tracking-widest group-hover:text-[#2D8B5E] transition-colors">{shortcut.description}</span>
+                  <kbd className="px-3 py-1 bg-[#0A0908] border border-white/10 rounded-xl text-[9px] text-[#2D8B5E] font-black uppercase tracking-tighter shadow-inner">
                     {shortcut.key}
                   </kbd>
                 </div>
@@ -105,12 +105,12 @@ export default function ShortcutsPage() {
       </div>
 
       {/* Customization Coming Soon */}
-      <div className="bg-[#D4A853]/5 border border-[#D4A853]/20 rounded-2xl p-6">
+      <div className="bg-[#2D8B5E]/5 border border-[#2D8B5E]/20 rounded-2xl p-6">
         <div className="flex items-start gap-4">
           <div className="text-xl">🧬</div>
           <div className="flex-1">
-            <div className="text-[10px] font-black text-[#D4A853] uppercase tracking-[0.2em] mb-2">Emerging Capabilities</div>
-            <p className="text-[9px] text-[#D4A853]/70 uppercase tracking-widest font-medium leading-relaxed">
+            <div className="text-[10px] font-black text-[#2D8B5E] uppercase tracking-[0.2em] mb-2">Emerging Capabilities</div>
+            <p className="text-[9px] text-[#2D8B5E]/70 uppercase tracking-widest font-medium leading-relaxed">
               NEURAL BINDING CUSTOMIZATION IS CURRENTLY UNDERGOING ARCHITECTURAL SYNC. PERSONALIZED TACTICAL MAPPINGS WILL BE INITIALIZED IN A FUTURE GRID CYCLE.
             </p>
           </div>

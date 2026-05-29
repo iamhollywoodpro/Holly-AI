@@ -62,38 +62,38 @@ function SignInContent() {
   }, [isLoaded]);
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-[#050508] px-4 relative overflow-hidden">
-      {/* Background glow */}
+    <div className="min-h-screen w-full flex items-center justify-center bg-[#0A0908] px-4 relative overflow-hidden">
+      {/* Background glow — emerald/copper warmth */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] rounded-full bg-purple-600/8 blur-[140px]" />
-        <div className="absolute bottom-0 right-0 w-[400px] h-[400px] rounded-full bg-blue-600/6 blur-[100px]" />
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] rounded-full bg-[#2D8B5E]/8 blur-[140px]" />
+        <div className="absolute bottom-0 right-0 w-[400px] h-[400px] rounded-full bg-[#C47A4A]/6 blur-[100px]" />
       </div>
 
       {/* Card container */}
       <div className="relative z-10 w-full max-w-[480px]">
         {/* HOLLY branding header */}
         <div className="text-center mb-8">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center mx-auto mb-4 shadow-2xl shadow-purple-500/30">
-            <span className="text-2xl font-black text-white">H</span>
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#2D8B5E] to-[#C47A4A] flex items-center justify-center mx-auto mb-4 shadow-2xl shadow-[#2D8B5E]/30">
+            <span className="text-2xl font-black text-[#0A0908]">H</span>
           </div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">Welcome back to HOLLY</h1>
-          <p className="text-gray-400 text-sm mt-1.5">Sign in to continue your session</p>
+          <h1 className="text-2xl font-bold text-[#F5F0E8] tracking-tight">Welcome back to HOLLY</h1>
+          <p className="text-[#8C8476] text-sm mt-1.5">Sign in to continue your session</p>
         </div>
 
         {/* Loading state */}
         {!clerkReady && (
           <div className="flex flex-col items-center justify-center py-16 gap-4">
-            <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
-            <p className="text-gray-500 text-sm">Loading...</p>
+            <div className="w-8 h-8 border-2 border-[#2D8B5E] border-t-transparent rounded-full animate-spin" />
+            <p className="text-[#5C564D] text-sm">Loading...</p>
           </div>
         )}
 
         {/* Redirecting state */}
         {redirecting && (
           <div className="flex flex-col items-center justify-center py-16 gap-4">
-            <div className="w-8 h-8 border-2 border-green-500 border-t-transparent rounded-full animate-spin" />
-            <p className="text-green-400 text-sm font-medium">Signing you in...</p>
-            <p className="text-gray-600 text-xs">Establishing your session with Holly</p>
+            <div className="w-8 h-8 border-2 border-[#3DAF76] border-t-transparent rounded-full animate-spin" />
+            <p className="text-[#3DAF76] text-sm font-medium">Signing you in...</p>
+            <p className="text-[#5C564D] text-xs">Establishing your session with Holly</p>
           </div>
         )}
 
@@ -110,33 +110,33 @@ function SignInContent() {
             signUpUrl="/sign-up"
             appearance={{
               variables: {
-                colorPrimary: '#a855f7',
-                colorBackground: '#0f0f17',
-                colorInputBackground: '#1a1a2e',
-                colorInputText: '#ffffff',
-                colorText: '#ffffff',
-                colorTextSecondary: '#9ca3af',
-                colorNeutral: '#4b5563',
+                colorPrimary: '#2D8B5E',
+                colorBackground: '#141210',
+                colorInputBackground: '#1E1B18',
+                colorInputText: '#F5F0E8',
+                colorText: '#F5F0E8',
+                colorTextSecondary: '#8C8476',
+                colorNeutral: '#5C564D',
                 borderRadius: '0.75rem',
                 fontFamily: 'Inter, system-ui, sans-serif',
               },
               elements: {
                 rootBox: 'w-full',
-                card: 'bg-[#0f0f17]/90 border border-gray-800/60 shadow-2xl shadow-purple-900/20 backdrop-blur-xl rounded-2xl',
+                card: 'bg-[#141210]/90 border border-[#2D8B5E]/15 shadow-2xl shadow-[#2D8B5E]/10 backdrop-blur-xl rounded-2xl',
                 headerTitle: 'hidden',
                 headerSubtitle: 'hidden',
                 logoBox: 'hidden',
                 socialButtonsBlockButton:
-                  'bg-gray-900 border border-gray-700/60 hover:bg-gray-800 hover:border-gray-600 text-white transition-all duration-200',
-                socialButtonsBlockButtonText: 'text-white font-medium',
+                  'bg-[#1E1B18] border border-[#2D8B5E]/10 hover:bg-[#141210] hover:border-[#2D8B5E]/20 text-[#F5F0E8] transition-all duration-200',
+                socialButtonsBlockButtonText: 'text-[#F5F0E8] font-medium',
                 formButtonPrimary:
-                  'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-semibold transition-all duration-200 shadow-lg shadow-purple-900/30',
-                dividerLine: 'bg-gray-800',
-                dividerText: 'text-gray-600',
-                footerActionLink: 'text-purple-400 hover:text-purple-300 transition-colors',
-                identityPreviewEditButton: 'text-purple-400 hover:text-purple-300',
-                alertText: 'text-red-400',
-                formFieldErrorText: 'text-red-400',
+                  'bg-gradient-to-r from-[#2D8B5E] to-[#C47A4A] hover:from-[#3DAF76] hover:to-[#E8A862] text-[#0A0908] font-semibold transition-all duration-200 shadow-lg shadow-[#2D8B5E]/20',
+                dividerLine: 'bg-[#1E1B18]',
+                dividerText: 'text-[#5C564D]',
+                footerActionLink: 'text-[#2D8B5E] hover:text-[#3DAF76] transition-colors',
+                identityPreviewEditButton: 'text-[#2D8B5E] hover:text-[#3DAF76]',
+                alertText: 'text-[#B84052]',
+                formFieldErrorText: 'text-[#B84052]',
               },
             }}
           />
@@ -145,7 +145,7 @@ function SignInContent() {
 
       {/* Footer */}
       <div className="absolute bottom-6 left-0 w-full text-center pointer-events-none">
-        <p className="text-[10px] text-gray-700 tracking-widest uppercase">HOLLY — Living AI</p>
+        <p className="text-[10px] text-[#2D8B5E]/30 tracking-widest uppercase">HOLLY — Living AI</p>
       </div>
     </div>
   );
@@ -154,8 +154,8 @@ function SignInContent() {
 export default function SignInPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen w-full flex items-center justify-center bg-[#050508]">
-        <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen w-full flex items-center justify-center bg-[#0A0908]">
+        <div className="w-8 h-8 border-2 border-[#2D8B5E] border-t-transparent rounded-full animate-spin" />
       </div>
     }>
       <SignInContent />

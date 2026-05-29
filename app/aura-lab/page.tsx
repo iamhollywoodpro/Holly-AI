@@ -128,8 +128,8 @@ export default function AuraLabPage() {
     <div className="relative overflow-x-hidden min-h-screen" style={{ background: C.background.primary, color: C.text.primary }}>
       {/* Dynamic gradients background */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-        <div className="absolute top-[-20%] left-[10%] w-[600px] h-[600px] rounded-full bg-[#D4A853]/10 blur-[150px]" />
-        <div className="absolute top-[30%] right-[-10%] w-[500px] h-[500px] rounded-full bg-[#B84052]/8 blur-[120px]" />
+        <div className="absolute top-[-20%] left-[10%] w-[600px] h-[600px] rounded-full bg-[#2D8B5E]/10 blur-[150px]" />
+        <div className="absolute top-[30%] right-[-10%] w-[500px] h-[500px] rounded-full bg-[#C47A4A]/8 blur-[120px]" />
         <div className="absolute bottom-[-10%] left-[30%] w-[400px] h-[400px] rounded-full bg-[#1F3D30]/8 blur-[100px]" />
       </div>
 

@@ -81,8 +81,8 @@ export const viewport: Viewport = {
   userScalable: false,
   viewportFit: 'cover',
   themeColor: [
-    { media: '(prefers-color-scheme: dark)',  color: '#0a0a0f' },
-    { media: '(prefers-color-scheme: light)', color: '#a855f7' },
+    { media: '(prefers-color-scheme: dark)',  color: '#0A0908' },
+    { media: '(prefers-color-scheme: light)', color: '#2D8B5E' },
   ],
 };
 
@@ -169,31 +169,31 @@ export default function RootLayout({
           appearance={{
             baseTheme: undefined,
             variables: {
-              colorPrimary: '#a855f7',
-              colorBackground: '#111827',
-              colorInputBackground: '#1f2937',
-              colorInputText: '#ffffff',
-              colorText: '#ffffff',
-              colorTextSecondary: '#9ca3af',
-              colorNeutral: '#6b7280',
+              colorPrimary: '#2D8B5E',
+              colorBackground: '#141210',
+              colorInputBackground: '#1E1B18',
+              colorInputText: '#F5F0E8',
+              colorText: '#F5F0E8',
+              colorTextSecondary: '#8C8476',
+              colorNeutral: '#5C564D',
             },
             elements: {
               // UserButton popover (profile menu in nav)
               userButtonPopoverCard:
-                'bg-gray-900 border border-purple-500/20 shadow-2xl shadow-purple-500/20',
-              userButtonPopoverActionButton: 'text-white hover:bg-white/5',
-              userButtonPopoverActionButtonText: 'text-white',
-              userButtonPopoverActionButtonIcon: 'text-gray-400',
-              userButtonPopoverFooter: 'bg-gray-800/50 border-t border-white/10',
+                'bg-[#141210] border border-[#2D8B5E]/20 shadow-2xl shadow-[#2D8B5E]/10',
+              userButtonPopoverActionButton: 'text-[#F5F0E8] hover:bg-white/5',
+              userButtonPopoverActionButtonText: 'text-[#F5F0E8]',
+              userButtonPopoverActionButtonIcon: 'text-[#8C8476]',
+              userButtonPopoverFooter: 'bg-[#1E1B18]/50 border-t border-white/10',
               // Cards (UserProfile, OrganizationProfile, etc.)
-              card: 'bg-gray-900 border border-purple-500/20',
-              headerTitle: 'text-white',
-              headerSubtitle: 'text-gray-400',
-              profileSectionTitle: 'text-white',
-              profileSectionContent: 'text-gray-300',
-              formFieldLabel: 'text-gray-300',
-              formFieldInput: 'bg-gray-800 border-gray-700 text-white',
-              badge: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
+              card: 'bg-[#141210] border border-[#2D8B5E]/20',
+              headerTitle: 'text-[#F5F0E8]',
+              headerSubtitle: 'text-[#8C8476]',
+              profileSectionTitle: 'text-[#F5F0E8]',
+              profileSectionContent: 'text-[#BFB5A5]',
+              formFieldLabel: 'text-[#BFB5A5]',
+              formFieldInput: 'bg-[#1E1B18] border-[#2D8B5E]/20 text-[#F5F0E8]',
+              badge: 'bg-[#2D8B5E]/20 text-[#3DAF76] border-[#2D8B5E]/30',
             },
           }}
         >
@@ -208,7 +208,7 @@ export default function RootLayout({
                 {children}
                  <ServiceWorkerRegistration />
                  <PWAInstallPrompt />
-                 <Toaster theme="dark" position="bottom-right" toastOptions={{ style: { background: '#1a1022', border: '1px solid rgba(255,255,255,0.1)', color: '#fff' } }} />
+                 <Toaster theme="dark" position="bottom-right" toastOptions={{ style: { background: '#141210', border: '1px solid rgba(45,139,94,0.15)', color: '#F5F0E8' } }} />
                </SettingsProvider>
             </Providers>
           </ThemeProvider>

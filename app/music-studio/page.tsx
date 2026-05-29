@@ -203,7 +203,7 @@ function MiniPlayer({
             <input
               type="range" min="0" max="100" value={progress}
               onChange={e => onSeek(Number(e.target.value))}
-              className="flex-1 h-1 accent-[#D4A853] bg-white/10 rounded-full cursor-pointer transition-all"
+              className="flex-1 h-1 accent-[#2D8B5E] bg-white/10 rounded-full cursor-pointer transition-all"
             />
             <span className="text-white/40 text-xs w-8">{fmtDur(track.duration)}</span>
           </div>
@@ -217,7 +217,7 @@ function MiniPlayer({
             <input
               type="range" min="0" max="1" step="0.01" value={volume}
               onChange={e => onVolume(Number(e.target.value))}
-              className="w-20 h-1 accent-[#D4A853] bg-white/10 rounded-full cursor-pointer transition-all"
+              className="w-20 h-1 accent-[#2D8B5E] bg-white/10 rounded-full cursor-pointer transition-all"
             />
           </div>
           <button onClick={onClose} className="text-white/40 hover:text-white ml-2">
@@ -298,8 +298,8 @@ function TrackCard({
       transition={{ type: "spring", stiffness: 300, damping: 20 }}
       className={`group relative rounded-2xl overflow-hidden border transition-all duration-200 ${
         isActive
-          ? 'bg-[#D4A853]/15 border-[#D4A853]/45 shadow-lg shadow-[#D4A853]/10'
-          : 'sdi-glass border-white/5 hover:border-[#D4A853]/20 hover:bg-white/5'
+          ? 'bg-[#2D8B5E]/15 border-[#2D8B5E]/45 shadow-lg shadow-[#2D8B5E]/10'
+          : 'sdi-glass border-white/5 hover:border-[#2D8B5E]/20 hover:bg-white/5'
       }`}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
@@ -332,7 +332,7 @@ function TrackCard({
             </div>
             <div className="flex items-center gap-1 flex-shrink-0">
               {track.model && (
-                <span className="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 text-xs">
+                <span className="px-2 py-0.5 rounded-full bg-[#2D8B5E]/20 text-[#3DAF76] text-xs">
                   {track.engine === 'hybrid' ? 'Hybrid' : track.engine === 'sonauto' ? 'Sonauto' : track.model}
                 </span>
               )}
@@ -358,14 +358,14 @@ function TrackCard({
           </button>
           <button
             onClick={onExtend}
-            className="p-1.5 rounded-lg text-white/40 hover:text-purple-400 transition-colors"
+            className="p-1.5 rounded-lg text-white/40 hover:text-[#3DAF76] transition-colors"
             title="Extend"
           >
             <Zap className="w-4 h-4" />
           </button>
           <button
             onClick={onRemix}
-            className="p-1.5 rounded-lg text-white/40 hover:text-cyan-400 transition-colors"
+            className="p-1.5 rounded-lg text-white/40 hover:text-[#3DAF76] transition-colors"
             title="Remix"
           >
             <RefreshCw className="w-4 h-4" />
@@ -867,15 +867,15 @@ export default function MusicStudio() {
   const charPct    = Math.min(charCount / charLimit, 1);
 
   return (
-    <div className="flex h-screen bg-[#0B0A08] text-white overflow-hidden">
+    <div className="flex h-screen bg-[#0A0908] text-white overflow-hidden">
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-        <div className="absolute top-[-20%] left-[10%] w-[600px] h-[600px] rounded-full bg-[#D4A853]/10 blur-[150px]" />
-        <div className="absolute top-[30%] right-[-10%] w-[500px] h-[500px] rounded-full bg-[#B84052]/8 blur-[120px]" />
+        <div className="absolute top-[-20%] left-[10%] w-[600px] h-[600px] rounded-full bg-[#2D8B5E]/10 blur-[150px]" />
+        <div className="absolute top-[30%] right-[-10%] w-[500px] h-[500px] rounded-full bg-[#C47A4A]/8 blur-[120px]" />
         <div className="absolute bottom-[-10%] left-[30%] w-[400px] h-[400px] rounded-full bg-[#1F3D30]/8 blur-[100px]" />
       </div>
 
       {/* LEFT PANE - Creation Controls */}
-      <div className="relative z-10 w-[380px] h-full flex flex-col sdi-glass border-r border-[#D4A853]/15 flex-shrink-0">
+      <div className="relative z-10 w-[380px] h-full flex flex-col sdi-glass border-r border-[#2D8B5E]/15 flex-shrink-0">
         
         {/* Header */}
         <div className="p-5 border-b border-white/5 flex items-center justify-between shrink-0">
@@ -937,7 +937,7 @@ export default function MusicStudio() {
               onClick={() => setInstrumental(p => !p)}
               className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-all ${
                 instrumental
-                  ? 'bg-[#D4A853]/20 border-[#D4A853]/50 text-[#D4A853]'
+                  ? 'bg-[#2D8B5E]/20 border-[#2D8B5E]/50 text-[#2D8B5E]'
                   : 'sdi-glass border-white/10 text-white/60 hover:border-white/25 hover:text-white'
               }`}
             >
@@ -946,7 +946,7 @@ export default function MusicStudio() {
                 Instrumental (no vocals)
               </span>
               <div className={`w-10 h-5 rounded-full transition-all relative ${
-                instrumental ? 'bg-[#D4A853]' : 'bg-white/10'
+                instrumental ? 'bg-[#2D8B5E]' : 'bg-white/10'
               }`}>
                 <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all shadow-sm ${
                   instrumental ? 'left-[calc(100%-18px)]' : 'left-0.5'
@@ -962,14 +962,14 @@ export default function MusicStudio() {
                     onChange={e => setPrompt(e.target.value.slice(0, charLimit))}
                     placeholder="Describe the song you want to create…"
                     rows={4}
-                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3.5 text-white placeholder-white/30 resize-none focus:outline-none focus:border-purple-500/50 focus:bg-white/8 transition-all text-sm"
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3.5 text-white placeholder-white/30 resize-none focus:outline-none focus:border-[#2D8B5E]/50 focus:bg-white/8 transition-all text-sm"
                   />
                   <div className="absolute bottom-3 right-3 flex items-center gap-2">
                     <div className="relative w-6 h-6">
                       <svg viewBox="0 0 24 24" className="w-6 h-6 -rotate-90">
                         <circle cx="12" cy="12" r="10" strokeWidth="2" className="stroke-white/10 fill-none" />
                         <circle cx="12" cy="12" r="10" strokeWidth="2"
-                          className={`fill-none transition-all ${charPct > 0.9 ? 'stroke-red-400' : 'stroke-purple-500'}`}
+                          className={`fill-none transition-all ${charPct > 0.9 ? 'stroke-red-400' : 'stroke-[#2D8B5E]'}`}
                           strokeDasharray={`${charPct * 62.8} 62.8`}
                           strokeLinecap="round"
                         />
@@ -1001,7 +1001,7 @@ export default function MusicStudio() {
                   value={title}
                   onChange={e => setTitle(e.target.value)}
                   placeholder="Song title (optional)"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-purple-500/50 focus:bg-white/8 transition-all text-sm"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#2D8B5E]/50 focus:bg-white/8 transition-all text-sm"
                 />
 
                 <div>
@@ -1009,7 +1009,7 @@ export default function MusicStudio() {
                     value={style}
                     onChange={e => setStyle(e.target.value)}
                     placeholder="Style tags: genre, mood, instruments… e.g. dark trap, 808s, melodic"
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-purple-500/50 focus:bg-white/8 transition-all text-sm"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#2D8B5E]/50 focus:bg-white/8 transition-all text-sm"
                   />
                   <div className="flex flex-wrap gap-1.5 mt-2">
                     {STYLE_PRESETS.slice(0, 8).map(p => (
@@ -1031,7 +1031,7 @@ export default function MusicStudio() {
                       <button
                         onClick={handleGenLyrics}
                         disabled={isGenLyrics}
-                        className="flex items-center gap-1.5 text-xs text-purple-400 hover:text-purple-300 transition-colors disabled:opacity-50"
+                        className="flex items-center gap-1.5 text-xs text-[#3DAF76] hover:text-[#2D8B5E] transition-colors disabled:opacity-50"
                       >
                         {isGenLyrics ? (
                           <Loader2 className="w-3 h-3 animate-spin" />
@@ -1046,7 +1046,7 @@ export default function MusicStudio() {
                         <button
                           key={tag}
                           onClick={() => insertTag(tag)}
-                          className="px-2 py-0.5 rounded-md text-xs bg-white/5 border border-white/10 text-white/50 hover:bg-purple-500/20 hover:text-purple-300 hover:border-purple-500/30 transition-all"
+                          className="px-2 py-0.5 rounded-md text-xs bg-white/5 border border-white/10 text-white/50 hover:bg-[#2D8B5E]/20 hover:text-[#3DAF76] hover:border-[#2D8B5E]/30 transition-all"
                         >
                           {tag}
                         </button>
@@ -1057,7 +1057,7 @@ export default function MusicStudio() {
                       onChange={e => setLyrics(e.target.value.slice(0, charLimit))}
                       placeholder={"[Verse 1]\nWrite your lyrics here…\n\n[Chorus]\n…"}
                       rows={8}
-                      className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3.5 text-white placeholder-white/30 resize-none focus:outline-none focus:border-purple-500/50 focus:bg-white/8 transition-all text-sm font-mono"
+                      className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3.5 text-white placeholder-white/30 resize-none focus:outline-none focus:border-[#2D8B5E]/50 focus:bg-white/8 transition-all text-sm font-mono"
                     />
                     <p className="text-white/30 text-xs mt-1 text-right">{lyrics.length}/{charLimit}</p>
                   </div>
@@ -1123,13 +1123,13 @@ export default function MusicStudio() {
                     onClick={() => setModel(m.value)}
                     className={`flex-1 py-2.5 px-3 rounded-xl border text-xs font-medium transition-all relative ${
                       model === m.value
-                        ? 'bg-purple-500/20 border-purple-500/50 text-white'
+                        ? 'bg-[#2D8B5E]/20 border-[#2D8B5E]/50 text-white'
                         : 'bg-white/5 border-white/10 text-white/50 hover:text-white/80 hover:border-white/20'
                     }`}
                   >
                     {m.badge && (
                       <span className={`absolute -top-1.5 left-1/2 -translate-x-1/2 px-1.5 py-0 rounded-full text-[9px] font-semibold ${
-                        model === m.value ? 'bg-purple-500 text-white' : 'bg-white/20 text-white/60'
+                        model === m.value ? 'bg-[#2D8B5E] text-white' : 'bg-white/20 text-white/60'
                       }`}>
                         {m.badge}
                       </span>
@@ -1157,7 +1157,7 @@ export default function MusicStudio() {
                   Sonauto generates instrumental stems
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="w-5 h-5 rounded-full bg-purple-500/30 text-purple-300 flex items-center justify-center text-[10px] font-bold">3</span>
+                  <span className="w-5 h-5 rounded-full bg-[#2D8B5E]/30 text-[#3DAF76] flex items-center justify-center text-[10px] font-bold">3</span>
                   SUNO adds vocals via Audio-to-Audio
                 </div>
                 <div className="flex items-center gap-2">
@@ -1206,7 +1206,7 @@ export default function MusicStudio() {
                         onClick={() => setVocalGender(g)}
                         className={`flex-1 py-2 rounded-xl text-xs font-medium border transition-all ${
                           vocalGender === g
-                            ? 'bg-purple-500/20 border-purple-500/50 text-white'
+                            ? 'bg-[#2D8B5E]/20 border-[#2D8B5E]/50 text-white'
                             : 'bg-white/5 border-white/10 text-white/40 hover:text-white/70'
                         }`}
                       >
@@ -1230,8 +1230,8 @@ export default function MusicStudio() {
               whileTap={{ scale: 0.98 }}
               onClick={handleGenerate}
               disabled={isGenerating}
-              className="w-full py-4 rounded-2xl font-semibold text-base transition-all relative overflow-hidden disabled:opacity-60 disabled:cursor-not-allowed group shadow-lg shadow-[#D4A853]/10"
-              style={{ background: 'linear-gradient(135deg, #D4A853 0%, #B84052 100%)' }}
+              className="w-full py-4 rounded-2xl font-semibold text-base transition-all relative overflow-hidden disabled:opacity-60 disabled:cursor-not-allowed group shadow-lg shadow-[#2D8B5E]/10"
+              style={{ background: 'linear-gradient(135deg, #2D8B5E 0%, #C47A4A 100%)' }}
             >
               <div className="absolute inset-0 bg-white/0 group-hover:bg-white/10 transition-all" />
               {isGenerating ? (
@@ -1355,7 +1355,7 @@ export default function MusicStudio() {
               onChange={() => {}}
               placeholder="This track doesn't have a clip ID for extension. Try generating a new track."
               rows={3}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 resize-none focus:outline-none focus:border-purple-500/50 text-sm mb-4"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 resize-none focus:outline-none focus:border-[#2D8B5E]/50 text-sm mb-4"
               disabled
             />
             <button

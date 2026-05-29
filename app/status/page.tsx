@@ -56,10 +56,10 @@ export default function StatusPage() {
 
   const getStatusConfig = (status: string) => {
     switch (status) {
-      case 'healthy': return { color: 'text-[#D4A853]', bg: 'bg-[#D4A853]/10', border: 'border-[#D4A853]/30', icon: <CheckCircle className="w-5 h-5" />, label: 'Nominal Operational' };
-      case 'degraded': return { color: 'text-[#B84052]', bg: 'bg-[#B84052]/10', border: 'border-[#B84052]/30', icon: <AlertTriangle className="w-5 h-5" />, label: 'Degraded Cognition' };
-      case 'critical': return { color: 'text-[#B84052]', bg: 'bg-[#B84052]/10', border: 'border-[#B84052]/30', icon: <XCircle className="w-5 h-5" />, label: 'Critical Protocol Failure' };
-      default: return { color: 'text-[#8C8476]', bg: 'bg-[#1A1815]/10', border: 'border-[#1A1815]/30', icon: <Activity className="w-5 h-5" />, label: 'Unknown' };
+      case 'healthy': return { color: 'text-[#2D8B5E]', bg: 'bg-[#2D8B5E]/10', border: 'border-[#2D8B5E]/30', icon: <CheckCircle className="w-5 h-5" />, label: 'Nominal Operational' };
+      case 'degraded': return { color: 'text-[#C47A4A]', bg: 'bg-[#C47A4A]/10', border: 'border-[#C47A4A]/30', icon: <AlertTriangle className="w-5 h-5" />, label: 'Degraded Cognition' };
+      case 'critical': return { color: 'text-[#C47A4A]', bg: 'bg-[#C47A4A]/10', border: 'border-[#C47A4A]/30', icon: <XCircle className="w-5 h-5" />, label: 'Critical Protocol Failure' };
+      default: return { color: 'text-[#8C8476]', bg: 'bg-[#1E1B18]/10', border: 'border-[#1E1B18]/30', icon: <Activity className="w-5 h-5" />, label: 'Unknown' };
     }
   };
 
@@ -106,10 +106,10 @@ export default function StatusPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0B0A08] text-[#F5F0E8]">
+    <div className="min-h-screen bg-[#0A0908] text-[#F5F0E8]">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-black text-[#D4A853] uppercase tracking-[0.2em] mb-1">Nexus Status</h1>
+          <h1 className="text-3xl font-black text-[#2D8B5E] uppercase tracking-[0.2em] mb-1">Nexus Status</h1>
           <p className="text-[#8C8476] text-xs font-medium uppercase tracking-widest">Real-time health monitoring for all sovereign services</p>
         </div>
 
@@ -123,7 +123,7 @@ export default function StatusPage() {
           <button
             onClick={checkHealth}
             disabled={loading}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-[#D4A853] border border-[#D4A853]/20 rounded-lg hover:bg-[#D4A853]/10 disabled:opacity-50 transition-colors uppercase font-bold tracking-tighter"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-[#2D8B5E] border border-[#2D8B5E]/20 rounded-lg hover:bg-[#2D8B5E]/10 disabled:opacity-50 transition-colors uppercase font-bold tracking-tighter"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             Sync
@@ -151,23 +151,23 @@ export default function StatusPage() {
                   </p>
                 </div>
                 <div className="ml-auto text-right">
-                  <p className="text-2xl font-black text-[#D4A853]">{health.summary.activeAiProviders}</p>
+                  <p className="text-2xl font-black text-[#2D8B5E]">{health.summary.activeAiProviders}</p>
                   <p className="text-[10px] text-[#8C8476] uppercase font-bold">Active Engines</p>
                 </div>
               </div>
             </div>
 
             <div className="grid grid-cols-3 gap-3">
-              <div className="bg-[#12110F] border border-[#D4A853]/10 rounded-xl p-4 text-center">
-                <p className="text-2xl font-black text-[#D4A853]">{health.summary.activeAiProviders}</p>
+              <div className="bg-[#12110F] border border-[#2D8B5E]/10 rounded-xl p-4 text-center">
+                <p className="text-2xl font-black text-[#2D8B5E]">{health.summary.activeAiProviders}</p>
                 <p className="text-[10px] text-[#8C8476] uppercase font-bold">AI Providers</p>
               </div>
-              <div className="bg-[#12110F] border border-[#D4A853]/10 rounded-xl p-4 text-center">
-                <p className="text-2xl font-black text-[#D4A853]">{health.summary.configuredIntegrations}</p>
+              <div className="bg-[#12110F] border border-[#2D8B5E]/10 rounded-xl p-4 text-center">
+                <p className="text-2xl font-black text-[#2D8B5E]">{health.summary.configuredIntegrations}</p>
                 <p className="text-[10px] text-[#8C8476] uppercase font-bold">Integrations</p>
               </div>
-              <div className="bg-[#12110F] border border-[#D4A853]/10 rounded-xl p-4 text-center">
-                <p className="text-2xl font-black text-[#D4A853]">{health.system.memoryUsageMB}MB</p>
+              <div className="bg-[#12110F] border border-[#2D8B5E]/10 rounded-xl p-4 text-center">
+                <p className="text-2xl font-black text-[#2D8B5E]">{health.system.memoryUsageMB}MB</p>
                 <p className="text-[10px] text-[#8C8476] uppercase font-bold">Cognitive Load</p>
               </div>
             </div>
@@ -179,10 +179,10 @@ export default function StatusPage() {
                 className="w-full flex items-center justify-between text-sm font-bold text-[#F5F0E8] uppercase tracking-wider"
               >
                 <span className="flex items-center gap-2">
-                  <Zap className="w-4 h-4 text-[#D4A853]" />
+                  <Zap className="w-4 h-4 text-[#2D8B5E]" />
                   AI Providers
                 </span>
-                <span className="text-xs text-[#D4A853] hover:text-white transition-colors font-mono">
+                <span className="text-xs text-[#2D8B5E] hover:text-white transition-colors font-mono">
                   {showAiProviders ? '[-]' : '[+]'}
                 </span>
               </button>
@@ -192,11 +192,11 @@ export default function StatusPage() {
                   {Object.entries(health.providers).map(([key, active]) => {
                     const info = providerLabels[key] || { label: key, icon: <Server className="w-4 h-4" /> };
                     return (
-                      <div key={key} className={`flex items-center gap-3 p-3 rounded-lg ${active ? 'bg-[#D4A853]/5 border border-[#D4A853]/20' : 'bg-[#1A1815]/30 border border-[#1A1815]/30'}`}>
-                        <span className={active ? 'text-[#D4A853]' : 'text-[#5C564D]'}>{info.icon}</span>
+                      <div key={key} className={`flex items-center gap-3 p-3 rounded-lg ${active ? 'bg-[#2D8B5E]/5 border border-[#2D8B5E]/20' : 'bg-[#1E1B18]/30 border border-[#1E1B18]/30'}`}>
+                        <span className={active ? 'text-[#2D8B5E]' : 'text-[#5C564D]'}>{info.icon}</span>
                         <span className={`text-sm flex-1 font-medium ${active ? 'text-[#F5F0E8]' : 'text-[#5C564D]'}`}>{info.label}</span>
                         {active ? (
-                          <span className="text-[10px] text-[#D4A853] flex items-center gap-1 uppercase font-black tracking-tighter"><CheckCircle className="w-3 h-3" /> Active</span>
+                          <span className="text-[10px] text-[#2D8B5E] flex items-center gap-1 uppercase font-black tracking-tighter"><CheckCircle className="w-3 h-3" /> Active</span>
                         ) : (
                           <span className="text-[10px] text-[#5C564D] uppercase font-bold tracking-tighter">Standby</span>
                         )}
@@ -214,10 +214,10 @@ export default function StatusPage() {
                 className="w-full flex items-center justify-between text-sm font-bold text-[#F5F0E8] uppercase tracking-wider"
               >
                 <span className="flex items-center gap-2">
-                  <Database className="w-4 h-4 text-[#D4A853]" />
+                  <Database className="w-4 h-4 text-[#2D8B5E]" />
                   Integrations & Services
                 </span>
-                <span className="text-xs text-[#D4A853] hover:text-white transition-colors font-mono">
+                <span className="text-xs text-[#2D8B5E] hover:text-white transition-colors font-mono">
                   {showIntegrations ? '[-]' : '[+]'}
                 </span>
               </button>
@@ -228,12 +228,12 @@ export default function StatusPage() {
                     const info = integrationLabels[key] || { label: key, icon: <Server className="w-4 h-4" />, category: 'other' };
                     return (
                       <div key={key} className={`flex items-center gap-2.5 p-2.5 rounded-lg ${active ? 'bg-[#12110F]/60 border border-white/5' : 'bg-[#12110F]/20 opacity-50'}`}>
-                        <span className={active ? 'text-[#D4A853]' : 'text-[#5C564D]'}>{info.icon}</span>
+                        <span className={active ? 'text-[#2D8B5E]' : 'text-[#5C564D]'}>{info.icon}</span>
                         <span className={`text-[11px] flex-1 font-medium ${active ? 'text-[#D1C8B8]' : 'text-[#5C564D]'}`}>{info.label}</span>
                         {active ? (
-                          <span className="w-2 h-2 rounded-full bg-[#D4A853] shadow-[0_0_5px_#D4A853]" />
+                          <span className="w-2 h-2 rounded-full bg-[#2D8B5E] shadow-[0_0_5px_#2D8B5E]" />
                         ) : (
-                          <span className="w-2 h-2 rounded-full bg-[#1A1815]" />
+                          <span className="w-2 h-2 rounded-full bg-[#1E1B18]" />
                         )}
                       </div>
                     );
@@ -249,10 +249,10 @@ export default function StatusPage() {
                 className="w-full flex items-center justify-between text-sm font-bold text-[#F5F0E8] uppercase tracking-wider"
               >
                 <span className="flex items-center gap-2">
-                  <Activity className="w-4 h-4 text-[#D4A853]" />
+                  <Activity className="w-4 h-4 text-[#2D8B5E]" />
                   System Info
                 </span>
-                <span className="text-xs text-[#D4A853] hover:text-white transition-colors font-mono">
+                <span className="text-xs text-[#2D8B5E] hover:text-white transition-colors font-mono">
                   {showSystemInfo ? '[-]' : '[+]'}
                 </span>
               </button>

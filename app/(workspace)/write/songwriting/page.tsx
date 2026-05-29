@@ -8,7 +8,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Mic, Loader2, Sparkles, Copy, CheckCircle } from 'lucide-react';
-import { cyberpunkTheme } from '@/styles/themes/cyberpunk';
 
 export default function SongwritingPage() {
   const [theme, setTheme] = useState('');

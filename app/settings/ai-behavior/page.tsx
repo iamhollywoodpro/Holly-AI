@@ -18,7 +18,7 @@ export default function AIBehaviorPage() {
       </div>
 
       <div>
-        <label className="block text-[10px] font-black text-[#D4A853] uppercase tracking-[0.2em] mb-4">SENTIENT PERSONA</label>
+        <label className="block text-[10px] font-black text-[#2D8B5E] uppercase tracking-[0.2em] mb-4">SENTIENT PERSONA</label>
         <div className="grid grid-cols-3 gap-4">
           {(['professional', 'casual', 'technical'] as const).map((style) => (
             <button
@@ -30,8 +30,8 @@ export default function AIBehaviorPage() {
               }
               className={`p-6 rounded-2xl border-2 transition-all duration-300 ${
                 settings.ai.responseStyle === style
-                  ? 'border-[#D4A853] bg-[#D4A853]/10 shadow-[0_0_20px_rgba(212,168,83,0.15)]'
-                  : 'border-white/5 bg-[#1A1815] hover:border-[#D4A853]/20'
+                  ? 'border-[#2D8B5E] bg-[#2D8B5E]/10 shadow-[0_0_20px_rgba(212,168,83,0.15)]'
+                  : 'border-white/5 bg-[#1E1B18] hover:border-[#2D8B5E]/20'
               }`}
             >
               <div className="text-center">
@@ -40,7 +40,7 @@ export default function AIBehaviorPage() {
                   {style === 'casual' && '🎭'}
                   {style === 'technical' && '🏗️'}
                 </div>
-                <div className={`text-[10px] font-black uppercase tracking-widest ${settings.ai.responseStyle === style ? 'text-[#D4A853]' : 'text-[#F5F0E8]'}`}>
+                <div className={`text-[10px] font-black uppercase tracking-widest ${settings.ai.responseStyle === style ? 'text-[#2D8B5E]' : 'text-[#F5F0E8]'}`}>
                   {style === 'professional' ? 'Architect' : style === 'casual' ? 'Fluid' : 'Technocrat'}
                 </div>
                 <div className="text-[9px] text-[#8C8476] uppercase tracking-widest mt-2 font-medium">
@@ -68,7 +68,7 @@ export default function AIBehaviorPage() {
               }
               className={`p-4 rounded-lg border-2 transition-all ${
                 settings.ai.codeComments === level
-                  ? 'border-purple-500 bg-purple-500/10'
+                  ? 'border-[#2D8B5E] bg-[#2D8B5E]/10'
                   : 'border-gray-700 hover:border-gray-600'
               }`}
             >
@@ -87,7 +87,7 @@ export default function AIBehaviorPage() {
 
       {/* Context Window */}
       <div>
-        <label className="block text-[10px] font-black text-[#D4A853] uppercase tracking-[0.2em] mb-4">
+        <label className="block text-[10px] font-black text-[#2D8B5E] uppercase tracking-[0.2em] mb-4">
           NEURAL BUFFER DEPTH
         </label>
         <div className="flex items-center gap-6">
@@ -102,7 +102,7 @@ export default function AIBehaviorPage() {
                 ai: { ...settings.ai, contextWindow: parseInt(e.target.value) },
               })
             }
-            className="flex-1 h-1.5 bg-white/5 rounded-full appearance-none cursor-pointer accent-[#D4A853]"
+            className="flex-1 h-1.5 bg-white/5 rounded-full appearance-none cursor-pointer accent-[#2D8B5E]"
           />
           <span className="text-[#F5F0E8] font-black text-xs w-12 text-right uppercase tracking-tighter">{settings.ai.contextWindow}M</span>
         </div>
@@ -113,7 +113,7 @@ export default function AIBehaviorPage() {
 
       {/* Creativity (Temperature) */}
       <div>
-        <label className="block text-[10px] font-black text-[#D4A853] uppercase tracking-[0.2em] mb-4">
+        <label className="block text-[10px] font-black text-[#2D8B5E] uppercase tracking-[0.2em] mb-4">
           CREATIVE RESONANCE
         </label>
         <div className="flex items-center gap-6">
@@ -128,7 +128,7 @@ export default function AIBehaviorPage() {
                 ai: { ...settings.ai, creativity: parseFloat(e.target.value) },
               })
             }
-            className="flex-1 h-1.5 bg-white/5 rounded-full appearance-none cursor-pointer accent-[#D4A853]"
+            className="flex-1 h-1.5 bg-white/5 rounded-full appearance-none cursor-pointer accent-[#2D8B5E]"
           />
           <span className="text-[#F5F0E8] font-black text-xs w-12 text-right uppercase tracking-tighter">{settings.ai.creativity.toFixed(1)}λ</span>
         </div>
@@ -153,7 +153,7 @@ export default function AIBehaviorPage() {
               })
             }
             className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors duration-500 ${
-              settings.ai.autoSave ? 'bg-[#D4A853]' : 'bg-white/10'
+              settings.ai.autoSave ? 'bg-[#2D8B5E]' : 'bg-white/10'
             }`}
           >
             <span
@@ -166,11 +166,11 @@ export default function AIBehaviorPage() {
       </div>
 
       {/* Info Box */}
-      <div className="bg-[#D4A853]/5 border border-[#D4A853]/20 rounded-2xl p-6">
+      <div className="bg-[#2D8B5E]/5 border border-[#2D8B5E]/20 rounded-2xl p-6">
         <div className="flex items-start gap-4">
           <div className="text-xl">✨</div>
           <div className="flex-1">
-            <div className="text-[10px] font-black text-[#D4A853] uppercase tracking-[0.2em] mb-2">Neural Heuristics</div>
+            <div className="text-[10px] font-black text-[#2D8B5E] uppercase tracking-[0.2em] mb-2">Neural Heuristics</div>
             <ul className="text-[9px] text-[#8C8476] uppercase tracking-widest space-y-2 font-medium leading-relaxed">
               <li>• INCREASE RESONANCE FOR UNBOUNDED CONCEPTUAL SYNTHESIS</li>
               <li>• COLLAPSE RESONANCE FOR ATOMIC SOURCE INTEGRITY</li>
@@ -183,8 +183,8 @@ export default function AIBehaviorPage() {
 
       {/* Save indicator */}
       {isSaving && (
-        <div className="text-[10px] text-[#D4A853] font-black uppercase tracking-widest flex items-center gap-3">
-          <div className="w-3.5 h-3.5 border-2 border-[#D4A853] border-t-transparent rounded-full animate-spin" />
+        <div className="text-[10px] text-[#2D8B5E] font-black uppercase tracking-widest flex items-center gap-3">
+          <div className="w-3.5 h-3.5 border-2 border-[#2D8B5E] border-t-transparent rounded-full animate-spin" />
           Synchronizing Neural Matrix...
         </div>
       )}

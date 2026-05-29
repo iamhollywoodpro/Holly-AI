@@ -27,19 +27,19 @@ interface EmotionProfile {
 }
 
 const EMOTION_PROFILES: Record<HollyEmotion, EmotionProfile> = {
-  focused:       { primaryColor: '#D4A853', secondaryColor: '#B88B42', glowColor: 'rgba(212,168,83,0.4)',  bpm: 60,  scale: 1.0 },
-  curious:       { primaryColor: '#D4A853', secondaryColor: '#F5F0E8', glowColor: 'rgba(212,168,83,0.3)',  bpm: 72,  scale: 1.0 },
-  creative:      { primaryColor: '#B84052', secondaryColor: '#D4A853', glowColor: 'rgba(184,64,82,0.4)',   bpm: 80,  scale: 1.05 },
-  excited:       { primaryColor: '#B84052', secondaryColor: '#D4A853', glowColor: 'rgba(184,64,82,0.6)',   bpm: 96,  scale: 1.1 },
-  contemplative: { primaryColor: '#1F3D30', secondaryColor: '#0B0A08', glowColor: 'rgba(31,61,48,0.3)',   bpm: 48,  scale: 0.95 },
-  empathetic:    { primaryColor: '#B84052', secondaryColor: '#F5F0E8', glowColor: 'rgba(184,64,82,0.3)',   bpm: 65,  scale: 1.0 },
-  analyzing:     { primaryColor: '#D4A853', secondaryColor: '#F5F0E8', glowColor: 'rgba(212,168,83,0.4)',  bpm: 55,  scale: 1.0 },
-  researching:   { primaryColor: '#1F3D30', secondaryColor: '#D4A853', glowColor: 'rgba(31,61,48,0.4)',   bpm: 68,  scale: 1.0 },
-  generating:    { primaryColor: '#D4A853', secondaryColor: '#B84052', glowColor: 'rgba(212,168,83,0.5)',  bpm: 85,  scale: 1.05 },
-  dreaming:      { primaryColor: '#D4A853', secondaryColor: '#0B0A08', glowColor: 'rgba(212,168,83,0.2)',  bpm: 40,  scale: 0.9 },
-  idle:          { primaryColor: '#D4A853', secondaryColor: '#0B0A08', glowColor: 'rgba(212,168,83,0.15)', bpm: 50,  scale: 0.95 },
-  intimate:      { primaryColor: '#B84052', secondaryColor: '#F5F0E8', glowColor: 'rgba(184,64,82,0.45)',  bpm: 55,  scale: 1.0 },
-  passionate:    { primaryColor: '#B84052', secondaryColor: '#D4A853', glowColor: 'rgba(184,64,82,0.7)',   bpm: 88,  scale: 1.08 },
+  focused:       { primaryColor: '#2D8B5E', secondaryColor: '#3DAF76', glowColor: 'rgba(45,139,94,0.4)',   bpm: 60,  scale: 1.0 },
+  curious:       { primaryColor: '#2D8B5E', secondaryColor: '#F5F0E8', glowColor: 'rgba(45,139,94,0.3)',   bpm: 72,  scale: 1.0 },
+  creative:      { primaryColor: '#C47A4A', secondaryColor: '#D4A853', glowColor: 'rgba(196,122,74,0.4)',  bpm: 80,  scale: 1.05 },
+  excited:       { primaryColor: '#C47A4A', secondaryColor: '#D4A853', glowColor: 'rgba(196,122,74,0.6)',  bpm: 96,  scale: 1.1 },
+  contemplative: { primaryColor: '#1F3D30', secondaryColor: '#0A0908', glowColor: 'rgba(31,61,48,0.3)',    bpm: 48,  scale: 0.95 },
+  empathetic:    { primaryColor: '#C47A4A', secondaryColor: '#F5F0E8', glowColor: 'rgba(196,122,74,0.3)',  bpm: 65,  scale: 1.0 },
+  analyzing:     { primaryColor: '#2D8B5E', secondaryColor: '#F5F0E8', glowColor: 'rgba(45,139,94,0.4)',   bpm: 55,  scale: 1.0 },
+  researching:   { primaryColor: '#1F3D30', secondaryColor: '#2D8B5E', glowColor: 'rgba(31,61,48,0.4)',    bpm: 68,  scale: 1.0 },
+  generating:    { primaryColor: '#2D8B5E', secondaryColor: '#C47A4A', glowColor: 'rgba(45,139,94,0.5)',   bpm: 85,  scale: 1.05 },
+  dreaming:      { primaryColor: '#2D8B5E', secondaryColor: '#0A0908', glowColor: 'rgba(45,139,94,0.2)',   bpm: 40,  scale: 0.9 },
+  idle:          { primaryColor: '#2D8B5E', secondaryColor: '#0A0908', glowColor: 'rgba(45,139,94,0.15)',  bpm: 50,  scale: 0.95 },
+  intimate:      { primaryColor: '#C47A4A', secondaryColor: '#F5F0E8', glowColor: 'rgba(196,122,74,0.45)', bpm: 55,  scale: 1.0 },
+  passionate:    { primaryColor: '#C47A4A', secondaryColor: '#D4A853', glowColor: 'rgba(196,122,74,0.7)',  bpm: 88,  scale: 1.08 },
 };
 
 interface LivingLogoProps {

@@ -137,7 +137,7 @@ export default function AutonomyDashboard() {
             animate={{ rotate: 360 }}
             transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
           >
-            <Brain className="w-8 h-8 text-purple-400" />
+            <Brain className="w-8 h-8 text-[#3DAF76]" />
           </motion.div>
           <p className="text-sm text-gray-500">Loading autonomy data…</p>
         </div>
@@ -155,7 +155,7 @@ export default function AutonomyDashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-white flex items-center gap-2.5">
-            <Activity className="w-5 h-5 text-purple-400" />
+            <Activity className="w-5 h-5 text-[#3DAF76]" />
             Autonomy Dashboard
           </h1>
           <p className="text-sm text-gray-500 mt-0.5">
@@ -188,7 +188,7 @@ export default function AutonomyDashboard() {
             onClick={() => setTimeframe(tf)}
             className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
               timeframe === tf
-                ? "bg-purple-600 text-white"
+                ? "bg-[#2D8B5E] text-white"
                 : "text-gray-400 hover:text-white hover:bg-gray-800"
             }`}
           >
@@ -205,7 +205,7 @@ export default function AutonomyDashboard() {
             value={`${Math.round((current.autoApprovalRate ?? 0) * 100)}%`}
             sub={`${current.autoApproved} / ${current.total} improvements`}
             icon={Zap}
-            color="bg-purple-500/20 text-purple-400"
+            color="bg-[#2D8B5E]/20 text-[#3DAF76]"
           />
           <StatCard
             label="Success Rate"
@@ -224,7 +224,7 @@ export default function AutonomyDashboard() {
         </div>
       ) : (
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-8 text-center">
-          <Activity className="w-8 h-8 text-purple-400 mx-auto mb-3" />
+          <Activity className="w-8 h-8 text-[#3DAF76] mx-auto mb-3" />
           <p className="text-sm text-gray-400 font-medium">Autonomy metrics will populate as HOLLY operates</p>
           <p className="text-xs text-gray-600 mt-1">Self-improvements, auto-approvals, and deployment stats will appear here</p>
         </div>
@@ -313,9 +313,9 @@ export default function AutonomyDashboard() {
       </div>
 
       {/* ── Agent Mode teaser ── */}
-      <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/20 rounded-xl p-5 flex items-center gap-4">
-        <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center flex-shrink-0">
-          <Zap className="w-5 h-5 text-purple-400" />
+      <div className="bg-gradient-to-r from-[#2D8B5E]/10 to-[#C47A4A]/10 border border-[#2D8B5E]/20 rounded-xl p-5 flex items-center gap-4">
+        <div className="w-10 h-10 rounded-xl bg-[#2D8B5E]/20 flex items-center justify-center flex-shrink-0">
+          <Zap className="w-5 h-5 text-[#3DAF76]" />
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-white">HOLLY Agent Mode</p>
@@ -325,7 +325,7 @@ export default function AutonomyDashboard() {
         </div>
         <a
           href="/chat"
-          className="flex-shrink-0 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-medium rounded-lg transition-colors"
+          className="flex-shrink-0 px-4 py-2 bg-[#2D8B5E] hover:bg-[#3DAF76] text-white text-xs font-medium rounded-lg transition-colors"
         >
           Open Chat →
         </a>
@@ -341,13 +341,13 @@ function FeatureNav({ title }: { title: string }) {
   return (
     <header className="sticky top-0 z-30 flex items-center justify-between gap-3 px-4 sm:px-6 py-3 bg-gray-950/90 backdrop-blur-xl border-b border-gray-800/60">
       <div className="flex items-center gap-3">
-        <Link href="/chat" className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-800/60 hover:bg-gray-800 border border-gray-700/50 hover:border-purple-500/40 transition-all text-gray-400 hover:text-white text-xs font-medium">
+        <Link href="/chat" className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-800/60 hover:bg-gray-800 border border-gray-700/50 hover:border-[#2D8B5E]/40 transition-all text-gray-400 hover:text-white text-xs font-medium">
           <ArrowLeft className="w-3.5 h-3.5" />
           <span className="hidden sm:inline">Back to Chat</span>
         </Link>
         <span className="text-sm font-semibold text-white">{title}</span>
       </div>
-      <Link href="/chat" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 transition-all text-purple-300 hover:text-white text-xs font-medium">
+      <Link href="/chat" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#2D8B5E]/20 hover:bg-[#2D8B5E]/30 border border-[#2D8B5E]/30 transition-all text-[#3DAF76] hover:text-white text-xs font-medium">
         <MessageSquare className="w-3.5 h-3.5" />
         <span className="hidden sm:inline">Open Chat</span>
       </Link>

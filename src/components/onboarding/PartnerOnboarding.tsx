@@ -56,7 +56,7 @@ const TIERS = [
     subtitle: "Code · GitHub · Deployment · Systems",
     description:
       "HOLLY becomes your neural architect — reviewing, optimizing, and shipping mission-critical code. She learns your intent and architectural patterns.",
-    gradient: "from-[#D4A853] to-[#B84052]",
+    gradient: "from-[#D4A853] to-[#C47A4A]",
     glow: "shadow-[#D4A853]/20",
     border: "border-[#D4A853]/40",
     ring: "ring-[#D4A853]/60",
@@ -75,10 +75,10 @@ const TIERS = [
     subtitle: "Goals · Health · Wisdom · Discipline",
     description:
       "HOLLY becomes your life strategist — tracking existential goals, building vital habits, and ensuring your focus remains on high-leverage outcomes.",
-    gradient: "from-[#B84052] to-[#D4A853]",
-    glow: "shadow-[#B84052]/20",
-    border: "border-[#B84052]/40",
-    ring: "ring-[#B84052]/60",
+    gradient: "from-[#C47A4A] to-[#D4A853]",
+    glow: "shadow-[#C47A4A]/20",
+    border: "border-[#C47A4A]/40",
+    ring: "ring-[#C47A4A]/60",
     features: [
       { icon: Target, text: "Sovereign accountability" },
       { icon: Calendar, text: "Protocol scheduling" },
@@ -94,7 +94,7 @@ const TIERS = [
     subtitle: "Music · Art · Narrative · Aesthetic",
     description:
       "HOLLY becomes your creative co-author — brainstorming, composing, and refining your artistic vision into editorial-grade reality.",
-    gradient: "from-[#1F3D30] to-[#D4A853]",
+    gradient: "from-[#1F3D30] to-[#2D8B5E]",
     glow: "shadow-[#1F3D30]/20",
     border: "border-[#1F3D30]/40",
     ring: "ring-[#1F3D30]/60",
@@ -155,8 +155,8 @@ function Chip({
       onClick={onClick}
       className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider border transition-all ${
         selected
-          ? `bg-[#D4A853] text-[#0B0A08] border-transparent shadow-lg shadow-[#D4A853]/20`
-          : "bg-[#1A1815]/60 text-[#8C8476] border-white/5 hover:border-[#D4A853]/40 hover:text-[#F5F0E8]"
+          ? `bg-[#2D8B5E] text-[#0A0908] border-transparent shadow-lg shadow-[#2D8B5E]/20`
+          : "bg-[#1A1815]/60 text-[#8C8476] border-white/5 hover:border-[#2D8B5E]/40 hover:text-[#F5F0E8]"
       }`}
     >
       {selected && <Check className="inline w-3 h-3 mr-1.5 -mt-0.5" />}
@@ -249,11 +249,11 @@ export default function PartnerOnboarding({ onComplete, onSkip }: Props) {
   };
 
   return (
-    <div className="min-h-screen bg-[#0B0A08] flex items-center justify-center p-4 overflow-hidden font-serif">
+    <div className="min-h-screen bg-[#0A0908] flex items-center justify-center p-4 overflow-hidden font-serif">
       {/* Background glow */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-[#D4A853]/5 rounded-full blur-[120px]" />
-        <div className="absolute bottom-1/4 right-1/4 w-[600px] h-[600px] bg-[#B84052]/5 rounded-full blur-[120px]" />
+        <div className="absolute bottom-1/4 right-1/4 w-[600px] h-[600px] bg-[#C47A4A]/5 rounded-full blur-[120px]" />
       </div>
 
       <AnimatePresence mode="wait">
@@ -273,7 +273,7 @@ export default function PartnerOnboarding({ onComplete, onSkip }: Props) {
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ delay: 0.1 }}
-                className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-[#D4A853] to-[#B84052] rounded-2xl mb-4 shadow-lg shadow-[#D4A853]/30"
+                className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-[#2D8B5E] to-[#C47A4A] rounded-2xl mb-4 shadow-lg shadow-[#2D8B5E]/30"
               >
                 <Sparkles className="w-8 h-8 text-white" />
               </motion.div>
@@ -302,7 +302,7 @@ export default function PartnerOnboarding({ onComplete, onSkip }: Props) {
                     className={`relative p-6 rounded-3xl border text-left transition-all duration-300 ${
                       isSelected
                         ? `bg-[#12110F] ${t.border} ring-2 ${t.ring} shadow-2xl ${t.glow}`
-                        : "bg-[#12110F]/60 border-white/5 hover:border-[#D4A853]/40 hover:bg-[#12110F]"
+                        : "bg-[#12110F]/60 border-white/5 hover:border-[#2D8B5E]/40 hover:bg-[#12110F]"
                     }`}
                   >
                     {isSelected && (
@@ -396,14 +396,14 @@ export default function PartnerOnboarding({ onComplete, onSkip }: Props) {
                     items={DEV_STACK}
                     selected={prefs.devStack || []}
                     onToggle={item => toggle("devStack", item)}
-                    color="bg-[#D4A853]"
+                    color="bg-[#2D8B5E]"
                   />
                   <ChipGroup
                     label="Domain Focus"
                     items={DEV_FOCUS}
                     selected={prefs.devFocus || []}
                     onToggle={item => toggle("devFocus", item)}
-                    color="bg-[#B84052]"
+                    color="bg-[#C47A4A]"
                   />
                 </>
               )}

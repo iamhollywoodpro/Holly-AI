@@ -286,7 +286,7 @@ export default function SandboxWindow({
             )}
           </button>
           <div className="flex items-center gap-1.5">
-            <Terminal className="w-3.5 h-3.5 text-[#D4A853]" />
+            <Terminal className="w-3.5 h-3.5 text-[#2D8B5E]" />
             <span className="text-xs font-medium text-gray-300">
               HOLLY Sandbox
             </span>
@@ -333,7 +333,7 @@ export default function SandboxWindow({
                   onClick={() => setActiveLeftTab('activity')}
                   className={`flex items-center gap-1.5 px-3 py-1.5 text-[11px] border-b-2 transition-colors ${
                     activeLeftTab === 'activity'
-                      ? 'border-b-[#D4A853] text-white'
+                      ? 'border-b-[#2D8B5E] text-white'
                       : 'border-b-transparent text-gray-500 hover:text-gray-300'
                   }`}
                 >
@@ -344,7 +344,7 @@ export default function SandboxWindow({
                   onClick={() => setActiveLeftTab('files')}
                   className={`flex items-center gap-1.5 px-3 py-1.5 text-[11px] border-b-2 transition-colors ${
                     activeLeftTab === 'files'
-                      ? 'border-b-[#D4A853] text-white'
+                      ? 'border-b-[#2D8B5E] text-white'
                       : 'border-b-transparent text-gray-500 hover:text-gray-300'
                   }`}
                 >
@@ -406,7 +406,7 @@ export default function SandboxWindow({
                           style={{ paddingLeft: `${12 + file.depth * 12}px` }}
                         >
                           {file.type === "directory" ? (
-                            <ChevronRight className="w-3 h-3 text-[#D4A853] flex-shrink-0" />
+                            <ChevronRight className="w-3 h-3 text-[#2D8B5E] flex-shrink-0" />
                           ) : (
                             <FileCode className="w-3 h-3 text-blue-400 flex-shrink-0" />
                           )}

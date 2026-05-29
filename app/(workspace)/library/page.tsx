@@ -23,7 +23,7 @@ export default function LibraryPage() {
       <Icon className="w-16 h-16 text-gray-600 mb-4" />
       <h3 className="text-xl font-semibold text-white mb-2">{title}</h3>
       <p className="text-gray-400 text-center max-w-md mb-6">{description}</p>
-      <button className="flex items-center gap-2 px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors">
+      <button className="flex items-center gap-2 px-4 py-2 bg-[#2D8B5E] hover:bg-[#3DAF76] text-white rounded-lg transition-colors">
         <Plus className="w-4 h-4" />
         {actionLabel}
       </button>
@@ -109,7 +109,7 @@ export default function LibraryPage() {
                   className={`
                     flex items-center gap-2 px-4 py-3 border-b-2 transition-colors
                     ${isActive
-                      ? 'border-purple-500 text-white'
+                      ? 'border-[#2D8B5E] text-white'
                       : 'border-transparent text-gray-400 hover:text-white'
                     }
                   `}

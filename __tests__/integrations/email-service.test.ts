@@ -210,7 +210,7 @@ describe('Email Service (Resend)', () => {
       expect(callBody.html).toContain('Here is the update');
       // Verify styled template
       expect(callBody.html).toContain('font-family');
-      expect(callBody.html).toContain('D4A853'); // Gold color
+      expect(callBody.html).toContain('2D8B5E'); // Emerald color
     });
 
     it('should propagate send failure', async () => {

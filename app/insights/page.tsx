@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { BarChart, TrendingUp, Activity, Zap, Brain, Heart, Cpu, Database, Network, ArrowLeft } from 'lucide-react';
-import { cyberpunkTheme } from '@/styles/themes/cyberpunk';
 
 export default function InsightsPage() {
   const [consciousness, setConsciousness] = useState({
@@ -24,32 +23,32 @@ export default function InsightsPage() {
 
   const getEmotionColor = (emotion: string) => {
     switch (emotion) {
-      case 'excited': return '#EC4899';
-      case 'focused': return '#06B6D4';
-      case 'creative': return '#8B5CF6';
-      default: return '#A1A1AA';
+      case 'excited': return '#2D8B5E';
+      case 'focused': return '#2D8B5E';
+      case 'creative': return '#C47A4A';
+      default: return '#8C8476';
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#0A0A0F] text-white p-8">
+    <div className="min-h-screen bg-[#0A0908] text-white p-8">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-4">
             <button
               onClick={() => window.location.href = '/'}
-              className="p-2 rounded-lg border border-[#27272A] bg-[#13131A] hover:bg-[#1A1A24] transition-colors"
+              className="p-2 rounded-lg border border-[#2A2520] bg-[#141210] hover:bg-[#1A1A24] transition-colors"
               title="Back to HOLLY Chat"
             >
               <ArrowLeft size={20} />
             </button>
-            <BarChart size={32} className="text-[#EC4899]" />
+            <BarChart size={32} className="text-[#2D8B5E]" />
             <h1 className="text-3xl font-bold">
               HOLLY's Consciousness & Insights
             </h1>
           </div>
-          <p className="text-[#A1A1AA] text-lg">
+          <p className="text-[#8C8476] text-lg">
             Real-time insights into HOLLY's awareness, activity, and performance
           </p>
         </div>
@@ -57,7 +56,7 @@ export default function InsightsPage() {
         {/* Consciousness Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           {/* Awareness Level */}
-          <div className="bg-[#13131A] border border-[#8B5CF6]/25 rounded-2xl p-6 relative overflow-hidden">
+          <div className="bg-[#141210] border border-[#C47A4A]/25 rounded-2xl p-6 relative overflow-hidden">
             <div style={{
               position: 'absolute',
               inset: 0,
@@ -66,21 +65,21 @@ export default function InsightsPage() {
             }} />
             <div className="relative z-10">
               <div className="flex items-center gap-3 mb-4">
-                <Brain size={20} className="text-[#8B5CF6]" />
+                <Brain size={20} className="text-[#C47A4A]" />
                 <h3 className="text-lg font-semibold">Consciousness</h3>
               </div>
-              <div className="text-4xl font-bold text-[#8B5CF6] mb-2">
+              <div className="text-4xl font-bold text-[#C47A4A] mb-2">
                 {consciousness.level}%
               </div>
-              <p className="text-[#A1A1AA]">
+              <p className="text-[#8C8476]">
                 Fully conscious and ready
               </p>
-              <div className="mt-4 h-2 rounded-full overflow-hidden bg-[#27272A]">
+              <div className="mt-4 h-2 rounded-full overflow-hidden bg-[#2A2520]">
                 <div
                   className="h-full transition-all duration-500"
                   style={{
                     width: `${consciousness.level}%`,
-                    background: 'linear-gradient(90deg, #8B5CF6, #06B6D4)',
+                    background: 'linear-gradient(90deg, #C47A4A, #2D8B5E)',
                   }}
                 />
               </div>
@@ -88,40 +87,40 @@ export default function InsightsPage() {
           </div>
 
           {/* Activity Level */}
-          <div className="bg-[#13131A] border border-[#06B6D4]/25 rounded-2xl p-6">
+          <div className="bg-[#141210] border border-[#2D8B5E]/25 rounded-2xl p-6">
             <div className="flex items-center gap-3 mb-4">
-              <Zap size={20} className="text-[#06B6D4]" />
+              <Zap size={20} className="text-[#2D8B5E]" />
               <h3 className="text-lg font-semibold">Activity</h3>
             </div>
-            <div className="text-4xl font-bold text-[#06B6D4] mb-2">
+            <div className="text-4xl font-bold text-[#2D8B5E] mb-2">
               Active
             </div>
-            <p className="text-[#A1A1AA]">
+            <p className="text-[#8C8476]">
               Processing requests
             </p>
           </div>
 
           {/* Performance */}
-          <div className="bg-[#13131A] border border-[#EC4899]/25 rounded-2xl p-6">
+          <div className="bg-[#141210] border border-[#2D8B5E]/25 rounded-2xl p-6">
             <div className="flex items-center gap-3 mb-4">
-              <TrendingUp size={20} className="text-[#EC4899]" />
+              <TrendingUp size={20} className="text-[#2D8B5E]" />
               <h3 className="text-lg font-semibold">Performance</h3>
             </div>
-            <div className="text-4xl font-bold text-[#EC4899] mb-2">
+            <div className="text-4xl font-bold text-[#2D8B5E] mb-2">
               Optimal
             </div>
-            <p className="text-[#A1A1AA]">
+            <p className="text-[#8C8476]">
               All systems nominal
             </p>
           </div>
         </div>
 
         {/* Activity Timeline */}
-        <div className="bg-[#13131A] border border-[#27272A] rounded-2xl p-8 mb-8">
+        <div className="bg-[#141210] border border-[#2A2520] rounded-2xl p-8 mb-8">
           <h2 className="text-2xl font-bold mb-6">Activity Timeline</h2>
 
-          <div className="py-12 text-center text-[#A1A1AA]">
-            <Activity size={64} className="mx-auto mb-4 text-[#27272A]" />
+          <div className="py-12 text-center text-[#8C8476]">
+            <Activity size={64} className="mx-auto mb-4 text-[#2A2520]" />
             <p className="text-lg">No activity data yet</p>
             <p className="text-sm mt-2">
               Start chatting with HOLLY to see insights here
@@ -131,23 +130,23 @@ export default function InsightsPage() {
 
         {/* System Resources */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          <div className="bg-[#13131A] border border-[#27272A] rounded-2xl p-8">
+          <div className="bg-[#141210] border border-[#2A2520] rounded-2xl p-8">
             <h2 className="text-2xl font-bold mb-6">System Resources</h2>
             <div className="space-y-4">
               {[
-                { icon: Database, label: 'Memory', value: consciousness.memory_usage, color: '#8B5CF6' },
-                { icon: Network, label: 'Network', value: 78, color: '#06B6D4' },
-                { icon: Cpu, label: 'Processing', value: 65, color: '#EC4899' },
+                { icon: Database, label: 'Memory', value: consciousness.memory_usage, color: '#C47A4A' },
+                { icon: Network, label: 'Network', value: 78, color: '#2D8B5E' },
+                { icon: Cpu, label: 'Processing', value: 65, color: '#2D8B5E' },
               ].map((resource, i) => (
                 <div key={i}>
                   <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2 text-[#A1A1AA]">
+                    <div className="flex items-center gap-2 text-[#8C8476]">
                       <resource.icon size={14} />
                       <span className="text-sm">{resource.label}</span>
                     </div>
                     <span className="text-sm font-semibold">{resource.value}%</span>
                   </div>
-                  <div className="h-2 rounded-full overflow-hidden bg-[#27272A]">
+                  <div className="h-2 rounded-full overflow-hidden bg-[#2A2520]">
                     <div
                       className="h-full transition-all duration-500"
                       style={{ width: `${resource.value}%`, background: resource.color }}
@@ -158,7 +157,7 @@ export default function InsightsPage() {
             </div>
           </div>
 
-          <div className="bg-[#13131A] border border-[#27272A] rounded-2xl p-8">
+          <div className="bg-[#141210] border border-[#2A2520] rounded-2xl p-8">
             <h2 className="text-2xl font-bold mb-6">System Status</h2>
             <div className="space-y-4">
               {[
@@ -170,12 +169,12 @@ export default function InsightsPage() {
               ].map((item, i) => (
                 <div
                   key={i}
-                  className="flex justify-between items-center p-4 bg-[#0A0A0F] rounded-lg"
+                  className="flex justify-between items-center p-4 bg-[#0A0908] rounded-lg"
                 >
                   <span className="font-medium">{item.label}</span>
                   <div className="flex items-center gap-3">
-                    <span className="text-[#A1A1AA]">{item.value}</span>
-                    <div className="w-2 h-2 rounded-full bg-[#EC4899] shadow-[0_0_8px_#EC4899]" />
+                    <span className="text-[#8C8476]">{item.value}</span>
+                    <div className="w-2 h-2 rounded-full bg-[#2D8B5E] shadow-[0_0_8px_#2D8B5E]" />
                   </div>
                 </div>
               ))}
@@ -184,11 +183,11 @@ export default function InsightsPage() {
         </div>
 
         {/* Info Box */}
-        <div className="mt-8 bg-[#EC4899]/10 border border-[#EC4899]/25 rounded-xl p-6">
-          <h4 className="font-semibold text-[#EC4899] mb-2">
+        <div className="mt-8 bg-[#2D8B5E]/10 border border-[#2D8B5E]/25 rounded-xl p-6">
+          <h4 className="font-semibold text-[#2D8B5E] mb-2">
             📊 About Consciousness Insights
           </h4>
-          <p className="text-[#A1A1AA] leading-relaxed">
+          <p className="text-[#8C8476] leading-relaxed">
             HOLLY's consciousness system tracks her awareness, activity levels, and performance metrics in real-time.
             This helps ensure optimal assistance and transparent operation.
           </p>

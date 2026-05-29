@@ -85,7 +85,7 @@ export default function AnalyticsDashboardPage() {
   if (metricsLoading && metrics.length === 0) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
+        <Loader2 className="h-8 w-8 animate-spin text-[#2D8B5E]" />
       </div>
     );
   }
@@ -95,8 +95,8 @@ export default function AnalyticsDashboardPage() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Analytics</h1>
-          <p className="mt-2 text-gray-600">
+          <h1 className="text-3xl font-bold text-[#F5F0E8]">Analytics</h1>
+          <p className="mt-2 text-[#8C8476]">
             Monitor performance metrics and generate insights.
           </p>
         </div>
@@ -104,7 +104,7 @@ export default function AnalyticsDashboardPage() {
           <button 
             onClick={handleRefresh}
             disabled={metricsLoading}
-            className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            className="flex items-center gap-2 rounded-lg border border-white/10 bg-[#0A0908] px-4 py-2 text-sm font-medium text-[#F5F0E8] hover:bg-[#0A0908]/5 disabled:opacity-50"
           >
             <RefreshCw className={`h-4 w-4 ${metricsLoading ? 'animate-spin' : ''}`} />
             Refresh
@@ -112,7 +112,7 @@ export default function AnalyticsDashboardPage() {
           <button 
             onClick={handleExportReport}
             disabled={exportLoading}
-            className="flex items-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700 disabled:opacity-50"
+            className="flex items-center gap-2 rounded-lg bg-[#2D8B5E] px-4 py-2 text-sm font-medium text-white hover:bg-[#1F3D30] disabled:opacity-50"
           >
             {exportLoading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -148,7 +148,7 @@ export default function AnalyticsDashboardPage() {
           change={`${reports.filter(r => r.status === 'completed').length} completed`}
           changeType="positive"
           icon={DollarSign}
-          iconColor="text-purple-600"
+          iconColor="text-[#2D8B5E]"
         />
         <MetricCard
           title="Insights"
@@ -169,12 +169,12 @@ export default function AnalyticsDashboardPage() {
           </CardHeader>
           <CardContent>
             {trendData.length === 0 ? (
-              <div className="h-80 flex items-center justify-center text-gray-500">
+              <div className="h-80 flex items-center justify-center text-[#8C8476]">
                 No trend data available
               </div>
             ) : (
               <div className="h-80">
-                <LineChart data={trendData} color="#8b5cf6" />
+                <LineChart data={trendData} color="#2D8B5E" />
               </div>
             )}
           </CardContent>
@@ -187,7 +187,7 @@ export default function AnalyticsDashboardPage() {
           </CardHeader>
           <CardContent>
             {categoryData.length === 0 ? (
-              <div className="h-80 flex items-center justify-center text-gray-500">
+              <div className="h-80 flex items-center justify-center text-[#8C8476]">
                 No category data available
               </div>
             ) : (
@@ -208,7 +208,7 @@ export default function AnalyticsDashboardPage() {
               <CardTitle>Recent Reports</CardTitle>
               <button 
                 onClick={() => setShowReportForm(!showReportForm)}
-                className="text-sm font-medium text-purple-600 hover:text-purple-700 flex items-center gap-1"
+                className="text-sm font-medium text-[#2D8B5E] hover:text-[#1F3D30] flex items-center gap-1"
               >
                 <Plus className="h-4 w-4" />
                 New Report
@@ -217,19 +217,19 @@ export default function AnalyticsDashboardPage() {
           </CardHeader>
           <CardContent>
             {showReportForm && (
-              <form onSubmit={handleGenerateReport} className="mb-4 p-4 border border-gray-200 rounded-lg space-y-3">
+              <form onSubmit={handleGenerateReport} className="mb-4 p-4 border border-white/10 rounded-lg space-y-3">
                 <input
                   type="text"
                   value={reportName}
                   onChange={(e) => setReportName(e.target.value)}
                   placeholder="Report name..."
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                  className="w-full rounded-lg border border-white/10 px-3 py-2 text-sm focus:border-[#2D8B5E]/40 focus:outline-none focus:ring-1 focus:ring-[#2D8B5E]/30"
                   required
                 />
                 <select 
                   value={reportType}
                   onChange={(e) => setReportType(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                  className="w-full rounded-lg border border-white/10 px-3 py-2 text-sm focus:border-[#2D8B5E]/40 focus:outline-none focus:ring-1 focus:ring-[#2D8B5E]/30"
                 >
                   <option value="summary">Summary</option>
                   <option value="detailed">Detailed</option>
@@ -240,14 +240,14 @@ export default function AnalyticsDashboardPage() {
                   <button 
                     type="submit"
                     disabled={!reportName.trim()}
-                    className="flex-1 rounded-lg bg-purple-600 px-3 py-2 text-sm font-medium text-white hover:bg-purple-700 disabled:opacity-50"
+                    className="flex-1 rounded-lg bg-[#2D8B5E] px-3 py-2 text-sm font-medium text-white hover:bg-[#1F3D30] disabled:opacity-50"
                   >
                     Generate
                   </button>
                   <button 
                     type="button"
                     onClick={() => setShowReportForm(false)}
-                    className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                    className="rounded-lg border border-white/10 px-3 py-2 text-sm font-medium text-[#F5F0E8] hover:bg-[#0A0908]/5"
                   >
                     Cancel
                   </button>
@@ -257,10 +257,10 @@ export default function AnalyticsDashboardPage() {
             
             {reportsLoading ? (
               <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-purple-600" />
+                <Loader2 className="h-6 w-6 animate-spin text-[#2D8B5E]" />
               </div>
             ) : reports.length === 0 ? (
-              <div className="py-8 text-center text-gray-500">
+              <div className="py-8 text-center text-[#8C8476]">
                 No reports yet. Create one to get started!
               </div>
             ) : (
@@ -268,18 +268,18 @@ export default function AnalyticsDashboardPage() {
                 {reports.slice(0, 5).map((report) => (
                   <div
                     key={report.id}
-                    className="flex items-center justify-between rounded-lg border border-gray-200 p-3 hover:bg-gray-50"
+                    className="flex items-center justify-between rounded-lg border border-white/10 p-3 hover:bg-[#0A0908]/5"
                   >
                     <div className="flex-1">
-                      <p className="font-medium text-gray-900">{report.name}</p>
-                      <p className="text-xs text-gray-500">
+                      <p className="font-medium text-[#F5F0E8]">{report.name}</p>
+                      <p className="text-xs text-[#8C8476]">
                         {report.type} • {new Date(report.createdAt).toLocaleDateString()}
                       </p>
                     </div>
                     <span className={`rounded-full px-2 py-1 text-xs font-medium ${
                       report.status === 'completed' ? 'bg-green-100 text-green-700' :
                       report.status === 'processing' ? 'bg-yellow-100 text-yellow-700' :
-                      'bg-gray-100 text-gray-700'
+                      'bg-[#1E1B18] text-[#F5F0E8]'
                     }`}>
                       {report.status}
                     </span>
@@ -298,10 +298,10 @@ export default function AnalyticsDashboardPage() {
           <CardContent>
             {insightsLoading ? (
               <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-purple-600" />
+                <Loader2 className="h-6 w-6 animate-spin text-[#2D8B5E]" />
               </div>
             ) : insights.length === 0 ? (
-              <div className="py-8 text-center text-gray-500">
+              <div className="py-8 text-center text-[#8C8476]">
                 No insights available yet.
               </div>
             ) : (
@@ -313,8 +313,8 @@ export default function AnalyticsDashboardPage() {
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-900">{insight.title}</p>
-                        <p className="mt-1 text-xs text-gray-600">{insight.description}</p>
+                        <p className="text-sm font-medium text-[#F5F0E8]">{insight.title}</p>
+                        <p className="mt-1 text-xs text-[#8C8476]">{insight.description}</p>
                       </div>
                       <span className={`ml-2 rounded-full px-2 py-1 text-xs font-medium ${
                         insight.severity === 'high' ? 'bg-red-100 text-red-700' :

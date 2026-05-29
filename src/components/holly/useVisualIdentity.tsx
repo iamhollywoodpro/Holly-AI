@@ -67,9 +67,9 @@ const VisualIdentityContext = createContext<VisualIdentityState>({
   error: null,
   refresh: async () => {},
   emotionProfile: {
-    primaryColor: '#D4A853',
-    secondaryColor: '#0B0A08',
-    glowColor: 'rgba(212,168,83,0.15)',
+    primaryColor: '#2D8B5E',
+    secondaryColor: '#0A0908',
+    glowColor: 'rgba(45,139,94,0.15)',
     bpm: 50,
     scale: 0.95,
   },

@@ -38,7 +38,7 @@ export default function NotificationsPage() {
               });
             }}
             className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors duration-500 ${
-              settings.notifications.desktop ? 'bg-[#D4A853]' : 'bg-white/10'
+              settings.notifications.desktop ? 'bg-[#2D8B5E]' : 'bg-white/10'
             }`}
           >
             <span
@@ -61,7 +61,7 @@ export default function NotificationsPage() {
               })
             }
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              settings.notifications.sounds ? 'bg-purple-500' : 'bg-gray-700'
+              settings.notifications.sounds ? 'bg-[#2D8B5E]' : 'bg-[#1E1B18]'
             }`}
           >
             <span
@@ -92,7 +92,7 @@ export default function NotificationsPage() {
               })
             }
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              settings.notifications.deploymentAlerts ? 'bg-purple-500' : 'bg-gray-700'
+              settings.notifications.deploymentAlerts ? 'bg-[#2D8B5E]' : 'bg-[#1E1B18]'
             }`}
           >
             <span
@@ -118,7 +118,7 @@ export default function NotificationsPage() {
               })
             }
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              settings.notifications.githubWebhooks ? 'bg-purple-500' : 'bg-gray-700'
+              settings.notifications.githubWebhooks ? 'bg-[#2D8B5E]' : 'bg-[#1E1B18]'
             }`}
           >
             <span
@@ -144,7 +144,7 @@ export default function NotificationsPage() {
               })
             }
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              settings.notifications.buildFailures ? 'bg-purple-500' : 'bg-gray-700'
+              settings.notifications.buildFailures ? 'bg-[#2D8B5E]' : 'bg-[#1E1B18]'
             }`}
           >
             <span
@@ -160,9 +160,9 @@ export default function NotificationsPage() {
       {typeof window !== 'undefined' && 'Notification' in window && (
         <div className={`rounded-2xl p-6 border transition-all duration-500 ${
           Notification.permission === 'granted'
-            ? 'bg-[#D4A853]/5 border-[#D4A853]/20 shadow-[0_0_20px_rgba(212,168,83,0.05)]'
+            ? 'bg-[#2D8B5E]/5 border-[#2D8B5E]/20 shadow-[0_0_20px_rgba(212,168,83,0.05)]'
             : Notification.permission === 'denied'
-            ? 'bg-[#B84052]/5 border-[#B84052]/20'
+            ? 'bg-[#C47A4A]/5 border-[#C47A4A]/20'
             : 'bg-white/5 border-white/10'
         }`}>
           <div className="flex items-center gap-4">
@@ -172,8 +172,8 @@ export default function NotificationsPage() {
             </div>
             <div className="flex-1">
               <div className={`text-[10px] font-black uppercase tracking-[0.2em] mb-1 ${
-                Notification.permission === 'granted' ? 'text-[#D4A853]' :
-                Notification.permission === 'denied' ? 'text-[#B84052]' : 'text-[#8C8476]'
+                Notification.permission === 'granted' ? 'text-[#2D8B5E]' :
+                Notification.permission === 'denied' ? 'text-[#C47A4A]' : 'text-[#8C8476]'
               }`}>
                 Grid Resonance: {Notification.permission.toUpperCase()}
               </div>
@@ -192,8 +192,8 @@ export default function NotificationsPage() {
 
       {/* Save indicator */}
       {isSaving && (
-        <div className="text-[10px] text-[#D4A853] font-black uppercase tracking-widest flex items-center gap-3">
-          <div className="w-3.5 h-3.5 border-2 border-[#D4A853] border-t-transparent rounded-full animate-spin" />
+        <div className="text-[10px] text-[#2D8B5E] font-black uppercase tracking-widest flex items-center gap-3">
+          <div className="w-3.5 h-3.5 border-2 border-[#2D8B5E] border-t-transparent rounded-full animate-spin" />
           Calibrating Sensory Array...
         </div>
       )}

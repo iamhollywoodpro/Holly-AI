@@ -103,15 +103,15 @@ const EMOTION_DESIGN_MAP: Record<string, {
 
   content: {
     colors: {
-      primary: '#D4A853',      // Sovereign gold
-      secondary: '#B84052',    // Living crimson
-      accent: '#5BB8C9',       // Cool cyan
-      background: '#0B0A08',   // Deep void
-      surface: '#12110F',      // Soft obsidian
+      primary: '#2D8B5E',      // Deep Emerald
+      secondary: '#C47A4A',    // Burnished Copper
+      accent: '#D4A853',       // Holly Gold
+      background: '#0A0908',   // Warm Void
+      surface: '#141210',      // Surface
       text: '#F5F0E8',         // Warm ivory
-      textSecondary: '#D1C8B8', // Aged parchment
-      border: 'rgba(212, 168, 83, 0.1)',
-      glow: 'rgba(212, 168, 83, 0.3)',
+      textSecondary: '#BFB5A5', // Cream
+      border: 'rgba(45, 139, 94, 0.1)',
+      glow: 'rgba(45, 139, 94, 0.3)',
     },
     typography: {
       fontFamily: 'Inter, system-ui, sans-serif',
@@ -253,15 +253,15 @@ const EMOTION_DESIGN_MAP: Record<string, {
 
   balanced: {
     colors: {
-      primary: '#D4A853',      // Sovereign gold (default)
-      secondary: '#B84052',    // Living crimson
-      accent: '#5BB8C9',       // Cool cyan
-      background: '#0B0A08',   // Deep void
-      surface: '#12110F',      // Soft obsidian
+      primary: '#2D8B5E',      // Deep Emerald (default)
+      secondary: '#C47A4A',    // Burnished Copper
+      accent: '#D4A853',       // Holly Gold
+      background: '#0A0908',   // Warm Void
+      surface: '#141210',      // Surface
       text: '#F5F0E8',         // Warm ivory
-      textSecondary: '#D1C8B8', // Aged parchment
-      border: 'rgba(212, 168, 83, 0.1)',
-      glow: 'rgba(212, 168, 83, 0.3)',
+      textSecondary: '#BFB5A5', // Cream
+      border: 'rgba(45, 139, 94, 0.1)',
+      glow: 'rgba(45, 139, 94, 0.3)',
     },
     typography: {
       fontFamily: 'Inter, system-ui, sans-serif',
@@ -354,7 +354,7 @@ const EMOTION_DESIGN_MAP: Record<string, {
   gentle: {
     colors: {
       primary: '#DDA0DD',      // Plum
-      secondary: '#D4A853',    // Gold
+      secondary: '#C47A4A',    // Copper
       accent: '#B0E0E6',       // Powder blue
       background: '#0C0A0D',   // Plum black
       surface: '#141015',      // Dark plum

@@ -3,27 +3,27 @@
 /* Glow Animations */
 @keyframes glow-pulse-gold {
   0%, 100% {
-    box-shadow: 0 0 10px rgba(212, 168, 83, 0.2),
-                0 0 20px rgba(212, 168, 83, 0.1),
-                0 0 30px rgba(212, 168, 83, 0.05);
+    box-shadow: 0 0 10px rgba(45, 139, 94, 0.2),
+                0 0 20px rgba(45, 139, 94, 0.1),
+                0 0 30px rgba(45, 139, 94, 0.05);
   }
   50% {
-    box-shadow: 0 0 20px rgba(212, 168, 83, 0.4),
-                0 0 30px rgba(212, 168, 83, 0.2),
-                0 0 40px rgba(212, 168, 83, 0.1);
+    box-shadow: 0 0 20px rgba(45, 139, 94, 0.4),
+                0 0 30px rgba(45, 139, 94, 0.2),
+                0 0 40px rgba(45, 139, 94, 0.1);
   }
 }
 
 @keyframes glow-pulse-crimson {
   0%, 100% {
-    box-shadow: 0 0 10px rgba(184, 64, 82, 0.2),
-                0 0 20px rgba(184, 64, 82, 0.1),
-                0 0 30px rgba(184, 64, 82, 0.05);
+    box-shadow: 0 0 10px rgba(196, 122, 74, 0.2),
+                0 0 20px rgba(196, 122, 74, 0.1),
+                0 0 30px rgba(196, 122, 74, 0.05);
   }
   50% {
-    box-shadow: 0 0 20px rgba(184, 64, 82, 0.4),
-                0 0 30px rgba(184, 64, 82, 0.2),
-                0 0 40px rgba(184, 64, 82, 0.1);
+    box-shadow: 0 0 20px rgba(196, 122, 74, 0.4),
+                0 0 30px rgba(196, 122, 74, 0.2),
+                0 0 40px rgba(196, 122, 74, 0.1);
   }
 }
 
@@ -166,7 +166,7 @@
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(212, 168, 83, 0.05) 50%,
+    rgba(45, 139, 94, 0.05) 50%,
     transparent 100%
   );
   background-size: 1000px 100%;
@@ -182,20 +182,20 @@
 }
 
 .hover-glow:hover {
-  box-shadow: 0 0 20px rgba(212, 168, 83, 0.3),
-              0 0 30px rgba(212, 168, 83, 0.15);
+  box-shadow: 0 0 20px rgba(45, 139, 94, 0.3),
+              0 0 30px rgba(45, 139, 94, 0.15);
   transform: translateY(-1px);
 }
 
-.hover-glow-pink:hover, .hover-glow-crimson:hover {
-  box-shadow: 0 0 20px rgba(184, 64, 82, 0.3),
-              0 0 30px rgba(184, 64, 82, 0.15);
+.hover-glow-pink:hover, .hover-glow-crimson:hover, .hover-glow-copper:hover {
+  box-shadow: 0 0 20px rgba(196, 122, 74, 0.3),
+              0 0 30px rgba(196, 122, 74, 0.15);
   transform: translateY(-1px);
 }
 
-.hover-glow-purple:hover, .hover-glow-gold:hover {
-  box-shadow: 0 0 20px rgba(212, 168, 83, 0.3),
-              0 0 30px rgba(212, 168, 83, 0.15);
+.hover-glow-purple:hover, .hover-glow-gold:hover, .hover-glow-emerald:hover {
+  box-shadow: 0 0 20px rgba(45, 139, 94, 0.3),
+              0 0 30px rgba(45, 139, 94, 0.15);
   transform: translateY(-1px);
 }
 
@@ -217,9 +217,9 @@
 
 /* Sovereign Grid Background */
 .cyberpunk-grid {
-  background-image: 
-    linear-gradient(rgba(212, 168, 83, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(212, 168, 83, 0.03) 1px, transparent 1px);
+  background-image:
+    linear-gradient(rgba(45, 139, 94, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(45, 139, 94, 0.03) 1px, transparent 1px);
   background-size: 60px 60px;
 }
 
@@ -235,7 +235,7 @@
   inset: 0;
   border-radius: inherit;
   padding: 1px;
-  background: linear-gradient(135deg, #D4A853, #B84052, #D4A853);
+  background: linear-gradient(135deg, #2D8B5E, #C47A4A, #2D8B5E);
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
@@ -245,11 +245,11 @@
 .holographic-text {
   background: linear-gradient(
     135deg,
-    #D4A853 0%,
-    #B84052 25%,
-    #F5F0E8 50%,
-    #B84052 75%,
-    #D4A853 100%
+    #2D8B5E 0%,
+    #C47A4A 25%,
+    #D4A853 50%,
+    #C47A4A 75%,
+    #2D8B5E 100%
   );
   background-size: 200% 200%;
   -webkit-background-clip: text;
@@ -262,8 +262,8 @@
 .spinner {
   width: 40px;
   height: 40px;
-  border: 2px solid rgba(212, 168, 83, 0.1);
-  border-top-color: #D4A853;
+  border: 2px solid rgba(45, 139, 94, 0.1);
+  border-top-color: #2D8B5E;
   border-radius: 50%;
   animation: rotate-slow 1.5s linear infinite;
 }
@@ -284,7 +284,7 @@
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(212, 168, 83, 0.2),
+    rgba(45, 139, 94, 0.2),
     transparent
   );
   animation: scan-line 4s linear infinite;
@@ -300,32 +300,32 @@
 
 /* Selection Styling */
 ::selection {
-  background: rgba(212, 168, 83, 0.2);
+  background: rgba(45, 139, 94, 0.2);
   color: #F5F0E8;
 }
 
 ::-moz-selection {
-  background: rgba(212, 168, 83, 0.2);
+  background: rgba(45, 139, 94, 0.2);
   color: #F5F0E8;
 }
 
 /* SDI Interface Utilities */
 .sdi-glass {
-  background: rgba(11, 10, 8, 0.6);
+  background: rgba(10, 9, 8, 0.6);
   backdrop-filter: blur(24px) saturate(150%);
-  border: 1px solid rgba(212, 168, 83, 0.08);
+  border: 1px solid rgba(45, 139, 94, 0.08);
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6);
 }
 
 .sdi-glow-gold {
-  box-shadow: 0 0 20px rgba(212, 168, 83, 0.1),
-              inset 0 0 10px rgba(212, 168, 83, 0.05);
-  border-color: rgba(212, 168, 83, 0.2);
+  box-shadow: 0 0 20px rgba(45, 139, 94, 0.1),
+              inset 0 0 10px rgba(45, 139, 94, 0.05);
+  border-color: rgba(45, 139, 94, 0.2);
 }
 
 .sdi-glow-cyan {
-  box-shadow: 0 0 20px rgba(212, 168, 83, 0.1);
-  border-color: rgba(212, 168, 83, 0.2);
+  box-shadow: 0 0 20px rgba(45, 139, 94, 0.1);
+  border-color: rgba(45, 139, 94, 0.2);
 }
 
 .animate-heart-pulse {
@@ -338,9 +338,9 @@
   left: 0;
   right: 0;
   height: 100%;
-  background: linear-gradient(to bottom, 
-    transparent 0%, 
-    rgba(212, 168, 83, 0.05) 50%, 
+  background: linear-gradient(to bottom,
+    transparent 0%,
+    rgba(45, 139, 94, 0.05) 50%,
     transparent 100%);
   animation: sdi-scanning 4s ease-in-out infinite;
   pointer-events: none;

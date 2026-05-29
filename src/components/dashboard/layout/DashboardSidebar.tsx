@@ -23,11 +23,11 @@ export function DashboardSidebar() {
   const pathname = usePathname();
 
   return (
-    <div className="flex h-full w-64 flex-col bg-gray-900 text-white">
+    <div className="flex h-full w-64 flex-col bg-[#141210] text-[#F5F0E8]">
       {/* Logo */}
-      <div className="flex h-16 items-center gap-2 px-6 border-b border-gray-800">
-        <Sparkles className="h-8 w-8 text-purple-400" />
-        <span className="text-xl font-bold">HOLLY</span>
+      <div className="flex h-16 items-center gap-2 px-6 border-b border-white/5">
+        <Sparkles className="h-8 w-8 text-[#2D8B5E]" />
+        <span className="text-xl font-bold tracking-tight">HOLLY</span>
       </div>
 
       {/* Navigation */}
@@ -43,8 +43,8 @@ export function DashboardSidebar() {
                 transition-colors duration-200
                 ${
                   isActive
-                    ? 'bg-purple-600 text-white'
-                    : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                    ? 'bg-[#2D8B5E]/20 text-[#3DAF76] border border-[#2D8B5E]/30'
+                    : 'text-[#8C8476] hover:bg-white/5 hover:text-[#F5F0E8]'
                 }
               `}
             >
@@ -56,8 +56,8 @@ export function DashboardSidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="border-t border-gray-800 p-4">
-        <p className="text-xs text-gray-400">Holly AI Dashboard v1.0</p>
+      <div className="border-t border-white/5 p-4">
+        <p className="text-xs text-[#5C564D]">Holly AI Dashboard v1.0</p>
       </div>
     </div>
   );
