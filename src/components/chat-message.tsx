@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { Message } from '@/store/chat-store';
-import { HollyAvatar } from './holly-avatar';
+import { HollyAvatarCompact } from './holly/HollyAvatar';
 import { User, Volume2, VolumeX, Loader2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -136,7 +136,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
       {/* Avatar */}
       <div className="flex-shrink-0">
         {isAssistant ? (
-          <HollyAvatar emotion={message.emotion} size="md" animated={message.isStreaming} />
+          <HollyAvatarCompact size={48} />
         ) : (
           <div className="w-12 h-12 rounded-full bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center">
             <User className="w-6 h-6 text-gray-300" />

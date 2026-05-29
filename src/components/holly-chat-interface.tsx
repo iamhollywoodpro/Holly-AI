@@ -278,7 +278,7 @@ function TypingIndicator() {
   );
 }
 
-function HollyAvatar({ isThinking }: { isThinking: boolean }) {
+function HollyChatOrb({ isThinking }: { isThinking: boolean }) {
   const { emotion } = useHollyEmotion();
   return <HollyOrb emotion={emotion} isThinking={isThinking} size={36} />;
 }
@@ -2611,7 +2611,7 @@ export default function HollyChatInterface() {
               {/* Panel header with tabs */}
               <div className="flex items-center gap-0 px-4 pt-4 pb-0 border-b border-white/5 flex-shrink-0">
                 <div className="flex items-center gap-3 flex-1 mb-3">
-                  <HollyAvatar isThinking={false} />
+                  <HollyChatOrb isThinking={false} />
                   <div>
                     <p className="text-sm font-black tracking-widest text-white">HOLLY</p>
                     <p className="text-[9px] text-primary/60 font-bold uppercase tracking-wider">SDI Interface</p>
@@ -3051,7 +3051,7 @@ export default function HollyChatInterface() {
               className={`flex gap-3 group ${msg.role === "user" ? "justify-end" : "justify-start"}`}
             >
               {msg.role === "assistant" && (
-                <HollyAvatar isThinking={false} />
+                <HollyChatOrb isThinking={false} />
               )}
 
               <div className={`flex flex-col gap-1 ${msg.role === "user" ? "items-end" : "items-start"} max-w-[85%]`}>
@@ -3193,7 +3193,7 @@ export default function HollyChatInterface() {
               animate={{ opacity: 1, y: 0 }}
               className="flex gap-3 justify-start"
             >
-              <HollyAvatar isThinking={true} />
+              <HollyChatOrb isThinking={true} />
               <div className="flex flex-col gap-1 items-start max-w-[85%]">
                 <div className="flex items-center gap-2 px-1">
                   <span className="text-xs font-bold tracking-widest text-primary uppercase">HOLLY</span>
@@ -3239,7 +3239,7 @@ export default function HollyChatInterface() {
               exit={{ opacity: 0, y: -4 }}
               className="flex gap-3 justify-start"
             >
-              <HollyAvatar isThinking={true} />
+              <HollyChatOrb isThinking={true} />
               <div className="flex flex-col gap-2 items-start max-w-[85%]">
                 <div className="flex items-center gap-2 px-1">
                   <span className="text-xs font-bold tracking-widest text-primary uppercase">HOLLY</span>
@@ -3253,7 +3253,7 @@ export default function HollyChatInterface() {
         {/* Typing indicator — only when processing with NO status and NO text yet */}
         {isProcessing && !streamingMessage && !currentStatus && (
           <div className="flex gap-3 justify-start">
-            <HollyAvatar isThinking={true} />
+            <HollyChatOrb isThinking={true} />
             <div className="rounded-2xl rounded-bl-sm px-4 py-2 bg-white/5 border border-white/10 backdrop-blur-md">
               <TypingIndicator />
             </div>
