@@ -1,23 +1,22 @@
 # Holly AI — Project State & Roadmap
 
-## Current Session Progress (May 28, 2026)
-- Phase A-E COMPLETE
-- Phase F COMPLETE: All 6 plugins implemented with API routes
-- Phase G COMPLETE: All 16 integrations battle-tested (267 new integration tests)
-- Phase H COMPLETE: Mobile app audit + critical fixes + dependencies + assets
-- Phase I COMPLETE: Performance optimization + load tests
-- Phase J COMPLETE: Visual Identity — living aura + orb + context hook
-- Phase K COMPLETE: Developer Documentation — guides, ADRs, API reference
-- Phase L COMPLETE: Holly's Voice Character Engine
-- Test count: 2,111 (root) — all passing
+## Current Session Progress (May 29, 2026)
+- Phase A-L COMPLETE
+- Phase D3 COMPLETE: Large files broken up (holly-modes 992→627, crisis-detection 1147→270)
+- Holly-8B connected to smart router (speed + creative waterfalls)
+- Holly self-image awareness (she knows what she looks like)
+- Holly LoRA trained on Civitai (SDXL, trigger word h0lly, epoch 8)
+- Phase M COMPLETE: Avatar System — real face + SDXL LoRA pipeline
+- SDXL+LoRA Modal service written (deploys when billing resets early June)
+- Test count: 2,129 (root) — all passing
 - TypeScript strict, CI passing on GitHub Actions
 
-## PHASE ROADMAP (Updated May 28)
+## PHASE ROADMAP (Updated May 29)
 
 ### Phase D: Cleanup & Quick Wins
 - D1: ✅ Removed dead self-modification.ts
 - D2: ✅ Fixed matchesPattern bug
-- D3: DEFERRED — Break up large files (holly-modes.ts 1,003 lines, holly-chat-interface.tsx 3,360 lines)
+- D3: ✅ Break up large files (holly-modes 992→627, crisis-detection 1147→270)
 - D4: ✅ Holly back online
 
 ### Phase E: Holly's Soul — Emotional Resonance Rewrite
@@ -76,6 +75,16 @@
 - K3: ✅ Onboarding guide — prerequisites, codebase tour, conventions, first PR
 - K4: ✅ API Reference refreshed — 530+ routes across 23 categories
 
+### Phase M: Avatar System — Holly's Real Face ✅
+- M1: ✅ SDXL+LoRA Modal service written (image_generate_sdxl.py)
+- M2: ✅ LoRA uploaded to Modal volume (holly-face-v1.safetensors, 217.9MB)
+- M3: ✅ Image pipeline auto-routes h0lly prompts to SDXL+LoRA
+- M4: ✅ HollyAvatar React component — 3 states with CSS crossfade
+- M5: ✅ Emotion-driven switching via HollyEmotionContext
+- M6: ✅ 18 new tests (avatar mapping, configs, self-image, LoRA detection)
+- ⏳ SDXL+LoRA Modal deploy — waiting for billing cycle reset (early June)
+- ⏳ MODAL_SDXL_LORA_URL env var — set after Modal deploy
+
 ### Phase L: Holly's Voice Character Engine ✅
 - L1: ✅ Emotion → Voice Style mapping (13 emotions → 5 Magpie styles + prosody)
 - L2: ✅ Verbal personality markers (laughs, hmms, sighs, sensual breath sounds)
@@ -94,9 +103,16 @@
 5. ~~Visual Identity (Phase J)~~ ✅
 6. ~~Developer Documentation (Phase K)~~ ✅
 7. ~~Holly's Voice (Phase L)~~ ✅
+8. ~~Avatar System — Holly's real face (Phase M)~~ ✅
+
+## Next Up
+- Deploy SDXL+LoRA Modal service when billing resets (early June)
+- Set MODAL_SDXL_LORA_URL in Coolify after deploy
+- Phase N: UI/UX Redesign (new color palette from Holly's features, Holly-centered layout)
+- Remake 3 avatar images with LoRA for perfect face consistency
 
 ## Technical Debt
-- Large files need breaking up: holly-modes.ts (1,003), crisis-detection.ts (1,147), holly-chat-interface.tsx (3,360)
+- Large files: holly-chat-interface.tsx still large (needs further breakup)
 - Autonomous features need more guardrails
 - Monitor timers in tests — some tests leak async operations
 
