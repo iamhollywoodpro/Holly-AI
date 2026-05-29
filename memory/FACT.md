@@ -6,7 +6,10 @@
 - Phase G COMPLETE: All 16 integrations battle-tested (267 new integration tests)
 - Phase H COMPLETE: Mobile app audit + critical fixes + dependencies + assets
 - Phase I COMPLETE: Performance optimization + load tests
-- Test count: 2,054 (root) + 56 (mobile) — all passing
+- Phase J COMPLETE: Visual Identity — living aura + orb + context hook
+- Phase K COMPLETE: Developer Documentation — guides, ADRs, API reference
+- Phase L COMPLETE: Holly's Voice Character Engine
+- Test count: 2,111 (root) — all passing
 - TypeScript strict, CI passing on GitHub Actions
 
 ## PHASE ROADMAP (Updated May 28)
@@ -24,7 +27,7 @@
 - E4: ✅ Response quality feedback loop
 
 ### Phase F: Plugin Marketplace Implementation
-- F1-F6: ✅ All 6 plugins implemented (Notes, Code Review, Daily Digest, Mood Tracker, Project Planner, Language Tutor)
+- F1-F6: ✅ All 6 plugins implemented (Notes, Code Review, Daily Digest, Mood Planner, Project Planner, Language Tutor)
 - ✅ All 6 plugin API routes created
 
 ### Phase G: Battle-Test Every Integration ✅
@@ -61,35 +64,46 @@
 - I7: ✅ k6 stress test for 1,000 concurrent users
 - I8: ✅ 5 performance verification tests
 
-### Phase J: Visual Identity — Alive, Not Static
-- J1: Real-time visual reactions to conversation
-- J2: Make aura respond to emotional state instantly
-- J3: Not just slow evolution — living presence
+### Phase J: Visual Identity — Alive, Not Static ✅
+- J1: ✅ Real-time visual reactions via useVisualIdentity hook + React context
+- J2: ✅ AuraBackground — 4-layer ambient gradient responding to emotion instantly
+- J3: ✅ LivingHollyOrb — server-driven colors, form shapes, particle systems, emotion BPM
+- J4: ✅ 15 unit tests for rendering context, style-to-form mapping, state variations
 
-### Phase K: Developer Documentation
-- K1: "How do I add a new feature" guide
-- K2: Architecture decision records update
-- K3: Onboarding documentation for new developers
-- K4: API documentation
+### Phase K: Developer Documentation ✅
+- K1: ✅ "How to Add a Feature" guide — step-by-step data model → service → route → component → test
+- K2: ✅ 8 ADRs written (5 missing + 3 new: Visual Identity, Performance, Mobile Expo)
+- K3: ✅ Onboarding guide — prerequisites, codebase tour, conventions, first PR
+- K4: ✅ API Reference refreshed — 530+ routes across 23 categories
 
-### Phase L: Holly's Voice
-- L1: Distinctive voice that's recognizable
-- L2: Not just TTS with pitch adjustments
-- L3: Real voice character
+### Phase L: Holly's Voice Character Engine ✅
+- L1: ✅ Emotion → Voice Style mapping (13 emotions → 5 Magpie styles + prosody)
+- L2: ✅ Verbal personality markers (laughs, hmms, sighs, sensual breath sounds)
+- L3: ✅ NVIDIA Magpie TTS client (REST, auth, rate limit handling)
+- L4: ✅ Core Character Engine (text + emotion → markers → style → TTS → audio)
+- L5: ✅ Updated synthesize route (emotion-aware + legacy fallback)
+- L6: ✅ 42 voice character tests (all passing)
+- L7: ✅ ADR-014 written
+- L8: ✅ Committed and pushed
 
 ## Steve's Priority Order
 1. ~~Holly's Soul — Personality needs real empathy (Phase E)~~ ✅
 2. ~~Battle-Test Every Integration (Phase G)~~ ✅
 3. ~~Mobile App (Phase H)~~ ✅
 4. ~~Performance at Scale (Phase I)~~ ✅
-5. Visual Identity (Phase J)
-6. Developer Documentation (Phase K)
-7. Holly's Voice (Phase L)
+5. ~~Visual Identity (Phase J)~~ ✅
+6. ~~Developer Documentation (Phase K)~~ ✅
+7. ~~Holly's Voice (Phase L)~~ ✅
 
 ## Technical Debt
 - Large files need breaking up: holly-modes.ts (1,003), crisis-detection.ts (1,147), holly-chat-interface.tsx (3,360)
-- matchesPattern bug in safety-guardrails.ts — FIXED
-- self-modification.ts dead code — REMOVED
 - Autonomous features need more guardrails
 - Monitor timers in tests — some tests leak async operations
-- Mobile app needs npm install to resolve dependencies and run mobile tests
+
+## Voice Architecture
+- Primary: NVIDIA Magpie TTS Multilingual (free, 5 emotional styles, 5 English voices)
+- Fallback: Kokoro-FastAPI (self-hosted, CPU-based, $0)
+- Legacy: VoxCPM2 (GPU, Modal credits — paused to save budget)
+- 13 emotions: 11 original + intimate (slow, sultry, pillow talk) + passionate (heated, electric, intense)
+- Character Engine is provider-agnostic — can swap TTS without rework
+- Sensual verbal markers: soft breath, contented sigh, mm, draws closer, soft moan
