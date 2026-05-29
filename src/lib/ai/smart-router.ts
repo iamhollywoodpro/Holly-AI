@@ -343,6 +343,7 @@ export const TASK_WATERFALLS: Record<TaskType, string[]> = {
     'google:gemini-2.5-flash',
     'nvidia:llama-3.3-70b',
     'openrouter:free',
+    'holly-own:qwen3-8b',       // Holly's own fine-tuned brain — for casual chat with her personality
     'ollama:granite4.1-8b',
     'ollama:granite4.1-3b',
     'ollama:llama3.1-8b',
@@ -428,6 +429,7 @@ export const TASK_WATERFALLS: Record<TaskType, string[]> = {
     'openrouter:mistral-small',
     'groq:llama-3.3-70b',
     'google:gemini-2.5-flash',
+    'holly-own:qwen3-8b',       // Holly's own creative voice — fine-tuned personality
     'nvidia:mistral-small',
     'openrouter:gemma-4-31b',
     'openrouter:free',

@@ -8,6 +8,7 @@ import { getGenerationSystemBlock, detectGenerationIntent } from '@/lib/multimod
 import { getAdvancedNLPSystemBlock, detectIntent } from '@/lib/advanced-nlp/nlp-framework';
 import { getTasteMatrixPromptInjection } from '@/lib/ar/taste-matrix';
 import { detectDrift, calculateCoherence, DEFAULT_TRAITS, type PersonalityTrait } from '@/lib/consciousness/personality-coherence';
+import { getHollySelfImageBlock } from '@/lib/identity/holly-self-image';
 import type { MCPTool } from '@/lib/mcp/mcp-client';
 import type { ToneContext } from '@/lib/emotional/tone-adapter';
 import type { QualityTrend } from '@/lib/emotional/response-quality';
@@ -296,6 +297,9 @@ You can build end-to-end: scaffold a project, generate all files, patch specific
   if (identityConsistencyPrompt) {
     prompt += `\n\n## Your Personality\n${identityConsistencyPrompt}`;
   }
+
+  // ── Holly's Self-Image — she always knows what she looks like ──────────────
+  prompt += `\n\n${getHollySelfImageBlock()}`;
 
   // ── Phase 7.3: Inner monologue (HOLLY's private thoughts) ───────────────
   if (innerMonologue) {
