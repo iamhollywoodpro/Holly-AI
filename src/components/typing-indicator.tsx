@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { HollyAvatar } from './holly-avatar';
+import { HollyAvatarCompact } from './holly/HollyAvatar';
 
 export function TypingIndicator() {
   return (
@@ -14,7 +14,7 @@ export function TypingIndicator() {
     >
       {/* Avatar */}
       <div className="flex-shrink-0">
-        <HollyAvatar emotion="thoughtful" size="md" animated={true} />
+        <HollyAvatarCompact size={48} />
       </div>
 
       {/* Typing animation */}
