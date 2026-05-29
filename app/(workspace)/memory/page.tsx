@@ -8,9 +8,18 @@ import {
   MessageSquare, Sparkles, Heart, Settings, Loader2,
   AlertTriangle, Database, Clock, Tag, ChevronRight,
 } from 'lucide-react';
-import { cyberpunkTheme } from '@/styles/themes/cyberpunk';
-
-const C = cyberpunkTheme.colors;
+// Holly emerald/copper color palette
+const C = {
+  primary: { cyan: '#2D8B5E', purple: '#C47A4A', pink: '#D4A853' },
+  background: { primary: '#0A0908', secondary: '#141210', tertiary: '#1E1B18', elevated: '#1E1B18' },
+  text: { primary: '#F5F0E8', secondary: '#8C8476', tertiary: '#5C564D', muted: '#5C564D' },
+  accent: { success: '#2D8B5E', error: '#B84052' },
+  gradients: {
+    primary: 'linear-gradient(135deg, #2D8B5E 0%, #C47A4A 100%)',
+    holographic: 'linear-gradient(135deg, #C47A4A 0%, #2D8B5E 50%, #D4A853 100%)',
+  },
+  border: { primary: '#2A2520', accent: '#3A3430' },
+};
 
 type MemoryType = 'all' | 'conversation' | 'semantic' | 'emotional' | 'preference';
 

@@ -1,7 +1,15 @@
 'use client';
 
 import { WifiOff, RefreshCw } from 'lucide-react';
-import { cyberpunkTheme } from '@/styles/themes/cyberpunk';
+
+// Holly emerald/copper color palette
+const H = {
+  bg: { dark: '#0A0908', surface: '#141210' },
+  text: { primary: '#F5F0E8', secondary: '#8C8476', tertiary: '#5C564D' },
+  border: '#2A2520',
+  gradient: 'linear-gradient(135deg, #2D8B5E 0%, #C47A4A 100%)',
+  holographic: 'linear-gradient(135deg, #C47A4A 0%, #2D8B5E 50%, #D4A853 100%)',
+};
 
 export default function OfflinePage() {
   const handleRefresh = () => {
@@ -11,20 +19,20 @@ export default function OfflinePage() {
   return (
     <div 
       className="min-h-screen flex items-center justify-center p-6"
-      style={{ backgroundColor: cyberpunkTheme.colors.background.primary }}
+      style={{ backgroundColor: H.bg.dark }}
     >
       <div className="max-w-md text-center">
         {/* Offline Icon */}
         <div 
           className="w-24 h-24 mx-auto mb-6 rounded-full flex items-center justify-center"
           style={{
-            backgroundColor: cyberpunkTheme.colors.background.secondary,
-            border: `2px solid ${cyberpunkTheme.colors.border.primary}`,
+            backgroundColor: H.bg.surface,
+            border: `2px solid ${H.border}`,
           }}
         >
           <WifiOff 
             className="w-12 h-12"
-            style={{ color: cyberpunkTheme.colors.text.tertiary }}
+            style={{ color: H.text.tertiary }}
           />
         </div>
 
@@ -32,7 +40,7 @@ export default function OfflinePage() {
         <h1 
           className="text-3xl font-bold mb-3"
           style={{
-            background: cyberpunkTheme.colors.gradients.holographic,
+            background: H.holographic,
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
           }}
@@ -43,7 +51,7 @@ export default function OfflinePage() {
         {/* Description */}
         <p 
           className="text-lg mb-6"
-          style={{ color: cyberpunkTheme.colors.text.secondary }}
+          style={{ color: H.text.secondary }}
         >
           It looks like you've lost your internet connection. HOLLY needs to be online to function.
         </p>
@@ -52,19 +60,19 @@ export default function OfflinePage() {
         <div 
           className="p-4 rounded-xl mb-6 text-left"
           style={{
-            backgroundColor: cyberpunkTheme.colors.background.secondary,
-            border: `1px solid ${cyberpunkTheme.colors.border.primary}`,
+            backgroundColor: H.bg.surface,
+            border: `1px solid ${H.border}`,
           }}
         >
           <h3 
             className="font-semibold mb-2"
-            style={{ color: cyberpunkTheme.colors.text.primary }}
+            style={{ color: H.text.primary }}
           >
             What you can do:
           </h3>
           <ul 
             className="space-y-2 text-sm"
-            style={{ color: cyberpunkTheme.colors.text.tertiary }}
+            style={{ color: H.text.tertiary }}
           >
             <li>• View cached conversations</li>
             <li>• Read previously loaded content</li>
@@ -77,7 +85,7 @@ export default function OfflinePage() {
           onClick={handleRefresh}
           className="w-full py-3 rounded-lg flex items-center justify-center gap-2 transition-colors hover:opacity-80"
           style={{
-            background: cyberpunkTheme.colors.gradients.primary,
+            background: H.gradient,
             color: '#FFFFFF',
           }}
         >
@@ -88,7 +96,7 @@ export default function OfflinePage() {
         {/* Tips */}
         <p 
           className="text-sm mt-6"
-          style={{ color: cyberpunkTheme.colors.text.tertiary }}
+          style={{ color: H.text.tertiary }}
         >
           Check your internet connection and try refreshing the page.
         </p>

@@ -2,8 +2,16 @@
 
 import { useState } from 'react';
 import { ArrowLeft, Search, File, Image, Music, Video, FileText, Download, Trash2, Grid, List } from 'lucide-react';
-import { cyberpunkTheme } from '@/styles/themes/cyberpunk';
 import Link from 'next/link';
+
+// Holly emerald/copper color palette
+const H = {
+  bg: { dark: '#0A0908', surface: '#141210', raised: '#1E1B18' },
+  text: { primary: '#F5F0E8', secondary: '#8C8476', tertiary: '#5C564D' },
+  primary: '#2D8B5E',
+  border: '#2A2520',
+  holographic: 'linear-gradient(135deg, #C47A4A 0%, #2D8B5E 50%, #D4A853 100%)',
+};
 
 interface FileItem {
   id: string;
@@ -75,14 +83,14 @@ export default function FilesPage() {
   return (
     <div 
       className="min-h-screen p-6"
-      style={{ backgroundColor: cyberpunkTheme.colors.background.primary }}
+      style={{ backgroundColor: H.bg.dark }}
     >
       {/* Header */}
       <div className="max-w-7xl mx-auto mb-8">
         <Link
           href="/"
           className="inline-flex items-center gap-2 mb-4 hover:opacity-80 transition-opacity"
-          style={{ color: cyberpunkTheme.colors.text.secondary }}
+          style={{ color: H.text.secondary }}
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Chat
@@ -93,14 +101,14 @@ export default function FilesPage() {
             <h1 
               className="text-4xl font-bold mb-2"
               style={{
-                background: cyberpunkTheme.colors.gradients.holographic,
+                background: H.holographic,
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
               }}
             >
               📎 File Library
             </h1>
-            <p style={{ color: cyberpunkTheme.colors.text.secondary }}>
+            <p style={{ color: H.text.secondary }}>
               Manage all your uploaded files
             </p>
           </div>
@@ -108,18 +116,18 @@ export default function FilesPage() {
           {/* View Toggle */}
           <div 
             className="flex gap-2 p-1 rounded-lg"
-            style={{ backgroundColor: cyberpunkTheme.colors.background.secondary }}
+            style={{ backgroundColor: H.bg.surface }}
           >
             <button
               onClick={() => setViewMode('grid')}
               className="p-2 rounded transition-colors"
               style={{
                 backgroundColor: viewMode === 'grid' 
-                  ? cyberpunkTheme.colors.background.primary
+                  ? H.bg.dark
                   : 'transparent',
                 color: viewMode === 'grid'
-                  ? cyberpunkTheme.colors.primary.cyan
-                  : cyberpunkTheme.colors.text.tertiary,
+                  ? H.primary
+                  : H.text.tertiary,
               }}
             >
               <Grid className="w-5 h-5" />
@@ -129,11 +137,11 @@ export default function FilesPage() {
               className="p-2 rounded transition-colors"
               style={{
                 backgroundColor: viewMode === 'list' 
-                  ? cyberpunkTheme.colors.background.primary
+                  ? H.bg.dark
                   : 'transparent',
                 color: viewMode === 'list'
-                  ? cyberpunkTheme.colors.primary.cyan
-                  : cyberpunkTheme.colors.text.tertiary,
+                  ? H.primary
+                  : H.text.tertiary,
               }}
             >
               <List className="w-5 h-5" />
@@ -145,13 +153,13 @@ export default function FilesPage() {
         <div 
           className="flex items-center gap-3 p-4 rounded-xl mb-6"
           style={{
-            backgroundColor: cyberpunkTheme.colors.background.secondary,
-            border: `1px solid ${cyberpunkTheme.colors.border.primary}`,
+            backgroundColor: H.bg.surface,
+            border: `1px solid ${H.border}`,
           }}
         >
           <Search 
             className="w-5 h-5"
-            style={{ color: cyberpunkTheme.colors.text.tertiary }}
+            style={{ color: H.text.tertiary }}
           />
           <input
             type="text"
@@ -159,7 +167,7 @@ export default function FilesPage() {
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search files..."
             className="flex-1 bg-transparent outline-none"
-            style={{ color: cyberpunkTheme.colors.text.primary }}
+            style={{ color: H.text.primary }}
           />
         </div>
 
@@ -174,14 +182,14 @@ export default function FilesPage() {
                 className="px-4 py-2 rounded-lg flex items-center gap-2 transition-all"
                 style={{
                   backgroundColor: selectedType === type.id
-                    ? cyberpunkTheme.colors.background.secondary
+                    ? H.bg.surface
                     : 'transparent',
                   border: `1px solid ${selectedType === type.id
-                    ? cyberpunkTheme.colors.primary.cyan
-                    : cyberpunkTheme.colors.border.primary}`,
+                    ? H.primary
+                    : H.border}`,
                   color: selectedType === type.id
-                    ? cyberpunkTheme.colors.primary.cyan
-                    : cyberpunkTheme.colors.text.secondary,
+                    ? H.primary
+                    : H.text.secondary,
                 }}
               >
                 <Icon className="w-4 h-4" />
@@ -189,7 +197,7 @@ export default function FilesPage() {
                 <span 
                   className="text-xs px-2 py-0.5 rounded-full"
                   style={{
-                    backgroundColor: `${cyberpunkTheme.colors.primary.cyan}20`,
+                    backgroundColor: `${H.primary}20`,
                   }}
                 >
                   {type.count}
@@ -205,7 +213,7 @@ export default function FilesPage() {
         {filteredFiles.length === 0 ? (
           <div 
             className="text-center py-12"
-            style={{ color: cyberpunkTheme.colors.text.tertiary }}
+            style={{ color: H.text.tertiary }}
           >
             No files found
           </div>
@@ -218,42 +226,42 @@ export default function FilesPage() {
                   key={file.id}
                   className="p-4 rounded-xl group hover:scale-105 transition-transform"
                   style={{
-                    backgroundColor: cyberpunkTheme.colors.background.secondary,
-                    border: `1px solid ${cyberpunkTheme.colors.border.primary}`,
+                    backgroundColor: H.bg.surface,
+                    border: `1px solid ${H.border}`,
                   }}
                 >
                   <div 
                     className="w-full aspect-square rounded-lg mb-3 flex items-center justify-center"
-                    style={{ backgroundColor: cyberpunkTheme.colors.background.primary }}
+                    style={{ backgroundColor: H.bg.dark }}
                   >
                     <Icon 
                       className="w-12 h-12"
-                      style={{ color: cyberpunkTheme.colors.primary.cyan }}
+                      style={{ color: H.primary }}
                     />
                   </div>
                   <div 
                     className="font-medium mb-1 truncate"
-                    style={{ color: cyberpunkTheme.colors.text.primary }}
+                    style={{ color: H.text.primary }}
                   >
                     {file.name}
                   </div>
                   <div 
                     className="text-sm mb-3"
-                    style={{ color: cyberpunkTheme.colors.text.tertiary }}
+                    style={{ color: H.text.tertiary }}
                   >
                     {file.size} • {file.uploadedAt}
                   </div>
                   <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
                       className="flex-1 p-2 rounded hover:bg-white/10 transition-colors"
-                      style={{ color: cyberpunkTheme.colors.text.secondary }}
+                      style={{ color: H.text.secondary }}
                       title="Download"
                     >
                       <Download className="w-4 h-4 mx-auto" />
                     </button>
                     <button
                       className="flex-1 p-2 rounded hover:bg-white/10 transition-colors"
-                      style={{ color: cyberpunkTheme.colors.text.secondary }}
+                      style={{ color: H.text.secondary }}
                       title="Delete"
                     >
                       <Trash2 className="w-4 h-4 mx-auto" />
@@ -272,22 +280,22 @@ export default function FilesPage() {
                   key={file.id}
                   className="p-4 rounded-lg flex items-center justify-between group hover:bg-white/5 transition-colors"
                   style={{
-                    backgroundColor: cyberpunkTheme.colors.background.secondary,
-                    border: `1px solid ${cyberpunkTheme.colors.border.primary}`,
+                    backgroundColor: H.bg.surface,
+                    border: `1px solid ${H.border}`,
                   }}
                 >
                   <div className="flex items-center gap-4 flex-1">
                     <Icon 
                       className="w-8 h-8"
-                      style={{ color: cyberpunkTheme.colors.primary.cyan }}
+                      style={{ color: H.primary }}
                     />
                     <div className="flex-1">
-                      <div style={{ color: cyberpunkTheme.colors.text.primary }}>
+                      <div style={{ color: H.text.primary }}>
                         {file.name}
                       </div>
                       <div 
                         className="text-sm"
-                        style={{ color: cyberpunkTheme.colors.text.tertiary }}
+                        style={{ color: H.text.tertiary }}
                       >
                         {file.size} • {file.uploadedAt}
                       </div>
@@ -296,14 +304,14 @@ export default function FilesPage() {
                   <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
                       className="p-2 rounded hover:bg-white/10 transition-colors"
-                      style={{ color: cyberpunkTheme.colors.text.secondary }}
+                      style={{ color: H.text.secondary }}
                       title="Download"
                     >
                       <Download className="w-4 h-4" />
                     </button>
                     <button
                       className="p-2 rounded hover:bg-white/10 transition-colors"
-                      style={{ color: cyberpunkTheme.colors.text.secondary }}
+                      style={{ color: H.text.secondary }}
                       title="Delete"
                     >
                       <Trash2 className="w-4 h-4" />

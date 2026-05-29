@@ -76,7 +76,7 @@ export default function AccountPage() {
         'Custom AI training',
         'Team collaboration (3 members)'
       ],
-      color: 'from-purple-600 to-pink-600',
+      color: 'from-[#2D8B5E] to-[#C47A4A]',
       icon: BoltIcon,
       popular: true
     },
@@ -96,7 +96,7 @@ export default function AccountPage() {
         'API access',
         'Custom deployment'
       ],
-      color: 'from-blue-600 to-cyan-600',
+      color: 'from-[#C47A4A] to-[#3DAF76]',
       icon: BuildingOffice2Icon,
       popular: false
     }
@@ -119,7 +119,7 @@ export default function AccountPage() {
   if (!isLoaded) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500" />
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2D8B5E]" />
       </div>
     );
   }
@@ -137,7 +137,7 @@ export default function AccountPage() {
               ← Back to Chat
             </a>
             <div className="h-6 w-px bg-gray-800" />
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-[#3DAF76] to-[#C47A4A] bg-clip-text text-transparent">
               Account & Billing
             </h1>
           </div>
@@ -172,7 +172,7 @@ export default function AccountPage() {
                   </div>
                   <div className="w-full h-2 bg-gray-800 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-300"
+                      className="h-full bg-gradient-to-r from-[#2D8B5E] to-[#3DAF76] transition-all duration-300"
                       style={{ width: `${(usage.messagesUsed / usage.messagesLimit) * 100}%` }}
                     />
                   </div>
@@ -188,7 +188,7 @@ export default function AccountPage() {
                   </div>
                   <div className="w-full h-2 bg-gray-800 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-blue-500 to-cyan-500 transition-all duration-300"
+                      className="h-full bg-gradient-to-r from-[#C47A4A] to-[#3DAF76] transition-all duration-300"
                       style={{ width: `${(usage.storageUsed / usage.storageLimit) * 100}%` }}
                     />
                   </div>
@@ -218,17 +218,17 @@ export default function AccountPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-xl p-6"
+            className="bg-gradient-to-br from-[#2D8B5E]/20 to-[#C47A4A]/20 border border-[#2D8B5E]/30 rounded-xl p-6"
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-white">Current Plan</h3>
-              <SparklesIcon className="w-6 h-6 text-purple-400" />
+              <SparklesIcon className="w-6 h-6 text-[#3DAF76]" />
             </div>
             <div className="text-3xl font-bold text-white mb-2">Early Access</div>
             <div className="text-gray-400 text-sm mb-4">Beta — full access while we build</div>
             <button
               onClick={() => document.getElementById('plans')?.scrollIntoView({ behavior: 'smooth' })}
-              className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg text-white font-medium transition-colors"
+              className="w-full px-4 py-2 bg-[#2D8B5E] hover:bg-[#3DAF76] rounded-lg text-white font-medium transition-colors"
             >
               Upgrade Plan
             </button>
@@ -241,7 +241,7 @@ export default function AccountPage() {
             onClick={() => setBillingCycle('monthly')}
             className={`px-6 py-2 rounded-lg font-medium transition-all ${
               billingCycle === 'monthly'
-                ? 'bg-purple-600 text-white'
+                ? 'bg-[#2D8B5E] text-white'
                 : 'bg-gray-800 text-gray-400 hover:text-white'
             }`}
           >
@@ -251,7 +251,7 @@ export default function AccountPage() {
             onClick={() => setBillingCycle('annually')}
             className={`px-6 py-2 rounded-lg font-medium transition-all ${
               billingCycle === 'annually'
-                ? 'bg-purple-600 text-white'
+                ? 'bg-[#2D8B5E] text-white'
                 : 'bg-gray-800 text-gray-400 hover:text-white'
             }`}
           >
@@ -275,12 +275,12 @@ export default function AccountPage() {
                 transition={{ delay: index * 0.1 }}
                 className={`relative bg-gray-900/50 border rounded-xl p-6 ${
                   plan.popular
-                    ? 'border-purple-500'
+                    ? 'border-[#2D8B5E]'
                     : 'border-gray-800'
                 }`}
               >
                 {plan.popular && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full text-xs font-semibold text-white">
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-gradient-to-r from-[#2D8B5E] to-[#C47A4A] rounded-full text-xs font-semibold text-white">
                     Most Popular
                   </div>
                 )}
@@ -317,7 +317,7 @@ export default function AccountPage() {
                     plan.disabled
                       ? 'bg-gray-800 text-gray-500 cursor-not-allowed'
                       : plan.popular
-                      ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white'
+                      ? 'bg-gradient-to-r from-[#2D8B5E] to-[#C47A4A] hover:from-[#3DAF76] hover:to-[#C47A4A] text-white'
                       : 'bg-gray-800 hover:bg-gray-700 text-white'
                   }`}
                 >

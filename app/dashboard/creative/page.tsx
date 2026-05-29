@@ -14,22 +14,22 @@ export default function CreativeDashboardPage() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Creative Studio</h1>
-          <p className="mt-2 text-gray-600">
+          <h1 className="text-3xl font-bold text-[#F5F0E8]">Creative Studio</h1>
+          <p className="mt-2 text-[#8C8476]">
             Generate images, create content, and manage your creative assets.
           </p>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200">
+      <div className="border-b border-white/10">
         <nav className="flex space-x-8">
           <button
             onClick={() => setActiveTab('generate')}
             className={`border-b-2 px-1 py-4 text-sm font-medium ${
               activeTab === 'generate'
-                ? 'border-purple-600 text-purple-600'
-                : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                ? 'border-[#2D8B5E] text-[#2D8B5E]'
+                : 'border-transparent text-[#8C8476] hover:border-white/20 hover:text-[#F5F0E8]'
             }`}
           >
             Generate
@@ -38,8 +38,8 @@ export default function CreativeDashboardPage() {
             onClick={() => setActiveTab('assets')}
             className={`border-b-2 px-1 py-4 text-sm font-medium ${
               activeTab === 'assets'
-                ? 'border-purple-600 text-purple-600'
-                : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                ? 'border-[#2D8B5E] text-[#2D8B5E]'
+                : 'border-transparent text-[#8C8476] hover:border-white/20 hover:text-[#F5F0E8]'
             }`}
           >
             Assets
@@ -48,8 +48,8 @@ export default function CreativeDashboardPage() {
             onClick={() => setActiveTab('templates')}
             className={`border-b-2 px-1 py-4 text-sm font-medium ${
               activeTab === 'templates'
-                ? 'border-purple-600 text-purple-600'
-                : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                ? 'border-[#2D8B5E] text-[#2D8B5E]'
+                : 'border-transparent text-[#8C8476] hover:border-white/20 hover:text-[#F5F0E8]'
             }`}
           >
             Templates
@@ -120,34 +120,34 @@ function GenerateTab() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Image className="h-5 w-5 text-purple-600" />
+            <Image className="h-5 w-5 text-[#2D8B5E]" />
             Image Generation
           </CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleImageGeneration} className="space-y-4">
             <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700">
+              <label className="mb-2 block text-sm font-medium text-[#F5F0E8]">
                 Describe your image
               </label>
               <textarea
                 value={imagePrompt}
                 onChange={(e) => setImagePrompt(e.target.value)}
                 placeholder="A futuristic cityscape at sunset..."
-                className="w-full rounded-lg border border-gray-300 p-3 text-sm focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                className="w-full rounded-lg border border-white/10 p-3 text-sm focus:border-[#2D8B5E]/40 focus:outline-none focus:ring-1 focus:ring-[#2D8B5E]/30"
                 rows={4}
                 required
               />
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700">
+                <label className="mb-2 block text-sm font-medium text-[#F5F0E8]">
                   Model
                 </label>
                 <select 
                   value={imageModel}
                   onChange={(e) => setImageModel(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                  className="w-full rounded-lg border border-white/10 px-3 py-2 text-sm focus:border-[#2D8B5E]/40 focus:outline-none focus:ring-1 focus:ring-[#2D8B5E]/30"
                 >
                   <option value="pollinations-flux">FLUX via Pollinations (FREE, no key)</option>
                   <option value="flux">FLUX via Fal.ai (FREE credits)</option>
@@ -155,13 +155,13 @@ function GenerateTab() {
                 </select>
               </div>
               <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700">
+                <label className="mb-2 block text-sm font-medium text-[#F5F0E8]">
                   Size
                 </label>
                 <select 
                   value={imageSize}
                   onChange={(e) => setImageSize(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                  className="w-full rounded-lg border border-white/10 px-3 py-2 text-sm focus:border-[#2D8B5E]/40 focus:outline-none focus:ring-1 focus:ring-[#2D8B5E]/30"
                 >
                   <option value="1024x1024">1024x1024</option>
                   <option value="1024x768">1024x768</option>
@@ -178,7 +178,7 @@ function GenerateTab() {
             <button 
               type="submit"
               disabled={generating || !imagePrompt.trim()}
-              className="w-full rounded-lg bg-purple-600 px-4 py-3 font-medium text-white hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full rounded-lg bg-[#2D8B5E] px-4 py-3 font-medium text-white hover:bg-[#1F3D30] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {generating ? (
                 <>
@@ -204,7 +204,7 @@ function GenerateTab() {
         <CardContent>
           <form onSubmit={handleContentGeneration} className="space-y-4">
             <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700">
+              <label className="mb-2 block text-sm font-medium text-[#F5F0E8]">
                 Content topic
               </label>
               <input
@@ -212,18 +212,18 @@ function GenerateTab() {
                 value={contentTopic}
                 onChange={(e) => setContentTopic(e.target.value)}
                 placeholder="AI trends in 2025..."
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                className="w-full rounded-lg border border-white/10 px-3 py-2 text-sm focus:border-[#2D8B5E]/40 focus:outline-none focus:ring-1 focus:ring-[#2D8B5E]/30"
                 required
               />
             </div>
             <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700">
+              <label className="mb-2 block text-sm font-medium text-[#F5F0E8]">
                 Content type
               </label>
               <select 
                 value={contentType}
                 onChange={(e) => setContentType(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                className="w-full rounded-lg border border-white/10 px-3 py-2 text-sm focus:border-[#2D8B5E]/40 focus:outline-none focus:ring-1 focus:ring-[#2D8B5E]/30"
               >
                 <option value="blog">Blog Post</option>
                 <option value="social">Social Media</option>
@@ -232,13 +232,13 @@ function GenerateTab() {
               </select>
             </div>
             <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700">
+              <label className="mb-2 block text-sm font-medium text-[#F5F0E8]">
                 Tone
               </label>
               <select 
                 value={contentTone}
                 onChange={(e) => setContentTone(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                className="w-full rounded-lg border border-white/10 px-3 py-2 text-sm focus:border-[#2D8B5E]/40 focus:outline-none focus:ring-1 focus:ring-[#2D8B5E]/30"
               >
                 <option value="professional">Professional</option>
                 <option value="casual">Casual</option>
@@ -253,7 +253,7 @@ function GenerateTab() {
               </div>
             )}
             {contentResult && (
-              <div className="rounded-lg bg-blue-50 p-3 text-sm text-gray-700">
+              <div className="rounded-lg bg-blue-50 p-3 text-sm text-[#F5F0E8]">
                 <p className="font-medium mb-2">Generated Content:</p>
                 <p className="whitespace-pre-wrap">{contentResult}</p>
               </div>
@@ -302,7 +302,7 @@ function AssetsTab() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
+        <Loader2 className="h-8 w-8 animate-spin text-[#2D8B5E]" />
       </div>
     );
   }
@@ -326,12 +326,12 @@ function AssetsTab() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search assets..."
-            className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+            className="flex-1 rounded-lg border border-white/10 px-3 py-2 text-sm focus:border-[#2D8B5E]/40 focus:outline-none focus:ring-1 focus:ring-[#2D8B5E]/30"
           />
           <select 
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+            className="rounded-lg border border-white/10 px-3 py-2 text-sm focus:border-[#2D8B5E]/40 focus:outline-none focus:ring-1 focus:ring-[#2D8B5E]/30"
           >
             <option value="all">All Types</option>
             <option value="image">Images</option>
@@ -344,7 +344,7 @@ function AssetsTab() {
       {/* Assets Grid */}
       {filteredAssets.length === 0 ? (
         <Card>
-          <CardContent className="py-12 text-center text-gray-500">
+          <CardContent className="py-12 text-center text-[#8C8476]">
             {searchQuery || typeFilter !== 'all' ? 'No assets found matching your filters.' : 'No assets yet. Generate something!'}
           </CardContent>
         </Card>
@@ -353,11 +353,11 @@ function AssetsTab() {
           {filteredAssets.map((asset) => (
             <Card key={asset.id} className="group cursor-pointer hover:shadow-md">
               <CardContent className="p-0">
-                <div className="aspect-square bg-gray-100 relative">
+                <div className="aspect-square bg-[#1E1B18] relative">
                   {asset.url ? (
                     <img src={asset.url} alt={asset.name || 'Asset'} className="w-full h-full object-cover" />
                   ) : (
-                    <div className="flex h-full items-center justify-center text-gray-400">
+                    <div className="flex h-full items-center justify-center text-[#5C564D]">
                       <Image className="h-12 w-12" />
                     </div>
                   )}
@@ -369,8 +369,8 @@ function AssetsTab() {
                   </button>
                 </div>
                 <div className="p-3">
-                  <p className="font-medium text-gray-900">{asset.name || 'Untitled'}</p>
-                  <p className="text-xs text-gray-500">
+                  <p className="font-medium text-[#F5F0E8]">{asset.name || 'Untitled'}</p>
+                  <p className="text-xs text-[#8C8476]">
                     {new Date(asset.createdAt).toLocaleDateString()}
                   </p>
                 </div>
@@ -389,7 +389,7 @@ function TemplatesTab() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
+        <Loader2 className="h-8 w-8 animate-spin text-[#2D8B5E]" />
       </div>
     );
   }
@@ -407,7 +407,7 @@ function TemplatesTab() {
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {templates.length === 0 ? (
         <Card className="col-span-full">
-          <CardContent className="py-12 text-center text-gray-500">
+          <CardContent className="py-12 text-center text-[#8C8476]">
             No templates available yet.
           </CardContent>
         </Card>
@@ -416,15 +416,15 @@ function TemplatesTab() {
           <Card key={template.id} className="cursor-pointer hover:shadow-md">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Folder className="h-5 w-5 text-purple-600" />
+                <Folder className="h-5 w-5 text-[#2D8B5E]" />
                 {template.name}
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-[#8C8476]">
                 {template.description || 'A pre-configured template for quick content generation.'}
               </p>
-              <button className="mt-4 w-full rounded-lg border border-purple-600 px-4 py-2 text-sm font-medium text-purple-600 hover:bg-purple-50">
+              <button className="mt-4 w-full rounded-lg border border-[#2D8B5E] px-4 py-2 text-sm font-medium text-[#2D8B5E] hover:bg-[#2D8B5E]/10">
                 Use Template
               </button>
             </CardContent>

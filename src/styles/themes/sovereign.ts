@@ -1,56 +1,56 @@
 /**
  * HOLLY 3.0 - Living Sovereign Theme
- * Sovereign Gold + Living Crimson + Warm Void
+ * Emerald (her eyes) + Copper (her hair) + Gold (highlights) on Warm Void
  */
 
 export const sovereignTheme = {
   colors: {
-    // Core Sovereign Palette (Aurelian Breath)
+    // Core Sovereign Palette — Colors from HER features
     primary: {
-      gold: '#D4A853',        // Sovereign Gold
-      crimson: '#B84052',     // Living Crimson
-      emerald: '#1F3D30',     // Deep Sovereign Green
-      cyan: '#5BB8C9',        // Cool Cyan accent (AURA/analysis highlights)
-      pink: '#C96B8B',        // Warm Rose accent (creative/highlights)
+      emerald: '#2D8B5E',    // Deep Emerald (her green eyes)
+      copper: '#C47A4A',     // Burnished Copper (her auburn hair)
+      gold: '#D4A853',       // Holly Gold (highlights)
+      jade: '#3DAF76',       // Jade (lighter emerald for accents)
+      amber: '#E8A862',      // Amber (warm accent)
     },
 
     // Backgrounds (The Warm Void)
     background: {
-      primary: '#0B0A08',     // Deep Void
-      secondary: '#12110F',   // Soft Obsidian
-      tertiary: '#1A1815',    // Warm Slate
+      primary: '#0A0908',     // Warm Void
+      secondary: '#141210',   // Surface
+      tertiary: '#1E1B18',    // Raised
       elevated: '#24211D',    // Hover/Active State
     },
 
     // Text (Aurelian Ivory)
     text: {
       primary: '#F5F0E8',     // Warm Ivory
-      secondary: '#D1C8B8',   // Aged Parchment
+      secondary: '#BFB5A5',   // Cream
       tertiary: '#8C8476',    // Shadowed Text
       muted: '#5C564D',       // Deep Muted
     },
 
-    // Status (Editorial Tone)
+    // Status (Semantic)
     accent: {
-      success: '#D4A853',     // Gold (Positive/Nominal)
-      warning: '#B84052',     // Crimson (Warning/Critical)
-      error: '#B84052',       // Crimson (Failure)
-      info: '#D4A853',        // Gold (Information)
+      success: '#3DAF76',     // Jade (Positive/Nominal)
+      warning: '#E8A862',     // Amber (Warning)
+      error: '#B84052',       // Deep Rose (Failure)
+      info: '#2D8B5E',        // Emerald (Information)
     },
 
     // Gradients (Organic Flow)
     gradients: {
-      primary: 'linear-gradient(135deg, #D4A853 0%, #B84052 100%)',
-      secondary: 'linear-gradient(135deg, #1F3D30 0%, #D4A853 100%)',
-      holographic: 'linear-gradient(135deg, #D4A853 0%, #F5F0E8 50%, #B84052 100%)',
-      glow: 'linear-gradient(180deg, rgba(212, 168, 83, 0.1) 0%, rgba(184, 64, 82, 0.1) 100%)',
+      primary: 'linear-gradient(135deg, #2D8B5E 0%, #C47A4A 100%)',
+      secondary: 'linear-gradient(135deg, #1F3D30 0%, #2D8B5E 100%)',
+      holographic: 'linear-gradient(135deg, #2D8B5E 0%, #F5F0E8 50%, #C47A4A 100%)',
+      glow: 'linear-gradient(180deg, rgba(45, 139, 94, 0.1) 0%, rgba(196, 122, 74, 0.1) 100%)',
     },
 
     // Borders (Etched Glass)
     border: {
-      primary: 'rgba(212, 168, 83, 0.1)',   // Faint Gold
-      accent: 'rgba(212, 168, 83, 0.2)',    // Etched Gold
-      glow: '#D4A853',                      // Radiant Gold
+      primary: 'rgba(45, 139, 94, 0.1)',   // Faint Emerald
+      accent: 'rgba(45, 139, 94, 0.2)',    // Etched Emerald
+      glow: '#2D8B5E',                      // Radiant Emerald
     },
 
     // Shadows (Ambient Depth)
@@ -59,9 +59,9 @@ export const sovereignTheme = {
       md: '0 4px 6px -1px rgba(0, 0, 0, 0.6)',
       lg: '0 10px 15px -3px rgba(0, 0, 0, 0.6)',
       xl: '0 20px 25px -5px rgba(0, 0, 0, 0.6)',
-      glow: '0 0 20px rgba(212, 168, 83, 0.3)',
-      glowGold: '0 0 20px rgba(212, 168, 83, 0.4)',
-      glowCrimson: '0 0 20px rgba(184, 64, 82, 0.4)',
+      glow: '0 0 20px rgba(45, 139, 94, 0.3)',
+      glowEmerald: '0 0 20px rgba(45, 139, 94, 0.4)',
+      glowCopper: '0 0 20px rgba(196, 122, 74, 0.4)',
     },
   },
 

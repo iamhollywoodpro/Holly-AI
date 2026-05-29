@@ -11,10 +11,10 @@ const HollyChatInterface = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="flex flex-col h-screen w-full bg-[#0B0A08] items-center justify-center">
+      <div className="flex flex-col h-screen w-full bg-[#0A0908] items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#D4A853] to-[#B84052] animate-pulse shadow-[0_0_20px_rgba(212,168,83,0.3)]" />
-          <p className="text-[#D4A853] text-xs font-bold tracking-[0.3em] uppercase animate-pulse">
+          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#2D8B5E] to-[#C47A4A] animate-pulse shadow-[0_0_20px_rgba(45,139,94,0.3)]" />
+          <p className="text-[#2D8B5E] text-xs font-bold tracking-[0.3em] uppercase animate-pulse">
             Establishing Nexus Link...
           </p>
         </div>
@@ -57,10 +57,10 @@ export default function ChatPage() {
   // Show loading while Clerk initializes or during reactive wait attempts
   if (!isLoaded || (!isSignedIn && sessionCheckAttempts < maxAttempts)) {
     return (
-      <div className="flex flex-col h-screen w-full bg-[#0B0A08] items-center justify-center">
+      <div className="flex flex-col h-screen w-full bg-[#0A0908] items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#D4A853] to-[#B84052] animate-pulse shadow-[0_0_20px_rgba(212,168,83,0.3)]" />
-          <p className="text-[#D4A853] text-xs font-bold tracking-[0.3em] uppercase animate-pulse">
+          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#2D8B5E] to-[#C47A4A] animate-pulse shadow-[0_0_20px_rgba(45,139,94,0.3)]" />
+          <p className="text-[#2D8B5E] text-xs font-bold tracking-[0.3em] uppercase animate-pulse">
             Establishing Nexus Link...
           </p>
         </div>
@@ -71,9 +71,9 @@ export default function ChatPage() {
   // Redirecting to sign-in
   if (redirecting) {
     return (
-      <div className="flex flex-col h-screen w-full bg-[#0B0A08] items-center justify-center">
+      <div className="flex flex-col h-screen w-full bg-[#0A0908] items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-8 h-8 border-2 border-[#D4A853] border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-[#2D8B5E] border-t-transparent rounded-full animate-spin" />
           <p className="text-gray-500 text-sm">Redirecting to sign-in...</p>
         </div>
       </div>
@@ -83,10 +83,10 @@ export default function ChatPage() {
   // Not signed in (will trigger redirect via useEffect)
   if (!isSignedIn) {
     return (
-      <div className="flex flex-col h-screen w-full bg-[#0B0A08] items-center justify-center">
+      <div className="flex flex-col h-screen w-full bg-[#0A0908] items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#D4A853] to-[#B84052] animate-pulse shadow-[0_0_20px_rgba(212,168,83,0.3)]" />
-          <p className="text-[#D4A853] text-xs font-bold tracking-[0.3em] uppercase animate-pulse">
+          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#2D8B5E] to-[#C47A4A] animate-pulse shadow-[0_0_20px_rgba(45,139,94,0.3)]" />
+          <p className="text-[#2D8B5E] text-xs font-bold tracking-[0.3em] uppercase animate-pulse">
             Establishing Nexus Link...
           </p>
         </div>

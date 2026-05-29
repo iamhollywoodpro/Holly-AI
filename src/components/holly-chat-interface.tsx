@@ -521,7 +521,7 @@ function CopyButton({ text }: CopyButtonProps) {
       onClick={copy}
       className={`p-1.5 rounded-md transition-all ${
         copied
-          ? "text-[#D4A853] bg-[#D4A853]/15"
+          ? "text-[#2D8B5E] bg-[#2D8B5E]/15"
           : "text-holly-ivory/50 hover:text-holly-gold hover:bg-holly-gold/10"
       }`}
       title="Copy message"
@@ -626,13 +626,13 @@ function CodeCopyButton({ text }: { text: string }) {
       onClick={copy}
       className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold tracking-wider uppercase transition-all duration-300 border ${
         copied 
-          ? "text-[#D4A853] bg-[#D4A853]/10 border-[#D4A853]/25" 
+          ? "text-[#2D8B5E] bg-[#2D8B5E]/10 border-[#2D8B5E]/25" 
           : "text-white/40 border-white/5 hover:text-white hover:bg-white/5 hover:border-white/10"
       }`}
     >
       {copied ? (
         <>
-          <Check className="w-3 h-3 text-[#D4A853]" />
+          <Check className="w-3 h-3 text-[#2D8B5E]" />
           <span>Copied</span>
         </>
       ) : (
@@ -685,15 +685,15 @@ function DiagnosticsModal({
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
         transition={{ type: "spring", duration: 0.5 }}
-        className="fixed inset-x-4 top-[10%] bottom-[10%] sm:inset-auto sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-[500px] sm:h-auto max-h-[80vh] z-50 sdi-glass-warm border border-[#D4A853]/20 rounded-3xl p-6 overflow-y-auto flex flex-col"
+        className="fixed inset-x-4 top-[10%] bottom-[10%] sm:inset-auto sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-[500px] sm:h-auto max-h-[80vh] z-50 sdi-glass-warm border border-[#2D8B5E]/20 rounded-3xl p-6 overflow-y-auto flex flex-col"
       >
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-white/5 mb-6">
           <div className="flex items-center gap-3">
-            <Activity className="w-5 h-5 text-[#D4A853] animate-pulse" />
+            <Activity className="w-5 h-5 text-[#2D8B5E] animate-pulse" />
             <div>
               <h2 className="text-sm font-black tracking-widest text-white uppercase">Nexus Diagnostics</h2>
-              <p className="text-[9px] text-[#D4A853]/60 font-bold uppercase tracking-wider">Sovereign Architecture</p>
+              <p className="text-[9px] text-[#2D8B5E]/60 font-bold uppercase tracking-wider">Sovereign Architecture</p>
             </div>
           </div>
           <button
@@ -713,7 +713,7 @@ function DiagnosticsModal({
               <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest block mb-1">Integrity State</span>
               <span className={`text-base font-black uppercase tracking-wider ${
                 !systemHealth ? 'text-white/60' :
-                systemHealth.healthy ? 'text-[#D4A853]' : 'text-[#B84052]'
+                systemHealth.healthy ? 'text-[#2D8B5E]' : 'text-[#C47A4A]'
               }`}>
                 {!systemHealth ? 'Syncing...' : systemHealth.healthy ? 'Stable (Nominal)' : 'Degraded'}
               </span>
@@ -728,11 +728,11 @@ function DiagnosticsModal({
               <div className="relative w-8 h-8 flex items-center justify-center">
                 <span className={`absolute inset-0 rounded-full ${
                   !systemHealth ? 'bg-white/10' :
-                  systemHealth.healthy ? 'bg-[#D4A853]/20' : 'bg-[#B84052]/20'
+                  systemHealth.healthy ? 'bg-[#2D8B5E]/20' : 'bg-[#C47A4A]/20'
                 } animate-ping`} />
                 <div className={`w-3 h-3 rounded-full ${
                   !systemHealth ? 'bg-white/40' :
-                  systemHealth.healthy ? 'bg-[#D4A853]' : 'bg-[#B84052]'
+                  systemHealth.healthy ? 'bg-[#2D8B5E]' : 'bg-[#C47A4A]'
                 }`} />
               </div>
             </div>
@@ -746,11 +746,11 @@ function DiagnosticsModal({
                 <span className="text-[9px] font-bold text-white/40 uppercase tracking-widest block mb-1.5">Cognitive Load (CPU)</span>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs font-mono font-bold text-white">{cpuLoad}</span>
-                  <span className="text-[8px] text-[#D4A853] font-bold uppercase tracking-tighter">Active</span>
+                  <span className="text-[8px] text-[#2D8B5E] font-bold uppercase tracking-tighter">Active</span>
                 </div>
                 <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
                   <motion.div
-                    className="h-full bg-gradient-to-r from-[#D4A853] to-[#B84052]"
+                    className="h-full bg-gradient-to-r from-[#2D8B5E] to-[#C47A4A]"
                     initial={{ width: "0%" }}
                     animate={{ width: cpuLoad }}
                     transition={{ duration: 1 }}
@@ -765,7 +765,7 @@ function DiagnosticsModal({
                   <span className="text-[8px] text-white/30 font-bold uppercase tracking-tighter">Allocated</span>
                 </div>
                 <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
-                  <div className="h-full bg-[#D4A853] w-[60%]" />
+                  <div className="h-full bg-[#2D8B5E] w-[60%]" />
                 </div>
               </div>
             </div>
@@ -777,15 +777,15 @@ function DiagnosticsModal({
             <div className="space-y-2">
               <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/5 text-xs">
                 <div className="flex items-center gap-2">
-                  <Database className="w-3.5 h-3.5 text-[#D4A853]/60" />
+                  <Database className="w-3.5 h-3.5 text-[#2D8B5E]/60" />
                   <span className="text-gray-300">Database Core Connection</span>
                 </div>
-                <span className="font-mono text-[#D4A853] font-bold">{dbLatency}ms</span>
+                <span className="font-mono text-[#2D8B5E] font-bold">{dbLatency}ms</span>
               </div>
               
               <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/5 text-xs">
                 <div className="flex items-center gap-2">
-                  <Zap className="w-3.5 h-3.5 text-[#D4A853]/60" />
+                  <Zap className="w-3.5 h-3.5 text-[#2D8B5E]/60" />
                   <span className="text-gray-300">Active Live-Streams</span>
                 </div>
                 <span className="font-mono text-white font-bold">{activeStreams} streams</span>
@@ -793,7 +793,7 @@ function DiagnosticsModal({
 
               <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/5 text-xs">
                 <div className="flex items-center gap-2">
-                  <Bot className="w-3.5 h-3.5 text-[#D4A853]/60" />
+                  <Bot className="w-3.5 h-3.5 text-[#2D8B5E]/60" />
                   <span className="text-gray-300">Neural Model Class</span>
                 </div>
                 <span className="font-mono text-white/80 font-bold truncate max-w-[150px] uppercase">
@@ -908,9 +908,9 @@ const MarkdownContent = memo(function MarkdownContent({ content }: { content: st
 
           if (!inline && match) {
             return (
-              <div className="my-4 rounded-xl overflow-hidden border border-white/5 shadow-2xl bg-[#0B0A08]/80 backdrop-blur-md">
-                <div className="flex items-center justify-between px-4 py-2 bg-[#0B0A08]/50 border-b border-white/5">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-[#D4A853]/70 font-mono">{language}</span>
+              <div className="my-4 rounded-xl overflow-hidden border border-white/5 shadow-2xl bg-[#0A0908]/80 backdrop-blur-md">
+                <div className="flex items-center justify-between px-4 py-2 bg-[#0A0908]/50 border-b border-white/5">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-[#2D8B5E]/70 font-mono">{language}</span>
                   <CodeCopyButton text={codeString} />
                 </div>
                 <SyntaxHighlighter
@@ -1030,7 +1030,7 @@ function AssistantContent({ content }: { content: string }) {
               <Music className="w-4 h-4 text-green-400 flex-shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="text-[10px] text-gray-500 truncate mb-1">{src.split('/').pop()?.slice(0, 40) || "Audio track"}</p>
-                <audio controls src={src} className="w-full h-8" style={{ accentColor: '#D4A853' }} />
+                <audio controls src={src} className="w-full h-8" style={{ accentColor: '#2D8B5E' }} />
               </div>
             </motion.div>
           ))}
@@ -2540,13 +2540,13 @@ export default function HollyChatInterface() {
               !systemHealth
                 ? "border-white/5 text-white/30"
                 : systemHealth.healthy
-                ? "border-[#D4A853]/20 text-[#D4A853] hover:border-[#D4A853]/40"
-                : "border-[#B84052]/20 text-[#B84052] hover:border-[#B84052]/40"
+                ? "border-[#2D8B5E]/20 text-[#2D8B5E] hover:border-[#2D8B5E]/40"
+                : "border-[#C47A4A]/20 text-[#C47A4A] hover:border-[#C47A4A]/40"
             }`}
             title="Sovereign Core Diagnostics"
           >
             <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${
-              !systemHealth ? "bg-white/20" : systemHealth.healthy ? "bg-[#D4A853]" : "bg-[#B84052]"
+              !systemHealth ? "bg-white/20" : systemHealth.healthy ? "bg-[#2D8B5E]" : "bg-[#C47A4A]"
             }`} />
             <span className="text-[9px] font-black uppercase tracking-widest font-mono">
               {!systemHealth ? "Syncing" : systemHealth.healthy ? "Nominal" : "Degraded"}
@@ -2654,12 +2654,12 @@ export default function HollyChatInterface() {
                         whileHover={{ scale: 1.02, y: -1 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={startNewConversation}
-                        className="w-full flex items-center justify-between px-4 py-2.5 bg-gradient-to-r from-[#D4A853]/20 to-[#B84052]/20 hover:from-[#D4A853]/30 hover:to-[#B84052]/30 text-white rounded-xl border border-[#D4A853]/30 transition-all font-bold text-xs tracking-wider uppercase group shadow-md"
+                        className="w-full flex items-center justify-between px-4 py-2.5 bg-gradient-to-r from-[#2D8B5E]/20 to-[#C47A4A]/20 hover:from-[#2D8B5E]/30 hover:to-[#C47A4A]/30 text-white rounded-xl border border-[#2D8B5E]/30 transition-all font-bold text-xs tracking-wider uppercase group shadow-md"
                       >
                         <span>Initiate Thread</span>
                         <div className="relative flex items-center justify-center">
-                          <Plus className="w-4 h-4 text-[#D4A853] group-hover:rotate-90 transition-transform duration-300" />
-                          <span className="absolute inset-0 rounded-full border border-[#D4A853]/40 scale-[1.5] animate-ping" />
+                          <Plus className="w-4 h-4 text-[#2D8B5E] group-hover:rotate-90 transition-transform duration-300" />
+                          <span className="absolute inset-0 rounded-full border border-[#2D8B5E]/40 scale-[1.5] animate-ping" />
                         </div>
                       </motion.button>
 
@@ -3351,7 +3351,7 @@ export default function HollyChatInterface() {
                 >
                   {attachments.map(att => (
                     <div key={att.id} className={`flex items-center gap-1.5 pl-2 pr-1 py-1 rounded-lg group border transition-colors ${
-                      att.perceptionStatus === 'ready'   ? 'bg-[#D4A853]/10 border-[#D4A853]/30' :
+                      att.perceptionStatus === 'ready'   ? 'bg-[#2D8B5E]/10 border-[#2D8B5E]/30' :
                       att.perceptionStatus === 'pending' ? 'bg-white/5 border-yellow-500/20 animate-pulse' :
                       att.perceptionStatus === 'error'   ? 'bg-white/5 border-red-500/20' :
                       'bg-white/5 border-white/5'
@@ -3361,10 +3361,10 @@ export default function HollyChatInterface() {
                       ) : att.perceptionStatus === 'pending' ? (
                         <Loader2 className="w-3.5 h-3.5 text-yellow-400 animate-spin" />
                       ) : att.perceptionStatus === 'ready' ? (
-                        att.type.startsWith('image/') ? <CheckCircle className="w-3.5 h-3.5 text-[#D4A853]" /> :
+                        att.type.startsWith('image/') ? <CheckCircle className="w-3.5 h-3.5 text-[#2D8B5E]" /> :
                         att.type.startsWith('video/') ? <Film className="w-3.5 h-3.5 text-red-400" /> :
                         att.type.startsWith('audio/') ? <Music className="w-3.5 h-3.5 text-green-400" /> :
-                        <CheckCircle className="w-3.5 h-3.5 text-[#D4A853]" />
+                        <CheckCircle className="w-3.5 h-3.5 text-[#2D8B5E]" />
                       ) : (
                         <Paperclip className="w-3.5 h-3.5 text-white/20" />
                       )}
@@ -3374,7 +3374,7 @@ export default function HollyChatInterface() {
                           <span className="text-[8px] text-yellow-400">Transcribing…</span>
                         )}
                         {att.perceptionStatus === 'ready' && (
-                          <span className="text-[8px] text-[#D4A853]">Ready</span>
+                          <span className="text-[8px] text-[#2D8B5E]">Ready</span>
                         )}
                       </div>
                       <button
@@ -3475,7 +3475,7 @@ export default function HollyChatInterface() {
                 >
                   {attachments.map(att => (
                     <div key={att.id} className={`flex items-center gap-1.5 pl-2 pr-1 py-1 rounded-lg group border transition-colors ${
-                      att.perceptionStatus === 'ready'   ? 'bg-[#D4A853]/15 border-[#D4A853]/35 shadow-[0_0_10px_rgba(212,168,83,0.1)]' :
+                      att.perceptionStatus === 'ready'   ? 'bg-[#2D8B5E]/15 border-[#2D8B5E]/35 shadow-[0_0_10px_rgba(45,139,94,0.1)]' :
                       att.perceptionStatus === 'pending' ? 'bg-white/5 border-yellow-500/25 animate-pulse' :
                       att.perceptionStatus === 'error'   ? 'bg-white/5 border-red-500/25' :
                       'bg-white/5 border-white/5'
@@ -3485,10 +3485,10 @@ export default function HollyChatInterface() {
                       ) : att.perceptionStatus === 'pending' ? (
                         <Loader2 className="w-3.5 h-3.5 text-yellow-400 animate-spin" />
                       ) : att.perceptionStatus === 'ready' ? (
-                        att.type.startsWith('image/') ? <CheckCircle className="w-3.5 h-3.5 text-[#D4A853]" /> :
+                        att.type.startsWith('image/') ? <CheckCircle className="w-3.5 h-3.5 text-[#2D8B5E]" /> :
                         att.type.startsWith('video/') ? <Film className="w-3.5 h-3.5 text-red-400" /> :
                         att.type.startsWith('audio/') ? <Music className="w-3.5 h-3.5 text-green-400" /> :
-                        <CheckCircle className="w-3.5 h-3.5 text-[#D4A853]" />
+                        <CheckCircle className="w-3.5 h-3.5 text-[#2D8B5E]" />
                       ) : (
                         <Paperclip className="w-3.5 h-3.5 text-white/20" />
                       )}
@@ -3498,7 +3498,7 @@ export default function HollyChatInterface() {
                           <span className="text-[9px] text-yellow-400 animate-pulse">Transcribing…</span>
                         )}
                         {att.perceptionStatus === 'ready' && (
-                          <span className="text-[9px] text-[#D4A853] font-bold">Ready</span>
+                          <span className="text-[9px] text-[#2D8B5E] font-bold">Ready</span>
                         )}
                       </div>
                       <button

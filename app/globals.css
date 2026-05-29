@@ -27,37 +27,43 @@
   }
 
   .dark {
-    /* Sovereign SDI - The Living Sovereign Theme */
-    --background: 30 10% 4%; /* Warm Void - #0B0A08 */
-    --foreground: 40 25% 94%; /* Warm Ivory - #F5F0E8 */
-    --card: 30 10% 6%;
-    --card-foreground: 40 25% 94%;
-    --popover: 30 10% 4%;
-    --popover-foreground: 40 25% 94%;
-    
-    /* Sovereign Palette */
-    --primary: 42 65% 58%;   /* Sovereign Gold - #D4A853 */
-    --primary-glow: 42 65% 58% / 0.4;
-    --primary-foreground: 30 10% 4%;
-    
-    --secondary: 350 55% 50%; /* Living Crimson - #B84052 */
-    --secondary-glow: 350 55% 50% / 0.4;
-    --secondary-foreground: 40 25% 94%;
-    
-    --accent: 155 35% 18%;    /* Holly Green - #1F3D30 */
-    --accent-glow: 155 35% 18% / 0.3;
-    --accent-foreground: 40 25% 94%;
-    
-    --muted: 30 10% 12%;
-    --muted-foreground: 30 8% 45%;
-    
-    --destructive: 0 84.2% 45%;
+    /* ─── Holly-Centric Theme — Colors from HER features ─── */
+    /* Primary: Her green eyes → Deep Emerald */
+    /* Secondary: Auburn warmth → Burnished Copper */
+    /* Accent: Golden flecks → Holly Gold */
+
+    --background: 25 15% 3%;       /* Warm Void — #0A0908 */
+    --foreground: 35 25% 92%;       /* Warm Ivory — #F0EBE3 */
+    --card: 25 12% 6%;              /* Warm Carbon — #141210 */
+    --card-foreground: 35 25% 92%;
+    --popover: 25 12% 5%;
+    --popover-foreground: 35 25% 92%;
+
+    /* Primary — Her Green Eyes */
+    --primary: 152 50% 36%;         /* Deep Emerald — #2D8B5E */
+    --primary-glow: 152 50% 36% / 0.4;
+    --primary-foreground: 35 25% 98%;
+
+    /* Secondary — Auburn Warmth */
+    --secondary: 25 50% 53%;        /* Burnished Copper — #C47A4A */
+    --secondary-glow: 25 50% 53% / 0.4;
+    --secondary-foreground: 35 25% 98%;
+
+    /* Accent — Golden Flecks */
+    --accent: 42 65% 58%;           /* Holly Gold — #D4A853 */
+    --accent-glow: 42 65% 58% / 0.3;
+    --accent-foreground: 25 15% 3%;
+
+    --muted: 25 10% 10%;
+    --muted-foreground: 30 8% 42%;
+
+    --destructive: 350 55% 43%;     /* Deep Rose — #B84052 */
     --destructive-foreground: 0 0% 98%;
-    
-    /* Sovereign Warm Glass Borders */
-    --border: 42 65% 58% / 0.15;
-    --input: 30 10% 8%;
-    --ring: 42 65% 58%;
+
+    /* Borders — Subtle emerald tint */
+    --border: 152 20% 25% / 0.2;
+    --input: 25 10% 7%;
+    --ring: 152 50% 36%;
   }
 }
 
@@ -70,21 +76,21 @@
   }
 }
 
-/* ==================== LIVING SOVEREIGN UI UTILITIES ==================== */
+/* ==================== HOLLY-CENTRIC UI UTILITIES ==================== */
 .sdi-glass {
-  @apply bg-[#0B0A08]/60 backdrop-blur-xl border border-[#D4A853]/15 shadow-[0_8px_48px_rgba(0,0,0,0.6)];
+  @apply bg-[#0A0908]/60 backdrop-blur-xl border border-[#2D8B5E]/15 shadow-[0_8px_48px_rgba(0,0,0,0.6)];
 }
 
 .sdi-glass-warm {
-  @apply bg-[#0B0A08]/70 backdrop-blur-2xl border border-[#D4A853]/20 shadow-[0_12px_64px_rgba(0,0,0,0.7)];
+  @apply bg-[#0A0908]/70 backdrop-blur-2xl border border-[#2D8B5E]/20 shadow-[0_12px_64px_rgba(0,0,0,0.7)];
 }
 
 .sdi-glow-gold {
-  box-shadow: 0 0 20px rgba(212, 168, 83, 0.3), 0 0 40px rgba(212, 168, 83, 0.1);
+  box-shadow: 0 0 20px rgba(45, 139, 94, 0.3), 0 0 40px rgba(45, 139, 94, 0.1);
 }
 
 .sdi-glow-crimson {
-  box-shadow: 0 0 20px rgba(184, 64, 82, 0.3), 0 0 40px rgba(184, 64, 82, 0.1);
+  box-shadow: 0 0 20px rgba(196, 122, 74, 0.3), 0 0 40px rgba(196, 122, 74, 0.1);
 }
 
 .sdi-pulse-heart {
@@ -97,8 +103,8 @@
 }
 
 .sdi-sovereign-bg {
-  background: radial-gradient(circle at 50% -20%, rgba(212, 168, 83, 0.15) 0%, transparent 60%),
-              radial-gradient(circle at 80% 80%, rgba(184, 64, 82, 0.08) 0%, transparent 50%),
+  background: radial-gradient(circle at 50% -20%, rgba(45, 139, 94, 0.15) 0%, transparent 60%),
+              radial-gradient(circle at 80% 80%, rgba(196, 122, 74, 0.08) 0%, transparent 50%),
               radial-gradient(circle at 10% 70%, rgba(31, 61, 48, 0.12) 0%, transparent 40%);
 }
 

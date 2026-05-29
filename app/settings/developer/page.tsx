@@ -72,7 +72,7 @@ function ModelDiscoveryPanel() {
         <div>
           <h3 className="text-lg font-black text-[#F5F0E8] flex items-center gap-3 uppercase tracking-widest">
             🔍 Heuristic Discovery
-            <span className="text-[9px] font-black px-2.5 py-0.5 bg-[#D4A853]/10 text-[#D4A853] rounded-full border border-[#D4A853]/20 uppercase tracking-tighter">
+            <span className="text-[9px] font-black px-2.5 py-0.5 bg-[#2D8B5E]/10 text-[#2D8B5E] rounded-full border border-[#2D8B5E]/20 uppercase tracking-tighter">
               Auto · 0500 UTC
             </span>
           </h3>
@@ -83,17 +83,17 @@ function ModelDiscoveryPanel() {
         <div className="flex items-center gap-3">
           <button
             onClick={loadRegistry}
-            className="text-[10px] font-black uppercase tracking-widest px-4 py-2 bg-[#1A1815] hover:bg-[#24211D] border border-white/5 rounded-xl text-[#8C8476] transition-colors"
+            className="text-[10px] font-black uppercase tracking-widest px-4 py-2 bg-[#1E1B18] hover:bg-[#24211D] border border-white/5 rounded-xl text-[#8C8476] transition-colors"
           >
             View Registry
           </button>
           <button
             onClick={runDiscovery}
             disabled={status === 'running'}
-            className="text-[10px] font-black uppercase tracking-widest px-4 py-2 bg-[#D4A853] hover:bg-[#D4A853]/90 disabled:opacity-30 rounded-xl text-[#0B0A08] transition-colors flex items-center gap-2"
+            className="text-[10px] font-black uppercase tracking-widest px-4 py-2 bg-[#2D8B5E] hover:bg-[#2D8B5E]/90 disabled:opacity-30 rounded-xl text-[#0A0908] transition-colors flex items-center gap-2"
           >
             {status === 'running' ? (
-              <><span className="inline-block w-3 h-3 border-2 border-[#0B0A08] border-t-transparent rounded-full animate-spin" /> SCANNING...</>
+              <><span className="inline-block w-3 h-3 border-2 border-[#0A0908] border-t-transparent rounded-full animate-spin" /> SCANNING...</>
             ) : '▶ INITIALIZE'}
           </button>
         </div>
@@ -113,8 +113,8 @@ function ModelDiscoveryPanel() {
         <div className="bg-gray-900 border border-gray-800 rounded-lg p-4 space-y-3 text-xs">
           <p className="text-gray-400">Run: {new Date(report.checkedAt).toLocaleString()}</p>
           <div className="grid grid-cols-3 gap-3">
-            <div className="text-center bg-purple-500/10 border border-purple-500/20 rounded-lg p-2">
-              <p className="text-2xl font-bold text-purple-300">{report.promoted?.length ?? 0}</p>
+            <div className="text-center bg-[#2D8B5E]/10 border border-[#2D8B5E]/20 rounded-lg p-2">
+              <p className="text-2xl font-bold text-[#2D8B5E]">{report.promoted?.length ?? 0}</p>
               <p className="text-gray-400">Promoted</p>
             </div>
             <div className="text-center bg-gray-800 border border-gray-700 rounded-lg p-2">
@@ -244,7 +244,7 @@ export default function DeveloperPage() {
               })
             }
             className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors duration-500 ${
-              settings.developer.debugMode ? 'bg-[#D4A853]' : 'bg-white/10'
+              settings.developer.debugMode ? 'bg-[#2D8B5E]' : 'bg-white/10'
             }`}
           >
             <span
@@ -267,7 +267,7 @@ export default function DeveloperPage() {
               })
             }
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              settings.developer.showApiLogs ? 'bg-purple-500' : 'bg-gray-700'
+              settings.developer.showApiLogs ? 'bg-[#2D8B5E]' : 'bg-[#1E1B18]'
             }`}
           >
             <span
@@ -293,7 +293,7 @@ export default function DeveloperPage() {
               })
             }
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              settings.developer.performanceMetrics ? 'bg-purple-500' : 'bg-gray-700'
+              settings.developer.performanceMetrics ? 'bg-[#2D8B5E]' : 'bg-[#1E1B18]'
             }`}
           >
             <span
@@ -311,10 +311,10 @@ export default function DeveloperPage() {
 
         <button
           onClick={handleExport}
-          className="w-full flex items-center justify-between px-4 py-3 bg-gray-800 hover:bg-gray-700 rounded-lg border border-gray-700 transition-colors"
+          className="w-full flex items-center justify-between px-4 py-3 bg-gray-800 hover:bg-[#1E1B18] rounded-lg border border-gray-700 transition-colors"
         >
           <div className="flex items-center gap-3">
-            <ArrowDownTrayIcon className="w-5 h-5 text-purple-400" />
+            <ArrowDownTrayIcon className="w-5 h-5 text-[#2D8B5E]" />
             <div className="text-left">
               <div className="text-sm font-medium text-white">Export Settings</div>
               <div className="text-xs text-gray-400">Download your settings as JSON</div>
@@ -363,21 +363,21 @@ export default function DeveloperPage() {
             <div className="flex gap-3">
               <button
                 onClick={handleCopyToClipboard}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-purple-500 hover:bg-purple-600 rounded-lg text-white font-medium transition-colors"
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-[#2D8B5E] hover:bg-[#2D8B5E]/80 rounded-lg text-white font-medium transition-colors"
               >
                 <DocumentDuplicateIcon className="w-5 h-5" />
                 Copy to Clipboard
               </button>
               <button
                 onClick={handleDownload}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-white font-medium transition-colors"
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-[#1E1B18] hover:bg-gray-600 rounded-lg text-white font-medium transition-colors"
               >
                 <ArrowDownTrayIcon className="w-5 h-5" />
                 Download JSON
               </button>
               <button
                 onClick={() => setShowExport(false)}
-                className="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-gray-300 transition-colors"
+                className="px-4 py-2 bg-gray-800 hover:bg-[#1E1B18] rounded-lg text-gray-300 transition-colors"
               >
                 Close
               </button>
@@ -392,7 +392,7 @@ export default function DeveloperPage() {
           <div>
             <h3 className="text-lg font-black text-[#F5F0E8] flex items-center gap-3 uppercase tracking-widest">
               🛤️ Neural Router Array
-              <span className="text-[9px] font-black px-2.5 py-0.5 bg-[#D4A853]/10 text-[#D4A853] rounded-full border border-[#D4A853]/20 uppercase tracking-tighter">
+              <span className="text-[9px] font-black px-2.5 py-0.5 bg-[#2D8B5E]/10 text-[#2D8B5E] rounded-full border border-[#2D8B5E]/20 uppercase tracking-tighter">
                 PHASE 8A
               </span>
             </h3>
@@ -403,10 +403,10 @@ export default function DeveloperPage() {
           <button
             onClick={loadRouterStatus}
             disabled={routerLoading}
-            className="text-xs px-3 py-1.5 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg text-gray-300 transition-colors flex items-center gap-1.5"
+            className="text-xs px-3 py-1.5 bg-gray-800 hover:bg-[#1E1B18] border border-gray-700 rounded-lg text-gray-300 transition-colors flex items-center gap-1.5"
           >
             {routerLoading ? (
-              <span className="inline-block w-3 h-3 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
+              <span className="inline-block w-3 h-3 border-2 border-[#2D8B5E] border-t-transparent rounded-full animate-spin" />
             ) : (
               <span>↻</span>
             )}
@@ -454,7 +454,7 @@ export default function DeveloperPage() {
                       <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
                         p.configured
                           ? 'bg-green-500/20 text-green-300 border border-green-500/30'
-                          : 'bg-gray-700 text-gray-500 border border-gray-600'
+                          : 'bg-[#1E1B18] text-gray-500 border border-gray-600'
                       }`}>
                         {p.configured ? 'Active' : 'Not configured'}
                       </span>
@@ -470,7 +470,7 @@ export default function DeveloperPage() {
                         href={p.signupUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-xs text-purple-400 hover:text-purple-300 underline mt-0.5 inline-block"
+                        className="text-xs text-[#2D8B5E] hover:text-[#2D8B5E] underline mt-0.5 inline-block"
                       >
                         Get free key →
                       </a>
@@ -493,7 +493,7 @@ export default function DeveloperPage() {
               <div className="bg-gray-900 border border-gray-800 rounded-lg p-4 space-y-2">
                 {Object.entries(routerStatus.routing_matrix).map(([task, models]) => (
                   <div key={task} className="flex items-start gap-2">
-                    <span className="text-xs font-mono text-purple-400 w-20 shrink-0 pt-0.5">
+                    <span className="text-xs font-mono text-[#2D8B5E] w-20 shrink-0 pt-0.5">
                       {TASK_EMOJIS[task] ?? ''} {task}
                     </span>
                     <div className="flex flex-wrap gap-1">
@@ -520,12 +520,12 @@ export default function DeveloperPage() {
       <ModelDiscoveryPanel />
 
       {/* Warning Box */}
-      <div className="bg-[#B84052]/5 border border-[#B84052]/20 rounded-2xl p-6">
+      <div className="bg-[#C47A4A]/5 border border-[#C47A4A]/20 rounded-2xl p-6">
         <div className="flex items-start gap-4">
           <div className="text-xl">⚠️</div>
           <div className="flex-1">
-            <div className="text-[10px] font-black text-[#B84052] uppercase tracking-[0.2em] mb-2">Architectural Advisory</div>
-            <p className="text-[9px] text-[#B84052]/70 uppercase tracking-widest font-medium leading-relaxed">
+            <div className="text-[10px] font-black text-[#C47A4A] uppercase tracking-[0.2em] mb-2">Architectural Advisory</div>
+            <p className="text-[9px] text-[#C47A4A]/70 uppercase tracking-widest font-medium leading-relaxed">
               THESE PROTOCOLS ARE RESERVED FOR SENIOR ARCHITECTS. ENABLING DIAGNOSTIC OVERLAYS MAY COLLAPSE PERFORMANCE
               AND EXPOSE NEURAL ENCRYPTION TRACES WITHIN SYSTEM LOGS.
             </p>
@@ -535,8 +535,8 @@ export default function DeveloperPage() {
 
       {/* Save indicator */}
       {isSaving && (
-        <div className="text-sm text-purple-400 flex items-center gap-2">
-          <div className="w-4 h-4 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
+        <div className="text-sm text-[#2D8B5E] flex items-center gap-2">
+          <div className="w-4 h-4 border-2 border-[#2D8B5E] border-t-transparent rounded-full animate-spin" />
           Saving...
         </div>
       )}

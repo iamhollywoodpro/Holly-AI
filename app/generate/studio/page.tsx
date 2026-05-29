@@ -241,11 +241,11 @@ export default function GenerationStudio() {
             </button>
             <div className="w-px h-5 bg-gray-700" />
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#2D8B5E] to-[#C47A4A] flex items-center justify-center">
                 <span className="text-xs font-bold">H</span>
               </div>
               <span className="font-semibold text-white">Generation Studio</span>
-              <span className="text-xs bg-purple-900/60 text-purple-300 px-2 py-0.5 rounded-full border border-purple-700/40">
+              <span className="text-xs bg-[#2D8B5E]/40 text-[#3DAF76] px-2 py-0.5 rounded-full border border-[#2D8B5E]/50">
                 Phase 11
               </span>
             </div>
@@ -266,7 +266,7 @@ export default function GenerationStudio() {
               onClick={() => { setActiveTab(tab.id as Tab); setResult(null); setMusicVideoResult(null); }}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
                 activeTab === tab.id
-                  ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg'
+                  ? 'bg-gradient-to-r from-[#2D8B5E] to-[#C47A4A] text-white shadow-lg'
                   : 'text-gray-400 hover:text-white hover:bg-gray-800'
               }`}
             >
@@ -389,7 +389,7 @@ export default function GenerationStudio() {
 
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-300">
-                      Duration: <span className="text-purple-400">{videoDuration}s</span>
+                      Duration: <span className="text-[#3DAF76]">{videoDuration}s</span>
                     </label>
                     <input
                       type="range"
@@ -397,7 +397,7 @@ export default function GenerationStudio() {
                       max={15}
                       value={videoDuration}
                       onChange={e => setVideoDuration(Number(e.target.value))}
-                      className="w-full accent-purple-500"
+                      className="w-full accent-[#2D8B5E]"
                     />
                     <div className="flex justify-between text-xs text-gray-500">
                       <span>3s</span>
@@ -463,7 +463,7 @@ export default function GenerationStudio() {
                     />
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-gray-300">
-                        Scenes: <span className="text-purple-400">{mvSceneCount}</span>
+                        Scenes: <span className="text-[#3DAF76]">{mvSceneCount}</span>
                       </label>
                       <input
                         type="range"
@@ -471,7 +471,7 @@ export default function GenerationStudio() {
                         max={8}
                         value={mvSceneCount}
                         onChange={e => setMvSceneCount(Number(e.target.value))}
-                        className="w-full accent-purple-500"
+                        className="w-full accent-[#2D8B5E]"
                       />
                       <div className="flex justify-between text-xs text-gray-500">
                         <span>2</span>
@@ -498,7 +498,7 @@ export default function GenerationStudio() {
                     <div
                       onClick={() => setMvGenerateVideo(!mvGenerateVideo)}
                       className={`relative w-11 h-6 rounded-full transition-colors ${
-                        mvGenerateVideo ? 'bg-purple-600' : 'bg-gray-700'
+                        mvGenerateVideo ? 'bg-[#2D8B5E]' : 'bg-gray-700'
                       }`}
                     >
                       <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform ${
@@ -551,7 +551,7 @@ export default function GenerationStudio() {
                           onClick={() => setAvSyncMode(mode.id as 'beat' | 'lyric' | 'ambient')}
                           className={`p-3 rounded-xl border text-left transition-all ${
                             avSyncMode === mode.id
-                              ? 'border-purple-500 bg-purple-950/50 text-white'
+                              ? 'border-[#2D8B5E] bg-[#2D8B5E]/20 text-white'
                               : 'border-gray-700 bg-gray-900 text-gray-400 hover:border-gray-600'
                           }`}
                         >
@@ -586,7 +586,7 @@ export default function GenerationStudio() {
                   exit={{ opacity: 0 }}
                   className="h-full flex flex-col items-center justify-center gap-6 p-12 bg-gray-900/50 rounded-2xl border border-gray-800"
                 >
-                  <div className="w-16 h-16 rounded-full border-2 border-purple-500 border-t-transparent animate-spin" />
+                  <div className="w-16 h-16 rounded-full border-2 border-[#2D8B5E] border-t-transparent animate-spin" />
                   <div className="text-center">
                     <p className="text-white font-medium">Generating{activeTab === 'video' ? ' (may take 2–5 min)' : ''}...</p>
                     <p className="text-gray-400 text-sm mt-1">HOLLY is creating your vision</p>
@@ -650,7 +650,7 @@ export default function GenerationStudio() {
 function LoadingScreen() {
   return (
     <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-      <div className="w-10 h-10 rounded-full border-2 border-purple-500 border-t-transparent animate-spin" />
+      <div className="w-10 h-10 rounded-full border-2 border-[#2D8B5E] border-t-transparent animate-spin" />
     </div>
   );
 }
@@ -678,7 +678,7 @@ function PromptTextarea({ value, onChange, placeholder, rows }: {
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
         rows={rows}
-        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-600 text-sm resize-none focus:outline-none focus:border-purple-500 transition-colors"
+        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-600 text-sm resize-none focus:outline-none focus:border-[#2D8B5E] transition-colors"
       />
     </div>
   );
@@ -695,7 +695,7 @@ function InputField({ label, value, onChange, placeholder }: {
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-white placeholder-gray-600 text-sm focus:outline-none focus:border-purple-500 transition-colors"
+        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-white placeholder-gray-600 text-sm focus:outline-none focus:border-[#2D8B5E] transition-colors"
       />
     </div>
   );
@@ -713,7 +713,7 @@ function SelectField({ label, value, onChange, options }: {
       <select
         value={value}
         onChange={e => onChange(e.target.value)}
-        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-purple-500 transition-colors appearance-none"
+        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-[#2D8B5E] transition-colors appearance-none"
       >
         {options.map(o => (
           <option key={o.value} value={o.value}>{o.label}</option>
@@ -730,7 +730,7 @@ function GenerateButton({ onClick, loading, disabled, label, icon }: {
     <button
       onClick={onClick}
       disabled={disabled || loading}
-      className="w-full py-3.5 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 disabled:from-gray-700 disabled:to-gray-700 disabled:text-gray-500 text-white font-semibold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg"
+      className="w-full py-3.5 bg-gradient-to-r from-[#2D8B5E] to-[#C47A4A] hover:from-[#3DAF76] hover:to-[#C47A4A] disabled:from-gray-700 disabled:to-gray-700 disabled:text-gray-500 text-white font-semibold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg"
     >
       {loading ? (
         <>
@@ -805,7 +805,7 @@ function SuccessResult({ result, activeTab }: { result: GenerationResult; active
             href={result.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs text-purple-400 hover:text-purple-300 underline block"
+            className="text-xs text-[#3DAF76] hover:text-[#2D8B5E] underline block"
           >
             Open in new tab ↗
           </a>
@@ -836,9 +836,9 @@ function MusicVideoResultView({ result }: { result: MusicVideoResult }) {
 
   return (
     <div className="space-y-4">
-      <div className="p-4 bg-gradient-to-br from-purple-950/50 to-pink-950/30 rounded-2xl border border-purple-700/40">
+      <div className="p-4 bg-gradient-to-br from-[#2D8B5E]/30 to-[#C47A4A]/20 rounded-2xl border border-[#2D8B5E]/40">
         <h3 className="font-bold text-lg text-white">{result.songTitle}</h3>
-        <p className="text-purple-300 text-sm mt-1">{result.style} · {result.mood}</p>
+        <p className="text-[#3DAF76] text-sm mt-1">{result.style} · {result.mood}</p>
         <p className="text-gray-400 text-xs mt-2">{result.concept}</p>
       </div>
 
@@ -851,7 +851,7 @@ function MusicVideoResultView({ result }: { result: MusicVideoResult }) {
               key={i}
               onClick={() => setActiveScene(i)}
               className={`flex-shrink-0 w-20 h-20 rounded-xl border overflow-hidden transition-all ${
-                activeScene === i ? 'border-purple-500 scale-105' : 'border-gray-700 opacity-70 hover:opacity-100'
+                activeScene === i ? 'border-[#2D8B5E] scale-105' : 'border-gray-700 opacity-70 hover:opacity-100'
               }`}
             >
               {scene.imageUrl ? (
@@ -940,7 +940,7 @@ function AVSyncPlanView({ plan }: { plan: Record<string, unknown> }) {
           .filter(([k]) => !['type', 'description', 'concept'].includes(k))
           .map(([k, v]) => (
             <div key={k} className="flex gap-3 text-sm">
-              <span className="text-purple-400 font-medium capitalize min-w-28">
+              <span className="text-[#3DAF76] font-medium capitalize min-w-28">
                 {k.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ')}:
               </span>
               <span className="text-gray-300">{String(v)}</span>

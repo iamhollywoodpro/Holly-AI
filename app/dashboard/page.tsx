@@ -38,7 +38,7 @@ export default function DashboardPage() {
   if (assetsLoading && assets.length === 0) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
+        <Loader2 className="h-8 w-8 animate-spin text-[#2D8B5E]" />
       </div>
     );
   }
@@ -47,8 +47,8 @@ export default function DashboardPage() {
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard Overview</h1>
-        <p className="mt-2 text-gray-600">
+        <h1 className="text-3xl font-bold text-[#F5F0E8]">Dashboard Overview</h1>
+        <p className="mt-2 text-[#8C8476]">
           Welcome back! Here's what's happening with Holly AI today.
         </p>
       </div>
@@ -61,7 +61,7 @@ export default function DashboardPage() {
           change={`${assets.length} total assets`}
           changeType="neutral"
           icon={Image}
-          iconColor="text-purple-600"
+          iconColor="text-[#2D8B5E]"
         />
         <MetricCard
           title="Content Created"
@@ -99,10 +99,10 @@ export default function DashboardPage() {
           <CardContent>
             {assetsLoading ? (
               <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-purple-600" />
+                <Loader2 className="h-6 w-6 animate-spin text-[#2D8B5E]" />
               </div>
             ) : recentAssets.length === 0 ? (
-              <div className="py-8 text-center text-gray-500">
+              <div className="py-8 text-center text-[#8C8476]">
                 No recent activity
               </div>
             ) : (
@@ -114,7 +114,7 @@ export default function DashboardPage() {
                     title={asset.type === 'image' ? 'Image Generated' : 'Content Created'}
                     description={asset.name || 'Untitled'}
                     time={new Date(asset.createdAt).toLocaleString()}
-                    color={asset.type === 'image' ? 'text-purple-600' : 'text-blue-600'}
+                    color={asset.type === 'image' ? 'text-[#2D8B5E]' : 'text-blue-600'}
                   />
                 ))}
               </div>
@@ -130,17 +130,17 @@ export default function DashboardPage() {
           <CardContent>
             {resourcesLoading ? (
               <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-purple-600" />
+                <Loader2 className="h-6 w-6 animate-spin text-[#2D8B5E]" />
               </div>
             ) : !resources ? (
-              <div className="py-8 text-center text-gray-500">
+              <div className="py-8 text-center text-[#8C8476]">
                 No resource data available
               </div>
             ) : (
               <div className="space-y-4">
                 <StatBar label="CPU Usage" value={resources.cpu} color="bg-green-500" />
                 <StatBar label="Memory Usage" value={resources.memory} color="bg-blue-500" />
-                <StatBar label="Storage Usage" value={resources.storage} color="bg-purple-500" />
+                <StatBar label="Storage Usage" value={resources.storage} color="bg-[#3DAF76]" />
                 <StatBar label="Network Usage" value={resources.network} color="bg-yellow-500" />
               </div>
             )}
@@ -152,7 +152,7 @@ export default function DashboardPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Activity className="h-5 w-5 text-purple-600" />
+            <Activity className="h-5 w-5 text-[#2D8B5E]" />
             Autonomous Features
           </CardTitle>
         </CardHeader>
@@ -174,23 +174,23 @@ export default function DashboardPage() {
           <CardContent>
             {agentsLoading ? (
               <div className="flex items-center justify-center py-4">
-                <Loader2 className="h-5 w-5 animate-spin text-purple-600" />
+                <Loader2 className="h-5 w-5 animate-spin text-[#2D8B5E]" />
               </div>
             ) : agents.length === 0 ? (
-              <p className="text-sm text-gray-500">No agents available</p>
+              <p className="text-sm text-[#8C8476]">No agents available</p>
             ) : (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Total Agents:</span>
-                  <span className="font-medium text-gray-900">{agents.length}</span>
+                  <span className="text-sm text-[#8C8476]">Total Agents:</span>
+                  <span className="font-medium text-[#F5F0E8]">{agents.length}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Active:</span>
+                  <span className="text-sm text-[#8C8476]">Active:</span>
                   <span className="font-medium text-green-600">{activeAgents}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Idle:</span>
-                  <span className="font-medium text-gray-400">{idleAgents}</span>
+                  <span className="text-sm text-[#8C8476]">Idle:</span>
+                  <span className="font-medium text-[#5C564D]">{idleAgents}</span>
                 </div>
               </div>
             )}
@@ -208,14 +208,14 @@ export default function DashboardPage() {
           <CardContent>
             {securityLoading ? (
               <div className="flex items-center justify-center py-4">
-                <Loader2 className="h-5 w-5 animate-spin text-purple-600" />
+                <Loader2 className="h-5 w-5 animate-spin text-[#2D8B5E]" />
               </div>
             ) : !securityReport ? (
-              <p className="text-sm text-gray-500">No security data available</p>
+              <p className="text-sm text-[#8C8476]">No security data available</p>
             ) : (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Security Score:</span>
+                  <span className="text-sm text-[#8C8476]">Security Score:</span>
                   <span className={`font-medium ${
                     securityReport.securityScore >= 80 ? 'text-green-600' :
                     securityReport.securityScore >= 60 ? 'text-yellow-600' :
@@ -223,14 +223,14 @@ export default function DashboardPage() {
                   }`}>{securityReport.securityScore}%</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Active Threats:</span>
+                  <span className="text-sm text-[#8C8476]">Active Threats:</span>
                   <span className={`font-medium ${
                     securityReport.activeThreats === 0 ? 'text-green-600' : 'text-red-600'
                   }`}>{securityReport.activeThreats}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Blocked Requests:</span>
-                  <span className="font-medium text-gray-900">{securityReport.blockedRequests}</span>
+                  <span className="text-sm text-[#8C8476]">Blocked Requests:</span>
+                  <span className="font-medium text-[#F5F0E8]">{securityReport.blockedRequests}</span>
                 </div>
               </div>
             )}
@@ -248,25 +248,25 @@ export default function DashboardPage() {
           <CardContent>
             {metricsLoading ? (
               <div className="flex items-center justify-center py-4">
-                <Loader2 className="h-5 w-5 animate-spin text-purple-600" />
+                <Loader2 className="h-5 w-5 animate-spin text-[#2D8B5E]" />
               </div>
             ) : metrics.length === 0 ? (
-              <p className="text-sm text-gray-500">No metrics tracked yet</p>
+              <p className="text-sm text-[#8C8476]">No metrics tracked yet</p>
             ) : (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Total Metrics:</span>
-                  <span className="font-medium text-gray-900">{metrics.length}</span>
+                  <span className="text-sm text-[#8C8476]">Total Metrics:</span>
+                  <span className="font-medium text-[#F5F0E8]">{metrics.length}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Avg Value:</span>
+                  <span className="text-sm text-[#8C8476]">Avg Value:</span>
                   <span className="font-medium text-blue-600">
                     {Math.round(metrics.reduce((sum, m) => sum + (m.value || 0), 0) / metrics.length)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Categories:</span>
-                  <span className="font-medium text-gray-900">
+                  <span className="text-sm text-[#8C8476]">Categories:</span>
+                  <span className="font-medium text-[#F5F0E8]">
                     {new Set(metrics.map(m => m.category)).size}
                   </span>
                 </div>
@@ -294,13 +294,13 @@ function ActivityItem({
 }) {
   return (
     <div className="flex items-start gap-4">
-      <div className={`rounded-lg bg-gray-100 p-2 ${color}`}>
+      <div className={`rounded-lg bg-[#1E1B18] p-2 ${color}`}>
         <Icon className="h-4 w-4" />
       </div>
       <div className="flex-1">
-        <p className="font-medium text-gray-900">{title}</p>
-        <p className="text-sm text-gray-600">{description}</p>
-        <p className="mt-1 text-xs text-gray-400">{time}</p>
+        <p className="font-medium text-[#F5F0E8]">{title}</p>
+        <p className="text-sm text-[#8C8476]">{description}</p>
+        <p className="mt-1 text-xs text-[#5C564D]">{time}</p>
       </div>
     </div>
   );
@@ -318,10 +318,10 @@ function StatBar({
   return (
     <div>
       <div className="mb-2 flex justify-between text-sm">
-        <span className="font-medium text-gray-700">{label}</span>
-        <span className="text-gray-600">{value}%</span>
+        <span className="font-medium text-[#F5F0E8]">{label}</span>
+        <span className="text-[#8C8476]">{value}%</span>
       </div>
-      <div className="h-2 w-full rounded-full bg-gray-200">
+      <div className="h-2 w-full rounded-full bg-white/10">
         <div
           className={`h-2 rounded-full ${color}`}
           style={{ width: `${value}%` }}

@@ -1,54 +1,54 @@
 /**
- * HOLLY 2.0 - Cyberpunk AI Theme
- * Electric Purple + Cyan + Hot Pink on Deep Dark
+ * HOLLY 2.0 - Unified Holly-Centric Theme
+ * Emerald (her eyes) + Copper (her hair) + Gold (highlights) on Warm Dark
  */
 
 export const cyberpunkTheme = {
   colors: {
-    // Primary Colors
+    // Primary Colors — Holly's Features
     primary: {
-      purple: '#8B5CF6',      // Electric Purple
-      cyan: '#06B6D4',        // Cyan
-      pink: '#EC4899',        // Hot Pink
+      purple: '#C47A4A',      // Burnished Copper (her auburn hair)
+      cyan: '#2D8B5E',        // Deep Emerald (her green eyes)
+      pink: '#D4A853',        // Holly Gold (highlights)
     },
 
-    // Background (Nexa Neural Luxury)
+    // Background (Warm Void)
     background: {
-      primary: '#030305',     // Obsidian Dark (Vantablack feel)
-      secondary: '#08080C',   // Deep Space
-      tertiary: '#101018',    // Frosted Glass Base
-      elevated: '#181822',    // Elevated elements
+      primary: '#0A0908',     // Warm Void
+      secondary: '#0A0908',   // Warm Void
+      tertiary: '#141210',    // Surface
+      elevated: '#1E1B18',    // Raised
     },
 
     // Text
     text: {
-      primary: '#FFFFFF',     // White
-      secondary: '#A1A1AA',   // Gray
-      tertiary: '#71717A',    // Darker gray
-      muted: '#52525B',       // Muted
+      primary: '#F5F0E8',     // Warm Ivory
+      secondary: '#BFB5A5',   // Cream
+      tertiary: '#8C8476',    // Secondary text
+      muted: '#5C564D',       // Muted
     },
 
     // Accent Colors
     accent: {
-      success: '#10B981',     // Green
-      warning: '#F59E0B',     // Orange
-      error: '#EF4444',       // Red
-      info: '#3B82F6',        // Blue
+      success: '#3DAF76',     // Jade
+      warning: '#E8A862',     // Amber
+      error: '#B84052',       // Deep Rose
+      info: '#2D8B5E',        // Emerald
     },
 
     // Gradients
     gradients: {
-      primary: 'linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%)',
-      secondary: 'linear-gradient(135deg, #06B6D4 0%, #8B5CF6 100%)',
-      holographic: 'linear-gradient(135deg, #8B5CF6 0%, #06B6D4 50%, #EC4899 100%)',
-      glow: 'linear-gradient(180deg, rgba(139, 92, 246, 0.2) 0%, rgba(6, 182, 212, 0.2) 100%)',
+      primary: 'linear-gradient(135deg, #2D8B5E 0%, #C47A4A 100%)',
+      secondary: 'linear-gradient(135deg, #2D8B5E 0%, #D4A853 100%)',
+      holographic: 'linear-gradient(135deg, #2D8B5E 0%, #C47A4A 50%, #D4A853 100%)',
+      glow: 'linear-gradient(180deg, rgba(45, 139, 94, 0.2) 0%, rgba(196, 122, 74, 0.2) 100%)',
     },
 
     // Borders
     border: {
-      primary: '#27272A',     // Subtle border
-      accent: '#3F3F46',      // Accent border
-      glow: '#8B5CF6',        // Glowing border
+      primary: '#2D8B5E15',   // Subtle emerald border
+      accent: '#2D8B5E30',    // Accent emerald border
+      glow: '#2D8B5E',        // Glowing border
     },
 
     // Shadows
@@ -57,9 +57,9 @@ export const cyberpunkTheme = {
       md: '0 4px 6px -1px rgba(0, 0, 0, 0.5)',
       lg: '0 10px 15px -3px rgba(0, 0, 0, 0.5)',
       xl: '0 20px 25px -5px rgba(0, 0, 0, 0.5)',
-      glow: '0 0 20px rgba(139, 92, 246, 0.5)',
-      glowCyan: '0 0 20px rgba(6, 182, 212, 0.5)',
-      glowPink: '0 0 20px rgba(236, 72, 153, 0.5)',
+      glow: '0 0 20px rgba(45, 139, 94, 0.4)',
+      glowCyan: '0 0 20px rgba(45, 139, 94, 0.3)',
+      glowPink: '0 0 20px rgba(196, 122, 74, 0.3)',
     },
   },
 

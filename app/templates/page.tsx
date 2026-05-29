@@ -2,8 +2,17 @@
 
 import { useState } from 'react';
 import { ArrowLeft, FileText, Plus, Star, Sparkles, Code, Music, Palette, Search as SearchIcon } from 'lucide-react';
-import { cyberpunkTheme } from '@/styles/themes/cyberpunk';
 import Link from 'next/link';
+
+// Holly emerald/copper color palette
+const H = {
+  bg: { dark: '#0A0908', surface: '#141210', raised: '#1E1B18' },
+  text: { primary: '#F5F0E8', secondary: '#8C8476', tertiary: '#5C564D' },
+  primary: '#2D8B5E',
+  border: '#2A2520',
+  gradient: 'linear-gradient(135deg, #2D8B5E 0%, #C47A4A 100%)',
+  holographic: 'linear-gradient(135deg, #C47A4A 0%, #2D8B5E 50%, #D4A853 100%)',
+};
 
 interface Template {
   id: string;
@@ -95,14 +104,14 @@ export default function TemplatesPage() {
   return (
     <div 
       className="min-h-screen p-6"
-      style={{ backgroundColor: cyberpunkTheme.colors.background.primary }}
+      style={{ backgroundColor: H.bg.dark }}
     >
       {/* Header */}
       <div className="max-w-6xl mx-auto mb-8">
         <Link
           href="/"
           className="inline-flex items-center gap-2 mb-4 hover:opacity-80 transition-opacity"
-          style={{ color: cyberpunkTheme.colors.text.secondary }}
+          style={{ color: H.text.secondary }}
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Chat
@@ -111,14 +120,14 @@ export default function TemplatesPage() {
         <h1 
           className="text-4xl font-bold mb-2"
           style={{
-            background: cyberpunkTheme.colors.gradients.holographic,
+            background: H.holographic,
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
           }}
         >
           📝 Templates
         </h1>
-        <p style={{ color: cyberpunkTheme.colors.text.secondary }}>
+        <p style={{ color: H.text.secondary }}>
           Quick-start templates for common tasks
         </p>
       </div>
@@ -130,13 +139,13 @@ export default function TemplatesPage() {
           <div 
             className="flex items-center gap-3 p-4 rounded-xl mb-4"
             style={{
-              backgroundColor: cyberpunkTheme.colors.background.secondary,
-              border: `1px solid ${cyberpunkTheme.colors.border.primary}`,
+              backgroundColor: H.bg.surface,
+              border: `1px solid ${H.border}`,
             }}
           >
             <SearchIcon 
               className="w-5 h-5"
-              style={{ color: cyberpunkTheme.colors.text.tertiary }}
+              style={{ color: H.text.tertiary }}
             />
             <input
               type="text"
@@ -144,7 +153,7 @@ export default function TemplatesPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search templates..."
               className="flex-1 bg-transparent outline-none"
-              style={{ color: cyberpunkTheme.colors.text.primary }}
+              style={{ color: H.text.primary }}
             />
           </div>
 
@@ -157,21 +166,21 @@ export default function TemplatesPage() {
                 className="px-4 py-2 rounded-lg flex items-center gap-2 transition-all"
                 style={{
                   backgroundColor: selectedCategory === category.id
-                    ? cyberpunkTheme.colors.background.secondary
+                    ? H.bg.surface
                     : 'transparent',
                   border: `1px solid ${selectedCategory === category.id
-                    ? cyberpunkTheme.colors.primary.cyan
-                    : cyberpunkTheme.colors.border.primary}`,
+                    ? H.primary
+                    : H.border}`,
                   color: selectedCategory === category.id
-                    ? cyberpunkTheme.colors.primary.cyan
-                    : cyberpunkTheme.colors.text.secondary,
+                    ? H.primary
+                    : H.text.secondary,
                 }}
               >
                 {category.label}
                 <span 
                   className="text-xs px-2 py-0.5 rounded-full"
                   style={{
-                    backgroundColor: `${cyberpunkTheme.colors.primary.cyan}20`,
+                    backgroundColor: `${H.primary}20`,
                   }}
                 >
                   {category.count}
@@ -186,9 +195,9 @@ export default function TemplatesPage() {
           <div className="mb-8">
             <h2 
               className="text-2xl font-bold mb-4 flex items-center gap-2"
-              style={{ color: cyberpunkTheme.colors.text.primary }}
+              style={{ color: H.text.primary }}
             >
-              <Star className="w-6 h-6" style={{ color: cyberpunkTheme.colors.primary.cyan }} />
+              <Star className="w-6 h-6" style={{ color: H.primary }} />
               Featured Templates
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -199,29 +208,29 @@ export default function TemplatesPage() {
                     key={template.id}
                     className="p-6 rounded-xl group hover:scale-105 transition-transform"
                     style={{
-                      backgroundColor: cyberpunkTheme.colors.background.secondary,
-                      border: `2px solid ${cyberpunkTheme.colors.primary.cyan}`,
-                      boxShadow: `0 0 20px ${cyberpunkTheme.colors.primary.cyan}20`,
+                      backgroundColor: H.bg.surface,
+                      border: `2px solid ${H.primary}`,
+                      boxShadow: `0 0 20px ${H.primary}20`,
                     }}
                   >
                     <div className="flex items-start gap-4 mb-4">
                       <div 
                         className="p-3 rounded-lg"
-                        style={{ backgroundColor: `${cyberpunkTheme.colors.primary.cyan}20` }}
+                        style={{ backgroundColor: `${H.primary}20` }}
                       >
                         <Icon 
                           className="w-6 h-6"
-                          style={{ color: cyberpunkTheme.colors.primary.cyan }}
+                          style={{ color: H.primary }}
                         />
                       </div>
                       <div className="flex-1">
                         <h3 
                           className="text-xl font-bold mb-1"
-                          style={{ color: cyberpunkTheme.colors.text.primary }}
+                          style={{ color: H.text.primary }}
                         >
                           {template.name}
                         </h3>
-                        <p style={{ color: cyberpunkTheme.colors.text.secondary }}>
+                        <p style={{ color: H.text.secondary }}>
                           {template.description}
                         </p>
                       </div>
@@ -230,7 +239,7 @@ export default function TemplatesPage() {
                       onClick={() => handleUseTemplate(template)}
                       className="w-full py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
                       style={{
-                        background: cyberpunkTheme.colors.gradients.primary,
+                        background: H.gradient,
                         color: '#FFFFFF',
                       }}
                     >
@@ -248,7 +257,7 @@ export default function TemplatesPage() {
         <div>
           <h2 
             className="text-2xl font-bold mb-4 flex items-center gap-2"
-            style={{ color: cyberpunkTheme.colors.text.primary }}
+            style={{ color: H.text.primary }}
           >
             <FileText className="w-6 h-6" />
             {selectedCategory === 'all' ? 'All Templates' : `${categories.find(c => c.id === selectedCategory)?.label} Templates`}
@@ -261,25 +270,25 @@ export default function TemplatesPage() {
                   key={template.id}
                   className="p-4 rounded-xl group hover:bg-white/5 transition-colors"
                   style={{
-                    backgroundColor: cyberpunkTheme.colors.background.secondary,
-                    border: `1px solid ${cyberpunkTheme.colors.border.primary}`,
+                    backgroundColor: H.bg.surface,
+                    border: `1px solid ${H.border}`,
                   }}
                 >
                   <div className="flex items-start gap-3 mb-3">
                     <Icon 
                       className="w-5 h-5 mt-1"
-                      style={{ color: cyberpunkTheme.colors.primary.cyan }}
+                      style={{ color: H.primary }}
                     />
                     <div>
                       <h3 
                         className="font-bold mb-1"
-                        style={{ color: cyberpunkTheme.colors.text.primary }}
+                        style={{ color: H.text.primary }}
                       >
                         {template.name}
                       </h3>
                       <p 
                         className="text-sm"
-                        style={{ color: cyberpunkTheme.colors.text.tertiary }}
+                        style={{ color: H.text.tertiary }}
                       >
                         {template.description}
                       </p>
@@ -288,7 +297,7 @@ export default function TemplatesPage() {
                   <button
                     onClick={() => handleUseTemplate(template)}
                     className="w-full py-2 rounded-lg hover:bg-white/10 transition-colors text-sm"
-                    style={{ color: cyberpunkTheme.colors.primary.cyan }}
+                    style={{ color: H.primary }}
                   >
                     Use Template
                   </button>
@@ -302,30 +311,30 @@ export default function TemplatesPage() {
         <div 
           className="mt-8 p-6 rounded-xl text-center"
           style={{
-            backgroundColor: cyberpunkTheme.colors.background.secondary,
-            border: `1px dashed ${cyberpunkTheme.colors.border.primary}`,
+            backgroundColor: H.bg.surface,
+            border: `1px dashed ${H.border}`,
           }}
         >
           <Plus 
             className="w-12 h-12 mx-auto mb-3"
-            style={{ color: cyberpunkTheme.colors.text.tertiary }}
+            style={{ color: H.text.tertiary }}
           />
           <h3 
             className="text-xl font-bold mb-2"
-            style={{ color: cyberpunkTheme.colors.text.primary }}
+            style={{ color: H.text.primary }}
           >
             Create Custom Template
           </h3>
           <p 
             className="mb-4"
-            style={{ color: cyberpunkTheme.colors.text.secondary }}
+            style={{ color: H.text.secondary }}
           >
             Save your own prompts as reusable templates
           </p>
           <button
             className="px-6 py-3 rounded-lg transition-colors"
             style={{
-              background: cyberpunkTheme.colors.gradients.primary,
+              background: H.gradient,
               color: '#FFFFFF',
             }}
           >

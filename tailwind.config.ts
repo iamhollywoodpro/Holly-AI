@@ -53,6 +53,15 @@ const config: Config = {
           void: "#0B0A08",
           glass: "rgba(212, 168, 83, 0.05)",
           glassBorder: "rgba(212, 168, 83, 0.1)",
+          // Phase N: Holly-centric design system — colors from HER features
+          emerald: "#2D8B5E",
+          jade: "#3DAF76",
+          copper: "#C47A4A",
+          amber: "#E8A862",
+          surface: "#141210",
+          raised: "#1E1B18",
+          cream: "#BFB5A5",
+          rose: "#B84052",
         }
       },
       borderRadius: {

@@ -49,7 +49,7 @@ export default function AppearancePage() {
 
       {/* Theme */}
       <div>
-        <label className="block text-[10px] font-black text-[#D4A853] uppercase tracking-[0.2em] mb-4">LUMINANCE STATE</label>
+        <label className="block text-[10px] font-black text-[#2D8B5E] uppercase tracking-[0.2em] mb-4">LUMINANCE STATE</label>
         <div className="grid grid-cols-3 gap-4">
           {(['dark', 'light', 'auto'] as const).map((theme) => (
             <button
@@ -57,8 +57,8 @@ export default function AppearancePage() {
               onClick={() => handleThemeChange(theme)}
               className={`p-6 rounded-2xl border-2 transition-all duration-300 ${
                 settings.appearance.theme === theme
-                  ? 'border-[#D4A853] bg-[#D4A853]/10 shadow-[0_0_20px_rgba(212,168,83,0.15)]'
-                  : 'border-white/5 bg-[#1A1815] hover:border-[#D4A853]/20 text-[#8C8476]'
+                  ? 'border-[#2D8B5E] bg-[#2D8B5E]/10 shadow-[0_0_20px_rgba(45,139,94,0.15)]'
+                  : 'border-white/5 bg-[#1E1B18] hover:border-[#2D8B5E]/20 text-[#8C8476]'
               }`}
             >
               <div className="text-center">
@@ -67,7 +67,7 @@ export default function AppearancePage() {
                   {theme === 'light' && '🌕'}
                   {theme === 'auto' && '🌓'}
                 </div>
-                <div className={`text-[10px] font-black uppercase tracking-widest ${settings.appearance.theme === theme ? 'text-[#D4A853]' : 'text-[#8C8476]'}`}>
+                <div className={`text-[10px] font-black uppercase tracking-widest ${settings.appearance.theme === theme ? 'text-[#2D8B5E]' : 'text-[#8C8476]'}`}>
                   {theme === 'dark' ? 'Sovereign Void' : theme === 'light' ? 'Aurelian Day' : 'Adaptive Flow'}
                 </div>
               </div>
@@ -78,21 +78,21 @@ export default function AppearancePage() {
 
       {/* Color Scheme */}
       <div>
-        <label className="block text-[10px] font-black text-[#D4A853] uppercase tracking-[0.2em] mb-4">RESONANCE SPECTRUM</label>
+        <label className="block text-[10px] font-black text-[#2D8B5E] uppercase tracking-[0.2em] mb-4">RESONANCE SPECTRUM</label>
         <div className="grid grid-cols-2 gap-4">
           {[
-            { value: 'sovereign', label: 'Aurelian Breath', colors: ['#D4A853', '#F5F0E8'] },
-            { value: 'crimson', label: 'Crimson Flow', colors: ['#B84052', '#0B0A08'] },
+            { value: 'sovereign', label: 'Aurelian Breath', colors: ['#2D8B5E', '#F5F0E8'] },
+            { value: 'crimson', label: 'Crimson Flow', colors: ['#C47A4A', '#0A0908'] },
             { value: 'obsidian', label: 'Obsidian Pulse', colors: ['#12110F', '#8C8476'] },
-            { value: 'emerald', label: 'Sovereign Glade', colors: ['#1F3D30', '#D4A853'] },
+            { value: 'emerald', label: 'Sovereign Glade', colors: ['#1F3D30', '#2D8B5E'] },
           ].map((scheme) => (
             <button
               key={scheme.value}
               onClick={() => handleColorSchemeChange(scheme.value)}
               className={`p-5 rounded-2xl border-2 transition-all duration-300 ${
                 settings.appearance.colorScheme === scheme.value
-                  ? 'border-[#D4A853] bg-[#D4A853]/10 shadow-[0_0_20px_rgba(212,168,83,0.15)]'
-                  : 'border-white/5 bg-[#1A1815] hover:border-[#D4A853]/20'
+                  ? 'border-[#2D8B5E] bg-[#2D8B5E]/10 shadow-[0_0_20px_rgba(45,139,94,0.15)]'
+                  : 'border-white/5 bg-[#1E1B18] hover:border-[#2D8B5E]/20'
               }`}
             >
               <div className="flex items-center gap-4">
@@ -105,7 +105,7 @@ export default function AppearancePage() {
                     />
                   ))}
                 </div>
-                <span className={`text-[10px] font-black uppercase tracking-widest ${settings.appearance.colorScheme === scheme.value ? 'text-[#D4A853]' : 'text-[#8C8476]'}`}>
+                <span className={`text-[10px] font-black uppercase tracking-widest ${settings.appearance.colorScheme === scheme.value ? 'text-[#2D8B5E]' : 'text-[#8C8476]'}`}>
                   {scheme.label}
                 </span>
               </div>
@@ -116,7 +116,7 @@ export default function AppearancePage() {
 
       {/* Font Size */}
       <div>
-        <label className="block text-[10px] font-black text-[#D4A853] uppercase tracking-[0.2em] mb-4">TYPOGRAPHIC SCALE</label>
+        <label className="block text-[10px] font-black text-[#2D8B5E] uppercase tracking-[0.2em] mb-4">TYPOGRAPHIC SCALE</label>
         <div className="grid grid-cols-3 gap-4">
           {(['small', 'medium', 'large'] as const).map((size) => (
             <button
@@ -124,12 +124,12 @@ export default function AppearancePage() {
               onClick={() => handleFontSizeChange(size)}
               className={`p-5 rounded-2xl border-2 transition-all duration-300 ${
                 settings.appearance.fontSize === size
-                  ? 'border-[#D4A853] bg-[#D4A853]/10 shadow-[0_0_20px_rgba(212,168,83,0.15)]'
-                  : 'border-white/5 bg-[#1A1815] hover:border-[#D4A853]/20'
+                  ? 'border-[#2D8B5E] bg-[#2D8B5E]/10 shadow-[0_0_20px_rgba(45,139,94,0.15)]'
+                  : 'border-white/5 bg-[#1E1B18] hover:border-[#2D8B5E]/20'
               }`}
             >
               <div className={`font-black uppercase tracking-widest ${
-                settings.appearance.fontSize === size ? 'text-[#D4A853]' : 'text-[#8C8476]'
+                settings.appearance.fontSize === size ? 'text-[#2D8B5E]' : 'text-[#8C8476]'
               } ${
                 size === 'small' ? 'text-[9px]' : size === 'large' ? 'text-[12px]' : 'text-[10px]'
               }`}>
@@ -154,7 +154,7 @@ export default function AppearancePage() {
               })
             }
             className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors duration-500 ${
-              settings.appearance.compactMode ? 'bg-[#D4A853]' : 'bg-white/10'
+              settings.appearance.compactMode ? 'bg-[#2D8B5E]' : 'bg-white/10'
             }`}
           >
             <span
@@ -177,7 +177,7 @@ export default function AppearancePage() {
               })
             }
             className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors duration-500 ${
-              settings.appearance.animations ? 'bg-[#D4A853]' : 'bg-white/10'
+              settings.appearance.animations ? 'bg-[#2D8B5E]' : 'bg-white/10'
             }`}
           >
             <span
@@ -191,8 +191,8 @@ export default function AppearancePage() {
 
       {/* Save indicator */}
       {isSaving && (
-        <div className="text-[10px] text-[#D4A853] font-black uppercase tracking-widest flex items-center gap-3">
-          <div className="w-3.5 h-3.5 border-2 border-[#D4A853] border-t-transparent rounded-full animate-spin" />
+        <div className="text-[10px] text-[#2D8B5E] font-black uppercase tracking-widest flex items-center gap-3">
+          <div className="w-3.5 h-3.5 border-2 border-[#2D8B5E] border-t-transparent rounded-full animate-spin" />
           Synchronizing Resonance...
         </div>
       )}

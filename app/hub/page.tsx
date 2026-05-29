@@ -476,7 +476,7 @@ export default function HubPage() {
       <div className="border-b border-gray-800/60 bg-gradient-to-r from-gray-950 via-black to-gray-950 sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-600 to-blue-600 flex items-center justify-center text-base shadow-lg shadow-violet-900/30">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#2D8B5E] to-[#C47A4A] flex items-center justify-center text-base shadow-lg shadow-[#2D8B5E]/30">
               ⚙
             </div>
             <div>
@@ -500,7 +500,7 @@ export default function HubPage() {
               onClick={() => { setSection(s); if (s === 'metrics') fetchMetrics(); }}
               className={`px-4 py-2.5 text-sm font-medium capitalize transition-colors border-b-2 ${
                 section === s
-                  ? 'border-violet-500 text-white'
+                  ? 'border-[#2D8B5E] text-white'
                   : 'border-transparent text-gray-500 hover:text-gray-300'
               }`}
             >
@@ -533,11 +533,11 @@ export default function HubPage() {
                   placeholder="holly_xxxx or leave blank"
                   value={apiKey}
                   onChange={e => setApiKey(e.target.value)}
-                  className="w-full bg-black/60 border border-gray-700/50 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-violet-500 font-mono"
+                  className="w-full bg-black/60 border border-gray-700/50 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#2D8B5E] font-mono"
                 />
                 <p className="text-xs text-gray-600 mt-1.5 leading-relaxed">
                   Blank → dev bypass. Production: generate at{' '}
-                  <a href="/settings/api-keys" className="text-violet-400 hover:underline">/settings/api-keys</a>
+                  <a href="/settings/api-keys" className="text-[#3DAF76] hover:underline">/settings/api-keys</a>
                 </p>
               </div>
 
@@ -556,7 +556,7 @@ export default function HubPage() {
                         onClick={() => selectAction(tid, action)}
                         className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all ${
                           activeTool === tid && activeAction === action
-                            ? 'bg-violet-600/30 text-violet-200 border border-violet-500/40'
+                            ? 'bg-[#2D8B5E]/30 text-[#3DAF76] border border-[#2D8B5E]/40'
                             : 'text-gray-400 hover:text-white hover:bg-gray-800/60'
                         }`}
                       >
@@ -611,7 +611,7 @@ export default function HubPage() {
                     <button
                       onClick={runRequest}
                       disabled={isLoading}
-                      className="flex items-center gap-2 px-4 py-1.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-colors"
+                      className="flex items-center gap-2 px-4 py-1.5 bg-[#2D8B5E] hover:bg-[#3DAF76] disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-colors"
                     >
                       {isLoading ? <><span className="animate-spin inline-block">⟳</span> Running…</> : <>▶ Run</>}
                     </button>
@@ -626,7 +626,7 @@ export default function HubPage() {
                       onChange={e => setPayload(e.target.value)}
                       rows={16}
                       spellCheck={false}
-                      className="w-full bg-black/60 border border-gray-700/50 rounded-xl p-3 text-sm text-green-300 font-mono focus:outline-none focus:border-violet-500 resize-y"
+                      className="w-full bg-black/60 border border-gray-700/50 rounded-xl p-3 text-sm text-green-300 font-mono focus:outline-none focus:border-[#2D8B5E] resize-y"
                     />
                   </div>
                   <div>
@@ -754,7 +754,7 @@ export default function HubPage() {
                     key={t}
                     onClick={() => setDocsTool(t)}
                     className={`px-4 py-1.5 rounded-lg text-sm font-medium capitalize transition-colors ${
-                      docsTool === t ? 'bg-violet-600 text-white' : 'bg-gray-800/60 text-gray-400 hover:text-white'
+                      docsTool === t ? 'bg-[#2D8B5E] text-white' : 'bg-gray-800/60 text-gray-400 hover:text-white'
                     }`}
                   >
                     {t === 'master' ? '⚙ Hub' : t === 'aura' ? '🎵 AURA' : '⚡ Sentinel'}
@@ -958,7 +958,7 @@ export default function HubPage() {
                             <ul className="space-y-1">
                               {action.useCases.map(uc => (
                                 <li key={uc} className="text-xs text-gray-500 flex items-start gap-2">
-                                  <span className="text-purple-400 mt-0.5">→</span>{uc}
+                                  <span className="text-[#3DAF76] mt-0.5">→</span>{uc}
                                 </li>
                               ))}
                             </ul>
@@ -972,7 +972,7 @@ export default function HubPage() {
 
                         <button
                           onClick={() => { selectAction('aura', action.id); setSection('playground'); }}
-                          className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/40 rounded-lg text-sm text-purple-300 transition-colors"
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-[#2D8B5E]/20 hover:bg-[#2D8B5E]/30 border border-[#2D8B5E]/40 rounded-lg text-sm text-[#3DAF76] transition-colors"
                         >
                           ▶ Try in Playground
                         </button>
@@ -1050,7 +1050,7 @@ export default function HubPage() {
 
                         <button
                           onClick={() => { selectAction('sentinel', action.id); setSection('playground'); }}
-                          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/40 rounded-lg text-sm text-blue-300 transition-colors"
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-[#C47A4A]/20 hover:bg-[#C47A4A]/30 border border-[#C47A4A]/40 rounded-lg text-sm text-[#C47A4A] transition-colors"
                         >
                           ▶ Try in Playground
                         </button>
@@ -1152,7 +1152,7 @@ export default function HubPage() {
                 {[
                   { label: 'Total Requests', value: logs.length, color: 'text-white' },
                   { label: 'Success Rate', value: logs.length ? `${Math.round((logs.filter(l => l.status === 'success').length / logs.length) * 100)}%` : 'n/a', color: 'text-green-400' },
-                  { label: 'AURA Calls', value: logs.filter(l => l.tool === 'aura').length, color: 'text-purple-400' },
+                  { label: 'AURA Calls', value: logs.filter(l => l.tool === 'aura').length, color: 'text-[#3DAF76]' },
                   { label: 'Sentinel Calls', value: logs.filter(l => l.tool === 'sentinel').length, color: 'text-blue-400' },
                   { label: 'Avg Duration', value: logs.length ? `${Math.round(logs.filter(l => l.duration).reduce((s, l) => s + (l.duration ?? 0), 0) / logs.filter(l => l.duration).length)}ms` : 'n/a', color: 'text-yellow-400' },
                   { label: 'Errors', value: logs.filter(l => l.status === 'error').length, color: 'text-red-400' },
