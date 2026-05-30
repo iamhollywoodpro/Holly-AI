@@ -274,9 +274,9 @@ export default function CodeWorkshopPage() {
           <div style={{
             padding: '0.75rem 1rem',
             borderRadius: '12px',
-            background: message.type === 'success' ? `${sovereignTheme.colors.primary.gold}10` : `${sovereignTheme.colors.primary.crimson}10`,
-            border: `1px solid ${message.type === 'success' ? sovereignTheme.colors.primary.gold : sovereignTheme.colors.primary.crimson}`,
-            color: message.type === 'success' ? sovereignTheme.colors.primary.gold : sovereignTheme.colors.primary.crimson,
+            background: message.type === 'success' ? `${sovereignTheme.colors.primary.gold}10` : `${sovereignTheme.colors.primary.copper}10`,
+            border: `1px solid ${message.type === 'success' ? sovereignTheme.colors.primary.gold : sovereignTheme.colors.primary.copper}`,
+            color: message.type === 'success' ? sovereignTheme.colors.primary.gold : sovereignTheme.colors.primary.copper,
             marginBottom: '1.5rem',
             display: 'flex',
             alignItems: 'center',

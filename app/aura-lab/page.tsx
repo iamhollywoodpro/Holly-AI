@@ -76,7 +76,7 @@ function viabilityColor(val?: string): string {
   const v = val.toLowerCase();
   if (v.startsWith('high'))   return C.primary.gold;
   if (v.startsWith('medium')) return C.text.secondary;
-  return C.primary.crimson;
+  return C.primary.copper;
 }
 
 export default function AuraLabPage() {
@@ -203,7 +203,7 @@ export default function AuraLabPage() {
               <input type="file" accept="audio/*" onChange={handleFileChange} style={{ display: 'none' }} />
               {file ? (
                 <>
-                  <FileAudio size={36} style={{ margin: '0 auto 0.5rem', color: C.primary.cyan }} />
+                  <FileAudio size={36} style={{ margin: '0 auto 0.5rem', color: C.primary.emerald }} />
                   <div style={{ color: C.text.primary, fontWeight: 500, fontSize: '0.9rem' }}>{file.name}</div>
                   <div style={{ fontSize: '0.78rem', color: C.text.tertiary }}>{(file.size / 1024 / 1024).toFixed(2)} MB</div>
                 </>
@@ -252,8 +252,8 @@ export default function AuraLabPage() {
 
             {error && (
               <div style={{
-                padding: '0.65rem', borderRadius: '8px', background: `${C.primary.crimson}20`,
-                border: `1px solid ${C.primary.crimson}`, color: C.primary.crimson, fontSize: '0.83rem',
+                padding: '0.65rem', borderRadius: '8px', background: `${C.primary.copper}20`,
+                border: `1px solid ${C.primary.copper}`, color: C.primary.copper, fontSize: '0.83rem',
                 marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem',
               }}>
                 <AlertCircle size={15} /> {error}
@@ -299,7 +299,7 @@ export default function AuraLabPage() {
                   <ScoreCircle score={analysis.commercial_viability} label="Commercial" color={C.primary.gold} />
                   <ScoreCircle score={analysis.artistic_merit}      label="Artistic"   color={C.primary.gold} />
                   {analysis.hit_potential != null
-                    ? <ScoreCircle score={analysis.hit_potential}   label="Hit Potential" color={C.primary.crimson} />
+                    ? <ScoreCircle score={analysis.hit_potential}   label="Hit Potential" color={C.primary.copper} />
                     : <div />}
                 </div>
               </motion.div>
@@ -372,7 +372,7 @@ export default function AuraLabPage() {
                       background: 'rgba(18, 17, 15, 0.65)', border: `1px solid rgba(212, 168, 83, 0.15)`,
                     }}
                   >
-                    <Icon size={20} style={{ color: C.primary.cyan, marginBottom: '0.5rem' }} />
+                    <Icon size={20} style={{ color: C.primary.emerald, marginBottom: '0.5rem' }} />
                     <div style={{ fontSize: '0.75rem', color: C.text.tertiary, marginBottom: '0.25rem' }}>{label}</div>
                     <div style={{ fontSize: '0.88rem', fontWeight: 600, color: C.text.primary }}>{val}</div>
                   </motion.div>
@@ -391,12 +391,12 @@ export default function AuraLabPage() {
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                    <ListMusic size={18} style={{ color: C.primary.cyan }} />
+                    <ListMusic size={18} style={{ color: C.primary.emerald }} />
                     <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>Playlist Targets</span>
                   </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                     {analysis.playlist_targets.map((p, i) => (
-                      <Badge key={i} text={p} color={C.primary.cyan} />
+                      <Badge key={i} text={p} color={C.primary.emerald} />
                     ))}
                   </div>
                 </motion.div>

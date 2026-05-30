@@ -344,7 +344,7 @@ describe("Holly Voice Character Engine", () => {
     });
 
     it("uses Kokoro fallback when provided", async () => {
-      const mockKokoroSynth = jest.fn().mockResolvedValue(Buffer.alloc(44100));
+      const mockKokoroSynth = jest.fn<(text: string, voice: string, speed: number) => Promise<Buffer>>().mockResolvedValue(Buffer.alloc(44100));
 
       const result = await synthesizeWithCharacter(
         {
