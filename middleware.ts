@@ -1,12 +1,16 @@
 /**
  * HOLLY AI — Middleware
  *
- * MINIMAL middleware — only handles rate limiting.
- * NO auth checks here. Each API route handles its own auth via Clerk's auth().
- * NO page redirects here. Each page handles its own auth client-side.
+ * Handles rate limiting for all routes. Auth is handled per-route/page.
  *
- * Previous sign-in loops were caused by middleware-level auth checks
- * conflicting with Clerk's proxy-based session management.
+ * CRITICAL: /api/clerk/* routes must BYPASS clerkMiddleware entirely.
+ * In @clerk/nextjs v5, clerkMiddleware intercepts Clerk API routes and
+ * tries to handle them internally — but it doesn't inject the `pk` parameter
+ * that our proxy needs to identify the Clerk instance. This causes Clerk to
+ * return "host_invalid" (400), breaking all auth.
+ *
+ * Our custom proxy at app/api/clerk/[[...clerk]]/route.ts handles these
+ * routes correctly by injecting the pk and forwarding to clerk.clerk.com.
  */
 import { clerkMiddleware } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
@@ -14,39 +18,68 @@ import type { NextRequest } from 'next/server';
 import { checkEndpointRateLimit, getRateLimitHeaders } from '@/lib/security/endpoint-limiter';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MAIN MIDDLEWARE — rate limiting only
+// Helper: rate limit check for any API route
 // ─────────────────────────────────────────────────────────────────────────────
-export default clerkMiddleware(async (auth, req) => {
-  const pathname = req.nextUrl.pathname;
+function checkRateLimit(pathname: string, req: NextRequest): NextResponse | null {
+  if (!pathname.startsWith('/api/')) return null;
 
-  // ── Per-Endpoint Rate Limiting (all API routes) ────────────────────────
-  if (pathname.startsWith('/api/')) {
-    const identityKey =
-      req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-      req.headers.get('x-real-ip') ||
-      req.ip ||
-      'unknown';
-    const rateResult = checkEndpointRateLimit(pathname, identityKey);
+  const identityKey =
+    req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    req.headers.get('x-real-ip') ||
+    req.ip ||
+    'unknown';
+  const rateResult = checkEndpointRateLimit(pathname, identityKey);
 
-    if (!rateResult.allowed) {
-      const headers = getRateLimitHeaders(rateResult);
-      return NextResponse.json(
-        {
-          error: 'Rate limit exceeded',
-          category: rateResult.category,
-          retryAfter: Math.ceil(rateResult.retryAfterMs / 1000) + 's',
-        },
-        { status: 429, headers },
-      );
-    }
+  if (!rateResult.allowed) {
+    const headers = getRateLimitHeaders(rateResult);
+    return NextResponse.json(
+      {
+        error: 'Rate limit exceeded',
+        category: rateResult.category,
+        retryAfter: Math.ceil(rateResult.retryAfterMs / 1000) + 's',
+      },
+      { status: 429, headers },
+    );
   }
 
-  // ── ALL ROUTES: pass through ─────────────────────────────────────────
-  // Auth is handled by each route individually.
-  // Pages use Clerk's client-side hooks (useAuth/useUser).
-  // API routes call auth() directly in their handlers.
+  return null;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// clerkMiddleware instance for non-Clerk routes
+// ─────────────────────────────────────────────────────────────────────────────
+const clerkMid = clerkMiddleware(async (_auth, req) => {
+  const pathname = req.nextUrl.pathname;
+
+  const rateLimited = checkRateLimit(pathname, req);
+  if (rateLimited) return rateLimited;
+
   return NextResponse.next();
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MAIN MIDDLEWARE — conditionally bypasses clerkMiddleware for Clerk proxy
+// ─────────────────────────────────────────────────────────────────────────────
+export default function middleware(
+  req: NextRequest,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  event: any,
+) {
+  const pathname = req.nextUrl.pathname;
+
+  // ── Clerk proxy routes: bypass clerkMiddleware entirely ────────────────
+  // clerkMiddleware intercepts /api/clerk/* and makes its own internal
+  // request to Clerk WITHOUT the pk parameter → host_invalid (400).
+  // Our custom proxy route handles these correctly.
+  if (pathname.startsWith('/api/clerk/')) {
+    const rateLimited = checkRateLimit(pathname, req);
+    if (rateLimited) return rateLimited;
+    return NextResponse.next();
+  }
+
+  // ── All other routes: use clerkMiddleware ──────────────────────────────
+  return clerkMid(req, event);
+}
 
 export const config = {
   matcher: [

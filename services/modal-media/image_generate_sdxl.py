@@ -123,7 +123,7 @@ class HollySDXLLoRA:
             steps  = min(int(request.get("num_inference_steps", 30)), 50)
             seed   = request.get("seed")
             fmt    = request.get("format", "jpeg").lower()
-            lora_scale = float(request.get("lora_scale", 0.8))
+            lora_scale = float(request.get("lora_scale", 0.7))
 
             if not prompt:
                 return Response(
