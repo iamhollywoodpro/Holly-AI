@@ -117,7 +117,12 @@ async function proxyToClerk(req: NextRequest, pathSegments?: string[]): Promise<
     const isSessionPath = path.includes('/sessions/');
     const isTouchPath = path.includes('/touch');
 
-    const pk = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || '';
+    // Publishable key — needed to identify the Clerk instance to Clerk's API.
+    // Priority: runtime env var → build-time fallback (baked into client bundle).
+    // Coolify's compose can override with empty string, so we keep a hardcoded
+    // fallback. This key is PUBLIC (visible in browser HTML) — not a secret.
+    const pk = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+      || 'pk_live_Y2xlcmsuaG9sbHkubmV4YW11c2ljZ3JvdXAuY29tJA';
     const appDomain = process.env.NEXT_PUBLIC_APP_URL?.replace(/^https?:\/\//, '') || 'holly.nexamusicgroup.com';
 
     // ── For API paths: inject the publishable key into the query string ──
