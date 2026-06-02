@@ -144,6 +144,18 @@ async function proxyToClerk(req: NextRequest, pathSegments?: string[]): Promise<
       }
     }
 
+    // ── Strip redirect_url from API query params ────────────────────────────
+    // Clerk validates redirect_url against the instance's configured domains.
+    // holly.nexamusicgroup.com is "Pending" (not verified) in Clerk Dashboard,
+    // so Clerk returns 422 "redirect_url does not match allowed values".
+    //
+    // We handle ALL redirects client-side (window.location.href in sign-in and
+    // sign-up pages), so this parameter is NOT needed by Clerk's backend.
+    // Stripping it prevents the validation error entirely.
+    if (isApiPath) {
+      searchParams.delete('redirect_url');
+    }
+
     const qsStr = searchParams.toString();
     let finalPath = qsStr ? `${path}?${qsStr}` : path;
 
@@ -154,10 +166,25 @@ async function proxyToClerk(req: NextRequest, pathSegments?: string[]): Promise<
       console.log(`[HOLLY] Session touch proxy: ${path} | cookies=${hasSessionCookie ? 'present' : 'MISSING'} | method=${req.method}`);
     }
 
-    const body =
+    let body =
       req.method !== 'GET' && req.method !== 'HEAD'
         ? Buffer.from(await req.arrayBuffer())
         : undefined;
+
+    // ── Strip redirect_url from JSON request bodies ──────────────────────
+    // Same reason as query params above — Clerk validates redirect_url in
+    // sign_ins, sign_ups, and other POST bodies against allowed domains.
+    if (body && isApiPath) {
+      try {
+        const parsed = JSON.parse(body.toString('utf-8'));
+        if ('redirect_url' in parsed) {
+          delete parsed.redirect_url;
+          body = Buffer.from(JSON.stringify(parsed));
+        }
+      } catch {
+        // Not JSON body — leave as-is (form-encoded, binary, etc.)
+      }
+    }
 
     // ── Build forwarding headers ──────────────────────────────────────────
     // Use MINIMAL headers — same approach as npm requests (which work fine).
