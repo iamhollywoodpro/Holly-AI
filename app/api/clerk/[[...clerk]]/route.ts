@@ -180,14 +180,27 @@ async function proxyToClerk(req: NextRequest, pathSegments?: string[]): Promise<
     }
 
     // ── Build forwarding headers ──────────────────────────────────────────
-    // Use MINIMAL headers — same approach as npm requests (which work fine).
-    // Forwarding browser headers (sec-fetch-site, referer, cookie domain
-    // mismatch, etc.) causes Clerk to return "host_invalid". Clerk's API
-    // only needs: host, accept, and optionally cookie/content-type.
     const reqHeaders: Record<string, string> = {
       host: CLERK_SNI_HOST,
       accept: req.headers.get('accept') || '*/*',
     };
+
+    // ── Clerk-required proxy headers (API paths only) ──────────────────────
+    // Clerk's Frontend API requires these three headers to authenticate
+    // proxy requests. Without Clerk-Secret-Key, POST requests (sign_ins,
+    // sign_ups) fail with 422 because Clerk can't verify the proxy is
+    // authorized to make write requests on behalf of the instance.
+    //
+    // Reference: https://clerk.com/docs/guides/dashboard/dns-domains/proxy-fapi
+    if (isApiPath) {
+      reqHeaders['Clerk-Proxy-Url'] = `https://${appDomain}/api/clerk`;
+      reqHeaders['Clerk-Secret-Key'] = process.env.CLERK_SECRET_KEY || '';
+      reqHeaders['X-Forwarded-For'] =
+        req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+        req.headers.get('x-real-ip') ||
+        req.ip ||
+        'unknown';
+    }
 
     // Forward cookies (needed for session management)
     const cookie = req.headers.get('cookie');
