@@ -160,28 +160,25 @@ async function proxyToClerk(req: NextRequest, pathSegments?: string[]): Promise<
         : undefined;
 
     // ── Build forwarding headers ──────────────────────────────────────────
-    const reqHeaders: Record<string, string> = {};
-    req.headers.forEach((value, key) => {
-      const lower = key.toLowerCase();
-      // Strip hop-by-hop headers, encoding headers, AND the origin header.
-      // The origin header from the browser says holly.nexamusicgroup.com but
-      // clerk.clerk.com rejects it as "origin_invalid" because the request
-      // URL is clerk.clerk.com. We omit it entirely — Clerk doesn't require
-      // origin on server-to-server proxied requests.
-      if (
-        !['host', 'connection', 'content-length', 'transfer-encoding', 'accept-encoding', 'origin'].includes(
-          lower
-        )
-      ) {
-        reqHeaders[key] = value;
-      }
-    });
+    // Use MINIMAL headers — same approach as npm requests (which work fine).
+    // Forwarding browser headers (sec-fetch-site, referer, cookie domain
+    // mismatch, etc.) causes Clerk to return "host_invalid". Clerk's API
+    // only needs: host, accept, and optionally cookie/content-type.
+    const reqHeaders: Record<string, string> = {
+      host: CLERK_SNI_HOST,
+      accept: req.headers.get('accept') || '*/*',
+    };
 
-    // Set the host to clerk.clerk.com (the TLS SNI host)
-    reqHeaders['host'] = CLERK_SNI_HOST;
-    // Don't send x-forwarded-host — it causes "host_invalid" with Clerk's
-    // current API. The pk query parameter handles app identification.
-    if (body) reqHeaders['content-length'] = String(body.byteLength);
+    // Forward cookies (needed for session management)
+    const cookie = req.headers.get('cookie');
+    if (cookie) reqHeaders['cookie'] = cookie;
+
+    // Forward content-type for POST/PUT/PATCH requests
+    if (body) {
+      const ct = req.headers.get('content-type');
+      if (ct) reqHeaders['content-type'] = ct;
+      reqHeaders['content-length'] = String(body.byteLength);
+    }
 
     // ── Execute request ───────────────────────────────────────────────────
     let currentPath = finalPath;
