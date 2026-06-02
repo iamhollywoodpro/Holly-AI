@@ -125,22 +125,15 @@ async function proxyToClerk(req: NextRequest, pathSegments?: string[]): Promise<
       || 'pk_live_Y2xlcmsuaG9sbHkubmV4YW11c2ljZ3JvdXAuY29tJA';
     const appDomain = process.env.NEXT_PUBLIC_APP_URL?.replace(/^https?:\/\//, '') || 'holly.nexamusicgroup.com';
 
-    // ── For API paths: inject the publishable key into the query string ──
-    // This is how Clerk identifies the app instance when using a proxy.
-    // The old x-forwarded-host approach stopped working — Clerk returns
-    // "host_invalid" without the pk parameter.
-    if (isApiPath && pk) {
+    // ── For API GET requests: inject the publishable key into the query string ──
+    // This is how Clerk identifies the app instance on initial sync (GET /v1/client).
+    // IMPORTANT: Only inject pk for GET/HEAD requests. Clerk REJECTS pk as a query
+    // parameter on POST/PUT/PATCH/DELETE with 422 "form_param_unknown". For write
+    // requests, Clerk identifies the instance via cookies set during the initial
+    // GET /v1/client sync (which happens on page load, before sign-in).
+    if (isApiPath && pk && (req.method === 'GET' || req.method === 'HEAD')) {
       if (!searchParams.has('pk')) {
         searchParams.set('pk', pk);
-      }
-      // Also fix __clerk_api_version if set to bare "5" — Clerk expects a
-      // date-based version like "2024-10-01". If Clerk JS sends "5" we leave
-      // it (Clerk's backend accepts it when pk is present), but we rewrite
-      // the version that was previously causing "api_version_invalid".
-      const apiVer = searchParams.get('__clerk_api_version');
-      if (apiVer === '5') {
-        // Clerk JS v5 uses the numeric version — leave it. The pk param
-        // is what makes it work now.
       }
     }
 
