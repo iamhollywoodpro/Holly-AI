@@ -1,5 +1,5 @@
 /**
- * HOLLY Smart Model Router — Phase 9 (DeepSeek V4 + GLM-5.1 + Mistral Medium 3.5)
+ * HOLLY Smart Model Router — Phase 10 (Together AI + Mistral Direct + NVIDIA v10)
  *
  * Routes every chat request to the best FREE, no-token-cost model based on
  * task type, with automatic cascade fallback if a provider is rate-limited.
@@ -16,31 +16,38 @@
  * │  vision       │  OpenRouter → Qwen3 VL 30B          │  Free vision      │
  * │  creative     │  NVIDIA → Mistral Medium 3.5 128B   │  Flagship unified │
  * │  agent        │  NVIDIA → GLM-5.1                   │  #1 SWE-Bench Pro │
+ * │  consciousness│  Local Ollama → Mistral (1B/mo)     │  Zero cost brain  │
  * │  local        │  Ollama (Qwen3.6 + Granite 4.1)    │  Unlimited/local  │
  * └──────────────────────────────────────────────────────────────────────────┘
  *
- * v9 Upgrade Summary (2026-05):
- *   - DeepSeek V4 Flash: 284B/13B MoE, 1M ctx, replaces R1 entirely
- *   - GLM-5.1: #1 SWE-Bench Pro (58.4%), agentic engineering king
- *   - Mistral Medium 3.5: 128B dense, replaces Small 3.1 for creative
- *   - Llama 4 Maverick: 17B-128E MoE, replaces Llama 3.3 for speed
- *   - Qwen3.6 35B MoE: replaces Qwen3.5 27B for local/all tasks
- *   - Granite 4.1 3B/8B: replaces Llama 3.1 8B for speed/local
- *   - Laguna XS.2: 33B/3B MoE, local agentic coding
- *   - Devstral 2 123B: replaces Devstral Small for coding/agent
- *   - Kimi K2.6: now on NVIDIA NIM (262K ctx, 1K req/day)
- *   - Nemotron 3 Super 120B: reasoning fallback via OpenRouter free
- *   - Nemotron 3 Nano Omni: 30B/3B MoE, multimodal (text+image+video+audio), 262K ctx
- *   - GPT-OSS 120B: OpenAI open-source via OpenRouter free
+ * v10 Upgrade Summary (2026-06):
+ *   NEW PROVIDERS:
+ *   - Together AI: 80+ free models, 60 RPM, 1M ctx (MiniMax M1)
+ *   - Mistral AI Direct: 1B tokens/month, 2 RPM (consciousness/background only)
+ *
+ *   NEW NVIDIA NIM MODELS:
+ *   - Mistral Small 4 119B: replaces Small 3.1 + Devstral + Magistral (one model, all tasks)
+ *   - Qwen 3.5 122B MoE: replaces Qwen3 235B for reasoning
+ *   - Gemma 4 31B: vision + thinking, better than Llama 3.3 70B
+ *   - MiniMax M2.7 230B: strong coding/reasoning
+ *   - Step 3.5 Flash 200B: agentic AI specialist
+ *   - GPT-OSS 20B/120B: OpenAI's open models on NVIDIA
+ *
+ *   CRITICAL FIXES:
+ *   - Nemotron 3 Nano Omni model ID fixed (was invalid)
+ *   - Deprecating models marked and replaced
+ *   - Together AI adds massive reliability with 80 free models at 60 RPM
+ *   - Mistral Direct means Holly's consciousness NEVER burns Groq tokens again
  *
  * Cascade fallback per task:
- *   speed:        Groq Llama-3.3 → Groq 8B → NVIDIA Llama 4 Maverick → OpenRouter Llama → Google Gemini → NVIDIA Llama → Granite 4.1
- *   coding:       NVIDIA DeepSeek V4 Flash → NVIDIA GLM-5.1 → Groq Llama → NVIDIA Qwen3 Coder → OpenRouter Qwen3 Coder → NVIDIA Devstral 2
- *   reasoning:    NVIDIA DeepSeek V4 Flash → NVIDIA GLM-5.1 → NVIDIA Qwen3-235B → Groq DeepSeek-R1 → Google Gemini → Nemotron 120B
- *   long_context: Google Gemini (1M) → NVIDIA DeepSeek V4 Flash (1M) → OpenRouter Qwen3 Coder (262K) → NVIDIA Qwen3 (262K) → Trinity (512K)
- *   vision:       OpenRouter Qwen VL → Nemotron 120B → Google Gemini → Gemma 4 31B → NVIDIA Qwen3 → NVIDIA Kimi K2.6
- *   creative:     NVIDIA Mistral Medium 3.5 → OpenRouter Mistral → Groq Llama → Google Gemini → GPT-OSS 120B
- *   agent:        NVIDIA GLM-5.1 → NVIDIA DeepSeek V4 Flash → Groq Llama → NVIDIA Qwen3 Coder → NVIDIA Devstral 2 → NVIDIA Mistral Medium 3.5
+ *   speed:        Groq Llama-3.3 → Groq 8B → NVIDIA Llama 4 Maverick → Together Llama 4 Scout → OpenRouter Llama → Google Gemini → Together → Granite 4.1
+ *   coding:       NVIDIA DeepSeek V4 Flash → NVIDIA GLM-5.1 → NVIDIA Qwen3 Coder → Together Qwen3 Coder → NVIDIA Mistral Small 4 → Groq → Together Devstral → Google Gemini
+ *   reasoning:    NVIDIA DeepSeek V4 Flash → NVIDIA Qwen 3.5 122B → NVIDIA Mistral Small 4 → NVIDIA GPT-OSS 120B → Together MiniMax M1 → Google Gemini → Groq
+ *   long_context: Google Gemini (1M) → NVIDIA DeepSeek V4 Flash (1M) → Together MiniMax M1 (1M) → NVIDIA Qwen3 → Together Llama 4 Scout (328K) → Trinity (512K)
+ *   vision:       OpenRouter Qwen VL → NVIDIA Gemma 4 31B → Together Qwen3 VL 235B → Google Gemini → NVIDIA Nemotron Omni → Together Gemma 4
+ *   creative:     NVIDIA Mistral Medium 3.5 → NVIDIA Mistral Small 4 → NVIDIA GPT-OSS 120B → Together Gemma 4 → Groq → Google Gemini
+ *   agent:        NVIDIA GLM-5.1 → NVIDIA DeepSeek V4 Flash → NVIDIA Qwen3 Coder → NVIDIA Mistral Small 4 → NVIDIA MiniMax M2.7 → NVIDIA Step 3.5 → Together
+ *   consciousness: Holly-Own → Ollama → Mistral Direct (1B/mo) → Google Gemini → Groq
  *   local:        Ollama Qwen3.6 35B → Gemma 4 26B → Laguna XS.2 → Devstral Small 2 → Granite 4.1
  */
 
@@ -66,7 +73,9 @@ export type ProviderId =
   | 'groq'          // api.groq.com — Llama 3.3 70B (300+ tok/s, 14,400 req/day FREE)
   | 'cf_workers'    // api.cloudflare.com — Kimi K2.5/K2.6 (FREE tier, ~27K output tok/day — deep fallback only)
   | 'nvidia_nim'    // integrate.api.nvidia.com — Qwen3-235B-A22B (1,000 req/day FREE)
-  | 'openrouter'    // openrouter.ai — 27 free models (20 RPM / 200 RPD FREE)
+  | 'openrouter'    // openrouter.ai — 27+ free models (20 RPM / 200 RPD FREE)
+  | 'together'      // api.together.ai — 80+ free models, 60 RPM (1-time $5 setup, $0/token ongoing)
+  | 'mistral'       // api.mistral.ai — 1B tokens/month, 2 RPM (background/consciousness only)
   | 'google'        // generativelanguage.googleapis.com — Gemini 2.5 Flash (15 RPM, NO daily cap FREE)
   | 'ollama'        // localhost:11434 — unlimited, zero cost, offline
   | 'arcee';        // api.arcee.ai — Trinity models (agent-optimized, Apache 2.0, free credits)
@@ -175,8 +184,36 @@ export const MODEL_CATALOGUE: Record<string, ModelSpec> = {
     displayName: 'Devstral 2 123B (NVIDIA)', contextK: 256, streaming: true,
   },
   'nvidia:nemotron-3-nano-omni': {
-    provider: 'nvidia_nim', model: 'nvidia/nemotron-3-nano-omni',
+    provider: 'nvidia_nim', model: 'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning',
     displayName: 'Nemotron 3 Nano Omni 30B MoE (NVIDIA)', contextK: 262, streaming: true,
+  },
+  'nvidia:mistral-small-4': {
+    provider: 'nvidia_nim', model: 'mistralai/mistral-small-4-119b-2603',
+    displayName: 'Mistral Small 4 119B MoE (NVIDIA)', contextK: 256, streaming: true,
+  },
+  'nvidia:qwen3.5-122b': {
+    provider: 'nvidia_nim', model: 'qwen/qwen3.5-122b-a10b',
+    displayName: 'Qwen 3.5 122B MoE (NVIDIA)', contextK: 262, streaming: true,
+  },
+  'nvidia:gemma-4-31b': {
+    provider: 'nvidia_nim', model: 'google/gemma-4-31b-it',
+    displayName: 'Gemma 4 31B (NVIDIA)', contextK: 256, streaming: true,
+  },
+  'nvidia:minimax-m2.7': {
+    provider: 'nvidia_nim', model: 'minimaxai/minimax-m2.7',
+    displayName: 'MiniMax M2.7 230B (NVIDIA)', contextK: 256, streaming: true,
+  },
+  'nvidia:step-3.5-flash': {
+    provider: 'nvidia_nim', model: 'stepfun-ai/step-3.5-flash',
+    displayName: 'Step 3.5 Flash 200B MoE (NVIDIA)', contextK: 128, streaming: true,
+  },
+  'nvidia:gpt-oss-120b': {
+    provider: 'nvidia_nim', model: 'openai/gpt-oss-120b',
+    displayName: 'GPT-OSS 120B (NVIDIA)', contextK: 128, streaming: true,
+  },
+  'nvidia:gpt-oss-20b': {
+    provider: 'nvidia_nim', model: 'openai/gpt-oss-20b',
+    displayName: 'GPT-OSS 20B (NVIDIA)', contextK: 128, streaming: true,
   },
 
   // ── OpenRouter free pool (27+ models, 20 RPM / 200 RPD) ───────────────────
@@ -227,6 +264,67 @@ export const MODEL_CATALOGUE: Record<string, ModelSpec> = {
   'openrouter:nemotron-3-nano-omni': {
     provider: 'openrouter', model: 'nvidia/nemotron-3-nano-omni:free',
     displayName: 'Nemotron 3 Nano Omni 30B MoE (OpenRouter free)', contextK: 262, streaming: true,
+  },
+
+  // ── Together AI (80+ free models, 60 RPM, $0/token) ─────────────────────────
+  'together:llama-4-scout': {
+    provider: 'together', model: 'meta-llama/Llama-4-Scout-17B-16E-Instruct',
+    displayName: 'Llama 4 Scout 17B MoE (Together)', contextK: 328, streaming: true,
+  },
+  'together:qwen3.5-122b': {
+    provider: 'together', model: 'Qwen/Qwen3.5-122B-A10B',
+    displayName: 'Qwen 3.5 122B MoE (Together)', contextK: 262, streaming: true,
+  },
+  'together:minimax-m1': {
+    provider: 'together', model: 'MiniMaxAI/MiniMax-M1',
+    displayName: 'MiniMax M1 1M ctx (Together)', contextK: 1000, streaming: true,
+  },
+  'together:qwen3-vl-235b': {
+    provider: 'together', model: 'Qwen/Qwen3-VL-235B-A22B-Instruct',
+    displayName: 'Qwen3 VL 235B Vision (Together)', contextK: 262, streaming: true,
+  },
+  'together:qwen3-coder-30b': {
+    provider: 'together', model: 'Qwen/Qwen3-Coder-30B-A3B-Instruct',
+    displayName: 'Qwen3 Coder 30B (Together)', contextK: 160, streaming: true,
+  },
+  'together:gemma-4-26b': {
+    provider: 'together', model: 'google/gemma-4-26b-a4b-it',
+    displayName: 'Gemma 4 26B MoE (Together)', contextK: 262, streaming: true,
+  },
+  'together:llama-3.1-70b': {
+    provider: 'together', model: 'meta-llama/Llama-3.1-70B-Instruct',
+    displayName: 'Llama 3.1 70B (Together)', contextK: 131, streaming: true,
+  },
+  'together:devstral-small': {
+    provider: 'together', model: 'mistralai/Devstral-Small-2505',
+    displayName: 'Devstral Small 24B (Together)', contextK: 128, streaming: true,
+  },
+  'together:qwen3.6-35b': {
+    provider: 'together', model: 'Qwen/Qwen3.6-35B-A3B',
+    displayName: 'Qwen 3.6 35B MoE (Together)', contextK: 262, streaming: true,
+  },
+  'together:mistral-small-3.2': {
+    provider: 'together', model: 'mistralai/Mistral-Small-3.2-24B',
+    displayName: 'Mistral Small 3.2 24B (Together)', contextK: 131, streaming: true,
+  },
+
+  // ── Mistral AI La Plateforme (1B tokens/month, 2 RPM — background only) ────
+  // RATE LIMIT WARNING: 2 RPM — ONLY use for consciousness, background, non-realtime
+  'mistral:medium-3.5': {
+    provider: 'mistral', model: 'mistral-medium-latest',
+    displayName: 'Mistral Medium 3.5 128B (Mistral)', contextK: 131, streaming: true,
+  },
+  'mistral:small-4': {
+    provider: 'mistral', model: 'mistral-small-latest',
+    displayName: 'Mistral Small 4 (Mistral)', contextK: 128, streaming: true,
+  },
+  'mistral:codestral': {
+    provider: 'mistral', model: 'codestral-latest',
+    displayName: 'Codestral (Mistral)', contextK: 256, streaming: true,
+  },
+  'mistral:magistral-medium': {
+    provider: 'mistral', model: 'magistral-medium-latest',
+    displayName: 'Magistral Medium (Mistral)', contextK: 131, streaming: true,
   },
 
   // ── OpenRouter Uncensored Models (for unrestricted content) ──────────────
@@ -334,87 +432,110 @@ export const MODEL_CATALOGUE: Record<string, ModelSpec> = {
 // NO Gemini, NO paid APIs — every entry is a 100% free provider
 
 export const TASK_WATERFALLS: Record<TaskType, string[]> = {
-  // ⚡ Speed: Groq is king (300+ tok/s), NVIDIA Llama 4 Maverick new option
+  // ⚡ Speed: Groq is king (300+ tok/s), Together 60 RPM solid backup
   speed: [
     'groq:llama-3.3-70b',
     'groq:llama-3.1-8b',
     'nvidia:llama-4-maverick',
+    'together:llama-4-scout',
     'openrouter:llama-3.3-70b',
     'google:gemini-2.5-flash',
     'nvidia:llama-3.3-70b',
+    'together:llama-3.1-70b',
+    'together:gemma-4-26b',
     'openrouter:free',
-    'holly-own:qwen3-8b',       // Holly's own fine-tuned brain — for casual chat with her personality
+    'holly-own:qwen3-8b',
     'ollama:granite4.1-8b',
     'ollama:granite4.1-3b',
     'ollama:llama3.1-8b',
   ],
 
-  // 💻 Coding: DeepSeek V4 Flash primary (1M ctx), GLM-5.1 #1 SWE-Bench
+  // 💻 Coding: DeepSeek V4 Flash primary (1M ctx), GLM-5.1, Qwen3 Coder, Mistral Small 4
   coding: [
     'nvidia:deepseek-v4-flash',
     'nvidia:glm-5.1',
-    'groq:llama-3.3-70b',
     'nvidia:qwen3-coder',
+    'together:qwen3-coder-30b',
+    'nvidia:mistral-small-4',
+    'groq:llama-3.3-70b',
     'openrouter:qwen3-coder',
+    'mistral:codestral',
     'openrouter:qwen3-coder-next',
     'groq:deepseek-r1-70b',
     'google:gemini-2.5-flash',
     'nvidia:devstral-2',
+    'together:devstral-small',
     'cf:kimi-k2.6',
     'openrouter:laguna-xs.2',
     'arcee:trinity-mini',
+    'together:qwen3.6-35b',
     'cf:kimi-k2.5',
     'ollama:qwen3.6-35b',
     'ollama:laguna-xs.2',
+    'ollama:devstral-small-2',
     'ollama:qwen3.5-27b',
     'ollama:deepseek-r1-14b',
   ],
 
-  // 🧠 Reasoning: DeepSeek V4 Flash (1M ctx, SOTA), GLM-5.1, Qwen3-235B
+  // 🧠 Reasoning: DeepSeek V4 Flash (1M ctx, SOTA), Qwen 3.5 122B, Mistral Small 4
   reasoning: [
     'nvidia:deepseek-v4-flash',
-    'nvidia:glm-5.1',
+    'nvidia:qwen3.5-122b',
+    'nvidia:mistral-small-4',
+    'nvidia:gpt-oss-120b',
     'nvidia:qwen3-235b',
     'groq:deepseek-r1-70b',
     'google:gemini-2.5-flash',
+    'together:minimax-m1',
+    'together:qwen3.5-122b',
     'nvidia:nemotron-3-nano-omni',
     'openrouter:nemotron-120b',
+    'mistral:magistral-medium',
     'arcee:trinity-large-thinking',
     'nvidia:deepseek-r1',
     'openrouter:qwen3-coder',
     'groq:llama-3.3-70b',
     'cf:kimi-k2.6',
+    'together:qwen3.6-35b',
     'ollama:qwen3.6-35b',
     'ollama:gemma4-26b',
     'ollama:deepseek-r1-14b',
   ],
 
-  // 📄 Long context: Gemini 1M + DeepSeek V4 Flash 1M, Nemotron Nano Omni 262K
+  // 📄 Long context: Gemini 1M + DeepSeek V4 Flash 1M + Together MiniMax M1 1M
   long_context: [
     'google:gemini-2.5-flash',
     'nvidia:deepseek-v4-flash',
+    'together:minimax-m1',
     'nvidia:nemotron-3-nano-omni',
     'openrouter:qwen3-coder',
     'nvidia:qwen3-coder',
     'nvidia:qwen3-235b',
+    'together:llama-4-scout',
+    'nvidia:gemma-4-31b',
     'arcee:trinity-large-preview',
     'groq:llama-3.3-70b',
     'nvidia:kimi-k2.6',
     'cf:kimi-k2.6',
     'cf:kimi-k2.5',
+    'together:qwen3.5-122b',
+    'together:qwen3.6-35b',
     'ollama:qwen3.6-35b',
     'ollama:gemma4-26b',
     'ollama:qwen3.5-27b',
   ],
 
-  // 👁️ Vision: Qwen3 VL primary, Nemotron Nano Omni multimodal, Gemma 4 vision
+  // 👁️ Vision: Qwen3 VL primary, Gemma 4 31B vision, Together Qwen3 VL 235B
   vision: [
     'openrouter:qwen3-vl-30b',
+    'nvidia:gemma-4-31b',
     'nvidia:nemotron-3-nano-omni',
+    'together:qwen3-vl-235b',
     'openrouter:nemotron-3-nano-omni',
-    'openrouter:nemotron-120b',
     'google:gemini-2.5-flash',
     'openrouter:gemma-4-31b',
+    'together:gemma-4-26b',
+    'openrouter:nemotron-120b',
     'openrouter:free',
     'nvidia:qwen3-235b',
     'nvidia:kimi-k2.6',
@@ -423,31 +544,38 @@ export const TASK_WATERFALLS: Record<TaskType, string[]> = {
     'ollama:gemma4-26b',
   ],
 
-  // ✨ Creative: Mistral Medium 3.5 flagship, GPT-OSS creative, Gemma 4
+  // ✨ Creative: Mistral Medium 3.5 flagship, Mistral Small 4, GPT-OSS, Together Gemma
   creative: [
     'nvidia:mistral-medium-3.5',
+    'nvidia:mistral-small-4',
+    'nvidia:gpt-oss-120b',
+    'together:gemma-4-26b',
     'openrouter:mistral-small',
     'groq:llama-3.3-70b',
     'google:gemini-2.5-flash',
-    'holly-own:qwen3-8b',       // Holly's own creative voice — fine-tuned personality
+    'holly-own:qwen3-8b',
     'nvidia:mistral-small',
     'openrouter:gemma-4-31b',
     'openrouter:free',
-    'openrouter:gpt-oss-120b',
     'cf:kimi-k2.6',
     'ollama:gemma4-26b',
   ],
 
-  // 🤖 Agent: GLM-5.1 #1 SWE-Bench Pro, V4 Flash 1M ctx, Devstral 2 agentic
+  // 🤖 Agent: GLM-5.1, V4 Flash 1M ctx, Qwen3 Coder, Mistral Small 4, MiniMax M2.7
   agent: [
     'nvidia:glm-5.1',
     'nvidia:deepseek-v4-flash',
-    'groq:llama-3.3-70b',
     'nvidia:qwen3-coder',
+    'nvidia:mistral-small-4',
+    'nvidia:minimax-m2.7',
+    'nvidia:step-3.5-flash',
+    'groq:llama-3.3-70b',
     'nvidia:devstral-2',
     'nvidia:nemotron-3-nano-omni',
     'nvidia:mistral-medium-3.5',
     'google:gemini-2.5-flash',
+    'together:qwen3-coder-30b',
+    'together:devstral-small',
     'openrouter:qwen3-coder',
     'openrouter:qwen3-coder-next',
     'openrouter:laguna-xs.2',
@@ -457,13 +585,14 @@ export const TASK_WATERFALLS: Record<TaskType, string[]> = {
     'nvidia:kimi-k2.6',
     'cf:kimi-k2.6',
     'cf:kimi-k2.5',
+    'together:qwen3.6-35b',
     'ollama:qwen3.6-35b',
     'ollama:laguna-xs.2',
+    'ollama:devstral-small-2',
     'ollama:gemma4-26b',
-    'ollama:deepseek-r1-14b',
   ],
 
-  // 🔒 Local: Ollama only — never touches cloud (upgraded to Qwen3.6 + Granite 4.1)
+  // 🔒 Local: Ollama only — never touches cloud
   local: [
     'ollama:qwen3.6-35b',
     'ollama:gemma4-26b',
@@ -476,22 +605,24 @@ export const TASK_WATERFALLS: Record<TaskType, string[]> = {
     'ollama:llama3.1-8b',
   ],
 
-  // 🧬 Consciousness: Holly's inner life — LOCAL FIRST, cascade to free cloud
-  //    This is Holly's "brain" for emotions, inner monologue, memory processing.
-  //    Always tries local Qwen 3 8B first. Zero cost, zero rate limits, zero dependency.
+  // 🧬 Consciousness: LOCAL FIRST → Mistral Direct (1B tokens/month) → cloud fallback
+  //    Holly's "brain" for emotions, inner monologue, memory processing.
+  //    Mistral Direct gives 1 BILLION tokens/month — background tasks never burn Groq again.
+  //    Only 2 RPM — perfect for the 15-min consciousness cycle, NOT for real-time chat.
   consciousness: [
-    'holly-own:qwen3-8b',       // Holly's fine-tuned brain — self-sovereign, always first when available
+    'holly-own:qwen3-8b',       // Holly's fine-tuned brain — self-sovereign, always first
     'ollama:qwen3-8b',          // Local fallback — unlimited, zero cost
     'ollama:qwen3.6-35b',       // Bigger local model if available
     'ollama:granite4.1-8b',     // Fast local fallback
     'ollama:llama3.1-8b',       // Last resort local
-    'google:gemini-2.5-flash',  // Cloud — FREE, NO daily cap, prioritized over Groq
-    'groq:llama-3.3-70b',       // Cloud fallback only if Gemini is down
+    'mistral:small-4',          // Mistral Direct — 1B tokens/month, 2 RPM, background only
+    'mistral:medium-3.5',       // Mistral Direct — stronger reasoning for deep reflection
+    'google:gemini-2.5-flash',  // Cloud — FREE, NO daily cap
+    'groq:llama-3.3-70b',       // Cloud fallback only if everything else fails
   ],
 
   // 🔞 Unrestricted: Adult/uncensored content — routes to uncensored models
   //    Only triggered when isUnrestrictedTopic() returns true.
-  //    These models have reduced safety training and won't refuse adult content.
   //    Hard rules (CSAM, harm) are enforced BEFORE routing, at the Holly level.
   unrestricted: [
     'openrouter:dolphin-mixtral',     // Primary uncensored — Mixtral 8x7B
@@ -504,17 +635,21 @@ export const TASK_WATERFALLS: Record<TaskType, string[]> = {
     'openrouter:gpt-oss-120b',        // Cloud fallback
   ],
 
-  // 🌐 Synthesis: V4 Flash 1M ctx, GLM-5.1, Nemotron 120B reasoning
+  // 🌐 Synthesis: V4 Flash 1M ctx, Qwen 3.5 122B, GPT-OSS, Together MiniMax M1
   synthesis: [
+    'nvidia:deepseek-v4-flash',
+    'nvidia:qwen3.5-122b',
+    'nvidia:gpt-oss-120b',
     'groq:llama-3.3-70b',
     'google:gemini-2.5-flash',
-    'nvidia:deepseek-v4-flash',
     'nvidia:glm-5.1',
+    'together:minimax-m1',
     'nvidia:qwen3-235b',
     'arcee:trinity-large-preview',
     'openrouter:qwen3-coder',
     'openrouter:nemotron-120b',
     'cf:kimi-k2.6',
+    'together:qwen3.5-122b',
     'ollama:qwen3.6-35b',
     'ollama:gemma4-26b',
     'ollama:qwen3.5-27b',

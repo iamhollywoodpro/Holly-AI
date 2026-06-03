@@ -340,6 +340,95 @@ export const ollamaFreeProvider = {
   },
 };
 
+// ─── TOGETHER AI ─────────────────────────────────────────────────────────────
+// Docs: https://docs.together.ai/ (OpenAI-compatible endpoint)
+// Free: 80+ models at $0/token · 60 RPM free tier · 1M ctx (MiniMax M1)
+// Note: Requires one-time $5 credit for platform access, but free models cost $0 ongoing
+// Models: Llama 4 Scout (328K), Qwen3.5 122B, MiniMax M1 (1M), Qwen3 VL 235B, Gemma 4 26B
+
+export const togetherProvider = {
+  isConfigured: () => !!process.env.TOGETHER_API_KEY,
+
+  async *streamChat(
+    messages: ChatMessage[],
+    model: string,
+    opts: StreamOptions = {},
+  ): TokenStream {
+    const apiKey = process.env.TOGETHER_API_KEY;
+    if (!apiKey) throw new Error('TOGETHER_API_KEY not set');
+
+    const res = await fetch('https://api.together.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type':  'application/json',
+      },
+      body: JSON.stringify({
+        model,
+        messages,
+        stream:      true,
+        temperature: opts.temperature ?? 0.7,
+        max_tokens:  opts.maxTokens  ?? 2048,
+      }),
+      signal: AbortSignal.timeout(15_000),
+    });
+
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(`Together AI ${res.status}: ${err}`);
+    }
+    if (!res.body) throw new Error('No response body from Together AI');
+
+    yield* parseOpenAIStream(res.body);
+  },
+};
+
+// ─── MISTRAL AI (La Plateforme) ───────────────────────────────────────────────
+// Docs: https://docs.mistral.ai/ (OpenAI-compatible endpoint)
+// Free: 1 BILLION tokens/month · 2 RPM · all models available
+// BEST FOR: Background tasks, consciousness cycles, non-time-sensitive work
+// Models: Mistral Medium 3.5 (128B), Mistral Small 4 (119B), Codestral, Magistral
+//
+// RATE LIMIT WARNING: Only 2 RPM — DO NOT use for real-time chat.
+// Perfect for: consciousness cycles, inner monologue, memory processing, pattern detection
+
+export const mistralProvider = {
+  isConfigured: () => !!process.env.MISTRAL_API_KEY,
+
+  async *streamChat(
+    messages: ChatMessage[],
+    model: string,
+    opts: StreamOptions = {},
+  ): TokenStream {
+    const apiKey = process.env.MISTRAL_API_KEY;
+    if (!apiKey) throw new Error('MISTRAL_API_KEY not set');
+
+    const res = await fetch('https://api.mistral.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type':  'application/json',
+      },
+      body: JSON.stringify({
+        model,
+        messages,
+        stream:      true,
+        temperature: opts.temperature ?? 0.7,
+        max_tokens:  opts.maxTokens  ?? 2048,
+      }),
+      signal: AbortSignal.timeout(15_000),
+    });
+
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(`Mistral AI ${res.status}: ${err}`);
+    }
+    if (!res.body) throw new Error('No response body from Mistral AI');
+
+    yield* parseOpenAIStream(res.body);
+  },
+};
+
 // ─── ARCEE TRINITY ──────────────────────────────────────────────────────────
 // Docs: https://docs.arcee.ai/ (OpenAI-compatible endpoint)
 // Free tier: generous credits · OpenAI-compatible API · Apache 2.0 models
@@ -518,14 +607,16 @@ const hollyOwnProvider: { isConfigured: () => boolean; streamChat: (messages: Ch
 // ─── Provider registry ────────────────────────────────────────────────────────
 
 export const PROVIDERS = {
-  holly_own:  hollyOwnProvider,
-  groq:       groqProvider,
-  google:     googleProvider,
-  cf_workers: cloudflareProvider,
-  nvidia_nim: nvidiaProvider,
-  openrouter: openrouterProvider,
-  ollama:     ollamaFreeProvider,
-  arcee:      arceeProvider,
+  holly_own:   hollyOwnProvider,
+  groq:        groqProvider,
+  google:      googleProvider,
+  cf_workers:  cloudflareProvider,
+  nvidia_nim:  nvidiaProvider,
+  openrouter:  openrouterProvider,
+  together:    togetherProvider,
+  mistral:     mistralProvider,
+  ollama:      ollamaFreeProvider,
+  arcee:       arceeProvider,
 } as const;
 
 export type ProviderKey = keyof typeof PROVIDERS;
