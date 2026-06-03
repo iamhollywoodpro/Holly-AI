@@ -76,7 +76,7 @@ How did Steve react? Classify as:
 Respond with ONLY one word: positive, neutral, or negative`;
 
     const { text } = await cascadeCollect(
-      (await smartRoute(prompt, { taskHint: 'speed' })).waterfall,
+      (await smartRoute(prompt, { forceTask: 'consciousness' })).waterfall,
       [{ role: 'user', content: prompt }],
       { temperature: 0.1, maxTokens: 10 },
     );
@@ -319,7 +319,7 @@ Respond with JSON array:
 }]`;
 
     const { text } = await cascadeCollect(
-      (await smartRoute(prompt, { taskHint: 'analysis' })).waterfall,
+      (await smartRoute(prompt, { forceTask: 'consciousness' })).waterfall,
       [{ role: 'user', content: prompt }],
       { temperature: 0.7, maxTokens: 500 },
     );
