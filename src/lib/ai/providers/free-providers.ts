@@ -345,6 +345,31 @@ export const ollamaFreeProvider = {
 // Free: 80+ models at $0/token · 60 RPM free tier · 1M ctx (MiniMax M1)
 // Note: Requires one-time $5 credit for platform access, but free models cost $0 ongoing
 // Models: Llama 4 Scout (328K), Qwen3.5 122B, MiniMax M1 (1M), Qwen3 VL 235B, Gemma 4 26B
+//
+// HARD COST GUARD: Only models in the APPROVED_FREE list below are allowed.
+// Any model not on this list is blocked before the API call is made.
+// This ensures your $5 credit is NEVER touched.
+
+const TOGETHER_APPROVED_FREE_MODELS = new Set([
+  'meta-llama/Llama-4-Scout-17B-16E-Instruct',
+  'Qwen/Qwen3.5-122B-A10B',
+  'MiniMaxAI/MiniMax-M1',
+  'Qwen/Qwen3-VL-235B-A22B-Instruct',
+  'Qwen/Qwen3-Coder-30B-A3B-Instruct',
+  'google/gemma-4-26b-a4b-it',
+  'meta-llama/Llama-3.1-70B-Instruct',
+  'mistralai/Devstral-Small-2505',
+  'Qwen/Qwen3.6-35B-A3B',
+  'mistralai/Mistral-Small-3.2-24B',
+  'meta-llama/Llama-3.3-70B-Instruct-Turbo',
+  'Qwen/Qwen3-32B',
+  'google/gemma-3-27b-it',
+  'mistralai/Mixtral-8x22B-Instruct',
+  'google/gemma-4-e4b-it',
+  'Qwen/Qwen3-Coder-480B-A35B-Instruct',
+  'Qwen/Qwen3-Next-80B-A3B-Instruct',
+  'MiniMaxAI/MiniMax-M2',
+]);
 
 export const togetherProvider = {
   isConfigured: () => !!process.env.TOGETHER_API_KEY,
@@ -356,6 +381,17 @@ export const togetherProvider = {
   ): TokenStream {
     const apiKey = process.env.TOGETHER_API_KEY;
     if (!apiKey) throw new Error('TOGETHER_API_KEY not set');
+
+    // ── HARD COST GUARD ────────────────────────────────────────────────────
+    // Only allow models explicitly on the approved free list.
+    // This prevents your $5 credit from EVER being spent.
+    if (!TOGETHER_APPROVED_FREE_MODELS.has(model)) {
+      throw new Error(
+        `[COST GUARD] Blocked paid Together AI model "${model}". ` +
+        `Only approved free models are allowed. ` +
+        `Add it to TOGETHER_APPROVED_FREE_MODELS if it's genuinely free.`
+      );
+    }
 
     const res = await fetch('https://api.together.ai/v1/chat/completions', {
       method: 'POST',
