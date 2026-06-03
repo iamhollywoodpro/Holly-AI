@@ -321,11 +321,11 @@ export const MODEL_CATALOGUE: Record<string, ModelSpec> = {
 
   // ── Google AI Studio (Gemini 2.5 Flash — 15 RPM, NO daily token cap, FREE) ──
   'google:gemini-2.5-flash': {
-    provider: 'google', model: 'gemini-2.5-flash-preview-05-20',
+    provider: 'google', model: 'gemini-2.5-flash',
     displayName: 'Gemini 2.5 Flash (Google)', contextK: 1048, streaming: true,
   },
   'google:gemini-2.5-pro': {
-    provider: 'google', model: 'gemini-2.5-pro-preview-05-06',
+    provider: 'google', model: 'gemini-2.5-pro',
     displayName: 'Gemini 2.5 Pro (Google)', contextK: 1048, streaming: true,
   },
 };

@@ -144,7 +144,7 @@ export async function generateProactiveInsights(userId: string): Promise<number>
     where: { userId },
     orderBy: { updatedAt: 'desc' },
     take: 10,
-    select: { title: true, topics: true, updatedAt: true },
+    select: { title: true, updatedAt: true },
   });
 
   let insightsCreated = 0;
@@ -186,8 +186,8 @@ export async function generateProactiveInsights(userId: string): Promise<number>
   const goalMemories = memories.filter(m => m.category === 'goal');
   for (const goal of goalMemories) {
     const recentMention = recentConversations.some(c => {
-      const topics = (c as any).topics as string[] || [];
-      return topics.some(t => goal.content.toLowerCase().includes(t.toLowerCase()));
+      const titleWords = (c.title || '').toLowerCase().split(/\s+/);
+      return titleWords.some(t => goal.content.toLowerCase().includes(t.toLowerCase()));
     });
 
     if (!recentMention && goal.importance >= 3) {
