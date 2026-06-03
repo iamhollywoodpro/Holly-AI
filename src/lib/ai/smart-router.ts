@@ -485,8 +485,8 @@ export const TASK_WATERFALLS: Record<TaskType, string[]> = {
     'ollama:qwen3.6-35b',       // Bigger local model if available
     'ollama:granite4.1-8b',     // Fast local fallback
     'ollama:llama3.1-8b',       // Last resort local
-    'groq:llama-3.3-70b',       // Cloud fallback only if local is down
-    'google:gemini-2.5-flash',  // Deep cloud fallback
+    'google:gemini-2.5-flash',  // Cloud — FREE, NO daily cap, prioritized over Groq
+    'groq:llama-3.3-70b',       // Cloud fallback only if Gemini is down
   ],
 
   // 🔞 Unrestricted: Adult/uncensored content — routes to uncensored models
