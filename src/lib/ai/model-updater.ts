@@ -103,6 +103,35 @@ async function getNvidiaModels(): Promise<Set<string>> {
 }
 
 /**
+ * Check Together AI free model list.
+ * Free models have pricing of $0 for prompt + completion.
+ */
+async function getTogetherModels(): Promise<Set<string>> {
+  const key = process.env.TOGETHER_API_KEY;
+  if (!key) return new Set();
+  try {
+    const res = await fetch('https://api.together.ai/v1/models', {
+      headers: { Authorization: `Bearer ${key}` },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) return new Set();
+    const data = await res.json();
+    const freeModels = new Set<string>();
+    for (const m of (data.data ?? [])) {
+      // Together AI free models have $0 pricing
+      const promptPrice = parseFloat(m.pricing?.prompt ?? '1');
+      const completionPrice = parseFloat(m.pricing?.completion ?? '1');
+      if (promptPrice === 0 && completionPrice === 0) {
+        freeModels.add(m.id);
+      }
+    }
+    return freeModels;
+  } catch {
+    return new Set();
+  }
+}
+
+/**
  * Check Cloudflare Workers AI model list.
  * Uses the Cloudflare API to list available models.
  * Note: CF doesn't have a public "list models" endpoint like OpenAI,
@@ -168,10 +197,11 @@ export async function runModelDiscovery(): Promise<ModelUpdateReport> {
   };
 
   // Fetch available model sets in parallel (with timeouts)
-  const [groqModels, openrouterModels, nvidiaModels] = await Promise.all([
+  const [groqModels, openrouterModels, nvidiaModels, togetherModels] = await Promise.all([
     getGroqModels().catch(() => new Set<string>()),
     getOpenRouterFreeModels().catch(() => new Set<string>()),
     getNvidiaModels().catch(() => new Set<string>()),
+    getTogetherModels().catch(() => new Set<string>()),
   ]);
 
   for (const candidate of MODEL_CANDIDATES) {
@@ -201,8 +231,19 @@ export async function runModelDiscovery(): Promise<ModelUpdateReport> {
         case 'nvidia_nim':
           available = nvidiaModels.has(candidate.modelId);
           break;
+        case 'together':
+          available = togetherModels.has(candidate.modelId);
+          break;
         case 'cf_workers':
           available = await probeCfModel(candidate.modelId);
+          break;
+        case 'mistral':
+          // Mistral Direct — always available if API key is configured (1B tokens/month)
+          available = !!process.env.MISTRAL_API_KEY;
+          break;
+        case 'ollama':
+          // Ollama — always available if enabled (local models)
+          available = process.env.OLLAMA_ENABLED === 'true';
           break;
         default:
           available = false;
