@@ -226,7 +226,7 @@ export async function POST(req: NextRequest) {
     try {
       const { getOrCreateUser } = await import('@/lib/user-manager');
       const { prisma } = await import('@/lib/db');
-      const dbUser = await getOrCreateUser(userId);
+      const dbUser = await getOrCreateUser(userId!);
 
       await prisma.learningEvent.create({
         data: {
