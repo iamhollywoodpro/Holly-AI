@@ -2316,7 +2316,14 @@ export default function HollyChatInterface() {
           throw new Error('Too many requests — give me a moment and try again.');
         }
         if (response.status >= 500) {
-          throw new Error('HOLLY is having trouble on the server side. Try again in a moment.');
+          // Read the actual error from the response body for diagnostics
+          let serverError = '';
+          try {
+            const errorBody = await response.json();
+            serverError = errorBody?.error || errorBody?.message || '';
+          } catch {}
+          const baseMsg = 'HOLLY is having trouble on the server side. Try again in a moment.';
+          throw new Error(serverError ? `${baseMsg}\n\n🔧 Server error: ${serverError}` : baseMsg);
         }
         throw new Error(`Request failed (${response.status})`);
       }

@@ -430,14 +430,13 @@ export async function loadChatContext(
     ),
   ]);
 
-  // Flatten batches into the same result array format (31 elements)
+  // Flatten batches into the same result array format (32 elements, 31 used)
   const results: any[] = [
     ...batch1,   // indices 0-9 (10 elements)
     ...batch2,   // indices 10-19 (10 elements)
-    ...batch3,   // indices 20-27 (8 elements)
-    '',          // index 28: resonancePrompt (already in batch1 as emotionalResonance)
-    '',          // index 29: onboardingNudge
-    '',          // index 30: studyStatus
+    ...batch3,   // indices 20-28 (9 elements: includes visualIdentity)
+    '',          // index 29: onboardingNudge (handled separately in chat route)
+    '',          // index 30: studyStatus (reserved for future use)
   ];
 
   const rawContext: ChatContext = {
