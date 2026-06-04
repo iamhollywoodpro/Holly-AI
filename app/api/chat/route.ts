@@ -709,8 +709,14 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     const errorStack = error instanceof Error ? error.stack : '';
+    const errorName = error instanceof Error ? error.constructor.name : 'Error';
     console.error('[CHAT] FATAL ERROR:', errorMsg, errorStack);
     logger.error('Chat', 'Fatal error in chat route', { error: errorMsg, stack: errorStack });
-    return NextResponse.json({ error: errorMsg, stack: process.env.NODE_ENV === 'development' ? errorStack : undefined }, { status: 500 });
+    return NextResponse.json({
+      error: errorMsg,
+      errorType: errorName,
+      // Always include a truncated stack in production for diagnostics
+      hint: errorStack ? errorStack.split('\n').slice(0, 5).join('\n') : undefined,
+    }, { status: 500 });
   }
 }

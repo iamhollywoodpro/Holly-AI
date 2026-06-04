@@ -331,11 +331,11 @@ export const MODEL_CATALOGUE: Record<string, ModelSpec> = {
   // These models have reduced safety training and won't refuse adult content.
   // Only routed to when isUnrestrictedTopic() returns true.
   'openrouter:dolphin-mixtral': {
-    provider: 'openrouter', model: 'cognitivecomputations/dolphin-mixtral-8x7b',
+    provider: 'openrouter', model: 'cognitivecomputations/dolphin-mixtral-8x7b:free',
     displayName: 'Dolphin Mixtral 8x7B (Uncensored)', contextK: 32, streaming: true,
   },
   'openrouter:nous-hermes': {
-    provider: 'openrouter', model: 'nousresearch/nous-hermes-2-mixtral-8x7b-dpo',
+    provider: 'openrouter', model: 'nousresearch/nous-hermes-2-mixtral-8x7b-dpo:free',
     displayName: 'Nous Hermes 2 Mixtral (Uncensored)', contextK: 32, streaming: true,
   },
   'openrouter:mythomax-l2': {
