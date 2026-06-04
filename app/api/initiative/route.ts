@@ -202,8 +202,19 @@ Respond ONLY with a JSON array of initiatives. Each initiative:
 // ─── POST: record outcome of an initiative ───────────────────────────────────
 export async function POST(req: NextRequest) {
   try {
-    const { userId } = await auth();
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // Support both Clerk auth and cron secret
+    const cronSecret = process.env.CRON_SECRET;
+    const headerSecret = req.headers.get('x-cron-secret');
+    const authHeader = req.headers.get('authorization');
+    const provided = authHeader?.replace('Bearer ', '') ?? headerSecret;
+    const isCron = cronSecret && provided === cronSecret;
+
+    let userId: string | null = null;
+    if (!isCron) {
+      const authResult = await auth();
+      userId = authResult.userId;
+      if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     const body = await req.json();
     const { initiativeId, result, response } = body;

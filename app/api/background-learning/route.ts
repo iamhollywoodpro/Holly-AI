@@ -97,8 +97,26 @@ export async function POST(req: NextRequest) {
         }, { status: 400 });
       }
 
-      const session = await conductLearningSession(domain, topic, userId ?? 'holly-cron');
-      const report  = await generateStudyReport([session]);
+      // Run learning session with timeout — don't let it hang indefinitely
+      const session = await Promise.race([
+        conductLearningSession(domain, topic, userId ?? 'holly-cron'),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Learning session timed out after 30s')), 30_000)
+        ),
+      ]).catch(err => {
+        console.warn('[Background Learning] Session failed, returning graceful fallback:', (err as Error).message);
+        return null;
+      });
+
+      if (!session) {
+        return NextResponse.json({
+          ok: true,
+          message: '📚 Learning session skipped (provider unavailable or timed out)',
+          session: null,
+        });
+      }
+
+      const report  = await generateStudyReport([session]).catch(() => 'Report generation skipped');
 
       return NextResponse.json({
         ok:      true,
