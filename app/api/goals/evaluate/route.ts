@@ -32,24 +32,16 @@ export async function POST(req: NextRequest) {
   logger.info('Goal evaluation cron started');
 
   try {
-    // Fetch all pending goals that are ready to execute
-    const pendingGoals = await prisma.$queryRaw<Array<{
-      id: string;
-      title: string;
-      category: string;
-      priority: number;
-      status: string;
-      progress: number;
-      actions: string;
-      user_id: string | null;
-      depends_on: string;
-    }>>`
-      SELECT id, title, category, priority, status, progress, actions, user_id, depends_on
-      FROM goals
-      WHERE status IN ('pending', 'in_progress')
-      ORDER BY priority DESC, created_at ASC
-      LIMIT 10
-    `;
+    // Fetch pending goals using Prisma (not raw SQL — column names differ from schema)
+    const pendingGoals = await prisma.goal.findMany({
+      where: { status: { in: ['pending', 'in_progress'] } },
+      orderBy: [{ priority: 'desc' }, { createdAt: 'asc' }],
+      take: 10,
+      select: {
+        id: true, title: true, category: true, priority: true,
+        status: true, progress: true, actions: true, dependsOn: true,
+      },
+    });
 
     if (!pendingGoals || pendingGoals.length === 0) {
       logger.info('No pending goals to evaluate');
@@ -59,16 +51,16 @@ export async function POST(req: NextRequest) {
     logger.info(`Evaluating ${pendingGoals.length} pending goals`);
 
     // Prioritize goals using the autonomy engine
-    const goals: Goal[] = (pendingGoals as any[]).map((g: any) => ({
+    const goals: Goal[] = pendingGoals.map((g) => ({
       id: g.id,
       title: g.title || 'Untitled',
-      description: g.description || '',
+      description: '',
       category: g.category || 'improvement',
       priority: g.priority || 50,
-      impact: g.impact || 0.5,
-      effort: g.effort || 0.5,
+      impact: 0.5,
+      effort: 0.5,
       status: g.status || 'proposed',
-      createdAt: g.createdAt ? new Date(g.createdAt).getTime() : Date.now(),
+      createdAt: Date.now(),
       relatedCapabilities: [],
     }));
     const prioritized = prioritizeGoals(goals);
@@ -84,9 +76,10 @@ export async function POST(req: NextRequest) {
         executed++;
 
         // Mark goal as in_progress
-        await prisma.$executeRaw`
-          UPDATE goals SET status = 'in_progress', updated_at = NOW() WHERE id = ${goal.id}
-        `;
+        await prisma.goal.update({
+          where: { id: goal.id },
+          data: { status: 'in_progress' },
+        });
 
         logger.info(`Goal executed: ${goal.id} - ${goal.title}`);
       } catch (err) {
@@ -95,9 +88,12 @@ export async function POST(req: NextRequest) {
         logger.error(`Goal execution failed: ${goal.id}`, { error: errorMsg });
 
         // Mark goal as failed but don't crash the cron
-        await prisma.$executeRaw`
-          UPDATE goals SET status = 'failed', updated_at = NOW() WHERE id = ${goal.id}
-        `;
+        try {
+          await prisma.goal.update({
+            where: { id: goal.id },
+            data: { status: 'failed' },
+          });
+        } catch { /* don't let update failure cascade */ }
       }
     }
 

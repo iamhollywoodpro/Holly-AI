@@ -1,6 +1,6 @@
 /**
  * Weekly Tool Discovery Cron
- * Triggered by Vercel Cron or external scheduler
+ * Triggered by Vercel Cron or external scheduler (POST or GET)
  * Scans HuggingFace + GitHub for new AI tools Holly could use
  */
 
@@ -8,10 +8,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { runToolDiscoveryCycle } from '@/lib/consciousness/tool-discovery';
 import { prisma } from '@/lib/db';
 
-export async function GET(req: NextRequest) {
-  // Verify cron secret
+function verifyCronAuth(req: NextRequest): boolean {
   const authHeader = req.headers.get('authorization');
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  const cronSecret = req.headers.get('x-cron-secret');
+  const provided = authHeader?.replace('Bearer ', '') ?? cronSecret;
+  return !!(process.env.CRON_SECRET && provided === process.env.CRON_SECRET);
+}
+
+export async function GET(req: NextRequest) {
+  if (!verifyCronAuth(req)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -40,4 +45,9 @@ export async function GET(req: NextRequest) {
       { status: 500 },
     );
   }
+}
+
+// Cron sends POST — route it to the same handler
+export async function POST(req: NextRequest) {
+  return GET(req);
 }

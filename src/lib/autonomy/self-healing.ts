@@ -43,18 +43,21 @@ export class SelfHealingEngine {
       // Check for error spikes
       const errorSpike = await this.checkErrorSpike();
       if (errorSpike) {
+        logger.info("Self-healing: error spike detected", { id: errorSpike.id, severity: errorSpike.severity, category: "self-healing" });
         issues.push(errorSpike);
       }
 
       // Check for performance degradation
       const performanceIssue = await this.checkPerformance();
       if (performanceIssue) {
+        logger.info("Self-healing: performance issue detected", { id: performanceIssue.id, severity: performanceIssue.severity, category: "self-healing" });
         issues.push(performanceIssue);
       }
 
       // Check for deployment failures
       const deploymentIssue = await this.checkDeploymentHealth();
       if (deploymentIssue) {
+        logger.info("Self-healing: deployment issue detected", { id: deploymentIssue.id, severity: deploymentIssue.severity, category: "self-healing" });
         issues.push(deploymentIssue);
       }
 
