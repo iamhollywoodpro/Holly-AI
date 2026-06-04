@@ -55,11 +55,11 @@ export async function POST(req: NextRequest) {
       id: g.id,
       title: g.title || 'Untitled',
       description: '',
-      category: g.category || 'improvement',
+      category: (g.category as Goal['category']) || 'improvement',
       priority: g.priority || 50,
       impact: 0.5,
       effort: 0.5,
-      status: g.status || 'proposed',
+      status: (g.status as Goal['status']) || 'proposed',
       createdAt: Date.now(),
       relatedCapabilities: [],
     }));
