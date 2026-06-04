@@ -185,11 +185,12 @@ function hfInferenceUrl(model: string): string {
 const MODAL_IMAGE_URL = process.env.MODAL_IMAGE_URL || '';  // set after deploying image_generate.py
 const MODAL_VIDEO_URL = process.env.MODAL_VIDEO_URL || '';  // set after deploying video_generate.py
 
-// ─── Holly SDXL + LoRA endpoint (self-portraits with consistent face) ──────────
-// Deployed from services/modal-media/image_generate_sdxl.py
+// ─── Holly FLUX.2 Klein 9B + LoRA endpoint (self-portraits with consistent face) ──
+// Deployed from services/modal-media/image_generate_flux2klein.py
+// FLUX.2 Klein 9B BF16 + Holly Face v2.0 LoRA on L4 GPU (24GB)
 // Only spins up when generating images OF Holly (h0lly trigger word detected)
-// Cost: ~$0.003/image | barely touches the $30/mo free budget
-const MODAL_SDXL_LORA_URL = process.env.MODAL_SDXL_LORA_URL || '';
+// Cost: ~$0.001/image (4 steps!) | barely touches the $30/mo free budget
+const MODAL_HOLLY_LORA_URL = process.env.MODAL_HOLLY_LORA_URL || process.env.MODAL_SDXL_LORA_URL || '';
 const HOLLY_TRIGGER_WORD = 'h0lly';
 
 /** Check if a prompt is requesting Holly's likeness */
@@ -247,34 +248,35 @@ function checkHFCreditError(status: number, body: string, model: string): void {
   }
 }
 
-// ─── Image Provider 0a: Holly SDXL + LoRA (self-portraits with consistent face) ──
-// Deployed from services/modal-media/image_generate_sdxl.py
+// ─── Image Provider 0a: Holly FLUX.2 Klein 9B + LoRA v2.0 (self-portraits) ────
+// Deployed from services/modal-media/image_generate_flux2klein.py
 // ONLY used when prompt contains 'h0lly' trigger word
-// Uses SDXL base + fine-tuned LoRA for face consistency
+// FLUX.2 Klein 9B BF16 + Holly Face v2.0 LoRA on Modal L4 GPU
 
 async function generateWithHollyLoRA(req: ImageRequest): Promise<ImageResult> {
-  if (!MODAL_SDXL_LORA_URL) throw new Error('MODAL_SDXL_LORA_URL not configured');
+  if (!MODAL_HOLLY_LORA_URL) throw new Error('MODAL_HOLLY_LORA_URL not configured');
 
   const { width, height } = getDimensions(req.aspectRatio, { width: req.width, height: req.height });
 
-  const res = await fetch(MODAL_SDXL_LORA_URL.replace(/\/$/, ''), {
+  const res = await fetch(MODAL_HOLLY_LORA_URL.replace(/\/$/, ''), {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       prompt:               req.prompt,
       width:                Math.min(width, 1024),
       height:               Math.min(height, 1024),
-      num_inference_steps:  30,       // SDXL needs more steps than FLUX
-      lora_scale:           0.8,       // Strong LoRA influence for face consistency
+      num_inference_steps:  4,        // FLUX.2 Klein is optimal at 4 steps
+      lora_scale:           0.85,      // Holly Face v2.0 LoRA strength
+      guidance_scale:       4.0,       // FLUX.2 Klein recommended CFG
       seed:                 req.seed,
       format:               'jpeg',
     }),
-    signal: AbortSignal.timeout(120_000),  // SDXL is slower than FLUX
+    signal: AbortSignal.timeout(120_000),  // cold start + generation
   });
 
   if (!res.ok) {
     const body = await res.text();
-    throw new Error(`Holly SDXL+LoRA error ${res.status}: ${body.slice(0, 200)}`);
+    throw new Error(`Holly FLUX.2 Klein+LoRA error ${res.status}: ${body.slice(0, 200)}`);
   }
 
   const arrayBuf = await res.arrayBuffer();
@@ -283,8 +285,8 @@ async function generateWithHollyLoRA(req: ImageRequest): Promise<ImageResult> {
 
   return {
     url:      dataUri,
-    provider: 'modal-sdxl-lora',
-    model:    'SDXL + Holly LoRA',
+    provider: 'modal-flux2klein-lora',
+    model:    'FLUX.2 Klein 9B + Holly LoRA v2.0',
     width,
     height,
     cost:     0,
@@ -539,14 +541,14 @@ export async function generateImage(req: ImageRequest): Promise<ImageResult> {
   const errors: string[] = [];
   let hfCreditExhausted = false;
 
-  // -1. Holly self-portrait: SDXL + LoRA (consistent face, only for h0lly trigger)
-  if (isHollySelfPortrait(req.prompt) && MODAL_SDXL_LORA_URL) {
+  // -1. Holly self-portrait: FLUX.2 Klein 9B + LoRA v2.0 (consistent face, h0lly trigger)
+  if (isHollySelfPortrait(req.prompt) && MODAL_HOLLY_LORA_URL) {
     try {
-      console.info('[MediaGen] Holly self-portrait detected — using SDXL + LoRA');
+      console.info('[MediaGen] Holly self-portrait detected — using FLUX.2 Klein 9B + LoRA v2.0');
       return await generateWithHollyLoRA(req);
     } catch (e) {
-      errors.push(`Holly SDXL+LoRA: ${(e as Error).message}`);
-      console.warn('[MediaGen] Holly SDXL+LoRA failed, falling back:', (e as Error).message);
+      errors.push(`Holly FLUX.2 Klein+LoRA: ${(e as Error).message}`);
+      console.warn('[MediaGen] Holly FLUX.2 Klein+LoRA failed, falling back:', (e as Error).message);
     }
   }
 
