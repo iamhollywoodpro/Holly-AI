@@ -34,11 +34,15 @@ MODEL_CACHE = "/flux-models/bf16"
 LORA_DIR = "/lora"
 
 # LoRA adapters — loaded and fused at startup
+# Max ~4 adapters before OOM on L4 (24GB). Face is mandatory.
+# Additional LoRAs are available in the volume but not loaded —
+# swap them in by moving from AVAILABLE to LORA_ADAPTERS dict.
 LORA_ADAPTERS = {
+    # ── ACTIVE (loaded at startup, fused into model) ──
     "face": {
         "file": "holly-face-v2.safetensors",
         "weight": 0.85,
-        "desc": "Holly Face v2.0 (trigger: h0lly)",
+        "desc": "Holly Face v2.0 (trigger: h0lly) [MANDATORY]",
     },
     "nsfw": {
         "file": "flux-klein-nsfw-v2.safetensors",
@@ -49,6 +53,35 @@ LORA_ADAPTERS = {
         "file": "full-fine-body-v1.safetensors",
         "weight": 0.7,
         "desc": "Full body poses, all angles (Sarcastic TOFU)",
+    },
+}
+
+# Available but NOT loaded — swap into LORA_ADAPTERS as needed
+LORA_AVAILABLE = {
+    "insert": {
+        "file": "insertkit.safetensors",
+        "weight": 0.65,
+        "desc": "Insertion/explicit act variety",
+    },
+    "unchained": {
+        "file": "klein-unchained-v2.safetensors",
+        "weight": 0.6,
+        "desc": "Unchained — uncensored enhancement",
+    },
+    "pusfix": {
+        "file": "pusfix-klein.safetensors",
+        "weight": 0.7,
+        "desc": "Pussy anatomy fix/detail",
+    },
+    "phat-ass": {
+        "file": "phat-ass-v1.safetensors",
+        "weight": 0.65,
+        "desc": "Ass/body enhancement variety",
+    },
+    "pytorch": {
+        "file": "pytorch-lora-weights.safetensors",
+        "weight": 0.5,
+        "desc": "Additional LoRA enhancement (38MB, limited scope)",
     },
 }
 
