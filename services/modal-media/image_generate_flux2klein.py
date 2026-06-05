@@ -7,18 +7,23 @@ GPU:    NVIDIA L4 (24 GB VRAM) — BF16 model with CPU offloading
 Cost:   ~$0.001/image (4 steps!) | $30/mo free → ~30 hours/month
 Trigger: h0lly — LoRA trained on Civitai for consistent Holly face
 
-LoRA Stack (all loaded + fused at startup):
-  1. holly-face-v2.safetensors       — Holly's consistent face (trigger: h0lly)
-  2. flux-klein-nsfw-v2.safetensors  — NSFW anatomy, no face change (Lorian)
-  3. full-fine-body-v1.safetensors   — Full body poses, all angles (Sarcastic TOFU)
+Architecture:
+  BAKED IN (fused at startup, always active):
+    - Holly Face v2.0 (consistent face, trigger: h0lly)
+    - NSFW anatomy (no face change, explicit content)
+    - Full Fine Body (full body poses, all angles)
+    - Ultra Real V4 (realistic skin texture, NSFW detail)
 
-Design:
-  - FLUX.2 Klein 9B BF16 weights in Modal Volume
-  - enable_model_cpu_offload() keeps peak VRAM under 24 GB on L4
-  - All LoRAs loaded and fused at startup — prompt controls output
-  - scaledown_window=120 → stays warm 2 min, then scales to zero
-  - max_containers=1 → never spins up more than 1 GPU
-  - 4 inference steps → sub-second generation after model loads
+  ON-DEMAND (loaded per request, then unloaded):
+    - INSERTkit (insertion variety)
+    - KLEIN Unchained V2 (NSFW poses/positions)
+    - Pusfix Klein (realistic vagina detail)
+    - Phat Ass (natural ass variety)
+    - Pytorch (multi-girl scenes)
+    - Thong Over Anus (bent over thong detail)
+
+  Request format: {"prompt": "...", "extra_loras": ["insert", "pusfix"]}
+  Holly's Next.js app sends extra_loras when the prompt needs them.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
 
@@ -33,55 +38,61 @@ VOLUME_MOUNT = "/flux-models"
 MODEL_CACHE = "/flux-models/bf16"
 LORA_DIR = "/lora"
 
-# LoRA adapters — loaded and fused at startup
-# Max ~4 adapters before OOM on L4 (24GB). Face is mandatory.
-# Additional LoRAs are available in the volume but not loaded —
-# swap them in by moving from AVAILABLE to LORA_ADAPTERS dict.
-LORA_ADAPTERS = {
-    # ── ACTIVE (loaded at startup, fused into model) ──
+# ── BAKED-IN LoRAs: loaded + fused at startup (always active) ────────────────
+BAKED_LORAS = {
     "face": {
         "file": "holly-face-v2.safetensors",
         "weight": 0.85,
-        "desc": "Holly Face v2.0 (trigger: h0lly) [MANDATORY]",
+        "desc": "Holly Face v2.0 (trigger: h0lly)",
     },
     "nsfw": {
         "file": "flux-klein-nsfw-v2.safetensors",
         "weight": 0.7,
-        "desc": "NSFW anatomy, no face change (Lorian)",
+        "desc": "NSFW anatomy, no face change",
     },
     "body": {
         "file": "full-fine-body-v1.safetensors",
         "weight": 0.7,
-        "desc": "Full body poses, all angles (Sarcastic TOFU)",
+        "desc": "Full body poses, all angles",
+    },
+    "realism": {
+        "file": "ultra-real-v4.safetensors",
+        "weight": 0.55,
+        "desc": "Ultra Real V4 — skin texture, NSFW detail",
     },
 }
 
-# Available but NOT loaded — swap into LORA_ADAPTERS as needed
-LORA_AVAILABLE = {
+# ── ON-DEMAND LoRAs: loaded per request when Holly needs them ────────────────
+ON_DEMAND_LORAS = {
     "insert": {
         "file": "insertkit.safetensors",
         "weight": 0.65,
-        "desc": "Insertion/explicit act variety",
+        "desc": "Insertion variety (dildo, fingers, etc.)",
     },
     "unchained": {
         "file": "klein-unchained-v2.safetensors",
         "weight": 0.6,
-        "desc": "Unchained — uncensored enhancement",
+        "desc": "NSFW poses and sexual positions",
     },
     "pusfix": {
         "file": "pusfix-klein.safetensors",
         "weight": 0.7,
-        "desc": "Pussy anatomy fix/detail",
+        "desc": "Realistic vagina detail fix",
     },
     "phat-ass": {
         "file": "phat-ass-v1.safetensors",
         "weight": 0.65,
-        "desc": "Ass/body enhancement variety",
+        "desc": "Natural phat ass variety",
     },
-    "pytorch": {
+    "multi-girl": {
         "file": "pytorch-lora-weights.safetensors",
         "weight": 0.5,
-        "desc": "Additional LoRA enhancement (38MB, limited scope)",
+        "desc": "Multi-girl scenes",
+    },
+    "thong": {
+        "file": "thong-over-anus-v1.safetensors",
+        "weight": 0.65,
+        "desc": "Bent over thong with anus/pussy detail",
     },
 }
 
@@ -134,7 +145,7 @@ class HollyFlux2Klein:
         from huggingface_hub import snapshot_download, login
 
         self.pipe = None
-        self.loaded_adapters = {}
+        self.baked_adapters = {}
         self.model_name = "FLUX.2 Klein 9B (not loaded)"
         self.startup_error = None
 
@@ -146,7 +157,7 @@ class HollyFlux2Klein:
         else:
             print("⚠️  No HuggingFace token found")
 
-        # Download FLUX.2 Klein 9B BF16 to volume on first run only
+        # Download FLUX.2 Klein 9B BF16 to volume on first run
         try:
             has_index = os.path.exists(f"{MODEL_CACHE}/model_index.json")
             has_transformer = os.path.exists(f"{MODEL_CACHE}/transformer")
@@ -183,40 +194,79 @@ class HollyFlux2Klein:
             print(f"❌ {self.startup_error}")
             return
 
-        # Load all LoRA adapters (each gets a named adapter)
+        # Load and fuse BAKED LoRAs
         loaded_names = []
-        for adapter_name, config in LORA_ADAPTERS.items():
+        for name, config in BAKED_LORAS.items():
             lora_path = f"{LORA_DIR}/{config['file']}"
             if os.path.exists(lora_path):
                 try:
-                    print(f"🎭 Loading LoRA '{adapter_name}': {config['file']}...")
+                    print(f"🎭 Baking '{name}': {config['file']}...")
                     self.pipe.load_lora_weights(
-                        LORA_DIR,
-                        weight_name=config["file"],
-                        adapter_name=adapter_name,
+                        LORA_DIR, weight_name=config["file"], adapter_name=name,
                     )
-                    self.loaded_adapters[adapter_name] = config
-                    loaded_names.append(adapter_name)
-                    print(f"  ✅ {adapter_name} loaded")
+                    self.baked_adapters[name] = config
+                    loaded_names.append(name)
+                    print(f"  ✅ {name} loaded")
                 except Exception as e:
-                    print(f"  ⚠️  Failed to load {adapter_name}: {e}")
+                    print(f"  ⚠️  Failed to load {name}: {e}")
             else:
-                print(f"  ⚠️  {config['file']} not found — skipping {adapter_name}")
+                print(f"  ⚠️  {config['file']} not found — skipping {name}")
 
-        # Set all adapters active with their individual weights, then fuse into model
         if loaded_names:
-            adapter_weights = [LORA_ADAPTERS[a]["weight"] for a in loaded_names]
-            self.pipe.set_adapters(loaded_names, adapter_weights=adapter_weights)
-            print(f"🎭 All adapters active: {list(zip(loaded_names, adapter_weights))}")
-
-            # Fuse LoRAs into model weights then unload originals to free VRAM
+            weights = [BAKED_LORAS[n]["weight"] for n in loaded_names]
+            self.pipe.set_adapters(loaded_names, adapter_weights=weights)
+            print(f"🎭 Baked adapters active: {list(zip(loaded_names, weights))}")
             self.pipe.fuse_lora()
             self.pipe.unload_lora_weights()
-            print("✅ All LoRAs fused into model weights (originals unloaded)")
+            print("✅ Baked LoRAs fused into model weights (originals unloaded)")
 
         adapter_list = ", ".join(loaded_names) if loaded_names else "none"
-        self.model_name = f"FLUX.2 Klein 9B + LoRAs [{adapter_list}]"
+        self.model_name = f"FLUX.2 Klein 9B + Baked [{adapter_list}]"
         print(f"✅ {self.model_name} ready")
+
+    def _load_on_demand(self, lora_names):
+        """Load on-demand LoRAs, fuse, generate, then cleanup."""
+        import torch
+        import gc
+
+        loaded = []
+        for name in lora_names:
+            if name not in ON_DEMAND_LORAS:
+                print(f"  ⚠️  Unknown on-demand LoRA: {name}")
+                continue
+            config = ON_DEMAND_LORAS[name]
+            lora_path = f"{LORA_DIR}/{config['file']}"
+            if not os.path.exists(lora_path):
+                print(f"  ⚠️  {config['file']} not found — skipping {name}")
+                continue
+            try:
+                print(f"  📦 Loading on-demand '{name}': {config['file']}...")
+                self.pipe.load_lora_weights(
+                    LORA_DIR, weight_name=config["file"], adapter_name=name,
+                )
+                loaded.append((name, config["weight"]))
+                print(f"  ✅ {name} loaded")
+            except Exception as e:
+                print(f"  ⚠️  Failed to load {name}: {e}")
+
+        if loaded:
+            names = [n for n, w in loaded]
+            weights = [w for n, w in loaded]
+            self.pipe.set_adapters(names, adapter_weights=weights)
+            self.pipe.fuse_lora()
+            self.pipe.unload_lora_weights()
+            print(f"  ✅ On-demand LoRAs fused: {list(zip(names, weights))}")
+
+        return loaded
+
+    def _unload_on_demand(self):
+        """Clean up on-demand LoRAs after generation."""
+        try:
+            self.pipe.unfuse_lora()
+            self.pipe.unload_lora_weights()
+            print("  🧹 On-demand LoRAs unloaded, baked weights restored")
+        except Exception as e:
+            print(f"  ⚠️  Cleanup warning: {e}")
 
     @modal.fastapi_endpoint(method="POST", label="generate-holly")
     def generate(self, request: dict):
@@ -232,6 +282,7 @@ class HollyFlux2Klein:
             seed   = request.get("seed")
             fmt    = request.get("format", "jpeg").lower()
             guidance_scale = float(request.get("guidance_scale", 4.0))
+            extra_loras = request.get("extra_loras", [])  # list of on-demand LoRA names
 
             if not prompt:
                 return Response(
@@ -245,46 +296,61 @@ class HollyFlux2Klein:
                     media_type="application/json", status_code=503,
                 )
 
-            print(f"🎨 [{self.model_name}] {prompt[:100]}")
-            generator = torch.Generator("cpu").manual_seed(seed) if seed is not None else None
+            # Load on-demand LoRAs if requested
+            on_demand_loaded = []
+            if extra_loras and isinstance(extra_loras, list):
+                print(f"📦 On-demand request: {extra_loras}")
+                on_demand_loaded = self._load_on_demand(extra_loras)
 
-            with torch.inference_mode():
-                result = self.pipe(
-                    prompt=prompt,
-                    width=width,
-                    height=height,
-                    num_inference_steps=steps,
-                    guidance_scale=guidance_scale,
-                    generator=generator,
+            try:
+                print(f"🎨 [{self.model_name}] {prompt[:100]}")
+                generator = torch.Generator("cpu").manual_seed(seed) if seed is not None else None
+
+                with torch.inference_mode():
+                    result = self.pipe(
+                        prompt=prompt,
+                        width=width,
+                        height=height,
+                        num_inference_steps=steps,
+                        guidance_scale=guidance_scale,
+                        generator=generator,
+                    )
+
+                img = result.images[0]
+                buf = io.BytesIO()
+                if fmt == "png":
+                    img.save(buf, format="PNG")
+                    media_type = "image/png"
+                else:
+                    img.save(buf, format="JPEG", quality=95)
+                    media_type = "image/jpeg"
+
+                img_bytes = buf.getvalue()
+                extras = [n for n, w in on_demand_loaded] if on_demand_loaded else []
+                print(f"✅ {width}x{height} {fmt.upper()} — {len(img_bytes):,} bytes" +
+                      (f" + extras: {extras}" if extras else ""))
+
+                return Response(
+                    content=img_bytes,
+                    media_type=media_type,
+                    headers={
+                        "X-Model":       self.model_name,
+                        "X-Provider":    "modal-flux2klein-lora",
+                        "X-Baked":       ",".join(self.baked_adapters.keys()),
+                        "X-Extras":      ",".join(extras),
+                        "X-Width":       str(width),
+                        "X-Height":      str(height),
+                        "X-Steps":       str(steps),
+                        "X-Guidance":    str(guidance_scale),
+                        "X-Version":     "7.0.0",
+                        "Access-Control-Allow-Origin": "*",
+                    },
                 )
+            finally:
+                # Always cleanup on-demand LoRAs after generation
+                if on_demand_loaded:
+                    self._unload_on_demand()
 
-            img = result.images[0]
-            buf = io.BytesIO()
-            if fmt == "png":
-                img.save(buf, format="PNG")
-                media_type = "image/png"
-            else:
-                img.save(buf, format="JPEG", quality=95)
-                media_type = "image/jpeg"
-
-            img_bytes = buf.getvalue()
-            print(f"✅ {width}x{height} {fmt.upper()} — {len(img_bytes):,} bytes")
-
-            return Response(
-                content=img_bytes,
-                media_type=media_type,
-                headers={
-                    "X-Model":    self.model_name,
-                    "X-Provider": "modal-flux2klein-lora",
-                    "X-Adapters": ",".join(self.loaded_adapters.keys()),
-                    "X-Width":    str(width),
-                    "X-Height":   str(height),
-                    "X-Steps":    str(steps),
-                    "X-Guidance": str(guidance_scale),
-                    "X-Version":  "6.0.0",
-                    "Access-Control-Allow-Origin": "*",
-                },
-            )
         except Exception as e:
             tb = traceback.format_exc()
             print(f"❌ Generation error: {tb}")
@@ -303,20 +369,20 @@ class HollyFlux2Klein:
         if startup_error and ("gated" in startup_error.lower() or "401" in startup_error or "403" in startup_error):
             action = "Accept gated repo license at https://huggingface.co/black-forest-labs/FLUX.2-klein-9B"
         return JSONResponse({
-            "status":           "healthy" if model_loaded else "waiting",
-            "model":            getattr(self, "model_name", "loading..."),
-            "model_loaded":     model_loaded,
-            "loaded_adapters":  list(getattr(self, "loaded_adapters", {}).keys()),
-            "adapter_details":  {k: v["desc"] for k, v in getattr(self, "loaded_adapters", {}).items()},
-            "startup_error":    startup_error,
-            "action_needed":    action,
-            "gpu":              "L4",
-            "base_model":       "FLUX.2 Klein 9B BF16",
-            "max_gpus":         1,
-            "purpose":          "Holly self-portraits — FLUX.2 Klein 9B + Multi-LoRA",
-            "trigger_word":     "h0lly",
-            "licence":          "Apache-2.0",
-            "version":          "6.0.0",
+            "status":            "healthy" if model_loaded else "waiting",
+            "model":             getattr(self, "model_name", "loading..."),
+            "model_loaded":      model_loaded,
+            "baked_adapters":    {k: v["desc"] for k, v in getattr(self, "baked_adapters", {}).items()},
+            "on_demand_loras":   {k: v["desc"] for k, v in ON_DEMAND_LORAS.items()},
+            "startup_error":     startup_error,
+            "action_needed":     action,
+            "gpu":               "L4",
+            "base_model":        "FLUX.2 Klein 9B BF16",
+            "max_gpus":          1,
+            "purpose":           "Holly self-portraits — baked + on-demand multi-LoRA",
+            "trigger_word":      "h0lly",
+            "licence":           "Apache-2.0",
+            "version":           "7.0.0",
         })
 
 
