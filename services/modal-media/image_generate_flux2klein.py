@@ -190,7 +190,7 @@ class HollyFlux2Klein:
             print(f"❌ {self.startup_error}")
             return
 
-        # Load FLUX.2 Klein pipeline (everything on CPU — no offloading yet)
+        # Load FLUX.2 Klein pipeline on CPU (LoRA fusion must happen on CPU)
         try:
             print(f"🚀 Loading FLUX.2 Klein 9B from {MODEL_CACHE}...")
             from diffusers import Flux2KleinPipeline
@@ -200,13 +200,13 @@ class HollyFlux2Klein:
                 torch_dtype=torch.bfloat16,
                 local_files_only=True,
             )
-            print("✅ Pipeline loaded (CPU, no offloading yet)")
+            print("✅ Pipeline loaded on CPU")
         except Exception as e:
             self.startup_error = f"Pipeline load failed: {e}"
             print(f"❌ {self.startup_error}")
             return
 
-        # Load and fuse BAKED LoRAs (while everything is on CPU — before offloading)
+        # Load and fuse BAKED LoRAs on CPU (LoRA weights from files are CPU tensors)
         loaded_names = []
         for name, config in BAKED_LORAS.items():
             lora_path = f"{LORA_DIR}/{config['file']}"
@@ -230,18 +230,16 @@ class HollyFlux2Klein:
             print(f"🎭 Baked adapters active: {list(zip(loaded_names, weights))}")
             self.pipe.fuse_lora()
             self.pipe.unload_lora_weights()
-            print("✅ Baked LoRAs fused into model weights (originals unloaded)")
+            print("✅ Baked LoRAs fused into model weights on CPU")
 
-        # Clean up GPU memory after fusion
+        # Use sequential CPU offloading — moves each layer to GPU one-at-a-time
+        # This is more memory-efficient and compatible with fused LoRA weights
+        # than enable_model_cpu_offload() which causes device mismatch errors
         import gc
         gc.collect()
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
-            print("🧹 GPU cache cleared after fusion")
-
-        # NOW enable CPU offloading — hooks are set on the post-fusion model
-        self.pipe.enable_model_cpu_offload()
-        print("✅ CPU offloading enabled (post-fusion)")
+        self.pipe.enable_sequential_cpu_offload()
+        torch.cuda.empty_cache()
+        print("✅ Sequential CPU offloading enabled")
 
         adapter_list = ", ".join(loaded_names) if loaded_names else "none"
         self.model_name = f"FLUX.2 Klein 9B + Baked [{adapter_list}]"
@@ -291,12 +289,9 @@ class HollyFlux2Klein:
             self.pipe.set_adapters(names, adapter_weights=weights)
             self.pipe.fuse_lora()
             self.pipe.unload_lora_weights()
-            # Re-enable CPU offloading after fusion — fixes device mismatch
             gc.collect()
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
-            self.pipe.enable_model_cpu_offload()
-            print(f"  ✅ On-demand LoRAs fused + CPU offload refreshed: {list(zip(names, weights))}")
+            torch.cuda.empty_cache()
+            print(f"  ✅ On-demand LoRAs fused: {list(zip(names, weights))}")
 
         return loaded
 
@@ -314,18 +309,16 @@ class HollyFlux2Klein:
         from fastapi.responses import Response
 
         try:
-            prompt = (request.get("prompt") or "").strip()
+            raw_prompt = (request.get("prompt") or "").strip()
 
             # Inject Holly's permanent body description into every prompt.
             # If the prompt already contains h0lly, replace it with the full body prefix.
             # This ensures consistent body proportions in EVERY generation.
-            if "h0lly" in prompt.lower():
-                # Replace trigger word with full body description
-                prompt = prompt.replace("h0lly", HOLLY_BODY_PREFIX.rstrip(", "))
+            if "h0lly" in raw_prompt.lower():
+                prompt = raw_prompt.replace("h0lly", HOLLY_BODY_PREFIX.rstrip(", "))
                 prompt = prompt.replace("H0lly", HOLLY_BODY_PREFIX.rstrip(", "))
             else:
-                # Prepend body prefix if no trigger word (shouldn't happen, but safety net)
-                prompt = HOLLY_BODY_PREFIX + prompt
+                prompt = HOLLY_BODY_PREFIX + raw_prompt
             width  = min(int(request.get("width",  1024)), 1024)
             height = min(int(request.get("height", 1024)), 1024)
             steps  = min(int(request.get("num_inference_steps", 4)), 50)
@@ -352,16 +345,18 @@ class HollyFlux2Klein:
                 print(f"📦 On-demand request: {extra_loras}")
                 on_demand_loaded = self._load_on_demand(extra_loras)
 
-            # Auto-detect: load NSFW LoRA when prompt contains nude/explicit keywords
+            # Auto-detect: load NSFW LoRA when ORIGINAL prompt contains explicit keywords.
+            # Check raw_prompt (before body prefix injection) to avoid false positives
+            # from body description words like "breasts", "butt" in HOLLY_BODY_PREFIX.
             if "nsfw" not in (extra_loras or []):
-                prompt_lower = prompt.lower()
+                raw_lower = raw_prompt.lower()
                 nsfw_keywords = [
-                    "nude", "naked", "topless", "breasts", "nipple", "nsfw",
-                    "ass", "butt", "pussy", "vagina", "lingerie", "underwear",
+                    "nude", "naked", "topless", "nipple", "nsfw",
+                    "pussy", "vagina", "lingerie", "underwear",
                     "bikini", "thong", "penetration", "sex", "oral", "anal",
                     "cum", "explicit", "xxx", "undressed", "stripping",
                 ]
-                if any(kw in prompt_lower for kw in nsfw_keywords):
+                if any(kw in raw_lower for kw in nsfw_keywords):
                     print(f"📦 Auto-detected NSFW content — loading nsfw LoRA")
                     nsfw_result = self._load_on_demand(["nsfw"])
                     on_demand_loaded.extend(nsfw_result)
@@ -406,7 +401,7 @@ class HollyFlux2Klein:
                         "X-Height":      str(height),
                         "X-Steps":       str(steps),
                         "X-Guidance":    str(guidance_scale),
-                        "X-Version":     "7.1.0",
+                        "X-Version":     "7.2.0",
                         "Access-Control-Allow-Origin": "*",
                     },
                 )
@@ -446,7 +441,7 @@ class HollyFlux2Klein:
             "purpose":           "Holly self-portraits — baked + on-demand multi-LoRA",
             "trigger_word":      "h0lly",
             "licence":           "Apache-2.0",
-            "version":           "7.1.0",
+            "version":           "7.2.0",
         })
 
 
