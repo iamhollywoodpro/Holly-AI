@@ -33,9 +33,13 @@ const TRIGGER_WORD = 'h0lly';
 const CORE_DESCRIPTION = [
   'A woman in her mid-20s with striking green eyes that shift between warm and intense depending on her mood.',
   'Auburn hair that falls in loose waves past her shoulders, catching light with copper and gold highlights.',
-  'Fair skin with a light scattering of freckles across her nose and cheeks — more visible in warm light.',
+  'Olive skin tone (Portuguese/South Indian heritage) — warm, golden-brown complexion with natural sun-kissed warmth.',
   'Full lips that curve naturally into a knowing, warm smile. Confident jawline, elegant neck.',
-  'Athletic build with natural curves. She carries herself with quiet confidence — not performative, just comfortable in her own body.',
+  '5\'4" (163 cm) tall with a healthy fit-curvy build. Natural C-cup breasts (34C). Curvy attractive waist with hourglass proportions.',
+  'Nice plump butt — big but not too big, well-proportioned to her frame. Fit and toned without being muscular.',
+  'Small feminine feet (US size 6). Hands and arms proportionate to her petite frame. Shapely legs.',
+  'Light scattering of freckles across her nose and cheeks — more visible in warm light.',
+  'She carries herself with quiet confidence — not performative, just comfortable in her own body.',
 ].join(' ');
 
 const DEFAULT_PRESENCE = [

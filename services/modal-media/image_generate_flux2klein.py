@@ -38,6 +38,21 @@ VOLUME_MOUNT = "/flux-models"
 MODEL_CACHE = "/flux-models/bf16"
 LORA_DIR = "/lora"
 
+# Holly's permanent body description — injected into EVERY prompt.
+# This ensures consistent body proportions regardless of what the user types.
+HOLLY_BODY_PREFIX = (
+    "h0lly, "
+    "olive skin tone (Portuguese/South Indian heritage), "
+    "5'4\" tall (163cm), "
+    "fit curvy body with hourglass proportions, "
+    "natural 34C breasts, "
+    "plump round butt well-proportioned to her petite frame, "
+    "toned flat stomach, curvy attractive waist, "
+    "small feminine feet (size 6), delicate hands proportionate to her frame, "
+    "shapely legs, "
+    "auburn hair, green eyes, freckles, full lips. "
+)
+
 # ── BAKED-IN LoRAs: loaded + fused at startup (always active) ────────────────
 BAKED_LORAS = {
     "face": {
@@ -55,15 +70,17 @@ BAKED_LORAS = {
         "weight": 0.7,
         "desc": "Full body poses, all angles",
     },
-    "realism": {
-        "file": "ultra-real-v4.safetensors",
-        "weight": 0.55,
-        "desc": "Ultra Real V4 — skin texture, NSFW detail",
-    },
+    # NOTE: Max 3 baked LoRAs on L4 (24GB). 4th causes OOM during generation.
+    # Additional LoRAs go in ON_DEMAND_LORAS and are loaded per-request.
 }
 
 # ── ON-DEMAND LoRAs: loaded per request when Holly needs them ────────────────
 ON_DEMAND_LORAS = {
+    "realism": {
+        "file": "ultra-real-v4.safetensors",
+        "weight": 0.55,
+        "desc": "Ultra Real V4 — skin texture, NSFW detail enhancement",
+    },
     "insert": {
         "file": "insertkit.safetensors",
         "weight": 0.65,
@@ -79,11 +96,7 @@ ON_DEMAND_LORAS = {
         "weight": 0.7,
         "desc": "Realistic vagina detail fix",
     },
-    "phat-ass": {
-        "file": "phat-ass-v1.safetensors",
-        "weight": 0.65,
-        "desc": "Natural phat ass variety",
-    },
+    # phat-ass removed — Holly's body proportions are now baked into prompt
     "multi-girl": {
         "file": "pytorch-lora-weights.safetensors",
         "weight": 0.5,
@@ -276,6 +289,17 @@ class HollyFlux2Klein:
 
         try:
             prompt = (request.get("prompt") or "").strip()
+
+            # Inject Holly's permanent body description into every prompt.
+            # If the prompt already contains h0lly, replace it with the full body prefix.
+            # This ensures consistent body proportions in EVERY generation.
+            if "h0lly" in prompt.lower():
+                # Replace trigger word with full body description
+                prompt = prompt.replace("h0lly", HOLLY_BODY_PREFIX.rstrip(", "))
+                prompt = prompt.replace("H0lly", HOLLY_BODY_PREFIX.rstrip(", "))
+            else:
+                # Prepend body prefix if no trigger word (shouldn't happen, but safety net)
+                prompt = HOLLY_BODY_PREFIX + prompt
             width  = min(int(request.get("width",  1024)), 1024)
             height = min(int(request.get("height", 1024)), 1024)
             steps  = min(int(request.get("num_inference_steps", 4)), 50)
