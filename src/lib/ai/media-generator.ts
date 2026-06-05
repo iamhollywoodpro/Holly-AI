@@ -265,13 +265,13 @@ async function generateWithHollyLoRA(req: ImageRequest): Promise<ImageResult> {
       prompt:               req.prompt,
       width:                Math.min(width, 1024),
       height:               Math.min(height, 1024),
-      num_inference_steps:  4,        // FLUX.2 Klein is optimal at 4 steps
+      num_inference_steps:  20,       // FLUX.2 Klein needs 20+ steps (not distilled like schnell)
       lora_scale:           0.85,      // Holly Face v2.0 LoRA strength
       guidance_scale:       4.0,       // FLUX.2 Klein recommended CFG
       seed:                 req.seed,
       format:               'jpeg',
     }),
-    signal: AbortSignal.timeout(120_000),  // cold start + generation
+    signal: AbortSignal.timeout(300_000),  // cold start + 20-step generation
   });
 
   if (!res.ok) {
