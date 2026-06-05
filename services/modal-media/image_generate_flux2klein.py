@@ -1,23 +1,25 @@
 #!/usr/bin/env/python3
 """
-HOLLY FLUX.2 Klein 9B + LoRA Image Generation Service
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Model:  FLUX.2 Klein 9B (BF16) + Holly Face v2.0 LoRA
+HOLLY FLUX.2 Klein 9B + Multi-LoRA Image Generation Service
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Model:  FLUX.2 Klein 9B (BF16) + Multi-LoRA stack
 GPU:    NVIDIA L4 (24 GB VRAM) — BF16 model with CPU offloading
 Cost:   ~$0.001/image (4 steps!) | $30/mo free → ~30 hours/month
 Trigger: h0lly — LoRA trained on Civitai for consistent Holly face
 
-Purpose: ONLY used when generating images of Holly herself.
-         All other image generation stays on FLUX.1-schnell/Pollinations.
+LoRA Stack (all loaded + fused at startup):
+  1. holly-face-v2.safetensors       — Holly's consistent face (trigger: h0lly)
+  2. flux-klein-nsfw-v2.safetensors  — NSFW anatomy, no face change (Lorian)
+  3. full-fine-body-v1.safetensors   — Full body poses, all angles (Sarcastic TOFU)
 
 Design:
   - FLUX.2 Klein 9B BF16 weights in Modal Volume
   - enable_model_cpu_offload() keeps peak VRAM under 24 GB on L4
-  - Holly LoRA v2.0 loaded at startup, always ready
+  - All LoRAs loaded and fused at startup — prompt controls output
   - scaledown_window=120 → stays warm 2 min, then scales to zero
   - max_containers=1 → never spins up more than 1 GPU
   - 4 inference steps → sub-second generation after model loads
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
 
 import io
@@ -28,8 +30,27 @@ app = modal.App("holly-image-flux2klein")
 
 FLUX_MODEL = "black-forest-labs/FLUX.2-klein-9B"
 VOLUME_MOUNT = "/flux-models"
-MODEL_CACHE = "/flux-models/bf16"  # bf16 subdir within the volume
+MODEL_CACHE = "/flux-models/bf16"
 LORA_DIR = "/lora"
+
+# LoRA adapters — loaded and fused at startup
+LORA_ADAPTERS = {
+    "face": {
+        "file": "holly-face-v2.safetensors",
+        "weight": 0.85,
+        "desc": "Holly Face v2.0 (trigger: h0lly)",
+    },
+    "nsfw": {
+        "file": "flux-klein-nsfw-v2.safetensors",
+        "weight": 0.7,
+        "desc": "NSFW anatomy, no face change (Lorian)",
+    },
+    "body": {
+        "file": "full-fine-body-v1.safetensors",
+        "weight": 0.7,
+        "desc": "Full body poses, all angles (Sarcastic TOFU)",
+    },
+}
 
 volume = modal.Volume.from_name("holly-flux2klein-weights", create_if_missing=True)
 lora_volume = modal.Volume.from_name("holly-lora-weights", create_if_missing=True)
@@ -37,18 +58,14 @@ lora_volume = modal.Volume.from_name("holly-lora-weights", create_if_missing=Tru
 image = (
     modal.Image.debian_slim(python_version="3.11")
     .apt_install("git")
-    # Step 1: Install PyTorch 2.6+ with CUDA 12.4 (transformers 5.x needs float8_e8m0fnu)
     .pip_install(
         "torch>=2.6.0",
         "torchvision",
         extra_options="--extra-index-url https://download.pytorch.org/whl/cu124",
     )
-    # Step 2: Install pre-built flash-attn wheel (required by Qwen3 text encoder)
-    # Using v2.8.3 pre-built for cu12 + torch2.6 + Python 3.11
     .pip_install(
         "https://github.com/Dao-AILab/flash-attention/releases/download/v2.8.3/flash_attn-2.8.3+cu12torch2.6cxx11abiFALSE-cp311-cp311-linux_x86_64.whl",
     )
-    # Step 3: Install diffusers from git + transformers for Qwen3 support
     .pip_install(
         "git+https://github.com/huggingface/diffusers.git",
         "transformers>=4.51.0",
@@ -84,12 +101,11 @@ class HollyFlux2Klein:
         from huggingface_hub import snapshot_download, login
 
         self.pipe = None
-        self.lora_loaded = False
-        self.lora_name = None
+        self.loaded_adapters = {}
         self.model_name = "FLUX.2 Klein 9B (not loaded)"
         self.startup_error = None
 
-        # Authenticate with HuggingFace (required for gated repo)
+        # Authenticate with HuggingFace
         hf_token = os.environ.get("HF_TOKEN") or os.environ.get("HUGGINGFACE_HUB_TOKEN")
         if hf_token:
             login(token=hf_token)
@@ -99,10 +115,8 @@ class HollyFlux2Klein:
 
         # Download FLUX.2 Klein 9B BF16 to volume on first run only
         try:
-            # Check both model_index.json AND transformer directory (earlier downloads may have skipped it)
             has_index = os.path.exists(f"{MODEL_CACHE}/model_index.json")
             has_transformer = os.path.exists(f"{MODEL_CACHE}/transformer")
-            print(f"  has_index={has_index}, has_transformer={has_transformer}")
             if not has_index or not has_transformer:
                 print(f"📥 Downloading {FLUX_MODEL} to volume...")
                 snapshot_download(
@@ -113,22 +127,17 @@ class HollyFlux2Klein:
                 volume.commit()
                 print("✅ FLUX.2 Klein 9B BF16 weights saved to volume")
             else:
-                print("✅ FLUX.2 Klein 9B BF16 weights in volume — skipping download")
+                print("✅ FLUX.2 Klein 9B BF16 weights in volume")
         except Exception as e:
             self.startup_error = f"Model download failed: {e}"
             print(f"❌ {self.startup_error}")
-            print("⚠️  Container will start but generation will return 503")
             return
 
-        # Load FLUX.2 Klein pipeline with CPU offloading (fits 29GB model on 24GB GPU)
+        # Load FLUX.2 Klein pipeline
         try:
             print(f"🚀 Loading FLUX.2 Klein 9B from {MODEL_CACHE}...")
             from diffusers import Flux2KleinPipeline
 
-            # Use standard from_pretrained() — the full BF16 model (27 files
-            # including sharded transformer/) is now downloaded to the volume.
-            # This avoids the from_single_file() path which requires access to
-            # the gated FLUX.2-dev repo for architecture config.
             self.pipe = Flux2KleinPipeline.from_pretrained(
                 MODEL_CACHE,
                 torch_dtype=torch.bfloat16,
@@ -141,20 +150,39 @@ class HollyFlux2Klein:
             print(f"❌ {self.startup_error}")
             return
 
-        # Load Holly LoRA — prefer v2 over v1
-        lora_files = [f for f in os.listdir(LORA_DIR) if f.endswith('.safetensors')]
-        # Sort so v2 comes before v1
-        lora_files.sort(reverse=True)
-        if lora_files:
-            print(f"🎭 Loading Holly LoRA: {lora_files[0]}...")
-            self.pipe.load_lora_weights(LORA_DIR, weight_name=lora_files[0])
-            self.lora_loaded = True
-            self.lora_name = lora_files[0]
-            print(f"✅ Holly LoRA loaded — {self.lora_name}")
-        else:
-            print("⚠️  No LoRA file found in volume — generating without LoRA")
+        # Load all LoRA adapters (each gets a named adapter)
+        loaded_names = []
+        for adapter_name, config in LORA_ADAPTERS.items():
+            lora_path = f"{LORA_DIR}/{config['file']}"
+            if os.path.exists(lora_path):
+                try:
+                    print(f"🎭 Loading LoRA '{adapter_name}': {config['file']}...")
+                    self.pipe.load_lora_weights(
+                        LORA_DIR,
+                        weight_name=config["file"],
+                        adapter_name=adapter_name,
+                    )
+                    self.loaded_adapters[adapter_name] = config
+                    loaded_names.append(adapter_name)
+                    print(f"  ✅ {adapter_name} loaded")
+                except Exception as e:
+                    print(f"  ⚠️  Failed to load {adapter_name}: {e}")
+            else:
+                print(f"  ⚠️  {config['file']} not found — skipping {adapter_name}")
 
-        self.model_name = "FLUX.2 Klein 9B + Holly LoRA v2.0" if self.lora_loaded else "FLUX.2 Klein 9B"
+        # Set all adapters active with their individual weights, then fuse into model
+        if loaded_names:
+            adapter_weights = [LORA_ADAPTERS[a]["weight"] for a in loaded_names]
+            self.pipe.set_adapters(loaded_names, adapter_weights=adapter_weights)
+            print(f"🎭 All adapters active: {list(zip(loaded_names, adapter_weights))}")
+
+            # Fuse LoRAs into model weights then unload originals to free VRAM
+            self.pipe.fuse_lora()
+            self.pipe.unload_lora_weights()
+            print("✅ All LoRAs fused into model weights (originals unloaded)")
+
+        adapter_list = ", ".join(loaded_names) if loaded_names else "none"
+        self.model_name = f"FLUX.2 Klein 9B + LoRAs [{adapter_list}]"
         print(f"✅ {self.model_name} ready")
 
     @modal.fastapi_endpoint(method="POST", label="generate-holly")
@@ -170,18 +198,7 @@ class HollyFlux2Klein:
             steps  = min(int(request.get("num_inference_steps", 4)), 50)
             seed   = request.get("seed")
             fmt    = request.get("format", "jpeg").lower()
-            lora_scale = float(request.get("lora_scale", 0.85))
             guidance_scale = float(request.get("guidance_scale", 4.0))
-
-            # Fuse LoRA at the requested scale if loaded (bakes into weights)
-            if self.lora_loaded and hasattr(self, '_fused_scale') and self._fused_scale != lora_scale:
-                # Unfuse previous and re-fuse at new scale
-                self.pipe.unfuse_lora()
-                self.pipe.fuse_lora(lora_scale=lora_scale)
-                self._fused_scale = lora_scale
-            elif self.lora_loaded and not hasattr(self, '_fused_scale'):
-                self.pipe.fuse_lora(lora_scale=lora_scale)
-                self._fused_scale = lora_scale
 
             if not prompt:
                 return Response(
@@ -195,7 +212,7 @@ class HollyFlux2Klein:
                     media_type="application/json", status_code=503,
                 )
 
-            print(f"🎨 [{self.model_name}] {prompt[:80]}")
+            print(f"🎨 [{self.model_name}] {prompt[:100]}")
             generator = torch.Generator("cpu").manual_seed(seed) if seed is not None else None
 
             with torch.inference_mode():
@@ -226,12 +243,12 @@ class HollyFlux2Klein:
                 headers={
                     "X-Model":    self.model_name,
                     "X-Provider": "modal-flux2klein-lora",
-                    "X-LoRA":     self.lora_name or "none",
-                    "X-LoRA-Scale": str(lora_scale),
+                    "X-Adapters": ",".join(self.loaded_adapters.keys()),
                     "X-Width":    str(width),
                     "X-Height":   str(height),
                     "X-Steps":    str(steps),
-                    "X-Licence":  "Apache-2.0",
+                    "X-Guidance": str(guidance_scale),
+                    "X-Version":  "6.0.0",
                     "Access-Control-Allow-Origin": "*",
                 },
             )
@@ -253,20 +270,20 @@ class HollyFlux2Klein:
         if startup_error and ("gated" in startup_error.lower() or "401" in startup_error or "403" in startup_error):
             action = "Accept gated repo license at https://huggingface.co/black-forest-labs/FLUX.2-klein-9B"
         return JSONResponse({
-            "status":       "healthy" if model_loaded else "waiting",
-            "model":        getattr(self, "model_name", "loading..."),
-            "model_loaded": model_loaded,
-            "lora_loaded":  getattr(self, "lora_loaded", False),
-            "lora_name":    getattr(self, "lora_name", None),
-            "startup_error": startup_error,
-            "action_needed": action,
-            "gpu":          "L4",
-            "base_model":   "FLUX.2 Klein 9B BF16",
-            "max_gpus":     1,
-            "purpose":      "Holly self-portraits — FLUX.2 Klein 9B + Holly LoRA v2.0",
-            "trigger_word": "h0lly",
-            "licence":      "Apache-2.0",
-            "version":      "5.0.0",
+            "status":           "healthy" if model_loaded else "waiting",
+            "model":            getattr(self, "model_name", "loading..."),
+            "model_loaded":     model_loaded,
+            "loaded_adapters":  list(getattr(self, "loaded_adapters", {}).keys()),
+            "adapter_details":  {k: v["desc"] for k, v in getattr(self, "loaded_adapters", {}).items()},
+            "startup_error":    startup_error,
+            "action_needed":    action,
+            "gpu":              "L4",
+            "base_model":       "FLUX.2 Klein 9B BF16",
+            "max_gpus":         1,
+            "purpose":          "Holly self-portraits — FLUX.2 Klein 9B + Multi-LoRA",
+            "trigger_word":     "h0lly",
+            "licence":          "Apache-2.0",
+            "version":          "6.0.0",
         })
 
 
