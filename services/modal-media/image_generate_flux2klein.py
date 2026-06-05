@@ -190,7 +190,7 @@ class HollyFlux2Klein:
             print(f"❌ {self.startup_error}")
             return
 
-        # Load FLUX.2 Klein pipeline
+        # Load FLUX.2 Klein pipeline (everything on CPU — no offloading yet)
         try:
             print(f"🚀 Loading FLUX.2 Klein 9B from {MODEL_CACHE}...")
             from diffusers import Flux2KleinPipeline
@@ -200,14 +200,13 @@ class HollyFlux2Klein:
                 torch_dtype=torch.bfloat16,
                 local_files_only=True,
             )
-            self.pipe.enable_model_cpu_offload()
-            print("✅ Pipeline loaded with CPU offloading")
+            print("✅ Pipeline loaded (CPU, no offloading yet)")
         except Exception as e:
             self.startup_error = f"Pipeline load failed: {e}"
             print(f"❌ {self.startup_error}")
             return
 
-        # Load and fuse BAKED LoRAs
+        # Load and fuse BAKED LoRAs (while everything is on CPU — before offloading)
         loaded_names = []
         for name, config in BAKED_LORAS.items():
             lora_path = f"{LORA_DIR}/{config['file']}"
@@ -233,12 +232,23 @@ class HollyFlux2Klein:
             self.pipe.unload_lora_weights()
             print("✅ Baked LoRAs fused into model weights (originals unloaded)")
 
+        # Clean up GPU memory after fusion
+        import gc
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+            print("🧹 GPU cache cleared after fusion")
+
+        # NOW enable CPU offloading — hooks are set on the post-fusion model
+        self.pipe.enable_model_cpu_offload()
+        print("✅ CPU offloading enabled (post-fusion)")
+
         adapter_list = ", ".join(loaded_names) if loaded_names else "none"
         self.model_name = f"FLUX.2 Klein 9B + Baked [{adapter_list}]"
         print(f"✅ {self.model_name} ready")
 
     def _load_on_demand(self, lora_names):
-        """Load on-demand LoRAs, fuse, generate, then cleanup."""
+        """Load on-demand LoRAs, fuse them into model weights."""
         import torch
         import gc
 
@@ -253,6 +263,18 @@ class HollyFlux2Klein:
                 print(f"  ⚠️  {config['file']} not found — skipping {name}")
                 continue
             try:
+                # Check if this adapter is already loaded from a previous request
+                existing_adapters = []
+                try:
+                    if hasattr(self.pipe.transformer, 'peft_config'):
+                        existing_adapters = list(self.pipe.transformer.peft_config.keys())
+                except:
+                    pass
+                if name in existing_adapters:
+                    print(f"  📌 '{name}' already loaded — reusing")
+                    loaded.append((name, config["weight"]))
+                    continue
+
                 print(f"  📦 Loading on-demand '{name}': {config['file']}...")
                 self.pipe.load_lora_weights(
                     LORA_DIR, weight_name=config["file"], adapter_name=name,
@@ -263,12 +285,18 @@ class HollyFlux2Klein:
                 print(f"  ⚠️  Failed to load {name}: {e}")
 
         if loaded:
+            import gc
             names = [n for n, w in loaded]
             weights = [w for n, w in loaded]
             self.pipe.set_adapters(names, adapter_weights=weights)
             self.pipe.fuse_lora()
             self.pipe.unload_lora_weights()
-            print(f"  ✅ On-demand LoRAs fused: {list(zip(names, weights))}")
+            # Re-enable CPU offloading after fusion — fixes device mismatch
+            gc.collect()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+            self.pipe.enable_model_cpu_offload()
+            print(f"  ✅ On-demand LoRAs fused + CPU offload refreshed: {list(zip(names, weights))}")
 
         return loaded
 
@@ -378,7 +406,7 @@ class HollyFlux2Klein:
                         "X-Height":      str(height),
                         "X-Steps":       str(steps),
                         "X-Guidance":    str(guidance_scale),
-                        "X-Version":     "7.0.0",
+                        "X-Version":     "7.1.0",
                         "Access-Control-Allow-Origin": "*",
                     },
                 )
@@ -418,7 +446,7 @@ class HollyFlux2Klein:
             "purpose":           "Holly self-portraits — baked + on-demand multi-LoRA",
             "trigger_word":      "h0lly",
             "licence":           "Apache-2.0",
-            "version":           "7.0.0",
+            "version":           "7.1.0",
         })
 
 
