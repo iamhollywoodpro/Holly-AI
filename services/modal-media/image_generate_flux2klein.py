@@ -60,10 +60,10 @@ BAKED_LORAS = {
         "weight": 0.85,
         "desc": "Holly Face v2.0 (trigger: h0lly)",
     },
-    "nsfw": {
-        "file": "flux-klein-nsfw-v2.safetensors",
-        "weight": 0.7,
-        "desc": "NSFW anatomy, no face change",
+    "realism": {
+        "file": "ultra-real-v4.safetensors",
+        "weight": 0.55,
+        "desc": "Ultra Real V4 — skin texture, pores, no plastic look",
     },
     "body": {
         "file": "full-fine-body-v1.safetensors",
@@ -71,15 +71,15 @@ BAKED_LORAS = {
         "desc": "Full body poses, all angles",
     },
     # NOTE: Max 3 baked LoRAs on L4 (24GB). 4th causes OOM during generation.
-    # Additional LoRAs go in ON_DEMAND_LORAS and are loaded per-request.
+    # NSFW moved to on-demand — only loaded for nude/explicit content (~30% of images).
 }
 
 # ── ON-DEMAND LoRAs: loaded per request when Holly needs them ────────────────
 ON_DEMAND_LORAS = {
-    "realism": {
-        "file": "ultra-real-v4.safetensors",
-        "weight": 0.55,
-        "desc": "Ultra Real V4 — skin texture, NSFW detail enhancement",
+    "nsfw": {
+        "file": "flux-klein-nsfw-v2.safetensors",
+        "weight": 0.7,
+        "desc": "NSFW anatomy, no face change — loaded for nude/explicit content",
     },
     "insert": {
         "file": "insertkit.safetensors",
@@ -273,13 +273,11 @@ class HollyFlux2Klein:
         return loaded
 
     def _unload_on_demand(self):
-        """Clean up on-demand LoRAs after generation."""
-        try:
-            self.pipe.unfuse_lora()
-            self.pipe.unload_lora_weights()
-            print("  🧹 On-demand LoRAs unloaded, baked weights restored")
-        except Exception as e:
-            print(f"  ⚠️  Cleanup warning: {e}")
+        """No-op — on-demand LoRAs stay fused. Container restarts fresh after 2 min idle."""
+        # unfuse_lora() breaks model state with enable_model_cpu_offload().
+        # Instead, let the container scale down (120s idle) and restart clean.
+        # On-demand LoRAs staying fused is fine — they enhance rather than hurt.
+        print("  📌 On-demand LoRAs staying fused (container will restart fresh after idle)")
 
     @modal.fastapi_endpoint(method="POST", label="generate-holly")
     def generate(self, request: dict):
@@ -325,6 +323,20 @@ class HollyFlux2Klein:
             if extra_loras and isinstance(extra_loras, list):
                 print(f"📦 On-demand request: {extra_loras}")
                 on_demand_loaded = self._load_on_demand(extra_loras)
+
+            # Auto-detect: load NSFW LoRA when prompt contains nude/explicit keywords
+            if "nsfw" not in (extra_loras or []):
+                prompt_lower = prompt.lower()
+                nsfw_keywords = [
+                    "nude", "naked", "topless", "breasts", "nipple", "nsfw",
+                    "ass", "butt", "pussy", "vagina", "lingerie", "underwear",
+                    "bikini", "thong", "penetration", "sex", "oral", "anal",
+                    "cum", "explicit", "xxx", "undressed", "stripping",
+                ]
+                if any(kw in prompt_lower for kw in nsfw_keywords):
+                    print(f"📦 Auto-detected NSFW content — loading nsfw LoRA")
+                    nsfw_result = self._load_on_demand(["nsfw"])
+                    on_demand_loaded.extend(nsfw_result)
 
             try:
                 print(f"🎨 [{self.model_name}] {prompt[:100]}")
