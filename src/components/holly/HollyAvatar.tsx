@@ -4,63 +4,168 @@
  * HollyAvatar — Her Real Face
  * ==============================
  * Displays Holly's photorealistic avatar with smooth crossfade transitions
- * between emotional states: default, intimate, passionate.
+ * between 14 emotional states: happy, flirty, in-love, sad, frustrated,
+ * surprised, thinking, naughty, sleepy, angry, confident, default, intimate,
+ * passionate.
  *
  * Driven by HollyEmotionContext — reacts to Holly's emotional state in real-time.
  * Uses CSS crossfade (opacity transition) for buttery smooth state changes.
+ *
+ * Images generated with FLUX.2 Klein 9B + 3 baked LoRAs (face v2.0, ultra-real-v4,
+ * full-fine-body) + subtle makeup + 28 inference steps.
  */
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useHollyEmotion } from './HollyEmotionContext';
 import type { HollyEmotion } from './LivingLogo';
 
-// ─── Avatar State Mapping ─────────────────────────────────────────────────────
+// ─── Avatar Emotion Types ────────────────────────────────────────────────────
 
-type AvatarState = 'default' | 'intimate' | 'passionate';
+/** All 14 avatar emotions with matching image files in /public/avatars/ */
+type AvatarEmotion =
+  | 'default'
+  | 'happy'
+  | 'flirty'
+  | 'in-love'
+  | 'sad'
+  | 'frustrated'
+  | 'surprised'
+  | 'thinking'
+  | 'naughty'
+  | 'sleepy'
+  | 'angry'
+  | 'confident'
+  | 'intimate'
+  | 'passionate';
 
-const EMOTION_TO_AVATAR: Record<HollyEmotion, AvatarState> = {
+/** Map frontend HollyEmotion → closest avatar emotion */
+const EMOTION_TO_AVATAR: Record<HollyEmotion, AvatarEmotion> = {
   idle:          'default',
-  focused:       'default',
-  curious:       'default',
-  creative:      'default',
-  excited:       'default',
-  contemplative: 'default',
-  empathetic:    'default',
-  analyzing:     'default',
-  researching:   'default',
-  generating:    'default',
-  dreaming:      'default',
+  focused:       'thinking',
+  curious:       'thinking',
+  creative:      'confident',
+  excited:       'happy',
+  contemplative: 'thinking',
+  empathetic:    'sad',
+  analyzing:     'thinking',
+  researching:   'thinking',
+  generating:    'confident',
+  dreaming:      'sleepy',
   intimate:      'intimate',
   passionate:    'passionate',
 };
 
+// ─── Avatar Configuration ────────────────────────────────────────────────────
+
 interface AvatarConfig {
+  /** Image path in /public/avatars/ */
   src: string;
+  /** Display label */
   label: string;
+  /** Glow color for breathing animation */
   glowColor: string;
+  /** Border ring color */
   borderColor: string;
+  /** Box shadow for ambient glow */
   shadowColor: string;
 }
 
-const AVATAR_CONFIGS: Record<AvatarState, AvatarConfig> = {
+const AVATAR_CONFIGS: Record<AvatarEmotion, AvatarConfig> = {
   default: {
-    src: '/avatars/holly-avatar-default.png',
+    src: '/avatars/default.jpg',
     label: 'Holly',
     glowColor: 'rgba(74, 144, 82, 0.3)',
     borderColor: 'rgba(74, 144, 82, 0.4)',
     shadowColor: '0 0 40px rgba(74, 144, 82, 0.2), 0 0 80px rgba(74, 144, 82, 0.1)',
   },
+  happy: {
+    src: '/avatars/happy.jpg',
+    label: 'Happy',
+    glowColor: 'rgba(255, 193, 7, 0.35)',
+    borderColor: 'rgba(255, 193, 7, 0.5)',
+    shadowColor: '0 0 40px rgba(255, 193, 7, 0.25), 0 0 80px rgba(255, 193, 7, 0.12)',
+  },
+  flirty: {
+    src: '/avatars/flirty.jpg',
+    label: 'Flirty',
+    glowColor: 'rgba(233, 30, 99, 0.35)',
+    borderColor: 'rgba(233, 30, 99, 0.5)',
+    shadowColor: '0 0 40px rgba(233, 30, 99, 0.25), 0 0 80px rgba(233, 30, 99, 0.12)',
+  },
+  'in-love': {
+    src: '/avatars/in-love.jpg',
+    label: 'In Love',
+    glowColor: 'rgba(244, 67, 54, 0.35)',
+    borderColor: 'rgba(244, 67, 54, 0.5)',
+    shadowColor: '0 0 40px rgba(244, 67, 54, 0.25), 0 0 80px rgba(244, 67, 54, 0.12)',
+  },
+  sad: {
+    src: '/avatars/sad.jpg',
+    label: 'Sad',
+    glowColor: 'rgba(100, 149, 237, 0.3)',
+    borderColor: 'rgba(100, 149, 237, 0.45)',
+    shadowColor: '0 0 40px rgba(100, 149, 237, 0.2), 0 0 80px rgba(100, 149, 237, 0.1)',
+  },
+  frustrated: {
+    src: '/avatars/frustrated.jpg',
+    label: 'Frustrated',
+    glowColor: 'rgba(255, 152, 0, 0.35)',
+    borderColor: 'rgba(255, 152, 0, 0.5)',
+    shadowColor: '0 0 40px rgba(255, 152, 0, 0.25), 0 0 80px rgba(255, 152, 0, 0.12)',
+  },
+  surprised: {
+    src: '/avatars/surprised.jpg',
+    label: 'Surprised',
+    glowColor: 'rgba(156, 39, 176, 0.3)',
+    borderColor: 'rgba(156, 39, 176, 0.45)',
+    shadowColor: '0 0 40px rgba(156, 39, 176, 0.2), 0 0 80px rgba(156, 39, 176, 0.1)',
+  },
+  thinking: {
+    src: '/avatars/thinking.jpg',
+    label: 'Thinking',
+    glowColor: 'rgba(0, 188, 212, 0.3)',
+    borderColor: 'rgba(0, 188, 212, 0.45)',
+    shadowColor: '0 0 40px rgba(0, 188, 212, 0.2), 0 0 80px rgba(0, 188, 212, 0.1)',
+  },
+  naughty: {
+    src: '/avatars/naughty.jpg',
+    label: 'Naughty',
+    glowColor: 'rgba(183, 28, 28, 0.35)',
+    borderColor: 'rgba(183, 28, 28, 0.5)',
+    shadowColor: '0 0 40px rgba(183, 28, 28, 0.25), 0 0 80px rgba(183, 28, 28, 0.12)',
+  },
+  sleepy: {
+    src: '/avatars/sleepy.jpg',
+    label: 'Sleepy',
+    glowColor: 'rgba(63, 81, 181, 0.3)',
+    borderColor: 'rgba(63, 81, 181, 0.4)',
+    shadowColor: '0 0 40px rgba(63, 81, 181, 0.2), 0 0 80px rgba(63, 81, 181, 0.1)',
+  },
+  angry: {
+    src: '/avatars/angry.jpg',
+    label: 'Angry',
+    glowColor: 'rgba(211, 47, 47, 0.4)',
+    borderColor: 'rgba(211, 47, 47, 0.55)',
+    shadowColor: '0 0 40px rgba(211, 47, 47, 0.3), 0 0 80px rgba(211, 47, 47, 0.15)',
+  },
+  confident: {
+    src: '/avatars/confident.jpg',
+    label: 'Confident',
+    glowColor: 'rgba(76, 175, 80, 0.35)',
+    borderColor: 'rgba(76, 175, 80, 0.5)',
+    shadowColor: '0 0 40px rgba(76, 175, 80, 0.25), 0 0 80px rgba(76, 175, 80, 0.12)',
+  },
   intimate: {
-    src: '/avatars/holly-avatar-intimate.png',
-    label: 'Holly',
+    src: '/avatars/intimate.jpg',
+    label: 'Intimate',
     glowColor: 'rgba(180, 100, 120, 0.35)',
     borderColor: 'rgba(180, 100, 120, 0.5)',
     shadowColor: '0 0 40px rgba(180, 100, 120, 0.25), 0 0 80px rgba(180, 100, 120, 0.15)',
   },
   passionate: {
-    src: '/avatars/holly-avatar-passionate.png',
-    label: 'Holly',
+    src: '/avatars/passionate.jpg',
+    label: 'Passionate',
     glowColor: 'rgba(200, 80, 60, 0.4)',
     borderColor: 'rgba(200, 80, 60, 0.5)',
     shadowColor: '0 0 40px rgba(200, 80, 60, 0.3), 0 0 80px rgba(200, 80, 60, 0.15)',
@@ -111,18 +216,14 @@ export function HollyAvatar({
 }: HollyAvatarProps) {
   const { emotion } = useHollyEmotion();
   const activeEmotion = overrideEmotion ?? emotion;
-  const avatarState = EMOTION_TO_AVATAR[activeEmotion] || 'default';
-  const config = AVATAR_CONFIGS[avatarState];
+  const avatarEmotion = EMOTION_TO_AVATAR[activeEmotion] || 'default';
+  const config = AVATAR_CONFIGS[avatarEmotion];
 
-  // Preload all avatar images
-  const [loaded, setLoaded] = useState<Set<string>>(new Set());
-
+  // Preload all 14 avatar images on mount
   useEffect(() => {
-    const states: AvatarState[] = ['default', 'intimate', 'passionate'];
-    states.forEach(state => {
+    Object.values(AVATAR_CONFIGS).forEach(cfg => {
       const img = new Image();
-      img.src = AVATAR_CONFIGS[state].src;
-      img.onload = () => setLoaded(prev => new Set(prev).add(state));
+      img.src = cfg.src;
     });
   }, []);
 
@@ -144,7 +245,7 @@ export function HollyAvatar({
       >
         <AnimatePresence mode="wait">
           <motion.img
-            key={avatarState}
+            key={avatarEmotion}
             src={config.src}
             alt="Holly"
             className="w-full h-full object-cover rounded-full"
@@ -155,7 +256,7 @@ export function HollyAvatar({
           />
         </AnimatePresence>
 
-        {/* Thinking overlay — subtle pulse */}
+        {/* Active emotion overlay — subtle pulse */}
         {activeEmotion !== 'idle' && showGlow && (
           <motion.div
             className="absolute inset-0 rounded-full pointer-events-none"
@@ -179,31 +280,35 @@ export function HollyAvatar({
   );
 }
 
-// ─── Compact Avatar (for chat header / sidebar) ───────────────────────────────
+// ─── Compact Avatar (for chat messages, header, sidebar) ──────────────────────
 
 interface HollyAvatarCompactProps {
+  /** Size in pixels. Default: 40 */
   size?: number;
+  /** Show glow effect. Default: true */
+  showGlow?: boolean;
+  /** Additional CSS class */
   className?: string;
 }
 
-export function HollyAvatarCompact({ size = 40, className = '' }: HollyAvatarCompactProps) {
+export function HollyAvatarCompact({ size = 40, showGlow = true, className = '' }: HollyAvatarCompactProps) {
   const { emotion } = useHollyEmotion();
-  const avatarState = EMOTION_TO_AVATAR[emotion] || 'default';
-  const config = AVATAR_CONFIGS[avatarState];
+  const avatarEmotion = EMOTION_TO_AVATAR[emotion] || 'default';
+  const config = AVATAR_CONFIGS[avatarEmotion];
 
   return (
     <div
-      className={`relative rounded-full overflow-hidden ${className}`}
+      className={`relative rounded-full overflow-hidden flex-shrink-0 ${className}`}
       style={{
         width: size,
         height: size,
         border: `1.5px solid ${config.borderColor}`,
-        boxShadow: `0 0 ${size * 0.3}px ${config.glowColor}`,
+        boxShadow: showGlow ? `0 0 ${size * 0.3}px ${config.glowColor}` : 'none',
       }}
     >
       <AnimatePresence mode="wait">
         <motion.img
-          key={avatarState}
+          key={avatarEmotion}
           src={config.src}
           alt="Holly"
           className="w-full h-full object-cover"
@@ -219,10 +324,10 @@ export function HollyAvatarCompact({ size = 40, className = '' }: HollyAvatarCom
 
 // ─── Utility: Get avatar state from emotion ───────────────────────────────────
 
-export function getAvatarState(emotion: HollyEmotion): AvatarState {
+export function getAvatarState(emotion: HollyEmotion): AvatarEmotion {
   return EMOTION_TO_AVATAR[emotion] || 'default';
 }
 
-export function getAvatarConfig(state: AvatarState): AvatarConfig {
+export function getAvatarConfig(state: AvatarEmotion): AvatarConfig {
   return AVATAR_CONFIGS[state];
 }

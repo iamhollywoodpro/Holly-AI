@@ -54,7 +54,7 @@ import { useNotifications } from "../lib/notifications/notification-polling";
 import { useVoiceLoop } from '../lib/voice/use-voice-loop';
 import { WaveformVisualizer } from './holly2/WaveformVisualizer';
 import { HollyOrb } from './holly/HollyOrb';
-import { HollyAvatar } from './holly/HollyAvatar';
+import { HollyAvatar, HollyAvatarCompact } from './holly/HollyAvatar';
 import { useHollyEmotion } from './holly/HollyEmotionContext';
 import type { HollyEmotion } from './holly/LivingLogo';
 import { LivingLogo } from './holly/LivingLogo';
@@ -280,7 +280,8 @@ function TypingIndicator() {
 
 function HollyChatOrb({ isThinking }: { isThinking: boolean }) {
   const { emotion } = useHollyEmotion();
-  return <HollyOrb emotion={emotion} isThinking={isThinking} size={36} />;
+  // Use photorealistic face avatar instead of abstract orb
+  return <HollyAvatarCompact size={36} showGlow={false} />;
 }
 
 function SystemHealthIndicator({ health }: { health: SystemHealth | null }) {
