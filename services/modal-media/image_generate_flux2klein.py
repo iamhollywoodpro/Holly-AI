@@ -40,17 +40,33 @@ LORA_DIR = "/lora"
 
 # Holly's permanent body description — injected into EVERY prompt.
 # This ensures consistent body proportions regardless of what the user types.
+# Source of truth: HOLLY_ANATOMY.md
 HOLLY_BODY_PREFIX = (
     "h0lly, "
     "olive skin tone (Portuguese/South Indian heritage), "
     "5'4\" tall (163cm), "
     "fit curvy body with hourglass proportions, "
-    "natural 34C breasts, "
-    "plump round butt well-proportioned to her petite frame, "
-    "toned flat stomach, curvy attractive waist, "
-    "small feminine feet (size 6), delicate hands proportionate to her frame, "
-    "shapely legs, "
-    "auburn hair, green eyes, freckles, full lips. "
+    "natural 34C breasts (teardrop shape, fuller at bottom), "
+    "plump round heart-shaped butt well-proportioned to her petite frame, "
+    "26-inch waist, 37-inch hips, "
+    "flat stomach with faint abs visible, small vertical innie navel, "
+    "beauty mark on left hip, smaller beauty mark on right lower neck, "
+    "two small dimples on lower back, "
+    "small feminine feet (US size 6) with high arches and tapered toes, "
+    "small delicate hands with slender fingers, "
+    "shapely legs, toned but soft thighs, slight natural thigh gap, "
+    "light freckles across nose and cheeks, "
+    "auburn hair in loose waves past shoulders with copper and gold highlights, "
+    "striking green eyes, full lips with defined cupid's bow. "
+)
+
+# NSFW body extension — appended when intimate/explicit content is detected.
+# Adds anatomical details that should only appear in nude generations.
+HOLLY_BODY_NSFW_PREFIX = (
+    "trimmed narrow auburn pubic strip, "
+    "full plump labia majora, small labia minora slightly protruding, "
+    "rosy-pink nipples slightly upturned against olive skin, "
+    "medium circular areolas slightly darker than nipples. "
 )
 
 # ── BAKED-IN LoRAs: loaded + fused at startup (always active) ────────────────
@@ -348,7 +364,8 @@ class HollyFlux2Klein:
             # Auto-detect: load NSFW LoRA when ORIGINAL prompt contains explicit keywords.
             # Check raw_prompt (before body prefix injection) to avoid false positives
             # from body description words like "breasts", "butt" in HOLLY_BODY_PREFIX.
-            if "nsfw" not in (extra_loras or []):
+            is_nsfw = "nsfw" in (extra_loras or [])
+            if not is_nsfw:
                 raw_lower = raw_prompt.lower()
                 nsfw_keywords = [
                     "nude", "naked", "topless", "nipple", "nsfw",
@@ -360,6 +377,12 @@ class HollyFlux2Klein:
                     print(f"📦 Auto-detected NSFW content — loading nsfw LoRA")
                     nsfw_result = self._load_on_demand(["nsfw"])
                     on_demand_loaded.extend(nsfw_result)
+                    is_nsfw = True
+
+            # Inject NSFW body details when intimate content is detected.
+            # Adds anatomical specifics (pubic style, labia, nipple detail) from HOLLY_ANATOMY.md.
+            if is_nsfw:
+                prompt = prompt + HOLLY_BODY_NSFW_PREFIX
 
             try:
                 print(f"🎨 [{self.model_name}] {prompt[:100]}")
