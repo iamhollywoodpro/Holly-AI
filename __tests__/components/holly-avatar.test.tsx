@@ -9,15 +9,33 @@ import type { HollyEmotion } from '@/components/holly/LivingLogo';
 // ─── Avatar State Mapping Tests ─────────────────────────────────────────────
 
 describe('HollyAvatar — State Mapping', () => {
-  it('maps default emotions to default avatar', () => {
-    const defaultEmotions: HollyEmotion[] = [
-      'idle', 'focused', 'curious', 'creative', 'excited',
-      'contemplative', 'empathetic', 'analyzing', 'researching',
-      'generating', 'dreaming',
-    ];
-    for (const emotion of defaultEmotions) {
-      expect(getAvatarState(emotion)).toBe('default');
-    }
+  it('maps idle emotion to default avatar', () => {
+    expect(getAvatarState('idle')).toBe('default');
+  });
+
+  it('maps focused/curious/analyzing emotions to thinking avatar', () => {
+    expect(getAvatarState('focused')).toBe('thinking');
+    expect(getAvatarState('curious')).toBe('thinking');
+    expect(getAvatarState('analyzing')).toBe('thinking');
+    expect(getAvatarState('contemplative')).toBe('thinking');
+    expect(getAvatarState('researching')).toBe('thinking');
+  });
+
+  it('maps creative/generating emotions to confident avatar', () => {
+    expect(getAvatarState('creative')).toBe('confident');
+    expect(getAvatarState('generating')).toBe('confident');
+  });
+
+  it('maps excited emotion to happy avatar', () => {
+    expect(getAvatarState('excited')).toBe('happy');
+  });
+
+  it('maps empathetic emotion to sad avatar', () => {
+    expect(getAvatarState('empathetic')).toBe('sad');
+  });
+
+  it('maps dreaming emotion to sleepy avatar', () => {
+    expect(getAvatarState('dreaming')).toBe('sleepy');
   });
 
   it('maps intimate emotion to intimate avatar', () => {
@@ -38,20 +56,20 @@ describe('HollyAvatar — State Mapping', () => {
 describe('HollyAvatar — Config', () => {
   it('provides config for default avatar', () => {
     const config = getAvatarConfig('default');
-    expect(config.src).toContain('holly-avatar-default');
+    expect(config.src).toBe('/avatars/default.jpg');
     expect(config.label).toBe('Holly');
-    expect(config.glowColor).toContain('144, 82'); // green-ish
+    expect(config.glowColor).toContain('74, 144, 82'); // green-ish
   });
 
   it('provides config for intimate avatar', () => {
     const config = getAvatarConfig('intimate');
-    expect(config.src).toContain('holly-avatar-intimate');
+    expect(config.src).toBe('/avatars/intimate.jpg');
     expect(config.glowColor).toContain('180, 100, 120'); // warm pink
   });
 
   it('provides config for passionate avatar', () => {
     const config = getAvatarConfig('passionate');
-    expect(config.src).toContain('holly-avatar-passionate');
+    expect(config.src).toBe('/avatars/passionate.jpg');
     expect(config.glowColor).toContain('200, 80, 60'); // red-ish
   });
 
