@@ -15,6 +15,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { generateImage, type ImageRequest } from '@/lib/ai/media-generator';
+import { getOrCreateUser } from '@/lib/user-manager';
+import { getIntimacyState, isNudeImageRequest, isSexualImageRequest, getIntimacyRefusal } from '@/lib/relationship/intimacy-gate';
 
 export const runtime    = 'nodejs';
 export const dynamic    = 'force-dynamic';
@@ -42,6 +44,47 @@ export async function POST(request: NextRequest) {
 
     if (!prompt || typeof prompt !== 'string') {
       return NextResponse.json({ error: 'prompt is required' }, { status: 400 });
+    }
+
+    // ── Intimacy Gate: Check if user can generate intimate content ──
+    const isNude = isNudeImageRequest(prompt);
+    const isSexual = isSexualImageRequest(prompt);
+
+    if (isNude || isSexual) {
+      // Resolve user's intimacy tier
+      let dbUserId: string | null = null;
+      let isCreator = false;
+      try {
+        const dbUser = await getOrCreateUser(userId);
+        dbUserId = dbUser.id;
+        // Check creator status by email
+        const email = (dbUser.email || '').toLowerCase();
+        const name = (dbUser.name || '').toLowerCase();
+        isCreator = email.includes('iamdoregosteve') || email.includes('iamhollywoodpro')
+          || name.includes('steve dorego') || name.includes('steve hollywood');
+      } catch {}
+
+      const intimacy = await getIntimacyState(dbUserId, isCreator);
+
+      if (isSexual && !intimacy.canShareSexual) {
+        const refusal = getIntimacyRefusal(intimacy.tier, 'sexual_image');
+        return NextResponse.json({
+          success: false,
+          error: 'intimacy_gate',
+          message: refusal,
+          tier: intimacy.tier,
+        }, { status: 403 });
+      }
+
+      if (isNude && !intimacy.canShareNude) {
+        const refusal = getIntimacyRefusal(intimacy.tier, 'nude_image');
+        return NextResponse.json({
+          success: false,
+          error: 'intimacy_gate',
+          message: refusal,
+          tier: intimacy.tier,
+        }, { status: 403 });
+      }
     }
 
     const result = await generateImage({

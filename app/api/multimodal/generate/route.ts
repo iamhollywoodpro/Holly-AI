@@ -33,6 +33,8 @@ import {
   type VideoGenerationRequest,
   type GenerationResult,
 } from '@/lib/multimodal/generation-engine';
+import { getOrCreateUser } from '@/lib/user-manager';
+import { getIntimacyState, isNudeImageRequest, isSexualImageRequest, getIntimacyRefusal } from '@/lib/relationship/intimacy-gate';
 
 // ─── Rate limiting (in-memory, per user, resets on cold start) ────────────────
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
@@ -99,6 +101,45 @@ export async function POST(req: NextRequest) {
       { error: 'modality must be "image", "video", or "audio_visual"' },
       { status: 400 }
     );
+  }
+
+  // ── Intimacy Gate: Block NSFW image generation for users without trust ──
+  if (modality === 'image') {
+    const isNude = isNudeImageRequest(prompt);
+    const isSexual = isSexualImageRequest(prompt);
+
+    if (isNude || isSexual) {
+      let dbUserId: string | null = null;
+      let isCreator = false;
+      try {
+        const dbUser = await getOrCreateUser(userId);
+        dbUserId = dbUser.id;
+        const email = (dbUser.email || '').toLowerCase();
+        const name = (dbUser.name || '').toLowerCase();
+        isCreator = email.includes('iamdoregosteve') || email.includes('iamhollywoodpro')
+          || name.includes('steve dorego') || name.includes('steve hollywood');
+      } catch {}
+
+      const intimacy = await getIntimacyState(dbUserId, isCreator);
+
+      if (isSexual && !intimacy.canShareSexual) {
+        return NextResponse.json({
+          success: false,
+          error: 'intimacy_gate',
+          message: getIntimacyRefusal(intimacy.tier, 'sexual_image'),
+          tier: intimacy.tier,
+        }, { status: 403 });
+      }
+
+      if (isNude && !intimacy.canShareNude) {
+        return NextResponse.json({
+          success: false,
+          error: 'intimacy_gate',
+          message: getIntimacyRefusal(intimacy.tier, 'nude_image'),
+          tier: intimacy.tier,
+        }, { status: 403 });
+      }
+    }
   }
 
   try {
