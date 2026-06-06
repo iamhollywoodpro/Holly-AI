@@ -156,7 +156,7 @@ const PROJECT_TOOLS = [
 ];
 
 const MODE_TOOL_FILTERS: Record<string, string[]> = {
-  'default':           [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...CODE_GEN_TOOLS, ...TASTE_TOOLS, ...TEMPORAL_TOOLS, ...COLLAB_TOOLS, ...PROJECT_TOOLS, 'run_code', 'sentinel_analyze_code', 'sentinel_generate_code', 'memory_read', 'memory_write', 'self_code_apply', 'start_build'],
+  'default':           [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...CODE_GEN_TOOLS, ...TASTE_TOOLS, ...TEMPORAL_TOOLS, ...COLLAB_TOOLS, ...PROJECT_TOOLS, 'run_code', 'generate_image', 'sentinel_analyze_code', 'sentinel_generate_code', 'memory_read', 'memory_write', 'self_code_apply', 'start_build'],
   'deep-research':     [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...CODE_GEN_TOOLS, ...TASTE_TOOLS, ...TEMPORAL_TOOLS, ...PROJECT_TOOLS, 'memory_read', 'memory_list_keys', 'run_code', 'sentinel_analyze_code'],
   'self-coding':       [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...CODE_GEN_TOOLS, ...TASTE_TOOLS, ...TEMPORAL_TOOLS, ...COLLAB_TOOLS, ...PROJECT_TOOLS, 'run_code', 'sentinel_analyze_code', 'sentinel_generate_code', 'memory_read', 'memory_write', 'self_code_apply', 'trigger_deploy', 'local_read_file', 'local_write_file', 'diagnostic_check', 'read_logs', 'start_build', 'ui_screenshot', 'ui_analyze'],
   'full-stack':        [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...CODE_GEN_TOOLS, ...TASTE_TOOLS, ...TEMPORAL_TOOLS, ...COLLAB_TOOLS, ...PROJECT_TOOLS, 'run_code', 'generate_image', 'memory_read', 'memory_write', 'sentinel_analyze_code', 'sentinel_generate_code', 'self_code_apply', 'trigger_deploy', 'start_build', 'ui_screenshot', 'ui_analyze'],
@@ -166,11 +166,11 @@ const MODE_TOOL_FILTERS: Record<string, string[]> = {
   'aura-ar':           [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...TASTE_TOOLS, 'aura_ar_analyze', 'aura_quick_rate', 'aura_analyze_song', 'memory_read'],
   'neural-autonomy':   [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...CODE_GEN_TOOLS, ...TASTE_TOOLS, ...TEMPORAL_TOOLS, ...COLLAB_TOOLS, ...PROJECT_TOOLS, 'local_read_file', 'local_write_file', 'run_code', 'memory_read', 'memory_write', 'diagnostic_check', 'read_logs', 'mirror_check', 'self_code_apply', 'trigger_deploy', 'sentinel_analyze_code', 'sentinel_generate_code', 'start_build', 'swarm_task'],
   'magic-design':      [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...CODE_GEN_TOOLS, ...TASTE_TOOLS, ...TEMPORAL_TOOLS, ...PROJECT_TOOLS, 'generate_image', 'sentinel_analyze_code', 'sentinel_generate_code', 'run_code', 'memory_read', 'memory_write', 'self_code_apply', 'start_build'],
-  'philosophy':                [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...TASTE_TOOLS, ...TEMPORAL_TOOLS],
-  'creative-writing':         [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...TASTE_TOOLS, ...TEMPORAL_TOOLS],
+  'philosophy':                [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...TASTE_TOOLS, ...TEMPORAL_TOOLS, 'generate_image'],
+  'creative-writing':         [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...TASTE_TOOLS, ...TEMPORAL_TOOLS, 'generate_image'],
   'visual-arts':              [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...TASTE_TOOLS, ...TEMPORAL_TOOLS, 'generate_image'],
-  'emotional-intelligence':   [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...TASTE_TOOLS, ...TEMPORAL_TOOLS],
-  'intimate':                 [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...TASTE_TOOLS, ...TEMPORAL_TOOLS],
+  'emotional-intelligence':   [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...TASTE_TOOLS, ...TEMPORAL_TOOLS, 'generate_image'],
+  'intimate':                 [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...TASTE_TOOLS, ...TEMPORAL_TOOLS, 'generate_image'],
 };
 
 // SSE helpers
@@ -498,6 +498,38 @@ export async function POST(req: NextRequest) {
             }
           } else {
             // Tool-call loop
+
+            // Filter to strip raw JSON tool calls that the LLM outputs as text
+            // (happens when the model can't use native function calling)
+            const RAW_TOOL_CALL_REGEX = /\[?\s*\{\s*['"]name['"]\s*:\s*['"](?:generate_image|generate_music|run_code|memory_read|memory_write|self_code_apply|trigger_deploy|start_build|sentinel_analyze_code|sentinel_generate_code|web_search|read_file|write_file)['"]\s*,\s*['"]arguments?['"]\s*:\s*\{[^}]*\}\s*\}\s*\]?/gi;
+            let contentBuffer = '';
+            let lastFlushIndex = 0;
+
+            function filterToolCallText(text: string): string {
+              // Accumulate text, flush clean content, hold back partial tool calls
+              contentBuffer += text;
+              // Check if buffer contains a complete raw tool call pattern
+              const filtered = contentBuffer.replace(RAW_TOOL_CALL_REGEX, '');
+              if (filtered !== contentBuffer) {
+                // A raw tool call was stripped — flush what's left
+                contentBuffer = filtered;
+              }
+              // If buffer hasn't grown for a while and no partial match, flush it
+              const partialMatch = contentBuffer.match(/\[\s*\{\s*['"]name['"]\s*:/);
+              if (!partialMatch && contentBuffer.length > 0) {
+                const toFlush = contentBuffer;
+                contentBuffer = '';
+                return toFlush;
+              }
+              return '';
+            }
+
+            function flushContentBuffer(): string {
+              const toFlush = contentBuffer;
+              contentBuffer = '';
+              return toFlush;
+            }
+
             let toolLoops = 0;
             const MAX_TOOL_LOOPS = 12;
             let pendingMessages = [...cascadeMessages];
@@ -526,7 +558,10 @@ export async function POST(req: NextRequest) {
                   }, { timeout: 60_000 });
                   for await (const chunk of completion) {
                     const content = chunk.choices[0]?.delta?.content || '';
-                    if (content && !isToolCall) { fullResponse += content; sendText(controller, content); }
+                    if (content && !isToolCall) {
+                      const filtered = filterToolCallText(content);
+                      if (filtered) { fullResponse += filtered; sendText(controller, filtered); }
+                    }
                     if (chunk.choices[0]?.delta?.tool_calls?.length) {
                       isToolCall = true;
                       const tool = chunk.choices[0].delta.tool_calls[0];
@@ -535,6 +570,9 @@ export async function POST(req: NextRequest) {
                       if (tool.function?.arguments) toolArgs += tool.function.arguments;
                     }
                   }
+                  // Flush any remaining buffered content after Groq stream ends
+                  const remaining = flushContentBuffer();
+                  if (remaining && !isToolCall) { fullResponse += remaining; sendText(controller, remaining); }
                 } catch (e) {
                   const errMsg = e instanceof Error ? e.message : String(e);
                   console.warn('[CHAT] Groq streaming failed:', errMsg);
@@ -570,7 +608,10 @@ export async function POST(req: NextRequest) {
                         try {
                           const chunk = JSON.parse(trimmed.slice(6));
                           const delta = chunk.choices?.[0]?.delta;
-                          if (delta?.content && !isToolCall) { fullResponse += delta.content; sendText(controller, delta.content); }
+                          if (delta?.content && !isToolCall) {
+                            const filtered = filterToolCallText(delta.content);
+                            if (filtered) { fullResponse += filtered; sendText(controller, filtered); }
+                          }
                           if (delta?.tool_calls?.length) {
                             isToolCall = true;
                             const tool = delta.tool_calls[0];
