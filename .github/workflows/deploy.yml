@@ -69,13 +69,25 @@ jobs:
         if: vars.COOLIFY_WEBHOOK_URL != ''
         run: |
           echo "Triggering Coolify deploy webhook..."
-          # Coolify deploy webhooks accept GET requests with the UUID in the query string
-          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X GET "${{ vars.COOLIFY_WEBHOOK_URL }}" || echo "000")
+          # Coolify deploy webhooks require authentication.
+          # Pass the API token as a Bearer header if COOLIFY_TOKEN secret is set,
+          # otherwise fall back to including it as a query parameter.
+          if [ -n "${{ secrets.COOLIFY_TOKEN }}" ]; then
+            echo "Using Bearer token authentication"
+            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X GET \
+              -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" \
+              "${{ vars.COOLIFY_WEBHOOK_URL }}" || echo "000")
+          else
+            echo "Warning: COOLIFY_TOKEN secret not set — sending unauthenticated request"
+            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X GET \
+              "${{ vars.COOLIFY_WEBHOOK_URL }}" || echo "000")
+          fi
           echo "Webhook response: HTTP $HTTP_STATUS"
           if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
             echo "✅ Coolify webhook triggered successfully"
           else
-            echo "⚠️ Coolify webhook returned $HTTP_STATUS (may still work — some Coolify versions return non-2xx)"
+            echo "⚠️ Coolify webhook returned $HTTP_STATUS"
+            echo "To fix: Add COOLIFY_TOKEN secret (Coolify → Profile → API Tokens)"
           fi
 
       - name: Smoke test
