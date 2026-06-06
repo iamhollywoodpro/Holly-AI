@@ -540,7 +540,7 @@ export async function POST(req: NextRequest) {
               const hasTools = groqTools && groqTools.length > 0;
               const arceeApiKey = process.env.ARCEE_API_KEY;
               const arceeBaseUrl = process.env.ARCEE_BASE_URL || 'https://api.arcee.ai/api/v1';
-              const useGroqTools = waterfall[0]?.provider === 'groq' && hasTools && groqClient;
+              const useGroqTools = hasTools && groqClient;
               const useArceeTools = !useGroqTools && hasTools && arceeApiKey;
 
               let isToolCall = false, toolName = '', toolArgs = '', toolCallId = '';
