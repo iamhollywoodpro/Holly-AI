@@ -126,7 +126,8 @@ export function buildPrompt(opts: {
   if (identityCtx.partnerDirectives) prompt += identityCtx.partnerDirectives;
   if (memoryContext) prompt += `\n\n## Your Memories\nHere's what you remember about ${userName}:\n${memoryContext}`;
 
-  if (semanticResults.length > 0) {
+  // Defensive: context budget may have replaced arrays with strings
+  if (Array.isArray(semanticResults) && semanticResults.length > 0) {
     const block = semanticResults
       .map(r => `  [${r.type} — ${r.similarity.toFixed(2)} match] ${r.content.substring(0, 200)}`)
       .join('\n');
@@ -136,7 +137,8 @@ export function buildPrompt(opts: {
   if (projectContextBlock) prompt += `\n\n${projectContextBlock}`;
   if (recentLearnings) prompt += recentLearnings;
 
-  if (pastSummaries.length > 0) {
+  // Defensive: context budget may have replaced arrays with strings
+  if (Array.isArray(pastSummaries) && pastSummaries.length > 0) {
     const block = pastSummaries.map((s: any, i: number) => {
       const topics = [...new Set([...(s.keyTopics ?? []), ...(s.topics ?? [])])].slice(0, 4).join(', ');
       const when = new Date(s.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -149,7 +151,7 @@ export function buildPrompt(opts: {
     prompt += `\n\n## What You Remember From Past Sessions\nYou have worked with ${userName} before:\n${block}`;
   }
 
-  if (perceptionContext && perceptionContext.length > 0) {
+  if (Array.isArray(perceptionContext) && perceptionContext.length > 0) {
     const block = perceptionContext
       .map((p: any) => `[Attached File: ${p.fileName} (${p.fileType})]\n${p.contextBlock}`)
       .join('\n\n');
