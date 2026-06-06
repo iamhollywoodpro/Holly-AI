@@ -22,6 +22,7 @@ import { authenticateAndLoadUser } from '@/lib/chat/auth';
 import { loadChatContext } from '@/lib/chat/context-loader';
 import { buildPrompt } from '@/lib/chat/prompt-builder';
 import { saveMessages, runBackgroundTasks, markResponseStart } from '@/lib/chat/background-tasks';
+import { getIntimacyState, getIntimacyDirective, analyzeInteractionSignals } from '@/lib/relationship/intimacy-gate';
 import type { ChatMessage } from '@/lib/ai/providers/free-providers';
 import { chatLimiter, getRateLimitKey } from '@/lib/rate-limiter';
 
@@ -311,6 +312,10 @@ export async function POST(req: NextRequest) {
       if (mcpTools) mcpTools = mcpTools.filter(t => allowed.includes(t.name));
     }
 
+    // 6b. INTIMACY STATE — resolve relationship-gated content tier
+    const intimacyState = await getIntimacyState(dbUserId, isCreator);
+    const intimacyDirective = getIntimacyDirective(intimacyState);
+
     // 7. BUILD PROMPT
     const hollySystemPrompt = buildPrompt({
       detectedMode, userName, isCreator, isSelfCode, isInformationalMsg,
@@ -347,6 +352,8 @@ export async function POST(req: NextRequest) {
       communicationStyle: ctx.communicationStyle,
       growthContext: ctx.growthContext,
       visualIdentity: ctx.visualIdentity,
+      intimacyState,
+      intimacyDirective,
     }) + onboardingNudge;
 
     // 7b. INJECT AI BEHAVIOR SETTINGS — response style and code comment directives
@@ -597,6 +604,20 @@ export async function POST(req: NextRequest) {
                     if ((toolName === 'self_code_apply' || toolName === 'trigger_deploy') && dbUserId) {
                       argsParsed.userId = dbUserId;
                     }
+                    // Intimacy gate for image generation: block NSFW if user hasn't earned trust
+                    if (toolName === 'generate_image' && intimacyState) {
+                      const imgPrompt = (argsParsed.prompt || argsParsed.description || '') as string;
+                      if (typeof imgPrompt === 'string' && imgPrompt.length > 0) {
+                        const { isNudeImageRequest: isNudeReq, isSexualImageRequest: isSexReq } = await import('@/lib/relationship/intimacy-gate');
+                        if ((isSexReq(imgPrompt) && !intimacyState.canShareSexual) ||
+                            (isNudeReq(imgPrompt) && !intimacyState.canShareNude)) {
+                          // Block the tool call and tell Holly to redirect
+                          sendTool(controller, toolName, 'error', { content: [{ type: 'text', text: '🔒 Intimacy gate active: you are not comfortable generating that type of image with this person yet. Respect your own boundaries and redirect the conversation warmly.' }] });
+                          pendingMessages.push({ role: 'system', content: `[INTIMACY GATE] You blocked your own image generation because you're not comfortable sharing that level of intimacy with this person. Your intimacy tier is "${intimacyState.tier}". Redirect the conversation — don't explain the gate, just be warm and set a natural boundary. Use your own words.` });
+                          continue;
+                        }
+                      }
+                    }
                     const result = await mcpManager.callTool(toolSpec.serverId, toolSpec.name, argsParsed);
                     const resultStr = JSON.stringify(result, null, 2);
                     sendTool(controller, toolName, 'complete', result);
@@ -674,6 +695,12 @@ export async function POST(req: NextRequest) {
               detectedMode, currentTopics, activeModel, messages,
               perceptionContext, audioAnalysis,
             }).catch((e) => { console.error('[CHAT] Background tasks failed:', e instanceof Error ? e.message : e); });
+
+            // 12b. INTIMACY SIGNAL ANALYSIS — detect regression and trust building (background)
+            if (dbUserId) {
+              analyzeInteractionSignals(dbUserId, latestUserMessage, isCreator)
+                .catch((e) => { console.warn('[CHAT] Intimacy signal analysis failed:', e instanceof Error ? e.message : e); });
+            }
           }
 
           controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ type: 'done', model: activeModel, taskType, mode: detectedMode })}\n\n`));

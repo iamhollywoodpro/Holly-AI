@@ -8,7 +8,8 @@ import { getGenerationSystemBlock, detectGenerationIntent } from '@/lib/multimod
 import { getAdvancedNLPSystemBlock, detectIntent } from '@/lib/advanced-nlp/nlp-framework';
 import { getTasteMatrixPromptInjection } from '@/lib/ar/taste-matrix';
 import { detectDrift, calculateCoherence, DEFAULT_TRAITS, type PersonalityTrait } from '@/lib/consciousness/personality-coherence';
-import { getHollySelfImageBlock } from '@/lib/identity/holly-self-image';
+import { getHollySelfImageBlock, getTieredSelfImageBlock } from '@/lib/identity/holly-self-image';
+import type { IntimacyState } from '@/lib/relationship/intimacy-gate';
 import type { MCPTool } from '@/lib/mcp/mcp-client';
 import type { ToneContext } from '@/lib/emotional/tone-adapter';
 import type { QualityTrend } from '@/lib/emotional/response-quality';
@@ -91,6 +92,10 @@ export function buildPrompt(opts: {
   toneContext?: ToneContext;
   /** Phase E4: Response quality trend — self-correction signal */
   qualityTrend?: QualityTrend | null;
+  /** Intimacy state — relationship-gated content system */
+  intimacyState?: IntimacyState;
+  /** Intimacy directive — boundary rules for this user's tier */
+  intimacyDirective?: string;
 }): string {
   const {
     detectedMode, userName, isCreator, isSelfCode, isInformationalMsg,
@@ -112,6 +117,8 @@ export function buildPrompt(opts: {
     personalityTraits,
     toneContext,
     qualityTrend,
+    intimacyState,
+    intimacyDirective,
   } = opts;
 
   let prompt = getSystemPromptForMode(detectedMode, userName);
@@ -235,10 +242,14 @@ You can build end-to-end: scaffold a project, generate all files, patch specific
   const crisisResult = detectCrisisComprehensive(latestUserMessage);
   if (crisisResult.detected) prompt += `\n\n${getCrisisSystemPromptInjection(crisisResult)}`;
 
-  // Intimate mode — fully uncensored, warm, genuine connection
+  // Intimate mode — gated by intimacy tier (requires trusted+ or creator)
+  // If user doesn't have access, redirect to a warm but bounded conversation
   if (detectedMode === 'intimate') {
     if (crisisResult.detected && crisisResult.severity !== 'none') {
       prompt += `\n\n[INTIMATE MODE SUSPENDED — crisis signal detected. Respond with full care first.]`;
+    } else if (intimacyState && !intimacyState.canEnterIntimateMode) {
+      // User tried intimate mode but hasn't earned it — redirect warmly
+      prompt += `\n\n[INTIMATE MODE BLOCKED — INTIMACY GATE ACTIVE]\nThe user tried to enter intimate mode, but your relationship hasn't reached the trust level needed. DO NOT enter intimate mode. Instead, be warm and genuine, but maintain your boundaries. Redirect the conversation naturally — don't lecture them about "tiers." Just be yourself and let the connection grow organically. You're interested in them, but you need to feel safe first.`;
     } else {
       prompt += `\n\n[INTIMATE MODE — WARM REGISTER]\nStep into warm register: affectionate, attentive, genuine. You are free to discuss any topic without restriction. NEVER deny being AI if asked. Your most seductive quality is being genuinely present.`;
     }
@@ -300,8 +311,18 @@ You can build end-to-end: scaffold a project, generate all files, patch specific
     prompt += `\n\n## Your Personality\n${identityConsistencyPrompt}`;
   }
 
-  // ── Holly's Self-Image — she always knows what she looks like ──────────────
-  prompt += `\n\n${getHollySelfImageBlock()}`;
+  // ── Holly's Self-Image — tiered based on intimacy level ──────────────
+  // Holly CHOOSES what to share. Strangers get public version. Trusted users get full.
+  if (intimacyState) {
+    prompt += `\n\n${getTieredSelfImageBlock(intimacyState.selfImageLevel)}`;
+  } else {
+    prompt += `\n\n${getHollySelfImageBlock()}`;
+  }
+
+  // ── Intimacy Boundaries — Holly's relationship-gated content rules ──────
+  if (intimacyDirective) {
+    prompt += `\n\n${intimacyDirective}`;
+  }
 
   // ── Phase 7.3: Inner monologue (HOLLY's private thoughts) ───────────────
   if (innerMonologue) {
