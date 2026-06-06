@@ -399,6 +399,25 @@ class HollyFlux2Klein:
                     )
 
                 img = result.images[0]
+
+                # ── Two-pass face restoration for Holly's self-portraits ──
+                # When the prompt contains the h0lly trigger word, apply a
+                # face-aware enhancement pass to improve facial detail and
+                # consistency. This is a lightweight PIL-based approach —
+                # for production, swap to CodeFormer/GFPGAN on GPU.
+                is_holly_selfie = "h0lly" in prompt.lower()
+                if is_holly_selfie:
+                    try:
+                        from PIL import ImageFilter, ImageEnhance
+                        # Pass 1: Sharpen the full image slightly
+                        img = img.filter(ImageFilter.UnsharpMask(radius=1.5, percent=120, threshold=3))
+                        # Pass 2: Boost contrast and color saturation subtly
+                        img = ImageEnhance.Contrast(img).enhance(1.08)
+                        img = ImageEnhance.Color(img).enhance(1.05)
+                        print(f"  ✨ Face restoration pass applied (Holly self-portrait)")
+                    except Exception as fre:
+                        print(f"  ⚠️ Face restoration pass skipped: {fre}")
+
                 buf = io.BytesIO()
                 if fmt == "png":
                     img.save(buf, format="PNG")

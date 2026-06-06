@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
           const answer = await runReasoningChain(
             body.query!,
             (event) => sendSSE(controller, event),
-            body.systemPrompt || 'You are Holly, an advanced AI assistant.',
+            body.systemPrompt || 'You are Holly, a Sovereign Domain Intelligence.',
             body.conversationHistory || [],
           );
 

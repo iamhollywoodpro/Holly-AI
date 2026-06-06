@@ -977,8 +977,10 @@ function StreamingText({ content }: { content: string }) {
 // ─── AssistantContent — renders markdown AND detects inline images/audio ──────
 
 function AssistantContent({ content }: { content: string }) {
-  // Detect image URLs (data URLs or https image links after "generate image" responses)
+  // Detect image URLs (standard image file extensions)
   const imageUrlRegex = /(?:!\[.*?\]\(|^|\s)(https?:\/\/[^\s)]+\.(?:png|jpg|jpeg|gif|webp))(?:\)|\s|$)/gi;
+  // Detect Pollinations image URLs (no file extension — image.pollinations.ai/prompt/...)
+  const pollinationsRegex = /https?:\/\/image\.pollinations\.ai\/prompt\/[^\s)\]]+/gi;
   // Detect audio URLs (Suno, SoundCloud, mp3 links)
   const audioUrlRegex = /(?:audio|music|track|song).*?(https?:\/\/[^\s]+\.(?:mp3|wav|ogg|m4a|aac)|https?:\/\/(?:suno\.com|soundcloud\.com|cdn\.suno\.ai)[^\s]*)/gi;
   // Detect plain image data URLs embedded in text
@@ -988,7 +990,8 @@ function AssistantContent({ content }: { content: string }) {
   const audios: string[] = [];
 
   let m;
-  while ((m = imageUrlRegex.exec(content)) !== null) images.push(m[1]);
+  while ((m = imageUrlRegex.exec(content)) !== null) images.push(m[1] || m[0]);
+  while ((m = pollinationsRegex.exec(content)) !== null) images.push(m[0]);
   while ((m = audioUrlRegex.exec(content)) !== null) audios.push(m[1]);
   while ((m = dataUrlRegex.exec(content)) !== null) images.push(m[1]);
 

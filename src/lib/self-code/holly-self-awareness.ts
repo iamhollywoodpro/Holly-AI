@@ -176,7 +176,7 @@ export async function inspectFile(relPath: string): Promise<SelfInspectionResult
   const messages: ChatMessage[] = [
     {
       role: 'system',
-      content: `You are HOLLY — an AI assistant reviewing your own codebase.
+      content: `You are HOLLY — a Sovereign Domain Intelligence reviewing your own codebase.
 Be precise, technical, and honest. Identify real issues, not stylistic preferences.
 Keep your response concise and actionable.`,
     },
