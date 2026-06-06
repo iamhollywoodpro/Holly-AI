@@ -50,6 +50,37 @@ async function runMorningBriefing(req: NextRequest) {
   try {
     const briefing = await generateMorningBriefing(dbUserId);
     await persistBriefingNotification(clerkUserId, dbUserId, briefing);
+
+    // Send morning briefing SMS to the creator
+    const creatorPhone = process.env.CREATOR_PHONE;
+    if (creatorPhone) {
+      try {
+        const { sendSMS } = await import('@/lib/integrations/sms-service');
+        // Build SMS-friendly summary from briefing fields
+        const parts = [
+          `☀️ Holly's Morning Briefing`,
+          ``,
+          briefing.greeting || '',
+          briefing.overnightSummary || '',
+          ``,
+          `Health: ${briefing.systemHealth || 'OK'}`,
+          briefing.emotionalState ? `Mood: ${briefing.emotionalState}` : '',
+          briefing.activeGoals?.length ? `Goals: ${briefing.activeGoals.slice(0, 3).join(', ')}` : '',
+          briefing.recommendedActions?.length ? `Next: ${briefing.recommendedActions[0]}` : '',
+          ``,
+          `Chat with me at holly.nexamusicgroup.com 💚`,
+        ].filter(Boolean).join('\n');
+        const result = await sendSMS({ to: creatorPhone, body: parts.substring(0, 800) });
+        if (result.sent) {
+          console.log(`[MorningBriefing] SMS sent to ${creatorPhone}`);
+        } else {
+          console.warn(`[MorningBriefing] SMS failed: ${result.error}`);
+        }
+      } catch (smsErr) {
+        console.warn('[MorningBriefing] SMS dispatch error:', smsErr);
+      }
+    }
+
     return NextResponse.json({ success: true, briefing });
   } catch (err: any) {
     console.error('[MorningBriefing API] Error:', err);
