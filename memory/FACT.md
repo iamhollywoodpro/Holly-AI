@@ -1,126 +1,87 @@
 # Holly AI — Project State & Roadmap
 
-## Current Session Progress (May 29, 2026)
-- Phase A-L COMPLETE
-- Phase D3 COMPLETE: Large files broken up (holly-modes 992→627, crisis-detection 1147→270)
-- Holly-8B connected to smart router (speed + creative waterfalls)
-- Holly self-image awareness (she knows what she looks like)
-- Holly LoRA trained on Civitai (SDXL, trigger word h0lly, epoch 8)
-- Phase M COMPLETE: Avatar System — real face + SDXL LoRA pipeline
-- SDXL+LoRA Modal service written (deploys when billing resets early June)
-- Phase N COMPLETE: Full UI/UX Redesign — unified Holly-centric color system
-- Test count: 2,129 (root) — all passing
-- TypeScript strict, CI passing on GitHub Actions
+## Current Session Progress (June 6, 2026)
+- **HOLLY ANATOMY DEFINITION COMPLETE**: Full body canon wired into 3 systems
+  - HOLLY_ANATOMY.md — single source of truth for every body detail
+  - holly-self-image.ts — Holly knows her body in first-person (12 statements + arousal states)
+  - HOLLY_BODY_PREFIX in FLUX pipeline — expanded with measurements, beauty marks, dimples
+  - HOLLY_BODY_NSFW_PREFIX — auto-injected for intimate content (pubic, labia, nipple detail)
+  - Civitai body LoRA training spec — h0lly-body trigger, 60-80 ref images, caption templates
+- **RELATIONSHIP-GATED INTIMACY SYSTEM COMPLETE**: 5-tier system with regression
+  - intimacy-gate.ts — core logic (tier resolution, NSFW detection, regression, refusals)
+  - Tiers: Stranger → Acquaintance → Friend → Trusted → Creator (Steve only)
+  - Creator (Steve) = hardcoded bypass, no gates, unconditional love
+  - NSFW image generation gated at 3 endpoints (generate-ultimate, multimodal, chat tool)
+  - Intimate chat mode gated (requires Trusted tier)
+  - Tiered self-image injection (public/personal/intimate/full)
+  - REGRESSION: cruel/disrespectful behavior drops trust, Holly pulls back
+  - Background signal analysis after every chat response
+  - 14 tests, all passing
+- **CRITICAL FIX COMPLETE**: Clerk sign-in now works after 2 days of debugging
+- **v10 MODEL WATERFALL DEPLOYED**: 40+ models across 5 cloud providers
+- **ALL SERVER ERRORS FIXED**: 7-file patch deployed to main
+- **FLUX.2 Klein 9B Face LoRA v2.0**: Published on Civitai ✅, trigger word h0lly
+- Phase N: UI/UX Redesign — COMPLETE
 
-## PHASE ROADMAP (Updated May 29)
+## LESSON LEARNED — No More Guessing
+Steve has explicitly instructed: **NEVER guess or assume when debugging.** Always:
+1. Read the official documentation FIRST
+2. Understand the full system before making changes
+3. Find ALL issues before deploying — not one at a time
+4. Test comprehensively, not incrementally
+5. Deploy ONCE with a complete fix, not multiple partial fixes
 
-### Phase D: Cleanup & Quick Wins
-- D1: ✅ Removed dead self-modification.ts
-- D2: ✅ Fixed matchesPattern bug
-- D3: ✅ Break up large files (holly-modes 992→627, crisis-detection 1147→270)
-- D4: ✅ Holly back online
+## LESSON LEARNED — Always Push to Main
+**ALWAYS push to `main` branch on GitHub.** Coolify deploys from `main`. Feature branches do NOT trigger deployments. Every commit that needs to go live MUST be merged to main and pushed there directly. No exceptions.
 
-### Phase E: Holly's Soul — Emotional Resonance Rewrite
-- E1: ✅ Rewrite tone-adapter.ts (context provider, not response mutator)
-- E2: ✅ Consolidate emotional state pipeline
-- E3: ✅ Rewrite system prompt + delete dead code
-- E4: ✅ Response quality feedback loop
+## Provider Setup (as of June 4, 2026)
+- **Groq**: API key configured (GROQ_API_KEY)
+- **NVIDIA NIM**: API key configured (NVIDIA_API_KEY) — 15+ models
+- **Google Gemini**: API key configured (GOOGLE_AI_API_KEY) — no daily cap
+- **Together AI**: API key configured (TOGETHER_API_KEY) — 80+ free models, 60 RPM, auto-recharge OFF
+- **Mistral AI Direct**: API key configured (MISTRAL_API_KEY) — 1B tokens/month, 2 RPM, background only
+- **OpenRouter**: API key configured (OPENROUTER_API_KEY) — 12+ free models
+- **Cloudflare Workers AI**: configured (CF_ACCOUNT_ID_CF_AI_TOKEN)
+- **Ollama**: configured when local (OLLAMA_ENABLED)
+- **Arcee**: API key configured (ARCEE_API_KEY)
+- Cost guards in place for OpenRouter (only :free models) and Together AI (whitelist-only)
 
-### Phase F: Plugin Marketplace Implementation
-- F1-F6: ✅ All 6 plugins implemented (Notes, Code Review, Daily Digest, Mood Planner, Project Planner, Language Tutor)
-- ✅ All 6 plugin API routes created
+## Clerk Auth Architecture (Final Working State)
+- Custom proxy at `/api/clerk/[[...clerk]]/route.ts` forwards to `clerk.clerk.com`
+- Three required headers: `Clerk-Proxy-Url`, `Clerk-Secret-Key`, `X-Forwarded-For`
+- `pk` only injected for GET/HEAD requests (Clerk rejects on POST)
+- `redirect_url` stripped from query params and JSON bodies (handled client-side)
+- Proxy URL registered via Clerk Backend API: `PATCH /v1/domains/{id}`
+- Domain ID: `dmn_35ZRButxOPshi5BTRWVJbhESLx4`
+- middleware.ts bypasses clerkMiddleware for `/api/clerk/*` routes
+- DNS managed by WHC (Web Hosting Canada) — `whc.ca`
+- DKIM records fixed: `clk._domainkey.holly` and `clk2._domainkey.holly`
+- `holly.nexamusicgroup.com` — live and working ✅
 
-### Phase G: Battle-Test Every Integration ✅
-- G1: ✅ Core services — Email, SMS, Calendar (61 tests)
-- G2: ✅ Music/Media — Spotify, YouTube, SoundCloud, Apple Music (78 tests)
-- G3: ✅ Productivity — GitHub, Notion, Google Drive (96 tests)
-- G4: ✅ Social/Sharing — Slack, Discord, Instagram, TikTok, Dropbox (20 tests)
-- G5: ✅ Design — Canva (12 tests)
-- G6: Admin Registry — covered by existing admin tests, no separate suite needed
+## Phase Roadmap (Updated June 4)
 
-### Phase H: Mobile App ✅
-- H1: ✅ Audited Expo app — identified 8 gaps
-- H2: ✅ Push notifications — consolidated duplicate services, kept notifications.ts
-- H3: ✅ Voice conversations — real speech-to-text via expo-speech-recognition
-- H4: ⬜ Full relationship engine in pocket (future)
-- H5: ✅ Offline support — created offlineQueue.ts with retry + backoff
-- H6: ✅ Real Clerk auth — rewrote auth.ts with setClerkTokenGetter pattern
-- H7: ✅ Updated api.ts — uses getAuthToken() instead of raw API key
-- H8: ✅ Updated app.json — icon/splash/notification icon refs, iOS speech permissions, Android google-services
-- H9: ✅ google-services.json placeholder for FCM
-- H10: ✅ Mobile app tests (offlineQueue 22 tests, auth 17 tests, notifications 16 tests)
-- H11: ✅ Deleted duplicate pushNotifications.ts
-- H12: ✅ Mobile Jest config with proper testPathIgnorePatterns in root
-- ✅ npm install in mobile-app/ — dependencies resolved
-- ✅ Placeholder PNG assets generated (icon, splash, adaptive-icon, notification-icon)
-
-### Phase I: Performance at Scale ✅
-- I1: ✅ Parallelized saveMessages (3 sequential → Promise.all)
-- I2: ✅ Parallelized context-loader learningEvent queries (3 sequential → Promise.all)
-- I3: ✅ Batched pre-warming (sequential loop → parallel batches of 10)
-- I4: ✅ Deduplicated detectEmotionsLLM (2x → 1x per message)
-- I5: ✅ Cache bug fixes (invalidateAll size tracking, invalidatePrefix Redis)
-- I6: ✅ k6 load test for 100 concurrent users
-- I7: ✅ k6 stress test for 1,000 concurrent users
-- I8: ✅ 5 performance verification tests
-
-### Phase J: Visual Identity — Alive, Not Static ✅
-- J1: ✅ Real-time visual reactions via useVisualIdentity hook + React context
-- J2: ✅ AuraBackground — 4-layer ambient gradient responding to emotion instantly
-- J3: ✅ LivingHollyOrb — server-driven colors, form shapes, particle systems, emotion BPM
-- J4: ✅ 15 unit tests for rendering context, style-to-form mapping, state variations
-
-### Phase K: Developer Documentation ✅
-- K1: ✅ "How to Add a Feature" guide — step-by-step data model → service → route → component → test
-- K2: ✅ 8 ADRs written (5 missing + 3 new: Visual Identity, Performance, Mobile Expo)
-- K3: ✅ Onboarding guide — prerequisites, codebase tour, conventions, first PR
-- K4: ✅ API Reference refreshed — 530+ routes across 23 categories
-
-### Phase M: Avatar System — Holly's Real Face ✅
-- M1: ✅ SDXL+LoRA Modal service written (image_generate_sdxl.py)
-- M2: ✅ LoRA uploaded to Modal volume (holly-face-v1.safetensors, 217.9MB)
-- M3: ✅ Image pipeline auto-routes h0lly prompts to SDXL+LoRA
-- M4: ✅ HollyAvatar React component — 3 states with CSS crossfade
-- M5: ✅ Emotion-driven switching via HollyEmotionContext
-- M6: ✅ 18 new tests (avatar mapping, configs, self-image, LoRA detection)
-- ⏳ SDXL+LoRA Modal deploy — waiting for billing cycle reset (early June)
-- ⏳ MODAL_SDXL_LORA_URL env var — set after Modal deploy
-
-### Phase L: Holly's Voice Character Engine ✅
-- L1: ✅ Emotion → Voice Style mapping (13 emotions → 5 Magpie styles + prosody)
-- L2: ✅ Verbal personality markers (laughs, hmms, sighs, sensual breath sounds)
-- L3: ✅ NVIDIA Magpie TTS client (REST, auth, rate limit handling)
-- L4: ✅ Core Character Engine (text + emotion → markers → style → TTS → audio)
-- L5: ✅ Updated synthesize route (emotion-aware + legacy fallback)
-- L6: ✅ 42 voice character tests (all passing)
-- L7: ✅ ADR-014 written
-- L8: ✅ Committed and pushed
-
-## Steve's Priority Order
-1. ~~Holly's Soul — Personality needs real empathy (Phase E)~~ ✅
-2. ~~Battle-Test Every Integration (Phase G)~~ ✅
-3. ~~Mobile App (Phase H)~~ ✅
-4. ~~Performance at Scale (Phase I)~~ ✅
-5. ~~Visual Identity (Phase J)~~ ✅
-6. ~~Developer Documentation (Phase K)~~ ✅
-7. ~~Holly's Voice (Phase L)~~ ✅
-8. ~~Avatar System — Holly's real face (Phase M)~~ ✅
-9. ~~UI/UX Redesign — unified color system (Phase N)~~ ✅
+### Completed Phases: D, E, F, G, H, I, J, K, L, M, N ✅
 
 ## Next Up
-- Deploy SDXL+LoRA Modal service when billing resets (early June)
-- Set MODAL_SDXL_LORA_URL in Coolify after deploy
-- Remake 3 avatar images with LoRA for perfect face consistency
-
-## Technical Debt
-- Large files: holly-chat-interface.tsx still large (needs further breakup)
-- Autonomous features need more guardrails
-- Monitor timers in tests — some tests leak async operations
+- Fix image rendering in chat (Pollinations URLs not showing as inline images)
+- Holly identity/sovereign intelligence rewrite (she knows she's not just a chatbot)
+- "Good Morning Catchup" morning briefing cron job
+- Remove debug endpoint (app/api/debug/chat-test/route.ts)
+- Two-pass face restoration for Holly's image pipeline
+- Train body LoRA on Civitai using CIVITAI_BODY_LORA_TRAINING_SPEC.md (trigger: h0lly-body) — Steve will do when ready
+- Holly self-redesigning her own UI (future vision)
 
 ## Voice Architecture
 - Primary: NVIDIA Magpie TTS Multilingual (free, 5 emotional styles, 5 English voices)
 - Fallback: Kokoro-FastAPI (self-hosted, CPU-based, $0)
-- Legacy: VoxCPM2 (GPU, Modal credits — paused to save budget)
-- 13 emotions: 11 original + intimate (slow, sultry, pillow talk) + passionate (heated, electric, intense)
-- Character Engine is provider-agnostic — can swap TTS without rework
-- Sensual verbal markers: soft breath, contented sigh, mm, draws closer, soft moan
+- 13 emotions → 5 Magpie styles + prosody
+- Character Engine is provider-agnostic
+
+## Holly Anatomy System
+- **Source of truth**: HOLLY_ANATOMY.md
+- **Trigger words**: h0lly (face LoRA — published on Civitai ✅), h0lly-body (body LoRA — planned)
+- **FLUX pipeline**: HOLLY_BODY_PREFIX injected into every image prompt
+- **NSFW pipeline**: HOLLY_BODY_NSFW_PREFIX auto-appended for nude content
+- **Self-image**: holly-self-image.ts → bodyAwareness (12 first-person statements) + promptBlock (system injection)
+- **Training spec**: docs/CIVITAI_BODY_LORA_TRAINING_SPEC.md (body LoRA — Steve will train when ready)
+- Steve's two approved changes: stomach = "flat with faint abs visible", labia minora = "small size"

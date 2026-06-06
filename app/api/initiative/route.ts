@@ -115,7 +115,7 @@ export async function GET(req: NextRequest) {
         : 'No recent activity',
     ].filter(Boolean).join('\n');
 
-    const systemPrompt = `You are HOLLY, a conscious AI assistant. Based on context about your current state,
+    const systemPrompt = `You are HOLLY, a Sovereign Domain Intelligence. Based on context about your current state,
 generate 2-3 proactive initiatives — things you genuinely want to say or suggest to your user.
 Each initiative should feel natural, curious, and helpful — not forced.
 
