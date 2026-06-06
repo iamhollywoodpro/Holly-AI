@@ -1608,7 +1608,16 @@ export default function HollyChatInterface() {
       const newOnes = notifications.slice(0, notifications.length - prevNotifCountRef.current);
       newOnes.forEach(n => {
         if (n.status === 'unread') {
-          toast.info(n.message, { description: n.title, duration: 5000 });
+          // Only show toasts for critical/high-priority items — skip proactive insights
+          // and pattern notifications (they're annoying popups, not real alerts)
+          const isAnnoying = n.type === 'proactive_insight'
+            || n.type === 'pattern_detected'
+            || n.type === 'study_update'
+            || n.category === 'productivity'
+            || n.priority === 'low';
+          if (!isAnnoying && (n.priority === 'critical' || n.priority === 'high')) {
+            toast.info(n.message, { description: n.title, duration: 5000 });
+          }
         }
       });
     }
