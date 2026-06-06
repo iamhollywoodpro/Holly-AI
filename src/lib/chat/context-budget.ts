@@ -145,6 +145,29 @@ function summarizeToOneliner(text: string): string {
   return firstLine.substring(0, 117) + '...';
 }
 
+/**
+ * Truncate an array by keeping only the first N elements that fit within
+ * a character budget.  Returns the sliced array (never converts to string).
+ *
+ * BUG FIX: Previously, the budget system converted arrays (semanticResults,
+ * pastSummaries) to strings via JSON.stringify + truncateToTokens.  This
+ * caused "L.map is not a function" crashes in prompt-builder.ts when
+ * buildPrompt called .map() on what it expected to be an array but was
+ * actually a truncated string.
+ */
+function truncateArrayToChars(arr: any[], maxChars: number): any[] {
+  if (arr.length === 0) return arr;
+  let totalChars = 2; // '[' + ']'
+  let keepCount = 0;
+  for (let i = 0; i < arr.length; i++) {
+    const itemChars = JSON.stringify(arr[i]).length + (keepCount > 0 ? 2 : 0); // comma + space
+    if (totalChars + itemChars > maxChars) break;
+    totalChars += itemChars;
+    keepCount++;
+  }
+  return keepCount > 0 ? arr.slice(0, keepCount) : [];
+}
+
 // ─── Budget Application ──────────────────────────────────────────────────────
 
 export interface BudgetReport {
@@ -198,12 +221,23 @@ export function applyContextBudget(
     if (remainingBudget <= 0) {
       // No budget left — skip this stream entirely (except critical)
       if (stream.config.priority === 'critical') {
-        // Critical streams always get at least a summary
-        const summary = summarizeToOneliner(
-          typeof stream.value === 'string' ? stream.value : JSON.stringify(stream.value)
-        );
-        (newContext as any)[stream.key] = summary as any;
-        breakdown.push({ stream: stream.key, tokens: estimateTokens(summary), action: 'summarized' });
+        // Critical streams always get at least something
+        if (Array.isArray(stream.value)) {
+          // Keep at least the first element
+          const kept = stream.value.slice(0, 1);
+          (newContext as any)[stream.key] = kept as any;
+          breakdown.push({ stream: stream.key, tokens: estimateTokens(JSON.stringify(kept)), action: 'summarized' });
+        } else {
+          const summary = summarizeToOneliner(
+            typeof stream.value === 'string' ? stream.value : JSON.stringify(stream.value)
+          );
+          (newContext as any)[stream.key] = summary as any;
+          breakdown.push({ stream: stream.key, tokens: estimateTokens(summary), action: 'summarized' });
+        }
+      } else if (Array.isArray(stream.value)) {
+        // Non-critical array — keep empty array (not string!)
+        (newContext as any)[stream.key] = [] as any;
+        breakdown.push({ stream: stream.key, tokens: 0, action: 'skipped' });
       } else {
         (newContext as any)[stream.key] = '' as any;
         breakdown.push({ stream: stream.key, tokens: 0, action: 'skipped' });
@@ -219,23 +253,45 @@ export function applyContextBudget(
       remainingBudget -= stream.tokens;
     } else if (stream.config.priority === 'critical' || stream.config.priority === 'high') {
       // Important stream — truncate to allocated
-      const stringValue = typeof stream.value === 'string'
-        ? stream.value
-        : JSON.stringify(stream.value);
-      const truncated = truncateToTokens(stringValue, allocated);
-      (newContext as any)[stream.key] = (typeof stream.value === 'string' ? truncated : truncated) as any;
-      const usedTokens = estimateTokens(truncated);
-      breakdown.push({ stream: stream.key, tokens: usedTokens, action: 'truncated' });
-      remainingBudget -= usedTokens;
+      if (Array.isArray(stream.value)) {
+        // BUG FIX: Truncate arrays by removing elements — NEVER convert to string.
+        // Previous code used JSON.stringify + truncateToTokens which replaced
+        // arrays with strings, causing "L.map is not a function" crashes.
+        const maxChars = allocated * CHARS_PER_TOKEN;
+        const truncated = truncateArrayToChars(stream.value, maxChars);
+        (newContext as any)[stream.key] = truncated as any;
+        const usedTokens = estimateTokens(JSON.stringify(truncated));
+        breakdown.push({ stream: stream.key, tokens: usedTokens, action: 'truncated' });
+        remainingBudget -= usedTokens;
+      } else {
+        const stringValue = typeof stream.value === 'string'
+          ? stream.value
+          : JSON.stringify(stream.value);
+        const truncated = truncateToTokens(stringValue, allocated);
+        (newContext as any)[stream.key] = (typeof stream.value === 'string' ? truncated : truncated) as any;
+        const usedTokens = estimateTokens(truncated);
+        breakdown.push({ stream: stream.key, tokens: usedTokens, action: 'truncated' });
+        remainingBudget -= usedTokens;
+      }
     } else {
       // Medium/Low priority — summarize to one-liner
-      const summary = summarizeToOneliner(
-        typeof stream.value === 'string' ? stream.value : JSON.stringify(stream.value)
-      );
-      (newContext as any)[stream.key] = summary as any;
-      const usedTokens = estimateTokens(summary);
-      breakdown.push({ stream: stream.key, tokens: usedTokens, action: 'summarized' });
-      remainingBudget -= usedTokens;
+      if (Array.isArray(stream.value)) {
+        // BUG FIX: Truncate arrays by removing elements — NEVER convert to string.
+        const maxChars = allocated * CHARS_PER_TOKEN;
+        const truncated = truncateArrayToChars(stream.value, maxChars);
+        (newContext as any)[stream.key] = truncated as any;
+        const usedTokens = estimateTokens(JSON.stringify(truncated));
+        breakdown.push({ stream: stream.key, tokens: usedTokens, action: 'summarized' });
+        remainingBudget -= usedTokens;
+      } else {
+        const summary = summarizeToOneliner(
+          typeof stream.value === 'string' ? stream.value : JSON.stringify(stream.value)
+        );
+        (newContext as any)[stream.key] = summary as any;
+        const usedTokens = estimateTokens(summary);
+        breakdown.push({ stream: stream.key, tokens: usedTokens, action: 'summarized' });
+        remainingBudget -= usedTokens;
+      }
     }
   }
 
