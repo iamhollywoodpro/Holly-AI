@@ -715,8 +715,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       error: errorMsg,
       errorType: errorName,
-      // Always include a truncated stack in production for diagnostics
-      hint: errorStack ? errorStack.split('\n').slice(0, 5).join('\n') : undefined,
+      // Include full stack trace for diagnostics — the client displays this
+      hint: errorStack || undefined,
     }, { status: 500 });
   }
 }

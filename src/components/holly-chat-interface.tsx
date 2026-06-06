@@ -2322,6 +2322,10 @@ export default function HollyChatInterface() {
           try {
             const errorBody = await response.json();
             serverError = errorBody?.error || errorBody?.message || '';
+            // Include stack trace hint if available for debugging
+            if (errorBody?.hint) {
+              serverError += '\n\n📍 Stack:\n' + errorBody.hint.split('\n').slice(0, 8).join('\n');
+            }
           } catch {}
           const baseMsg = 'HOLLY is having trouble on the server side. Try again in a moment.';
           throw new Error(serverError ? `${baseMsg}\n\n🔧 Server error: ${serverError}` : baseMsg);
