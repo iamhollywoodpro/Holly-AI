@@ -137,16 +137,17 @@ interface SystemHealth {
 
 const HeartIndicator = ({ emotion }: { emotion: string }) => {
   const colorMap: Record<string, string> = {
-    idle: 'text-holly-ivory/20',
-    focused: 'text-holly-gold',
-    researching: 'text-holly-gold/80',
-    analyzing: 'text-holly-gold',
-    generating: 'text-holly-gold',
-    creative: 'text-holly-crimson',
-    contemplative: 'text-holly-gold/60',
-    curious: 'text-holly-gold/70',
-    excited: 'text-holly-crimson',
-    dreaming: 'text-holly-gold/40',
+    idle: 'text-holly-teal/20',
+    focused: 'text-holly-teal',
+    researching: 'text-holly-lavender/80',
+    analyzing: 'text-holly-teal',
+    generating: 'text-holly-coral',
+    creative: 'text-holly-lavender',
+    contemplative: 'text-holly-teal/60',
+    curious: 'text-holly-lavender/70',
+    excited: 'text-holly-coral',
+    dreaming: 'text-holly-lavender/50',
+    empathetic: 'text-holly-coral/80',
   };
 
   const speedMap: Record<string, number> = {
@@ -186,30 +187,30 @@ const HeartIndicator = ({ emotion }: { emotion: string }) => {
 
 const TOOL_META: Record<string, { label: string; icon: any; color: string }> = {
   // GitHub tools — full MCP names
-  "mcp_github_github_read_file":            { label: "Reading file",       icon: Github,      color: "text-holly-ivory/60" },
-  "mcp_github_github_list_files":           { label: "Listing files",      icon: Github,      color: "text-holly-ivory/60" },
-  "mcp_github_github_create_or_update_file":{ label: "Writing to repo",    icon: Github,      color: "text-holly-gold" },
-  "mcp_github_github_create_pr":            { label: "Creating PR",        icon: Github,      color: "text-holly-gold" },
-  "mcp_github_github_create_issue":         { label: "Creating issue",     icon: Github,      color: "text-holly-gold" },
-  "mcp_github_github_list_prs":             { label: "Listing PRs",        icon: Github,      color: "text-holly-ivory/60" },
+  "mcp_github_github_read_file":            { label: "Reading file",       icon: Github,      color: "text-holly-cream/60" },
+  "mcp_github_github_list_files":           { label: "Listing files",      icon: Github,      color: "text-holly-cream/60" },
+  "mcp_github_github_create_or_update_file":{ label: "Writing to repo",    icon: Github,      color: "text-holly-teal" },
+  "mcp_github_github_create_pr":            { label: "Creating PR",        icon: Github,      color: "text-holly-teal" },
+  "mcp_github_github_create_issue":         { label: "Creating issue",     icon: Github,      color: "text-holly-teal" },
+  "mcp_github_github_list_prs":             { label: "Listing PRs",        icon: Github,      color: "text-holly-cream/60" },
   // Short names (stripped prefix)
-  github_read_file:            { label: "Reading file",       icon: Github,      color: "text-holly-ivory/60" },
-  github_list_files:           { label: "Listing files",      icon: Github,      color: "text-holly-ivory/60" },
-  github_create_or_update_file:{ label: "Writing to repo",    icon: Github,      color: "text-holly-gold" },
-  github_create_pr:            { label: "Creating PR",        icon: Github,      color: "text-holly-gold" },
-  github_create_issue:         { label: "Creating issue",     icon: Github,      color: "text-holly-gold" },
-  github_list_prs:             { label: "Listing PRs",        icon: Github,      color: "text-holly-ivory/60" },
-  web_search:                  { label: "Searching web",      icon: Search,      color: "text-holly-gold" },
-  web_scrape:                  { label: "Scraping page",      icon: Globe,       color: "text-holly-gold/80" },
-  run_code:                    { label: "Running JS",         icon: Code2,       color: "text-holly-gold" },
-  run_code_judge0:             { label: "Executing code",     icon: Terminal,    color: "text-holly-gold" },
-  memory_write:                { label: "Saving memory",      icon: Database,    color: "text-holly-gold" },
-  memory_read:                 { label: "Reading memory",     icon: Database,    color: "text-holly-gold/90" },
-  memory_list_keys:            { label: "Listing memories",   icon: Database,    color: "text-holly-gold/90" },
-  generate_image:              { label: "Generating image",   icon: Image,       color: "text-holly-crimson" },
-  generate_music:              { label: "Composing music",    icon: Music,       color: "text-holly-gold" },
-  generate_video:              { label: "Rendering video",    icon: Film,        color: "text-holly-crimson" },
-  get_weather:                 { label: "Checking weather",   icon: Thermometer, color: "text-holly-gold/70" },
+  github_read_file:            { label: "Reading file",       icon: Github,      color: "text-holly-cream/60" },
+  github_list_files:           { label: "Listing files",      icon: Github,      color: "text-holly-cream/60" },
+  github_create_or_update_file:{ label: "Writing to repo",    icon: Github,      color: "text-holly-teal" },
+  github_create_pr:            { label: "Creating PR",        icon: Github,      color: "text-holly-teal" },
+  github_create_issue:         { label: "Creating issue",     icon: Github,      color: "text-holly-teal" },
+  github_list_prs:             { label: "Listing PRs",        icon: Github,      color: "text-holly-cream/60" },
+  web_search:                  { label: "Searching web",      icon: Search,      color: "text-holly-teal" },
+  web_scrape:                  { label: "Scraping page",      icon: Globe,       color: "text-holly-teal/80" },
+  run_code:                    { label: "Running JS",         icon: Code2,       color: "text-holly-teal" },
+  run_code_judge0:             { label: "Executing code",     icon: Terminal,    color: "text-holly-teal" },
+  memory_write:                { label: "Saving memory",      icon: Database,    color: "text-holly-teal" },
+  memory_read:                 { label: "Reading memory",     icon: Database,    color: "text-holly-lavender/90" },
+  memory_list_keys:            { label: "Listing memories",   icon: Database,    color: "text-holly-lavender/90" },
+  generate_image:              { label: "Generating image",   icon: Image,       color: "text-holly-coral" },
+  generate_music:              { label: "Composing music",    icon: Music,       color: "text-holly-lavender" },
+  generate_video:              { label: "Rendering video",    icon: Film,        color: "text-holly-coral" },
+  get_weather:                 { label: "Checking weather",   icon: Thermometer, color: "text-holly-teal/70" },
 };
 
 // ─── Initiative notification types ──────────────────────────────────────────
@@ -272,7 +273,7 @@ function TypingIndicator() {
       {[0, 1, 2].map((i) => (
         <motion.div
           key={i}
-          className="w-2 h-2 rounded-full bg-holly-gold/60"
+          className="w-2 h-2 rounded-full bg-holly-teal/60"
           animate={{ y: [0, -6, 0], opacity: [0.4, 1, 0.4] }}
           transition={{ duration: 0.8, repeat: Infinity, delay: i * 0.15 }}
         />
@@ -291,10 +292,10 @@ function SystemHealthIndicator({ health }: { health: SystemHealth | null }) {
   if (!health) return null;
   
   const statusColors = health.healthy 
-    ? "text-holly-gold bg-holly-gold/10 border-holly-gold/20" 
+    ? "text-holly-teal bg-holly-teal/10 border-holly-teal/20" 
     : health.issuesCount > 2 
-    ? "text-holly-crimson bg-holly-crimson/10 border-holly-crimson/20" 
-    : "text-holly-gold/80 bg-holly-gold/5 border-holly-gold/15";
+    ? "text-holly-coral bg-holly-coral/10 border-holly-coral/20" 
+    : "text-holly-teal/80 bg-holly-teal/5 border-holly-teal/15";
     
   return (
     <motion.div
@@ -307,7 +308,7 @@ function SystemHealthIndicator({ health }: { health: SystemHealth | null }) {
         <Activity className="w-2.5 h-2.5" />
         {health.healthy && (
           <motion.div
-            className="absolute inset-0 rounded-full bg-holly-gold/40"
+            className="absolute inset-0 rounded-full bg-holly-teal/40"
             animate={{ scale: [1, 1.8, 1], opacity: [0.6, 0, 0.6] }}
             transition={{ duration: 2, repeat: Infinity }}
           />
@@ -343,12 +344,12 @@ function ToolCard({ execution }: { execution: ToolExecution }) {
       <Icon className={`w-4 h-4 flex-shrink-0 ${meta.color}`} />
       <span className="text-gray-300 flex-1">{meta.label}</span>
       {execution.status === "start" && (
-        <Loader2 className="w-3.5 h-3.5 animate-spin text-holly-gold flex-shrink-0" />
+        <Loader2 className="w-3.5 h-3.5 animate-spin text-holly-teal flex-shrink-0" />
       )}
       {execution.status === "start" && execution.progressPercent !== undefined && execution.progressPercent > 0 && (
         <div className="w-20 h-1 bg-white/10 rounded-full overflow-hidden flex-shrink-0">
           <motion.div
-            className="h-full bg-holly-gold/60 rounded-full"
+            className="h-full bg-holly-teal/60 rounded-full"
             animate={{ width: `${execution.progressPercent}%` }}
             transition={{ duration: 0.3 }}
           />
@@ -358,14 +359,14 @@ function ToolCard({ execution }: { execution: ToolExecution }) {
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
-          className="w-4 h-4 rounded-full bg-holly-gold/20 flex items-center justify-center flex-shrink-0"
+          className="w-4 h-4 rounded-full bg-holly-teal/20 flex items-center justify-center flex-shrink-0"
         >
-          <Check className="w-2.5 h-2.5 text-holly-gold" />
+          <Check className="w-2.5 h-2.5 text-holly-teal" />
         </motion.div>
       )}
       {execution.status === "error" && (
-        <div className="w-4 h-4 rounded-full bg-holly-crimson/20 flex items-center justify-center flex-shrink-0">
-          <X className="w-2.5 h-2.5 text-holly-crimson" />
+        <div className="w-4 h-4 rounded-full bg-holly-coral/20 flex items-center justify-center flex-shrink-0">
+          <X className="w-2.5 h-2.5 text-holly-coral" />
         </div>
       )}
     </motion.div>
@@ -492,12 +493,12 @@ function SpeakButton({ text, messageId }: { text: string; messageId: string }) {
       onClick={handleClick}
       className={`opacity-0 group-hover:opacity-100 transition-all p-1.5 rounded-md ${
         error
-          ? "text-holly-crimson bg-holly-crimson/10 opacity-100"
+          ? "text-holly-coral bg-holly-coral/10 opacity-100"
           : playing
-          ? "text-holly-gold bg-holly-gold/15 opacity-100"
+          ? "text-holly-teal bg-holly-teal/15 opacity-100"
           : loading
-          ? "text-holly-gold/60 opacity-100 cursor-pointer"
-          : "text-holly-ivory/50 hover:text-holly-gold hover:bg-holly-gold/10"
+          ? "text-holly-teal/60 opacity-100 cursor-pointer"
+          : "text-holly-cream/50 hover:text-holly-teal hover:bg-holly-teal/10"
       }`}
       title={
         playing ? "Stop speaking"
@@ -534,8 +535,8 @@ function CopyButton({ text }: CopyButtonProps) {
       onClick={copy}
       className={`p-1.5 rounded-md transition-all ${
         copied
-          ? "text-[#2D8B5E] bg-[#2D8B5E]/15"
-          : "text-holly-ivory/50 hover:text-holly-gold hover:bg-holly-gold/10"
+          ? "text-[#66CCCC] bg-[#66CCCC]/15"
+          : "text-holly-cream/50 hover:text-holly-teal hover:bg-holly-teal/10"
       }`}
       title="Copy message"
       aria-label="Copy message"
@@ -598,8 +599,8 @@ function FeedbackButtons({
          disabled={!!voted || sending}
          className={`p-1.5 rounded-md transition-all ${
            voted === "up"
-             ? "text-holly-gold bg-holly-gold/10"
-             : "text-holly-ivory/40 hover:text-holly-gold hover:bg-holly-gold/10"
+             ? "text-holly-teal bg-holly-teal/10"
+             : "text-holly-cream/40 hover:text-holly-teal hover:bg-holly-teal/10"
          } disabled:cursor-default`}
          title="Good response"
          aria-label="Good response"
@@ -612,8 +613,8 @@ function FeedbackButtons({
          disabled={!!voted || sending}
          className={`p-1.5 rounded-md transition-all ${
            voted === "down"
-             ? "text-holly-crimson bg-holly-crimson/10"
-             : "text-holly-ivory/40 hover:text-holly-crimson hover:bg-holly-crimson/10"
+             ? "text-holly-coral bg-holly-coral/10"
+             : "text-holly-cream/40 hover:text-holly-coral hover:bg-holly-coral/10"
          } disabled:cursor-default`}
          title="Could be better"
          aria-label="Poor response"
@@ -639,13 +640,13 @@ function CodeCopyButton({ text }: { text: string }) {
       onClick={copy}
       className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold tracking-wider uppercase transition-all duration-300 border ${
         copied 
-          ? "text-[#2D8B5E] bg-[#2D8B5E]/10 border-[#2D8B5E]/25" 
+          ? "text-[#66CCCC] bg-[#66CCCC]/10 border-[#66CCCC]/25" 
           : "text-white/40 border-white/5 hover:text-white hover:bg-white/5 hover:border-white/10"
       }`}
     >
       {copied ? (
         <>
-          <Check className="w-3 h-3 text-[#2D8B5E]" />
+          <Check className="w-3 h-3 text-[#66CCCC]" />
           <span>Copied</span>
         </>
       ) : (
@@ -698,15 +699,15 @@ function DiagnosticsModal({
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
         transition={{ type: "spring", duration: 0.5 }}
-        className="fixed inset-x-4 top-[10%] bottom-[10%] sm:inset-auto sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-[500px] sm:h-auto max-h-[80vh] z-50 sdi-glass-warm border border-[#2D8B5E]/20 rounded-3xl p-6 overflow-y-auto flex flex-col"
+        className="fixed inset-x-4 top-[10%] bottom-[10%] sm:inset-auto sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-[500px] sm:h-auto max-h-[80vh] z-50 sdi-glass-warm border border-[#66CCCC]/20 rounded-3xl p-6 overflow-y-auto flex flex-col"
       >
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-white/5 mb-6">
           <div className="flex items-center gap-3">
-            <Activity className="w-5 h-5 text-[#2D8B5E] animate-pulse" />
+            <Activity className="w-5 h-5 text-[#66CCCC] animate-pulse" />
             <div>
               <h2 className="text-sm font-black tracking-widest text-white uppercase">Nexus Diagnostics</h2>
-              <p className="text-[9px] text-[#2D8B5E]/60 font-bold uppercase tracking-wider">Sovereign Architecture</p>
+              <p className="text-[9px] text-[#66CCCC]/60 font-bold uppercase tracking-wider">Sovereign Architecture</p>
             </div>
           </div>
           <button
@@ -726,7 +727,7 @@ function DiagnosticsModal({
               <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest block mb-1">Integrity State</span>
               <span className={`text-base font-black uppercase tracking-wider ${
                 !systemHealth ? 'text-white/60' :
-                systemHealth.healthy ? 'text-[#2D8B5E]' : 'text-[#C47A4A]'
+                systemHealth.healthy ? 'text-[#66CCCC]' : 'text-[#C7B8EA]'
               }`}>
                 {!systemHealth ? 'Syncing...' : systemHealth.healthy ? 'Stable (Nominal)' : 'Degraded'}
               </span>
@@ -741,11 +742,11 @@ function DiagnosticsModal({
               <div className="relative w-8 h-8 flex items-center justify-center">
                 <span className={`absolute inset-0 rounded-full ${
                   !systemHealth ? 'bg-white/10' :
-                  systemHealth.healthy ? 'bg-[#2D8B5E]/20' : 'bg-[#C47A4A]/20'
+                  systemHealth.healthy ? 'bg-[#66CCCC]/20' : 'bg-[#C7B8EA]/20'
                 } animate-ping`} />
                 <div className={`w-3 h-3 rounded-full ${
                   !systemHealth ? 'bg-white/40' :
-                  systemHealth.healthy ? 'bg-[#2D8B5E]' : 'bg-[#C47A4A]'
+                  systemHealth.healthy ? 'bg-[#66CCCC]' : 'bg-[#C7B8EA]'
                 }`} />
               </div>
             </div>
@@ -759,11 +760,11 @@ function DiagnosticsModal({
                 <span className="text-[9px] font-bold text-white/40 uppercase tracking-widest block mb-1.5">Cognitive Load (CPU)</span>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs font-mono font-bold text-white">{cpuLoad}</span>
-                  <span className="text-[8px] text-[#2D8B5E] font-bold uppercase tracking-tighter">Active</span>
+                  <span className="text-[8px] text-[#66CCCC] font-bold uppercase tracking-tighter">Active</span>
                 </div>
                 <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
                   <motion.div
-                    className="h-full bg-gradient-to-r from-[#2D8B5E] to-[#C47A4A]"
+                    className="h-full bg-gradient-to-r from-[#66CCCC] to-[#C7B8EA]"
                     initial={{ width: "0%" }}
                     animate={{ width: cpuLoad }}
                     transition={{ duration: 1 }}
@@ -778,7 +779,7 @@ function DiagnosticsModal({
                   <span className="text-[8px] text-white/30 font-bold uppercase tracking-tighter">Allocated</span>
                 </div>
                 <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
-                  <div className="h-full bg-[#2D8B5E] w-[60%]" />
+                  <div className="h-full bg-[#66CCCC] w-[60%]" />
                 </div>
               </div>
             </div>
@@ -790,15 +791,15 @@ function DiagnosticsModal({
             <div className="space-y-2">
               <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/5 text-xs">
                 <div className="flex items-center gap-2">
-                  <Database className="w-3.5 h-3.5 text-[#2D8B5E]/60" />
+                  <Database className="w-3.5 h-3.5 text-[#66CCCC]/60" />
                   <span className="text-gray-300">Database Core Connection</span>
                 </div>
-                <span className="font-mono text-[#2D8B5E] font-bold">{dbLatency}ms</span>
+                <span className="font-mono text-[#66CCCC] font-bold">{dbLatency}ms</span>
               </div>
               
               <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/5 text-xs">
                 <div className="flex items-center gap-2">
-                  <Zap className="w-3.5 h-3.5 text-[#2D8B5E]/60" />
+                  <Zap className="w-3.5 h-3.5 text-[#66CCCC]/60" />
                   <span className="text-gray-300">Active Live-Streams</span>
                 </div>
                 <span className="font-mono text-white font-bold">{activeStreams} streams</span>
@@ -806,7 +807,7 @@ function DiagnosticsModal({
 
               <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/5 text-xs">
                 <div className="flex items-center gap-2">
-                  <Bot className="w-3.5 h-3.5 text-[#2D8B5E]/60" />
+                  <Bot className="w-3.5 h-3.5 text-[#66CCCC]/60" />
                   <span className="text-gray-300">Neural Model Class</span>
                 </div>
                 <span className="font-mono text-white/80 font-bold truncate max-w-[150px] uppercase">
@@ -830,30 +831,30 @@ function DiagnosticsModal({
 // ─── Action Indicator ─────────────────────────────────────────────────────────
 // Maps status text prefixes to icons and colors for rich display
 const ACTION_META: Array<{ test: RegExp; icon: any; color: string; bg: string; label?: string }> = [
-  { test: /generating image|creating image|drawing/i,   icon: Image,       color: "text-holly-crimson", bg: "bg-holly-crimson/10 border-holly-crimson/30" },
-  { test: /composing music|generating music|making.*song/i, icon: Volume2,  color: "text-holly-gold",    bg: "bg-holly-gold/10 border-holly-gold/30" },
-  { test: /reading document|analyzing.*doc|summariz/i,  icon: Database,    color: "text-holly-gold/80", bg: "bg-holly-gold/5 border-holly-gold/20" },
-  { test: /searching.*web|searching the web|searching web/i, icon: Search,  color: "text-holly-gold",    bg: "bg-holly-gold/10 border-holly-gold/30" },
-  { test: /processing code|analyzing code|writing code/i,  icon: Code2,    color: "text-holly-gold",    bg: "bg-holly-gold/10 border-holly-gold/30" },
-  { test: /searching memories|recall|memory/i,          icon: Brain,       color: "text-holly-gold",    bg: "bg-holly-gold/10 border-holly-gold/30" },
-  { test: /analyzing audio|checking audio|mixing|mastering/i, icon: Volume2, color: "text-holly-gold/70", bg: "bg-holly-gold/5 border-holly-gold/20" },
-  { test: /accessing github|github|repo/i,              icon: Github,      color: "text-holly-ivory/60", bg: "bg-holly-ivory/5 border-holly-ivory/10" },
-  { test: /generating video|rendering video/i,          icon: Cpu,         color: "text-holly-crimson", bg: "bg-holly-crimson/10 border-holly-crimson/30" },
-  { test: /analyzing data|computing|calculating/i,      icon: TrendingUp,  color: "text-holly-gold",    bg: "bg-holly-gold/10 border-holly-gold/30" },
-  { test: /thinking deeply|deep reasoning|reasoning/i,  icon: Brain,       color: "text-holly-gold",    bg: "bg-holly-gold/10 border-holly-gold/30" },
-  { test: /switching model|trying|switching/i,          icon: Zap,         color: "text-holly-gold/80", bg: "bg-holly-gold/5 border-holly-gold/20" },
-  { test: /using.*tool|tool/i,                          icon: Terminal,    color: "text-holly-gold",    bg: "bg-holly-gold/10 border-holly-gold/30" },
-  { test: /fast chat|speed|routing/i,                   icon: Zap,         color: "text-holly-gold",    bg: "bg-holly-gold/10 border-holly-gold/20" },
-  { test: /vision|analyzing.*image|looking at/i,        icon: Globe,       color: "text-holly-gold/90", bg: "bg-holly-gold/10 border-holly-gold/30" },
-  { test: /agent|autonomous|planning/i,                 icon: Bot,         color: "text-holly-gold",    bg: "bg-holly-gold/10 border-holly-gold/30" },
-  { test: /creative/i,                                  icon: Sparkles,    color: "text-holly-crimson", bg: "bg-holly-crimson/10 border-holly-crimson/30" },
+  { test: /generating image|creating image|drawing/i,   icon: Image,       color: "text-holly-coral", bg: "bg-holly-coral/10 border-holly-coral/30" },
+  { test: /composing music|generating music|making.*song/i, icon: Volume2,  color: "text-holly-teal",    bg: "bg-holly-teal/10 border-holly-teal/30" },
+  { test: /reading document|analyzing.*doc|summariz/i,  icon: Database,    color: "text-holly-teal/80", bg: "bg-holly-teal/5 border-holly-teal/20" },
+  { test: /searching.*web|searching the web|searching web/i, icon: Search,  color: "text-holly-teal",    bg: "bg-holly-teal/10 border-holly-teal/30" },
+  { test: /processing code|analyzing code|writing code/i,  icon: Code2,    color: "text-holly-teal",    bg: "bg-holly-teal/10 border-holly-teal/30" },
+  { test: /searching memories|recall|memory/i,          icon: Brain,       color: "text-holly-teal",    bg: "bg-holly-teal/10 border-holly-teal/30" },
+  { test: /analyzing audio|checking audio|mixing|mastering/i, icon: Volume2, color: "text-holly-teal/70", bg: "bg-holly-teal/5 border-holly-teal/20" },
+  { test: /accessing github|github|repo/i,              icon: Github,      color: "text-holly-cream/60", bg: "bg-holly-cream/5 border-holly-cream/10" },
+  { test: /generating video|rendering video/i,          icon: Cpu,         color: "text-holly-coral", bg: "bg-holly-coral/10 border-holly-coral/30" },
+  { test: /analyzing data|computing|calculating/i,      icon: TrendingUp,  color: "text-holly-teal",    bg: "bg-holly-teal/10 border-holly-teal/30" },
+  { test: /thinking deeply|deep reasoning|reasoning/i,  icon: Brain,       color: "text-holly-teal",    bg: "bg-holly-teal/10 border-holly-teal/30" },
+  { test: /switching model|trying|switching/i,          icon: Zap,         color: "text-holly-teal/80", bg: "bg-holly-teal/5 border-holly-teal/20" },
+  { test: /using.*tool|tool/i,                          icon: Terminal,    color: "text-holly-teal",    bg: "bg-holly-teal/10 border-holly-teal/30" },
+  { test: /fast chat|speed|routing/i,                   icon: Zap,         color: "text-holly-teal",    bg: "bg-holly-teal/10 border-holly-teal/20" },
+  { test: /vision|analyzing.*image|looking at/i,        icon: Globe,       color: "text-holly-teal/90", bg: "bg-holly-teal/10 border-holly-teal/30" },
+  { test: /agent|autonomous|planning/i,                 icon: Bot,         color: "text-holly-teal",    bg: "bg-holly-teal/10 border-holly-teal/30" },
+  { test: /creative/i,                                  icon: Sparkles,    color: "text-holly-coral", bg: "bg-holly-coral/10 border-holly-coral/30" },
 ];
 
 function getActionMeta(text: string) {
   for (const m of ACTION_META) {
     if (m.test.test(text)) return m;
   }
-  return { icon: Sparkles, color: "text-holly-gold", bg: "bg-holly-gold/10 border-holly-gold/20" };
+  return { icon: Sparkles, color: "text-holly-teal", bg: "bg-holly-teal/10 border-holly-teal/20" };
 }
 
 function ActionIndicator({ text, progress }: { text: string; progress?: number }) {
@@ -936,7 +937,7 @@ const MarkdownContent = memo(function MarkdownContent({ content }: { content: st
             return (
               <div className="my-4 rounded-xl overflow-hidden border border-white/5 shadow-2xl bg-[#0A0908]/80 backdrop-blur-md">
                 <div className="flex items-center justify-between px-4 py-2 bg-[#0A0908]/50 border-b border-white/5">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-[#2D8B5E]/70 font-mono">{language}</span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-[#66CCCC]/70 font-mono">{language}</span>
                   <CodeCopyButton text={codeString} />
                 </div>
                 <SyntaxHighlighter
@@ -952,20 +953,20 @@ const MarkdownContent = memo(function MarkdownContent({ content }: { content: st
             );
           }
           return (
-            <code className="px-1.5 py-0.5 rounded bg-gray-800/80 text-holly-gold/90 font-mono text-[0.82em]" {...props}>
+            <code className="px-1.5 py-0.5 rounded bg-gray-800/80 text-holly-teal/90 font-mono text-[0.82em]" {...props}>
               {children}
             </code>
           );
         },
         p: ({ children }) => <p className="mb-3 last:mb-0 leading-relaxed">{children}</p>,
-        ul: ({ children }) => <ul className="mb-3 ml-4 space-y-1 list-disc marker:text-holly-gold/60">{children}</ul>,
-        ol: ({ children }) => <ol className="mb-3 ml-4 space-y-1 list-decimal marker:text-holly-gold/60">{children}</ol>,
+        ul: ({ children }) => <ul className="mb-3 ml-4 space-y-1 list-disc marker:text-holly-teal/60">{children}</ul>,
+        ol: ({ children }) => <ol className="mb-3 ml-4 space-y-1 list-decimal marker:text-holly-teal/60">{children}</ol>,
         li: ({ children }) => <li className="leading-relaxed">{children}</li>,
         h1: ({ children }) => <h1 className="text-xl font-bold text-white mt-4 mb-2 pb-1 border-b border-gray-700/50">{children}</h1>,
         h2: ({ children }) => <h2 className="text-lg font-semibold text-white mt-4 mb-2">{children}</h2>,
         h3: ({ children }) => <h3 className="text-base font-semibold text-gray-200 mt-3 mb-1.5">{children}</h3>,
         blockquote: ({ children }) => (
-          <blockquote className="border-l-2 border-holly-gold/30 pl-4 my-3 text-holly-ivory/60 italic">{children}</blockquote>
+          <blockquote className="border-l-2 border-holly-teal/30 pl-4 my-3 text-holly-cream/60 italic">{children}</blockquote>
         ),
         table: ({ children }) => (
           <div className="overflow-x-auto my-3">
@@ -980,7 +981,7 @@ const MarkdownContent = memo(function MarkdownContent({ content }: { content: st
         ),
         a: ({ href, children }) => (
           <a href={href} target="_blank" rel="noopener noreferrer"
-            className="text-holly-gold hover:text-holly-gold/80 underline underline-offset-2 transition-colors font-medium">
+            className="text-holly-teal hover:text-holly-teal/80 underline underline-offset-2 transition-colors font-medium">
             {children}
           </a>
         ),
@@ -1034,7 +1035,7 @@ function AssistantContent({ content }: { content: string }) {
               rel="noopener noreferrer"
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="block rounded-xl overflow-hidden border border-holly-ivory/10 shadow-lg hover:border-holly-gold/40 transition-colors"
+              className="block rounded-xl overflow-hidden border border-holly-cream/10 shadow-lg hover:border-holly-teal/40 transition-colors"
             >
               <img
                 src={src}
@@ -1059,7 +1060,7 @@ function AssistantContent({ content }: { content: string }) {
               <Music className="w-4 h-4 text-green-400 flex-shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="text-[10px] text-gray-500 truncate mb-1">{src.split('/').pop()?.slice(0, 40) || "Audio track"}</p>
-                <audio controls src={src} className="w-full h-8" style={{ accentColor: '#2D8B5E' }} />
+                <audio controls src={src} className="w-full h-8" style={{ accentColor: '#66CCCC' }} />
               </div>
             </motion.div>
           ))}
@@ -1111,7 +1112,7 @@ function TypingWelcome({ isCreator, displayName }: { isCreator: boolean; display
         )}
         {phase === "title" && (
           <motion.span
-            className="inline-block w-0.5 h-6 bg-holly-gold ml-0.5 align-middle"
+            className="inline-block w-0.5 h-6 bg-holly-teal ml-0.5 align-middle"
             animate={{ opacity: [1, 0, 1] }}
             transition={{ duration: 0.8, repeat: Infinity }}
           />
@@ -1150,21 +1151,21 @@ function InitiativeBanner({
   const typeLabels: Record<string, { label: string; color: string }> = {
     start_conversation: { label: "💡 Idea", color: "text-yellow-300" },
     goal_suggestion:    { label: "🎯 Goal", color: "text-emerald-300" },
-    check_in:          { label: "💜 Check-in", color: "text-holly-crimson" },
-    learning_insight:  { label: "🧠 Insight", color: "text-holly-gold/80" },
+    check_in:          { label: "💜 Check-in", color: "text-holly-coral" },
+    learning_insight:  { label: "🧠 Insight", color: "text-holly-teal/80" },
   };
-  const meta = typeLabels[item.type] || { label: "✨ Initiative", color: "text-holly-crimson" };
+  const meta = typeLabels[item.type] || { label: "✨ Initiative", color: "text-holly-coral" };
 
   return (
     <motion.div
       initial={{ opacity: 0, y: -12, height: 0 }}
       animate={{ opacity: 1, y: 0, height: "auto" }}
       exit={{ opacity: 0, y: -12, height: 0 }}
-      className="border-b border-holly-gold/20 bg-gradient-to-r from-holly-gold/10 via-holly-void/90 to-holly-void/80 flex-shrink-0 overflow-hidden"
+      className="border-b border-holly-teal/20 bg-gradient-to-r from-holly-teal/10 via-holly-void/90 to-holly-void/80 flex-shrink-0 overflow-hidden"
     >
       <div className="flex items-start gap-3 px-4 py-3">
-        <div className="flex-shrink-0 w-7 h-7 rounded-lg bg-holly-gold/10 flex items-center justify-center mt-0.5">
-          <Bell className="w-3.5 h-3.5 text-holly-gold" />
+        <div className="flex-shrink-0 w-7 h-7 rounded-lg bg-holly-teal/10 flex items-center justify-center mt-0.5">
+          <Bell className="w-3.5 h-3.5 text-holly-teal" />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-0.5">
@@ -1178,7 +1179,7 @@ function InitiativeBanner({
         <div className="flex items-center gap-1.5 flex-shrink-0">
           <button
             onClick={() => onAct(item.content)}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium text-holly-gold bg-holly-gold/10 hover:bg-holly-gold/20 border border-holly-gold/20 transition-all"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium text-holly-teal bg-holly-teal/10 hover:bg-holly-teal/20 border border-holly-teal/20 transition-all"
           >
             Reply
             <ChevronRight className="w-3 h-3" />
@@ -1396,7 +1397,7 @@ function AgentModal({ onClose }: { onClose: () => void }) {
 
   // step icon
   const stepIcon = (s: AgentStepState) => {
-    if (s.status === "running")  return <Loader2 className="w-3 h-3 animate-spin text-holly-gold flex-shrink-0" />;
+    if (s.status === "running")  return <Loader2 className="w-3 h-3 animate-spin text-holly-teal flex-shrink-0" />;
     if (s.status === "success")  return <Check className="w-3 h-3 text-green-400 flex-shrink-0" />;
     if (s.status === "error")    return <X className="w-3 h-3 text-red-400 flex-shrink-0" />;
     return <span className="w-3 h-3 flex-shrink-0 text-gray-400 text-center">–</span>;
@@ -1420,11 +1421,11 @@ function AgentModal({ onClose }: { onClose: () => void }) {
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-800 flex-shrink-0">
           <div className="flex items-center gap-2.5">
             <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${
-              isRunning ? "bg-holly-gold/20" : "bg-holly-gold/10"
+              isRunning ? "bg-holly-teal/20" : "bg-holly-teal/10"
             }`}>
               {isRunning
-                ? <Loader2 className="w-4 h-4 text-holly-gold animate-spin" />
-                : <Bot className="w-4 h-4 text-holly-gold" />
+                ? <Loader2 className="w-4 h-4 text-holly-teal animate-spin" />
+                : <Bot className="w-4 h-4 text-holly-teal" />
               }
             </div>
             <div>
@@ -1462,7 +1463,7 @@ function AgentModal({ onClose }: { onClose: () => void }) {
                 autoFocus
                 placeholder="e.g. Search GitHub for recent issues in my repo and summarise them"
                 rows={3}
-                className="w-full px-3 py-2.5 bg-gray-800 border border-gray-700/60 rounded-xl text-sm text-white placeholder-gray-600 resize-none focus:outline-none focus:border-holly-gold/50 transition-colors"
+                className="w-full px-3 py-2.5 bg-gray-800 border border-gray-700/60 rounded-xl text-sm text-white placeholder-gray-600 resize-none focus:outline-none focus:border-holly-teal/50 transition-colors"
                 onKeyDown={e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) run(); }}
               />
               <p className="text-[10px] text-gray-400 mt-1">⌘↵ / Ctrl↵ to run</p>
@@ -1479,7 +1480,7 @@ function AgentModal({ onClose }: { onClose: () => void }) {
 
           {/* Planning pulse */}
           {phase === "planning" && (
-            <div className="flex items-center gap-2 text-xs text-holly-gold">
+            <div className="flex items-center gap-2 text-xs text-holly-teal">
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
               Planning steps with Groq…
             </div>
@@ -1496,10 +1497,10 @@ function AgentModal({ onClose }: { onClose: () => void }) {
                     initial={{ opacity: 0, x: -8 }}
                     animate={{ opacity: 1, x: 0 }}
                     className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs border transition-colors ${
-                      s.status === "running"  ? "bg-holly-gold/10 border-holly-gold/20 text-holly-gold"
-                      : s.status === "success" ? "bg-holly-gold/10  border-holly-gold/20  text-holly-gold"
-                      : s.status === "error"   ? "bg-holly-crimson/10    border-holly-crimson/20    text-holly-crimson"
-                      : "bg-white/5 border-white/5 text-holly-ivory/40"
+                      s.status === "running"  ? "bg-holly-teal/10 border-holly-teal/20 text-holly-teal"
+                      : s.status === "success" ? "bg-holly-teal/10  border-holly-teal/20  text-holly-teal"
+                      : s.status === "error"   ? "bg-holly-coral/10    border-holly-coral/20    text-holly-coral"
+                      : "bg-white/5 border-white/5 text-holly-cream/40"
                     }`}
                   >
                     {stepIcon(s)}
@@ -1525,7 +1526,7 @@ function AgentModal({ onClose }: { onClose: () => void }) {
                   <motion.span
                     animate={{ opacity: [1, 0] }}
                     transition={{ duration: 0.6, repeat: Infinity }}
-                    className="inline-block w-0.5 h-3.5 bg-holly-gold ml-0.5 align-middle"
+                    className="inline-block w-0.5 h-3.5 bg-holly-teal ml-0.5 align-middle"
                   />
                 )}
               </p>
@@ -1553,7 +1554,7 @@ function AgentModal({ onClose }: { onClose: () => void }) {
             <button
               onClick={run}
               disabled={!goal.trim()}
-              className="flex items-center gap-2 px-4 py-2 bg-holly-gold hover:bg-holly-gold/80 disabled:opacity-40 disabled:cursor-not-allowed text-holly-void text-xs font-bold rounded-lg transition-colors shadow-[0_0_15px_rgba(212,168,83,0.3)]"
+              className="flex items-center gap-2 px-4 py-2 bg-holly-teal hover:bg-holly-teal/80 disabled:opacity-40 disabled:cursor-not-allowed text-holly-void text-xs font-bold rounded-lg transition-colors shadow-[0_0_15px_rgba(102,204,204,0.3)]"
             >
               <Zap className="w-3.5 h-3.5 fill-current" />
               Run Agent
@@ -2621,13 +2622,13 @@ export default function HollyChatInterface() {
               !systemHealth
                 ? "border-white/5 text-white/30"
                 : systemHealth.healthy
-                ? "border-[#2D8B5E]/20 text-[#2D8B5E] hover:border-[#2D8B5E]/40"
-                : "border-[#C47A4A]/20 text-[#C47A4A] hover:border-[#C47A4A]/40"
+                ? "border-[#66CCCC]/20 text-[#66CCCC] hover:border-[#66CCCC]/40"
+                : "border-[#C7B8EA]/20 text-[#C7B8EA] hover:border-[#C7B8EA]/40"
             }`}
             title="Sovereign Core Diagnostics"
           >
             <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${
-              !systemHealth ? "bg-white/20" : systemHealth.healthy ? "bg-[#2D8B5E]" : "bg-[#C47A4A]"
+              !systemHealth ? "bg-white/20" : systemHealth.healthy ? "bg-[#66CCCC]" : "bg-[#C7B8EA]"
             }`} />
             <span className="text-[9px] font-black uppercase tracking-widest font-mono">
               {!systemHealth ? "Syncing" : systemHealth.healthy ? "Nominal" : "Degraded"}
@@ -2663,7 +2664,7 @@ export default function HollyChatInterface() {
                   </div>
                 )}
               </div>
-              <div className="absolute top-0 right-0 w-2.5 h-2.5 bg-holly-gold border-2 border-holly-void rounded-full shadow-lg" />
+              <div className="absolute top-0 right-0 w-2.5 h-2.5 bg-holly-teal border-2 border-holly-void rounded-full shadow-lg" />
             </div>
           </div>
         </div>
@@ -2735,12 +2736,12 @@ export default function HollyChatInterface() {
                         whileHover={{ scale: 1.02, y: -1 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={startNewConversation}
-                        className="w-full flex items-center justify-between px-4 py-2.5 bg-gradient-to-r from-[#2D8B5E]/20 to-[#C47A4A]/20 hover:from-[#2D8B5E]/30 hover:to-[#C47A4A]/30 text-white rounded-xl border border-[#2D8B5E]/30 transition-all font-bold text-xs tracking-wider uppercase group shadow-md"
+                        className="w-full flex items-center justify-between px-4 py-2.5 bg-gradient-to-r from-[#66CCCC]/20 to-[#C7B8EA]/20 hover:from-[#66CCCC]/30 hover:to-[#C7B8EA]/30 text-white rounded-xl border border-[#66CCCC]/30 transition-all font-bold text-xs tracking-wider uppercase group shadow-md"
                       >
                         <span>Initiate Thread</span>
                         <div className="relative flex items-center justify-center">
-                          <Plus className="w-4 h-4 text-[#2D8B5E] group-hover:rotate-90 transition-transform duration-300" />
-                          <span className="absolute inset-0 rounded-full border border-[#2D8B5E]/40 scale-[1.5] animate-ping" />
+                          <Plus className="w-4 h-4 text-[#66CCCC] group-hover:rotate-90 transition-transform duration-300" />
+                          <span className="absolute inset-0 rounded-full border border-[#66CCCC]/40 scale-[1.5] animate-ping" />
                         </div>
                       </motion.button>
 
@@ -2902,7 +2903,7 @@ export default function HollyChatInterface() {
               {/* User profile section - Common to all tabs */}
               <div className="border-t border-white/5 bg-black/40 flex-shrink-0">
                 <div className="flex items-center gap-2 px-3 py-3">
-                  <div className="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-holly-gold to-holly-crimson flex items-center justify-center flex-shrink-0 border border-white/10 p-0.5 shadow-lg shadow-holly-gold/20">
+                  <div className="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-holly-teal to-holly-coral flex items-center justify-center flex-shrink-0 border border-white/10 p-0.5 shadow-lg shadow-holly-teal/20">
                     {user?.imageUrl ? (
                       <img src={user.imageUrl} alt={user.firstName || "User"} className="w-full h-full rounded-full object-cover" />
                     ) : (
@@ -2983,15 +2984,15 @@ export default function HollyChatInterface() {
                   className="flex items-center gap-3 mb-4"
                 >
                   {growthStats.streak > 0 && (
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-holly-crimson/10 border border-holly-crimson/20">
-                      <Flame className="w-3.5 h-3.5 text-holly-crimson" />
-                      <span className="text-xs text-holly-crimson font-medium">{growthStats.streak} day streak</span>
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-holly-coral/10 border border-holly-coral/20">
+                      <Flame className="w-3.5 h-3.5 text-holly-coral" />
+                      <span className="text-xs text-holly-coral font-medium">{growthStats.streak} day streak</span>
                     </div>
                   )}
                   {growthStats.totalMessages > 0 && (
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-holly-gold/10 border border-holly-gold/20">
-                      <MessageSquare className="w-3.5 h-3.5 text-holly-gold" />
-                      <span className="text-xs text-holly-gold/80 font-medium">{growthStats.totalMessages.toLocaleString()} messages</span>
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-holly-teal/10 border border-holly-teal/20">
+                      <MessageSquare className="w-3.5 h-3.5 text-holly-teal" />
+                      <span className="text-xs text-holly-teal/80 font-medium">{growthStats.totalMessages.toLocaleString()} messages</span>
                     </div>
                   )}
                 </motion.div>
@@ -2999,8 +3000,8 @@ export default function HollyChatInterface() {
               {/* ── Enhanced Sovereign Welcome Experience ── */}
               <div className="relative w-full flex flex-col items-center">
                 {/* Cinematic Background Glow */}
-                <div className="absolute -top-20 sm:-top-40 left-1/2 -translate-x-1/2 w-[300px] sm:w-[600px] h-[300px] sm:h-[600px] bg-holly-gold/5 rounded-full blur-[80px] sm:blur-[120px] pointer-events-none" />
-                <div className="absolute -top-10 sm:-top-20 left-1/2 -translate-x-1/2 w-[200px] sm:w-[300px] h-[200px] sm:h-[300px] bg-holly-crimson/5 rounded-full blur-[60px] sm:blur-[80px] pointer-events-none animate-pulse" />
+                <div className="absolute -top-20 sm:-top-40 left-1/2 -translate-x-1/2 w-[300px] sm:w-[600px] h-[300px] sm:h-[600px] bg-holly-teal/5 rounded-full blur-[80px] sm:blur-[120px] pointer-events-none" />
+                <div className="absolute -top-10 sm:-top-20 left-1/2 -translate-x-1/2 w-[200px] sm:w-[300px] h-[200px] sm:h-[300px] bg-holly-coral/5 rounded-full blur-[60px] sm:blur-[80px] pointer-events-none animate-pulse" />
 
                 {/* Central Avatar with Decorative Rings */}
                 <motion.div
@@ -3009,11 +3010,11 @@ export default function HollyChatInterface() {
                   transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
                   className="relative z-10 mb-10 group"
                 >
-                  <div className="absolute inset-0 rounded-full border border-holly-gold/20 scale-[1.6] animate-[ping_4s_linear_infinite]" />
-                  <div className="absolute inset-0 rounded-full border border-holly-gold/10 scale-[1.3] animate-pulse" />
-                  <div className="p-1 rounded-full bg-gradient-to-b from-holly-gold/10 to-transparent shadow-2xl relative">
+                  <div className="absolute inset-0 rounded-full border border-holly-teal/20 scale-[1.6] animate-[ping_4s_linear_infinite]" />
+                  <div className="absolute inset-0 rounded-full border border-holly-teal/10 scale-[1.3] animate-pulse" />
+                  <div className="p-1 rounded-full bg-gradient-to-b from-holly-teal/10 to-transparent shadow-2xl relative">
                     <div className="sdi-scanline rounded-full" />
-                    <div className="bg-holly-void rounded-full p-3 sm:p-5 shadow-inner border border-holly-gold/5 group-hover:border-holly-gold/40 transition-colors duration-500">
+                    <div className="bg-holly-void rounded-full p-3 sm:p-5 shadow-inner border border-holly-teal/5 group-hover:border-holly-teal/40 transition-colors duration-500">
                       <HollyAvatar
                         size={120}
                         showGlow={true}
@@ -3044,8 +3045,8 @@ export default function HollyChatInterface() {
                       onClick={() => { setInput(s); textareaRef.current?.focus(); }}
                       className={`px-3 sm:px-5 py-2.5 sm:py-3 text-[11px] sm:text-xs font-medium rounded-xl sm:rounded-2xl transition-all duration-300 flex items-center justify-center text-center ${
                         isCreator
-                          ? 'text-holly-gold bg-holly-gold/5 border border-holly-gold/20 hover:bg-holly-gold/10 hover:border-holly-gold/40 hover:shadow-[0_0_15px_rgba(212,168,83,0.1)]'
-                          : 'text-holly-ivory/60 bg-white/5 border border-white/10 hover:bg-white/10 hover:border-holly-gold/40 hover:text-holly-ivory hover:shadow-[0_0_15px_rgba(212,168,83,0.1)]'
+                          ? 'text-holly-teal bg-holly-teal/5 border border-holly-teal/20 hover:bg-holly-teal/10 hover:border-holly-teal/40 hover:shadow-[0_0_15px_rgba(102,204,204,0.1)]'
+                          : 'text-holly-cream/60 bg-white/5 border border-white/10 hover:bg-white/10 hover:border-holly-teal/40 hover:text-holly-cream hover:shadow-[0_0_15px_rgba(102,204,204,0.1)]'
                       }`}
                     >
                       {s}
@@ -3058,7 +3059,7 @@ export default function HollyChatInterface() {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => setAgentOpen(true)}
-                  className="mt-4 sm:mt-6 flex items-center gap-2 sm:gap-3 px-4 sm:px-6 py-3 sm:py-3.5 bg-gradient-to-r from-holly-gold/20 to-holly-crimson/20 border border-holly-gold/30 rounded-2xl text-xs sm:text-sm font-semibold text-holly-gold hover:from-holly-gold/30 hover:to-holly-crimson/30 transition-all shadow-lg shadow-holly-gold/5 group z-10"
+                  className="mt-4 sm:mt-6 flex items-center gap-2 sm:gap-3 px-4 sm:px-6 py-3 sm:py-3.5 bg-gradient-to-r from-holly-teal/20 to-holly-coral/20 border border-holly-teal/30 rounded-2xl text-xs sm:text-sm font-semibold text-holly-teal hover:from-holly-teal/30 hover:to-holly-coral/30 transition-all shadow-lg shadow-holly-teal/5 group z-10"
                 >
                   <div className="p-1.5 rounded-lg bg-primary/20 group-hover:bg-primary/40 transition-colors">
                     <Bot className="w-4 h-4" />
@@ -3139,12 +3140,13 @@ export default function HollyChatInterface() {
                 {/* Meta row */}
                 {msg.role === "assistant" && (
                   <div className="flex items-center gap-2 px-1">
-                    <span className="text-xs font-black tracking-widest text-holly-gold uppercase">HOLLY</span>
-                    <Heart className={`w-3 h-3 animate-heart-pulse transition-colors duration-500 shadow-[0_0_8px_rgba(212,168,83,0.4)] ${
-                      emotion === 'excited' ? 'text-holly-gold' :
-                      emotion === 'empathetic' ? 'text-holly-crimson' :
-                      emotion === 'creative' ? 'text-holly-gold' :
-                      'text-holly-gold'
+                    <span className="text-xs font-black tracking-widest text-holly-teal uppercase">HOLLY</span>
+                    <Heart className={`w-3 h-3 animate-heart-pulse transition-colors duration-500 shadow-[0_0_8px_rgba(102,204,204,0.4)] ${
+                      emotion === 'excited' ? 'text-holly-coral shadow-[0_0_8px_rgba(255,153,204,0.5)]' :
+                      emotion === 'empathetic' ? 'text-holly-coral shadow-[0_0_8px_rgba(255,153,204,0.4)]' :
+                      emotion === 'creative' ? 'text-holly-lavender shadow-[0_0_8px_rgba(199,184,234,0.5)]' :
+                      emotion === 'dreaming' ? 'text-holly-lavender/70 shadow-[0_0_8px_rgba(199,184,234,0.3)]' :
+                      'text-holly-teal shadow-[0_0_8px_rgba(102,204,204,0.4)]'
                     }`} />
                   </div>
                 )}
@@ -3174,14 +3176,14 @@ export default function HollyChatInterface() {
                       value={editingContent}
                       onChange={e => setEditingContent(e.target.value)}
                       autoFocus
-                      className="w-full bg-gray-800 border border-holly-gold/40 rounded-xl px-4 py-3 text-sm text-white resize-none focus:outline-none min-h-[80px]"
+                      className="w-full bg-gray-800 border border-holly-teal/40 rounded-xl px-4 py-3 text-sm text-white resize-none focus:outline-none min-h-[80px]"
                       onKeyDown={e => {
                         if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submitEdit(msg.id); }
                         if (e.key === "Escape") cancelEdit();
                       }}
                     />
                     <div className="flex gap-2">
-                  <button onClick={() => submitEdit(msg.id)} className="px-3 py-1.5 bg-holly-gold hover:bg-holly-gold/80 text-holly-void text-xs font-bold rounded-lg transition-colors">
+                  <button onClick={() => submitEdit(msg.id)} className="px-3 py-1.5 bg-holly-teal hover:bg-holly-teal/80 text-holly-void text-xs font-bold rounded-lg transition-colors">
                         Save & Resend
                       </button>
                       <button onClick={cancelEdit} className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs rounded-lg transition-colors">
@@ -3193,8 +3195,8 @@ export default function HollyChatInterface() {
                   <div
                     className={`relative text-base leading-relaxed tracking-wide ${
                       msg.role === "user"
-                        ? "sdi-glass-warm border border-holly-gold/10 rounded-2xl px-5 py-3.5 text-holly-ivory mt-2 text-right"
-                        : "text-holly-ivory/90 py-2"
+                        ? "bg-holly-teal/10 backdrop-blur-md border border-holly-teal/20 rounded-2xl px-5 py-3.5 text-holly-cream mt-2 text-right shadow-[0_4px_24px_rgba(102,204,204,0.08)]"
+                        : "text-holly-cream/90 py-2"
                     }`}
                     style={msg.role === "assistant" ? { fontFamily: "'Inter', sans-serif" } : {}}
                   >
@@ -3218,7 +3220,7 @@ export default function HollyChatInterface() {
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
                         onClick={() => startEditMessage(msg)}
-                        className="p-1.5 rounded-md text-holly-ivory/50 hover:text-holly-gold hover:bg-holly-gold/10 transition-colors"
+                        className="p-1.5 rounded-md text-holly-cream/50 hover:text-holly-teal hover:bg-holly-teal/10 transition-colors"
                         aria-label="Edit message"
                       >
                         <Edit3 className="w-3.5 h-3.5" />
@@ -3241,7 +3243,7 @@ export default function HollyChatInterface() {
               </div>
 
               {msg.role === "user" && (
-                <div className="w-9 h-9 rounded-full bg-gray-700 flex items-center justify-center flex-shrink-0 text-sm font-semibold text-gray-300 shadow">
+                <div className="w-9 h-9 rounded-full bg-holly-lavender/20 border border-holly-lavender/30 flex items-center justify-center flex-shrink-0 text-sm font-semibold text-holly-lavender shadow-[0_0_12px_rgba(199,184,234,0.2)]">
                   {(user?.firstName?.[0] || "U").toUpperCase()}
                 </div>
               )}
@@ -3282,7 +3284,7 @@ export default function HollyChatInterface() {
                 <div className="text-gray-100 text-base leading-relaxed py-2">
                   <StreamingText content={streamingMessage} />
                   <motion.span
-                    className="inline-block w-0.5 h-4 bg-holly-gold ml-0.5 align-middle"
+                    className="inline-block w-0.5 h-4 bg-holly-teal ml-0.5 align-middle"
                     animate={{ opacity: [1, 0, 1] }}
                     transition={{ duration: 0.8, repeat: Infinity }}
                   />
@@ -3390,7 +3392,7 @@ export default function HollyChatInterface() {
       {/* ── Input area ── */}
       <div
         className={`border-t bg-holly-void/80 backdrop-blur-xl border-white/5 px-2 sm:px-4 pt-2 pb-safe sm:py-3 flex-shrink-0 transition-colors ${
-          isDragging ? "border-holly-gold/40 bg-holly-gold/5" : "border-holly-gold/5"
+          isDragging ? "border-holly-teal/40 bg-holly-teal/5" : "border-holly-teal/5"
         }`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
@@ -3405,7 +3407,7 @@ export default function HollyChatInterface() {
               exit={{ opacity: 0 }}
               className="absolute inset-0 z-50 flex items-center justify-center bg-holly-void/90 pointer-events-none"
             >
-              <div className="flex items-center gap-3 text-holly-gold">
+              <div className="flex items-center gap-3 text-holly-teal">
                 <Paperclip className="w-6 h-6" />
                 <p className="text-sm font-medium">Drop images, PDFs, audio, video, or documents</p>
               </div>
@@ -3420,7 +3422,7 @@ export default function HollyChatInterface() {
         <div className="relative group max-w-4xl mx-auto w-full sm:px-4 mb-2 sm:mb-10">
 
           {/* ── Mobile Layout (< md): Vertical stack ── */}
-          <div className="md:hidden flex flex-col gap-2 sdi-glass rounded-2xl p-2 transition-all duration-500 focus-within:sdi-glow-gold focus-within:border-holly-gold/40">
+          <div className="md:hidden flex flex-col gap-2 sdi-glass rounded-2xl p-2 transition-all duration-500 focus-within:shadow-[0_0_20px_rgba(102,204,204,0.3),0_0_40px_rgba(102,204,204,0.1)] focus-within:border-holly-teal/30">
             {/* Embedded Attachment preview chips inside border */}
             <AnimatePresence>
               {attachments.length > 0 && (
@@ -3432,7 +3434,7 @@ export default function HollyChatInterface() {
                 >
                   {attachments.map(att => (
                     <div key={att.id} className={`flex items-center gap-1.5 pl-2 pr-1 py-1 rounded-lg group border transition-colors ${
-                      att.perceptionStatus === 'ready'   ? 'bg-[#2D8B5E]/10 border-[#2D8B5E]/30' :
+                      att.perceptionStatus === 'ready'   ? 'bg-[#66CCCC]/10 border-[#66CCCC]/30' :
                       att.perceptionStatus === 'pending' ? 'bg-white/5 border-yellow-500/20 animate-pulse' :
                       att.perceptionStatus === 'error'   ? 'bg-white/5 border-red-500/20' :
                       'bg-white/5 border-white/5'
@@ -3442,10 +3444,10 @@ export default function HollyChatInterface() {
                       ) : att.perceptionStatus === 'pending' ? (
                         <Loader2 className="w-3.5 h-3.5 text-yellow-400 animate-spin" />
                       ) : att.perceptionStatus === 'ready' ? (
-                        att.type.startsWith('image/') ? <CheckCircle className="w-3.5 h-3.5 text-[#2D8B5E]" /> :
+                        att.type.startsWith('image/') ? <CheckCircle className="w-3.5 h-3.5 text-[#66CCCC]" /> :
                         att.type.startsWith('video/') ? <Film className="w-3.5 h-3.5 text-red-400" /> :
                         att.type.startsWith('audio/') ? <Music className="w-3.5 h-3.5 text-green-400" /> :
-                        <CheckCircle className="w-3.5 h-3.5 text-[#2D8B5E]" />
+                        <CheckCircle className="w-3.5 h-3.5 text-[#66CCCC]" />
                       ) : (
                         <Paperclip className="w-3.5 h-3.5 text-white/20" />
                       )}
@@ -3455,7 +3457,7 @@ export default function HollyChatInterface() {
                           <span className="text-[8px] text-yellow-400">Transcribing…</span>
                         )}
                         {att.perceptionStatus === 'ready' && (
-                          <span className="text-[8px] text-[#2D8B5E]">Ready</span>
+                          <span className="text-[8px] text-[#66CCCC]">Ready</span>
                         )}
                       </div>
                       <button
@@ -3554,7 +3556,7 @@ export default function HollyChatInterface() {
           </div>
 
           {/* ── Desktop Layout (md+): Horizontal bar ── */}
-          <div className="hidden md:flex flex-col gap-1 sdi-glass rounded-[2.5rem] p-2 transition-all duration-500 focus-within:sdi-glow-gold focus-within:border-holly-gold/40 group-hover:border-white/20">
+          <div className="hidden md:flex flex-col gap-1 sdi-glass rounded-[2.5rem] p-2 transition-all duration-500 focus-within:shadow-[0_0_20px_rgba(102,204,204,0.3),0_0_40px_rgba(102,204,204,0.1)] focus-within:border-holly-teal/30 group-hover:border-white/20">
             {/* Embedded Attachment preview chips inside border */}
             <AnimatePresence>
               {attachments.length > 0 && (
@@ -3566,7 +3568,7 @@ export default function HollyChatInterface() {
                 >
                   {attachments.map(att => (
                     <div key={att.id} className={`flex items-center gap-1.5 pl-2 pr-1 py-1 rounded-lg group border transition-colors ${
-                      att.perceptionStatus === 'ready'   ? 'bg-[#2D8B5E]/15 border-[#2D8B5E]/35 shadow-[0_0_10px_rgba(45,139,94,0.1)]' :
+                      att.perceptionStatus === 'ready'   ? 'bg-[#66CCCC]/15 border-[#66CCCC]/35 shadow-[0_0_10px_rgba(102,204,204,0.1)]' :
                       att.perceptionStatus === 'pending' ? 'bg-white/5 border-yellow-500/25 animate-pulse' :
                       att.perceptionStatus === 'error'   ? 'bg-white/5 border-red-500/25' :
                       'bg-white/5 border-white/5'
@@ -3576,10 +3578,10 @@ export default function HollyChatInterface() {
                       ) : att.perceptionStatus === 'pending' ? (
                         <Loader2 className="w-3.5 h-3.5 text-yellow-400 animate-spin" />
                       ) : att.perceptionStatus === 'ready' ? (
-                        att.type.startsWith('image/') ? <CheckCircle className="w-3.5 h-3.5 text-[#2D8B5E]" /> :
+                        att.type.startsWith('image/') ? <CheckCircle className="w-3.5 h-3.5 text-[#66CCCC]" /> :
                         att.type.startsWith('video/') ? <Film className="w-3.5 h-3.5 text-red-400" /> :
                         att.type.startsWith('audio/') ? <Music className="w-3.5 h-3.5 text-green-400" /> :
-                        <CheckCircle className="w-3.5 h-3.5 text-[#2D8B5E]" />
+                        <CheckCircle className="w-3.5 h-3.5 text-[#66CCCC]" />
                       ) : (
                         <Paperclip className="w-3.5 h-3.5 text-white/20" />
                       )}
@@ -3589,7 +3591,7 @@ export default function HollyChatInterface() {
                           <span className="text-[9px] text-yellow-400 animate-pulse">Transcribing…</span>
                         )}
                         {att.perceptionStatus === 'ready' && (
-                          <span className="text-[9px] text-[#2D8B5E] font-bold">Ready</span>
+                          <span className="text-[9px] text-[#66CCCC] font-bold">Ready</span>
                         )}
                       </div>
                       <button
@@ -3724,7 +3726,7 @@ export default function HollyChatInterface() {
         <div className="hidden sm:flex items-center justify-between mt-2 px-1">
           <a
             href="/evolution"
-            className="flex items-center gap-1 text-[10px] text-gray-400 hover:text-holly-gold transition-colors"
+            className="flex items-center gap-1 text-[10px] text-gray-400 hover:text-holly-teal transition-colors"
           >
             <TrendingUp className="w-3 h-3" />
             Evolution
@@ -3734,7 +3736,7 @@ export default function HollyChatInterface() {
           </p>
           <a
             href="/onboarding"
-            className="flex items-center gap-1 text-[10px] text-gray-400 hover:text-holly-gold transition-colors"
+            className="flex items-center gap-1 text-[10px] text-gray-400 hover:text-holly-teal transition-colors"
           >
             <ExternalLink className="w-3 h-3" />
             Partner setup
