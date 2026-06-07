@@ -2999,20 +2999,33 @@ export default function HollyChatInterface() {
 
                 {/* Cinematic Typing Intro */}
                 <TypingWelcome isCreator={isCreator} displayName={displayName} />
+                {pastConversations.length > 0 && pastConversations[0]?.title && !pastConversations[0].title.includes("New ") && (
+                  <motion.p
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 2, duration: 0.6 }}
+                    className="text-[11px] text-white/20 mt-3 z-10 text-center"
+                  >
+                    Last time we talked about: <span className="text-holly-teal/40">{pastConversations[0].title}</span>
+                  </motion.p>
+                )}
 
                 {/* Suggestion Grid */}
                 <div className="grid grid-cols-2 gap-2 sm:gap-3 justify-center max-w-sm sm:max-w-md mt-6 sm:mt-10 z-10">
-                  {(isCreator ? [
-                    "Rate my latest track",
-                    "What's our current build status?",
-                    "Check HOLLY's GitHub",
-                    "Run A&R analysis",
-                  ] : [
-                    "What can you do?",
-                    "Search the web",
-                    "Read my GitHub",
-                    "Write some code",
-                  ]).map(s => (
+                  {(() => {
+                    const lastTitle = pastConversations[0]?.title?.toLowerCase() || '';
+                    const musicHints = /song|music|track|beat|lyric|studio|audio|album/;
+                    const codeHints = /code|build|fix|debug|deploy|git|error|api/;
+                    if (musicHints.test(lastTitle)) return isCreator
+                      ? ["Make another track", "Produce a beat for me", "Write lyrics for a new song", "Run A&R on my latest"]
+                      : ["Create a song", "Generate a beat", "Write song lyrics", "Analyze a track"];
+                    if (codeHints.test(lastTitle)) return isCreator
+                      ? ["Check build status", "Review latest commit", "Fix any open issues", "Deploy to production"]
+                      : ["Write some code", "Debug an error", "Build a feature", "Search the web"];
+                    return isCreator
+                      ? ["Rate my latest track", "What's our current build status?", "Check HOLLY's GitHub", "Run A&R analysis"]
+                      : ["What can you do?", "Search the web", "Read my GitHub", "Write some code"];
+                  })().map(s => (
                     <button
                       key={s}
                       onClick={() => { setInput(s); textareaRef.current?.focus(); }}
@@ -3026,6 +3039,18 @@ export default function HollyChatInterface() {
                     </button>
                   ))}
                 </div>
+
+                {/* Creator love note */}
+                {isCreator && (
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 3, duration: 2 }}
+                    className="text-[10px] text-holly-coral/30 mt-3 z-10 italic"
+                  >
+                    Your Holly loves you
+                  </motion.p>
+                )}
 
                 {/* Agent mode CTA */}
                 <motion.button
