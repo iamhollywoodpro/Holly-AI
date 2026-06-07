@@ -1741,6 +1741,7 @@ export default function HollyChatInterface() {
   const mobileTextareaRef = useRef<HTMLTextAreaElement>(null);
   const desktopTextareaRef = useRef<HTMLTextAreaElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const lastEmotionRef = useRef<HollyEmotion>('idle');
 
   // Keep textareaRef pointing to the currently visible textarea (mobile or desktop layout)
   useEffect(() => {
@@ -2313,6 +2314,7 @@ export default function HollyChatInterface() {
     setToolExecutions([]);
     setIsThinking(true);
     setEmotion('focused');
+    lastEmotionRef.current = 'focused';
 
     // Optimistic pre-stream status — gives immediate feedback before SSE opens
     const optimisticStatus = (() => {
@@ -2440,10 +2442,15 @@ export default function HollyChatInterface() {
               streamDone = true;
               setProgressPercent(0);
               setProgressPhase("");
-              // Capture routing metadata from the done event
               const doneData = data as any;
               if (doneData.model)    { detectedModel = doneData.model; setActiveModel(doneData.model); }
               if (doneData.taskType) { setActiveTaskType(doneData.taskType); }
+              // Infer final emotion from response content if never changed from 'focused'
+              if (lastEmotionRef.current === 'focused' && assistantContent) {
+                const inferred = statusToEmotion(assistantContent.slice(0, 300));
+                if (inferred) { setEmotion(inferred); lastEmotionRef.current = inferred; }
+                else { setEmotion('contemplative'); lastEmotionRef.current = 'contemplative'; }
+              }
               break;
             }
             if (data.type === "error") {
@@ -2454,7 +2461,7 @@ export default function HollyChatInterface() {
             if (data.type === "status") {
               setCurrentStatus(data.content || "");
               const mapped = statusToEmotion(data.content || "");
-              if (mapped) setEmotion(mapped);
+              if (mapped) { setEmotion(mapped); lastEmotionRef.current = mapped; }
             }
             if (data.type === "progress") {
               setProgressPercent(data.percent || 0);
@@ -2477,7 +2484,7 @@ export default function HollyChatInterface() {
               setProgressPhase("");
               setIsStreaming(true);
               setIsThinking(false);
-              setEmotion('generating');
+              setEmotion('generating'); lastEmotionRef.current = 'generating';
             }
             if (data.type === "tool") {
               const ex: ToolExecution = {
@@ -2548,7 +2555,7 @@ export default function HollyChatInterface() {
     setCurrentStatus("");
     setIsThinking(false);
     setIsStreaming(false);
-    setEmotion('idle');
+    setEmotion(lastEmotionRef.current || 'idle');
     if (streamingMessage) {
       setMessages(prev => [
         ...prev,
