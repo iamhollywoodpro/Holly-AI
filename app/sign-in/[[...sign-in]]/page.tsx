@@ -65,15 +65,15 @@ function SignInContent() {
     <div className="min-h-screen w-full flex items-center justify-center bg-[#0A0908] px-4 relative overflow-hidden">
       {/* Background glow — emerald/copper warmth */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] rounded-full bg-[#2D8B5E]/8 blur-[140px]" />
-        <div className="absolute bottom-0 right-0 w-[400px] h-[400px] rounded-full bg-[#C47A4A]/6 blur-[100px]" />
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] rounded-full bg-[#66CCCC]/8 blur-[140px]" />
+        <div className="absolute bottom-0 right-0 w-[400px] h-[400px] rounded-full bg-[#C7B8EA]/6 blur-[100px]" />
       </div>
 
       {/* Card container */}
       <div className="relative z-10 w-full max-w-[480px]">
         {/* HOLLY branding header */}
         <div className="text-center mb-8">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#2D8B5E] to-[#C47A4A] flex items-center justify-center mx-auto mb-4 shadow-2xl shadow-[#2D8B5E]/30">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#66CCCC] to-[#C7B8EA] flex items-center justify-center mx-auto mb-4 shadow-2xl shadow-[#66CCCC]/30">
             <span className="text-2xl font-black text-[#0A0908]">H</span>
           </div>
           <h1 className="text-2xl font-bold text-[#F5F0E8] tracking-tight">Welcome back to HOLLY</h1>
@@ -83,7 +83,7 @@ function SignInContent() {
         {/* Loading state */}
         {!clerkReady && (
           <div className="flex flex-col items-center justify-center py-16 gap-4">
-            <div className="w-8 h-8 border-2 border-[#2D8B5E] border-t-transparent rounded-full animate-spin" />
+            <div className="w-8 h-8 border-2 border-[#66CCCC] border-t-transparent rounded-full animate-spin" />
             <p className="text-[#5C564D] text-sm">Loading...</p>
           </div>
         )}
@@ -110,7 +110,7 @@ function SignInContent() {
             signUpUrl="/sign-up"
             appearance={{
               variables: {
-                colorPrimary: '#2D8B5E',
+                colorPrimary: '#66CCCC',
                 colorBackground: '#141210',
                 colorInputBackground: '#1E1B18',
                 colorInputText: '#F5F0E8',
@@ -122,19 +122,19 @@ function SignInContent() {
               },
               elements: {
                 rootBox: 'w-full',
-                card: 'bg-[#141210]/90 border border-[#2D8B5E]/15 shadow-2xl shadow-[#2D8B5E]/10 backdrop-blur-xl rounded-2xl',
+                card: 'bg-[#141210]/90 border border-[#66CCCC]/15 shadow-2xl shadow-[#66CCCC]/10 backdrop-blur-xl rounded-2xl',
                 headerTitle: 'hidden',
                 headerSubtitle: 'hidden',
                 logoBox: 'hidden',
                 socialButtonsBlockButton:
-                  'bg-[#1E1B18] border border-[#2D8B5E]/10 hover:bg-[#141210] hover:border-[#2D8B5E]/20 text-[#F5F0E8] transition-all duration-200',
+                  'bg-[#1E1B18] border border-[#66CCCC]/10 hover:bg-[#141210] hover:border-[#66CCCC]/20 text-[#F5F0E8] transition-all duration-200',
                 socialButtonsBlockButtonText: 'text-[#F5F0E8] font-medium',
                 formButtonPrimary:
-                  'bg-gradient-to-r from-[#2D8B5E] to-[#C47A4A] hover:from-[#3DAF76] hover:to-[#E8A862] text-[#0A0908] font-semibold transition-all duration-200 shadow-lg shadow-[#2D8B5E]/20',
+                  'bg-gradient-to-r from-[#66CCCC] to-[#C7B8EA] hover:from-[#3DAF76] hover:to-[#E8A862] text-[#0A0908] font-semibold transition-all duration-200 shadow-lg shadow-[#66CCCC]/20',
                 dividerLine: 'bg-[#1E1B18]',
                 dividerText: 'text-[#5C564D]',
-                footerActionLink: 'text-[#2D8B5E] hover:text-[#3DAF76] transition-colors',
-                identityPreviewEditButton: 'text-[#2D8B5E] hover:text-[#3DAF76]',
+                footerActionLink: 'text-[#66CCCC] hover:text-[#3DAF76] transition-colors',
+                identityPreviewEditButton: 'text-[#66CCCC] hover:text-[#3DAF76]',
                 alertText: 'text-[#B84052]',
                 formFieldErrorText: 'text-[#B84052]',
               },
@@ -145,7 +145,7 @@ function SignInContent() {
 
       {/* Footer */}
       <div className="absolute bottom-6 left-0 w-full text-center pointer-events-none">
-        <p className="text-[10px] text-[#2D8B5E]/30 tracking-widest uppercase">HOLLY — Living AI</p>
+        <p className="text-[10px] text-[#66CCCC]/30 tracking-widest uppercase">HOLLY — Living AI</p>
       </div>
     </div>
   );
@@ -155,7 +155,7 @@ export default function SignInPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen w-full flex items-center justify-center bg-[#0A0908]">
-        <div className="w-8 h-8 border-2 border-[#2D8B5E] border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-[#66CCCC] border-t-transparent rounded-full animate-spin" />
       </div>
     }>
       <SignInContent />

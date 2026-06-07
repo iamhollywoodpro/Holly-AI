@@ -13,11 +13,11 @@ export function WorkspaceHeader() {
       <div className="flex-1 max-w-2xl">
         <button
           onClick={() => setSearchOpen(true)}
-          className="w-full flex items-center gap-3 px-4 py-2 rounded-xl bg-white/5 border border-white/5 text-white/30 hover:border-[#2D8B5E]/30 hover:text-white/60 hover:bg-white/10 transition-all duration-300 group"
+          className="w-full flex items-center gap-3 px-4 py-2 rounded-xl bg-white/5 border border-white/5 text-white/30 hover:border-[#66CCCC]/30 hover:text-white/60 hover:bg-white/10 transition-all duration-300 group"
         >
-          <Search className="w-4 h-4 text-white/30 group-hover:text-[#2D8B5E] transition-colors" />
+          <Search className="w-4 h-4 text-white/30 group-hover:text-[#66CCCC] transition-colors" />
           <span className="text-sm">Search projects, assets, chats...</span>
-          <kbd className="ml-auto px-2 py-1 text-xs bg-white/5 rounded-lg border border-white/10 group-hover:border-[#2D8B5E]/30 transition-colors">
+          <kbd className="ml-auto px-2 py-1 text-xs bg-white/5 rounded-lg border border-white/10 group-hover:border-[#66CCCC]/30 transition-colors">
             ⌘K
           </kbd>
         </button>
@@ -27,16 +27,16 @@ export function WorkspaceHeader() {
       <div className="flex items-center gap-4">
         {/* Notifications */}
         <button
-          className="relative p-2 rounded-lg text-white/40 hover:text-[#2D8B5E] hover:bg-white/5 transition-all"
+          className="relative p-2 rounded-lg text-white/40 hover:text-[#66CCCC] hover:bg-white/5 transition-all"
           aria-label="Notifications"
         >
           <Bell className="w-5 h-5" />
-          <span className="absolute top-1 right-1 w-2 h-2 bg-[#C47A4A] shadow-[0_0_8px_#C47A4A] rounded-full" />
+          <span className="absolute top-1 right-1 w-2 h-2 bg-[#C7B8EA] shadow-[0_0_8px_#C7B8EA] rounded-full" />
         </button>
 
         {/* Settings */}
         <button
-          className="p-2 rounded-lg text-white/40 hover:text-[#2D8B5E] hover:bg-white/5 transition-all"
+          className="p-2 rounded-lg text-white/40 hover:text-[#66CCCC] hover:bg-white/5 transition-all"
           aria-label="Settings"
         >
           <Settings className="w-5 h-5" />

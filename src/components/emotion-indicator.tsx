@@ -10,7 +10,7 @@ interface EmotionIndicatorProps {
 
 const emotionConfig: Record<EmotionType, { icon: any; label: string; color: string }> = {
   focused: { icon: Target, label: 'Focused', color: 'text-holly-blue-500' },
-  excited: { icon: Sparkles, label: 'Excited', color: 'text-holly-gold-400' },
+  excited: { icon: Sparkles, label: 'Excited', color: 'text-holly-teal-400' },
   thoughtful: { icon: Brain, label: 'Thinking', color: 'text-holly-purple-400' },
   playful: { icon: Heart, label: 'Playful', color: 'text-pink-400' },
   confident: { icon: Zap, label: 'Confident', color: 'text-holly-purple-500' },

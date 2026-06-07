@@ -104,14 +104,14 @@ const Icons = {
 // ─── Category colours ─────────────────────────────────────────────────────────
 
 const CATEGORY_COLORS: Record<string, string> = {
-  'Design':       'bg-[#2D8B5E]/10 text-[#2D8B5E]',
-  'Music':        'bg-[#C47A4A]/10 text-[#C47A4A]',
-  'Storage':      'bg-[#2D8B5E]/10 text-[#2D8B5E]',
-  'Social':       'bg-[#C47A4A]/10 text-[#C47A4A]',
-  'Dev':          'bg-[#2D8B5E]/10 text-[#2D8B5E]',
-  'Productivity': 'bg-[#2D8B5E]/10 text-[#2D8B5E]',
-  'Community':    'bg-[#C47A4A]/10 text-[#C47A4A]',
-  'Video':        'bg-[#C47A4A]/10 text-[#C47A4A]',
+  'Design':       'bg-[#66CCCC]/10 text-[#66CCCC]',
+  'Music':        'bg-[#C7B8EA]/10 text-[#C7B8EA]',
+  'Storage':      'bg-[#66CCCC]/10 text-[#66CCCC]',
+  'Social':       'bg-[#C7B8EA]/10 text-[#C7B8EA]',
+  'Dev':          'bg-[#66CCCC]/10 text-[#66CCCC]',
+  'Productivity': 'bg-[#66CCCC]/10 text-[#66CCCC]',
+  'Community':    'bg-[#C7B8EA]/10 text-[#C7B8EA]',
+  'Video':        'bg-[#C7B8EA]/10 text-[#C7B8EA]',
 };
 
 // ─── Discord Webhook Modal ────────────────────────────────────────────────────
@@ -133,13 +133,13 @@ function DiscordModal({
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="w-full max-w-md bg-[#12110F] border border-[#2D8B5E]/20 rounded-3xl p-8 shadow-2xl"
+        className="w-full max-w-md bg-[#12110F] border border-[#66CCCC]/20 rounded-3xl p-8 shadow-2xl"
       >
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-xl font-black text-[#F5F0E8] flex items-center gap-3 uppercase tracking-widest">
             <Icons.Discord /> Connect Discord
           </h3>
-          <button onClick={onClose} className="text-[#8C8476] hover:text-[#2D8B5E] transition-colors">
+          <button onClick={onClose} className="text-[#8C8476] hover:text-[#66CCCC] transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -150,23 +150,23 @@ function DiscordModal({
 
         <div className="space-y-4 mb-8">
           <div>
-            <label className="block text-[10px] font-black text-[#2D8B5E] uppercase tracking-[0.2em] mb-2">TARGET CHANNEL IDENTIFIER</label>
+            <label className="block text-[10px] font-black text-[#66CCCC] uppercase tracking-[0.2em] mb-2">TARGET CHANNEL IDENTIFIER</label>
             <input
               type="text"
               value={name}
               onChange={e => setName(e.target.value)}
               placeholder="e.g. #RELEASES"
-              className="w-full bg-[#0A0908] border border-[#2D8B5E]/10 rounded-xl px-4 py-3 text-[#F5F0E8] text-sm placeholder-[#5C564D] focus:outline-none focus:border-[#2D8B5E] transition-colors uppercase tracking-widest"
+              className="w-full bg-[#0A0908] border border-[#66CCCC]/10 rounded-xl px-4 py-3 text-[#F5F0E8] text-sm placeholder-[#5C564D] focus:outline-none focus:border-[#66CCCC] transition-colors uppercase tracking-widest"
             />
           </div>
           <div>
-            <label className="block text-[10px] font-black text-[#2D8B5E] uppercase tracking-[0.2em] mb-2">WEBHOOK PROTOCOL URL *</label>
+            <label className="block text-[10px] font-black text-[#66CCCC] uppercase tracking-[0.2em] mb-2">WEBHOOK PROTOCOL URL *</label>
             <input
               type="url"
               value={url}
               onChange={e => setUrl(e.target.value)}
               placeholder="https://discord.com/api/webhooks/..."
-              className="w-full bg-[#0A0908] border border-[#2D8B5E]/10 rounded-xl px-4 py-3 text-[#F5F0E8] text-sm placeholder-[#5C564D] focus:outline-none focus:border-[#2D8B5E] transition-colors"
+              className="w-full bg-[#0A0908] border border-[#66CCCC]/10 rounded-xl px-4 py-3 text-[#F5F0E8] text-sm placeholder-[#5C564D] focus:outline-none focus:border-[#66CCCC] transition-colors"
             />
           </div>
         </div>
@@ -181,7 +181,7 @@ function DiscordModal({
           <button
             onClick={() => onSave(url, name)}
             disabled={!url.startsWith('https://discord.com/api/webhooks/') || saving}
-            className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-[#2D8B5E] to-[#C47A4A] disabled:opacity-30 text-white text-[10px] font-black uppercase tracking-widest transition-all hover:opacity-90 flex items-center justify-center gap-2"
+            className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-[#66CCCC] to-[#C7B8EA] disabled:opacity-30 text-white text-[10px] font-black uppercase tracking-widest transition-all hover:opacity-90 flex items-center justify-center gap-2"
           >
             {saving ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Syncing…</> : 'Establish Link'}
           </button>
@@ -190,7 +190,7 @@ function DiscordModal({
         <a
           href="https://support.discord.com/hc/en-us/articles/228383668"
           target="_blank" rel="noopener noreferrer"
-          className="flex items-center gap-1 text-xs text-[#2D8B5E] hover:text-[#2D8B5E]/80 mt-4 transition-colors"
+          className="flex items-center gap-1 text-xs text-[#66CCCC] hover:text-[#66CCCC]/80 mt-4 transition-colors"
         >
           <ExternalLink className="w-3 h-3" /> How to create a Discord webhook
         </a>
@@ -636,8 +636,8 @@ export default function IntegrationsPage() {
             exit={{ opacity: 0, y: -12 }}
             className={`flex items-center gap-3 p-4 rounded-xl border text-[10px] font-black uppercase tracking-widest ${
               toast.type === 'success'
-                ? 'bg-[#2D8B5E]/15 border-[#2D8B5E]/30 text-[#2D8B5E]'
-                : 'bg-[#C47A4A]/15 border-[#C47A4A]/30 text-[#C47A4A]'
+                ? 'bg-[#66CCCC]/15 border-[#66CCCC]/30 text-[#66CCCC]'
+                : 'bg-[#C7B8EA]/15 border-[#C7B8EA]/30 text-[#C7B8EA]'
             }`}
           >
             {toast.type === 'success'
@@ -659,8 +659,8 @@ export default function IntegrationsPage() {
             onClick={() => setActiveCategory(activeCategory === cat ? 'All' : cat)}
             className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${
               activeCategory === cat
-                ? 'bg-[#2D8B5E] text-[#0A0908] shadow-[0_0_20px_rgba(45,139,94,0.3)]'
-                : 'bg-[#1E1B18] text-[#8C8476] hover:text-[#F5F0E8] border border-transparent hover:border-[#2D8B5E]/20'
+                ? 'bg-[#66CCCC] text-[#0A0908] shadow-[0_0_20px_rgba(102,204,204,0.3)]'
+                : 'bg-[#1E1B18] text-[#8C8476] hover:text-[#F5F0E8] border border-transparent hover:border-[#66CCCC]/20'
             }`}
           >
             {cat}
@@ -684,7 +684,7 @@ export default function IntegrationsPage() {
       <div className="p-5 bg-gray-800/30 border border-gray-700/40 rounded-xl text-center">
         <p className="text-gray-400 text-sm">
           Want a specific integration?{' '}
-          <a href="mailto:support@nexamusicgroup.com" className="text-[#2D8B5E] hover:text-[#2D8B5E]/80 transition-colors underline underline-offset-2">
+          <a href="mailto:support@nexamusicgroup.com" className="text-[#66CCCC] hover:text-[#66CCCC]/80 transition-colors underline underline-offset-2">
             Let us know
           </a>
         </p>
@@ -726,10 +726,10 @@ function IntegrationCard({
       transition={{ delay: index * 0.05, duration: 0.5, ease: [0.19, 1, 0.22, 1] }}
       className={`relative flex flex-col p-6 rounded-3xl border transition-all duration-500 ${
         isConnected
-          ? 'bg-[#12110F] border-[#2D8B5E]/30 shadow-[0_0_30px_rgba(45,139,94,0.05)]'
+          ? 'bg-[#12110F] border-[#66CCCC]/30 shadow-[0_0_30px_rgba(102,204,204,0.05)]'
           : isComingSoon
           ? 'bg-[#0A0908] border-white/5 opacity-50'
-          : 'bg-[#12110F] border-white/5 hover:border-[#2D8B5E]/20'
+          : 'bg-[#12110F] border-white/5 hover:border-[#66CCCC]/20'
       }`}
     >
       {/* Category pill */}
@@ -753,8 +753,8 @@ function IntegrationCard({
       {/* Status badge */}
       <div className="mb-4">
         {isConnected ? (
-          <span className="inline-flex items-center gap-2 px-3 py-1 bg-[#2D8B5E]/10 text-[#2D8B5E] rounded-full text-[9px] font-black uppercase tracking-[0.2em]">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#2D8B5E] shadow-[0_0_8px_#2D8B5E] animate-pulse" />
+          <span className="inline-flex items-center gap-2 px-3 py-1 bg-[#66CCCC]/10 text-[#66CCCC] rounded-full text-[9px] font-black uppercase tracking-[0.2em]">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#66CCCC] shadow-[0_0_8px_#66CCCC] animate-pulse" />
             Synchronized
           </span>
         ) : isComingSoon ? (
@@ -782,14 +782,14 @@ function IntegrationCard({
       ) : isConnected ? (
         <button
           onClick={svc.onDisconnect}
-          className="w-full px-4 py-3 rounded-xl bg-[#1E1B18] hover:bg-[#C47A4A]/10 border border-transparent hover:border-[#C47A4A]/30 text-[10px] text-[#8C8476] hover:text-[#C47A4A] font-black uppercase tracking-widest transition-all duration-300"
+          className="w-full px-4 py-3 rounded-xl bg-[#1E1B18] hover:bg-[#C7B8EA]/10 border border-transparent hover:border-[#C7B8EA]/30 text-[10px] text-[#8C8476] hover:text-[#C7B8EA] font-black uppercase tracking-widest transition-all duration-300"
         >
           Sever Connection
         </button>
       ) : isDisconnected ? (
         <button
           onClick={svc.onConnect}
-          className={`w-full px-4 py-3 rounded-xl bg-gradient-to-r from-[#2D8B5E] to-[#C47A4A] hover:opacity-90 active:scale-[0.98] text-white text-[10px] font-black uppercase tracking-widest transition-all duration-300 shadow-[0_0_20px_rgba(45,139,94,0.15)]`}
+          className={`w-full px-4 py-3 rounded-xl bg-gradient-to-r from-[#66CCCC] to-[#C7B8EA] hover:opacity-90 active:scale-[0.98] text-white text-[10px] font-black uppercase tracking-widest transition-all duration-300 shadow-[0_0_20px_rgba(102,204,204,0.15)]`}
         >
           Initialize {svc.name}
         </button>

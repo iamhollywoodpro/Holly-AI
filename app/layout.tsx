@@ -82,7 +82,7 @@ export const viewport: Viewport = {
   viewportFit: 'cover',
   themeColor: [
     { media: '(prefers-color-scheme: dark)',  color: '#0A0908' },
-    { media: '(prefers-color-scheme: light)', color: '#2D8B5E' },
+    { media: '(prefers-color-scheme: light)', color: '#66CCCC' },
   ],
 };
 
@@ -169,7 +169,7 @@ export default function RootLayout({
           appearance={{
             baseTheme: undefined,
             variables: {
-              colorPrimary: '#2D8B5E',
+              colorPrimary: '#66CCCC',
               colorBackground: '#141210',
               colorInputBackground: '#1E1B18',
               colorInputText: '#F5F0E8',
@@ -180,20 +180,20 @@ export default function RootLayout({
             elements: {
               // UserButton popover (profile menu in nav)
               userButtonPopoverCard:
-                'bg-[#141210] border border-[#2D8B5E]/20 shadow-2xl shadow-[#2D8B5E]/10',
+                'bg-[#141210] border border-[#66CCCC]/20 shadow-2xl shadow-[#66CCCC]/10',
               userButtonPopoverActionButton: 'text-[#F5F0E8] hover:bg-white/5',
               userButtonPopoverActionButtonText: 'text-[#F5F0E8]',
               userButtonPopoverActionButtonIcon: 'text-[#8C8476]',
               userButtonPopoverFooter: 'bg-[#1E1B18]/50 border-t border-white/10',
               // Cards (UserProfile, OrganizationProfile, etc.)
-              card: 'bg-[#141210] border border-[#2D8B5E]/20',
+              card: 'bg-[#141210] border border-[#66CCCC]/20',
               headerTitle: 'text-[#F5F0E8]',
               headerSubtitle: 'text-[#8C8476]',
               profileSectionTitle: 'text-[#F5F0E8]',
               profileSectionContent: 'text-[#BFB5A5]',
               formFieldLabel: 'text-[#BFB5A5]',
-              formFieldInput: 'bg-[#1E1B18] border-[#2D8B5E]/20 text-[#F5F0E8]',
-              badge: 'bg-[#2D8B5E]/20 text-[#3DAF76] border-[#2D8B5E]/30',
+              formFieldInput: 'bg-[#1E1B18] border-[#66CCCC]/20 text-[#F5F0E8]',
+              badge: 'bg-[#66CCCC]/20 text-[#3DAF76] border-[#66CCCC]/30',
             },
           }}
         >
@@ -208,7 +208,7 @@ export default function RootLayout({
                 {children}
                  <ServiceWorkerRegistration />
                  <PWAInstallPrompt />
-                 <Toaster theme="dark" position="bottom-right" toastOptions={{ style: { background: '#141210', border: '1px solid rgba(45,139,94,0.15)', color: '#F5F0E8' } }} />
+                 <Toaster theme="dark" position="bottom-right" toastOptions={{ style: { background: '#141210', border: '1px solid rgba(102,204,204,0.15)', color: '#F5F0E8' } }} />
                </SettingsProvider>
             </Providers>
           </ThemeProvider>

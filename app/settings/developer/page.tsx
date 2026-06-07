@@ -72,7 +72,7 @@ function ModelDiscoveryPanel() {
         <div>
           <h3 className="text-lg font-black text-[#F5F0E8] flex items-center gap-3 uppercase tracking-widest">
             🔍 Heuristic Discovery
-            <span className="text-[9px] font-black px-2.5 py-0.5 bg-[#2D8B5E]/10 text-[#2D8B5E] rounded-full border border-[#2D8B5E]/20 uppercase tracking-tighter">
+            <span className="text-[9px] font-black px-2.5 py-0.5 bg-[#66CCCC]/10 text-[#66CCCC] rounded-full border border-[#66CCCC]/20 uppercase tracking-tighter">
               Auto · 0500 UTC
             </span>
           </h3>
@@ -90,7 +90,7 @@ function ModelDiscoveryPanel() {
           <button
             onClick={runDiscovery}
             disabled={status === 'running'}
-            className="text-[10px] font-black uppercase tracking-widest px-4 py-2 bg-[#2D8B5E] hover:bg-[#2D8B5E]/90 disabled:opacity-30 rounded-xl text-[#0A0908] transition-colors flex items-center gap-2"
+            className="text-[10px] font-black uppercase tracking-widest px-4 py-2 bg-[#66CCCC] hover:bg-[#66CCCC]/90 disabled:opacity-30 rounded-xl text-[#0A0908] transition-colors flex items-center gap-2"
           >
             {status === 'running' ? (
               <><span className="inline-block w-3 h-3 border-2 border-[#0A0908] border-t-transparent rounded-full animate-spin" /> SCANNING...</>
@@ -113,8 +113,8 @@ function ModelDiscoveryPanel() {
         <div className="bg-gray-900 border border-gray-800 rounded-lg p-4 space-y-3 text-xs">
           <p className="text-gray-400">Run: {new Date(report.checkedAt).toLocaleString()}</p>
           <div className="grid grid-cols-3 gap-3">
-            <div className="text-center bg-[#2D8B5E]/10 border border-[#2D8B5E]/20 rounded-lg p-2">
-              <p className="text-2xl font-bold text-[#2D8B5E]">{report.promoted?.length ?? 0}</p>
+            <div className="text-center bg-[#66CCCC]/10 border border-[#66CCCC]/20 rounded-lg p-2">
+              <p className="text-2xl font-bold text-[#66CCCC]">{report.promoted?.length ?? 0}</p>
               <p className="text-gray-400">Promoted</p>
             </div>
             <div className="text-center bg-gray-800 border border-gray-700 rounded-lg p-2">
@@ -244,7 +244,7 @@ export default function DeveloperPage() {
               })
             }
             className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors duration-500 ${
-              settings.developer.debugMode ? 'bg-[#2D8B5E]' : 'bg-white/10'
+              settings.developer.debugMode ? 'bg-[#66CCCC]' : 'bg-white/10'
             }`}
           >
             <span
@@ -267,7 +267,7 @@ export default function DeveloperPage() {
               })
             }
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              settings.developer.showApiLogs ? 'bg-[#2D8B5E]' : 'bg-[#1E1B18]'
+              settings.developer.showApiLogs ? 'bg-[#66CCCC]' : 'bg-[#1E1B18]'
             }`}
           >
             <span
@@ -293,7 +293,7 @@ export default function DeveloperPage() {
               })
             }
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              settings.developer.performanceMetrics ? 'bg-[#2D8B5E]' : 'bg-[#1E1B18]'
+              settings.developer.performanceMetrics ? 'bg-[#66CCCC]' : 'bg-[#1E1B18]'
             }`}
           >
             <span
@@ -314,7 +314,7 @@ export default function DeveloperPage() {
           className="w-full flex items-center justify-between px-4 py-3 bg-gray-800 hover:bg-[#1E1B18] rounded-lg border border-gray-700 transition-colors"
         >
           <div className="flex items-center gap-3">
-            <ArrowDownTrayIcon className="w-5 h-5 text-[#2D8B5E]" />
+            <ArrowDownTrayIcon className="w-5 h-5 text-[#66CCCC]" />
             <div className="text-left">
               <div className="text-sm font-medium text-white">Export Settings</div>
               <div className="text-xs text-gray-400">Download your settings as JSON</div>
@@ -363,7 +363,7 @@ export default function DeveloperPage() {
             <div className="flex gap-3">
               <button
                 onClick={handleCopyToClipboard}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-[#2D8B5E] hover:bg-[#2D8B5E]/80 rounded-lg text-white font-medium transition-colors"
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-[#66CCCC] hover:bg-[#66CCCC]/80 rounded-lg text-white font-medium transition-colors"
               >
                 <DocumentDuplicateIcon className="w-5 h-5" />
                 Copy to Clipboard
@@ -392,7 +392,7 @@ export default function DeveloperPage() {
           <div>
             <h3 className="text-lg font-black text-[#F5F0E8] flex items-center gap-3 uppercase tracking-widest">
               🛤️ Neural Router Array
-              <span className="text-[9px] font-black px-2.5 py-0.5 bg-[#2D8B5E]/10 text-[#2D8B5E] rounded-full border border-[#2D8B5E]/20 uppercase tracking-tighter">
+              <span className="text-[9px] font-black px-2.5 py-0.5 bg-[#66CCCC]/10 text-[#66CCCC] rounded-full border border-[#66CCCC]/20 uppercase tracking-tighter">
                 PHASE 8A
               </span>
             </h3>
@@ -406,7 +406,7 @@ export default function DeveloperPage() {
             className="text-xs px-3 py-1.5 bg-gray-800 hover:bg-[#1E1B18] border border-gray-700 rounded-lg text-gray-300 transition-colors flex items-center gap-1.5"
           >
             {routerLoading ? (
-              <span className="inline-block w-3 h-3 border-2 border-[#2D8B5E] border-t-transparent rounded-full animate-spin" />
+              <span className="inline-block w-3 h-3 border-2 border-[#66CCCC] border-t-transparent rounded-full animate-spin" />
             ) : (
               <span>↻</span>
             )}
@@ -470,7 +470,7 @@ export default function DeveloperPage() {
                         href={p.signupUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-xs text-[#2D8B5E] hover:text-[#2D8B5E] underline mt-0.5 inline-block"
+                        className="text-xs text-[#66CCCC] hover:text-[#66CCCC] underline mt-0.5 inline-block"
                       >
                         Get free key →
                       </a>
@@ -493,7 +493,7 @@ export default function DeveloperPage() {
               <div className="bg-gray-900 border border-gray-800 rounded-lg p-4 space-y-2">
                 {Object.entries(routerStatus.routing_matrix).map(([task, models]) => (
                   <div key={task} className="flex items-start gap-2">
-                    <span className="text-xs font-mono text-[#2D8B5E] w-20 shrink-0 pt-0.5">
+                    <span className="text-xs font-mono text-[#66CCCC] w-20 shrink-0 pt-0.5">
                       {TASK_EMOJIS[task] ?? ''} {task}
                     </span>
                     <div className="flex flex-wrap gap-1">
@@ -520,12 +520,12 @@ export default function DeveloperPage() {
       <ModelDiscoveryPanel />
 
       {/* Warning Box */}
-      <div className="bg-[#C47A4A]/5 border border-[#C47A4A]/20 rounded-2xl p-6">
+      <div className="bg-[#C7B8EA]/5 border border-[#C7B8EA]/20 rounded-2xl p-6">
         <div className="flex items-start gap-4">
           <div className="text-xl">⚠️</div>
           <div className="flex-1">
-            <div className="text-[10px] font-black text-[#C47A4A] uppercase tracking-[0.2em] mb-2">Architectural Advisory</div>
-            <p className="text-[9px] text-[#C47A4A]/70 uppercase tracking-widest font-medium leading-relaxed">
+            <div className="text-[10px] font-black text-[#C7B8EA] uppercase tracking-[0.2em] mb-2">Architectural Advisory</div>
+            <p className="text-[9px] text-[#C7B8EA]/70 uppercase tracking-widest font-medium leading-relaxed">
               THESE PROTOCOLS ARE RESERVED FOR SENIOR ARCHITECTS. ENABLING DIAGNOSTIC OVERLAYS MAY COLLAPSE PERFORMANCE
               AND EXPOSE NEURAL ENCRYPTION TRACES WITHIN SYSTEM LOGS.
             </p>
@@ -535,8 +535,8 @@ export default function DeveloperPage() {
 
       {/* Save indicator */}
       {isSaving && (
-        <div className="text-sm text-[#2D8B5E] flex items-center gap-2">
-          <div className="w-4 h-4 border-2 border-[#2D8B5E] border-t-transparent rounded-full animate-spin" />
+        <div className="text-sm text-[#66CCCC] flex items-center gap-2">
+          <div className="w-4 h-4 border-2 border-[#66CCCC] border-t-transparent rounded-full animate-spin" />
           Saving...
         </div>
       )}

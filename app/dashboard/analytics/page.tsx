@@ -85,7 +85,7 @@ export default function AnalyticsDashboardPage() {
   if (metricsLoading && metrics.length === 0) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-[#2D8B5E]" />
+        <Loader2 className="h-8 w-8 animate-spin text-[#66CCCC]" />
       </div>
     );
   }
@@ -112,7 +112,7 @@ export default function AnalyticsDashboardPage() {
           <button 
             onClick={handleExportReport}
             disabled={exportLoading}
-            className="flex items-center gap-2 rounded-lg bg-[#2D8B5E] px-4 py-2 text-sm font-medium text-white hover:bg-[#1F3D30] disabled:opacity-50"
+            className="flex items-center gap-2 rounded-lg bg-[#66CCCC] px-4 py-2 text-sm font-medium text-white hover:bg-[#1F3D30] disabled:opacity-50"
           >
             {exportLoading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -148,7 +148,7 @@ export default function AnalyticsDashboardPage() {
           change={`${reports.filter(r => r.status === 'completed').length} completed`}
           changeType="positive"
           icon={DollarSign}
-          iconColor="text-[#2D8B5E]"
+          iconColor="text-[#66CCCC]"
         />
         <MetricCard
           title="Insights"
@@ -174,7 +174,7 @@ export default function AnalyticsDashboardPage() {
               </div>
             ) : (
               <div className="h-80">
-                <LineChart data={trendData} color="#2D8B5E" />
+                <LineChart data={trendData} color="#66CCCC" />
               </div>
             )}
           </CardContent>
@@ -208,7 +208,7 @@ export default function AnalyticsDashboardPage() {
               <CardTitle>Recent Reports</CardTitle>
               <button 
                 onClick={() => setShowReportForm(!showReportForm)}
-                className="text-sm font-medium text-[#2D8B5E] hover:text-[#1F3D30] flex items-center gap-1"
+                className="text-sm font-medium text-[#66CCCC] hover:text-[#1F3D30] flex items-center gap-1"
               >
                 <Plus className="h-4 w-4" />
                 New Report
@@ -223,13 +223,13 @@ export default function AnalyticsDashboardPage() {
                   value={reportName}
                   onChange={(e) => setReportName(e.target.value)}
                   placeholder="Report name..."
-                  className="w-full rounded-lg border border-white/10 px-3 py-2 text-sm focus:border-[#2D8B5E]/40 focus:outline-none focus:ring-1 focus:ring-[#2D8B5E]/30"
+                  className="w-full rounded-lg border border-white/10 px-3 py-2 text-sm focus:border-[#66CCCC]/40 focus:outline-none focus:ring-1 focus:ring-[#66CCCC]/30"
                   required
                 />
                 <select 
                   value={reportType}
                   onChange={(e) => setReportType(e.target.value)}
-                  className="w-full rounded-lg border border-white/10 px-3 py-2 text-sm focus:border-[#2D8B5E]/40 focus:outline-none focus:ring-1 focus:ring-[#2D8B5E]/30"
+                  className="w-full rounded-lg border border-white/10 px-3 py-2 text-sm focus:border-[#66CCCC]/40 focus:outline-none focus:ring-1 focus:ring-[#66CCCC]/30"
                 >
                   <option value="summary">Summary</option>
                   <option value="detailed">Detailed</option>
@@ -240,7 +240,7 @@ export default function AnalyticsDashboardPage() {
                   <button 
                     type="submit"
                     disabled={!reportName.trim()}
-                    className="flex-1 rounded-lg bg-[#2D8B5E] px-3 py-2 text-sm font-medium text-white hover:bg-[#1F3D30] disabled:opacity-50"
+                    className="flex-1 rounded-lg bg-[#66CCCC] px-3 py-2 text-sm font-medium text-white hover:bg-[#1F3D30] disabled:opacity-50"
                   >
                     Generate
                   </button>
@@ -257,7 +257,7 @@ export default function AnalyticsDashboardPage() {
             
             {reportsLoading ? (
               <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-[#2D8B5E]" />
+                <Loader2 className="h-6 w-6 animate-spin text-[#66CCCC]" />
               </div>
             ) : reports.length === 0 ? (
               <div className="py-8 text-center text-[#8C8476]">
@@ -298,7 +298,7 @@ export default function AnalyticsDashboardPage() {
           <CardContent>
             {insightsLoading ? (
               <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-[#2D8B5E]" />
+                <Loader2 className="h-6 w-6 animate-spin text-[#66CCCC]" />
               </div>
             ) : insights.length === 0 ? (
               <div className="py-8 text-center text-[#8C8476]">

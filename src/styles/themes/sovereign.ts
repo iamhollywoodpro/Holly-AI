@@ -7,9 +7,9 @@ export const sovereignTheme = {
   colors: {
     // Core Sovereign Palette — Colors from HER features
     primary: {
-      emerald: '#2D8B5E',    // Deep Emerald (her green eyes)
-      copper: '#C47A4A',     // Burnished Copper (her auburn hair)
-      gold: '#D4A853',       // Holly Gold (highlights)
+      emerald: '#66CCCC',    // Deep Emerald (her green eyes)
+      copper: '#C7B8EA',     // Burnished Copper (her auburn hair)
+      gold: '#66CCCC',       // Holly Gold (highlights)
       jade: '#3DAF76',       // Jade (lighter emerald for accents)
       amber: '#E8A862',      // Amber (warm accent)
     },
@@ -35,14 +35,14 @@ export const sovereignTheme = {
       success: '#3DAF76',     // Jade (Positive/Nominal)
       warning: '#E8A862',     // Amber (Warning)
       error: '#B84052',       // Deep Rose (Failure)
-      info: '#2D8B5E',        // Emerald (Information)
+      info: '#66CCCC',        // Emerald (Information)
     },
 
     // Gradients (Organic Flow)
     gradients: {
-      primary: 'linear-gradient(135deg, #2D8B5E 0%, #C47A4A 100%)',
-      secondary: 'linear-gradient(135deg, #1F3D30 0%, #2D8B5E 100%)',
-      holographic: 'linear-gradient(135deg, #2D8B5E 0%, #F5F0E8 50%, #C47A4A 100%)',
+      primary: 'linear-gradient(135deg, #66CCCC 0%, #C7B8EA 100%)',
+      secondary: 'linear-gradient(135deg, #1F3D30 0%, #66CCCC 100%)',
+      holographic: 'linear-gradient(135deg, #66CCCC 0%, #F5F0E8 50%, #C7B8EA 100%)',
       glow: 'linear-gradient(180deg, rgba(45, 139, 94, 0.1) 0%, rgba(196, 122, 74, 0.1) 100%)',
     },
 
@@ -50,7 +50,7 @@ export const sovereignTheme = {
     border: {
       primary: 'rgba(45, 139, 94, 0.1)',   // Faint Emerald
       accent: 'rgba(45, 139, 94, 0.2)',    // Etched Emerald
-      glow: '#2D8B5E',                      // Radiant Emerald
+      glow: '#66CCCC',                      // Radiant Emerald
     },
 
     // Shadows (Ambient Depth)

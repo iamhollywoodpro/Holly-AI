@@ -23,13 +23,13 @@ export default function GlobalError({
       style={{ backgroundColor: '#0A0908' }}
     >
       <div className="flex items-center gap-2 mb-2">
-        <span className="text-[#2D8B5E] text-xs font-mono tracking-[0.3em] uppercase opacity-60">
+        <span className="text-[#66CCCC] text-xs font-mono tracking-[0.3em] uppercase opacity-60">
           HOLLY
         </span>
       </div>
 
-      <div className="w-20 h-20 rounded-full bg-[#2D8B5E]/10 border border-[#2D8B5E]/20 flex items-center justify-center mb-6">
-        <AlertTriangle className="w-10 h-10 text-[#2D8B5E]" />
+      <div className="w-20 h-20 rounded-full bg-[#66CCCC]/10 border border-[#66CCCC]/20 flex items-center justify-center mb-6">
+        <AlertTriangle className="w-10 h-10 text-[#66CCCC]" />
       </div>
 
       <h1 className="text-2xl font-bold text-[#F5F0E8] mb-2">
@@ -43,7 +43,7 @@ export default function GlobalError({
 
       {isDev && error.message && (
         <div className="mb-8 w-full max-w-lg rounded-lg bg-white/5 border border-white/10 p-4 text-left">
-          <p className="text-xs font-mono text-[#2D8B5E] mb-1">Error details (dev only)</p>
+          <p className="text-xs font-mono text-[#66CCCC] mb-1">Error details (dev only)</p>
           <p className="text-sm text-[#B84052]/80 font-mono break-words">
             {error.message}
           </p>
@@ -58,7 +58,7 @@ export default function GlobalError({
       <div className="flex items-center gap-4">
         <button
           onClick={reset}
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#2D8B5E] hover:bg-[#3DAF76] text-[#0A0908] text-sm font-semibold rounded-lg transition-colors"
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#66CCCC] hover:bg-[#3DAF76] text-[#0A0908] text-sm font-semibold rounded-lg transition-colors"
         >
           <RefreshCw className="w-4 h-4" />
           Try Again

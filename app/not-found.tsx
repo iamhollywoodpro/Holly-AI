@@ -8,13 +8,13 @@ export default function NotFound() {
       style={{ backgroundColor: '#0A0908' }}
     >
       <div className="flex items-center gap-2 mb-2">
-        <span className="text-[#2D8B5E] text-xs font-mono tracking-[0.3em] uppercase opacity-60">
+        <span className="text-[#66CCCC] text-xs font-mono tracking-[0.3em] uppercase opacity-60">
           HOLLY
         </span>
       </div>
 
-      <div className="w-24 h-24 rounded-full bg-[#2D8B5E]/10 border border-[#2D8B5E]/20 flex items-center justify-center mb-8">
-        <Music className="w-12 h-12 text-[#2D8B5E]" />
+      <div className="w-24 h-24 rounded-full bg-[#66CCCC]/10 border border-[#66CCCC]/20 flex items-center justify-center mb-8">
+        <Music className="w-12 h-12 text-[#66CCCC]" />
       </div>
 
       <h1 className="text-6xl font-bold text-[#F5F0E8] mb-3">404</h1>
@@ -30,7 +30,7 @@ export default function NotFound() {
 
       <Link
         href="/"
-        className="inline-flex items-center gap-2 px-6 py-3 bg-[#2D8B5E] hover:bg-[#3DAF76] text-[#0A0908] text-sm font-semibold rounded-lg transition-colors"
+        className="inline-flex items-center gap-2 px-6 py-3 bg-[#66CCCC] hover:bg-[#3DAF76] text-[#0A0908] text-sm font-semibold rounded-lg transition-colors"
       >
         <Home className="w-4 h-4" />
         Return to HOLLY

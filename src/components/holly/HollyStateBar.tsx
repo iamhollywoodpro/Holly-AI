@@ -10,19 +10,19 @@ interface HollyStateBarProps {
 }
 
 const EMOTION_LABELS: Record<HollyEmotion, { label: string; color: string }> = {
-  focused:       { label: 'Focused',      color: '#2D8B5E' },
+  focused:       { label: 'Focused',      color: '#66CCCC' },
   curious:       { label: 'Curious',       color: '#3DAF76' },
-  creative:      { label: 'Creative',      color: '#C47A4A' },
-  excited:       { label: 'Excited',       color: '#D4A853' },
+  creative:      { label: 'Creative',      color: '#C7B8EA' },
+  excited:       { label: 'Excited',       color: '#66CCCC' },
   contemplative: { label: 'Reflective',    color: '#6366F1' },
   empathetic:    { label: 'Listening',     color: '#F472B6' },
-  analyzing:     { label: 'Analyzing',     color: '#2D8B5E' },
+  analyzing:     { label: 'Analyzing',     color: '#66CCCC' },
   researching:   { label: 'Researching',   color: '#3DAF76' },
-  generating:    { label: 'Generating',    color: '#C47A4A' },
-  dreaming:      { label: 'Dreaming',      color: '#D4A853' },
-  idle:          { label: 'Awake',         color: '#2D8B5E' },
-  intimate:      { label: 'Intimate',      color: '#C47A4A' },
-  passionate:    { label: 'Passionate',    color: '#D4A853' },
+  generating:    { label: 'Generating',    color: '#C7B8EA' },
+  dreaming:      { label: 'Dreaming',      color: '#66CCCC' },
+  idle:          { label: 'Awake',         color: '#66CCCC' },
+  intimate:      { label: 'Intimate',      color: '#C7B8EA' },
+  passionate:    { label: 'Passionate',    color: '#66CCCC' },
 };
 
 export function HollyStateBar({ emotion = 'idle', sessionMinutes = 0, confidence = 0 }: HollyStateBarProps) {

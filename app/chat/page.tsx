@@ -13,8 +13,8 @@ const HollyChatInterface = dynamic(
     loading: () => (
       <div className="flex flex-col h-screen w-full bg-[#0A0908] items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#2D8B5E] to-[#C47A4A] animate-pulse shadow-[0_0_20px_rgba(45,139,94,0.3)]" />
-          <p className="text-[#2D8B5E] text-xs font-bold tracking-[0.3em] uppercase animate-pulse">
+          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#66CCCC] to-[#C7B8EA] animate-pulse shadow-[0_0_20px_rgba(102,204,204,0.3)]" />
+          <p className="text-[#66CCCC] text-xs font-bold tracking-[0.3em] uppercase animate-pulse">
             Establishing Nexus Link...
           </p>
         </div>
@@ -59,8 +59,8 @@ export default function ChatPage() {
     return (
       <div className="flex flex-col h-screen w-full bg-[#0A0908] items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#2D8B5E] to-[#C47A4A] animate-pulse shadow-[0_0_20px_rgba(45,139,94,0.3)]" />
-          <p className="text-[#2D8B5E] text-xs font-bold tracking-[0.3em] uppercase animate-pulse">
+          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#66CCCC] to-[#C7B8EA] animate-pulse shadow-[0_0_20px_rgba(102,204,204,0.3)]" />
+          <p className="text-[#66CCCC] text-xs font-bold tracking-[0.3em] uppercase animate-pulse">
             Establishing Nexus Link...
           </p>
         </div>
@@ -73,7 +73,7 @@ export default function ChatPage() {
     return (
       <div className="flex flex-col h-screen w-full bg-[#0A0908] items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-8 h-8 border-2 border-[#2D8B5E] border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-[#66CCCC] border-t-transparent rounded-full animate-spin" />
           <p className="text-gray-500 text-sm">Redirecting to sign-in...</p>
         </div>
       </div>
@@ -85,8 +85,8 @@ export default function ChatPage() {
     return (
       <div className="flex flex-col h-screen w-full bg-[#0A0908] items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#2D8B5E] to-[#C47A4A] animate-pulse shadow-[0_0_20px_rgba(45,139,94,0.3)]" />
-          <p className="text-[#2D8B5E] text-xs font-bold tracking-[0.3em] uppercase animate-pulse">
+          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#66CCCC] to-[#C7B8EA] animate-pulse shadow-[0_0_20px_rgba(102,204,204,0.3)]" />
+          <p className="text-[#66CCCC] text-xs font-bold tracking-[0.3em] uppercase animate-pulse">
             Establishing Nexus Link...
           </p>
         </div>

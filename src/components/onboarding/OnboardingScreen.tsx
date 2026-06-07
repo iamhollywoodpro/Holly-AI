@@ -52,7 +52,7 @@ export default function OnboardingScreen() {
       <div className="max-w-2xl w-full">
         {/* Welcome Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-[#2D8B5E] to-[#C47A4A] rounded-2xl mb-4 shadow-[0_0_30px_rgba(45,139,94,0.3)]">
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-[#66CCCC] to-[#C7B8EA] rounded-2xl mb-4 shadow-[0_0_30px_rgba(102,204,204,0.3)]">
             <span className="text-4xl font-black text-white">H</span>
           </div>
           <h1 className="text-4xl font-black text-[#F5F0E8] uppercase tracking-[0.2em] mb-2">
@@ -64,9 +64,9 @@ export default function OnboardingScreen() {
         </div>
 
         {/* Main Card */}
-        <div className="bg-[#12110F] rounded-2xl shadow-2xl border border-[#D4A853]/20 overflow-hidden">
+        <div className="bg-[#12110F] rounded-2xl shadow-2xl border border-[#66CCCC]/20 overflow-hidden">
           {/* Header */}
-          <div className="bg-gradient-to-r from-[#D4A853] to-[#C47A4A] p-6 shadow-lg">
+          <div className="bg-gradient-to-r from-[#66CCCC] to-[#C7B8EA] p-6 shadow-lg">
             <div className="flex items-center gap-3 text-white">
               <Cloud className="w-8 h-8" />
               <div>
@@ -81,13 +81,13 @@ export default function OnboardingScreen() {
           {/* Benefits List */}
           <div className="p-8 space-y-5 bg-[#12110F]">
             {[
-              { icon: CheckCircle2, title: "Sovereign Archival", desc: "Every artifact HOLLY synthesizes is automatically secured in your Drive.", iconColor: "text-[#2D8B5E]", bgColor: "bg-[#2D8B5E]/10" },
-              { icon: Smartphone, title: "Universal Nexus", desc: "Access your intelligence assets from any device, anywhere in the world.", iconColor: "text-[#2D8B5E]", bgColor: "bg-[#2D8B5E]/10" },
-              { icon: FolderSync, title: "Structured Cognition", desc: "HOLLY intelligently organizes files into dossiers by project and intent.", iconColor: "text-[#2D8B5E]", bgColor: "bg-[#2D8B5E]/10" },
+              { icon: CheckCircle2, title: "Sovereign Archival", desc: "Every artifact HOLLY synthesizes is automatically secured in your Drive.", iconColor: "text-[#66CCCC]", bgColor: "bg-[#66CCCC]/10" },
+              { icon: Smartphone, title: "Universal Nexus", desc: "Access your intelligence assets from any device, anywhere in the world.", iconColor: "text-[#66CCCC]", bgColor: "bg-[#66CCCC]/10" },
+              { icon: FolderSync, title: "Structured Cognition", desc: "HOLLY intelligently organizes files into dossiers by project and intent.", iconColor: "text-[#66CCCC]", bgColor: "bg-[#66CCCC]/10" },
               { icon: Lock, title: "Encryption & Privacy", desc: "Only HOLLY's workspace is accessible. Your other data remains private.", iconColor: "text-[#8C8476]", bgColor: "bg-white/5" },
             ].map((benefit, i) => (
               <div key={i} className="flex items-start gap-4 group">
-                <div className={`flex-shrink-0 w-12 h-12 ${benefit.bgColor} rounded-xl flex items-center justify-center border border-white/5 transition-colors group-hover:border-[#2D8B5E]/30`}>
+                <div className={`flex-shrink-0 w-12 h-12 ${benefit.bgColor} rounded-xl flex items-center justify-center border border-white/5 transition-colors group-hover:border-[#66CCCC]/30`}>
                   <benefit.icon className={`w-6 h-6 ${benefit.iconColor}`} />
                 </div>
                 <div>
@@ -105,7 +105,7 @@ export default function OnboardingScreen() {
             <button
               onClick={handleConnectDrive}
               disabled={isConnecting || isSkipping}
-              className="flex-1 bg-gradient-to-r from-[#2D8B5E] to-[#C47A4A] text-white px-6 py-4 rounded-xl font-black uppercase tracking-[0.1em] text-xs hover:opacity-90 transition-all shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2.5"
+              className="flex-1 bg-gradient-to-r from-[#66CCCC] to-[#C7B8EA] text-white px-6 py-4 rounded-xl font-black uppercase tracking-[0.1em] text-xs hover:opacity-90 transition-all shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2.5"
             >
               {isConnecting ? (
                 <>

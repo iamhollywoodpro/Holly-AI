@@ -8,9 +8,9 @@ import Link from 'next/link';
 const H = {
   bg: { dark: '#0A0908', surface: '#141210', raised: '#1E1B18' },
   text: { primary: '#F5F0E8', secondary: '#8C8476', tertiary: '#5C564D' },
-  primary: '#2D8B5E',
+  primary: '#66CCCC',
   border: '#2A2520',
-  holographic: 'linear-gradient(135deg, #C47A4A 0%, #2D8B5E 50%, #D4A853 100%)',
+  holographic: 'linear-gradient(135deg, #C7B8EA 0%, #66CCCC 50%, #66CCCC 100%)',
 };
 
 interface FileItem {

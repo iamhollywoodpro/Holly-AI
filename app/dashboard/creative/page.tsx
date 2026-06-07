@@ -28,7 +28,7 @@ export default function CreativeDashboardPage() {
             onClick={() => setActiveTab('generate')}
             className={`border-b-2 px-1 py-4 text-sm font-medium ${
               activeTab === 'generate'
-                ? 'border-[#2D8B5E] text-[#2D8B5E]'
+                ? 'border-[#66CCCC] text-[#66CCCC]'
                 : 'border-transparent text-[#8C8476] hover:border-white/20 hover:text-[#F5F0E8]'
             }`}
           >
@@ -38,7 +38,7 @@ export default function CreativeDashboardPage() {
             onClick={() => setActiveTab('assets')}
             className={`border-b-2 px-1 py-4 text-sm font-medium ${
               activeTab === 'assets'
-                ? 'border-[#2D8B5E] text-[#2D8B5E]'
+                ? 'border-[#66CCCC] text-[#66CCCC]'
                 : 'border-transparent text-[#8C8476] hover:border-white/20 hover:text-[#F5F0E8]'
             }`}
           >
@@ -48,7 +48,7 @@ export default function CreativeDashboardPage() {
             onClick={() => setActiveTab('templates')}
             className={`border-b-2 px-1 py-4 text-sm font-medium ${
               activeTab === 'templates'
-                ? 'border-[#2D8B5E] text-[#2D8B5E]'
+                ? 'border-[#66CCCC] text-[#66CCCC]'
                 : 'border-transparent text-[#8C8476] hover:border-white/20 hover:text-[#F5F0E8]'
             }`}
           >
@@ -120,7 +120,7 @@ function GenerateTab() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Image className="h-5 w-5 text-[#2D8B5E]" />
+            <Image className="h-5 w-5 text-[#66CCCC]" />
             Image Generation
           </CardTitle>
         </CardHeader>
@@ -134,7 +134,7 @@ function GenerateTab() {
                 value={imagePrompt}
                 onChange={(e) => setImagePrompt(e.target.value)}
                 placeholder="A futuristic cityscape at sunset..."
-                className="w-full rounded-lg border border-white/10 p-3 text-sm focus:border-[#2D8B5E]/40 focus:outline-none focus:ring-1 focus:ring-[#2D8B5E]/30"
+                className="w-full rounded-lg border border-white/10 p-3 text-sm focus:border-[#66CCCC]/40 focus:outline-none focus:ring-1 focus:ring-[#66CCCC]/30"
                 rows={4}
                 required
               />
@@ -147,7 +147,7 @@ function GenerateTab() {
                 <select 
                   value={imageModel}
                   onChange={(e) => setImageModel(e.target.value)}
-                  className="w-full rounded-lg border border-white/10 px-3 py-2 text-sm focus:border-[#2D8B5E]/40 focus:outline-none focus:ring-1 focus:ring-[#2D8B5E]/30"
+                  className="w-full rounded-lg border border-white/10 px-3 py-2 text-sm focus:border-[#66CCCC]/40 focus:outline-none focus:ring-1 focus:ring-[#66CCCC]/30"
                 >
                   <option value="pollinations-flux">FLUX via Pollinations (FREE, no key)</option>
                   <option value="flux">FLUX via Fal.ai (FREE credits)</option>
@@ -161,7 +161,7 @@ function GenerateTab() {
                 <select 
                   value={imageSize}
                   onChange={(e) => setImageSize(e.target.value)}
-                  className="w-full rounded-lg border border-white/10 px-3 py-2 text-sm focus:border-[#2D8B5E]/40 focus:outline-none focus:ring-1 focus:ring-[#2D8B5E]/30"
+                  className="w-full rounded-lg border border-white/10 px-3 py-2 text-sm focus:border-[#66CCCC]/40 focus:outline-none focus:ring-1 focus:ring-[#66CCCC]/30"
                 >
                   <option value="1024x1024">1024x1024</option>
                   <option value="1024x768">1024x768</option>
@@ -178,7 +178,7 @@ function GenerateTab() {
             <button 
               type="submit"
               disabled={generating || !imagePrompt.trim()}
-              className="w-full rounded-lg bg-[#2D8B5E] px-4 py-3 font-medium text-white hover:bg-[#1F3D30] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full rounded-lg bg-[#66CCCC] px-4 py-3 font-medium text-white hover:bg-[#1F3D30] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {generating ? (
                 <>
@@ -212,7 +212,7 @@ function GenerateTab() {
                 value={contentTopic}
                 onChange={(e) => setContentTopic(e.target.value)}
                 placeholder="AI trends in 2025..."
-                className="w-full rounded-lg border border-white/10 px-3 py-2 text-sm focus:border-[#2D8B5E]/40 focus:outline-none focus:ring-1 focus:ring-[#2D8B5E]/30"
+                className="w-full rounded-lg border border-white/10 px-3 py-2 text-sm focus:border-[#66CCCC]/40 focus:outline-none focus:ring-1 focus:ring-[#66CCCC]/30"
                 required
               />
             </div>
@@ -223,7 +223,7 @@ function GenerateTab() {
               <select 
                 value={contentType}
                 onChange={(e) => setContentType(e.target.value)}
-                className="w-full rounded-lg border border-white/10 px-3 py-2 text-sm focus:border-[#2D8B5E]/40 focus:outline-none focus:ring-1 focus:ring-[#2D8B5E]/30"
+                className="w-full rounded-lg border border-white/10 px-3 py-2 text-sm focus:border-[#66CCCC]/40 focus:outline-none focus:ring-1 focus:ring-[#66CCCC]/30"
               >
                 <option value="blog">Blog Post</option>
                 <option value="social">Social Media</option>
@@ -238,7 +238,7 @@ function GenerateTab() {
               <select 
                 value={contentTone}
                 onChange={(e) => setContentTone(e.target.value)}
-                className="w-full rounded-lg border border-white/10 px-3 py-2 text-sm focus:border-[#2D8B5E]/40 focus:outline-none focus:ring-1 focus:ring-[#2D8B5E]/30"
+                className="w-full rounded-lg border border-white/10 px-3 py-2 text-sm focus:border-[#66CCCC]/40 focus:outline-none focus:ring-1 focus:ring-[#66CCCC]/30"
               >
                 <option value="professional">Professional</option>
                 <option value="casual">Casual</option>
@@ -302,7 +302,7 @@ function AssetsTab() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-[#2D8B5E]" />
+        <Loader2 className="h-8 w-8 animate-spin text-[#66CCCC]" />
       </div>
     );
   }
@@ -326,12 +326,12 @@ function AssetsTab() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search assets..."
-            className="flex-1 rounded-lg border border-white/10 px-3 py-2 text-sm focus:border-[#2D8B5E]/40 focus:outline-none focus:ring-1 focus:ring-[#2D8B5E]/30"
+            className="flex-1 rounded-lg border border-white/10 px-3 py-2 text-sm focus:border-[#66CCCC]/40 focus:outline-none focus:ring-1 focus:ring-[#66CCCC]/30"
           />
           <select 
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
-            className="rounded-lg border border-white/10 px-3 py-2 text-sm focus:border-[#2D8B5E]/40 focus:outline-none focus:ring-1 focus:ring-[#2D8B5E]/30"
+            className="rounded-lg border border-white/10 px-3 py-2 text-sm focus:border-[#66CCCC]/40 focus:outline-none focus:ring-1 focus:ring-[#66CCCC]/30"
           >
             <option value="all">All Types</option>
             <option value="image">Images</option>
@@ -389,7 +389,7 @@ function TemplatesTab() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-[#2D8B5E]" />
+        <Loader2 className="h-8 w-8 animate-spin text-[#66CCCC]" />
       </div>
     );
   }
@@ -416,7 +416,7 @@ function TemplatesTab() {
           <Card key={template.id} className="cursor-pointer hover:shadow-md">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Folder className="h-5 w-5 text-[#2D8B5E]" />
+                <Folder className="h-5 w-5 text-[#66CCCC]" />
                 {template.name}
               </CardTitle>
             </CardHeader>
@@ -424,7 +424,7 @@ function TemplatesTab() {
               <p className="text-sm text-[#8C8476]">
                 {template.description || 'A pre-configured template for quick content generation.'}
               </p>
-              <button className="mt-4 w-full rounded-lg border border-[#2D8B5E] px-4 py-2 text-sm font-medium text-[#2D8B5E] hover:bg-[#2D8B5E]/10">
+              <button className="mt-4 w-full rounded-lg border border-[#66CCCC] px-4 py-2 text-sm font-medium text-[#66CCCC] hover:bg-[#66CCCC]/10">
                 Use Template
               </button>
             </CardContent>

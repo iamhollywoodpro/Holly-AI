@@ -26,7 +26,7 @@ export default function SecurityDashboardPage() {
   if (securityLoading && !securityReport) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-[#2D8B5E]" />
+        <Loader2 className="h-8 w-8 animate-spin text-[#66CCCC]" />
       </div>
     );
   }
@@ -92,7 +92,7 @@ export default function SecurityDashboardPage() {
           <CardContent>
             {securityLoading ? (
               <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-[#2D8B5E]" />
+                <Loader2 className="h-6 w-6 animate-spin text-[#66CCCC]" />
               </div>
             ) : !securityReport || securityReport.recentEvents.length === 0 ? (
               <div className="py-8 text-center text-[#8C8476]">
@@ -145,7 +145,7 @@ export default function SecurityDashboardPage() {
           <CardContent>
             {complianceLoading ? (
               <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-[#2D8B5E]" />
+                <Loader2 className="h-6 w-6 animate-spin text-[#66CCCC]" />
               </div>
             ) : !complianceReport ? (
               <div className="py-8 text-center text-[#8C8476]">
@@ -229,13 +229,13 @@ export default function SecurityDashboardPage() {
                 value={logFilter}
                 onChange={(e) => setLogFilter(e.target.value)}
                 placeholder="Search actions..."
-                className="w-full rounded-lg border border-white/10 py-2 pl-10 pr-3 text-sm focus:border-[#2D8B5E]/40 focus:outline-none focus:ring-1 focus:ring-[#2D8B5E]/30"
+                className="w-full rounded-lg border border-white/10 py-2 pl-10 pr-3 text-sm focus:border-[#66CCCC]/40 focus:outline-none focus:ring-1 focus:ring-[#66CCCC]/30"
               />
             </div>
             <select 
               value={actionFilter}
               onChange={(e) => setActionFilter(e.target.value)}
-              className="rounded-lg border border-white/10 px-3 py-2 text-sm focus:border-[#2D8B5E]/40 focus:outline-none focus:ring-1 focus:ring-[#2D8B5E]/30"
+              className="rounded-lg border border-white/10 px-3 py-2 text-sm focus:border-[#66CCCC]/40 focus:outline-none focus:ring-1 focus:ring-[#66CCCC]/30"
             >
               <option value="all">All Actions</option>
               {uniqueActions.map(action => (
@@ -247,7 +247,7 @@ export default function SecurityDashboardPage() {
           {/* Logs Table */}
           {logsLoading ? (
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-[#2D8B5E]" />
+              <Loader2 className="h-6 w-6 animate-spin text-[#66CCCC]" />
             </div>
           ) : filteredLogs.length === 0 ? (
             <div className="py-8 text-center text-[#8C8476]">
@@ -306,7 +306,7 @@ export default function SecurityDashboardPage() {
         <CardContent>
           {moderationLoading ? (
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-[#2D8B5E]" />
+              <Loader2 className="h-6 w-6 animate-spin text-[#66CCCC]" />
             </div>
           ) : moderationQueue.length === 0 ? (
             <div className="py-8 text-center text-[#8C8476]">

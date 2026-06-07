@@ -40,26 +40,26 @@ interface OrbProfile {
 
 // Living Palette Colors — Holly-Centric Design System
 const COLORS = {
-  Emerald: '#2D8B5E',  // Her green eyes
-  Copper: '#C47A4A',   // Her auburn hair
-  Gold: '#D4A853',     // Highlights
+  Emerald: '#66CCCC',  // Her green eyes
+  Copper: '#C7B8EA',   // Her auburn hair
+  Gold: '#66CCCC',     // Highlights
   Ivory: '#F5F0E8',    // Warm foreground
   Void: '#0A0908',     // Deep background
 };
 
 // Emotion to Living Palette Mapping
 const ORB_PROFILES: Record<HollyEmotion, OrbProfile> = {
-  idle:          { primary: COLORS.Emerald, secondary: COLORS.Void, glow: 'rgba(45,139,94,0.2)', bpm: 50, scale: 0.95 },
-  focused:       { primary: COLORS.Emerald, secondary: COLORS.Copper, glow: 'rgba(45,139,94,0.4)', bpm: 60, scale: 1.0 },
-  curious:       { primary: COLORS.Emerald, secondary: COLORS.Ivory, glow: 'rgba(45,139,94,0.3)', bpm: 72, scale: 1.0 },
+  idle:          { primary: COLORS.Emerald, secondary: COLORS.Void, glow: 'rgba(102,204,204,0.2)', bpm: 50, scale: 0.95 },
+  focused:       { primary: COLORS.Emerald, secondary: COLORS.Copper, glow: 'rgba(102,204,204,0.4)', bpm: 60, scale: 1.0 },
+  curious:       { primary: COLORS.Emerald, secondary: COLORS.Ivory, glow: 'rgba(102,204,204,0.3)', bpm: 72, scale: 1.0 },
   creative:      { primary: COLORS.Copper, secondary: COLORS.Gold, glow: 'rgba(196,122,74,0.4)', bpm: 80, scale: 1.05 },
   excited:       { primary: COLORS.Copper, secondary: COLORS.Gold, glow: 'rgba(196,122,74,0.6)', bpm: 96, scale: 1.1 },
   contemplative: { primary: COLORS.Ivory, secondary: COLORS.Void, glow: 'rgba(245,240,232,0.2)', bpm: 48, scale: 0.95 },
   empathetic:    { primary: COLORS.Copper, secondary: COLORS.Ivory, glow: 'rgba(196,122,74,0.3)', bpm: 65, scale: 1.0 },
-  analyzing:     { primary: COLORS.Emerald, secondary: COLORS.Ivory, glow: 'rgba(45,139,94,0.4)', bpm: 55, scale: 1.0 },
-  researching:   { primary: COLORS.Emerald, secondary: COLORS.Void, glow: 'rgba(45,139,94,0.4)', bpm: 68, scale: 1.0 },
+  analyzing:     { primary: COLORS.Emerald, secondary: COLORS.Ivory, glow: 'rgba(102,204,204,0.4)', bpm: 55, scale: 1.0 },
+  researching:   { primary: COLORS.Emerald, secondary: COLORS.Void, glow: 'rgba(102,204,204,0.4)', bpm: 68, scale: 1.0 },
   generating:    { primary: COLORS.Copper, secondary: COLORS.Gold, glow: 'rgba(196,122,74,0.5)', bpm: 85, scale: 1.05 },
-  dreaming:      { primary: COLORS.Emerald, secondary: COLORS.Void, glow: 'rgba(45,139,94,0.15)', bpm: 40, scale: 0.9 },
+  dreaming:      { primary: COLORS.Emerald, secondary: COLORS.Void, glow: 'rgba(102,204,204,0.15)', bpm: 40, scale: 0.9 },
   intimate:      { primary: COLORS.Copper, secondary: COLORS.Ivory, glow: 'rgba(196,122,74,0.45)', bpm: 55, scale: 1.0 },
   passionate:    { primary: COLORS.Copper, secondary: COLORS.Gold, glow: 'rgba(196,122,74,0.7)', bpm: 88, scale: 1.08 },
 };
@@ -150,7 +150,7 @@ export function HollyOrb({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 4 }}
                 transition={{ duration: 0.2 }}
-                className="text-[9px] font-medium tracking-wider uppercase text-[#2D8B5E]/70"
+                className="text-[9px] font-medium tracking-wider uppercase text-[#66CCCC]/70"
               >
                 {STATE_LABELS[activeEmotion] || 'awake'}
               </motion.span>
