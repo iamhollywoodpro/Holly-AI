@@ -71,7 +71,7 @@ export default function OrchestrationDashboardPage() {
   if (agentsLoading && agents.length === 0) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-[#2D8B5E]" />
+        <Loader2 className="h-8 w-8 animate-spin text-[#66CCCC]" />
       </div>
     );
   }
@@ -120,7 +120,7 @@ export default function OrchestrationDashboardPage() {
           change="System resources"
           changeType={resources && resources.cpu > 80 ? 'negative' : 'positive'}
           icon={Activity}
-          iconColor="text-[#2D8B5E]"
+          iconColor="text-[#66CCCC]"
         />
       </div>
 
@@ -132,7 +132,7 @@ export default function OrchestrationDashboardPage() {
         <CardContent>
           {resourcesLoading ? (
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-[#2D8B5E]" />
+              <Loader2 className="h-6 w-6 animate-spin text-[#66CCCC]" />
             </div>
           ) : !resources ? (
             <div className="py-8 text-center text-[#8C8476]">
@@ -221,7 +221,7 @@ export default function OrchestrationDashboardPage() {
               <CardTitle>Agent Status</CardTitle>
               <button 
                 onClick={() => setShowAgentForm(!showAgentForm)}
-                className="text-sm font-medium text-[#2D8B5E] hover:text-[#1F3D30] flex items-center gap-1"
+                className="text-sm font-medium text-[#66CCCC] hover:text-[#1F3D30] flex items-center gap-1"
               >
                 <Plus className="h-4 w-4" />
                 New Agent
@@ -236,13 +236,13 @@ export default function OrchestrationDashboardPage() {
                   value={agentName}
                   onChange={(e) => setAgentName(e.target.value)}
                   placeholder="Agent name..."
-                  className="w-full rounded-lg border border-white/10 px-3 py-2 text-sm focus:border-[#2D8B5E]/40 focus:outline-none focus:ring-1 focus:ring-[#2D8B5E]/30"
+                  className="w-full rounded-lg border border-white/10 px-3 py-2 text-sm focus:border-[#66CCCC]/40 focus:outline-none focus:ring-1 focus:ring-[#66CCCC]/30"
                   required
                 />
                 <select 
                   value={agentType}
                   onChange={(e) => setAgentType(e.target.value)}
-                  className="w-full rounded-lg border border-white/10 px-3 py-2 text-sm focus:border-[#2D8B5E]/40 focus:outline-none focus:ring-1 focus:ring-[#2D8B5E]/30"
+                  className="w-full rounded-lg border border-white/10 px-3 py-2 text-sm focus:border-[#66CCCC]/40 focus:outline-none focus:ring-1 focus:ring-[#66CCCC]/30"
                 >
                   <option value="general">General</option>
                   <option value="creative">Creative</option>
@@ -252,7 +252,7 @@ export default function OrchestrationDashboardPage() {
                 <div className="flex gap-2">
                   <button 
                     type="submit"
-                    className="flex-1 rounded-lg bg-[#2D8B5E] px-3 py-2 text-sm font-medium text-white hover:bg-[#1F3D30]"
+                    className="flex-1 rounded-lg bg-[#66CCCC] px-3 py-2 text-sm font-medium text-white hover:bg-[#1F3D30]"
                   >
                     Create
                   </button>
@@ -269,7 +269,7 @@ export default function OrchestrationDashboardPage() {
 
             {agentsLoading ? (
               <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-[#2D8B5E]" />
+                <Loader2 className="h-6 w-6 animate-spin text-[#66CCCC]" />
               </div>
             ) : agents.length === 0 ? (
               <div className="py-8 text-center text-[#8C8476]">
@@ -313,7 +313,7 @@ export default function OrchestrationDashboardPage() {
           <CardContent>
             {workflowsLoading ? (
               <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-[#2D8B5E]" />
+                <Loader2 className="h-6 w-6 animate-spin text-[#66CCCC]" />
               </div>
             ) : workflows.length === 0 ? (
               <div className="py-8 text-center text-[#8C8476]">
@@ -398,7 +398,7 @@ export default function OrchestrationDashboardPage() {
             <CardTitle>Task Queue</CardTitle>
             <button 
               onClick={() => setShowTaskForm(!showTaskForm)}
-              className="text-sm font-medium text-[#2D8B5E] hover:text-[#1F3D30] flex items-center gap-1"
+              className="text-sm font-medium text-[#66CCCC] hover:text-[#1F3D30] flex items-center gap-1"
             >
               <Plus className="h-4 w-4" />
               New Task
@@ -413,13 +413,13 @@ export default function OrchestrationDashboardPage() {
                 value={taskTitle}
                 onChange={(e) => setTaskTitle(e.target.value)}
                 placeholder="Task title..."
-                className="w-full rounded-lg border border-white/10 px-3 py-2 text-sm focus:border-[#2D8B5E]/40 focus:outline-none focus:ring-1 focus:ring-[#2D8B5E]/30"
+                className="w-full rounded-lg border border-white/10 px-3 py-2 text-sm focus:border-[#66CCCC]/40 focus:outline-none focus:ring-1 focus:ring-[#66CCCC]/30"
                 required
               />
               <select 
                 value={taskPriority}
                 onChange={(e) => setTaskPriority(e.target.value as any)}
-                className="w-full rounded-lg border border-white/10 px-3 py-2 text-sm focus:border-[#2D8B5E]/40 focus:outline-none focus:ring-1 focus:ring-[#2D8B5E]/30"
+                className="w-full rounded-lg border border-white/10 px-3 py-2 text-sm focus:border-[#66CCCC]/40 focus:outline-none focus:ring-1 focus:ring-[#66CCCC]/30"
               >
                 <option value="low">Low Priority</option>
                 <option value="normal">Normal Priority</option>
@@ -429,7 +429,7 @@ export default function OrchestrationDashboardPage() {
               <div className="flex gap-2">
                 <button 
                   type="submit"
-                  className="flex-1 rounded-lg bg-[#2D8B5E] px-3 py-2 text-sm font-medium text-white hover:bg-[#1F3D30]"
+                  className="flex-1 rounded-lg bg-[#66CCCC] px-3 py-2 text-sm font-medium text-white hover:bg-[#1F3D30]"
                 >
                   Schedule
                 </button>
@@ -446,7 +446,7 @@ export default function OrchestrationDashboardPage() {
 
           {tasksLoading ? (
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-[#2D8B5E]" />
+              <Loader2 className="h-6 w-6 animate-spin text-[#66CCCC]" />
             </div>
           ) : tasks.length === 0 ? (
             <div className="py-8 text-center text-[#8C8476]">

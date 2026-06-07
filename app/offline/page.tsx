@@ -7,8 +7,8 @@ const H = {
   bg: { dark: '#0A0908', surface: '#141210' },
   text: { primary: '#F5F0E8', secondary: '#8C8476', tertiary: '#5C564D' },
   border: '#2A2520',
-  gradient: 'linear-gradient(135deg, #2D8B5E 0%, #C47A4A 100%)',
-  holographic: 'linear-gradient(135deg, #C47A4A 0%, #2D8B5E 50%, #D4A853 100%)',
+  gradient: 'linear-gradient(135deg, #66CCCC 0%, #C7B8EA 100%)',
+  holographic: 'linear-gradient(135deg, #C7B8EA 0%, #66CCCC 50%, #66CCCC 100%)',
 };
 
 export default function OfflinePage() {

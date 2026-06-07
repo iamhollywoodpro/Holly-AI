@@ -38,7 +38,7 @@ export default function DashboardPage() {
   if (assetsLoading && assets.length === 0) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-[#2D8B5E]" />
+        <Loader2 className="h-8 w-8 animate-spin text-[#66CCCC]" />
       </div>
     );
   }
@@ -61,7 +61,7 @@ export default function DashboardPage() {
           change={`${assets.length} total assets`}
           changeType="neutral"
           icon={Image}
-          iconColor="text-[#2D8B5E]"
+          iconColor="text-[#66CCCC]"
         />
         <MetricCard
           title="Content Created"
@@ -99,7 +99,7 @@ export default function DashboardPage() {
           <CardContent>
             {assetsLoading ? (
               <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-[#2D8B5E]" />
+                <Loader2 className="h-6 w-6 animate-spin text-[#66CCCC]" />
               </div>
             ) : recentAssets.length === 0 ? (
               <div className="py-8 text-center text-[#8C8476]">
@@ -114,7 +114,7 @@ export default function DashboardPage() {
                     title={asset.type === 'image' ? 'Image Generated' : 'Content Created'}
                     description={asset.name || 'Untitled'}
                     time={new Date(asset.createdAt).toLocaleString()}
-                    color={asset.type === 'image' ? 'text-[#2D8B5E]' : 'text-blue-600'}
+                    color={asset.type === 'image' ? 'text-[#66CCCC]' : 'text-blue-600'}
                   />
                 ))}
               </div>
@@ -130,7 +130,7 @@ export default function DashboardPage() {
           <CardContent>
             {resourcesLoading ? (
               <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-[#2D8B5E]" />
+                <Loader2 className="h-6 w-6 animate-spin text-[#66CCCC]" />
               </div>
             ) : !resources ? (
               <div className="py-8 text-center text-[#8C8476]">
@@ -152,7 +152,7 @@ export default function DashboardPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Activity className="h-5 w-5 text-[#2D8B5E]" />
+            <Activity className="h-5 w-5 text-[#66CCCC]" />
             Autonomous Features
           </CardTitle>
         </CardHeader>
@@ -174,7 +174,7 @@ export default function DashboardPage() {
           <CardContent>
             {agentsLoading ? (
               <div className="flex items-center justify-center py-4">
-                <Loader2 className="h-5 w-5 animate-spin text-[#2D8B5E]" />
+                <Loader2 className="h-5 w-5 animate-spin text-[#66CCCC]" />
               </div>
             ) : agents.length === 0 ? (
               <p className="text-sm text-[#8C8476]">No agents available</p>
@@ -208,7 +208,7 @@ export default function DashboardPage() {
           <CardContent>
             {securityLoading ? (
               <div className="flex items-center justify-center py-4">
-                <Loader2 className="h-5 w-5 animate-spin text-[#2D8B5E]" />
+                <Loader2 className="h-5 w-5 animate-spin text-[#66CCCC]" />
               </div>
             ) : !securityReport ? (
               <p className="text-sm text-[#8C8476]">No security data available</p>
@@ -248,7 +248,7 @@ export default function DashboardPage() {
           <CardContent>
             {metricsLoading ? (
               <div className="flex items-center justify-center py-4">
-                <Loader2 className="h-5 w-5 animate-spin text-[#2D8B5E]" />
+                <Loader2 className="h-5 w-5 animate-spin text-[#66CCCC]" />
               </div>
             ) : metrics.length === 0 ? (
               <p className="text-sm text-[#8C8476]">No metrics tracked yet</p>

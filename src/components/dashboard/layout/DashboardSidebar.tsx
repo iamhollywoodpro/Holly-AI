@@ -26,7 +26,7 @@ export function DashboardSidebar() {
     <div className="flex h-full w-64 flex-col bg-[#141210] text-[#F5F0E8]">
       {/* Logo */}
       <div className="flex h-16 items-center gap-2 px-6 border-b border-white/5">
-        <Sparkles className="h-8 w-8 text-[#2D8B5E]" />
+        <Sparkles className="h-8 w-8 text-[#66CCCC]" />
         <span className="text-xl font-bold tracking-tight">HOLLY</span>
       </div>
 
@@ -43,7 +43,7 @@ export function DashboardSidebar() {
                 transition-colors duration-200
                 ${
                   isActive
-                    ? 'bg-[#2D8B5E]/20 text-[#3DAF76] border border-[#2D8B5E]/30'
+                    ? 'bg-[#66CCCC]/20 text-[#3DAF76] border border-[#66CCCC]/30'
                     : 'text-[#8C8476] hover:bg-white/5 hover:text-[#F5F0E8]'
                 }
               `}

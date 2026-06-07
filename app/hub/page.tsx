@@ -476,7 +476,7 @@ export default function HubPage() {
       <div className="border-b border-gray-800/60 bg-gradient-to-r from-gray-950 via-black to-gray-950 sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#2D8B5E] to-[#C47A4A] flex items-center justify-center text-base shadow-lg shadow-[#2D8B5E]/30">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#66CCCC] to-[#C7B8EA] flex items-center justify-center text-base shadow-lg shadow-[#66CCCC]/30">
               ⚙
             </div>
             <div>
@@ -500,7 +500,7 @@ export default function HubPage() {
               onClick={() => { setSection(s); if (s === 'metrics') fetchMetrics(); }}
               className={`px-4 py-2.5 text-sm font-medium capitalize transition-colors border-b-2 ${
                 section === s
-                  ? 'border-[#2D8B5E] text-white'
+                  ? 'border-[#66CCCC] text-white'
                   : 'border-transparent text-gray-500 hover:text-gray-300'
               }`}
             >
@@ -533,7 +533,7 @@ export default function HubPage() {
                   placeholder="holly_xxxx or leave blank"
                   value={apiKey}
                   onChange={e => setApiKey(e.target.value)}
-                  className="w-full bg-black/60 border border-gray-700/50 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#2D8B5E] font-mono"
+                  className="w-full bg-black/60 border border-gray-700/50 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#66CCCC] font-mono"
                 />
                 <p className="text-xs text-gray-600 mt-1.5 leading-relaxed">
                   Blank → dev bypass. Production: generate at{' '}
@@ -556,7 +556,7 @@ export default function HubPage() {
                         onClick={() => selectAction(tid, action)}
                         className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all ${
                           activeTool === tid && activeAction === action
-                            ? 'bg-[#2D8B5E]/30 text-[#3DAF76] border border-[#2D8B5E]/40'
+                            ? 'bg-[#66CCCC]/30 text-[#3DAF76] border border-[#66CCCC]/40'
                             : 'text-gray-400 hover:text-white hover:bg-gray-800/60'
                         }`}
                       >
@@ -611,7 +611,7 @@ export default function HubPage() {
                     <button
                       onClick={runRequest}
                       disabled={isLoading}
-                      className="flex items-center gap-2 px-4 py-1.5 bg-[#2D8B5E] hover:bg-[#3DAF76] disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-colors"
+                      className="flex items-center gap-2 px-4 py-1.5 bg-[#66CCCC] hover:bg-[#3DAF76] disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-colors"
                     >
                       {isLoading ? <><span className="animate-spin inline-block">⟳</span> Running…</> : <>▶ Run</>}
                     </button>
@@ -626,7 +626,7 @@ export default function HubPage() {
                       onChange={e => setPayload(e.target.value)}
                       rows={16}
                       spellCheck={false}
-                      className="w-full bg-black/60 border border-gray-700/50 rounded-xl p-3 text-sm text-green-300 font-mono focus:outline-none focus:border-[#2D8B5E] resize-y"
+                      className="w-full bg-black/60 border border-gray-700/50 rounded-xl p-3 text-sm text-green-300 font-mono focus:outline-none focus:border-[#66CCCC] resize-y"
                     />
                   </div>
                   <div>
@@ -754,7 +754,7 @@ export default function HubPage() {
                     key={t}
                     onClick={() => setDocsTool(t)}
                     className={`px-4 py-1.5 rounded-lg text-sm font-medium capitalize transition-colors ${
-                      docsTool === t ? 'bg-[#2D8B5E] text-white' : 'bg-gray-800/60 text-gray-400 hover:text-white'
+                      docsTool === t ? 'bg-[#66CCCC] text-white' : 'bg-gray-800/60 text-gray-400 hover:text-white'
                     }`}
                   >
                     {t === 'master' ? '⚙ Hub' : t === 'aura' ? '🎵 AURA' : '⚡ Sentinel'}
@@ -972,7 +972,7 @@ export default function HubPage() {
 
                         <button
                           onClick={() => { selectAction('aura', action.id); setSection('playground'); }}
-                          className="inline-flex items-center gap-2 px-4 py-2 bg-[#2D8B5E]/20 hover:bg-[#2D8B5E]/30 border border-[#2D8B5E]/40 rounded-lg text-sm text-[#3DAF76] transition-colors"
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-[#66CCCC]/20 hover:bg-[#66CCCC]/30 border border-[#66CCCC]/40 rounded-lg text-sm text-[#3DAF76] transition-colors"
                         >
                           ▶ Try in Playground
                         </button>
@@ -1050,7 +1050,7 @@ export default function HubPage() {
 
                         <button
                           onClick={() => { selectAction('sentinel', action.id); setSection('playground'); }}
-                          className="inline-flex items-center gap-2 px-4 py-2 bg-[#C47A4A]/20 hover:bg-[#C47A4A]/30 border border-[#C47A4A]/40 rounded-lg text-sm text-[#C47A4A] transition-colors"
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-[#C7B8EA]/20 hover:bg-[#C7B8EA]/30 border border-[#C7B8EA]/40 rounded-lg text-sm text-[#C7B8EA] transition-colors"
                         >
                           ▶ Try in Playground
                         </button>

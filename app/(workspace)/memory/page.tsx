@@ -10,13 +10,13 @@ import {
 } from 'lucide-react';
 // Holly emerald/copper color palette
 const C = {
-  primary: { cyan: '#2D8B5E', purple: '#C47A4A', pink: '#D4A853' },
+  primary: { cyan: '#66CCCC', purple: '#C7B8EA', pink: '#66CCCC' },
   background: { primary: '#0A0908', secondary: '#141210', tertiary: '#1E1B18', elevated: '#1E1B18' },
   text: { primary: '#F5F0E8', secondary: '#8C8476', tertiary: '#5C564D', muted: '#5C564D' },
-  accent: { success: '#2D8B5E', error: '#B84052' },
+  accent: { success: '#66CCCC', error: '#B84052' },
   gradients: {
-    primary: 'linear-gradient(135deg, #2D8B5E 0%, #C47A4A 100%)',
-    holographic: 'linear-gradient(135deg, #C47A4A 0%, #2D8B5E 50%, #D4A853 100%)',
+    primary: 'linear-gradient(135deg, #66CCCC 0%, #C7B8EA 100%)',
+    holographic: 'linear-gradient(135deg, #C7B8EA 0%, #66CCCC 50%, #66CCCC 100%)',
   },
   border: { primary: '#2A2520', accent: '#3A3430' },
 };

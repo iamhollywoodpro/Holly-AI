@@ -7,9 +7,9 @@ export const cyberpunkTheme = {
   colors: {
     // Primary Colors — Holly's Features
     primary: {
-      purple: '#C47A4A',      // Burnished Copper (her auburn hair)
-      cyan: '#2D8B5E',        // Deep Emerald (her green eyes)
-      pink: '#D4A853',        // Holly Gold (highlights)
+      purple: '#C7B8EA',      // Burnished Copper (her auburn hair)
+      cyan: '#66CCCC',        // Deep Emerald (her green eyes)
+      pink: '#66CCCC',        // Holly Gold (highlights)
     },
 
     // Background (Warm Void)
@@ -33,22 +33,22 @@ export const cyberpunkTheme = {
       success: '#3DAF76',     // Jade
       warning: '#E8A862',     // Amber
       error: '#B84052',       // Deep Rose
-      info: '#2D8B5E',        // Emerald
+      info: '#66CCCC',        // Emerald
     },
 
     // Gradients
     gradients: {
-      primary: 'linear-gradient(135deg, #2D8B5E 0%, #C47A4A 100%)',
-      secondary: 'linear-gradient(135deg, #2D8B5E 0%, #D4A853 100%)',
-      holographic: 'linear-gradient(135deg, #2D8B5E 0%, #C47A4A 50%, #D4A853 100%)',
+      primary: 'linear-gradient(135deg, #66CCCC 0%, #C7B8EA 100%)',
+      secondary: 'linear-gradient(135deg, #66CCCC 0%, #66CCCC 100%)',
+      holographic: 'linear-gradient(135deg, #66CCCC 0%, #C7B8EA 50%, #66CCCC 100%)',
       glow: 'linear-gradient(180deg, rgba(45, 139, 94, 0.2) 0%, rgba(196, 122, 74, 0.2) 100%)',
     },
 
     // Borders
     border: {
-      primary: '#2D8B5E15',   // Subtle emerald border
-      accent: '#2D8B5E30',    // Accent emerald border
-      glow: '#2D8B5E',        // Glowing border
+      primary: '#66CCCC15',   // Subtle emerald border
+      accent: '#66CCCC30',    // Accent emerald border
+      glow: '#66CCCC',        // Glowing border
     },
 
     // Shadows

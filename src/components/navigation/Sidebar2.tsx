@@ -80,13 +80,13 @@ export function Sidebar2({
           ${isCollapsed ? 'justify-center' : ''}
           ${
             active
-              ? 'text-white bg-gradient-to-r from-[#2D8B5E]/20 to-[#C47A4A]/20 border border-[#2D8B5E]/35 shadow-[0_0_15px_rgba(45,139,94,0.15)]'
+              ? 'text-white bg-gradient-to-r from-[#66CCCC]/20 to-[#C7B8EA]/20 border border-[#66CCCC]/35 shadow-[0_0_15px_rgba(102,204,204,0.15)]'
               : 'text-gray-400 hover:text-white hover:bg-white/5 hover:border-white/10 hover:scale-[1.01] transition-all duration-200'
           }
         `}
         title={isCollapsed ? label : undefined}
       >
-        <Icon className={`w-5 h-5 ${active ? 'text-[#2D8B5E]' : ''}`} />
+        <Icon className={`w-5 h-5 ${active ? 'text-[#66CCCC]' : ''}`} />
         {!isCollapsed && <span>{label}</span>}
       </Link>
     );
@@ -102,7 +102,7 @@ export function Sidebar2({
           <div className="flex items-center gap-2.5">
             <LivingLogo emotion={emotion} size={36} showGlow />
             <div>
-              <h1 className="text-lg font-black tracking-[0.2em] bg-gradient-to-r from-[#2D8B5E] via-[#F5F0E8] to-[#C47A4A] bg-clip-text text-transparent uppercase">
+              <h1 className="text-lg font-black tracking-[0.2em] bg-gradient-to-r from-[#66CCCC] via-[#F5F0E8] to-[#C7B8EA] bg-clip-text text-transparent uppercase">
                 HOLLY
               </h1>
               <p className="text-xs text-gray-500">Sovereign Intelligence</p>
@@ -148,7 +148,7 @@ export function Sidebar2({
 
         {/* Core */}
         {!isCollapsed && (
-          <p className="px-2 mb-1 text-[10px] font-bold text-[#2D8B5E]/50 uppercase tracking-[0.2em]">Core</p>
+          <p className="px-2 mb-1 text-[10px] font-bold text-[#66CCCC]/50 uppercase tracking-[0.2em]">Core</p>
         )}
         <div className="space-y-0.5 mb-3">
           <NavLink href="/chat" icon={MessageSquare} label="Chat" />
@@ -157,7 +157,7 @@ export function Sidebar2({
 
         {/* Create */}
         {!isCollapsed && (
-          <p className="px-2 mb-1 text-[10px] font-bold text-[#2D8B5E]/50 uppercase tracking-[0.2em]">Create</p>
+          <p className="px-2 mb-1 text-[10px] font-bold text-[#66CCCC]/50 uppercase tracking-[0.2em]">Create</p>
         )}
         <div className="space-y-0.5 mb-3">
           <NavLink href="/music-studio" icon={Music} label="Music Studio" />
@@ -167,7 +167,7 @@ export function Sidebar2({
 
         {/* Tools */}
         {!isCollapsed && (
-          <p className="px-2 mb-1 text-[10px] font-bold text-[#2D8B5E]/50 uppercase tracking-[0.2em]">Tools</p>
+          <p className="px-2 mb-1 text-[10px] font-bold text-[#66CCCC]/50 uppercase tracking-[0.2em]">Tools</p>
         )}
         <div className="space-y-0.5 mb-3">
           <NavLink href="/code-workshop" icon={Code2} label="Code Workshop" />
@@ -251,7 +251,7 @@ export function Sidebar2({
       <aside
         className={`
           hidden md:flex flex-col fixed left-0 top-0 h-screen
-          sdi-glass border-r border-[#2D8B5E]/15
+          sdi-glass border-r border-[#66CCCC]/15
           transition-all duration-300 z-40
           ${isCollapsed ? 'w-20' : 'w-64'}
         `}
@@ -269,7 +269,7 @@ export function Sidebar2({
           />
 
           {/* Sidebar */}
-          <aside className="md:hidden fixed left-0 top-0 h-screen w-64 sdi-glass border-r border-[#2D8B5E]/15 z-50 flex flex-col">
+          <aside className="md:hidden fixed left-0 top-0 h-screen w-64 sdi-glass border-r border-[#66CCCC]/15 z-50 flex flex-col">
             <SidebarContent />
           </aside>
         </>

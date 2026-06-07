@@ -19,7 +19,7 @@ export default function ChatPreferencesPage() {
 
       {/* Voice Settings */}
       <div className="space-y-6">
-        <h3 className="text-[10px] font-black text-[#2D8B5E] uppercase tracking-[0.2em]">Neural Synchronization</h3>
+        <h3 className="text-[10px] font-black text-[#66CCCC] uppercase tracking-[0.2em]">Neural Synchronization</h3>
         
         <div className="flex items-center justify-between">
           <div>
@@ -33,7 +33,7 @@ export default function ChatPreferencesPage() {
               })
             }
             className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors duration-500 ${
-              settings.chat.autoSpeak ? 'bg-[#2D8B5E]' : 'bg-white/10'
+              settings.chat.autoSpeak ? 'bg-[#66CCCC]' : 'bg-white/10'
             }`}
           >
             <span
@@ -55,7 +55,7 @@ export default function ChatPreferencesPage() {
                 chat: { ...settings.chat, voiceLanguage: e.target.value },
               })
             }
-            className="w-full px-5 py-3 bg-[#1E1B18] border border-white/5 rounded-2xl text-[#F5F0E8] text-[11px] font-black uppercase tracking-widest focus:outline-none focus:border-[#2D8B5E]/40 transition-all appearance-none cursor-pointer"
+            className="w-full px-5 py-3 bg-[#1E1B18] border border-white/5 rounded-2xl text-[#F5F0E8] text-[11px] font-black uppercase tracking-widest focus:outline-none focus:border-[#66CCCC]/40 transition-all appearance-none cursor-pointer"
           >
             <option value="en-US">English (US)</option>
             <option value="en-GB">English (UK)</option>
@@ -73,7 +73,7 @@ export default function ChatPreferencesPage() {
 
       {/* Message Display */}
       <div className="space-y-6 pt-10 border-t border-white/5">
-        <h3 className="text-[10px] font-black text-[#2D8B5E] uppercase tracking-[0.2em]">Chronological Presentation</h3>
+        <h3 className="text-[10px] font-black text-[#66CCCC] uppercase tracking-[0.2em]">Chronological Presentation</h3>
 
         <div>
           <label className="block text-[10px] font-black text-[#8C8476] uppercase tracking-widest mb-3">
@@ -90,7 +90,7 @@ export default function ChatPreferencesPage() {
                   chat: { ...settings.chat, messageGrouping: parseInt(e.target.value) },
                 })
               }
-              className="flex-1 h-1 bg-white/10 rounded-full appearance-none cursor-pointer accent-[#2D8B5E]"
+              className="flex-1 h-1 bg-white/10 rounded-full appearance-none cursor-pointer accent-[#66CCCC]"
             />
             <span className="text-[#F5F0E8] font-black text-[11px] w-12 text-right">{settings.chat.messageGrouping}M</span>
           </div>
@@ -109,7 +109,7 @@ export default function ChatPreferencesPage() {
               })
             }
             className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors duration-500 ${
-              settings.chat.showTimestamps ? 'bg-[#2D8B5E]' : 'bg-white/10'
+              settings.chat.showTimestamps ? 'bg-[#66CCCC]' : 'bg-white/10'
             }`}
           >
             <span
@@ -132,7 +132,7 @@ export default function ChatPreferencesPage() {
               })
             }
             className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors duration-500 ${
-              settings.chat.enterToSend ? 'bg-[#2D8B5E]' : 'bg-white/10'
+              settings.chat.enterToSend ? 'bg-[#66CCCC]' : 'bg-white/10'
             }`}
           >
             <span
@@ -146,7 +146,7 @@ export default function ChatPreferencesPage() {
 
       {/* Code Display */}
       <div className="space-y-6 pt-10 border-t border-white/5">
-        <h3 className="text-[10px] font-black text-[#2D8B5E] uppercase tracking-[0.2em]">Architectural Presentation</h3>
+        <h3 className="text-[10px] font-black text-[#66CCCC] uppercase tracking-[0.2em]">Architectural Presentation</h3>
 
         <div>
           <label className="block text-[10px] font-black text-[#8C8476] uppercase tracking-widest mb-3">
@@ -159,7 +159,7 @@ export default function ChatPreferencesPage() {
                 chat: { ...settings.chat, codeTheme: e.target.value as any },
               })
             }
-            className="w-full px-5 py-3 bg-[#1E1B18] border border-white/5 rounded-2xl text-[#F5F0E8] text-[11px] font-black uppercase tracking-widest focus:outline-none focus:border-[#2D8B5E]/40 transition-all appearance-none cursor-pointer"
+            className="w-full px-5 py-3 bg-[#1E1B18] border border-white/5 rounded-2xl text-[#F5F0E8] text-[11px] font-black uppercase tracking-widest focus:outline-none focus:border-[#66CCCC]/40 transition-all appearance-none cursor-pointer"
           >
             <option value="github-dark">Sovereign Obsidian</option>
             <option value="monokai">Aurelian Gold</option>
@@ -179,7 +179,7 @@ export default function ChatPreferencesPage() {
                 chat: { ...settings.chat, markdownStyle: e.target.value as any },
               })
             }
-            className="w-full px-5 py-3 bg-[#1E1B18] border border-white/5 rounded-2xl text-[#F5F0E8] text-[11px] font-black uppercase tracking-widest focus:outline-none focus:border-[#2D8B5E]/40 transition-all appearance-none cursor-pointer"
+            className="w-full px-5 py-3 bg-[#1E1B18] border border-white/5 rounded-2xl text-[#F5F0E8] text-[11px] font-black uppercase tracking-widest focus:outline-none focus:border-[#66CCCC]/40 transition-all appearance-none cursor-pointer"
           >
             <option value="default">Sovereign Default</option>
             <option value="minimal">Minimalist Arch</option>
@@ -190,8 +190,8 @@ export default function ChatPreferencesPage() {
 
       {/* Save indicator */}
       {isSaving && (
-        <div className="text-[10px] text-[#2D8B5E] font-black uppercase tracking-widest flex items-center gap-3 pt-6">
-          <div className="w-3.5 h-3.5 border-2 border-[#2D8B5E] border-t-transparent rounded-full animate-spin" />
+        <div className="text-[10px] text-[#66CCCC] font-black uppercase tracking-widest flex items-center gap-3 pt-6">
+          <div className="w-3.5 h-3.5 border-2 border-[#66CCCC] border-t-transparent rounded-full animate-spin" />
           Synchronizing Linguistic Arrays...
         </div>
       )}

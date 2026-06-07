@@ -30,8 +30,8 @@ export default function FactorTwoPage() {
 
       {/* Background glow */}
       <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-[#2D8B5E]/10 rounded-full blur-[120px]" />
-        <div className="absolute bottom-0 right-0 w-[300px] h-[300px] bg-[#C47A4A]/8 rounded-full blur-[80px]" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-[#66CCCC]/10 rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 right-0 w-[300px] h-[300px] bg-[#C7B8EA]/8 rounded-full blur-[80px]" />
       </div>
 
       <motion.div
@@ -42,7 +42,7 @@ export default function FactorTwoPage() {
       >
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-[#2D8B5E] to-[#C47A4A] mb-4 shadow-lg shadow-[#2D8B5E]/30">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-[#66CCCC] to-[#C7B8EA] mb-4 shadow-lg shadow-[#66CCCC]/30">
             <span className="text-2xl">✦</span>
           </div>
           <h1 className="text-white font-bold text-xl tracking-tight mb-1">Verify Your Identity</h1>
@@ -59,12 +59,12 @@ export default function FactorTwoPage() {
                 headerTitle: 'text-white font-semibold text-base',
                 headerSubtitle: 'text-gray-400 text-xs',
                 formButtonPrimary:
-                  'bg-gradient-to-r from-[#2D8B5E] to-[#C47A4A] hover:opacity-90 text-white font-medium text-sm py-3 rounded-xl transition-all w-full mt-2',
+                  'bg-gradient-to-r from-[#66CCCC] to-[#C7B8EA] hover:opacity-90 text-white font-medium text-sm py-3 rounded-xl transition-all w-full mt-2',
                 formFieldInput:
-                  'bg-gray-800/80 border border-gray-700 focus:border-[#2D8B5E] text-white placeholder:text-gray-600 rounded-xl px-4 py-3 text-sm transition-all',
+                  'bg-gray-800/80 border border-gray-700 focus:border-[#66CCCC] text-white placeholder:text-gray-600 rounded-xl px-4 py-3 text-sm transition-all',
                 formFieldLabel: 'text-gray-400 text-xs font-medium mb-1',
                 otpCodeFieldInput:
-                  'bg-gray-800 border border-gray-700 focus:border-[#2D8B5E] text-white rounded-xl text-center text-lg font-bold',
+                  'bg-gray-800 border border-gray-700 focus:border-[#66CCCC] text-white rounded-xl text-center text-lg font-bold',
                 footerActionText: 'text-gray-500 text-xs',
                 footerActionLink: 'text-[#3DAF76] hover:text-white font-medium text-xs transition-colors',
                 alertText: 'text-red-400 text-xs',

@@ -52,17 +52,17 @@ export default function SettingsLayout({ children }: SettingsLayoutProps) {
         <div className="mb-6 sm:mb-10">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-[#8C8476] hover:text-[#2D8B5E] transition-colors mb-4 sm:mb-6 uppercase text-[10px] font-black tracking-widest"
+            className="inline-flex items-center gap-2 text-[#8C8476] hover:text-[#66CCCC] transition-colors mb-4 sm:mb-6 uppercase text-[10px] font-black tracking-widest"
           >
             <ArrowLeftIcon className="w-3 h-3" />
             Nexus Return
           </Link>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl sm:text-4xl font-black bg-gradient-to-r from-[#2D8B5E] via-[#F5F0E8] to-[#C47A4A] bg-clip-text text-transparent uppercase tracking-[0.1em] sm:tracking-[0.2em]">
+            <h1 className="text-2xl sm:text-4xl font-black bg-gradient-to-r from-[#66CCCC] via-[#F5F0E8] to-[#C7B8EA] bg-clip-text text-transparent uppercase tracking-[0.1em] sm:tracking-[0.2em]">
               Protocols
             </h1>
             {isSaving && (
-              <span className="text-[10px] text-[#2D8B5E] uppercase font-black tracking-tighter flex items-center gap-2">
+              <span className="text-[10px] text-[#66CCCC] uppercase font-black tracking-tighter flex items-center gap-2">
                 <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
@@ -79,10 +79,10 @@ export default function SettingsLayout({ children }: SettingsLayoutProps) {
         {/* Mobile nav toggle — visible only on small screens */}
         <button
           onClick={() => setMobileNavOpen(true)}
-          className="lg:hidden flex items-center gap-2 w-full px-4 py-3 mb-4 bg-[#12110F] border border-[#2D8B5E]/20 rounded-xl text-left"
+          className="lg:hidden flex items-center gap-2 w-full px-4 py-3 mb-4 bg-[#12110F] border border-[#66CCCC]/20 rounded-xl text-left"
         >
-          <Bars3Icon className="w-4 h-4 text-[#2D8B5E]" />
-          <span className="text-[11px] font-black text-[#2D8B5E] uppercase tracking-widest">
+          <Bars3Icon className="w-4 h-4 text-[#66CCCC]" />
+          <span className="text-[11px] font-black text-[#66CCCC] uppercase tracking-widest">
             {currentSection?.name || 'Navigate'}
           </span>
           <span className="ml-auto text-[9px] text-[#8C8476] uppercase tracking-widest">Tap to navigate</span>
@@ -104,10 +104,10 @@ export default function SettingsLayout({ children }: SettingsLayoutProps) {
                 animate={{ y: 0 }}
                 exit={{ y: "100%" }}
                 transition={{ type: "tween", duration: 0.2 }}
-                className="fixed bottom-0 left-0 right-0 z-50 bg-[#12110F] border-t border-[#2D8B5E]/20 rounded-t-2xl max-h-[70vh] overflow-y-auto lg:hidden"
+                className="fixed bottom-0 left-0 right-0 z-50 bg-[#12110F] border-t border-[#66CCCC]/20 rounded-t-2xl max-h-[70vh] overflow-y-auto lg:hidden"
               >
                 <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
-                  <span className="text-[10px] font-black text-[#2D8B5E] uppercase tracking-widest">Settings Navigation</span>
+                  <span className="text-[10px] font-black text-[#66CCCC] uppercase tracking-widest">Settings Navigation</span>
                   <button onClick={() => setMobileNavOpen(false)} className="p-2 text-[#8C8476] hover:text-[#F5F0E8]">
                     <XMarkIcon className="w-4 h-4" />
                   </button>
@@ -122,11 +122,11 @@ export default function SettingsLayout({ children }: SettingsLayoutProps) {
                         onClick={() => setMobileNavOpen(false)}
                         className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ${
                           isActive
-                            ? 'bg-gradient-to-r from-[#2D8B5E]/10 to-[#C47A4A]/10 border border-[#2D8B5E]/30 text-[#2D8B5E]'
+                            ? 'bg-gradient-to-r from-[#66CCCC]/10 to-[#C7B8EA]/10 border border-[#66CCCC]/30 text-[#66CCCC]'
                             : 'text-[#8C8476] hover:text-[#F5F0E8] hover:bg-white/5'
                         }`}
                       >
-                        <section.icon className={`w-4 h-4 ${isActive ? 'text-[#2D8B5E]' : ''}`} />
+                        <section.icon className={`w-4 h-4 ${isActive ? 'text-[#66CCCC]' : ''}`} />
                         <span className="text-[11px] font-black uppercase tracking-widest">{section.name}</span>
                       </Link>
                     );
@@ -149,11 +149,11 @@ export default function SettingsLayout({ children }: SettingsLayoutProps) {
                     href={section.href}
                     className={`flex items-center gap-3 px-5 py-3.5 rounded-xl transition-all duration-300 ${
                       isActive
-                        ? 'bg-gradient-to-r from-[#2D8B5E]/10 to-[#C47A4A]/10 border border-[#2D8B5E]/30 text-[#2D8B5E] shadow-[0_0_15px_rgba(45,139,94,0.1)]'
+                        ? 'bg-gradient-to-r from-[#66CCCC]/10 to-[#C7B8EA]/10 border border-[#66CCCC]/30 text-[#66CCCC] shadow-[0_0_15px_rgba(102,204,204,0.1)]'
                         : 'text-[#8C8476] hover:text-[#F5F0E8] hover:bg-white/5'
                     }`}
                   >
-                    <section.icon className={`w-4 h-4 ${isActive ? 'text-[#2D8B5E]' : ''}`} />
+                    <section.icon className={`w-4 h-4 ${isActive ? 'text-[#66CCCC]' : ''}`} />
                     <span className="text-[11px] font-black uppercase tracking-widest">{section.name}</span>
                   </Link>
                 );
@@ -167,7 +167,7 @@ export default function SettingsLayout({ children }: SettingsLayoutProps) {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, ease: [0.19, 1, 0.22, 1] }}
-              className="bg-[#12110F] border border-[#2D8B5E]/10 rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-2xl"
+              className="bg-[#12110F] border border-[#66CCCC]/10 rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-2xl"
             >
               {children}
             </motion.div>

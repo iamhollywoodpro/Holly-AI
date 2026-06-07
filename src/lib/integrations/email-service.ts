@@ -82,10 +82,10 @@ export async function sendProactiveEmail(
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0a0908; color: #f5f0e8; margin: 0; padding: 20px; }
     .container { max-width: 600px; margin: 0 auto; background: #1e1b18; border-radius: 16px; overflow: hidden; border: 1px solid rgba(45, 139, 94, 0.2); }
-    .header { background: linear-gradient(135deg, #2D8B5E, #3DAF76); padding: 24px; text-align: center; }
+    .header { background: linear-gradient(135deg, #66CCCC, #3DAF76); padding: 24px; text-align: center; }
     .header h1 { color: #0a0908; margin: 0; font-size: 24px; font-weight: 900; letter-spacing: -0.5px; }
     .content { padding: 24px; }
-    .greeting { color: #2D8B5E; font-size: 18px; margin-bottom: 16px; }
+    .greeting { color: #66CCCC; font-size: 18px; margin-bottom: 16px; }
     .body-text { line-height: 1.6; color: #e8e0d4; }
     .footer { padding: 16px 24px; border-top: 1px solid rgba(255,255,255,0.05); color: #8c8476; font-size: 12px; text-align: center; }
   </style>

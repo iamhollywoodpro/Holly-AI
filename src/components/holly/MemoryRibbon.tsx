@@ -11,13 +11,13 @@ interface MemoryChip {
 }
 
 const CATEGORY_META: Record<string, { icon: any; color: string }> = {
-  experience:  { icon: Sparkles,   color: 'text-holly-gold bg-holly-gold/10 border-holly-gold/20' },
-  goal:        { icon: Target,     color: 'text-holly-gold/80 bg-holly-gold/5 border-holly-gold/20' },
-  learned:     { icon: Lightbulb,  color: 'text-holly-gold/90 bg-holly-gold/10 border-holly-gold/20' },
-  preference:  { icon: Heart,      color: 'text-holly-crimson bg-holly-crimson/10 border-holly-crimson/20' },
-  music:       { icon: Music,      color: 'text-holly-gold bg-holly-gold/10 border-holly-gold/30' },
-  code:        { icon: Code2,      color: 'text-holly-gold/70 bg-holly-gold/5 border-holly-gold/10' },
-  taste:       { icon: Star,       color: 'text-holly-gold bg-holly-gold/15 border-holly-gold/25' },
+  experience:  { icon: Sparkles,   color: 'text-holly-teal bg-holly-teal/10 border-holly-teal/20' },
+  goal:        { icon: Target,     color: 'text-holly-teal/80 bg-holly-teal/5 border-holly-teal/20' },
+  learned:     { icon: Lightbulb,  color: 'text-holly-teal/90 bg-holly-teal/10 border-holly-teal/20' },
+  preference:  { icon: Heart,      color: 'text-holly-coral bg-holly-coral/10 border-holly-coral/20' },
+  music:       { icon: Music,      color: 'text-holly-teal bg-holly-teal/10 border-holly-teal/30' },
+  code:        { icon: Code2,      color: 'text-holly-teal/70 bg-holly-teal/5 border-holly-teal/10' },
+  taste:       { icon: Star,       color: 'text-holly-teal bg-holly-teal/15 border-holly-teal/25' },
 };
 
 function getCategoryMeta(key: string) {
@@ -25,7 +25,7 @@ function getCategoryMeta(key: string) {
   for (const [cat, meta] of Object.entries(CATEGORY_META)) {
     if (lower.includes(cat)) return meta;
   }
-  return { icon: Brain, color: 'text-holly-ivory/40 bg-holly-ivory/5 border-holly-ivory/10' };
+  return { icon: Brain, color: 'text-holly-cream/40 bg-holly-cream/5 border-holly-cream/10' };
 }
 
 export function MemoryRibbon({ memories, className = '' }: { memories: Array<{ key: string; value: string }>; className?: string }) {
@@ -51,8 +51,8 @@ export function MemoryRibbon({ memories, className = '' }: { memories: Array<{ k
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
         <div className="flex items-center gap-1 mr-1 flex-shrink-0">
-          <Brain className="w-3 h-3 text-holly-gold" />
-          <span className="text-[9px] font-semibold text-holly-gold uppercase tracking-wider">Memory</span>
+          <Brain className="w-3 h-3 text-holly-teal" />
+          <span className="text-[9px] font-semibold text-holly-teal uppercase tracking-wider">Memory</span>
         </div>
         <AnimatePresence>
           {chips.map((mem, i) => {

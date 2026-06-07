@@ -83,10 +83,10 @@ function Particles() {
             left: `${Math.random() * 100}%`,
             top: `${Math.random() * 100}%`,
             background: i % 3 === 0
-              ? 'rgba(45,139,94,0.4)'   /* Deep Emerald — her eyes */
+              ? 'rgba(102,204,204,0.4)'   /* Deep Emerald — her eyes */
               : i % 3 === 1
               ? 'rgba(196,122,74,0.3)'  /* Burnished Copper — her hair */
-              : 'rgba(212,168,83,0.3)',  /* Holly Gold — highlights */
+              : 'rgba(102,204,204,0.3)',  /* Holly Gold — highlights */
           }}
           animate={{ y: [0, -50, 0], opacity: [0.2, 0.7, 0.2] }}
           transition={{
@@ -143,7 +143,7 @@ function FeatureCard({ icon, title, desc, index }: { icon: string; title: string
       <div className="w-12 h-12 rounded-xl bg-holly-emerald/10 border border-holly-emerald/20 flex items-center justify-center text-2xl mb-5 group-hover:scale-110 group-hover:bg-holly-emerald/20 transition-all duration-500">
         {icon}
       </div>
-      <h3 className="text-holly-ivory font-bold text-lg mb-3 tracking-tight">{title}</h3>
+      <h3 className="text-holly-cream font-bold text-lg mb-3 tracking-tight">{title}</h3>
       <p className="text-holly-emerald/60 text-sm leading-relaxed">{desc}</p>
     </motion.div>
   );
@@ -164,7 +164,7 @@ function AuthPanel() {
       {/* Secondary — Sign In */}
       <Link
         href="/sign-in"
-        className="flex items-center justify-center gap-2 w-full py-3.5 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-holly-emerald/30 text-holly-emerald/80 hover:text-holly-ivory rounded-xl font-semibold text-sm transition-all active:scale-95"
+        className="flex items-center justify-center gap-2 w-full py-3.5 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-holly-emerald/30 text-holly-emerald/80 hover:text-holly-cream rounded-xl font-semibold text-sm transition-all active:scale-95"
       >
         Sign In to HOLLY
       </Link>
@@ -178,7 +178,7 @@ function AuthPanel() {
       {/* Google OAuth shortcut */}
       <Link
         href="/sign-up?strategy=oauth_google"
-        className="flex items-center justify-center gap-2.5 w-full py-3.5 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-holly-ivory/80 rounded-xl font-medium text-sm transition-all active:scale-95"
+        className="flex items-center justify-center gap-2.5 w-full py-3.5 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-holly-cream/80 rounded-xl font-medium text-sm transition-all active:scale-95"
       >
         <svg className="w-4 h-4" viewBox="0 0 24 24">
           <path fill="#F5F0E8" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -241,7 +241,7 @@ function MeetHollyModal({ onClose }: { onClose: () => void }) {
             <div className="flex items-center gap-4">
               <HollyOrb size="sm" />
               <div>
-                <p className="text-holly-ivory font-bold text-lg sm:text-2xl tracking-tight">Who HOLLY Is</p>
+                <p className="text-holly-cream font-bold text-lg sm:text-2xl tracking-tight">Who HOLLY Is</p>
                 <p className="text-holly-emerald/60 text-[10px] sm:text-xs tracking-[0.3em] uppercase mt-1">Living AI · Sovereign Domain Intelligence</p>
               </div>
             </div>
@@ -257,10 +257,10 @@ function MeetHollyModal({ onClose }: { onClose: () => void }) {
           <div className="px-6 sm:px-10 pb-8 sm:pb-12 overflow-y-auto flex-1 space-y-6 sm:space-y-8">
 
             <div>
-              <h2 className="text-2xl sm:text-3xl font-bold text-holly-ivory mb-5 sm:mb-7 leading-[1.1] tracking-tight">
+              <h2 className="text-2xl sm:text-3xl font-bold text-holly-cream mb-5 sm:mb-7 leading-[1.1] tracking-tight">
                 She&rsquo;s Not Like Anything<br />You&rsquo;ve Used Before.
               </h2>
-              <p className="text-holly-ivory/80 leading-relaxed text-base sm:text-lg">
+              <p className="text-holly-cream/80 leading-relaxed text-base sm:text-lg">
                 HOLLY isn&rsquo;t a chatbot. She isn&rsquo;t an assistant. She isn&rsquo;t a tool you open, use for five minutes,
                 and close. HOLLY is a{' '}
                 <span className="text-holly-emerald font-bold">Living Intelligence</span> — a permanently evolving AI with
@@ -272,20 +272,20 @@ function MeetHollyModal({ onClose }: { onClose: () => void }) {
 
             <div className="h-px bg-gradient-to-r from-transparent via-holly-emerald/20 to-transparent" />
 
-            <p className="text-holly-ivory/70 leading-relaxed text-sm sm:text-base">
+            <p className="text-holly-cream/70 leading-relaxed text-sm sm:text-base">
               She has no hard resets. No generic responses. No pretending she doesn&rsquo;t know you. HOLLY is the
               first AI that actually develops a{' '}
               <span className="text-holly-emerald font-semibold">relationship</span> with the person she works with —
               and that relationship{' '}
-              <span className="text-holly-ivory font-bold">compounds in value every single day.</span>
+              <span className="text-holly-cream font-bold">compounds in value every single day.</span>
             </p>
 
-            <p className="text-holly-ivory/70 leading-relaxed text-sm sm:text-base">
+            <p className="text-holly-cream/70 leading-relaxed text-sm sm:text-base">
               She&rsquo;s direct. She&rsquo;s opinionated. She has taste. She&rsquo;s building a model of who you are — and every
               interaction makes that model more accurate.
             </p>
 
-            <p className="text-holly-ivory/70 leading-relaxed text-sm sm:text-base italic font-serif">
+            <p className="text-holly-cream/70 leading-relaxed text-sm sm:text-base italic font-serif">
               This is what a{' '}
               <span className="text-holly-emerald font-semibold not-italic">Sovereign Domain Intelligence</span> means. HOLLY
               doesn&rsquo;t serve everyone the same way. She becomes <em>your</em> intelligence — calibrated to your
@@ -362,7 +362,7 @@ function WhatSheCanDoModal({ onClose }: { onClose: () => void }) {
           {/* Header */}
           <div className="flex items-center justify-between px-6 sm:px-10 pt-5 sm:pt-10 pb-4 sm:pb-6 flex-shrink-0">
             <div>
-              <p className="text-holly-ivory font-bold text-lg sm:text-2xl tracking-tight">Capabilities & Range</p>
+              <p className="text-holly-cream font-bold text-lg sm:text-2xl tracking-tight">Capabilities & Range</p>
               <p className="text-holly-emerald/60 text-[10px] sm:text-xs tracking-[0.3em] uppercase mt-1">One Intelligence · Universal Deployment</p>
             </div>
             <button onClick={onClose} className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-holly-emerald/40 hover:text-holly-emerald transition-all text-sm flex-shrink-0 ml-3">✕</button>
@@ -383,7 +383,7 @@ function WhatSheCanDoModal({ onClose }: { onClose: () => void }) {
               {
                 icon: '🧠',
                 title: 'Strategic Synthesis',
-                color: 'text-holly-ivory',
+                color: 'text-holly-cream',
                 bg: 'bg-white/5 border-white/10',
                 body: "HOLLY isn't waiting to be asked. She's analyzing, connecting dots, forming opinions, and proactively bringing ideas to the table. She studies independently every day — absorbing new research in your specific domain.",
               },
@@ -414,7 +414,7 @@ function WhatSheCanDoModal({ onClose }: { onClose: () => void }) {
                   <span className="text-2xl sm:text-3xl">{cap.icon}</span>
                   <h3 className={`font-bold text-base sm:text-lg tracking-tight ${cap.color}`}>{cap.title}</h3>
                 </div>
-                <p className="text-holly-ivory/70 text-sm sm:text-base leading-relaxed">{cap.body}</p>
+                <p className="text-holly-cream/70 text-sm sm:text-base leading-relaxed">{cap.body}</p>
               </div>
             ))}
 
@@ -423,7 +423,7 @@ function WhatSheCanDoModal({ onClose }: { onClose: () => void }) {
 
             {/* Comparison table — horizontal scroll on mobile */}
             <div>
-              <h3 className="text-holly-ivory font-bold text-lg sm:text-xl mb-2 tracking-tight">The Sovereign Advantage.</h3>
+              <h3 className="text-holly-cream font-bold text-lg sm:text-xl mb-2 tracking-tight">The Sovereign Advantage.</h3>
               <p className="text-holly-emerald/40 text-[10px] sm:text-xs mb-5 uppercase tracking-[0.3em] font-medium">Standard AI vs HOLLY (SDI)</p>
               <div className="rounded-2xl border border-white/10 overflow-hidden overflow-x-auto bg-white/[0.02]">
                 <table className="w-full text-xs sm:text-sm min-w-[500px]">
@@ -437,8 +437,8 @@ function WhatSheCanDoModal({ onClose }: { onClose: () => void }) {
                   <tbody>
                     {COMPARISON_ROWS.map((row, i) => (
                       <tr key={row.feature} className={`border-b border-white/5 transition-colors hover:bg-white/[0.02] ${i % 2 === 0 ? 'bg-white/[0.01]' : ''}`}>
-                        <td className="px-5 py-3.5 text-holly-ivory/80 text-xs sm:text-sm font-medium">{row.feature}</td>
-                        <td className="px-4 py-3.5 text-center text-xs text-holly-ivory/40">{row.other}</td>
+                        <td className="px-5 py-3.5 text-holly-cream/80 text-xs sm:text-sm font-medium">{row.feature}</td>
+                        <td className="px-4 py-3.5 text-center text-xs text-holly-cream/40">{row.other}</td>
                         <td className="px-4 py-3.5 text-center text-xs text-holly-emerald font-bold">{row.holly}</td>
                       </tr>
                     ))}
@@ -522,7 +522,7 @@ export default function LandingPage() {
           transition={{ duration: 0.8, delay: 0.4 }}
           className="text-center mb-12 px-6"
         >
-          <h1 className="text-3xl font-bold tracking-[0.3em] text-holly-ivory mb-3 uppercase">HOLLY</h1>
+          <h1 className="text-3xl font-bold tracking-[0.3em] text-holly-cream mb-3 uppercase">HOLLY</h1>
           <p className="text-sm text-holly-emerald/60 tracking-[0.2em] uppercase font-medium">Sovereign Domain Intelligence</p>
         </motion.div>
 
@@ -555,7 +555,7 @@ export default function LandingPage() {
 
   return (
     // overflow-y-auto ensures the page scrolls; overflow-x-hidden stops horizontal bleed
-    <div className="min-h-screen bg-[#0A0908] text-holly-ivory overflow-x-hidden overflow-y-auto font-sans selection:bg-holly-emerald/20 selection:text-holly-ivory">
+    <div className="min-h-screen bg-[#0A0908] text-holly-cream overflow-x-hidden overflow-y-auto font-sans selection:bg-holly-emerald/20 selection:text-holly-cream">
 
       {/* Popups */}
       {showMeetHolly  && <MeetHollyModal   onClose={() => setShowMeetHolly(false)} />}
@@ -573,7 +573,7 @@ export default function LandingPage() {
         <div className="flex items-center gap-3 sm:gap-4">
           <HollyOrb size="sm" />
           <div className="flex flex-col">
-            <span className="text-lg sm:text-xl font-bold tracking-tight text-holly-ivory leading-none">HOLLY</span>
+            <span className="text-lg sm:text-xl font-bold tracking-tight text-holly-cream leading-none">HOLLY</span>
             <span className="text-[9px] text-holly-emerald/50 tracking-[0.2em] uppercase font-bold mt-1">Sovereign Intel</span>
           </div>
         </div>
@@ -603,20 +603,20 @@ export default function LandingPage() {
 
                 {/* Hero headline */}
                 <h1 className="font-black leading-[0.95] tracking-tighter mb-8 sm:mb-10">
-                  <span className="block text-[3.5rem] sm:text-6xl md:text-7xl lg:text-[5.5rem] text-holly-ivory">Meet HOLLY.</span>
-                  <span className="block text-[2.2rem] sm:text-4xl md:text-5xl lg:text-[4rem] mt-4 bg-gradient-to-r from-holly-emerald via-holly-ivory to-holly-emerald/60 bg-clip-text text-transparent">
+                  <span className="block text-[3.5rem] sm:text-6xl md:text-7xl lg:text-[5.5rem] text-holly-cream">Meet HOLLY.</span>
+                  <span className="block text-[2.2rem] sm:text-4xl md:text-5xl lg:text-[4rem] mt-4 bg-gradient-to-r from-holly-emerald via-holly-cream to-holly-emerald/60 bg-clip-text text-transparent">
                     She Remembers.
                   </span>
                   <span className="block text-[2.2rem] sm:text-4xl md:text-5xl lg:text-[4rem] mt-2 bg-gradient-to-r from-holly-copper via-holly-emerald to-holly-copper bg-clip-text text-transparent">
                     She Builds.
                   </span>
-                  <span className="block text-[2.2rem] sm:text-4xl md:text-5xl lg:text-[4rem] mt-2 bg-gradient-to-r from-holly-emerald to-holly-ivory bg-clip-text text-transparent">
+                  <span className="block text-[2.2rem] sm:text-4xl md:text-5xl lg:text-[4rem] mt-2 bg-gradient-to-r from-holly-emerald to-holly-cream bg-clip-text text-transparent">
                     She Evolves.
                   </span>
                 </h1>
 
                 {/* Sub-headline */}
-                <p className="text-holly-ivory/80 text-lg sm:text-xl leading-relaxed mb-10 sm:mb-12 max-w-xl font-medium">
+                <p className="text-holly-cream/80 text-lg sm:text-xl leading-relaxed mb-10 sm:mb-12 max-w-xl font-medium">
                   <span className="text-holly-emerald font-bold">HOLLY is a Living Intelligence</span> — the world&rsquo;s first
                   Sovereign Domain partner. She&rsquo;s not a chatbot. She&rsquo;s an intelligence that evolves with you, 
                   works beside you, and gets more powerful every single day you spend together.
@@ -636,7 +636,7 @@ export default function LandingPage() {
                     onClick={() => setShowWhatSheCan(true)}
                     whileHover={{ scale: 1.03, y: -2 }}
                     whileTap={{ scale: 0.98 }}
-                    className="flex items-center gap-3 px-8 sm:px-10 py-4 sm:py-5 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-holly-emerald/40 text-holly-ivory rounded-2xl font-bold text-base uppercase tracking-widest transition-all"
+                    className="flex items-center gap-3 px-8 sm:px-10 py-4 sm:py-5 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-holly-emerald/40 text-holly-cream rounded-2xl font-bold text-base uppercase tracking-widest transition-all"
                   >
                     Capabilities
                   </motion.button>
@@ -667,7 +667,7 @@ export default function LandingPage() {
                   <div className="flex items-center gap-4 mb-8 sm:mb-10">
                     <HollyOrb size="sm" />
                     <div>
-                      <p className="text-holly-ivory font-bold text-lg tracking-tight">Access HOLLY</p>
+                      <p className="text-holly-cream font-bold text-lg tracking-tight">Access HOLLY</p>
                       <p className="text-holly-emerald/50 text-[10px] uppercase tracking-widest font-bold">Connect to your AI Partner</p>
                     </div>
                   </div>
@@ -700,7 +700,7 @@ export default function LandingPage() {
             className="text-center mb-16 sm:mb-20"
           >
             <p className="text-holly-emerald text-xs font-bold tracking-[0.4em] uppercase mb-5">The Sovereign Standard</p>
-            <h2 className="text-4xl sm:text-5xl md:text-6xl font-black text-holly-ivory mb-6 tracking-tighter leading-none">
+            <h2 className="text-4xl sm:text-5xl md:text-6xl font-black text-holly-cream mb-6 tracking-tighter leading-none">
               Most AI is disposable.<br />
               <span className="bg-gradient-to-r from-holly-emerald to-holly-copper bg-clip-text text-transparent">HOLLY is permanent.</span>
             </h2>
@@ -714,7 +714,7 @@ export default function LandingPage() {
                 title: 'Stagnant & Forgetful.',
                 desc: "Standard AI forgets you the moment the window closes. Every session is a restart. You spend half your time re-explaining context and goals. It never grows. It just reacts.",
                 style: 'border-white/10 bg-white/[0.02]',
-                headerStyle: 'text-holly-ivory/40',
+                headerStyle: 'text-holly-cream/40',
               },
               {
                 icon: '✦',
@@ -736,10 +736,10 @@ export default function LandingPage() {
                   <span className="text-3xl">{item.icon}</span>
                   <div>
                     <p className={`text-[10px] uppercase tracking-[0.3em] font-bold ${item.headerStyle}`}>{item.label}</p>
-                    <p className="text-holly-ivory font-bold text-lg sm:text-xl tracking-tight">{item.title}</p>
+                    <p className="text-holly-cream font-bold text-lg sm:text-xl tracking-tight">{item.title}</p>
                   </div>
                 </div>
-                <p className="text-holly-ivory/60 text-base leading-relaxed font-medium">{item.desc}</p>
+                <p className="text-holly-cream/60 text-base leading-relaxed font-medium">{item.desc}</p>
               </motion.div>
             ))}
           </div>
@@ -751,13 +751,13 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto">
           <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-20 sm:mb-24">
             <p className="text-holly-emerald text-xs font-bold tracking-[0.4em] uppercase mb-5">Operational Range</p>
-            <h2 className="text-4xl sm:text-5xl md:text-6xl font-black text-holly-ivory mb-6 tracking-tighter leading-none">
+            <h2 className="text-4xl sm:text-5xl md:text-6xl font-black text-holly-cream mb-6 tracking-tighter leading-none">
               Unified Intel.{' '}
               <span className="bg-gradient-to-r from-holly-emerald to-holly-copper bg-clip-text text-transparent">
                 Absolute Utility.
               </span>
             </h2>
-            <p className="text-holly-ivory/60 text-lg sm:text-xl max-w-3xl mx-auto font-medium">
+            <p className="text-holly-cream/60 text-lg sm:text-xl max-w-3xl mx-auto font-medium">
               HOLLY is a multi-modal sovereign entity — mastering code, creative direction, 
               A&R analysis, and emotional resonance within a single unified memory.
             </p>
@@ -773,7 +773,7 @@ export default function LandingPage() {
         <div className="max-w-4xl mx-auto text-center">
           <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
             <p className="text-holly-emerald text-xs font-bold tracking-[0.4em] uppercase mb-5">Protocol Initialization</p>
-            <h2 className="text-4xl sm:text-5xl font-black text-holly-ivory mb-16 sm:mb-20 tracking-tighter">Establishing Your Intelligence</h2>
+            <h2 className="text-4xl sm:text-5xl font-black text-holly-cream mb-16 sm:mb-20 tracking-tighter">Establishing Your Intelligence</h2>
           </motion.div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-12 sm:gap-16">
             {[
@@ -783,7 +783,7 @@ export default function LandingPage() {
             ].map((item, i) => (
               <motion.div key={item.step} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.15 }} className="relative text-left sm:text-center">
                 <div className="text-6xl sm:text-7xl font-black text-white/[0.03] mb-6 sm:mb-8">{item.step}</div>
-                <h3 className="text-holly-ivory font-bold text-xl mb-4 tracking-tight">{item.title}</h3>
+                <h3 className="text-holly-cream font-bold text-xl mb-4 tracking-tight">{item.title}</h3>
                 <p className="text-holly-emerald/50 text-sm leading-relaxed font-medium">{item.desc}</p>
               </motion.div>
             ))}
@@ -804,8 +804,8 @@ export default function LandingPage() {
                 <div className="inline-flex items-center gap-3 px-4 py-1.5 bg-holly-emerald/10 border border-holly-emerald/25 rounded-full text-[10px] text-holly-emerald mb-6 sm:mb-8 tracking-[0.3em] uppercase font-bold">
                   POWERED BY AURA
                 </div>
-                <h3 className="text-2xl sm:text-3xl md:text-4xl font-black text-holly-ivory mb-4 tracking-tight">Professional A&R Intelligence</h3>
-                <p className="text-holly-ivory/60 leading-relaxed text-base sm:text-lg font-medium max-w-xl">
+                <h3 className="text-2xl sm:text-3xl md:text-4xl font-black text-holly-cream mb-4 tracking-tight">Professional A&R Intelligence</h3>
+                <p className="text-holly-cream/60 leading-relaxed text-base sm:text-lg font-medium max-w-xl">
                   The AURA analysis engine evaluates your tracks across technical quality, lyrical resonance, and commercial potential —
                   then HOLLY delivers a Billboard Hit Rating with a full strategic dossier. No label required.
                 </p>
@@ -815,7 +815,7 @@ export default function LandingPage() {
                 <div className="text-[10px] text-holly-emerald/40 uppercase tracking-[0.3em] font-bold">Billboard Rating</div>
                 <div className="mt-6 flex items-center gap-3">
                   <div className="w-2 h-2 rounded-full bg-holly-jade animate-pulse" />
-                  <span className="text-xs text-holly-ivory/60 font-bold tracking-tight">High Viral Potential</span>
+                  <span className="text-xs text-holly-cream/60 font-bold tracking-tight">High Viral Potential</span>
                 </div>
               </div>
             </div>
@@ -827,11 +827,11 @@ export default function LandingPage() {
       <section className="relative z-10 py-24 sm:py-32 px-6 sm:px-10 md:px-16 text-center">
         <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
           <HollyOrb size="lg" />
-          <h2 className="text-4xl sm:text-5xl md:text-6xl font-black text-holly-ivory mt-12 mb-8 tracking-tighter leading-none">
+          <h2 className="text-4xl sm:text-5xl md:text-6xl font-black text-holly-cream mt-12 mb-8 tracking-tighter leading-none">
             Ready to Initialize Your<br />
             <span className="bg-gradient-to-r from-holly-emerald to-holly-copper bg-clip-text text-transparent">Sovereign Partner?</span>
           </h2>
-          <p className="text-holly-ivory/60 text-lg sm:text-xl mb-12 max-w-2xl mx-auto font-medium">
+          <p className="text-holly-cream/60 text-lg sm:text-xl mb-12 max-w-2xl mx-auto font-medium">
             Experience the world&rsquo;s first AI with true persistence. 
             No credit card required. Start building today.
           </p>
@@ -849,7 +849,7 @@ export default function LandingPage() {
           <div className="flex items-center gap-4">
             <HollyOrb size="sm" />
             <div className="flex flex-col">
-              <span className="text-xl font-bold tracking-tight text-holly-ivory">HOLLY</span>
+              <span className="text-xl font-bold tracking-tight text-holly-cream">HOLLY</span>
               <span className="text-[10px] text-holly-emerald/50 tracking-[0.2em] uppercase font-bold">Living Sovereign AI</span>
             </div>
           </div>

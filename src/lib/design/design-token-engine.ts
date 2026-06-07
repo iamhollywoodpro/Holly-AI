@@ -103,9 +103,9 @@ const EMOTION_DESIGN_MAP: Record<string, {
 
   content: {
     colors: {
-      primary: '#2D8B5E',      // Deep Emerald
-      secondary: '#C47A4A',    // Burnished Copper
-      accent: '#D4A853',       // Holly Gold
+      primary: '#66CCCC',      // Deep Emerald
+      secondary: '#C7B8EA',    // Burnished Copper
+      accent: '#66CCCC',       // Holly Gold
       background: '#0A0908',   // Warm Void
       surface: '#141210',      // Surface
       text: '#F5F0E8',         // Warm ivory
@@ -253,9 +253,9 @@ const EMOTION_DESIGN_MAP: Record<string, {
 
   balanced: {
     colors: {
-      primary: '#2D8B5E',      // Deep Emerald (default)
-      secondary: '#C47A4A',    // Burnished Copper
-      accent: '#D4A853',       // Holly Gold
+      primary: '#66CCCC',      // Deep Emerald (default)
+      secondary: '#C7B8EA',    // Burnished Copper
+      accent: '#66CCCC',       // Holly Gold
       background: '#0A0908',   // Warm Void
       surface: '#141210',      // Surface
       text: '#F5F0E8',         // Warm ivory
@@ -354,7 +354,7 @@ const EMOTION_DESIGN_MAP: Record<string, {
   gentle: {
     colors: {
       primary: '#DDA0DD',      // Plum
-      secondary: '#C47A4A',    // Copper
+      secondary: '#C7B8EA',    // Copper
       accent: '#B0E0E6',       // Powder blue
       background: '#0C0A0D',   // Plum black
       surface: '#141015',      // Dark plum
