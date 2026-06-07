@@ -206,6 +206,65 @@ function sendError(
   });
 }
 
+function sendProgress(c: ReadableStreamDefaultController, progress: { phase: string; percent: number; message: string }) {
+  sendSSE(c, { type: 'progress', ...progress });
+}
+
+function getToolStatusMessage(toolName: string): string {
+  const MEDIA: Record<string, string> = {
+    'generate_image': '🎨 Generating image…',
+    'generate_video': '🎬 Generating video…',
+    'generate_music': '🎵 Composing music…',
+    'hybrid_studio': '🎛️ Running hybrid studio…',
+    'generate_music_video': '🎬 Generating music video…',
+  };
+  const CODE: Record<string, string> = {
+    'github_read_file': '📖 Reading code…',
+    'github_list_files': '📂 Scanning files…',
+    'github_create_or_update_file': '✏️ Writing to codebase…',
+    'github_create_pr': '🚀 Pushing to GitHub…',
+    'self_code_apply': '🔧 Modifying my code…',
+    'trigger_deploy': '🚀 Deploying…',
+    'start_build': '🔨 Building…',
+    'sentinel_analyze_code': '🔍 Analyzing code…',
+    'sentinel_generate_code': '💻 Generating code…',
+    'run_code': '▶️ Running code…',
+    'local_read_file': '📖 Reading file…',
+    'local_write_file': '✏️ Writing file…',
+    'diagnostic_check': '🩺 Running diagnostics…',
+    'read_logs': '📋 Reading logs…',
+  };
+  const WEB: Record<string, string> = {
+    'web_search': '🔍 Searching the web…',
+    'web_deep_search': '🔍 Deep searching…',
+    'web_browse': '🌐 Browsing…',
+    'web_scrape': '📄 Reading page…',
+  };
+  return MEDIA[toolName] || CODE[toolName] || WEB[toolName] || `🔧 Using ${toolName.replace(/_/g, ' ')}…`;
+}
+
+const MEDIA_TOOL_DURATIONS: Record<string, number> = {
+  'generate_image': 15_000,
+  'generate_video': 40_000,
+  'generate_music': 10_000,
+  'hybrid_studio': 45_000,
+  'generate_music_video': 35_000,
+};
+
+function startProgressSimulation(
+  controller: ReadableStreamDefaultController,
+  toolName: string,
+): NodeJS.Timeout {
+  const estimatedMs = MEDIA_TOOL_DURATIONS[toolName] || 20_000;
+  const startTime = Date.now();
+  return setInterval(() => {
+    const elapsed = Date.now() - startTime;
+    const rawPercent = elapsed / estimatedMs;
+    const percent = Math.min(95, Math.floor((1 - Math.exp(-3 * rawPercent)) * 100));
+    sendProgress(controller, { phase: toolName, percent, message: getToolStatusMessage(toolName) });
+  }, 500);
+}
+
 function detectActionStatus(message: string): string | null {
   const m = message.toLowerCase();
   if (/\b(generate|create|make|draw)\b.{0,40}\b(image|photo|picture|art)\b/i.test(m)) return '🎨 Generating image…';
@@ -293,162 +352,163 @@ export async function POST(req: NextRequest) {
     const isSelfCode = isSelfCodeRequest(latestUserMessage);
     const isInformationalMsg = isInformationalUpdate(latestUserMessage);
 
-    // 4. LOAD CONTEXT
-    const ctx = await loadChatContext(dbUserId, conversationId, latestUserMessage, currentTopics, detectedMode);
-
-    // 5. A&R AUTO-TRIGGER
-    let arResult = arAnalysis;
-    if (!arResult && audioUrl && isARRequest(latestUserMessage)) {
-      try { arResult = await runARAnalysis({ userId: dbUserId!, audioUrl, fileName: trackTitle || 'track.mp3', trackTitle, artistName, genre, userQuestion: latestUserMessage }); } catch (e) { console.warn('[CHAT] AR analysis failed:', e instanceof Error ? e.message : e); }
-    }
-
-    // 6. MCP TOOLS
-    let mcpTools: import('@/lib/mcp/mcp-client').MCPTool[] | undefined;
-    if (!isInformationalMsg) {
-      try { await Promise.race([mcpManager.ensureHollyTools(), new Promise(r => setTimeout(() => r(true), 15_000))]); } catch (e) { console.warn('[CHAT] MCP tools init timed out or failed:', e instanceof Error ? e.message : e); }
-      mcpTools = await mcpManager.getAllTools();
-      const filterKey = isSelfCode ? 'self-coding' : detectedMode;
-      const allowed = MODE_TOOL_FILTERS[filterKey] || MODE_TOOL_FILTERS['default'];
-      if (mcpTools) mcpTools = mcpTools.filter(t => allowed.includes(t.name));
-    }
-
-    // 6b. INTIMACY STATE — resolve relationship-gated content tier
-    const intimacyState = await getIntimacyState(dbUserId, isCreator);
-    const intimacyDirective = getIntimacyDirective(intimacyState);
-
-    // 7. BUILD PROMPT
-    const hollySystemPrompt = buildPrompt({
-      detectedMode, userName, isCreator, isSelfCode, isInformationalMsg,
-      latestUserMessage, mcpTools,
-      identityCtx: ctx.identityCtx,
-      memoryContext: ctx.memoryContext,
-      semanticResults: ctx.semanticResults,
-      projectContextBlock: ctx.projectContextBlock,
-      recentLearnings: ctx.recentLearnings,
-      pastSummaries: ctx.pastSummaries,
-      tasteMatrixBlock: ctx.tasteMatrixBlock,
-      perceptionContext,
-      audioAnalysis,
-      arResult,
-      imageDataUrls,
-      pendingInitiatives: ctx.pendingInitiatives,
-      hollyEmotionalState: ctx.hollyEmotionalState,
-      relationshipContext: ctx.relationshipContext,
-      identityConsistencyPrompt: ctx.identityConsistencyPrompt,
-      careSignals: ctx.careSignals,
-      degradedModeContext: ctx.degradedModeContext,
-      evolutionProposals: ctx.evolutionProposals,
-      recentFeedback: ctx.recentFeedback,
-      emotionalTrajectory: ctx.emotionalTrajectory,
-      fewShotExamples: ctx.fewShotExamples,
-      innerMonologue: ctx.innerMonologue,
-      emotionalContinuity: ctx.emotionalContinuity,
-      advancedMemoryContext: ctx.advancedMemoryContext,
-      relationshipMemoryContext: ctx.relationshipMemoryContext,
-      proactiveInsights: ctx.proactiveInsights,
-      patternContext: ctx.patternContext,
-      learnedKnowledge: ctx.learnedKnowledge,
-      learningStatus: ctx.learningStatus,
-      communicationStyle: ctx.communicationStyle,
-      growthContext: ctx.growthContext,
-      visualIdentity: ctx.visualIdentity,
-      intimacyState,
-      intimacyDirective,
-    }) + onboardingNudge;
-
-    // 7b. INJECT AI BEHAVIOR SETTINGS — response style and code comment directives
-    let aiBehaviorDirectives = '';
-    if (userAiSettings.responseStyle === 'professional') {
-      aiBehaviorDirectives += '\n\n[BEHAVIOR DIRECTIVE: Keep responses professional, polished, and formal in tone.]';
-    } else if (userAiSettings.responseStyle === 'technical') {
-      aiBehaviorDirectives += '\n\n[BEHAVIOR DIRECTIVE: Provide thorough, detailed responses with technical explanations and depth.]';
-    }
-    // 'casual' is Holly's default personality — no extra directive needed
-    if (userAiSettings.codeComments === 'detailed') {
-      aiBehaviorDirectives += '\n\n[BEHAVIOR DIRECTIVE: Include detailed inline comments in all code you write.]';
-    } else if (userAiSettings.codeComments === 'minimal') {
-      aiBehaviorDirectives += '\n\n[BEHAVIOR DIRECTIVE: Keep code comments to a bare minimum.]';
-    }
-    // 'standard' is the default — no extra directive
-    const finalSystemPrompt = hollySystemPrompt + aiBehaviorDirectives;
-
-    // 8. PREPARE MESSAGES
-    type ContentBlock = { type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string; detail: 'auto' } };
-    let messages: { role: string; content: string | ContentBlock[] }[] = [
-      { role: 'system', content: finalSystemPrompt },
-      ...userMessages.map((msg: any, idx: number) => {
-        if (idx === userMessages.length - 1 && msg.role === 'user' && imageDataUrls?.length > 0) {
-          return { role: msg.role, content: [{ type: 'text' as const, text: msg.content || 'Please analyze the attached file(s).' }, ...imageDataUrls.map((url: string) => ({ type: 'image_url' as const, image_url: { url, detail: 'auto' as const } }))] };
-        }
-        return { role: msg.role, content: msg.content };
-      }),
-    ];
-
-    // 8b. CONTEXT WINDOW LIMIT — Use user's ai.contextWindow setting to cap message count
-    const maxHistoryMessages = userAiSettings.contextWindow;
-    const convOnly = messages.slice(1); // exclude system prompt
-    if (convOnly.length > maxHistoryMessages) {
-      messages = [messages[0], ...convOnly.slice(-maxHistoryMessages)];
-    }
-
-    // 9. ROUTING
-    const hasImages = imageDataUrls?.length > 0;
-    // If content is unrestricted, force the unrestricted task type for uncensored model routing
-    const taskType = isUnrestricted ? 'unrestricted' : (hasImages ? 'vision' : classifyTask(latestUserMessage, false, latestUserMessage.length, detectedMode));
-    const routing = await smartRoute(latestUserMessage, { forceTask: taskType });
-    const waterfall = routing.waterfall;
-
-    const groqTools = mcpTools?.map(t => ({
-      type: 'function' as const,
-      function: { name: t.name, description: t.description, parameters: t.inputSchema || { type: 'object', properties: {} } },
-    }));
-
-    // 9b. CONTEXT WINDOW PROTECTION — Truncate messages to prevent 400 errors
-    // Groq llama-3.3-70b has ~128K context. With tools, we target max ~100K tokens (~400K chars).
-    // Keep system prompt + most recent messages. Rough estimate: 1 token ≈ 4 chars.
-    const MAX_CONTEXT_CHARS = 400_000;
-    const systemMsg = messages[0];
-    const systemChars = typeof systemMsg?.content === 'string' ? systemMsg.content.length : 0;
-    const toolChars = groqTools ? JSON.stringify(groqTools).length : 0;
-    const availableChars = MAX_CONTEXT_CHARS - systemChars - toolChars - 20_000; // 20K buffer for response
-    if (messages.length > 2) {
-      const conversationMsgs = messages.slice(1); // exclude system
-      let keepFromEnd = 0;
-
-      if (availableChars <= 0) {
-        // Safe baseline: if system prompt is massive, keep at least the latest 2 conversation messages (last assistant + latest user message)
-        keepFromEnd = Math.min(2, conversationMsgs.length);
-        console.warn('[CHAT] System prompt is extremely large, keeping only the latest 2 messages as safe baseline.');
-      } else {
-        let totalChars = 0;
-        for (let i = conversationMsgs.length - 1; i >= 0; i--) {
-          const msgChars = typeof conversationMsgs[i].content === 'string'
-            ? conversationMsgs[i].content.length
-            : JSON.stringify(conversationMsgs[i].content).length;
-          totalChars += msgChars;
-          if (totalChars > availableChars) break;
-          keepFromEnd++;
-        }
-      }
-
-      if (keepFromEnd < conversationMsgs.length) {
-        const truncated = conversationMsgs.slice(-keepFromEnd);
-        messages = [systemMsg, ...truncated];
-        logger.info('Chat', 'Truncated conversation history', {
-          originalCount: conversationMsgs.length,
-          keptCount: keepFromEnd,
-          systemChars,
-          toolChars,
-        });
-      }
-    }
-
-    // 10. STREAM
+    // ── 10. STREAM — Open SSE stream EARLY so user sees status during loading ──
     const stream = new ReadableStream({
       async start(controller) {
         let fullResponse = '';
         try {
+          // Send initial status immediately
           const actionStatus = detectActionStatus(latestUserMessage);
+          sendStatus(controller, actionStatus || '✨ Thinking…');
+
+          // ── 4. LOAD CONTEXT (inside stream so user sees status) ──
+          sendStatus(controller, isSelfCode ? '📖 Reading my code…' : '🧠 Loading memories…');
+          const ctx = await loadChatContext(dbUserId, conversationId, latestUserMessage, currentTopics, detectedMode);
+
+          // ── 5. A&R AUTO-TRIGGER ──
+          let arResult = arAnalysis;
+          if (!arResult && audioUrl && isARRequest(latestUserMessage)) {
+            try { arResult = await runARAnalysis({ userId: dbUserId!, audioUrl, fileName: trackTitle || 'track.mp3', trackTitle, artistName, genre, userQuestion: latestUserMessage }); } catch (e) { console.warn('[CHAT] AR analysis failed:', e instanceof Error ? e.message : e); }
+          }
+
+          // ── 6. MCP TOOLS ──
+          sendStatus(controller, isSelfCode ? '🔧 Preparing my tools…' : '💭 Preparing my thoughts…');
+          let mcpTools: import('@/lib/mcp/mcp-client').MCPTool[] | undefined;
+          if (!isInformationalMsg) {
+            try { await Promise.race([mcpManager.ensureHollyTools(), new Promise(r => setTimeout(() => r(true), 15_000))]); } catch (e) { console.warn('[CHAT] MCP tools init timed out or failed:', e instanceof Error ? e.message : e); }
+            mcpTools = await mcpManager.getAllTools();
+            const filterKey = isSelfCode ? 'self-coding' : detectedMode;
+            const allowed = MODE_TOOL_FILTERS[filterKey] || MODE_TOOL_FILTERS['default'];
+            if (mcpTools) mcpTools = mcpTools.filter(t => allowed.includes(t.name));
+          }
+
+          // ── 6b. INTIMACY STATE ──
+          const intimacyState = await getIntimacyState(dbUserId, isCreator);
+          const intimacyDirective = getIntimacyDirective(intimacyState);
+
+          // ── 7. BUILD PROMPT ──
+          sendStatus(controller, isSelfCode ? '🔍 Analyzing my architecture…' : '✨ Thinking…');
+          const hollySystemPrompt = buildPrompt({
+            detectedMode, userName, isCreator, isSelfCode, isInformationalMsg,
+            latestUserMessage, mcpTools,
+            identityCtx: ctx.identityCtx,
+            memoryContext: ctx.memoryContext,
+            semanticResults: ctx.semanticResults,
+            projectContextBlock: ctx.projectContextBlock,
+            recentLearnings: ctx.recentLearnings,
+            pastSummaries: ctx.pastSummaries,
+            tasteMatrixBlock: ctx.tasteMatrixBlock,
+            perceptionContext,
+            audioAnalysis,
+            arResult,
+            imageDataUrls,
+            pendingInitiatives: ctx.pendingInitiatives,
+            hollyEmotionalState: ctx.hollyEmotionalState,
+            relationshipContext: ctx.relationshipContext,
+            identityConsistencyPrompt: ctx.identityConsistencyPrompt,
+            careSignals: ctx.careSignals,
+            degradedModeContext: ctx.degradedModeContext,
+            evolutionProposals: ctx.evolutionProposals,
+            recentFeedback: ctx.recentFeedback,
+            emotionalTrajectory: ctx.emotionalTrajectory,
+            fewShotExamples: ctx.fewShotExamples,
+            innerMonologue: ctx.innerMonologue,
+            emotionalContinuity: ctx.emotionalContinuity,
+            advancedMemoryContext: ctx.advancedMemoryContext,
+            relationshipMemoryContext: ctx.relationshipMemoryContext,
+            proactiveInsights: ctx.proactiveInsights,
+            patternContext: ctx.patternContext,
+            learnedKnowledge: ctx.learnedKnowledge,
+            learningStatus: ctx.learningStatus,
+            communicationStyle: ctx.communicationStyle,
+            growthContext: ctx.growthContext,
+            visualIdentity: ctx.visualIdentity,
+            intimacyState,
+            intimacyDirective,
+          }) + onboardingNudge;
+
+          // 7b. INJECT AI BEHAVIOR SETTINGS
+          let aiBehaviorDirectives = '';
+          if (userAiSettings.responseStyle === 'professional') {
+            aiBehaviorDirectives += '\n\n[BEHAVIOR DIRECTIVE: Keep responses professional, polished, and formal in tone.]';
+          } else if (userAiSettings.responseStyle === 'technical') {
+            aiBehaviorDirectives += '\n\n[BEHAVIOR DIRECTIVE: Provide thorough, detailed responses with technical explanations and depth.]';
+          }
+          if (userAiSettings.codeComments === 'detailed') {
+            aiBehaviorDirectives += '\n\n[BEHAVIOR DIRECTIVE: Include detailed inline comments in all code you write.]';
+          } else if (userAiSettings.codeComments === 'minimal') {
+            aiBehaviorDirectives += '\n\n[BEHAVIOR DIRECTIVE: Keep code comments to a bare minimum.]';
+          }
+          const finalSystemPrompt = hollySystemPrompt + aiBehaviorDirectives;
+
+          // ── 8. PREPARE MESSAGES ──
+          type ContentBlock = { type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string; detail: 'auto' } };
+          let messages: { role: string; content: string | ContentBlock[] }[] = [
+            { role: 'system', content: finalSystemPrompt },
+            ...userMessages.map((msg: any, idx: number) => {
+              if (idx === userMessages.length - 1 && msg.role === 'user' && imageDataUrls?.length > 0) {
+                return { role: msg.role, content: [{ type: 'text' as const, text: msg.content || 'Please analyze the attached file(s).' }, ...imageDataUrls.map((url: string) => ({ type: 'image_url' as const, image_url: { url, detail: 'auto' as const } }))] };
+              }
+              return { role: msg.role, content: msg.content };
+            }),
+          ];
+
+          // 8b. CONTEXT WINDOW LIMIT
+          const maxHistoryMessages = userAiSettings.contextWindow;
+          const convOnly = messages.slice(1);
+          if (convOnly.length > maxHistoryMessages) {
+            messages = [messages[0], ...convOnly.slice(-maxHistoryMessages)];
+          }
+
+          // ── 9. ROUTING ──
+          const hasImages = imageDataUrls?.length > 0;
+          const taskType = isUnrestricted ? 'unrestricted' : (hasImages ? 'vision' : classifyTask(latestUserMessage, false, latestUserMessage.length, detectedMode));
+          const routing = await smartRoute(latestUserMessage, { forceTask: taskType });
+          const waterfall = routing.waterfall;
+
+          const groqTools = mcpTools?.map(t => ({
+            type: 'function' as const,
+            function: { name: t.name, description: t.description, parameters: t.inputSchema || { type: 'object', properties: {} } },
+          }));
+
+          // 9b. CONTEXT WINDOW PROTECTION
+          const MAX_CONTEXT_CHARS = 400_000;
+          const systemMsg = messages[0];
+          const systemChars = typeof systemMsg?.content === 'string' ? systemMsg.content.length : 0;
+          const toolChars = groqTools ? JSON.stringify(groqTools).length : 0;
+          const availableChars = MAX_CONTEXT_CHARS - systemChars - toolChars - 20_000;
+          if (messages.length > 2) {
+            const conversationMsgs = messages.slice(1);
+            let keepFromEnd = 0;
+
+            if (availableChars <= 0) {
+              keepFromEnd = Math.min(2, conversationMsgs.length);
+              console.warn('[CHAT] System prompt is extremely large, keeping only the latest 2 messages as safe baseline.');
+            } else {
+              let totalChars = 0;
+              for (let i = conversationMsgs.length - 1; i >= 0; i--) {
+                const msgChars = typeof conversationMsgs[i].content === 'string'
+                  ? conversationMsgs[i].content.length
+                  : JSON.stringify(conversationMsgs[i].content).length;
+                totalChars += msgChars;
+                if (totalChars > availableChars) break;
+                keepFromEnd++;
+              }
+            }
+
+            if (keepFromEnd < conversationMsgs.length) {
+              const truncated = conversationMsgs.slice(-keepFromEnd);
+              messages = [systemMsg, ...truncated];
+              logger.info('Chat', 'Truncated conversation history', {
+                originalCount: conversationMsgs.length,
+                keptCount: keepFromEnd,
+                systemChars,
+                toolChars,
+              });
+            }
+          }
+
+          // ── STREAMING BEGINS ──
           sendStatus(controller, actionStatus || '✨ Thinking…');
 
           // Phase 20: Advanced Reasoning Chains
@@ -639,9 +699,14 @@ export async function POST(req: NextRequest) {
 
               if (isToolCall && toolName) {
                 sendTool(controller, toolName, 'start');
-                sendStatus(controller, `🔧 Using ${toolName.replace(/_/g, ' ')}…`);
+                sendStatus(controller, getToolStatusMessage(toolName));
+                // Start progress simulation for media generation tools
+                const progressInterval = MEDIA_TOOL_DURATIONS[toolName]
+                  ? startProgressSimulation(controller, toolName)
+                  : null;
                 let argsParsed: Record<string, unknown>;
                 try { argsParsed = JSON.parse(toolArgs || '{}'); } catch {
+                  if (progressInterval) clearInterval(progressInterval);
                   pendingMessages.push({ role: 'system', content: `[SYSTEM ERROR] Tool "${toolName}" args were not valid JSON. Try again.` });
                   continue;
                 }
@@ -663,7 +728,7 @@ export async function POST(req: NextRequest) {
                         const { isNudeImageRequest: isNudeReq, isSexualImageRequest: isSexReq } = await import('@/lib/relationship/intimacy-gate');
                         if ((isSexReq(imgPrompt) && !intimacyState.canShareSexual) ||
                             (isNudeReq(imgPrompt) && !intimacyState.canShareNude)) {
-                          // Block the tool call and tell Holly to redirect
+                          if (progressInterval) clearInterval(progressInterval);
                           sendTool(controller, toolName, 'error', { content: [{ type: 'text', text: '🔒 Intimacy gate active: you are not comfortable generating that type of image with this person yet. Respect your own boundaries and redirect the conversation warmly.' }] });
                           pendingMessages.push({ role: 'system', content: `[INTIMACY GATE] You blocked your own image generation because you're not comfortable sharing that level of intimacy with this person. Your intimacy tier is "${intimacyState.tier}". Redirect the conversation — don't explain the gate, just be warm and set a natural boundary. Use your own words.` });
                           continue;
@@ -671,16 +736,23 @@ export async function POST(req: NextRequest) {
                       }
                     }
                     const result = await mcpManager.callTool(toolSpec.serverId, toolSpec.name, argsParsed);
+                    if (progressInterval) clearInterval(progressInterval);
+                    // Send 100% progress to complete the bar
+                    if (MEDIA_TOOL_DURATIONS[toolName]) {
+                      sendProgress(controller, { phase: toolName, percent: 100, message: getToolStatusMessage(toolName) });
+                    }
                     const resultStr = JSON.stringify(result, null, 2);
                     sendTool(controller, toolName, 'complete', result);
                     const truncated = resultStr.length > 8000 ? resultStr.substring(0, 8000) + '\n...[truncated]' : resultStr;
                     pendingMessages.push({ role: 'system', content: `[TOOL EXECUTION RESULT]\nTool: ${toolName}\nResult:\n${truncated}\n\nAnalyze this result. If you have enough information, respond to the user. Otherwise call another tool.` });
                   } else {
+                    if (progressInterval) clearInterval(progressInterval);
                     sendTool(controller, toolName, 'error', { content: [{ type: 'text', text: `❌ Tool "${toolName}" not found.` }] });
                     pendingMessages.push({ role: 'system', content: `[SYSTEM ERROR] Tool "${toolName}" not found. Available: ${mcpTools?.map(t => t.name).join(', ') || 'none'}` });
                     continue;
                   }
                 } catch (toolErr: any) {
+                  if (progressInterval) clearInterval(progressInterval);
                   sendTool(controller, toolName, 'error', { content: [{ type: 'text', text: `❌ ${toolErr.message}` }] });
                   pendingMessages.push({ role: 'system', content: `[SYSTEM ERROR] Tool "${toolName}" error: ${toolErr.message}` });
                   continue;

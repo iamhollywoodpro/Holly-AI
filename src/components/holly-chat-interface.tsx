@@ -82,11 +82,13 @@ interface Message {
 }
 
 interface StatusUpdate {
-  type: "status" | "text" | "tool" | "done" | "error" | "signal";
+  type: "status" | "text" | "tool" | "done" | "error" | "signal" | "progress";
   content?: string;
   toolName?: string;
   status?: "start" | "complete" | "error";
   result?: any;
+  percent?: number;
+  phase?: string;
 }
 
 interface ToolExecution {
@@ -95,6 +97,7 @@ interface ToolExecution {
   status: "start" | "complete" | "error";
   result?: any;
   timestamp: Date;
+  progressPercent?: number;
 }
 
 interface UploadedFile {
@@ -341,6 +344,15 @@ function ToolCard({ execution }: { execution: ToolExecution }) {
       <span className="text-gray-300 flex-1">{meta.label}</span>
       {execution.status === "start" && (
         <Loader2 className="w-3.5 h-3.5 animate-spin text-holly-gold flex-shrink-0" />
+      )}
+      {execution.status === "start" && execution.progressPercent !== undefined && execution.progressPercent > 0 && (
+        <div className="w-20 h-1 bg-white/10 rounded-full overflow-hidden flex-shrink-0">
+          <motion.div
+            className="h-full bg-holly-gold/60 rounded-full"
+            animate={{ width: `${execution.progressPercent}%` }}
+            transition={{ duration: 0.3 }}
+          />
+        </div>
       )}
       {execution.status === "complete" && (
         <motion.div
@@ -844,9 +856,9 @@ function getActionMeta(text: string) {
   return { icon: Sparkles, color: "text-holly-gold", bg: "bg-holly-gold/10 border-holly-gold/20" };
 }
 
-function ActionIndicator({ text }: { text: string }) {
+function ActionIndicator({ text, progress }: { text: string; progress?: number }) {
   if (!text) return null;
-  
+
   // Strip model names and technical routing info (anything after ->, to, or :)
   // This keeps the focus on the ACTION, not the infrastructure
   const cleanedText = text
@@ -865,25 +877,38 @@ function ActionIndicator({ text }: { text: string }) {
       transition={{ duration: 0.25 }}
       className="flex items-center justify-center"
     >
-      <div className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border text-sm font-medium ${meta.bg} shadow-sm`}>
-        <motion.div
-          animate={{ rotate: [0, 8, -8, 0] }}
-          transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
-        >
-          <Icon className={`w-4 h-4 flex-shrink-0 ${meta.color}`} />
-        </motion.div>
-        <span className={`${meta.color}`}>{cleanedText}</span>
-        {/* Pulsing dots */}
-        <span className="flex items-center gap-0.5">
-          {[0, 1, 2].map(i => (
-            <motion.span
-              key={i}
-              className={`w-1 h-1 rounded-full ${meta.color.replace('text-', 'bg-')}`}
-              animate={{ opacity: [0.2, 1, 0.2] }}
-              transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }}
+      <div>
+        <div className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border text-sm font-medium ${meta.bg} shadow-sm`}>
+          <motion.div
+            animate={{ rotate: [0, 8, -8, 0] }}
+            transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+          >
+            <Icon className={`w-4 h-4 flex-shrink-0 ${meta.color}`} />
+          </motion.div>
+          <span className={`${meta.color}`}>{cleanedText}</span>
+          {/* Pulsing dots */}
+          <span className="flex items-center gap-0.5">
+            {[0, 1, 2].map(i => (
+              <motion.span
+                key={i}
+                className={`w-1 h-1 rounded-full ${meta.color.replace('text-', 'bg-')}`}
+                animate={{ opacity: [0.2, 1, 0.2] }}
+                transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }}
+              />
+            ))}
+          </span>
+        </div>
+        {progress !== undefined && progress > 0 && (
+          <div className="w-full mt-2 h-1.5 bg-white/5 rounded-full overflow-hidden">
+            <motion.div
+              className="h-full rounded-full"
+              style={{ backgroundColor: progress >= 100 ? '#4ade80' : 'rgba(234,179,8,0.6)' }}
+              initial={{ width: 0 }}
+              animate={{ width: `${Math.min(progress, 100)}%` }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
             />
-          ))}
-        </span>
+          </div>
+        )}
       </div>
     </motion.div>
   );
@@ -1636,6 +1661,8 @@ export default function HollyChatInterface() {
   const [input, setInput] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentStatus, setCurrentStatus] = useState("");
+  const [progressPercent, setProgressPercent] = useState<number>(0);
+  const [progressPhase, setProgressPhase] = useState<string>("");
   const [streamingMessage, setStreamingMessage] = useState("");
   const [toolExecutions, setToolExecutions] = useState<ToolExecution[]>([]);
   const [sandboxOpen, setSandboxOpen] = useState(false);
@@ -2265,6 +2292,20 @@ export default function HollyChatInterface() {
     setIsThinking(true);
     setEmotion('focused');
 
+    // Optimistic pre-stream status — gives immediate feedback before SSE opens
+    const optimisticStatus = (() => {
+      const m = messageText.toLowerCase();
+      if (/\b(generate|create|make|draw|show|paint)\b.{0,40}\b(image|photo|picture|art|yourself|you)\b/i.test(m)) return '🎨 Generating image…';
+      if (/\b(generate|create|make|compose)\b.{0,40}\b(song|music|track|beat)\b/i.test(m)) return '🎵 Composing music…';
+      if (/\b(generate|create|make)\b.{0,40}\b(video)\b/i.test(m)) return '🎬 Generating video…';
+      if (/\b(fix yourself|modify your code|self-code|update your code)\b/i.test(m)) return '📖 Reading my code…';
+      if (/\b(build|deploy|push to github)\b/i.test(m)) return '🔨 Building…';
+      if (/\b(search|find|research|look up)\b/i.test(m)) return '🔍 Searching…';
+      if (/\b(analyze|review)\b.{0,40}\b(audio|song|track|mix)\b/i.test(m)) return '🎧 Analyzing…';
+      return '✨ Thinking…';
+    })();
+    setCurrentStatus(optimisticStatus);
+
     // Detect mode from message text
     const detectedMode = detectClientMode(messageText);
     if (detectedMode !== prevModeRef.current && detectedMode !== 'default') {
@@ -2375,6 +2416,8 @@ export default function HollyChatInterface() {
 
             if (data.type === "done") {
               streamDone = true;
+              setProgressPercent(0);
+              setProgressPhase("");
               // Capture routing metadata from the done event
               const doneData = data as any;
               if (doneData.model)    { detectedModel = doneData.model; setActiveModel(doneData.model); }
@@ -2391,6 +2434,16 @@ export default function HollyChatInterface() {
               const mapped = statusToEmotion(data.content || "");
               if (mapped) setEmotion(mapped);
             }
+            if (data.type === "progress") {
+              setProgressPercent(data.percent || 0);
+              setProgressPhase(data.phase || "");
+              // Update matching tool execution with progress
+              setToolExecutions(prev => prev.map(ex =>
+                ex.toolName === data.phase && ex.status === "start"
+                  ? { ...ex, progressPercent: data.percent }
+                  : ex
+              ));
+            }
             if (data.type === "signal") {
               detectedModel = data.content || undefined;
             }
@@ -2398,6 +2451,8 @@ export default function HollyChatInterface() {
               assistantContent += data.content || "";
               setStreamingMessage(assistantContent);
               setCurrentStatus("");
+              setProgressPercent(0);
+              setProgressPhase("");
               setIsStreaming(true);
               setIsThinking(false);
               setEmotion('generating');
@@ -3268,7 +3323,7 @@ export default function HollyChatInterface() {
                 <div className="flex items-center gap-2 px-1">
                   <span className="text-xs font-bold tracking-widest text-primary uppercase">HOLLY</span>
                 </div>
-                <ActionIndicator text={currentStatus} />
+                <ActionIndicator text={currentStatus} progress={progressPercent} />
               </div>
             </motion.div>
           )}
