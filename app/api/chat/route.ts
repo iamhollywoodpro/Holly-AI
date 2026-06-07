@@ -781,10 +781,8 @@ export async function POST(req: NextRequest) {
     console.error('[CHAT] FATAL ERROR:', errorMsg, errorStack);
     logger.error('Chat', 'Fatal error in chat route', { error: errorMsg, stack: errorStack });
     return NextResponse.json({
-      error: errorMsg,
+      error: 'Internal server error',
       errorType: errorName,
-      // Include full stack trace for diagnostics — the client displays this
-      hint: errorStack || undefined,
     }, { status: 500 });
   }
 }

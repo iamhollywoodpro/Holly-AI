@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
 import { ComputerVision } from '@/lib/vision/computer-vision';
 
 export const runtime = 'nodejs';
 
 
 export async function POST(req: NextRequest) {
+  const { userId } = await auth();
+  if (!userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
   try {
     const body = await req.json() as any;
     const { imageUrl, analysisType, prompt } = body as any;

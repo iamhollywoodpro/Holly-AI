@@ -31,7 +31,8 @@ export const dynamic = 'force-dynamic';
 
 function resolveAuth(req: NextRequest, clerkUserId: string | null, body?: Record<string, unknown>): { userId: string | null; isInternal: boolean } {
   const internalToken = req.headers.get('x-internal-token');
-  const isInternal = !!(internalToken && internalToken === (process.env.INTERNAL_API_SECRET || 'holly-internal'));
+  const secret = process.env.INTERNAL_API_SECRET;
+  const isInternal = !!(secret && internalToken && internalToken === secret);
   // Internal calls may pass userId in the body; Clerk calls use the session
   // For GET/readonly calls, internal token alone is sufficient (userId defaults to 'internal')
   const userId = clerkUserId || (isInternal && body?.userId ? String(body.userId) : null) || (isInternal ? 'internal' : null);
@@ -141,6 +142,13 @@ export async function POST(req: NextRequest) {
           return NextResponse.json({ error: 'proposal object required' }, { status: 400 });
         }
 
+        // Enforce creator-only gate — only Steve can approve self-modifications
+        const envCreatorId = process.env.CREATOR_USER_ID;
+        const isCreator = userId === CREATOR_USER_ID || (envCreatorId && userId === envCreatorId);
+        if (!isCreator) {
+          return NextResponse.json({ error: 'Forbidden: only the creator can approve self-code changes' }, { status: 403 });
+        }
+
         const result = await applyProposal(proposal, {
           approved:   !!approved,
           creatorNote: creatorNote ?? '',
@@ -150,7 +158,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({
           ok:      result.success,
           message: result.message,
-          isCreator: userId === CREATOR_USER_ID || userId === process.env.CREATOR_USER_ID,
+          isCreator: true,
         });
       }
 

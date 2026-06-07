@@ -38,7 +38,7 @@ SQL
 echo "✅ pgvector extension ready"
 
 echo "Syncing database schema..."
-npx prisma db push --accept-data-loss --skip-generate 2>&1 || echo "[WARN] prisma db push failed — app will continue with existing schema"
+npx prisma db push --skip-generate 2>&1 || echo "[WARN] prisma db push failed — app will continue with existing schema"
 
 echo "Starting HOLLY server..."
 exec node holly-server.js

@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
 
 export const runtime = 'nodejs';
 
 
 export async function POST(req: NextRequest) {
+  const { userId } = await auth();
+  if (!userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
   try {
-    const { provider = 'github-actions', steps, userId } = await req.json();
+    const { provider = 'github-actions', steps } = await req.json();
     
     const defaultSteps = steps || ['checkout', 'install', 'test', 'build', 'deploy'];
     

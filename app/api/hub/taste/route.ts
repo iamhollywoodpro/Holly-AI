@@ -23,7 +23,7 @@ import { cascadeCollect } from '@/lib/ai/cascade';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const INTERNAL_TOKEN = process.env.INTERNAL_API_SECRET || 'holly-internal';
+const INTERNAL_TOKEN = process.env.INTERNAL_API_SECRET || '';
 
 function verifyToken(req: NextRequest): boolean {
   const token = req.headers.get('x-internal-token');

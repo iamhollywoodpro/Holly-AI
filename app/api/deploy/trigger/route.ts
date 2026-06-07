@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
   const authHeader = req.headers.get('authorization');
   const internalSecret = process.env.INTERNAL_API_SECRET;
   const xInternalToken = req.headers.get('x-internal-token');
-  const isInternalToken = !!(xInternalToken && xInternalToken === (internalSecret || 'holly-internal'));
+  const isInternalToken = !!(internalSecret && xInternalToken && xInternalToken === internalSecret);
   const isBearerValid = !!(authHeader && internalSecret && authHeader === `Bearer ${internalSecret}`);
 
   if (!userId && !isInternalToken && !isBearerValid) {

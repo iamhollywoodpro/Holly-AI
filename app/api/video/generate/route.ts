@@ -3,11 +3,16 @@
 // Redirect to new /api/video/generate-ultimate
 
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
 
 export const runtime = 'nodejs';
 
 
 export async function POST(req: NextRequest) {
+  const { userId } = await auth();
+  if (!userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
   try {
     const body = await req.json();
     
@@ -32,6 +37,10 @@ export async function POST(req: NextRequest) {
 
 // GET endpoint for metadata
 export async function GET() {
+  const { userId } = await auth();
+  if (!userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
   return NextResponse.json({
     message: 'This endpoint redirects to /api/video/generate-ultimate',
     models: ['zeroscope-v2', 'animatediff', 'cogvideo', 'modelscope', 'lavie'],

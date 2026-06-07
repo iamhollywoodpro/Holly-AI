@@ -29,7 +29,8 @@ export async function POST(request: NextRequest) {
     // Auth — allow unauthenticated callers from internal MCP tools, require auth otherwise
     const { userId } = await auth();
     const internalToken = request.headers.get('x-internal-token');
-    const isInternal = internalToken === (process.env.INTERNAL_API_SECRET || 'holly-internal');
+    const secret = process.env.INTERNAL_API_SECRET;
+    const isInternal = !!(secret && internalToken && internalToken === secret);
 
     if (!userId && !isInternal) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

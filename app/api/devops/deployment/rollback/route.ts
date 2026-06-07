@@ -1,6 +1,7 @@
 // PHASE 2: REAL Deployment Rollback
 // Integrates with Vercel API for actual rollbacks
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/db';
 
 export const runtime = 'nodejs';
@@ -8,12 +9,16 @@ export const runtime = 'nodejs';
 
 
 export async function POST(req: NextRequest) {
+  const { userId } = await auth();
+  if (!userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
   try {
-    const { deploymentId, targetVersion, userId, projectId } = await req.json();
+    const { deploymentId, targetVersion, projectId } = await req.json();
 
-    if (!deploymentId || !userId) {
+    if (!deploymentId) {
       return NextResponse.json(
-        { success: false, error: 'deploymentId and userId required' },
+        { success: false, error: 'deploymentId required' },
         { status: 400 }
       );
     }

@@ -5,6 +5,7 @@
  * Two tiers: fetch-based (always works) and Playwright (for JS-heavy sites, if installed).
  */
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
 import { browserController } from '@/lib/web-agent/browser-controller';
 import { taskExecutor } from '@/lib/web-agent/task-executor';
 import { nanoid } from 'nanoid';
@@ -15,6 +16,10 @@ export const runtime = 'nodejs';
 const sessions = new Map<string, { createdAt: number; lastActivity: number }>();
 
 export async function POST(req: NextRequest) {
+  const { userId } = await auth();
+  if (!userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
   try {
     const body = await req.json();
     const { action, url, sessionId, selector, attribute, value, script, fullPage, waitUntil, timeout } = body;

@@ -25,7 +25,8 @@ export async function POST(request: NextRequest) {
   try {
     // Check authentication — allow internal server-to-server calls (e.g., from HOLLY A&R engine)
     const internalToken = request.headers.get('x-internal-token');
-    const isInternalCall = internalToken === (process.env.INTERNAL_API_SECRET ?? 'holly-internal');
+    const secret = process.env.INTERNAL_API_SECRET;
+    const isInternalCall = !!(secret && internalToken && internalToken === secret);
 
     let userId: string | null = null;
     if (!isInternalCall) {
