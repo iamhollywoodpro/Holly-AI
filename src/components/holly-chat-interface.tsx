@@ -3526,18 +3526,28 @@ export default function HollyChatInterface() {
                   )}
                 </button>
               </div>
-              {/* Send */}
-              <button
-                onClick={() => handleSend()}
-                disabled={isProcessing || (!input.trim() && attachments.length === 0)}
-                className={`p-2.5 rounded-xl transition-all ${
-                  input.trim() || attachments.length > 0
-                    ? "bg-primary text-white shadow-[0_0_20px_rgba(var(--primary-rgb),0.4)] active:scale-95"
-                    : "text-white/10"
-                } disabled:opacity-20`}
-              >
-                <Send className="w-5 h-5" />
-              </button>
+              {/* Send / Stop */}
+              {isProcessing ? (
+                <button
+                  onClick={handleStop}
+                  className="p-2.5 rounded-xl transition-all bg-red-500/80 hover:bg-red-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.4)] active:scale-95"
+                  title="Stop (Esc)"
+                >
+                  <Square className="w-5 h-5" />
+                </button>
+              ) : (
+                <button
+                  onClick={() => handleSend()}
+                  disabled={!input.trim() && attachments.length === 0}
+                  className={`p-2.5 rounded-xl transition-all ${
+                    input.trim() || attachments.length > 0
+                      ? "bg-primary text-white shadow-[0_0_20px_rgba(var(--primary-rgb),0.4)] active:scale-95"
+                      : "text-white/10"
+                  } disabled:opacity-20`}
+                >
+                  <Send className="w-5 h-5" />
+                </button>
+              )}
             </div>
           </div>
 
@@ -3682,18 +3692,28 @@ export default function HollyChatInterface() {
                 />
               </div>
 
-              {/* Send Button */}
-              <button
-                onClick={() => handleSend()}
-                disabled={isProcessing || (!input.trim() && attachments.length === 0)}
-                className={`flex-shrink-0 p-3 rounded-2xl transition-all mr-1 ${
-                  input.trim() || attachments.length > 0
-                    ? "bg-primary text-white shadow-[0_0_20px_rgba(var(--primary-rgb),0.4)] hover:scale-105 active:scale-95"
-                    : "text-white/10"
-                } disabled:opacity-20`}
-              >
-                <Send className="w-5 h-5" />
-              </button>
+              {/* Send / Stop Button */}
+              {isProcessing ? (
+                <button
+                  onClick={handleStop}
+                  className="flex-shrink-0 p-3 rounded-2xl transition-all mr-1 bg-red-500/80 hover:bg-red-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.4)] hover:scale-105 active:scale-95"
+                  title="Stop (Esc)"
+                >
+                  <Square className="w-5 h-5" />
+                </button>
+              ) : (
+                <button
+                  onClick={() => handleSend()}
+                  disabled={!input.trim() && attachments.length === 0}
+                  className={`flex-shrink-0 p-3 rounded-2xl transition-all mr-1 ${
+                    input.trim() || attachments.length > 0
+                      ? "bg-primary text-white shadow-[0_0_20px_rgba(var(--primary-rgb),0.4)] hover:scale-105 active:scale-95"
+                      : "text-white/10"
+                  } disabled:opacity-20`}
+                >
+                  <Send className="w-5 h-5" />
+                </button>
+              )}
             </div>
           </div>
         </div>
