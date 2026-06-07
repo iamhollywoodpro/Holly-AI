@@ -561,7 +561,7 @@ export async function POST(req: NextRequest) {
 
             // Filter to strip raw JSON tool calls that the LLM outputs as text
             // (happens when the model can't use native function calling)
-            const RAW_TOOL_CALL_REGEX = /\[?\s*\{\s*['"]name['"]\s*:\s*['"](?:generate_image|generate_music|run_code|memory_read|memory_write|self_code_apply|trigger_deploy|start_build|sentinel_analyze_code|sentinel_generate_code|web_search|read_file|write_file)['"]\s*,\s*['"]arguments?['"]\s*:\s*\{[^}]*\}\s*\}\s*\]?/gi;
+            const RAW_TOOL_CALL_REGEX = /\[?\s*\{\s*(?:['"](?:name|type)['"]\s*:\s*['"](?:generate_image|generate_video|generate_music|hybrid_studio|run_code|memory_read|memory_write|self_code_apply|trigger_deploy|start_build|sentinel_analyze_code|sentinel_generate_code|web_search|read_file|write_file)['"]\s*,\s*['"](?:arguments?|prompt|input)['"]\s*:\s*(?:\{[^}]*\}|['"][^'"]*['"]))\s*\}\s*\]?/gi;
             let contentBuffer = '';
             let lastFlushIndex = 0;
 
@@ -575,7 +575,7 @@ export async function POST(req: NextRequest) {
                 contentBuffer = filtered;
               }
               // If buffer hasn't grown for a while and no partial match, flush it
-              const partialMatch = contentBuffer.match(/\[\s*\{\s*['"]name['"]\s*:/);
+              const partialMatch = contentBuffer.match(/\[\s*\{\s*['"](?:name|type)['"]\s*:/);
               if (!partialMatch && contentBuffer.length > 0) {
                 const toFlush = contentBuffer;
                 contentBuffer = '';
@@ -762,10 +762,7 @@ export async function POST(req: NextRequest) {
               } else if (!useGroqTools && !useArceeTools) {
                 // No tool-calling providers available — use cascade directly
                 if (isSelfCode) {
-                  const errMsg = 'Sovereign mode requires a tool-calling engine (Groq or Arcee). Please ensure GROQ_API_KEY or ARCEE_API_KEY is set.';
-                  fullResponse = errMsg;
-                  sendText(controller, errMsg);
-                  break;
+                  logger.warn('Chat', 'Self-code mode without tool-calling providers — cascading to text-only models');
                 }
                 try {
                   for await (const token of cascade(waterfall, pendingMessages, { temperature: userAiSettings.creativity, maxTokens: 4096, sessionId: conversationId, onModelSelected: (s) => { activeModel = s.displayName; } })) {
@@ -778,20 +775,23 @@ export async function POST(req: NextRequest) {
                 }
                 // Intercept text-based tool calls from models that can't do native function calling
                 // (e.g., when Groq/Arcee is down and cascade falls through to a non-tool-calling model)
-                const textToolMatch = fullResponse.match(/\{[\s\S]*?"name"\s*:\s*"(generate_image|generate_video|generate_music|hybrid_studio)"[\s\S]*?"arguments?"\s*:\s*\{[\s\S]*?\}[\s\S]*?\}/);
+                // Matches both {"name":"generate_image","arguments":{...}} and {"type":"generate_image","prompt":"..."}
+                const textToolMatch = fullResponse.match(/\{[\s\S]*?(?:"(?:name|type)"\s*:\s*"(generate_image|generate_video|generate_music|hybrid_studio)")\s*[\s\S]*?(?:"(?:arguments?|prompt|input)"\s*:\s*(?:\{[\s\S]*?\}|"[^"]*"))[\s\S]*?\}/);
                 if (textToolMatch) {
                   try {
-                    const parsed = JSON.parse(textToolMatch[0].replace(/'/g, '"'));
+                    const cleaned = textToolMatch[0].replace(/'/g, '"');
+                    const parsed = JSON.parse(cleaned);
                     const firstTool = Array.isArray(parsed) ? parsed[0] : parsed;
-                    if (firstTool?.name && firstTool?.arguments) {
-                      const toolSpec = mcpTools?.find(t => t.name === firstTool.name);
+                    const toolName = firstTool?.name || firstTool?.type;
+                    const toolArgs = firstTool?.arguments || firstTool?.argument || (firstTool?.prompt ? { prompt: firstTool.prompt } : firstTool?.input ? { prompt: firstTool.input } : null);
+                    if (toolName && toolArgs) {
+                      const toolSpec = mcpTools?.find(t => t.name === toolName);
                       if (toolSpec) {
-                        const argsParsed = typeof firstTool.arguments === 'string' ? JSON.parse(firstTool.arguments) : firstTool.arguments;
-                        sendTool(controller, firstTool.name, 'start');
-                        sendStatus(controller, `🔧 Using ${firstTool.name.replace(/_/g, ' ')}…`);
+                        const argsParsed = typeof toolArgs === 'string' ? JSON.parse(toolArgs) : toolArgs;
+                        sendTool(controller, toolName, 'start');
+                        sendStatus(controller, `🔧 Using ${toolName.replace(/_/g, ' ')}…`);
                         const result = await mcpManager.callTool(toolSpec.serverId, toolSpec.name, argsParsed);
-                        sendTool(controller, firstTool.name, 'complete', result);
-                        // Replace raw JSON with the actual result
+                        sendTool(controller, toolName, 'complete', result);
                         const resultText = (result as any)?.content?.[0]?.text || (result as any)?.content || JSON.stringify(result);
                         fullResponse = fullResponse.replace(textToolMatch[0], resultText);
                       }
@@ -813,20 +813,23 @@ export async function POST(req: NextRequest) {
                   fullResponse = "I'm sorry, I'm having trouble connecting right now. Please try again.";
                   sendText(controller, fullResponse);
                 }
-                // Intercept text-based tool calls from cascade fallback (same as above)
-                const silentToolMatch = fullResponse.match(/\{[\s\S]*?"name"\s*:\s*"(generate_image|generate_video|generate_music|hybrid_studio)"[\s\S]*?"arguments?"\s*:\s*\{[\s\S]*?\}[\s\S]*?\}/);
+                // Intercept text-based tool calls from cascade fallback
+                const silentToolMatch = fullResponse.match(/\{[\s\S]*?(?:"(?:name|type)"\s*:\s*"(generate_image|generate_video|generate_music|hybrid_studio)")\s*[\s\S]*?(?:"(?:arguments?|prompt|input)"\s*:\s*(?:\{[\s\S]*?\}|"[^"]*"))[\s\S]*?\}/);
                 if (silentToolMatch) {
                   try {
-                    const parsed = JSON.parse(silentToolMatch[0].replace(/'/g, '"'));
+                    const cleaned = silentToolMatch[0].replace(/'/g, '"');
+                    const parsed = JSON.parse(cleaned);
                     const firstTool = Array.isArray(parsed) ? parsed[0] : parsed;
-                    if (firstTool?.name && firstTool?.arguments) {
-                      const toolSpec = mcpTools?.find(t => t.name === firstTool.name);
+                    const toolName = firstTool?.name || firstTool?.type;
+                    const toolArgs = firstTool?.arguments || firstTool?.argument || (firstTool?.prompt ? { prompt: firstTool.prompt } : firstTool?.input ? { prompt: firstTool.input } : null);
+                    if (toolName && toolArgs) {
+                      const toolSpec = mcpTools?.find(t => t.name === toolName);
                       if (toolSpec) {
-                        const argsParsed = typeof firstTool.arguments === 'string' ? JSON.parse(firstTool.arguments) : firstTool.arguments;
-                        sendTool(controller, firstTool.name, 'start');
-                        sendStatus(controller, `🔧 Using ${firstTool.name.replace(/_/g, ' ')}…`);
+                        const argsParsed = typeof toolArgs === 'string' ? JSON.parse(toolArgs) : toolArgs;
+                        sendTool(controller, toolName, 'start');
+                        sendStatus(controller, `🔧 Using ${toolName.replace(/_/g, ' ')}…`);
                         const result = await mcpManager.callTool(toolSpec.serverId, toolSpec.name, argsParsed);
-                        sendTool(controller, firstTool.name, 'complete', result);
+                        sendTool(controller, toolName, 'complete', result);
                         const resultText = (result as any)?.content?.[0]?.text || (result as any)?.content || JSON.stringify(result);
                         fullResponse = fullResponse.replace(silentToolMatch[0], resultText);
                       }
