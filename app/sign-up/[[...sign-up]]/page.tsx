@@ -31,7 +31,8 @@ export default function SignUpPage() {
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-[#0A0908] px-4 relative overflow-hidden">
-      {/* Background glow — emerald/copper warmth */}
+      {/* Background glow — teal/lavender warmth */}
+        <div className="absolute bottom-1/4 left-0 w-[300px] h-[300px] rounded-full bg-[#FF99CC]/4 blur-[100px]" />
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] rounded-full bg-[#66CCCC]/8 blur-[140px]" />
         <div className="absolute bottom-0 right-0 w-[400px] h-[400px] rounded-full bg-[#C7B8EA]/6 blur-[100px]" />
@@ -59,8 +60,8 @@ export default function SignUpPage() {
         {/* Redirecting state */}
         {redirecting && (
           <div className="flex flex-col items-center justify-center py-16 gap-4">
-            <div className="w-8 h-8 border-2 border-[#3DAF76] border-t-transparent rounded-full animate-spin" />
-            <p className="text-[#3DAF76] text-sm font-medium">Welcome to HOLLY!</p>
+            <div className="w-8 h-8 border-2 border-[#66CCCC] border-t-transparent rounded-full animate-spin" />
+            <p className="text-[#66CCCC] text-sm font-medium">Welcome to HOLLY!</p>
             <p className="text-[#5C564D] text-xs">Redirecting to chat...</p>
           </div>
         )}
@@ -103,11 +104,11 @@ export default function SignUpPage() {
                   'bg-[#1E1B18] border border-[#66CCCC]/10 hover:bg-[#141210] hover:border-[#66CCCC]/20 text-[#F5F0E8] transition-all duration-200',
                 socialButtonsBlockButtonText: 'text-[#F5F0E8] font-medium',
                 formButtonPrimary:
-                  'bg-gradient-to-r from-[#66CCCC] to-[#C7B8EA] hover:from-[#3DAF76] hover:to-[#E8A862] text-[#0A0908] font-semibold transition-all duration-200 shadow-lg shadow-[#66CCCC]/20',
+                  'bg-gradient-to-r from-[#66CCCC] to-[#C7B8EA] hover:from-[#66CCCC] hover:to-[#C7B8EA] text-[#0A0908] font-semibold transition-all duration-200 shadow-lg shadow-[#66CCCC]/20',
                 dividerLine: 'bg-[#1E1B18]',
                 dividerText: 'text-[#5C564D]',
-                footerActionLink: 'text-[#66CCCC] hover:text-[#3DAF76] transition-colors',
-                identityPreviewEditButton: 'text-[#66CCCC] hover:text-[#3DAF76]',
+                footerActionLink: 'text-[#66CCCC] hover:text-[#66CCCC] transition-colors',
+                identityPreviewEditButton: 'text-[#66CCCC] hover:text-[#66CCCC]',
                 alertText: 'text-[#B84052]',
                 formFieldErrorText: 'text-[#B84052]',
               },
