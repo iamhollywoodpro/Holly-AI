@@ -778,7 +778,7 @@ export async function POST(req: NextRequest) {
                 }
                 // Intercept text-based tool calls from models that can't do native function calling
                 // (e.g., when Groq/Arcee is down and cascade falls through to a non-tool-calling model)
-                const textToolMatch = fullResponse.match(/\[\s*\{[\s\S]*?"name"\s*:\s*"(generate_image|generate_video|generate_music|hybrid_studio)"[\s\S]*?\}\s*\]/);
+                const textToolMatch = fullResponse.match(/\{[\s\S]*?"name"\s*:\s*"(generate_image|generate_video|generate_music|hybrid_studio)"[\s\S]*?"arguments?"\s*:\s*\{[\s\S]*?\}[\s\S]*?\}/);
                 if (textToolMatch) {
                   try {
                     const parsed = JSON.parse(textToolMatch[0].replace(/'/g, '"'));
@@ -814,7 +814,7 @@ export async function POST(req: NextRequest) {
                   sendText(controller, fullResponse);
                 }
                 // Intercept text-based tool calls from cascade fallback (same as above)
-                const silentToolMatch = fullResponse.match(/\[\s*\{[\s\S]*?"name"\s*:\s*"(generate_image|generate_video|generate_music|hybrid_studio)"[\s\S]*?\}\s*\]/);
+                const silentToolMatch = fullResponse.match(/\{[\s\S]*?"name"\s*:\s*"(generate_image|generate_video|generate_music|hybrid_studio)"[\s\S]*?"arguments?"\s*:\s*\{[\s\S]*?\}[\s\S]*?\}/);
                 if (silentToolMatch) {
                   try {
                     const parsed = JSON.parse(silentToolMatch[0].replace(/'/g, '"'));
