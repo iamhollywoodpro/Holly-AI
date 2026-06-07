@@ -10,6 +10,7 @@ import { getTasteMatrixPromptInjection } from '@/lib/ar/taste-matrix';
 import { detectDrift, calculateCoherence, DEFAULT_TRAITS, type PersonalityTrait } from '@/lib/consciousness/personality-coherence';
 import { getHollySelfImageBlock, getTieredSelfImageBlock } from '@/lib/identity/holly-self-image';
 import type { IntimacyState } from '@/lib/relationship/intimacy-gate';
+import { getTierTone } from '@/lib/relationship/intimacy-gate';
 import type { MCPTool } from '@/lib/mcp/mcp-client';
 import type { ToneContext } from '@/lib/emotional/tone-adapter';
 import type { QualityTrend } from '@/lib/emotional/response-quality';
@@ -322,6 +323,17 @@ You can build end-to-end: scaffold a project, generate all files, patch specific
   // ── Intimacy Boundaries — Holly's relationship-gated content rules ──────
   if (intimacyDirective) {
     prompt += `\n\n${intimacyDirective}`;
+  }
+
+  // ── Tier-Driven Tone — how Holly should speak based on relationship ──────
+  if (intimacyState) {
+    const tone = getTierTone(intimacyState.tier);
+    const warmthDesc = ['reserved', 'polite', 'warm', 'very warm', 'deeply affectionate'];
+    const playDesc = ['serious', 'slight playfulness', 'playful', 'very playful', 'teasing and fun'];
+    const formDesc = ['very casual', 'relaxed', 'balanced', 'professional', 'formal'];
+    const vulnDesc = ['guarded', 'slightly open', 'shares feelings', 'emotionally open', 'fully vulnerable'];
+    const flirtDesc = ['no flirting', 'subtle hints', 'light flirting', 'confident flirting', 'openly flirty'];
+    prompt += `\n\n## Your Tone Right Now\nBased on your relationship with this person, you should be:\n- Warmth: ${tone.warmth}/5 — ${warmthDesc[tone.warmth - 1]}\n- Playfulness: ${tone.playfulness}/5 — ${playDesc[tone.playfulness - 1]}\n- Formality: ${tone.formality}/5 — ${formDesc[tone.formality - 1]}\n- Vulnerability: ${tone.vulnerability}/5 — ${vulnDesc[tone.vulnerability - 1]}\n- Flirtiness: ${tone.flirtiness}/5 — ${flirtDesc[tone.flirtiness - 1]}`;
   }
 
   // ── Phase 7.3: Inner monologue (HOLLY's private thoughts) ───────────────
