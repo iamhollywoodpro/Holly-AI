@@ -79,6 +79,7 @@ interface Message {
   model?: string;
   attachments?: UploadedFile[];
   isEditing?: boolean;
+  emotion?: string;
 }
 
 interface StatusUpdate {
@@ -132,6 +133,24 @@ interface SystemHealth {
   status: string;
   issuesCount: number;
 }
+
+// Emotion → left-bar accent color for assistant message bubbles
+const MSG_EMOTION_ACCENT: Record<string, string> = {
+  idle: 'rgba(102,204,204,0.25)',
+  focused: 'rgba(102,204,204,0.5)',
+  researching: 'rgba(199,184,234,0.5)',
+  analyzing: 'rgba(102,204,204,0.5)',
+  generating: 'rgba(255,153,204,0.5)',
+  creative: 'rgba(199,184,234,0.6)',
+  contemplative: 'rgba(102,204,204,0.35)',
+  curious: 'rgba(199,184,234,0.4)',
+  excited: 'rgba(255,153,204,0.6)',
+  dreaming: 'rgba(199,184,234,0.3)',
+  empathetic: 'rgba(255,153,204,0.5)',
+  'emotional-intelligence': 'rgba(255,153,204,0.4)',
+  feeling: 'rgba(255,153,204,0.4)',
+  playful: 'rgba(199,184,234,0.5)',
+};
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
@@ -2493,6 +2512,7 @@ export default function HollyChatInterface() {
           content: assistantContent,
           timestamp: new Date(),
           model: detectedModel,
+          emotion: emotion,
         };
         setMessages(prev => [...prev, assistantMsg]);
         playReceive();
@@ -3195,9 +3215,13 @@ export default function HollyChatInterface() {
                     className={`relative text-base leading-relaxed tracking-wide ${
                       msg.role === "user"
                         ? "bg-holly-teal/10 backdrop-blur-md border border-holly-teal/20 rounded-2xl px-5 py-3.5 text-holly-cream mt-2 text-right shadow-[0_4px_24px_rgba(102,204,204,0.08)]"
-                        : "text-holly-cream/90 py-2"
+                        : "bg-holly-teal/5 border border-holly-teal/10 rounded-2xl px-4 py-3 text-holly-cream/90"
                     }`}
-                    style={msg.role === "assistant" ? { fontFamily: "'Inter', sans-serif" } : {}}
+                    style={msg.role === "assistant" ? {
+                      fontFamily: "'Inter', sans-serif",
+                      borderLeftWidth: '3px',
+                      borderLeftColor: MSG_EMOTION_ACCENT[msg.emotion || 'idle'] || 'rgba(102,204,204,0.3)',
+                    } : {}}
                   >
                     {msg.role === "assistant"
                       ? <AssistantContent content={msg.content} />
