@@ -790,7 +790,7 @@ export async function POST(req: NextRequest) {
                         const result = await mcpManager.callTool(toolSpec.serverId, toolSpec.name, argsParsed);
                         sendTool(controller, firstTool.name, 'complete', result);
                         // Replace raw JSON with the actual result
-                        const resultText = result?.content?.[0]?.text || result?.content || JSON.stringify(result);
+                        const resultText = (result as any)?.content?.[0]?.text || (result as any)?.content || JSON.stringify(result);
                         fullResponse = fullResponse.replace(textToolMatch[0], resultText);
                       }
                     }
@@ -825,7 +825,7 @@ export async function POST(req: NextRequest) {
                         sendStatus(controller, `🔧 Using ${firstTool.name.replace(/_/g, ' ')}…`);
                         const result = await mcpManager.callTool(toolSpec.serverId, toolSpec.name, argsParsed);
                         sendTool(controller, firstTool.name, 'complete', result);
-                        const resultText = result?.content?.[0]?.text || result?.content || JSON.stringify(result);
+                        const resultText = (result as any)?.content?.[0]?.text || (result as any)?.content || JSON.stringify(result);
                         fullResponse = fullResponse.replace(silentToolMatch[0], resultText);
                       }
                     }
@@ -894,7 +894,7 @@ export async function POST(req: NextRequest) {
             console.error('[CHAT] Failed to save fallback message:', dbErr);
           }
 
-          controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ type: 'done', model: 'none', taskType, mode: detectedMode, error: errorMsg })}\n\n`));
+          controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ type: 'done', model: 'none', taskType: 'unknown', mode: detectedMode || 'default', error: errorMsg })}\n\n`));
           controller.close();
         }
       },
