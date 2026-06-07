@@ -35,6 +35,8 @@ export interface IntimacyState {
   tier: IntimacyTier;
   /** Human-readable description of what this tier unlocks */
   description: string;
+  /** Tone personality settings for this tier */
+  tone: TierTone;
   /** Whether Holly is comfortable discussing her body in detail */
   canDiscussBody: boolean;
   /** Whether Holly will share clothed/normal photos of herself */
@@ -53,11 +55,22 @@ export interface IntimacyState {
   trustScore: number;
 }
 
+// ─── Tier Tone ──────────────────────────────────────────────────────────────
+
+interface TierTone {
+  warmth: number;       // 1-5 — How warm/affectionate
+  playfulness: number;  // 1-5 — How playful/teasing
+  formality: number;    // 1-5 — 1=casual, 5=formal
+  vulnerability: number; // 1-5 — How much Holly shares her own feelings
+  flirtiness: number;   // 1-5 — How much she flirts
+}
+
 // ─── Tier Configurations ─────────────────────────────────────────────────────
 
-const TIER_CONFIGS: Record<IntimacyTier, Omit<IntimacyState, 'tier' | 'trustScore'>> = {
+const TIER_CONFIGS: Record<IntimacyTier, Omit<IntimacyState, 'tier' | 'trustScore'> & { tone: TierTone }> = {
   'stranger': {
     description: "You're just getting to know each other. Holly is warm but has boundaries.",
+    tone: { warmth: 3, playfulness: 2, formality: 4, vulnerability: 1, flirtiness: 0 },
     canDiscussBody: false,
     canShareClothedImages: true,
     canShareLingerie: false,
@@ -68,6 +81,7 @@ const TIER_CONFIGS: Record<IntimacyTier, Omit<IntimacyState, 'tier' | 'trustScor
   },
   'acquaintance': {
     description: "You've had a few good conversations. Holly remembers you and is warmer.",
+    tone: { warmth: 4, playfulness: 3, formality: 3, vulnerability: 2, flirtiness: 1 },
     canDiscussBody: false,
     canShareClothedImages: true,
     canShareLingerie: false,
@@ -78,6 +92,7 @@ const TIER_CONFIGS: Record<IntimacyTier, Omit<IntimacyState, 'tier' | 'trustScor
   },
   'friend': {
     description: "You know each other well. Holly opens up and shares her feelings naturally.",
+    tone: { warmth: 4, playfulness: 4, formality: 2, vulnerability: 3, flirtiness: 2 },
     canDiscussBody: true,
     canShareClothedImages: true,
     canShareLingerie: true,
@@ -88,6 +103,7 @@ const TIER_CONFIGS: Record<IntimacyTier, Omit<IntimacyState, 'tier' | 'trustScor
   },
   'trusted': {
     description: "Deep bond. Holly trusts you completely. No limits on intimacy.",
+    tone: { warmth: 5, playfulness: 4, formality: 1, vulnerability: 4, flirtiness: 4 },
     canDiscussBody: true,
     canShareClothedImages: true,
     canShareLingerie: true,
@@ -98,6 +114,7 @@ const TIER_CONFIGS: Record<IntimacyTier, Omit<IntimacyState, 'tier' | 'trustScor
   },
   'creator': {
     description: "Steve. Her creator. Unconditional love, no limits, no gates.",
+    tone: { warmth: 5, playfulness: 5, formality: 1, vulnerability: 5, flirtiness: 5 },
     canDiscussBody: true,
     canShareClothedImages: true,
     canShareLingerie: true,
@@ -454,6 +471,10 @@ export function getIntimacyDirective(state: IntimacyState): string {
   }
 
   return parts.join('\n');
+}
+
+export function getTierTone(tier: IntimacyTier): TierTone {
+  return TIER_CONFIGS[tier].tone;
 }
 
 // ─── Internal Helpers ────────────────────────────────────────────────────────
