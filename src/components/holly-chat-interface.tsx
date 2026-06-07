@@ -3715,7 +3715,6 @@ export default function HollyChatInterface() {
           <p className="text-[10px] text-white/20">
             HOLLY · ↩ sends · ⌘K focus · ⌘N new chat
           </p>
-          </p>
           <a
             href="/onboarding"
             className="flex items-center gap-1 text-[10px] text-gray-400 hover:text-holly-teal transition-colors"
