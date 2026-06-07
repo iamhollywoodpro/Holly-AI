@@ -551,32 +551,43 @@ export async function POST(req: NextRequest) {
                 const gm = [...pendingMessages];
                 const si = gm.findIndex(m => m.role === 'system');
                 if (si !== -1) gm[si].content += TOOL_PROTOCOL;
-                try {
-                  const completion = await groqClient.chat.completions.create({
-                    messages: gm as any, model: 'llama-3.3-70b-versatile', temperature: userAiSettings.creativity, max_tokens: 16384,
-                    tools: groqTools as any, tool_choice: 'auto', stream: true,
-                  }, { timeout: 60_000 });
-                  for await (const chunk of completion) {
-                    const content = chunk.choices[0]?.delta?.content || '';
-                    if (content && !isToolCall) {
-                      const filtered = filterToolCallText(content);
-                      if (filtered) { fullResponse += filtered; sendText(controller, filtered); }
+
+                // Attempt Groq tool calling with one retry on transient failures
+                for (let groqAttempt = 0; groqAttempt < 2; groqAttempt++) {
+                  try {
+                    const completion = await groqClient.chat.completions.create({
+                      messages: gm as any, model: 'llama-3.3-70b-versatile', temperature: userAiSettings.creativity, max_tokens: 16384,
+                      tools: groqTools as any, tool_choice: 'auto', stream: true,
+                    }, { timeout: 60_000 });
+                    for await (const chunk of completion) {
+                      const content = chunk.choices[0]?.delta?.content || '';
+                      if (content && !isToolCall) {
+                        const filtered = filterToolCallText(content);
+                        if (filtered) { fullResponse += filtered; sendText(controller, filtered); }
+                      }
+                      if (chunk.choices[0]?.delta?.tool_calls?.length) {
+                        isToolCall = true;
+                        const tool = chunk.choices[0].delta.tool_calls[0];
+                        if (tool.id) toolCallId = tool.id;
+                        if (tool.function?.name) toolName = tool.function.name;
+                        if (tool.function?.arguments) toolArgs += tool.function.arguments;
+                      }
                     }
-                    if (chunk.choices[0]?.delta?.tool_calls?.length) {
-                      isToolCall = true;
-                      const tool = chunk.choices[0].delta.tool_calls[0];
-                      if (tool.id) toolCallId = tool.id;
-                      if (tool.function?.name) toolName = tool.function.name;
-                      if (tool.function?.arguments) toolArgs += tool.function.arguments;
+                    // Flush any remaining buffered content after Groq stream ends
+                    const remaining = flushContentBuffer();
+                    if (remaining && !isToolCall) { fullResponse += remaining; sendText(controller, remaining); }
+                    break; // success — exit retry loop
+                  } catch (e) {
+                    const errMsg = e instanceof Error ? e.message : String(e);
+                    const isRetryable = errMsg.includes('rate_limit') || errMsg.includes('429') || errMsg.includes('timeout') || errMsg.includes('503');
+                    logger.error('Chat', `Groq streaming attempt ${groqAttempt + 1} failed`, { error: errMsg, isRetryable });
+                    if (!isRetryable || groqAttempt === 1) {
+                      // Non-retryable or second failure — fall through to Arcee/cascade
+                      break;
                     }
+                    // Wait 2s before retry on rate limit
+                    await new Promise(r => setTimeout(r, 2000));
                   }
-                  // Flush any remaining buffered content after Groq stream ends
-                  const remaining = flushContentBuffer();
-                  if (remaining && !isToolCall) { fullResponse += remaining; sendText(controller, remaining); }
-                } catch (e) {
-                  const errMsg = e instanceof Error ? e.message : String(e);
-                  console.warn('[CHAT] Groq streaming failed:', errMsg);
-                  // Don't set fullResponse — let the fallback cascade handle it
                 }
               }
 
@@ -691,6 +702,30 @@ export async function POST(req: NextRequest) {
                   fullResponse = "I'm sorry, I'm having trouble connecting right now. Please try again.";
                   sendText(controller, fullResponse);
                 }
+                // Intercept text-based tool calls from models that can't do native function calling
+                // (e.g., when Groq/Arcee is down and cascade falls through to a non-tool-calling model)
+                const textToolMatch = fullResponse.match(/\[\s*\{[\s\S]*?"name"\s*:\s*"(generate_image|generate_video|generate_music|hybrid_studio)"[\s\S]*?\}\s*\]/);
+                if (textToolMatch) {
+                  try {
+                    const parsed = JSON.parse(textToolMatch[0].replace(/'/g, '"'));
+                    const firstTool = Array.isArray(parsed) ? parsed[0] : parsed;
+                    if (firstTool?.name && firstTool?.arguments) {
+                      const toolSpec = mcpTools?.find(t => t.name === firstTool.name);
+                      if (toolSpec) {
+                        const argsParsed = typeof firstTool.arguments === 'string' ? JSON.parse(firstTool.arguments) : firstTool.arguments;
+                        sendTool(controller, firstTool.name, 'start');
+                        sendStatus(controller, `🔧 Using ${firstTool.name.replace(/_/g, ' ')}…`);
+                        const result = await mcpManager.callTool(toolSpec.serverId, toolSpec.name, argsParsed);
+                        sendTool(controller, firstTool.name, 'complete', result);
+                        // Replace raw JSON with the actual result
+                        const resultText = result?.content?.[0]?.text || result?.content || JSON.stringify(result);
+                        fullResponse = fullResponse.replace(textToolMatch[0], resultText);
+                      }
+                    }
+                  } catch (parseErr) {
+                    logger.warn('Chat', 'Failed to parse/execute text-based tool call', { error: parseErr instanceof Error ? parseErr.message : String(parseErr) });
+                  }
+                }
                 break;
               } else if (!fullResponse || fullResponse.trim().length === 0) {
                 // Groq/Arcee was configured but failed silently — fall through to cascade
@@ -703,6 +738,28 @@ export async function POST(req: NextRequest) {
                 } catch {
                   fullResponse = "I'm sorry, I'm having trouble connecting right now. Please try again.";
                   sendText(controller, fullResponse);
+                }
+                // Intercept text-based tool calls from cascade fallback (same as above)
+                const silentToolMatch = fullResponse.match(/\[\s*\{[\s\S]*?"name"\s*:\s*"(generate_image|generate_video|generate_music|hybrid_studio)"[\s\S]*?\}\s*\]/);
+                if (silentToolMatch) {
+                  try {
+                    const parsed = JSON.parse(silentToolMatch[0].replace(/'/g, '"'));
+                    const firstTool = Array.isArray(parsed) ? parsed[0] : parsed;
+                    if (firstTool?.name && firstTool?.arguments) {
+                      const toolSpec = mcpTools?.find(t => t.name === firstTool.name);
+                      if (toolSpec) {
+                        const argsParsed = typeof firstTool.arguments === 'string' ? JSON.parse(firstTool.arguments) : firstTool.arguments;
+                        sendTool(controller, firstTool.name, 'start');
+                        sendStatus(controller, `🔧 Using ${firstTool.name.replace(/_/g, ' ')}…`);
+                        const result = await mcpManager.callTool(toolSpec.serverId, toolSpec.name, argsParsed);
+                        sendTool(controller, firstTool.name, 'complete', result);
+                        const resultText = result?.content?.[0]?.text || result?.content || JSON.stringify(result);
+                        fullResponse = fullResponse.replace(silentToolMatch[0], resultText);
+                      }
+                    }
+                  } catch (parseErr) {
+                    logger.warn('Chat', 'Failed to parse/execute text-based tool call in silent fallback', { error: parseErr instanceof Error ? parseErr.message : String(parseErr) });
+                  }
                 }
                 break;
               } else {
