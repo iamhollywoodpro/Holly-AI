@@ -270,7 +270,7 @@ export class MCPClientManager {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'x-internal-token': process.env.INTERNAL_API_SECRET || 'holly-internal',
+              'x-internal-token': process.env.INTERNAL_API_SECRET || '',
             },
             body: JSON.stringify(args),
             signal: AbortSignal.timeout(30_000),
@@ -335,7 +335,7 @@ export class MCPClientManager {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'x-internal-token': process.env.INTERNAL_API_SECRET || 'holly-internal',
+              'x-internal-token': process.env.INTERNAL_API_SECRET || '',
             },
             body: JSON.stringify(args),
             signal: AbortSignal.timeout(30_000),
@@ -399,7 +399,7 @@ export class MCPClientManager {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'x-internal-token': process.env.INTERNAL_API_SECRET || 'holly-internal',
+              'x-internal-token': process.env.INTERNAL_API_SECRET || '',
             },
             body: JSON.stringify({ action: toolName, args }),
             signal: AbortSignal.timeout(30_000),
@@ -459,7 +459,7 @@ export class MCPClientManager {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
-                'x-internal-token': process.env.INTERNAL_API_SECRET || 'holly-internal',
+                'x-internal-token': process.env.INTERNAL_API_SECRET || '',
               },
               body: JSON.stringify(args),
               signal: AbortSignal.timeout(30_000),
@@ -476,7 +476,7 @@ export class MCPClientManager {
             const res = await fetch(`${baseUrl}/api/self-code`, {
               method: 'GET',
               headers: {
-                'x-internal-token': process.env.INTERNAL_API_SECRET || 'holly-internal',
+                'x-internal-token': process.env.INTERNAL_API_SECRET || '',
               },
               signal: AbortSignal.timeout(30_000),
             });
@@ -501,7 +501,7 @@ export class MCPClientManager {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'x-internal-token': process.env.INTERNAL_API_SECRET || 'holly-internal',
+              'x-internal-token': process.env.INTERNAL_API_SECRET || '',
             },
             body: JSON.stringify(payload),
             signal: AbortSignal.timeout(30_000),
@@ -675,7 +675,7 @@ export class MCPClientManager {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
-                'x-internal-token': process.env.INTERNAL_API_SECRET || 'holly-internal',
+                'x-internal-token': process.env.INTERNAL_API_SECRET || '',
               },
               body: JSON.stringify(args),
               signal: AbortSignal.timeout(30_000),
@@ -690,7 +690,7 @@ export class MCPClientManager {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
-                'x-internal-token': process.env.INTERNAL_API_SECRET || 'holly-internal',
+                'x-internal-token': process.env.INTERNAL_API_SECRET || '',
               },
               body: JSON.stringify(args),
               signal: AbortSignal.timeout(30_000),
@@ -707,7 +707,7 @@ export class MCPClientManager {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
-                  'x-internal-token': process.env.INTERNAL_API_SECRET || 'holly-internal',
+                  'x-internal-token': process.env.INTERNAL_API_SECRET || '',
                 },
                 body: JSON.stringify({ action: 'create_session' }),
                 signal: AbortSignal.timeout(10_000),
@@ -719,7 +719,7 @@ export class MCPClientManager {
                   method: 'POST',
                   headers: {
                     'Content-Type': 'application/json',
-                    'x-internal-token': process.env.INTERNAL_API_SECRET || 'holly-internal',
+                    'x-internal-token': process.env.INTERNAL_API_SECRET || '',
                   },
                   body: JSON.stringify({ action: 'navigate', url: args.url, sessionId: sessionData.sessionId }),
                   signal: AbortSignal.timeout(15_000),
@@ -729,7 +729,7 @@ export class MCPClientManager {
                   method: 'POST',
                   headers: {
                     'Content-Type': 'application/json',
-                    'x-internal-token': process.env.INTERNAL_API_SECRET || 'holly-internal',
+                    'x-internal-token': process.env.INTERNAL_API_SECRET || '',
                   },
                   body: JSON.stringify({ action: 'screenshot', sessionId: sessionData.sessionId, fullPage: args.fullPage }),
                   signal: AbortSignal.timeout(15_000),
@@ -740,7 +740,7 @@ export class MCPClientManager {
                   method: 'POST',
                   headers: {
                     'Content-Type': 'application/json',
-                    'x-internal-token': process.env.INTERNAL_API_SECRET || 'holly-internal',
+                    'x-internal-token': process.env.INTERNAL_API_SECRET || '',
                   },
                   body: JSON.stringify({ action: 'close_session', sessionId: sessionData.sessionId }),
                   signal: AbortSignal.timeout(5_000),
@@ -755,7 +755,7 @@ export class MCPClientManager {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
-                  'x-internal-token': process.env.INTERNAL_API_SECRET || 'holly-internal',
+                  'x-internal-token': process.env.INTERNAL_API_SECRET || '',
                 },
                 body: JSON.stringify({ action: 'screenshot', sessionId: args.sessionId, fullPage: args.fullPage }),
                 signal: AbortSignal.timeout(15_000),
@@ -864,7 +864,7 @@ export class MCPClientManager {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'x-internal-token': process.env.INTERNAL_API_SECRET || 'holly-internal',
+              'x-internal-token': process.env.INTERNAL_API_SECRET || '',
             },
             body: JSON.stringify({
               action: toolName === 'project_scaffold' ? 'scaffold'
@@ -987,7 +987,7 @@ export class MCPClientManager {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'x-internal-token': process.env.INTERNAL_API_SECRET || 'holly-internal',
+              'x-internal-token': process.env.INTERNAL_API_SECRET || '',
             },
             body: JSON.stringify({ action, ...args }),
             signal: AbortSignal.timeout(30_000),
@@ -1178,7 +1178,7 @@ export class MCPClientManager {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'x-internal-token': process.env.INTERNAL_API_SECRET || 'holly-internal',
+              'x-internal-token': process.env.INTERNAL_API_SECRET || '',
             },
             body: JSON.stringify({ action, ...args }),
             signal: AbortSignal.timeout(30_000),
@@ -1446,7 +1446,7 @@ export class MCPClientManager {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'x-internal-token': process.env.INTERNAL_API_SECRET || 'holly-internal',
+              'x-internal-token': process.env.INTERNAL_API_SECRET || '',
             },
             body: JSON.stringify({ action, ...args }),
             signal: AbortSignal.timeout(30_000),
@@ -1970,7 +1970,7 @@ export class MCPClientManager {
 
           const res = await fetch(`${baseUrl}/api/hub/project`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'x-internal-token': process.env.INTERNAL_API_SECRET || 'holly-internal' },
+            headers: { 'Content-Type': 'application/json', 'x-internal-token': process.env.INTERNAL_API_SECRET || '' },
             body: JSON.stringify({ action, ...args }),
           });
 

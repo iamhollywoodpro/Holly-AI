@@ -1,13 +1,18 @@
 // HOLLY System Health Check API
 // Comprehensive diagnostic of all systems
 import { NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
 
 export const runtime = 'nodejs';
 
 
 export async function POST(req: Request) {
+  const { userId } = await auth();
+  if (!userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
   try {
-    const { userId } = await req.json();
+    const body = await req.json();
 
     // 1. Check Database Connection
     const dbStatus = {

@@ -29,7 +29,10 @@ export async function guardHubRequest(req: NextRequest): Promise<HubAuthResult> 
 
   // ── Internal server-to-server token (MCP client → hub routes via localhost) ──
   const xInternalToken = req.headers.get('x-internal-token') ?? '';
-  const internalSecret = process.env.INTERNAL_API_SECRET || 'holly-internal';
+  const internalSecret = process.env.INTERNAL_API_SECRET;
+  if (!internalSecret) {
+    console.error('[HUB AUTH] INTERNAL_API_SECRET not set — internal token auth disabled');
+  }
   if (xInternalToken && xInternalToken === internalSecret) {
     return { ok: true, userId: 'internal', keyId: 'internal', keyName: 'Internal Server-to-Server' };
   }

@@ -1,6 +1,7 @@
 // PHASE 2: REAL A/B Test Management
 // Manages actual A/B tests in database
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/db';
 
 export const runtime = 'nodejs';
@@ -8,15 +9,12 @@ export const runtime = 'nodejs';
 
 
 export async function POST(req: NextRequest) {
+  const { userId } = await auth();
+  if (!userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
   try {
-    const { testName, variants, userId, action = 'create', distribution } = await req.json();
-
-    if (!userId) {
-      return NextResponse.json(
-        { success: false, error: 'userId required' },
-        { status: 400 }
-      );
-    }
+    const { testName, variants, action = 'create', distribution } = await req.json();
 
     let result: any = {
       success: true,

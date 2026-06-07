@@ -1283,7 +1283,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "x-internal-token": process.env.INTERNAL_API_SECRET || "holly-internal",
+            "x-internal-token": process.env.INTERNAL_API_SECRET || "",
           },
           body: JSON.stringify(payload),
         });
@@ -1692,7 +1692,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "x-internal-token": process.env.INTERNAL_API_SECRET || "holly-internal",
+            "x-internal-token": process.env.INTERNAL_API_SECRET || "",
           },
           body: JSON.stringify(payload),
         });
@@ -1760,7 +1760,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "x-internal-token": process.env.INTERNAL_API_SECRET || "holly-internal",
+            "x-internal-token": process.env.INTERNAL_API_SECRET || "",
           },
           body: JSON.stringify(payload),
         });

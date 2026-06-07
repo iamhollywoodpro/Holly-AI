@@ -32,7 +32,7 @@ import { prisma } from '@/lib/db';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const INTERNAL_TOKEN = process.env.INTERNAL_API_SECRET || 'holly-internal';
+const INTERNAL_TOKEN = process.env.INTERNAL_API_SECRET || '';
 
 // ── Auth helper ─────────────────────────────────────────────────────────────
 

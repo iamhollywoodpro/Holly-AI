@@ -8,6 +8,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
 import { createLogger } from '@/lib/logging/structured-logger';
 import { executeGoal, cancelGoal, getGoalStats } from '@/lib/autonomy/goal-execution';
 
@@ -20,6 +21,10 @@ export async function POST(
   request: NextRequest,
   { params }: { params: { goalId: string } }
 ) {
+  const { userId } = await auth();
+  if (!userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
   try {
     const { goalId } = params;
 
@@ -63,6 +68,10 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: { goalId: string } }
 ) {
+  const { userId } = await auth();
+  if (!userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
   try {
     const { goalId } = params;
 
@@ -102,6 +111,10 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { goalId: string } }
 ) {
+  const { userId } = await auth();
+  if (!userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
   try {
     const { goalId } = params;
 
