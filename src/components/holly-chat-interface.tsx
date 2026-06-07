@@ -3396,7 +3396,7 @@ export default function HollyChatInterface() {
         <div className="max-w-3xl mx-auto">
 
         {/* ── Sovereign SDI Input Bar ── */}
-        <div className="relative group max-w-4xl mx-auto w-full sm:px-4 mb-2 sm:mb-10">
+        <div className="relative group max-w-4xl mx-auto w-full sm:px-4 mb-2 sm:mb-3">
 
           {/* ── Mobile Layout (< md): Vertical stack ── */}
           <div className="md:hidden flex flex-col gap-2 sdi-glass rounded-2xl p-2 transition-all duration-500 focus-within:border-holly-teal/30 focus-within:shadow-[0_0_30px_rgba(102,204,204,0.15)]">
@@ -3471,10 +3471,10 @@ export default function HollyChatInterface() {
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isProcessing}
-                  className="p-2.5 rounded-xl text-white/30 hover:text-holly-teal hover:bg-holly-teal/10 transition-all disabled:opacity-10"
+                  className="p-2 rounded-xl text-white/30 hover:text-holly-teal hover:bg-holly-teal/10 transition-all disabled:opacity-10"
                   title="Upload"
                 >
-                  <Paperclip className="w-5 h-5" />
+                  <Paperclip className="w-4 h-4" />
                 </button>
                 <input
                   ref={fileInputRef}
@@ -3487,7 +3487,7 @@ export default function HollyChatInterface() {
                 <button
                   onClick={isListening ? stopListening : startListening}
                   disabled={voicePhase === 'processing'}
-                  className={`p-2.5 rounded-xl transition-all ${
+                  className={`p-2 rounded-xl transition-all ${
                     isListening
                       ? "bg-red-500/20 text-red-400"
                       : voicePhase === 'processing'
@@ -3511,10 +3511,10 @@ export default function HollyChatInterface() {
               {isProcessing ? (
                 <button
                   onClick={handleStop}
-                  className="p-2.5 rounded-xl transition-all bg-holly-coral/80 hover:bg-holly-coral text-holly-void shadow-[0_0_20px_rgba(255,153,204,0.3)] active:scale-95"
+                  className="p-2 rounded-xl transition-all bg-holly-coral/80 hover:bg-holly-coral text-holly-void shadow-[0_0_20px_rgba(255,153,204,0.3)] active:scale-95"
                   title="Stop (Esc)"
                 >
-                  <Square className="w-5 h-5" />
+                  <Square className="w-4 h-4" />
                 </button>
               ) : (
                 <button
