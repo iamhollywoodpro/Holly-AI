@@ -1,5 +1,4 @@
 import type { Config } from "tailwindcss";
-import plugin from "tailwindcss/plugin";
 
 const config: Config = {
   darkMode: ["class"],
@@ -11,6 +10,11 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+        heading: ['Montserrat', 'Inter', 'system-ui', 'sans-serif'],
+        mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -46,22 +50,17 @@ const config: Config = {
           foreground: "hsl(var(--card-foreground))",
         },
         holly: {
+          teal: "#66CCCC",
+          lavender: "#C7B8EA",
+          coral: "#FF99CC",
+          // Supporting colors
           gold: "#D4A853",
-          crimson: "#B84052",
-          green: "#1F3D30",
-          ivory: "#F5F0E8",
           void: "#0B0A08",
-          glass: "rgba(212, 168, 83, 0.05)",
-          glassBorder: "rgba(212, 168, 83, 0.1)",
-          // Phase N: Holly-centric design system — colors from HER features
-          emerald: "#2D8B5E",
-          jade: "#3DAF76",
-          copper: "#C47A4A",
-          amber: "#E8A862",
-          surface: "#141210",
-          raised: "#1E1B18",
-          cream: "#BFB5A5",
-          rose: "#B84052",
+          glass: "rgba(102, 204, 204, 0.05)",
+          glassBorder: "rgba(102, 204, 204, 0.1)",
+          surface: "#111118",
+          raised: "#1A1A24",
+          cream: "#C7C3D4",
         }
       },
       borderRadius: {
@@ -94,8 +93,8 @@ const config: Config = {
         "float": "float 3s ease-in-out infinite",
       },
       backgroundImage: {
-        'glass-gradient': 'linear-gradient(135deg, rgba(212, 168, 83, 0.05) 0%, rgba(212, 168, 83, 0.01) 100%)',
-        'sdi-core': 'radial-gradient(circle at center, rgba(212, 168, 83, 0.15) 0%, rgba(0,0,0,0) 70%)',
+        'glass-gradient': 'linear-gradient(135deg, rgba(102, 204, 204, 0.05) 0%, rgba(199, 184, 234, 0.03) 100%)',
+        'sdi-core': 'radial-gradient(circle at center, rgba(102, 204, 204, 0.15) 0%, rgba(0,0,0,0) 70%)',
       }
     },
   },

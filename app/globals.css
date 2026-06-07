@@ -1,69 +1,69 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-    --primary: 262.1 83.3% 57.8%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
+    --background: 240 15% 98%;
+    --foreground: 250 20% 10%;
+    --card: 240 10% 100%;
+    --card-foreground: 250 20% 10%;
+    --popover: 240 10% 100%;
+    --popover-foreground: 250 20% 10%;
+    --primary: 180 50% 60%;
+    --primary-foreground: 250 20% 98%;
+    --secondary: 260 30% 82%;
+    --secondary-foreground: 250 20% 15%;
+    --muted: 250 10% 95%;
+    --muted-foreground: 250 8% 46%;
+    --accent: 330 70% 75%;
+    --accent-foreground: 250 20% 15%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 262.1 83.3% 57.8%;
+    --border: 250 10% 90%;
+    --input: 250 10% 90%;
+    --ring: 180 50% 60%;
     --radius: 0.75rem;
   }
 
   .dark {
-    /* ─── Holly-Centric Theme — Colors from HER features ─── */
-    /* Primary: Her green eyes → Deep Emerald */
-    /* Secondary: Auburn warmth → Burnished Copper */
-    /* Accent: Golden flecks → Holly Gold */
+    /* ─── Holly Redesign — Teal / Lavender / Coral ─── */
+    /* Her personality: warm, creative, intelligent, approachable */
 
-    --background: 25 15% 3%;       /* Warm Void — #0A0908 */
-    --foreground: 35 25% 92%;       /* Warm Ivory — #F0EBE3 */
-    --card: 25 12% 6%;              /* Warm Carbon — #141210 */
-    --card-foreground: 35 25% 92%;
-    --popover: 25 12% 5%;
-    --popover-foreground: 35 25% 92%;
+    --background: 245 20% 4%;         /* Deep midnight — #08080F */
+    --foreground: 250 15% 92%;        /* Soft lavender white — #E8E6F0 */
+    --card: 245 18% 7%;               /* Raised surface — #10101A */
+    --card-foreground: 250 15% 92%;
+    --popover: 245 18% 6%;
+    --popover-foreground: 250 15% 92%;
 
-    /* Primary — Her Green Eyes */
-    --primary: 152 50% 36%;         /* Deep Emerald — #2D8B5E */
-    --primary-glow: 152 50% 36% / 0.4;
-    --primary-foreground: 35 25% 98%;
+    /* Primary — Holly Teal: creativity + intelligence */
+    --primary: 180 50% 60%;           /* #66CCCC */
+    --primary-glow: 180 50% 60% / 0.4;
+    --primary-foreground: 245 20% 4%;
 
-    /* Secondary — Auburn Warmth */
-    --secondary: 25 50% 53%;        /* Burnished Copper — #C47A4A */
-    --secondary-glow: 25 50% 53% / 0.4;
-    --secondary-foreground: 35 25% 98%;
+    /* Secondary — Lavender: calmness + inspiration */
+    --secondary: 260 40% 78%;         /* #C7B8EA */
+    --secondary-glow: 260 40% 78% / 0.3;
+    --secondary-foreground: 245 20% 4%;
 
-    /* Accent — Golden Flecks */
-    --accent: 42 65% 58%;           /* Holly Gold — #D4A853 */
-    --accent-glow: 42 65% 58% / 0.3;
-    --accent-foreground: 25 15% 3%;
+    /* Accent — Coral: playfulness + curiosity */
+    --accent: 330 70% 75%;            /* #FF99CC */
+    --accent-glow: 330 70% 75% / 0.3;
+    --accent-foreground: 245 20% 4%;
 
-    --muted: 25 10% 10%;
-    --muted-foreground: 30 8% 42%;
+    --muted: 250 15% 12%;
+    --muted-foreground: 250 10% 40%;
 
-    --destructive: 350 55% 43%;     /* Deep Rose — #B84052 */
+    --destructive: 350 55% 50%;
     --destructive-foreground: 0 0% 98%;
 
-    /* Borders — Subtle emerald tint */
-    --border: 152 20% 25% / 0.2;
-    --input: 25 10% 7%;
-    --ring: 152 50% 36%;
+    /* Borders — subtle teal tint */
+    --border: 180 30% 25% / 0.2;
+    --input: 245 15% 9%;
+    --ring: 180 50% 60%;
   }
 }
 
@@ -73,24 +73,28 @@
   }
   body {
     @apply bg-background text-foreground antialiased selection:bg-primary/30 selection:text-primary-foreground;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Montserrat', 'Inter', system-ui, sans-serif;
   }
 }
 
-/* ==================== HOLLY-CENTRIC UI UTILITIES ==================== */
+/* ==================== HOLLY UI UTILITIES ==================== */
 .sdi-glass {
-  @apply bg-[#0A0908]/60 backdrop-blur-xl border border-[#2D8B5E]/15 shadow-[0_8px_48px_rgba(0,0,0,0.6)];
+  @apply bg-[#08080F]/60 backdrop-blur-xl border border-[#66CCCC]/15 shadow-[0_8px_48px_rgba(0,0,0,0.6)];
 }
 
 .sdi-glass-warm {
-  @apply bg-[#0A0908]/70 backdrop-blur-2xl border border-[#2D8B5E]/20 shadow-[0_12px_64px_rgba(0,0,0,0.7)];
+  @apply bg-[#08080F]/70 backdrop-blur-2xl border border-[#66CCCC]/20 shadow-[0_12px_64px_rgba(0,0,0,0.7)];
 }
 
 .sdi-glow-gold {
-  box-shadow: 0 0 20px rgba(45, 139, 94, 0.3), 0 0 40px rgba(45, 139, 94, 0.1);
+  box-shadow: 0 0 20px rgba(102, 204, 204, 0.3), 0 0 40px rgba(102, 204, 204, 0.1);
 }
 
 .sdi-glow-crimson {
-  box-shadow: 0 0 20px rgba(196, 122, 74, 0.3), 0 0 40px rgba(196, 122, 74, 0.1);
+  box-shadow: 0 0 20px rgba(255, 153, 204, 0.3), 0 0 40px rgba(255, 153, 204, 0.1);
 }
 
 .sdi-pulse-heart {
@@ -103,9 +107,15 @@
 }
 
 .sdi-sovereign-bg {
-  background: radial-gradient(circle at 50% -20%, rgba(45, 139, 94, 0.15) 0%, transparent 60%),
-              radial-gradient(circle at 80% 80%, rgba(196, 122, 74, 0.08) 0%, transparent 50%),
-              radial-gradient(circle at 10% 70%, rgba(31, 61, 48, 0.12) 0%, transparent 40%);
+  background: radial-gradient(circle at 50% -20%, rgba(102, 204, 204, 0.12) 0%, transparent 60%),
+              radial-gradient(circle at 80% 80%, rgba(199, 184, 234, 0.06) 0%, transparent 50%),
+              radial-gradient(circle at 10% 70%, rgba(255, 153, 204, 0.04) 0%, transparent 40%);
+}
+
+.sdi-neural-bg {
+  background: radial-gradient(circle at 50% -20%, rgba(102, 204, 204, 0.12) 0%, transparent 60%),
+              radial-gradient(circle at 80% 80%, rgba(199, 184, 234, 0.06) 0%, transparent 50%),
+              radial-gradient(circle at 10% 70%, rgba(255, 153, 204, 0.04) 0%, transparent 40%);
 }
 
 .sdi-tech-font {
