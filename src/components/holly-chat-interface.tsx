@@ -2714,7 +2714,17 @@ export default function HollyChatInterface() {
                 <div className="flex items-center gap-3 flex-1 mb-3">
                   <HollyChatOrb isThinking={false} />
                   <div>
-                    <p className="text-sm font-black tracking-widest text-white">HOLLY</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-black tracking-widest text-white">HOLLY</p>
+                      <span
+                        className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full border"
+                        style={{
+                          color: MSG_EMOTION_ACCENT[emotion] || 'rgba(102,204,204,0.5)',
+                          borderColor: MSG_EMOTION_ACCENT[emotion] || 'rgba(102,204,204,0.2)',
+                          backgroundColor: (MSG_EMOTION_ACCENT[emotion] || 'rgba(102,204,204,0.1)').replace(/[\d.]+\)/, '0.08)'),
+                        }}
+                      >{emotion === 'idle' ? '' : emotion}</span>
+                    </div>
                     <p className="text-[9px] text-primary/60 font-bold uppercase tracking-wider">SDI Interface</p>
                   </div>
                 </div>
@@ -2727,12 +2737,11 @@ export default function HollyChatInterface() {
               <div className="flex border-b border-white/5 flex-shrink-0 bg-white/5">
                 {[
                   { id: "chats", label: "History", icon: MessageSquare },
-                  { id: "memory", label: "Core", icon: Brain },
                   { id: "nav", label: "Apps", icon: Grid }
                 ].map(tab => (
                   <button
                     key={tab.id}
-                    onClick={() => { setNavTab(tab.id as any); if(tab.id === 'memory') loadMemories(); }}
+                    onClick={() => { setNavTab(tab.id as any) }}
                     className={`flex-1 py-3 text-[10px] font-black uppercase tracking-[0.2em] transition-all flex flex-col items-center gap-1 ${
                       navTab === tab.id
                         ? "text-primary border-b-2 border-primary bg-primary/5"
@@ -2811,89 +2820,27 @@ export default function HollyChatInterface() {
                   </div>
                 )}
 
-                {/* ── Memory tab ── */}
-                {navTab === "memory" && (
-                  <div className="flex-1 flex flex-col min-h-0">
-                    <div className="p-4 border-b border-white/5 bg-white/5">
-                      <div className="flex items-center justify-between mb-1">
-                        <h3 className="text-xs font-bold text-white uppercase tracking-widest">Active Cognition</h3>
-                        <span className="text-[10px] text-primary bg-primary/10 px-1.5 py-0.5 rounded-md font-mono">{memories.length}</span>
-                      </div>
-                      <p className="text-[10px] text-white/40 italic">Synthesized knowledge from your interactions</p>
-                    </div>
-                    <div className="flex-1 overflow-y-auto p-2 space-y-2 scrollbar-thin scrollbar-thumb-white/5 scrollbar-track-transparent">
-                      {memories.length === 0 ? (
-                        <div className="py-12 text-center">
-                          <Brain className="w-8 h-8 text-white/5 mx-auto mb-3" />
-                          <p className="text-xs text-white/20 italic">No semantic anchors yet</p>
-                        </div>
-                      ) : (
-                        memories.map((m, idx) => (
-                          <div key={idx} className="p-3 rounded-xl bg-white/5 border border-white/5 hover:border-white/10 transition-colors group">
-                            <p className="text-[10px] font-bold text-primary/60 uppercase tracking-tighter mb-1 group-hover:text-primary transition-colors">{m.key}</p>
-                            <p className="text-xs text-white/70 line-clamp-3 leading-relaxed">{m.value}</p>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                )}
-
                 {/* ── Navigate tab ── */}
                 {navTab === "nav" && (
                   <nav className="flex-1 overflow-y-auto py-2 scrollbar-thin scrollbar-thumb-white/5 scrollbar-track-transparent">
                     {[
-                      {
-                        title: "Core Intelligence",
-                        apps: [
-                          { href: "/chat", icon: MessageSquare, label: "Chats", sub: "Neural Threads" },
-                          { href: "/memory", icon: Brain, label: "Core Memory", sub: "Synthesized Knowledge" },
-                          { href: "/evolution", icon: TrendingUp, label: "Evolution", sub: "Neural Growth & Patterns" },
-                          { href: "/self-improvement", icon: Bot, label: "Autonomy", sub: "Self-Optimization" },
-                        ]
-                      },
-                      {
-                        title: "Create",
-                        apps: [
-                          { href: "/music-studio", icon: Music, label: "Music Studio", sub: "AI Composition" },
-                          { href: "/generate/studio", icon: Clapperboard, label: "Generation Studio", sub: "Visual Synthesis" },
-                          { href: "/aura-lab", icon: Sparkles, label: "AURA Lab", sub: "Biometric & Music Analysis" },
-                        ]
-                      },
-                      {
-                        title: "System",
-                        apps: [
-                          { href: "/agent", icon: Terminal, label: "Agent Console", sub: "Autonomous Tasking" },
-                          { href: "/vault", icon: Database, label: "Data Vault", sub: "Knowledge Assets" },
-                          { href: "/settings", icon: Settings, label: "System Core", sub: "Architecture & Protocols" },
-                          { href: "/settings/api-keys", icon: Key, label: "Nexus Keys", sub: "External Integrations" },
-                          { href: "/onboarding", icon: BarChart3, label: "Partner Setup", sub: "Configuration" },
-                          { href: "/status", icon: Activity, label: "Nexus Status", sub: "Infrastructure Health" },
-                        ]
-                      }
-                    ].map((section) => (
-                      <div key={section.title} className="mb-6 last:mb-2">
-                        <div className="px-4 mb-2">
-                          <p className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em]">{section.title}</p>
+                      { href: "/chat", icon: MessageSquare, label: "Chat" },
+                      { href: "/music-studio", icon: Music, label: "Music Studio" },
+                      { href: "/dashboard", icon: Activity, label: "Dashboard" },
+                      { href: "/settings", icon: Settings, label: "Settings" },
+                    ].map(({ href, icon: Icon, label }) => (
+                      <Link
+                        key={href}
+                        href={href}
+                        onClick={() => setNavOpen(false)}
+                        className="flex items-center gap-3 px-4 py-3 hover:bg-white/[0.07] transition-all group border-l-2 border-transparent hover:border-primary/40"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center group-hover:bg-primary/20 transition-all border border-white/5 group-hover:border-primary/20">
+                          <Icon className="w-3.5 h-3.5 text-white/40 group-hover:text-primary transition-colors" />
                         </div>
-                        {section.apps.map(({ href, icon: Icon, label, sub }) => (
-                          <Link
-                            key={href}
-                            href={href}
-                            onClick={() => setNavOpen(false)}
-                            className="flex items-center gap-3 px-4 py-2.5 hover:bg-white/[0.07] transition-all group border-l-2 border-transparent hover:border-primary/40"
-                          >
-                            <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center group-hover:bg-primary/20 transition-all border border-white/5 group-hover:border-primary/20">
-                              <Icon className="w-3.5 h-3.5 text-white/40 group-hover:text-primary transition-colors" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-xs font-bold text-gray-300 group-hover:text-white transition-colors">{label}</p>
-                              <p className="text-[9px] text-gray-500 truncate uppercase tracking-tighter">{sub}</p>
-                            </div>
-                            <ChevronRight className="w-3 h-3 text-white/10 group-hover:text-primary/40 transition-colors opacity-0 group-hover:opacity-100" />
-                          </Link>
-                        ))}
-                      </div>
+                        <p className="text-xs font-bold text-gray-300 group-hover:text-white transition-colors">{label}</p>
+                        <ChevronRight className="w-3 h-3 text-white/10 group-hover:text-primary/40 transition-colors opacity-0 group-hover:opacity-100 ml-auto" />
+                      </Link>
                     ))}
                   </nav>
                 )}
