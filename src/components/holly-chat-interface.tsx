@@ -3422,7 +3422,7 @@ export default function HollyChatInterface() {
         <div className="relative group max-w-4xl mx-auto w-full sm:px-4 mb-2 sm:mb-10">
 
           {/* ── Mobile Layout (< md): Vertical stack ── */}
-          <div className="md:hidden flex flex-col gap-2 sdi-glass rounded-2xl p-2 transition-all duration-500 focus-within:shadow-[0_0_20px_rgba(102,204,204,0.3),0_0_40px_rgba(102,204,204,0.1)] focus-within:border-holly-teal/30">
+          <div className="md:hidden flex flex-col gap-2 sdi-glass rounded-2xl p-2 transition-all duration-500 focus-within:border-holly-teal/30 focus-within:shadow-[0_0_30px_rgba(102,204,204,0.15)]">
             {/* Embedded Attachment preview chips inside border */}
             <AnimatePresence>
               {attachments.length > 0 && (
@@ -3481,9 +3481,9 @@ export default function HollyChatInterface() {
                 value={input}
                 onChange={handleTextareaChange}
                 onKeyDown={handleKeyDown}
-                placeholder={isListening ? "Listening..." : "Message Holly..."}
+                placeholder={isListening ? "Listening..." : "Talk to Holly..."}
                 disabled={isProcessing}
-                className="w-full bg-transparent border-none focus:ring-0 focus:outline-none text-gray-100 placeholder:text-white/20 py-2 px-1 text-base resize-none max-h-[150px] scrollbar-none selection:bg-primary/30"
+                className="w-full bg-transparent border-none focus:ring-0 focus:outline-none text-holly-cream/90 placeholder:text-white/20 py-2 px-1 text-base resize-none max-h-[150px] scrollbar-none selection:bg-primary/30"
                 style={{ height: "auto" }}
               />
             </div>
@@ -3494,7 +3494,7 @@ export default function HollyChatInterface() {
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isProcessing}
-                  className="p-2.5 rounded-xl text-white/30 hover:text-primary hover:bg-primary/10 transition-all disabled:opacity-10"
+                  className="p-2.5 rounded-xl text-white/30 hover:text-holly-teal hover:bg-holly-teal/10 transition-all disabled:opacity-10"
                   title="Upload"
                 >
                   <Paperclip className="w-5 h-5" />
@@ -3516,7 +3516,7 @@ export default function HollyChatInterface() {
                       : voicePhase === 'processing'
                       ? "opacity-30 cursor-wait text-gray-500"
                       : isVoiceInput
-                      ? "bg-primary/20 text-primary"
+                      ? "bg-holly-teal/20 text-holly-teal"
                       : "text-white/30 hover:text-white hover:bg-white/5"
                   }`}
                   title={voicePhase === 'listening' ? "Stop recording" : "Voice Input"}
@@ -3534,7 +3534,7 @@ export default function HollyChatInterface() {
               {isProcessing ? (
                 <button
                   onClick={handleStop}
-                  className="p-2.5 rounded-xl transition-all bg-red-500/80 hover:bg-red-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.4)] active:scale-95"
+                  className="p-2.5 rounded-xl transition-all bg-holly-coral/80 hover:bg-holly-coral text-holly-void shadow-[0_0_20px_rgba(255,153,204,0.3)] active:scale-95"
                   title="Stop (Esc)"
                 >
                   <Square className="w-5 h-5" />
@@ -3545,8 +3545,8 @@ export default function HollyChatInterface() {
                   disabled={!input.trim() && attachments.length === 0}
                   className={`p-2.5 rounded-xl transition-all ${
                     input.trim() || attachments.length > 0
-                      ? "bg-primary text-white shadow-[0_0_20px_rgba(var(--primary-rgb),0.4)] active:scale-95"
-                      : "text-white/10"
+                      ? "bg-gradient-to-r from-holly-teal to-holly-teal/80 text-holly-void shadow-[0_0_20px_rgba(102,204,204,0.3)] active:scale-95"
+                      : "text-white/15"
                   } disabled:opacity-20`}
                 >
                   <Send className="w-5 h-5" />
@@ -3556,7 +3556,7 @@ export default function HollyChatInterface() {
           </div>
 
           {/* ── Desktop Layout (md+): Horizontal bar ── */}
-          <div className="hidden md:flex flex-col gap-1 sdi-glass rounded-[2.5rem] p-2 transition-all duration-500 focus-within:shadow-[0_0_20px_rgba(102,204,204,0.3),0_0_40px_rgba(102,204,204,0.1)] focus-within:border-holly-teal/30 group-hover:border-white/20">
+          <div className="hidden md:flex flex-col gap-1 bg-[#08080F]/80 backdrop-blur-2xl border border-holly-teal/15 rounded-3xl p-2 transition-all duration-500 focus-within:border-holly-teal/30 focus-within:shadow-[0_0_30px_rgba(102,204,204,0.15)] group-hover:border-holly-teal/20">
             {/* Embedded Attachment preview chips inside border */}
             <AnimatePresence>
               {attachments.length > 0 && (
@@ -3609,29 +3609,11 @@ export default function HollyChatInterface() {
 
             {/* Main Action Bar */}
             <div className="flex items-end gap-3 w-full">
-              {/* Nav / Logo Anchor */}
+              {/* Holly Avatar */}
               <div className="flex-shrink-0 ml-1">
-                <div className="flex items-center gap-3 bg-black/40 px-3 py-2 rounded-full border border-white/10 shadow-lg group/logo transition-all hover:bg-black/60 relative overflow-hidden">
-                  <div className="absolute inset-0 sdi-scanline opacity-20" />
-                  <div className="relative w-10 h-10 flex items-center justify-center">
-                    <div className="absolute inset-0 rounded-full border border-primary/20 scale-[1.2] animate-pulse" />
-                    <div className="absolute inset-0 rounded-full border border-primary/10 scale-[1.5] group-hover/logo:scale-[1.6] transition-transform duration-700" />
-                    <div className="relative z-10 flex items-center justify-center w-full h-full">
-                      <LivingLogo
-                        emotion={currentStatus ? statusToEmotion(currentStatus) || 'focused' : emotion}
-                        size={28}
-                        showGlow={false}
-                      />
-                    </div>
-                  </div>
-                  <div className="flex flex-col pr-1">
-                    <span className="text-[10px] font-black tracking-[0.3em] text-primary select-none leading-none">
-                      HOLLY
-                    </span>
-                    <span className="text-[7px] text-white/30 font-bold tracking-[0.1em] uppercase mt-1">
-                      {isProcessing ? "Processing..." : isSpeaking() ? "Transmitting..." : "Interface Live"}
-                    </span>
-                  </div>
+                <div className="relative w-10 h-10">
+                  <div className="absolute inset-0 rounded-full border border-holly-teal/20 scale-[1.15] animate-pulse" />
+                  <HollyAvatarCompact size={40} showGlow={false} />
                 </div>
               </div>
 
@@ -3639,7 +3621,7 @@ export default function HollyChatInterface() {
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isProcessing}
-                className="flex-shrink-0 p-3 rounded-2xl text-white/30 hover:text-primary hover:bg-primary/10 transition-all disabled:opacity-10 border border-transparent hover:border-primary/20"
+                className="flex-shrink-0 p-3 rounded-2xl text-white/30 hover:text-holly-teal hover:bg-holly-teal/10 transition-all disabled:opacity-10 border border-transparent hover:border-holly-teal/20"
                 title="Upload Intelligence"
               >
                 <Paperclip className="w-5 h-5" />
@@ -3655,8 +3637,8 @@ export default function HollyChatInterface() {
                     : voicePhase === 'processing'
                     ? "opacity-30 cursor-wait text-gray-500"
                     : isVoiceInput
-                    ? "bg-primary/20 text-primary border-primary/30 hover:bg-primary/30"
-                    : "text-white/30 hover:text-white hover:bg-white/5 hover:border-white/10"
+                    ? "bg-holly-teal/20 text-holly-teal border-holly-teal/30 hover:bg-holly-teal/30"
+                    : "text-white/30 hover:text-holly-teal hover:bg-holly-teal/10 hover:border-holly-teal/20"
                 }`}
                 title={voicePhase === 'listening' ? "Stop recording" : voicePhase === 'processing' ? "Transcribing..." : "Neural Voice Input"}
               >
@@ -3689,9 +3671,9 @@ export default function HollyChatInterface() {
                   value={input}
                   onChange={handleTextareaChange}
                   onKeyDown={handleKeyDown}
-                  placeholder={isListening ? "Listening..." : "Engage HOLLY's consciousness..."}
+                  placeholder={isListening ? "Listening..." : "Talk to Holly..."}
                   disabled={isProcessing}
-                  className="w-full bg-transparent border-none focus:ring-0 text-gray-100 placeholder:text-white/20 py-3 text-base resize-none max-h-[200px] scrollbar-none selection:bg-primary/30"
+                  className="w-full bg-transparent border-none focus:ring-0 text-holly-cream/90 placeholder:text-white/20 py-3 text-base resize-none max-h-[200px] scrollbar-none selection:bg-primary/30"
                   style={{ height: "auto" }}
                 />
               </div>
@@ -3700,7 +3682,7 @@ export default function HollyChatInterface() {
               {isProcessing ? (
                 <button
                   onClick={handleStop}
-                  className="flex-shrink-0 p-3 rounded-2xl transition-all mr-1 bg-red-500/80 hover:bg-red-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.4)] hover:scale-105 active:scale-95"
+                  className="flex-shrink-0 p-3 rounded-2xl transition-all mr-1 bg-holly-coral/80 hover:bg-holly-coral text-holly-void shadow-[0_0_20px_rgba(255,153,204,0.3)] hover:scale-105 active:scale-95"
                   title="Stop (Esc)"
                 >
                   <Square className="w-5 h-5" />
@@ -3711,8 +3693,8 @@ export default function HollyChatInterface() {
                   disabled={!input.trim() && attachments.length === 0}
                   className={`flex-shrink-0 p-3 rounded-2xl transition-all mr-1 ${
                     input.trim() || attachments.length > 0
-                      ? "bg-primary text-white shadow-[0_0_20px_rgba(var(--primary-rgb),0.4)] hover:scale-105 active:scale-95"
-                      : "text-white/10"
+                      ? "bg-gradient-to-r from-holly-teal to-holly-teal/80 text-holly-void shadow-[0_0_20px_rgba(102,204,204,0.3)] hover:scale-105 active:scale-95"
+                      : "text-white/15"
                   } disabled:opacity-20`}
                 >
                   <Send className="w-5 h-5" />
@@ -3731,8 +3713,9 @@ export default function HollyChatInterface() {
             <TrendingUp className="w-3 h-3" />
             Evolution
           </a>
-          <p className="text-[10px] text-gray-400">
+          <p className="text-[10px] text-white/20">
             HOLLY · ↩ sends · ⌘K focus · ⌘N new chat
+          </p>
           </p>
           <a
             href="/onboarding"
