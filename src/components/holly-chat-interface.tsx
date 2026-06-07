@@ -285,7 +285,7 @@ function TypingIndicator() {
 function HollyChatOrb({ isThinking }: { isThinking: boolean }) {
   const { emotion } = useHollyEmotion();
   // Use photorealistic face avatar instead of abstract orb
-  return <HollyAvatarCompact size={36} showGlow={false} />;
+  return <HollyAvatarCompact size={52} showGlow={true} />;
 }
 
 function SystemHealthIndicator({ health }: { health: SystemHealth | null }) {
@@ -2518,7 +2518,6 @@ export default function HollyChatInterface() {
       setIsProcessing(false);
       setIsThinking(false);
       setIsStreaming(false);
-      setEmotion('idle');
       abortControllerRef.current = null;
     }
   }, [input, isProcessing, messages, conversationId, attachments, isVoiceInput, autoRead, generateTitle, loadPastConversations]);
@@ -3613,7 +3612,7 @@ export default function HollyChatInterface() {
               <div className="flex-shrink-0 ml-1">
                 <div className="relative w-10 h-10">
                   <div className="absolute inset-0 rounded-full border border-holly-teal/20 scale-[1.15] animate-pulse" />
-                  <HollyAvatarCompact size={40} showGlow={false} />
+                  <HollyAvatarCompact size={44} showGlow={true} />
                 </div>
               </div>
 
