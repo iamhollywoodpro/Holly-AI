@@ -1641,7 +1641,9 @@ export default function HollyChatInterface() {
           const isAnnoying = n.type === 'proactive_insight'
             || n.type === 'pattern_detected'
             || n.type === 'study_update'
+            || n.type === 'initiative'
             || n.category === 'productivity'
+            || n.category === 'insight_driven'
             || n.priority === 'low';
           if (!isAnnoying && (n.priority === 'critical' || n.priority === 'high')) {
             toast.info(n.message, { description: n.title, duration: 5000 });
