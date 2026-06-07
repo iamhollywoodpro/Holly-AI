@@ -600,8 +600,10 @@ export async function POST(req: NextRequest) {
               const hasTools = groqTools && groqTools.length > 0;
               const arceeApiKey = process.env.ARCEE_API_KEY;
               const arceeBaseUrl = process.env.ARCEE_BASE_URL || 'https://api.arcee.ai/api/v1';
-              const useGroqTools = hasTools && groqClient;
-              const useArceeTools = !useGroqTools && hasTools && arceeApiKey;
+              // For unrestricted content, skip censored models (Groq/Arcee) and go straight
+              // to the cascade with uncensored models in the waterfall
+              const useGroqTools = !isUnrestricted && hasTools && groqClient;
+              const useArceeTools = !isUnrestricted && !useGroqTools && hasTools && arceeApiKey;
 
               let isToolCall = false, toolName = '', toolArgs = '', toolCallId = '';
 
