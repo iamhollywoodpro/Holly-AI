@@ -1531,10 +1531,17 @@ export class MCPClientManager {
         throw new Error(`[MCP] Client ${serverId} not connected — tool unavailable`);
       }
 
-      // 30s timeout — prevents hanging forever if stdio subprocess is dead
+      // Media tools need longer — image generation can take 60s+ on cold starts
+      const isMediaTool = ['generate_image', 'generate_video', 'generate_music', 'hybrid_studio'].includes(toolName);
+      const toolTimeout = isMediaTool ? 120_000 : 30_000;
       const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error(`Stdio tool timeout: ${toolName} (30s)`)), 30_000)
+        setTimeout(() => reject(new Error(`Stdio tool timeout: ${toolName} (${toolTimeout / 1000}s)`)), toolTimeout)
       );
+
+      // Media tools get a higher failure threshold — they're inherently flakier
+      if (isMediaTool) {
+        try { toolHealthMonitor.enableTool(toolName); } catch { /* reset circuit breaker */ }
+      }
 
       const result = await Promise.race([
         client.callTool({ name: toolName, arguments: args }),

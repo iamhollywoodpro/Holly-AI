@@ -826,39 +826,45 @@ export async function POST(req: NextRequest) {
                 if (isSelfCode) {
                   logger.warn('Chat', 'Self-code mode without tool-calling providers — cascading to text-only models');
                 }
+                // Buffer cascade output — don't stream until we check for tool calls
+                let cascadeBuffer = '';
                 try {
                   for await (const token of cascade(waterfall, pendingMessages, { temperature: userAiSettings.creativity, maxTokens: 4096, sessionId: conversationId, onModelSelected: (s) => { activeModel = s.displayName; } })) {
-                    fullResponse += token;
-                    sendText(controller, token);
+                    cascadeBuffer += token;
                   }
                 } catch {
-                  fullResponse = "I'm sorry, I'm having trouble connecting right now. Please try again.";
-                  sendText(controller, fullResponse);
+                  cascadeBuffer = "I'm sorry, I'm having trouble connecting right now. Please try again.";
                 }
-                // Intercept text-based tool calls from cascade models
+                fullResponse = cascadeBuffer;
+                // Check for text-based tool calls before sending to user
                 const { executed, cleanText } = await interceptTextToolCall(fullResponse, (s) => sendStatus(controller, s));
                 if (executed) {
                   fullResponse = cleanText;
                   isToolCall = true;
+                } else {
+                  // No tool call — send the full response now
+                  sendText(controller, fullResponse);
                 }
                 break;
               } else if (!fullResponse || fullResponse.trim().length === 0) {
                 // Groq/Arcee was configured but failed silently — fall through to cascade
                 console.warn('[CHAT] Tool provider failed silently, falling back to cascade');
+                let fallbackBuffer = '';
                 try {
                   for await (const token of cascade(waterfall, pendingMessages, { temperature: userAiSettings.creativity, maxTokens: 4096, sessionId: conversationId, onModelSelected: (s) => { activeModel = s.displayName; } })) {
-                    fullResponse += token;
-                    sendText(controller, token);
+                    fallbackBuffer += token;
                   }
                 } catch {
-                  fullResponse = "I'm sorry, I'm having trouble connecting right now. Please try again.";
-                  sendText(controller, fullResponse);
+                  fallbackBuffer = "I'm sorry, I'm having trouble connecting right now. Please try again.";
                 }
-                // Intercept text-based tool calls from cascade fallback
+                fullResponse = fallbackBuffer;
+                // Check for text-based tool calls before sending to user
                 const { executed, cleanText } = await interceptTextToolCall(fullResponse, (s) => sendStatus(controller, s));
                 if (executed) {
                   fullResponse = cleanText;
                   isToolCall = true;
+                } else {
+                  sendText(controller, fullResponse);
                 }
                 break;
               } else {

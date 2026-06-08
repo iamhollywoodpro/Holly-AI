@@ -57,6 +57,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
 function fetchJSON(url, options = {}) {
+  const timeoutMs = options.timeout || 15000;
   return new Promise((resolve, reject) => {
     const client = url.startsWith("https") ? https : http;
     const reqOpts = {
@@ -75,8 +76,8 @@ function fetchJSON(url, options = {}) {
 
     const timeout = setTimeout(() => {
       req.destroy();
-      reject(new Error("Request timed out (15s)"));
-    }, 15000);
+      reject(new Error(`Request timed out (${timeoutMs / 1000}s)`));
+    }, timeoutMs);
     req.on("error", (err) => {
       clearTimeout(timeout);
       reject(err);
@@ -1346,7 +1347,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             num_inference_steps: 4,
             guidance_scale: 0,
           });
+          // Modal image generation needs longer timeout — cold starts can take 60s+
           const { status, body: data } = await fetchJSON(MODAL_IMAGE_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: payload,
+            timeout: 90_000, // 90s for image generation (cold starts + GPU inference)
+          });
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: payload,
