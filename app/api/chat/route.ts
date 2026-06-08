@@ -472,6 +472,38 @@ export async function POST(req: NextRequest) {
             function: { name: t.name, description: t.description, parameters: t.inputSchema || { type: 'object', properties: {} } },
           }));
 
+          // ── 9a. IMAGE/VIDEO PRE-DETECTION ──────────────────────────────────────
+          // Detect image/video generation intent from the USER'S message BEFORE
+          // sending to any model. This bypasses model tool calling entirely:
+          //  - No raw JSON tool calls ever leak to the user
+          //  - Works identically for SFW and NSFW content
+          //  - Progress bar shown while generating
+          //  - Model only describes the result afterward
+          const IMAGE_VIDEO_PATTERNS = [
+            /\b(generate|create|make|draw|paint|render|produce)\s+(?:a\s+|an\s+)?(?:image|picture|photo|portrait|pic|illustration|artwork|render|selfie)\b/i,
+            /\b(generate|create|make|produce|render)\s+(?:a\s+|an\s+)?(?:video|clip|animation|gif|film)\b/i,
+            /\b(show\s+me|show\s+us)\s+(?:what|how|a|an|your)\b.*\b(look|look\s+like|wearing|wearing|outfit|dress|body)\b/i,
+            /\b(take|snap|shoot)\s+(?:a\s+|an\s+)?(?:picture|photo|selfie|portrait|shot)\b/i,
+            /\b(draw|paint|illustrate)\s+(?:me|us|her|him|them|a|an)\b/i,
+            /\b(picture|image|photo|portrait)\s+(?:of|for)\s+(?:me|holly|her|herself)\b/i,
+            /\bvisual(?:ize|ise)?\b.*\b(for|me|this)\b/i,
+          ];
+          const isImageVideoRequest = IMAGE_VIDEO_PATTERNS.some(p => p.test(latestUserMessage));
+
+          if (isImageVideoRequest && !isInformationalMsg) {
+            // Intimacy gate for image generation
+            if (intimacyState) {
+              const { isNudeImageRequest: isNudeReq, isSexualImageRequest: isSexReq } = await import('@/lib/relationship/intimacy-gate');
+              if ((isSexReq(latestUserMessage) && !intimacyState.canShareSexual) ||
+                  (isNudeReq(latestUserMessage) && !intimacyState.canShareNude)) {
+                sendText(controller, "🔒 I'd love to, but we're not quite there yet. Let's get to know each other a bit more first. 💚");
+                fullResponse = "🔒 Intimacy gate active — image generation blocked.";
+                // Skip the rest of the tool loop entirely
+                // Jump to saving messages below
+              }
+            }
+          }
+
           // 9b. CONTEXT WINDOW PROTECTION
           const MAX_CONTEXT_CHARS = 400_000;
           const systemMsg = messages[0];
@@ -545,8 +577,75 @@ export async function POST(req: NextRequest) {
           // Track generated image URLs to send directly to the frontend after the model responds
           const generatedImageUrls: string[] = [];
 
-          // Informational: pure text, no tools
-          if (isInformationalMsg) {
+          // ── IMAGE/VIDEO PRE-DETECTION BYPASS ──────────────────────────────────
+          // If the user asked for an image/video, generate it DIRECTLY without
+          // going through model tool calling. This ensures:
+          //  - No raw JSON ever appears in chat
+          //  - Works for both SFW and NSFW (intimacy gate already checked above)
+          //  - Progress bar shown while generating
+          //  - Model then describes the result naturally
+          if (isImageVideoRequest && !isInformationalMsg && !fullResponse) {
+            try {
+              sendTool(controller, 'generate_image', 'start');
+              sendStatus(controller, '🎨 Generating image…');
+              sendProgress(controller, { phase: 'generate_image', percent: 25, message: '🎨 Creating your image…' });
+
+              // Build the prompt from the user's message, enhanced with Holly body awareness
+              let imagePrompt = latestUserMessage;
+              // Strip command words — we want just the description
+              imagePrompt = imagePrompt.replace(/^(?:can you |please |could you |holly[,]?\s*)?(?:generate|create|make|draw|paint|render|produce|show me|show us|take|snap|shoot)\s+(?:a\s+|an\s+)?(?:image|picture|photo|portrait|pic|illustration|artwork|render|selfie|video|clip|animation)\s+(?:of\s+|for\s+|for me\s*)?/i, '').trim();
+              if (imagePrompt.length < 5) imagePrompt = latestUserMessage; // fallback to full message
+
+              // Inject Holly body awareness for self-portraits
+              if (/holly|her(self)?|your(self)?/i.test(imagePrompt)) {
+                try {
+                  const { getTieredSelfImageBlock } = await import('@/lib/identity/holly-self-image');
+                  const bodyPrefix = getTieredSelfImageBlock('personal');
+                  if (bodyPrefix) imagePrompt = `${bodyPrefix}, ${imagePrompt}`;
+                } catch {}
+              }
+
+              const w = 1024, h = 1024;
+              const seed = Math.floor(Math.random() * 1000000);
+              const encoded = encodeURIComponent(imagePrompt);
+              const pollinationsUrl = `https://image.pollinations.ai/prompt/${encoded}?width=${w}&height=${h}&model=flux&seed=${seed}&nologo=true`;
+
+              sendProgress(controller, { phase: 'generate_image', percent: 75, message: '🎨 Almost done…' });
+
+              // Track the URL for frontend rendering
+              generatedImageUrls.push(pollinationsUrl);
+
+              sendProgress(controller, { phase: 'generate_image', percent: 100, message: '✅ Image created!' });
+              sendTool(controller, 'generate_image', 'complete', { content: [{ type: 'text', text: `Image generated: ${pollinationsUrl}` }] });
+
+              // Send the image directly to the frontend as markdown
+              sendText(controller, `\n\n![${imagePrompt.slice(0, 80)}](${pollinationsUrl})`);
+              fullResponse += `\n\n![${imagePrompt.slice(0, 80)}](${pollinationsUrl})`;
+
+              // Now have the model describe what was created
+              const describeMessages: ChatMessage[] = [
+                ...cascadeMessages,
+                { role: 'user', content: `[SYSTEM: An image was just generated for the user with this prompt: "${imagePrompt}". Describe what you created in 1-2 sentences. Be warm and enthusiastic. Don't mention the technical details or URLs — just describe the image naturally as if you created it yourself.]` },
+              ];
+
+              let modelDescription = '';
+              try {
+                for await (const token of cascade(waterfall, describeMessages, { temperature: userAiSettings.creativity, maxTokens: 500, sessionId: conversationId, onModelSelected: (s) => { activeModel = s.displayName; } })) {
+                  modelDescription += token;
+                  sendText(controller, token);
+                }
+              } catch {
+                modelDescription = "Here's what I created for you! 💚";
+                sendText(controller, modelDescription);
+              }
+              fullResponse += modelDescription;
+
+            } catch (imgErr) {
+              console.error('[CHAT] Image pre-detection error:', imgErr);
+              // Fall through to normal chat flow if image generation fails
+            }
+            // Skip the rest of the tool-call loop — image was handled
+          } else if (isInformationalMsg) {
             try {
               for await (const token of cascade(waterfall, cascadeMessages, { temperature: userAiSettings.creativity, maxTokens: 4096, sessionId: conversationId, onModelSelected: (s) => { activeModel = s.displayName; } })) {
                 fullResponse += token;
@@ -952,6 +1051,23 @@ export async function POST(req: NextRequest) {
             for (const imgUrl of generatedImageUrls) {
               sendText(controller, `\n\n![Generated image](${imgUrl})`);
               fullResponse += `\n\n![Generated image](${imgUrl})`;
+            }
+          }
+
+          // ── RAW JSON CLEANUP ──────────────────────────────────────────────────
+          // Final safety net: strip any remaining raw JSON tool call patterns.
+          // These should NEVER be visible to the user. If any leaked through,
+          // remove them and replace with a clean message.
+          if (fullResponse) {
+            const rawJsonPattern = /\[?\{['"]\s*(?:type|name)\s*['"]\s*:\s*['"](?:generate_image|generate_video|generate_music|hybrid_studio|run_code|memory_read|memory_write|self_code_apply|trigger_deploy|start_build|web_search|read_file|write_file)['"]/;
+            if (rawJsonPattern.test(fullResponse)) {
+              console.warn('[CHAT] ⚠️ Raw JSON tool call detected in final response — stripping it');
+              // Remove the raw JSON block entirely
+              fullResponse = fullResponse.replace(/\[?\{['"][\s\S]*?['"]\s*:\s*['"](?:generate_image|generate_video|generate_music|hybrid_studio|run_code|memory_read|memory_write|self_code_apply|trigger_deploy|start_build|web_search|read_file|write_file)['"][\s\S]*?\}\]?/g, '').trim();
+              // If nothing left after cleanup, add a fallback message
+              if (!fullResponse || fullResponse.length < 10) {
+                fullResponse = "I was trying to create something for you but ran into a technical issue. Could you try asking again? 💚";
+              }
             }
           }
 
