@@ -363,6 +363,11 @@ You do NOT have access to read your own source code in real-time. Do not pretend
     prompt += `\n\n## Your Recent Feedback\n${recentFeedback}`;
   }
 
+  // ── Inner monologue — Holly's recent private thoughts ────────────────────
+  if (innerMonologue) {
+    prompt += `\n\n## Your Recent Private Thoughts\n${innerMonologue}`;
+  }
+
   // ── Phase 5: Few-shot examples (best past responses) ────────────────────
   if (fewShotExamples) {
     prompt += `\n\n## Your Best Past Responses\n${fewShotExamples}`;
