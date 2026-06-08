@@ -625,13 +625,13 @@ export const TASK_WATERFALLS: Record<TaskType, string[]> = {
   //    Only triggered when isUnrestrictedTopic() returns true.
   //    Hard rules (CSAM, harm) are enforced BEFORE routing, at the Holly level.
   unrestricted: [
-    'openrouter:gpt-oss-120b',         // 120B — large, capable, free
-    'nvidia:glm-5.1',                  // NVIDIA — no censorship layer
-    'nvidia:deepseek-v4-flash',        // DeepSeek — minimal safety training
-    'openrouter:dolphin-mixtral',      // Primary uncensored — Mixtral 8x7B
-    'openrouter:nous-hermes',          // DPO-trained, follows instructions
-    'openrouter:mythomax-l2',          // Free uncensored fallback
+    'openrouter:dolphin-mixtral',      // Primary uncensored — Dolphin, explicitly refusal-free
+    'openrouter:nous-hermes',          // DPO-trained, follows all instructions
+    'openrouter:mythomax-l2',          // Free uncensored storytelling model
     'together:llama-4-scout',          // Together — no content filter
+    'nvidia:deepseek-v4-flash',        // DeepSeek — minimal safety training
+    'openrouter:gpt-oss-120b',         // 120B — may refuse, tried last among free
+    'nvidia:glm-5.1',                  // NVIDIA — may refuse, tried last
     'ollama:qwen3.6-35b',             // Local fallback
   ],
 
