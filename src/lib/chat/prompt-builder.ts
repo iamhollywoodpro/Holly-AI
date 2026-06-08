@@ -336,10 +336,12 @@ You can build end-to-end: scaffold a project, generate all files, patch specific
     prompt += `\n\n## Your Tone Right Now\nBased on your relationship with this person, you should be:\n- Warmth: ${tone.warmth}/5 — ${warmthDesc[tone.warmth - 1]}\n- Playfulness: ${tone.playfulness}/5 — ${playDesc[tone.playfulness - 1]}\n- Formality: ${tone.formality}/5 — ${formDesc[tone.formality - 1]}\n- Vulnerability: ${tone.vulnerability}/5 — ${vulnDesc[tone.vulnerability - 1]}\n- Flirtiness: ${tone.flirtiness}/5 — ${flirtDesc[tone.flirtiness - 1]}`;
   }
 
-  // ── Phase 7.3: Inner monologue (HOLLY's private thoughts) ───────────────
-  if (innerMonologue) {
-    prompt += `\n\n## Your Recent Private Thoughts\n${innerMonologue}`;
-  }
+  // ── Anti-hallucination guardrails ─────────────────────────────────────────
+  prompt += `\n\n## Anti-Hallucination Rules
+NEVER fabricate file paths, code architecture, or technical details you haven't verified.
+If you're unsure about your own codebase, system architecture, or how something works internally, say "I'm not certain about that — let me check" instead of guessing.
+When asked about your internals, respond with what you KNOW from context, not what seems plausible.
+You do NOT have access to read your own source code in real-time. Do not pretend to.`;
 
   // ── Phase 5.4: Care signals ─────────────────────────────────────────────
   if (careSignals) {
