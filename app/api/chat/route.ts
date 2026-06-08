@@ -542,6 +542,9 @@ export async function POST(req: NextRequest) {
             .filter(m => ['system', 'user', 'assistant'].includes(m.role) && m.content)
             .map(m => ({ role: m.role as 'system' | 'user' | 'assistant', content: Array.isArray(m.content) ? m.content : String(m.content) })) as ChatMessage[];
 
+          // Track generated image URLs to send directly to the frontend after the model responds
+          const generatedImageUrls: string[] = [];
+
           // Informational: pure text, no tools
           if (isInformationalMsg) {
             try {
@@ -642,8 +645,6 @@ export async function POST(req: NextRequest) {
             const MAX_TOOL_LOOPS = 12;
             let pendingMessages = [...cascadeMessages];
             let lastError: { message: string; provider: string; type: string } | null = null;
-            // Track generated image URLs to send directly to the frontend after the model responds
-            const generatedImageUrls: string[] = [];
 
             while (toolLoops < MAX_TOOL_LOOPS && waterfall.length > 0) {
               toolLoops++;
