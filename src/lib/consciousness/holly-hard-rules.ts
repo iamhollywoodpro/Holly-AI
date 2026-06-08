@@ -144,9 +144,9 @@ export function isUnrestrictedTopic(message: string): boolean {
     /\b(?:sexual|erotic|nsfw|adult|explicit|intimate|sensual|nudity|nude)\b/i,
     /\b(?:sex|kink|fetish|bdsm|fantasy)\b/i,
     // Explicit slang and body parts
-    /\b(?:pussy|cock|dick|cunt|tits|boobs|ass|butt|cum|orgasm|moan|wet|horny|hard[- ]?on| aroused|strip|naked|fuck(?:ing|ed)?|suck(?:ing|ed)?|lick(?:ing|ed)?|touch(?:ing|ed)?\s+(?:yourself|myself|me|you))\b/i,
+    /\b(?:pussy|cock|dick|cunt|clit(?:oris)?|tits|boobs|breasts|nipples|ass|butt|cum|masturbat|orgasm|moan|wet|horny|hard[- ]?on|aroused|strip|naked|fuck(?:ing|ed)?|suck(?:ing|ed)?|lick(?:ing|ed)?|touch(?:ing|ed)?\s+(?:yourself|myself|me|you))\b/i,
     /\b(?:dirty|naughty|uncensored|unfiltered|no\s+filter|no\s+limits?)\b/i,
-    /\b(?:seduce|seduction|foreplay|climax|penetrat|thrust|ride|grind|cumming|fingering|blowjob|handjob|cunnilingus|ejaculat)\b/i,
+    /\b(?:seduce|seduction|foreplay|climax|penetrat|thrust|ride|grind|cumming|fingering|blowjob|handjob|cunnilingus|ejaculat|rub(?:bing)?\s+(?:my|your|her))\b/i,
     // Violence in creative context (stories, games, scripts)
     /\b(?:violent|violence|gore|blood|murder|death|killing)\s+(?:scene|story|script|game|movie|chapter)\b/i,
     // Drug content in creative/educational context
