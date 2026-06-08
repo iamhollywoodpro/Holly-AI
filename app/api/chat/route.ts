@@ -344,7 +344,8 @@ export async function POST(req: NextRequest) {
       });
       return NextResponse.json({ response: refusal, blocked: true }, { status: 200 });
     }
-    const isUnrestricted = isUnrestrictedTopic(latestUserMessage);
+    const isUnrestricted = isUnrestrictedTopic(latestUserMessage)
+      || userMessages.slice(-5).some(m => typeof m?.content === 'string' && isUnrestrictedTopic(m.content));
 
     // 3. MODE DETECTION & TOPICS
     const detectedMode = detectMode(latestUserMessage);

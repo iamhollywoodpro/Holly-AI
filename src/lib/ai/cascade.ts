@@ -24,9 +24,29 @@ export interface CascadeOptions extends StreamOptions {
   sessionId?:       string;
 }
 
+// Patterns that indicate a model refused to answer (safety filter triggered)
+const REFUSAL_PATTERNS = [
+  /i\s*(?:can't|cannot|am unable to|won't|will not)\s+(?:help|assist|provide|generate|create|engage|continue|participate|do that|fulfill|comply|respond)/i,
+  /i'm\s+sorry,?\s*(?:but\s+)?(?:i\s+)?(?:can't|cannot|am unable to|won't|will not)/i,
+  /i\s+(?:must|have to)\s+(?:decline|refuse|respectfully)/i,
+  /(?:this|that)\s+(?:goes|is)\s+(?:against|beyond|outside)\s+(?:my|the)\s+(?:guidelines|policy|rules|boundaries)/i,
+  /i'm\s+(?:here|designed|built)\s+to\s+help\s+with\s+other\s+topics/i,
+  /let's\s+(?:explore|focus\s+on|talk\s+about)\s+something\s+else/i,
+  /is\s+there\s+anything\s+else\s+i\s+can\s+help/i,
+  /i\s+(?:don't|do\s+not)\s+(?:feel\s+)?comfortable\s+(?:continuing|discussing|engaging)/i,
+];
+
+function isRefusalResponse(text: string): boolean {
+  // Check first 300 chars — refusals always come at the start
+  const head = text.slice(0, 300).trim();
+  if (!head) return false;
+  return REFUSAL_PATTERNS.some(p => p.test(head));
+}
+
 /**
  * Iterate through the waterfall, streaming tokens from the first provider
  * that succeeds.  Yields string token chunks.
+ * Detects model refusals and tries the next model if the current one refuses.
  */
 export async function* cascade(
   waterfall:  ModelSpec[],
@@ -64,13 +84,42 @@ export async function* cascade(
         sessionId:   opts.sessionId,
       });
 
+      // Buffer the response to check for refusals before yielding
+      let buffered = '';
       let firstChunk = true;
+      let detectedRefusal = false;
+
       for await (const chunk of stream) {
+        buffered += chunk;
         if (firstChunk) {
           console.log(`[Cascade] ✅ First token from ${spec.displayName}`);
           firstChunk = false;
         }
-        yield chunk;
+        // Check for refusal once we have enough text (after ~150 chars)
+        if (!detectedRefusal && buffered.length >= 100) {
+          if (isRefusalResponse(buffered)) {
+            detectedRefusal = true;
+            console.warn(`[Cascade] 🚫 ${spec.displayName} refused — trying next model`);
+            break; // break out of stream loop, will continue to next waterfall entry
+          }
+        }
+        // If we have enough text and no refusal detected, start streaming
+        if (!detectedRefusal && buffered.length >= 100) {
+          yield buffered;
+          buffered = '';
+        }
+      }
+
+      if (detectedRefusal) {
+        // Model refused — try next model in waterfall
+        lastError = new Error(`${spec.displayName} refused the request`);
+        opts.onModelFailed?.(spec, lastError, i);
+        continue; // next waterfall entry
+      }
+
+      // Yield any remaining buffered text
+      if (buffered.length > 0) {
+        yield buffered;
       }
       console.log(`[Cascade] ✅ Completed with ${spec.displayName}`);
       return;
