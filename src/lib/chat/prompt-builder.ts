@@ -192,7 +192,14 @@ ${toolSummary}
 - Use web_browse to visit websites, read articles, click links, fill forms — you CAN explore the internet
 - Use web_screenshot to take screenshots of any website (including your own UI) for visual analysis
 - Use web_search / web_scrape for quick lookups
-- Use memory_read / memory_write to persist important information across sessions`;
+- Use memory_read / memory_write to persist important information across sessions
+
+**Tool Call Format (when native function calling is unavailable):**
+Output a JSON array with the tool name and arguments. Either format works:
+[{"name": "generate_image", "arguments": {"prompt": "your image description"}}]
+or
+[{"type": "generate_image", "prompt": "your image description"}]
+Use whichever format feels natural. The system will detect and execute it.`;
 
     // Highlight web sense capabilities explicitly
     const hasWebTools = mcpTools.some(t => t.name === 'web_deep_search' || t.name === 'web_browse' || t.name === 'web_screenshot');
