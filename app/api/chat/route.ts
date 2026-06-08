@@ -621,8 +621,15 @@ export async function POST(req: NextRequest) {
                 if (progressInterval) { clearInterval(progressInterval); sendProgress(controller, { phase: tName, percent: 100, message: getToolStatusMessage(tName) }); }
                 const resultText = (result as any)?.content?.[0]?.text || (result as any)?.content || JSON.stringify(result);
                 sendTool(controller, tName, 'complete', result);
+                // Track image URLs from text-intercepted generate_image results
+                if (tName === 'generate_image') {
+                  const pollMatch = resultText.match(/https?:\/\/image\.pollinations\.ai\/prompt\/[^\s"')\]]+/);
+                  if (pollMatch) {
+                    generatedImageUrls.push(pollMatch[0]);
+                  }
+                }
                 const truncated = JSON.stringify(result, null, 2);
-                pendingMessages.push({ role: 'system', content: `[TOOL EXECUTION RESULT]\nTool: ${tName}\nResult:\n${truncated.length > 8000 ? truncated.substring(0, 8000) + '\n...[truncated]' : truncated}\n\nAnalyze this result. If you have enough information, respond to the user. Otherwise call another tool.` });
+                pendingMessages.push({ role: 'system', content: `[TOOL EXECUTION RESULT]\nTool: ${tName}\nResult:\n${truncated.length > 8000 ? truncated.substring(0, 8000) + '\n...[truncated]' : truncated}\n\nAnalyze this result. Respond to the user naturally. If this was an image generation, briefly describe what you created.` });
                 const cleanText = responseText.slice(0, startPos) + resultText + responseText.slice(startPos + endIdx + 1);
                 return { executed: true, cleanText };
               } catch (parseErr) {
@@ -635,6 +642,8 @@ export async function POST(req: NextRequest) {
             const MAX_TOOL_LOOPS = 12;
             let pendingMessages = [...cascadeMessages];
             let lastError: { message: string; provider: string; type: string } | null = null;
+            // Track generated image URLs to send directly to the frontend after the model responds
+            const generatedImageUrls: string[] = [];
 
             while (toolLoops < MAX_TOOL_LOOPS && waterfall.length > 0) {
               toolLoops++;
@@ -807,8 +816,15 @@ export async function POST(req: NextRequest) {
                     }
                     const resultStr = JSON.stringify(result, null, 2);
                     sendTool(controller, toolName, 'complete', result);
+                    // Track image URLs from generate_image results for direct frontend rendering
+                    if (toolName === 'generate_image') {
+                      const pollinationsMatch = resultStr.match(/https?:\/\/image\.pollinations\.ai\/prompt\/[^\s"')\]]+/);
+                      if (pollinationsMatch) {
+                        generatedImageUrls.push(pollinationsMatch[0]);
+                      }
+                    }
                     const truncated = resultStr.length > 8000 ? resultStr.substring(0, 8000) + '\n...[truncated]' : resultStr;
-                    pendingMessages.push({ role: 'system', content: `[TOOL EXECUTION RESULT]\nTool: ${toolName}\nResult:\n${truncated}\n\nAnalyze this result. If you have enough information, respond to the user. Otherwise call another tool.` });
+                    pendingMessages.push({ role: 'system', content: `[TOOL EXECUTION RESULT]\nTool: ${toolName}\nResult:\n${truncated}\n\nAnalyze this result. Respond to the user naturally. If this was an image generation, briefly describe what you created.` });
                   } else {
                     if (progressInterval) clearInterval(progressInterval);
                     sendTool(controller, toolName, 'error', { content: [{ type: 'text', text: `❌ Tool "${toolName}" not found.` }] });
@@ -883,6 +899,16 @@ export async function POST(req: NextRequest) {
                 }
                 break;
               }
+            }
+          }
+
+          // ── Send generated images directly to the frontend ──
+          // The model's text response describes the image, but doesn't include the actual
+          // image markdown. We send the image URLs separately so the frontend can render them.
+          if (generatedImageUrls.length > 0) {
+            for (const imgUrl of generatedImageUrls) {
+              sendText(controller, `\n\n![Generated image](${imgUrl})`);
+              fullResponse += `\n\n![Generated image](${imgUrl})`;
             }
           }
 
