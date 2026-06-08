@@ -151,6 +151,12 @@ services:
       FIX_LOOP_MAX_ATTEMPTS:          ${FIX_LOOP_MAX_ATTEMPTS:-5}
       FILE_SYNC_ENABLED:              ${FILE_SYNC_ENABLED:-true}
 
+      # ── Twilio SMS (morning briefing) ────────────────────────────────────
+      TWILIO_ACCOUNT_SID:              ${TWILIO_ACCOUNT_SID:-}
+      TWILIO_AUTH_TOKEN:               ${TWILIO_AUTH_TOKEN:-}
+      TWILIO_PHONE_NUMBER:             ${TWILIO_PHONE_NUMBER:-}
+      CREATOR_PHONE:                   ${CREATOR_PHONE:-}
+
     # Docker healthcheck — marks container healthy/unhealthy.
     # start_period: app gets 3 minutes to boot before failures count.
     # Traefik reads this status via the labels below.
