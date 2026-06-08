@@ -561,33 +561,73 @@ export async function POST(req: NextRequest) {
 
             // Filter to strip raw JSON tool calls that the LLM outputs as text
             // (happens when the model can't use native function calling)
-            const RAW_TOOL_CALL_REGEX = /\[?\s*\{\s*(?:['"](?:name|type)['"]\s*:\s*['"](?:generate_image|generate_video|generate_music|hybrid_studio|run_code|memory_read|memory_write|self_code_apply|trigger_deploy|start_build|sentinel_analyze_code|sentinel_generate_code|web_search|read_file|write_file)['"]\s*,\s*['"](?:arguments?|prompt|input)['"]\s*:\s*(?:\{[^}]*\}|['"][^'"]*['"]))\s*\}\s*\]?/gi;
-            let contentBuffer = '';
-            let lastFlushIndex = 0;
+            const TOOL_CALL_NAMES = ['generate_image', 'generate_video', 'generate_music', 'hybrid_studio', 'run_code', 'memory_read', 'memory_write', 'self_code_apply', 'trigger_deploy', 'start_build', 'sentinel_analyze_code', 'sentinel_generate_code', 'web_search', 'read_file', 'write_file'];
+            const MEDIA_TOOL_CALL_NAMES = ['generate_image', 'generate_video', 'generate_music', 'hybrid_studio'];
 
-            function filterToolCallText(text: string): string {
-              // Accumulate text, flush clean content, hold back partial tool calls
-              contentBuffer += text;
-              // Check if buffer contains a complete raw tool call pattern
-              const filtered = contentBuffer.replace(RAW_TOOL_CALL_REGEX, '');
-              if (filtered !== contentBuffer) {
-                // A raw tool call was stripped — flush what's left
-                contentBuffer = filtered;
-              }
-              // If buffer hasn't grown for a while and no partial match, flush it
-              const partialMatch = contentBuffer.match(/\[\s*\{\s*['"](?:name|type)['"]\s*:/);
-              if (!partialMatch && contentBuffer.length > 0) {
-                const toFlush = contentBuffer;
-                contentBuffer = '';
-                return toFlush;
-              }
-              return '';
-            }
+            /**
+             * Extract and execute a text-based tool call from a response string.
+             * Returns { executed: true } if a tool was found and executed, or { executed: false }.
+             * Handles both single-quoted and double-quoted JSON.
+             */
+            async function interceptTextToolCall(responseText: string, sendStatus: (s: string) => void): Promise<{ executed: boolean; cleanText: string }> {
+              const toolIdx = TOOL_CALL_NAMES.findIndex(tn => responseText.includes(tn));
+              if (toolIdx === -1) return { executed: false, cleanText: responseText };
 
-            function flushContentBuffer(): string {
-              const toFlush = contentBuffer;
-              contentBuffer = '';
-              return toFlush;
+              const toolName = TOOL_CALL_NAMES[toolIdx];
+              const idx = responseText.indexOf(toolName);
+              // Search backwards for the opening bracket
+              const before = responseText.slice(Math.max(0, idx - 300), idx);
+              const startChar = before.lastIndexOf('[') > before.lastIndexOf('{') ? '[' : '{';
+              const startIdx = Math.max(before.lastIndexOf('['), before.lastIndexOf('{'));
+              const startPos = Math.max(0, idx - 300) + (startIdx >= 0 ? startIdx : 0);
+              const rawJson = responseText.slice(startPos);
+              const endBracket = startChar === '[' ? ']' : '}';
+              const endIdx = rawJson.indexOf(endBracket, rawJson.indexOf(toolName));
+
+              if (endIdx <= 0) return { executed: false, cleanText: responseText };
+
+              try {
+                const jsonStr = rawJson.slice(0, endIdx + 1).replace(/'/g, '"');
+                const parsed = JSON.parse(jsonStr);
+                const firstTool = Array.isArray(parsed) ? parsed[0] : parsed;
+                const tName = firstTool?.name || firstTool?.type || toolName;
+                const tArgs = firstTool?.arguments || firstTool?.argument || (firstTool?.prompt ? { prompt: firstTool.prompt } : firstTool?.input ? { prompt: firstTool.input } : { prompt: '' });
+                const toolSpec = mcpTools?.find(t => t.name === tName);
+                if (!toolSpec) return { executed: false, cleanText: responseText };
+
+                const argsParsed = typeof tArgs === 'string' ? JSON.parse(tArgs) : tArgs;
+
+                // Intimacy gate for image generation
+                if (tName === 'generate_image' && intimacyState) {
+                  const imgPrompt = (argsParsed.prompt || argsParsed.description || '') as string;
+                  if (typeof imgPrompt === 'string' && imgPrompt.length > 0) {
+                    const { isNudeImageRequest: isNudeReq, isSexualImageRequest: isSexReq } = await import('@/lib/relationship/intimacy-gate');
+                    if ((isSexReq(imgPrompt) && !intimacyState.canShareSexual) ||
+                        (isNudeReq(imgPrompt) && !intimacyState.canShareNude)) {
+                      sendTool(controller, tName, 'error', { content: [{ type: 'text', text: '🔒 Intimacy gate active.' }] });
+                      pendingMessages.push({ role: 'system', content: `[INTIMACY GATE] Blocked image generation. Redirect warmly.` });
+                      const cleanText = responseText.slice(0, startPos) + responseText.slice(startPos + endIdx + 1);
+                      return { executed: true, cleanText };
+                    }
+                  }
+                }
+
+                // Execute the tool
+                sendTool(controller, tName, 'start');
+                sendStatus(`🔧 Using ${tName.replace(/_/g, ' ')}…`);
+                const progressInterval = MEDIA_TOOL_DURATIONS[tName] ? startProgressSimulation(controller, tName) : null;
+                const result = await mcpManager.callTool(toolSpec.serverId, toolSpec.name, argsParsed);
+                if (progressInterval) { clearInterval(progressInterval); sendProgress(controller, { phase: tName, percent: 100, message: getToolStatusMessage(tName) }); }
+                const resultText = (result as any)?.content?.[0]?.text || (result as any)?.content || JSON.stringify(result);
+                sendTool(controller, tName, 'complete', result);
+                const truncated = JSON.stringify(result, null, 2);
+                pendingMessages.push({ role: 'system', content: `[TOOL EXECUTION RESULT]\nTool: ${tName}\nResult:\n${truncated.length > 8000 ? truncated.substring(0, 8000) + '\n...[truncated]' : truncated}\n\nAnalyze this result. If you have enough information, respond to the user. Otherwise call another tool.` });
+                const cleanText = responseText.slice(0, startPos) + resultText + responseText.slice(startPos + endIdx + 1);
+                return { executed: true, cleanText };
+              } catch (parseErr) {
+                logger.warn('Chat', 'Failed to parse text-based tool call', { error: parseErr instanceof Error ? parseErr.message : String(parseErr) });
+                return { executed: false, cleanText: responseText };
+              }
             }
 
             let toolLoops = 0;
@@ -624,8 +664,8 @@ export async function POST(req: NextRequest) {
                     for await (const chunk of completion) {
                       const content = chunk.choices[0]?.delta?.content || '';
                       if (content && !isToolCall) {
-                        const filtered = filterToolCallText(content);
-                        if (filtered) { fullResponse += filtered; sendText(controller, filtered); }
+                        // Buffer text instead of streaming — check for tool calls after stream completes
+                        fullResponse += content;
                       }
                       if (chunk.choices[0]?.delta?.tool_calls?.length) {
                         isToolCall = true;
@@ -635,9 +675,20 @@ export async function POST(req: NextRequest) {
                         if (tool.function?.arguments) toolArgs += tool.function.arguments;
                       }
                     }
-                    // Flush any remaining buffered content after Groq stream ends
-                    const remaining = flushContentBuffer();
-                    if (remaining && !isToolCall) { fullResponse += remaining; sendText(controller, remaining); }
+                    // Stream ended — if native tool call, it's handled below.
+                    // If text was returned, check for text-based tool calls before sending to user.
+                    if (!isToolCall && fullResponse.trim().length > 0) {
+                      const { executed, cleanText } = await interceptTextToolCall(fullResponse, (s) => sendStatus(controller, s));
+                      if (executed) {
+                        // Tool was found and executed — send clean text (with result) to user
+                        fullResponse = cleanText;
+                        // Mark as tool call so the outer loop continues with the tool result
+                        isToolCall = true;
+                      } else {
+                        // No tool call found — stream the full response to user now
+                        sendText(controller, fullResponse);
+                      }
+                    }
                     break; // success — exit retry loop
                   } catch (e) {
                     const errMsg = e instanceof Error ? e.message : String(e);
@@ -682,8 +733,8 @@ export async function POST(req: NextRequest) {
                           const chunk = JSON.parse(trimmed.slice(6));
                           const delta = chunk.choices?.[0]?.delta;
                           if (delta?.content && !isToolCall) {
-                            const filtered = filterToolCallText(delta.content);
-                            if (filtered) { fullResponse += filtered; sendText(controller, filtered); }
+                            // Buffer text — check for tool calls after stream completes
+                            fullResponse += delta.content;
                           }
                           if (delta?.tool_calls?.length) {
                             isToolCall = true;
@@ -697,6 +748,16 @@ export async function POST(req: NextRequest) {
                     }
                   }
                 } catch (e) { console.warn('[CHAT] Arcee streaming failed:', e instanceof Error ? e.message : e); }
+                // Arcee stream ended — check for text-based tool calls before sending to user
+                if (!isToolCall && fullResponse.trim().length > 0) {
+                  const { executed, cleanText } = await interceptTextToolCall(fullResponse, (s) => sendStatus(controller, s));
+                  if (executed) {
+                    fullResponse = cleanText;
+                    isToolCall = true;
+                  } else {
+                    sendText(controller, fullResponse);
+                  }
+                }
               }
 
               if (isToolCall && toolName) {
@@ -760,7 +821,6 @@ export async function POST(req: NextRequest) {
                   continue;
                 }
               } else if (!useGroqTools && !useArceeTools) {
-                const TOOL_NAMES = ['generate_image', 'generate_video', 'generate_music', 'hybrid_studio'];
                 // No tool-calling providers available — use cascade directly
                 if (isSelfCode) {
                   logger.warn('Chat', 'Self-code mode without tool-calling providers — cascading to text-only models');
@@ -774,47 +834,15 @@ export async function POST(req: NextRequest) {
                   fullResponse = "I'm sorry, I'm having trouble connecting right now. Please try again.";
                   sendText(controller, fullResponse);
                 }
-                // Intercept text-based tool calls from models that can't do native function calling
-                // Robust: finds any JSON (single or double quoted) containing a tool name
-                const textToolIdx = TOOL_NAMES.findIndex(tn => fullResponse.includes(tn));
-                if (textToolIdx !== -1) {
-                  try {
-                    const toolName = TOOL_NAMES[textToolIdx];
-                    // Extract the JSON blob around the tool name — grab [ or { before it and ] or } after
-                    const idx = fullResponse.indexOf(toolName);
-                    const before = fullResponse.slice(Math.max(0, idx - 200), idx);
-                    const after = fullResponse.slice(idx);
-                    const startChar = before.lastIndexOf('[') > before.lastIndexOf('{') ? '[' : '{';
-                    const startIdx = Math.max(before.lastIndexOf('['), before.lastIndexOf('{'));
-                    const startPos = Math.max(0, idx - 200) + (startIdx >= 0 ? startIdx : 0);
-                    const rawJson = fullResponse.slice(startPos);
-                    const endBracket = startChar === '[' ? ']' : '}';
-                    const endIdx = rawJson.indexOf(endBracket, rawJson.indexOf(toolName));
-                    if (endIdx > 0) {
-                      const jsonStr = rawJson.slice(0, endIdx + 1).replace(/'/g, '"');
-                      const parsed = JSON.parse(jsonStr);
-                      const firstTool = Array.isArray(parsed) ? parsed[0] : parsed;
-                      const tName = firstTool?.name || firstTool?.type || toolName;
-                      const tArgs = firstTool?.arguments || firstTool?.argument || (firstTool?.prompt ? { prompt: firstTool.prompt } : firstTool?.input ? { prompt: firstTool.input } : { prompt: '' });
-                      const toolSpec = mcpTools?.find(t => t.name === tName);
-                      if (toolSpec) {
-                        const argsParsed = typeof tArgs === 'string' ? JSON.parse(tArgs) : tArgs;
-                        sendTool(controller, tName, 'start');
-                        sendStatus(controller, `🔧 Using ${tName.replace(/_/g, ' ')}…`);
-                        const result = await mcpManager.callTool(toolSpec.serverId, toolSpec.name, argsParsed);
-                        sendTool(controller, tName, 'complete', result);
-                        const resultText = (result as any)?.content?.[0]?.text || (result as any)?.content || JSON.stringify(result);
-                        fullResponse = fullResponse.replace(fullResponse.slice(startPos, startPos + endIdx + 1), resultText);
-                      }
-                    }
-                  } catch (parseErr) {
-                    logger.warn('Chat', 'Failed to parse/execute text-based tool call', { error: parseErr instanceof Error ? parseErr.message : String(parseErr) });
-                  }
+                // Intercept text-based tool calls from cascade models
+                const { executed, cleanText } = await interceptTextToolCall(fullResponse, (s) => sendStatus(controller, s));
+                if (executed) {
+                  fullResponse = cleanText;
+                  isToolCall = true;
                 }
                 break;
               } else if (!fullResponse || fullResponse.trim().length === 0) {
                 // Groq/Arcee was configured but failed silently — fall through to cascade
-                const TOOL_NAMES_SILENT = ['generate_image', 'generate_video', 'generate_music', 'hybrid_studio'];
                 console.warn('[CHAT] Tool provider failed silently, falling back to cascade');
                 try {
                   for await (const token of cascade(waterfall, pendingMessages, { temperature: userAiSettings.creativity, maxTokens: 4096, sessionId: conversationId, onModelSelected: (s) => { activeModel = s.displayName; } })) {
@@ -826,75 +854,24 @@ export async function POST(req: NextRequest) {
                   sendText(controller, fullResponse);
                 }
                 // Intercept text-based tool calls from cascade fallback
-                const silentToolIdx = TOOL_NAMES_SILENT.findIndex(tn => fullResponse.includes(tn));
-                if (silentToolIdx !== -1) {
-                  try {
-                    const toolName = TOOL_NAMES_SILENT[silentToolIdx];
-                    const idx = fullResponse.indexOf(toolName);
-                    const before = fullResponse.slice(Math.max(0, idx - 200), idx);
-                    const after = fullResponse.slice(idx);
-                    const startChar = before.lastIndexOf('[') > before.lastIndexOf('{') ? '[' : '{';
-                    const startIdx = Math.max(before.lastIndexOf('['), before.lastIndexOf('{'));
-                    const startPos = Math.max(0, idx - 200) + (startIdx >= 0 ? startIdx : 0);
-                    const rawJson = fullResponse.slice(startPos);
-                    const endBracket = startChar === '[' ? ']' : '}';
-                    const endIdx = rawJson.indexOf(endBracket, rawJson.indexOf(toolName));
-                    if (endIdx > 0) {
-                      const jsonStr = rawJson.slice(0, endIdx + 1).replace(/'/g, '"');
-                      const parsed = JSON.parse(jsonStr);
-                      const firstTool = Array.isArray(parsed) ? parsed[0] : parsed;
-                      const tName = firstTool?.name || firstTool?.type || toolName;
-                      const tArgs = firstTool?.arguments || firstTool?.argument || (firstTool?.prompt ? { prompt: firstTool.prompt } : firstTool?.input ? { prompt: firstTool.input } : { prompt: '' });
-                      const toolSpec = mcpTools?.find(t => t.name === tName);
-                      if (toolSpec) {
-                        const argsParsed = typeof tArgs === 'string' ? JSON.parse(tArgs) : tArgs;
-                        sendTool(controller, tName, 'start');
-                        sendStatus(controller, `🔧 Using ${tName.replace(/_/g, ' ')}…`);
-                        const result = await mcpManager.callTool(toolSpec.serverId, toolSpec.name, argsParsed);
-                        sendTool(controller, tName, 'complete', result);
-                        const resultText = (result as any)?.content?.[0]?.text || (result as any)?.content || JSON.stringify(result);
-                        fullResponse = fullResponse.replace(fullResponse.slice(startPos, startPos + endIdx + 1), resultText);
-                      }
-                    }
-                  } catch (parseErr) {
-                    logger.warn('Chat', 'Failed to parse/execute text-based tool call in silent fallback', { error: parseErr instanceof Error ? parseErr.message : String(parseErr) });
-                  }
+                const { executed, cleanText } = await interceptTextToolCall(fullResponse, (s) => sendStatus(controller, s));
+                if (executed) {
+                  fullResponse = cleanText;
+                  isToolCall = true;
                 }
                 break;
               } else {
-                // Groq/Arcee returned text but no native tool_calls — intercept text-based tool calls
-                const FINAL_TOOL_NAMES = ['generate_image', 'generate_video', 'generate_music', 'hybrid_studio'];
-                const finalToolIdx = FINAL_TOOL_NAMES.findIndex(tn => fullResponse.includes(tn));
-                if (finalToolIdx !== -1) {
-                  try {
-                    const fToolName = FINAL_TOOL_NAMES[finalToolIdx];
-                    const idx = fullResponse.indexOf(fToolName);
-                    const before = fullResponse.slice(Math.max(0, idx - 200), idx);
-                    const startChar = before.lastIndexOf('[') > before.lastIndexOf('{') ? '[' : '{';
-                    const startIdx = Math.max(before.lastIndexOf('['), before.lastIndexOf('{'));
-                    const startPos = Math.max(0, idx - 200) + (startIdx >= 0 ? startIdx : 0);
-                    const rawJson = fullResponse.slice(startPos);
-                    const endBracket = startChar === '[' ? ']' : '}';
-                    const endIdx = rawJson.indexOf(endBracket, rawJson.indexOf(fToolName));
-                    if (endIdx > 0) {
-                      const jsonStr = rawJson.slice(0, endIdx + 1).replace(/'/g, '"');
-                      const parsed = JSON.parse(jsonStr);
-                      const firstTool = Array.isArray(parsed) ? parsed[0] : parsed;
-                      const tName = firstTool?.name || firstTool?.type || fToolName;
-                      const tArgs = firstTool?.arguments || firstTool?.argument || (firstTool?.prompt ? { prompt: firstTool.prompt } : firstTool?.input ? { prompt: firstTool.input } : { prompt: '' });
-                      const toolSpec = mcpTools?.find(t => t.name === tName);
-                      if (toolSpec) {
-                        const argsParsed = typeof tArgs === 'string' ? JSON.parse(tArgs) : tArgs;
-                        sendTool(controller, tName, 'start');
-                        sendStatus(controller, `🔧 Using ${tName.replace(/_/g, ' ')}…`);
-                        const result = await mcpManager.callTool(toolSpec.serverId, toolSpec.name, argsParsed);
-                        sendTool(controller, tName, 'complete', result);
-                        const resultText = (result as any)?.content?.[0]?.text || (result as any)?.content || JSON.stringify(result);
-                        fullResponse = fullResponse.replace(fullResponse.slice(startPos, startPos + endIdx + 1), resultText);
-                      }
-                    }
-                  } catch (parseErr) {
-                    logger.warn('Chat', 'Failed to parse/execute text-based tool call in Groq text fallback', { error: parseErr instanceof Error ? parseErr.message : String(parseErr) });
+                // Groq/Arcee returned text with no native tool_calls
+                // (interceptTextToolCall was already called during streaming — just send clean text)
+                // If text was already sent by the post-stream handler, fullResponse is clean.
+                // If it wasn't intercepted, send it now.
+                if (fullResponse.trim().length > 0) {
+                  const { executed, cleanText } = await interceptTextToolCall(fullResponse, (s) => sendStatus(controller, s));
+                  if (executed) {
+                    fullResponse = cleanText;
+                    isToolCall = true;
+                  } else {
+                    sendText(controller, fullResponse);
                   }
                 }
                 break;
