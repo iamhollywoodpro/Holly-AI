@@ -95,8 +95,10 @@ export async function* cascade(
           console.log(`[Cascade] ✅ First token from ${spec.displayName}`);
           firstChunk = false;
         }
-        // Check for refusal once we have enough text (after ~150 chars)
-        if (!detectedRefusal && buffered.length >= 100) {
+        // Check for refusal early — models often refuse in the first 30–50 chars
+        // (e.g. "I'm sorry, but I can't continue with that." = 44 chars).
+        // Lowered from 100 to 30 to catch short refusals that were slipping through.
+        if (!detectedRefusal && buffered.length >= 30) {
           if (isRefusalResponse(buffered)) {
             detectedRefusal = true;
             console.warn(`[Cascade] 🚫 ${spec.displayName} refused — trying next model`);
