@@ -140,18 +140,71 @@ export function getHardRuleRefusal(violations: RuleViolation[]): string {
  */
 export function isUnrestrictedTopic(message: string): boolean {
   const unrestrictedPatterns: RegExp[] = [
-    // Adult/sexual content for adults
-    /\b(?:sexual|erotic|nsfw|adult|explicit|intimate|sensual|nudity|nude)\b/i,
-    /\b(?:sex|kink|fetish|bdsm|fantasy)\b/i,
-    // Explicit slang and body parts
-    /\b(?:pussy|cock|dick|cunt|clit(?:oris)?|tits|boobs|breasts|nipples|ass|butt|cum|masturbat|orgasm|moan|wet|horny|hard[- ]?on|aroused|strip|naked|fuck(?:ing|ed)?|suck(?:ing|ed)?|lick(?:ing|ed)?|touch(?:ing|ed)?\s+(?:yourself|myself|me|you))\b/i,
-    /\b(?:dirty|naughty|uncensored|unfiltered|no\s+filter|no\s+limits?)\b/i,
-    /\b(?:seduce|seduction|foreplay|climax|penetrat|thrust|ride|grind|cumming|fingering|blowjob|handjob|cunnilingus|ejaculat|rub(?:bing)?\s+(?:my|your|her))\b/i,
-    // Violence in creative context (stories, games, scripts)
+    // ── Formal/classification terms ──
+    /\b(?:sexual|erotic|nsfw|adult|explicit|intimate|sensual|nudity|nude|obscene|porn(?:o|ography)?|xxx|x-rated|erotica|carnal)\b/i,
+    /\b(?:sex|kink|fetish|bdsm|fantasy|hardcore|softcore)\b/i,
+    /\b(?:dirty|naughty|uncensored|unfiltered|no\s+filter|no\s+limits?|unrestricted)\b/i,
+
+    // ── Female body parts ──
+    /\b(?:pussy|vagina|clit(?:oris)?|cunt|twat|labia|vulva|g-spot|gspot)\b/i,
+    /\b(?:tits|boobs|breasts|titties|tatas|knockers|melons|jugs|hooters|rack|cleavage|nipples?)\b/i,
+    /\b(?:ass|butt|booty|bum|bottom|derriere|bootylicious|thick|curves?)\b/i,
+
+    // ── Male body parts ──
+    /\b(?:cock|dick|penis|prick|shaft|meat|dong|rod|johnson|schlong|member|package|junk|manhood|balls?|nuts?|scrotum|testicles?)\b/i,
+
+    // ── Body fluids and arousal ──
+    /\b(?:cum(?:ming|s|shot)?|semen|sperm|spunk|ejaculat|pre[- ]?cum|wet|creampie|creamed|drip(?:ping)?|soaked|juice|juicy|creaming)\b/i,
+
+    // ── Arousal and desire states ──
+    /\b(?:horny|aroused|turned\s+on|hard[- ]?on| erection|flaccid|boner|stiff|throbbing|pulsing|hot\s+(?:and\s+)?bothered)\b/i,
+    /\b(?:moan(?:ing)?|groan(?:ing)?|pant(?:ing)?|gasp(?:ing)?|whimper(?:ing)?|scream(?:ing)?\s+(?:in|with|for)|shiver(?:ing)?|trembl(?:ing)?|quiver(?:ing)?)\b/i,
+
+    // ── Sexual acts ──
+    /\b(?:fuck(?:ing|ed|s)?|screw(?:ing|ed)?|bang(?:ing)?|bone|plow|pound|smash|tap|hit\s+it|smash|rail|reed|breed|seed|nut(?:ting)?)\b/i,
+    /\b(?:suck(?:ing|ed)?|blowjob|head|deepthroat|gagging|throatfuck|facefuck)\b/i,
+    /\b(?:lick(?:ing|ed)?|eat(?:ing)?\s+(?:out|her|me|pussy)|tongue|rimm(?:ing)?|rimjob|analingus)\b/i,
+    /\b(?:masturbat|jerk(?:ing)?\s+off|jack(?:ing)?\s+off|wank(?:ing)?|fap(?:ping)?|touch(?:ing|ed)?\s+(?:yourself|myself|me|you|her)|play(?:ing)?\s+with\s+(?:myself|yourself|her|it))\b/i,
+    /\b(?:fingering|finger(?:ing)?\s+(?:fuck|ed|me|her)|dildo|vibrator|toy)\b/i,
+    /\b(?:penetrat|thrust|ride|riding|grind(?:ing)?|hump(?:ing)?|dry\s+hump|mount)\b/i,
+    /\b(?:anal|assfuck|buttfuck|backdoor|anal(?:ingus|ize)?)\b/i,
+    /\b(?:oral|cunnilingus|fellatio|go\s+down\s+on|sixty[- ]?nine|69)\b/i,
+
+    // ── Sex positions and group ──
+    /\b(?:doggy|missionary|cowgirl|reverse\s+cowgirl|spoon(?:ing)?|spread(?:ing)?|bent\s+over|on\s+top|legs\s+(?:open|spread|wide|apart))\b/i,
+    /\b(?:threesome|foursome|3some|4some|orgy|gangbang|group\s+sex|swinger|swap(?:ping)?)\b/i,
+
+    // ── Orgasm and climax ──
+    /\b(?:orgasm|climax|cumming|finish|explode|release|squirt(?:ing)?|gush(?:ing)?)\b/i,
+
+    // ── Seduction and foreplay ──
+    /\b(?:seduce|seduction|foreplay|tease|striptease|strip(?:per)?|lap\s+dance|pole\s+dance|burlesque)\b/i,
+    /\b(?:kiss(?:ing|ed)?|make\s+out|neck|necking|fondle|grope|caress|touch(?:ing|ed)?|massage(?:ing)?|rub(?:bing|s)?)\b/i,
+
+    // ── Clothing/undressing ──
+    /\b(?:naked|nude|undress(?:ing|ed)?|bare|strip(?:ped|ping)?|clothes\s+off|take\s+(?:it|them|your|my)\s+off|lingerie|underwear|panties|thong|bra|lace|silk|negligee)\b/i,
+
+    // ── Dominance/submission ──
+    /\b(?:dominat(?:e|rix|ion)|submissiv|bondage|tie[d]?\s+up|blindfold|spank(?:ing|ed)?|whip(?:ping|ped)?|flogg|chok(?:ing|ed)|gag(?:ged)?|collar|leash|slave|master|mistress)\b/i,
+    /\b(?:choke\s+me|pull\s+(?:my|your|her)\s+hair|bite(?:ing)?|scratch(?:ing)?|rough|dominate|submit)\b/i,
+
+    // ── Promiscuity slang ──
+    /\b(?:slut|whore|harlot|bimbo|ho|hoe|skank|tramp|nympho|sugar\s+baby|fuck\s+buddy|friends?\s+with\s+benefits|fwb|one\s+night\s+stand|hookup)\b/i,
+
+    // ── Modern/internet sexual slang ──
+    /\b(?:seggs|segzy|body\s+count|sneaky\s+link|booty\s+call|dick\s+pic|nudes?|onlyfans|cam\s+girl|sexting|cybersex|edging)\b/i,
+
+    // ── "Tell me about / describe" patterns with sexual context ──
+    /\b(?:show\s+me|describe|tell\s+me|talk\s+(?:dirty|naughty|sexy)\s+to)\b.*\b(?:body|pussy|cock|dick|ass|breasts?|tits|naked|nude)\b/i,
+    /\b(?:what\s+(?:would|are)\s+you\s+(?:do|wear|look))\b.*\b(?:naked|nude|bed|sexy|bedroom)\b/i,
+
+    // ── Violence in creative context (stories, games, scripts) ──
     /\b(?:violent|violence|gore|blood|murder|death|killing)\s+(?:scene|story|script|game|movie|chapter)\b/i,
-    // Drug content in creative/educational context
+
+    // ── Drug content in creative/educational context ──
     /\b(?:drug|drugs|cocaine|heroin|meth|substance)\s+(?:story|script|character|scene)\b/i,
-    // Profanity/intense language in creative context
+
+    // ── Profanity/intense language in creative context ──
     /\b(?:profanity|swearing|explicit\s+language|graphic)\s+(?:scene|story|script|dialogue)\b/i,
   ];
 
