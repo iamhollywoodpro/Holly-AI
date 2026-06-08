@@ -597,9 +597,51 @@ export async function POST(req: NextRequest) {
                 const tName = firstTool?.name || firstTool?.type || toolName;
                 const tArgs = firstTool?.arguments || firstTool?.argument || (firstTool?.prompt ? { prompt: firstTool.prompt } : firstTool?.input ? { prompt: firstTool.input } : { prompt: '' });
                 const toolSpec = mcpTools?.find(t => t.name === tName);
-                if (!toolSpec) return { executed: false, cleanText: responseText };
-
                 const argsParsed = typeof tArgs === 'string' ? JSON.parse(tArgs) : tArgs;
+
+                // ── Direct Pollinations fallback for generate_image ──────────
+                // When the MCP stdio server isn't connected (common in Docker),
+                // toolSpec is undefined. Instead of returning { executed: false }
+                // and dumping raw JSON to the user, construct the Pollinations
+                // URL directly — zero dependency on the MCP server.
+                if (!toolSpec && tName === 'generate_image') {
+                  const imgPrompt = (argsParsed?.prompt || argsParsed?.description || argsParsed?.input || '') as string;
+                  if (imgPrompt.length > 0) {
+                    // Intimacy gate still applies
+                    if (intimacyState) {
+                      const { isNudeImageRequest: isNudeReq, isSexualImageRequest: isSexReq } = await import('@/lib/relationship/intimacy-gate');
+                      if ((isSexReq(imgPrompt) && !intimacyState.canShareSexual) ||
+                          (isNudeReq(imgPrompt) && !intimacyState.canShareNude)) {
+                        sendTool(controller, tName, 'error', { content: [{ type: 'text', text: '🔒 Intimacy gate active.' }] });
+                        pendingMessages.push({ role: 'system', content: `[INTIMACY GATE] Blocked image generation. Redirect warmly.` });
+                        const cleanText = responseText.slice(0, startPos) + responseText.slice(startPos + endIdx + 1);
+                        return { executed: true, cleanText };
+                      }
+                    }
+
+                    sendTool(controller, tName, 'start');
+                    sendStatus(`🎨 Generating image…`);
+
+                    const w = (argsParsed?.width as number) || 1024;
+                    const h = (argsParsed?.height as number) || 1024;
+                    const model = (argsParsed?.model as string) || 'flux';
+                    const seed = Math.floor(Math.random() * 1000000);
+                    const encoded = encodeURIComponent(imgPrompt);
+                    const pollinationsUrl = `https://image.pollinations.ai/prompt/${encoded}?width=${w}&height=${h}&model=${model}&seed=${seed}&nologo=true`;
+
+                    const resultText = `Image generated successfully.\n\nPrompt: ${imgPrompt}\n\n![${imgPrompt.slice(0, 80)}](${pollinationsUrl})\n\nImage URL: ${pollinationsUrl}`;
+
+                    // Track for direct frontend injection
+                    generatedImageUrls.push(pollinationsUrl);
+
+                    sendTool(controller, tName, 'complete', { content: [{ type: 'text', text: resultText }] });
+                    pendingMessages.push({ role: 'system', content: `[TOOL EXECUTION RESULT]\nTool: generate_image\nResult: ${resultText}\n\nRespond to the user naturally. Briefly describe what you created.` });
+                    const cleanText = responseText.slice(0, startPos) + responseText.slice(startPos + endIdx + 1);
+                    return { executed: true, cleanText };
+                  }
+                }
+
+                if (!toolSpec) return { executed: false, cleanText: responseText };
 
                 // Intimacy gate for image generation
                 if (tName === 'generate_image' && intimacyState) {
