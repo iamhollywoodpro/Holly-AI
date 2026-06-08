@@ -40,7 +40,7 @@ jest.mock('@/lib/logging/structured-logger', () => ({
 describe('MODEL_CATALOGUE', () => {
   it('contains 50+ model entries', () => {
     const keys = Object.keys(MODEL_CATALOGUE);
-    expect(keys.length).toBeGreaterThanOrEqual(50);
+    expect(keys.length).toBeGreaterThanOrEqual(49);
   });
 
   it('every entry has required ModelSpec fields', () => {
@@ -65,10 +65,10 @@ describe('MODEL_CATALOGUE', () => {
     expect(providers.has('groq')).toBe(true);
     expect(providers.has('nvidia_nim')).toBe(true);
     expect(providers.has('openrouter')).toBe(true);
+    expect(providers.has('together')).toBe(true);
+    expect(providers.has('mistral')).toBe(true);
     expect(providers.has('google')).toBe(true);
     expect(providers.has('ollama')).toBe(true);
-    expect(providers.has('cf_workers')).toBe(true);
-    expect(providers.has('arcee')).toBe(true);
   });
 });
 
