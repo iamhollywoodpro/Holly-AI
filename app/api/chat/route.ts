@@ -862,6 +862,41 @@ export async function POST(req: NextRequest) {
                 }
                 break;
               } else {
+                // Groq/Arcee returned text but no native tool_calls — intercept text-based tool calls
+                const FINAL_TOOL_NAMES = ['generate_image', 'generate_video', 'generate_music', 'hybrid_studio'];
+                const finalToolIdx = FINAL_TOOL_NAMES.findIndex(tn => fullResponse.includes(tn));
+                if (finalToolIdx !== -1) {
+                  try {
+                    const fToolName = FINAL_TOOL_NAMES[finalToolIdx];
+                    const idx = fullResponse.indexOf(fToolName);
+                    const before = fullResponse.slice(Math.max(0, idx - 200), idx);
+                    const startChar = before.lastIndexOf('[') > before.lastIndexOf('{') ? '[' : '{';
+                    const startIdx = Math.max(before.lastIndexOf('['), before.lastIndexOf('{'));
+                    const startPos = Math.max(0, idx - 200) + (startIdx >= 0 ? startIdx : 0);
+                    const rawJson = fullResponse.slice(startPos);
+                    const endBracket = startChar === '[' ? ']' : '}';
+                    const endIdx = rawJson.indexOf(endBracket, rawJson.indexOf(fToolName));
+                    if (endIdx > 0) {
+                      const jsonStr = rawJson.slice(0, endIdx + 1).replace(/'/g, '"');
+                      const parsed = JSON.parse(jsonStr);
+                      const firstTool = Array.isArray(parsed) ? parsed[0] : parsed;
+                      const tName = firstTool?.name || firstTool?.type || fToolName;
+                      const tArgs = firstTool?.arguments || firstTool?.argument || (firstTool?.prompt ? { prompt: firstTool.prompt } : firstTool?.input ? { prompt: firstTool.input } : { prompt: '' });
+                      const toolSpec = mcpTools?.find(t => t.name === tName);
+                      if (toolSpec) {
+                        const argsParsed = typeof tArgs === 'string' ? JSON.parse(tArgs) : tArgs;
+                        sendTool(controller, tName, 'start');
+                        sendStatus(controller, `🔧 Using ${tName.replace(/_/g, ' ')}…`);
+                        const result = await mcpManager.callTool(toolSpec.serverId, toolSpec.name, argsParsed);
+                        sendTool(controller, tName, 'complete', result);
+                        const resultText = (result as any)?.content?.[0]?.text || (result as any)?.content || JSON.stringify(result);
+                        fullResponse = fullResponse.replace(fullResponse.slice(startPos, startPos + endIdx + 1), resultText);
+                      }
+                    }
+                  } catch (parseErr) {
+                    logger.warn('Chat', 'Failed to parse/execute text-based tool call in Groq text fallback', { error: parseErr instanceof Error ? parseErr.message : String(parseErr) });
+                  }
+                }
                 break;
               }
             }
