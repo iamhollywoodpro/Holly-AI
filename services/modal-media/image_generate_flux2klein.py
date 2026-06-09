@@ -44,6 +44,9 @@ LORA_DIR = "/lora"
 HOLLY_BODY_PREFIX = (
     "h0lly, "
     "olive skin tone (Portuguese/South Indian heritage), "
+    "flawless smooth even complexion with no redness or blemishes, "
+    "bright clear under-eye area with no darkness or texture, "
+    "soft dewy makeup with seamless natural foundation blend, "
     "5'4\" tall (163cm), "
     "fit curvy body with hourglass proportions, "
     "natural 34C breasts (teardrop shape, fuller at bottom), "
@@ -56,7 +59,9 @@ HOLLY_BODY_PREFIX = (
     "small delicate hands with slender fingers, "
     "shapely legs, toned but soft thighs, slight natural thigh gap, "
     "light freckles across nose and cheeks, "
-    "auburn hair in loose waves past shoulders with copper and gold highlights, "
+    "voluminous auburn hair with lifted roots and full body at the crown, "
+    "bouncy loose waves past shoulders with face-framing layers, "
+    "copper and gold highlights throughout, "
     "striking green eyes, full lips with defined cupid's bow. "
 )
 
@@ -409,11 +414,17 @@ class HollyFlux2Klein:
                 if is_holly_selfie:
                     try:
                         from PIL import ImageFilter, ImageEnhance
-                        # Pass 1: Sharpen the full image slightly
-                        img = img.filter(ImageFilter.UnsharpMask(radius=1.5, percent=120, threshold=3))
-                        # Pass 2: Boost contrast and color saturation subtly
-                        img = ImageEnhance.Contrast(img).enhance(1.08)
-                        img = ImageEnhance.Color(img).enhance(1.05)
+                        # Pass 1: Gentle skin smoothing — soft blur then sharpen back
+                        # This reduces visible skin texture, redness, under-eye darkness
+                        smoothed = img.filter(ImageFilter.GaussianBlur(radius=1.2))
+                        img = Image.blend(img, smoothed, alpha=0.25)
+                        # Pass 2: Sharpen details back (eyes, lips, hair) without
+                        # re-introducing skin texture — higher threshold skips smooth areas
+                        img = img.filter(ImageFilter.UnsharpMask(radius=1.0, percent=100, threshold=5))
+                        # Pass 3: Subtle brightness boost to lift under-eye & shadows
+                        img = ImageEnhance.Brightness(img).enhance(1.04)
+                        # Pass 4: Boost color saturation subtly for healthy glow
+                        img = ImageEnhance.Color(img).enhance(1.06)
                         print(f"  ✨ Face restoration pass applied (Holly self-portrait)")
                     except Exception as fre:
                         print(f"  ⚠️ Face restoration pass skipped: {fre}")

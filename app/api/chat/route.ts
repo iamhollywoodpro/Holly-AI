@@ -607,7 +607,10 @@ export async function POST(req: NextRequest) {
 
               const w = 1024, h = 1024;
               const seed = Math.floor(Math.random() * 1000000);
-              const encoded = encodeURIComponent(imagePrompt);
+              // Quality suffix for better Pollinations results
+              const qualitySuffix = 'flawless smooth skin, bright under-eye area, soft dewy makeup, voluminous hair with lifted roots, professional beauty photography, photorealistic';
+              const fullPrompt = imagePrompt.includes('h0lly') ? `${imagePrompt}, ${qualitySuffix}` : `${imagePrompt}, ${qualitySuffix}`;
+              const encoded = encodeURIComponent(fullPrompt);
               const pollinationsUrl = `https://image.pollinations.ai/prompt/${encoded}?width=${w}&height=${h}&model=flux&seed=${seed}&nologo=true`;
 
               sendProgress(controller, { phase: 'generate_image', percent: 75, message: '🎨 Almost done…' });
