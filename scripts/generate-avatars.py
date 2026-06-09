@@ -150,6 +150,81 @@ POSE_AVATARS = {
 # ─── Generation Functions ──────────────────────────────────────────────────
 
 
+def detect_beauty_mark_side(img) -> str:
+    """
+    Detect which side of the neck the beauty mark is on.
+
+    Holly's beauty mark is canonically on her RIGHT lower neck.
+    In a portrait, her right = viewer's LEFT side.
+
+    Returns 'correct' if mark is on viewer's left, 'flipped' if on viewer's right.
+    """
+    from PIL import Image
+    import numpy as np
+
+    w, h = img.size
+    arr = np.array(img.convert("L"))  # grayscale
+
+    # Neck region: bottom 35% of image, center 60% width
+    y_start = int(h * 0.55)
+    y_end = int(h * 0.90)
+    x_margin = int(w * 0.20)
+    x_start = x_margin
+    x_end = w - x_margin
+
+    neck = arr[y_start:y_end, x_start:x_end]
+    neck_w = neck.shape[1]
+
+    # Split into viewer-left half and viewer-right half
+    left_half = neck[:, :neck_w // 2]    # viewer's left = Holly's right (correct side)
+    right_half = neck[:, neck_w // 2:]   # viewer's right = Holly's left (wrong side)
+
+    # Find darkest concentrated spot in each half
+    # Use a sliding window to find a small dark region (beauty mark is ~5-15px)
+    def find_darkest_spot(region, window=12):
+        if region.size == 0:
+            return 255, 0, 0
+        min_val = 255
+        min_y, min_x = 0, 0
+        for y in range(0, region.shape[0] - window, 4):
+            for x in range(0, region.shape[1] - window, 4):
+                patch = region[y:y+window, x:x+window]
+                val = patch.mean()
+                if val < min_val:
+                    min_val = val
+                    min_y, min_x = y, x
+        return min_val, min_y, min_x
+
+    left_darkness, _, _ = find_darkest_spot(left_half)
+    right_darkness, _, _ = find_darkest_spot(right_half)
+
+    # The beauty mark creates a noticeably darker spot.
+    # If the left half has the darkest spot, mark is on correct side (viewer's left).
+    # If the right half is darker, mark is on wrong side → needs flip.
+    if left_darkness <= right_darkness:
+        return "correct"
+    else:
+        return "flipped"
+
+
+def fix_beauty_mark_side(img):
+    """
+    Ensure Holly's beauty mark is on the correct side.
+    Her beauty mark should be on her RIGHT lower neck = viewer's LEFT.
+    If detected on viewer's right, flip the image horizontally.
+
+    Since these are circular avatar crops with no text, flipping is invisible.
+    """
+    side = detect_beauty_mark_side(img)
+    if side == "flipped":
+        from PIL import ImageOps
+        img = ImageOps.mirror(img)
+        print(f"  🔄 Flipped image — beauty mark was on wrong side")
+    else:
+        print(f"  ✅ Beauty mark on correct side (viewer's left)")
+    return img
+
+
 def generate_with_modal(name: str, prompt: str, seed: int, width: int = 1024, height: int = 1024) -> bytes:
     """Generate an image using the Modal FLUX.2 Klein + h0lly LoRA service."""
     full_prompt = f"h0lly, {prompt}, {QUALITY_SUFFIX}"
@@ -204,6 +279,9 @@ def save_image(data: bytes, path: Path) -> None:
 def generate_avatar(name: str, config: dict, use_pollinations: bool = False,
                     width: int = 1024, height: int = 1024) -> bool:
     """Generate a single avatar image."""
+    from PIL import Image
+    import io as _io
+
     prompt = config["prompt"]
     seed = config["seed"]
 
@@ -213,13 +291,29 @@ def generate_avatar(name: str, config: dict, use_pollinations: bool = False,
         else:
             data = generate_with_modal(name, prompt, seed, width, height)
 
+        img = Image.open(_io.BytesIO(data))
+
+        # For emotion avatars only: fix beauty mark side consistency.
+        # Pose avatars are full-body — flipping would affect too many asymmetric features.
+        if name in EMOTION_AVATARS:
+            img = fix_beauty_mark_side(img)
+
         # Determine output path
         if name in POSE_AVATARS:
             path = POSES_DIR / f"{name}.jpg"
         else:
             path = OUTPUT_DIR / f"{name}.jpg"
 
-        save_image(data, path)
+        # Save as JPEG
+        path.parent.mkdir(parents=True, exist_ok=True)
+        buf = _io.BytesIO()
+        img.save(buf, format="JPEG", quality=95)
+        final_data = buf.getvalue()
+
+        with open(path, "wb") as f:
+            f.write(final_data)
+        size_kb = len(final_data) / 1024
+        print(f"  ✅ Saved {path.name} ({size_kb:.1f} KB)")
         return True
 
     except Exception as e:
