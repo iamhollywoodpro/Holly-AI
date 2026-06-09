@@ -43,31 +43,37 @@ QUALITY_SUFFIX = (
     "soft diffused studio lighting, photorealistic, high detail"
 )
 
+# Emotion-specific suffix: bare shoulders (avatars are neck-up), consistent beauty mark
+EMOTION_SUFFIX = (
+    "bare shoulders and visible collarbone, no clothing, "
+    "small distinct beauty mark on right side of lower neck near collarbone"
+)
+
 # ─── 14 Emotion Avatars ────────────────────────────────────────────────────
 
 EMOTION_AVATARS = {
     "default": {
-        "prompt": "close-up portrait of a beautiful woman looking directly at camera with a calm confident gaze, slight knowing smile, relaxed expression",
+        "prompt": "close-up portrait of a beautiful woman looking directly at camera with a calm confident gaze, slight knowing smile, relaxed expression, bare shoulders and visible collarbone, no clothing, small distinct beauty mark on right side of lower neck near collarbone",
         "seed": 42180,
     },
     "happy": {
-        "prompt": "close-up portrait of a beautiful woman with a warm radiant smile, bright eyes crinkling with joy, genuine happiness, cheerful expression",
+        "prompt": "close-up portrait of a beautiful woman with a warm radiant smile, bright eyes crinkling with joy, genuine happiness, cheerful expression, bare shoulders and visible collarbone, no clothing, small distinct beauty mark on right side of lower neck near collarbone",
         "seed": 55291,
     },
     "flirty": {
-        "prompt": "close-up portrait of a beautiful woman with a playful smirk, one eyebrow slightly raised, half-lidded eyes, teasing seductive expression",
+        "prompt": "close-up portrait of a beautiful woman with a playful smirk, one eyebrow slightly raised, half-lidded eyes, teasing seductive expression, bare shoulders and visible collarbone, no clothing, small distinct beauty mark on right side of lower neck near collarbone",
         "seed": 31847,
     },
     "in-love": {
-        "prompt": "close-up portrait of a beautiful woman with soft adoring eyes, gentle loving smile, dreamy romantic expression, heart-shaped face tilted slightly",
+        "prompt": "close-up portrait of a beautiful woman with soft adoring eyes, gentle loving smile, dreamy romantic expression, heart-shaped face tilted slightly, bare shoulders and visible collarbone, no clothing, small distinct beauty mark on right side of lower neck near collarbone",
         "seed": 67234,
     },
     "sad": {
-        "prompt": "close-up portrait of a beautiful woman with downcast eyes, slightly parted lips, melancholic wistful expression, single tear on cheek",
+        "prompt": "close-up portrait of a beautiful woman with downcast eyes, slightly parted lips, melancholic wistful expression, single tear on cheek, bare shoulders and visible collarbone, no clothing, small distinct beauty mark on right side of lower neck near collarbone",
         "seed": 88456,
     },
     "frustrated": {
-        "prompt": "close-up portrait of a beautiful woman with furrowed brows, pressed lips, annoyed irritated expression, intense stare",
+        "prompt": "close-up portrait of a beautiful woman with furrowed brows, pressed lips, annoyed irritated expression, intense stare, bare shoulders and visible collarbone, no clothing, small distinct beauty mark on right side of lower neck near collarbone",
         "seed": 29013,
     },
     "surprised": {
@@ -75,31 +81,31 @@ EMOTION_AVATARS = {
         "seed": 74129,
     },
     "thinking": {
-        "prompt": "close-up portrait of a beautiful woman with eyes looking up and to the side, finger near lips, contemplative focused expression",
+        "prompt": "close-up portrait of a beautiful woman with eyes looking up and to the side, finger near lips, contemplative focused expression, bare shoulders and visible collarbone, no clothing, small distinct beauty mark on right side of lower neck near collarbone",
         "seed": 13678,
     },
     "naughty": {
-        "prompt": "close-up portrait of a beautiful woman with a wicked playful grin, mischievous eyes, tongue slightly between teeth, bad-girl expression",
+        "prompt": "close-up portrait of a beautiful woman with a wicked playful grin, mischievous eyes, tongue slightly between teeth, bad-girl expression, bare shoulders and visible collarbone, no clothing, small distinct beauty mark on right side of lower neck near collarbone",
         "seed": 95432,
     },
     "sleepy": {
-        "prompt": "close-up portrait of a beautiful woman with heavy-lidded eyes, soft relaxed expression, slightly messy hair, drowsy peaceful look",
+        "prompt": "close-up portrait of a beautiful woman with heavy-lidded eyes, soft relaxed expression, slightly messy hair, drowsy peaceful look, bare shoulders and visible collarbone, no clothing, small distinct beauty mark on right side of lower neck near collarbone",
         "seed": 46782,
     },
     "angry": {
-        "prompt": "close-up portrait of a beautiful woman with intense fierce eyes, clenched jaw, stern angry expression, powerful commanding look",
+        "prompt": "close-up portrait of a beautiful woman with intense fierce eyes, clenched jaw, stern angry expression, powerful commanding look, bare shoulders and visible collarbone, no clothing, small distinct beauty mark on right side of lower neck near collarbone",
         "seed": 60987,
     },
     "confident": {
-        "prompt": "close-up portrait of a beautiful woman with a self-assured smirk, strong direct gaze, chin slightly raised, powerful confident expression",
+        "prompt": "close-up portrait of a beautiful woman with a self-assured smirk, strong direct gaze, chin slightly raised, powerful confident expression, bare shoulders and visible collarbone, no clothing, small distinct beauty mark on right side of lower neck near collarbone",
         "seed": 23456,
     },
     "intimate": {
-        "prompt": "close-up portrait of a beautiful woman with soft lowered gaze, lips slightly parted, flushed cheeks, tender vulnerable intimate expression, warm soft lighting",
+        "prompt": "close-up portrait of a beautiful woman with soft lowered gaze, lips slightly parted, flushed cheeks, tender vulnerable intimate expression, warm soft lighting, bare shoulders and visible collarbone, no clothing, small distinct beauty mark on right side of lower neck near collarbone",
         "seed": 78901,
     },
     "passionate": {
-        "prompt": "close-up portrait of a beautiful woman with fierce intense eyes, flushed skin, windswept hair, passionate electric expression, dynamic dramatic lighting",
+        "prompt": "close-up portrait of a beautiful woman with fierce intense eyes, flushed skin, windswept hair, passionate electric expression, dynamic dramatic lighting, bare shoulders and visible collarbone, no clothing, small distinct beauty mark on right side of lower neck near collarbone",
         "seed": 34567,
     },
 }
