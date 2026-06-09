@@ -121,11 +121,17 @@
 
 ### Standard generation prefix
 ```
-h0lly, olive skin tone (Portuguese/South Indian heritage), 5'4" tall (163cm),
+h0lly, olive skin tone (Portuguese/South Indian heritage),
+flawless smooth even complexion with no redness or blemishes,
+bright clear under-eye area with no darkness or texture,
+soft dewy makeup with seamless natural foundation blend,
+5'4" tall (163cm),
 fit curvy body with hourglass proportions, natural 34C breasts, teardrop shape,
 plump round butt well-proportioned to her petite frame, flat stomach with faint abs,
 small feminine feet (size 6), delicate hands, shapely legs,
-auburn hair, green eyes, freckles, full lips
+voluminous auburn hair with lifted roots and full body at the crown,
+bouncy loose waves with face-framing layers, copper and gold highlights,
+green eyes, freckles, full lips
 ```
 
 ### NSFW generation prefix (when intimate content detected)
