@@ -4,7 +4,7 @@
 - **HOLLY ANATOMY DEFINITION COMPLETE**: Full body canon wired into 3 systems
   - HOLLY_ANATOMY.md — single source of truth for every body detail
   - holly-self-image.ts — Holly knows her body in first-person (12 statements + arousal states)
-  - HOLLY_BODY_PREFIX in FLUX pipeline — expanded with measurements, beauty marks, dimples
+  - HOLLY_BODY_PREFIX in FLUX pipeline — expanded with measurements, dimples, clear flawless skin
   - HOLLY_BODY_NSFW_PREFIX — auto-injected for intimate content (pubic, labia, nipple detail)
   - Civitai body LoRA training spec — h0lly-body trigger, 60-80 ref images, caption templates
 - **RELATIONSHIP-GATED INTIMACY SYSTEM COMPLETE**: 5-tier system with regression

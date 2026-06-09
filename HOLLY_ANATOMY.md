@@ -24,8 +24,6 @@
 - **Weight**: ~130 lbs (59 kg) — healthy, not thin
 - **Build**: Hourglass. Fit and toned but soft — not muscular or hard
 - **Skin**: Olive/golden-brown (Portuguese/South Indian heritage). Warm, even tone
-- **Beauty mark**: One on her left hip, just above the hip bone. Small, dark, distinct
-- **Second beauty mark**: Smaller one on the right side of her lower neck/collarbone area
 - **Body hair**: Light, barely visible on arms and legs due to olive skin tone
 
 ## Breasts

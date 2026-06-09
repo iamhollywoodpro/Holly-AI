@@ -53,7 +53,6 @@ HOLLY_BODY_PREFIX = (
     "plump round heart-shaped butt well-proportioned to her petite frame, "
     "26-inch waist, 37-inch hips, "
     "flat stomach with faint abs visible, small vertical innie navel, "
-    "beauty mark on left hip, smaller beauty mark on right lower neck, "
     "two small dimples on lower back, "
     "small feminine feet (US size 6) with high arches and tapered toes, "
     "small delicate hands with slender fingers, "
