@@ -66,7 +66,7 @@
 - [ ] Torso close-up (chest to hips) front (x2)
 - [ ] Torso close-up (chest to hips) side
 - [ ] Back close-up (shoulders to butt)
-- [ ] Hip/waist detail (beauty mark visible)
+- [ ] Hip/waist detail (skin tone, no marks)
 - [ ] Legs close-up (thighs to knees)
 - [ ] Feet close-up (showing arch, toes)
 - [ ] Hands close-up (slender fingers)
@@ -103,7 +103,7 @@ h0lly-body, standing front facing camera, arms at sides, full nude,
 olive skin tone, hourglass figure, 26-inch waist, 37-inch hips,
 flat stomach with faint abs visible, small vertical innie navel,
 natural 34C breasts teardrop shape, rosy-pink nipples slightly upturned,
-plump round heart-shaped butt, beauty mark on left hip,
+plump round heart-shaped butt, clear flawless skin,
 trimmed narrow auburn pubic strip,
 shapely legs, small feet, delicate hands,
 auburn hair loose waves past shoulders, green eyes, warm smile,
@@ -116,7 +116,7 @@ h0lly-body, sitting on chair side view, legs crossed,
 white bikini, olive skin tone, hourglass figure,
 26-inch waist, 37-inch hips, flat stomach with faint abs,
 natural 34C breasts in bikini top, plump round butt,
-beauty mark on left hip, shapely legs,
+clear flawless skin, shapely legs,
 auburn hair loose waves, green eyes, relaxed expression,
 photorealistic, full body shot, natural lighting
 ```
@@ -128,7 +128,7 @@ olive skin tone, hourglass figure,
 natural 34C breasts settled naturally to sides, rosy-pink nipples,
 flat stomach, small innie navel,
 trimmed narrow auburn pubic strip,
-beauty mark on left hip, beauty mark on right lower neck,
+clear flawless skin with no moles or marks,
 auburn hair spread on surface, green eyes, soft gaze,
 photorealistic, full body shot, soft warm lighting
 ```
@@ -151,10 +151,9 @@ photorealistic, full body shot, studio lighting
 These are Holly's **distinguishing features** — the things that make her body unique and recognizable:
 
 1. **Olive skin** (Portuguese/South Indian heritage) — warm golden-brown
-2. **Beauty mark on left hip** — small, dark, distinct, above the hip bone
-3. **Beauty mark on right lower neck** — smaller than the hip one
-4. **Two dimples on lower back** — above the butt
-5. **34C teardrop breasts** — fuller at bottom, not round
+2. **Clear flawless skin** — no moles, beauty marks, birth marks, or tattoos
+3. **Two dimples on lower back** — above the butt
+4. **34C teardrop breasts** — fuller at bottom, not round
 6. **Heart-shaped butt** — plump, round, perky when standing
 7. **Hourglass proportions** — 26" waist / 37" hips (dramatic ratio)
 8. **Faint abs** — flat stomach with visible definition
@@ -169,7 +168,7 @@ These are Holly's **distinguishing features** — the things that make her body 
 Using the face LoRA (`h0lly`) + existing body LoRAs, generate 60-80 full-body reference images across all required poses. Use the HOLLY_BODY_PREFIX from the FLUX pipeline for consistent prompting.
 
 ### Phase 2: Curate & Caption
-- Discard any images where anatomy is inconsistent (wrong proportions, missing beauty marks, etc.)
+- Discard any images where anatomy is inconsistent (wrong proportions, unwanted marks, etc.)
 - Caption every kept image using the templates above
 - Ensure pose variety is balanced (don't over-weight one angle)
 
@@ -181,7 +180,7 @@ Using the face LoRA (`h0lly`) + existing body LoRAs, generate 60-80 full-body re
 
 ### Phase 4: Test & Validate
 Generate test images with the trained LoRA and check:
-- [ ] Beauty marks appear in correct locations (left hip, right lower neck)
+- [ ] Skin is clear and flawless (no moles, marks, or tattoos)
 - [ ] Breast shape is consistent teardrop (not round, not implants)
 - [ ] Butt is heart-shaped and proportional to petite frame
 - [ ] Waist-to-hip ratio is dramatic hourglass
@@ -203,7 +202,7 @@ Generate test images with the trained LoRA and check:
 The body LoRA is designed to work **alongside** the face LoRA:
 
 - **Face LoRA** (`h0lly`): Ensures consistent face, eyes, hair, expression
-- **Body LoRA** (`h0lly-body`): Ensures consistent body proportions, beauty marks, anatomy
+- **Body LoRA** (`h0lly-body`): Ensures consistent body proportions, clear skin, anatomy
 
 Both should be baked in at startup (fused with the base model). When generating:
 1. If the prompt contains `h0lly` → face LoRA activates

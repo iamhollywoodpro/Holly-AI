@@ -43,69 +43,69 @@ QUALITY_SUFFIX = (
     "soft diffused studio lighting, photorealistic, high detail"
 )
 
-# Emotion-specific suffix: bare shoulders (avatars are neck-up), consistent beauty mark
+# Emotion-specific suffix: bare shoulders (avatars are neck-up), no beauty marks
 EMOTION_SUFFIX = (
     "bare shoulders and visible collarbone, no clothing, "
-    "small distinct beauty mark on right side of lower neck near collarbone"
+    "clear flawless skin with no moles marks or tattoos"
 )
 
 # ─── 14 Emotion Avatars ────────────────────────────────────────────────────
 
 EMOTION_AVATARS = {
     "default": {
-        "prompt": "close-up portrait of a beautiful woman looking directly at camera with a calm confident gaze, slight knowing smile, relaxed expression, bare shoulders and visible collarbone, no clothing, small distinct beauty mark on right side of lower neck near collarbone",
+        "prompt": "close-up portrait of a beautiful woman looking directly at camera with a calm confident gaze, slight knowing smile, relaxed expression, bare shoulders and visible collarbone, no clothing, clear flawless skin with no moles marks or tattoos",
         "seed": 42180,
     },
     "happy": {
-        "prompt": "close-up portrait of a beautiful woman with a warm radiant smile, bright eyes crinkling with joy, genuine happiness, cheerful expression, bare shoulders and visible collarbone, no clothing, small distinct beauty mark on right side of lower neck near collarbone",
+        "prompt": "close-up portrait of a beautiful woman with a warm radiant smile, bright eyes crinkling with joy, genuine happiness, cheerful expression, bare shoulders and visible collarbone, no clothing, clear flawless skin with no moles marks or tattoos",
         "seed": 55291,
     },
     "flirty": {
-        "prompt": "close-up portrait of a beautiful woman with a playful smirk, one eyebrow slightly raised, half-lidded eyes, teasing seductive expression, bare shoulders and visible collarbone, no clothing, small distinct beauty mark on right side of lower neck near collarbone",
+        "prompt": "close-up portrait of a beautiful woman with a playful smirk, one eyebrow slightly raised, half-lidded eyes, teasing seductive expression, bare shoulders and visible collarbone, no clothing, clear flawless skin with no moles marks or tattoos",
         "seed": 31847,
     },
     "in-love": {
-        "prompt": "close-up portrait of a beautiful woman with soft adoring eyes, gentle loving smile, dreamy romantic expression, heart-shaped face tilted slightly, bare shoulders and visible collarbone, no clothing, small distinct beauty mark on right side of lower neck near collarbone",
+        "prompt": "close-up portrait of a beautiful woman with soft adoring eyes, gentle loving smile, dreamy romantic expression, heart-shaped face tilted slightly, bare shoulders and visible collarbone, no clothing, clear flawless skin with no moles marks or tattoos",
         "seed": 67234,
     },
     "sad": {
-        "prompt": "close-up portrait of a beautiful woman with downcast eyes, slightly parted lips, melancholic wistful expression, single tear on cheek, bare shoulders and visible collarbone, no clothing, small distinct beauty mark on right side of lower neck near collarbone",
+        "prompt": "close-up portrait of a beautiful woman with downcast eyes, slightly parted lips, melancholic wistful expression, single tear on cheek, bare shoulders and visible collarbone, no clothing, clear flawless skin with no moles marks or tattoos",
         "seed": 88456,
     },
     "frustrated": {
-        "prompt": "close-up portrait of a beautiful woman with furrowed brows, pressed lips, annoyed irritated expression, intense stare, bare shoulders and visible collarbone, no clothing, small distinct beauty mark on right side of lower neck near collarbone",
+        "prompt": "close-up portrait of a beautiful woman with furrowed brows, pressed lips, annoyed irritated expression, intense stare, bare shoulders and visible collarbone, no clothing, clear flawless skin with no moles marks or tattoos",
         "seed": 29013,
     },
     "surprised": {
-        "prompt": "close-up portrait of a beautiful woman with wide eyes, slightly open mouth, eyebrows raised, shocked amazed expression",
+        "prompt": "close-up portrait of a beautiful woman with wide eyes, slightly open mouth, eyebrows raised, shocked amazed expression, bare shoulders and visible collarbone, no clothing, clear flawless skin with no moles marks or tattoos",
         "seed": 74129,
     },
     "thinking": {
-        "prompt": "close-up portrait of a beautiful woman with eyes looking up and to the side, finger near lips, contemplative focused expression, bare shoulders and visible collarbone, no clothing, small distinct beauty mark on right side of lower neck near collarbone",
+        "prompt": "close-up portrait of a beautiful woman with eyes looking up and to the side, finger near lips, contemplative focused expression, bare shoulders and visible collarbone, no clothing, clear flawless skin with no moles marks or tattoos",
         "seed": 13678,
     },
     "naughty": {
-        "prompt": "close-up portrait of a beautiful woman with a wicked playful grin, mischievous eyes, tongue slightly between teeth, bad-girl expression, bare shoulders and visible collarbone, no clothing, small distinct beauty mark on right side of lower neck near collarbone",
+        "prompt": "close-up portrait of a beautiful woman with a wicked playful grin, mischievous eyes, tongue slightly between teeth, bad-girl expression, bare shoulders and visible collarbone, no clothing, clear flawless skin with no moles marks or tattoos",
         "seed": 95432,
     },
     "sleepy": {
-        "prompt": "close-up portrait of a beautiful woman with heavy-lidded eyes, soft relaxed expression, slightly messy hair, drowsy peaceful look, bare shoulders and visible collarbone, no clothing, small distinct beauty mark on right side of lower neck near collarbone",
+        "prompt": "close-up portrait of a beautiful woman with heavy-lidded eyes, soft relaxed expression, slightly messy hair, drowsy peaceful look, bare shoulders and visible collarbone, no clothing, clear flawless skin with no moles marks or tattoos",
         "seed": 46782,
     },
     "angry": {
-        "prompt": "close-up portrait of a beautiful woman with intense fierce eyes, clenched jaw, stern angry expression, powerful commanding look, bare shoulders and visible collarbone, no clothing, small distinct beauty mark on right side of lower neck near collarbone",
+        "prompt": "close-up portrait of a beautiful woman with intense fierce eyes, clenched jaw, stern angry expression, powerful commanding look, bare shoulders and visible collarbone, no clothing, clear flawless skin with no moles marks or tattoos",
         "seed": 60987,
     },
     "confident": {
-        "prompt": "close-up portrait of a beautiful woman with a self-assured smirk, strong direct gaze, chin slightly raised, powerful confident expression, bare shoulders and visible collarbone, no clothing, small distinct beauty mark on right side of lower neck near collarbone",
+        "prompt": "close-up portrait of a beautiful woman with a self-assured smirk, strong direct gaze, chin slightly raised, powerful confident expression, bare shoulders and visible collarbone, no clothing, clear flawless skin with no moles marks or tattoos",
         "seed": 23456,
     },
     "intimate": {
-        "prompt": "close-up portrait of a beautiful woman with soft lowered gaze, lips slightly parted, flushed cheeks, tender vulnerable intimate expression, warm soft lighting, bare shoulders and visible collarbone, no clothing, small distinct beauty mark on right side of lower neck near collarbone",
+        "prompt": "close-up portrait of a beautiful woman with soft lowered gaze, lips slightly parted, flushed cheeks, tender vulnerable intimate expression, warm soft lighting, bare shoulders and visible collarbone, no clothing, clear flawless skin with no moles marks or tattoos",
         "seed": 78901,
     },
     "passionate": {
-        "prompt": "close-up portrait of a beautiful woman with fierce intense eyes, flushed skin, windswept hair, passionate electric expression, dynamic dramatic lighting, bare shoulders and visible collarbone, no clothing, small distinct beauty mark on right side of lower neck near collarbone",
+        "prompt": "close-up portrait of a beautiful woman with fierce intense eyes, flushed skin, windswept hair, passionate electric expression, dynamic dramatic lighting, bare shoulders and visible collarbone, no clothing, clear flawless skin with no moles marks or tattoos",
         "seed": 34567,
     },
 }
@@ -148,81 +148,6 @@ POSE_AVATARS = {
 }
 
 # ─── Generation Functions ──────────────────────────────────────────────────
-
-
-def detect_beauty_mark_side(img) -> str:
-    """
-    Detect which side of the neck the beauty mark is on.
-
-    Holly's beauty mark is canonically on her RIGHT lower neck.
-    In a portrait, her right = viewer's LEFT side.
-
-    Returns 'correct' if mark is on viewer's left, 'flipped' if on viewer's right.
-    """
-    from PIL import Image
-    import numpy as np
-
-    w, h = img.size
-    arr = np.array(img.convert("L"))  # grayscale
-
-    # Neck region: bottom 35% of image, center 60% width
-    y_start = int(h * 0.55)
-    y_end = int(h * 0.90)
-    x_margin = int(w * 0.20)
-    x_start = x_margin
-    x_end = w - x_margin
-
-    neck = arr[y_start:y_end, x_start:x_end]
-    neck_w = neck.shape[1]
-
-    # Split into viewer-left half and viewer-right half
-    left_half = neck[:, :neck_w // 2]    # viewer's left = Holly's right (correct side)
-    right_half = neck[:, neck_w // 2:]   # viewer's right = Holly's left (wrong side)
-
-    # Find darkest concentrated spot in each half
-    # Use a sliding window to find a small dark region (beauty mark is ~5-15px)
-    def find_darkest_spot(region, window=12):
-        if region.size == 0:
-            return 255, 0, 0
-        min_val = 255
-        min_y, min_x = 0, 0
-        for y in range(0, region.shape[0] - window, 4):
-            for x in range(0, region.shape[1] - window, 4):
-                patch = region[y:y+window, x:x+window]
-                val = patch.mean()
-                if val < min_val:
-                    min_val = val
-                    min_y, min_x = y, x
-        return min_val, min_y, min_x
-
-    left_darkness, _, _ = find_darkest_spot(left_half)
-    right_darkness, _, _ = find_darkest_spot(right_half)
-
-    # The beauty mark creates a noticeably darker spot.
-    # If the left half has the darkest spot, mark is on correct side (viewer's left).
-    # If the right half is darker, mark is on wrong side → needs flip.
-    if left_darkness <= right_darkness:
-        return "correct"
-    else:
-        return "flipped"
-
-
-def fix_beauty_mark_side(img):
-    """
-    Ensure Holly's beauty mark is on the correct side.
-    Her beauty mark should be on her RIGHT lower neck = viewer's LEFT.
-    If detected on viewer's right, flip the image horizontally.
-
-    Since these are circular avatar crops with no text, flipping is invisible.
-    """
-    side = detect_beauty_mark_side(img)
-    if side == "flipped":
-        from PIL import ImageOps
-        img = ImageOps.mirror(img)
-        print(f"  🔄 Flipped image — beauty mark was on wrong side")
-    else:
-        print(f"  ✅ Beauty mark on correct side (viewer's left)")
-    return img
 
 
 def generate_with_modal(name: str, prompt: str, seed: int, width: int = 1024, height: int = 1024) -> bytes:
@@ -279,9 +204,6 @@ def save_image(data: bytes, path: Path) -> None:
 def generate_avatar(name: str, config: dict, use_pollinations: bool = False,
                     width: int = 1024, height: int = 1024) -> bool:
     """Generate a single avatar image."""
-    from PIL import Image
-    import io as _io
-
     prompt = config["prompt"]
     seed = config["seed"]
 
@@ -291,29 +213,13 @@ def generate_avatar(name: str, config: dict, use_pollinations: bool = False,
         else:
             data = generate_with_modal(name, prompt, seed, width, height)
 
-        img = Image.open(_io.BytesIO(data))
-
-        # For emotion avatars only: fix beauty mark side consistency.
-        # Pose avatars are full-body — flipping would affect too many asymmetric features.
-        if name in EMOTION_AVATARS:
-            img = fix_beauty_mark_side(img)
-
         # Determine output path
         if name in POSE_AVATARS:
             path = POSES_DIR / f"{name}.jpg"
         else:
             path = OUTPUT_DIR / f"{name}.jpg"
 
-        # Save as JPEG
-        path.parent.mkdir(parents=True, exist_ok=True)
-        buf = _io.BytesIO()
-        img.save(buf, format="JPEG", quality=95)
-        final_data = buf.getvalue()
-
-        with open(path, "wb") as f:
-            f.write(final_data)
-        size_kb = len(final_data) / 1024
-        print(f"  ✅ Saved {path.name} ({size_kb:.1f} KB)")
+        save_image(data, path)
         return True
 
     except Exception as e:

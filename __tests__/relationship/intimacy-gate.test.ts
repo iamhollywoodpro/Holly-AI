@@ -117,7 +117,6 @@ describe('Intimacy Gate — Tiered Self-Image', () => {
     const { getTieredSelfImageBlock } = await import('@/lib/identity/holly-self-image');
     const intimateBlock = getTieredSelfImageBlock('intimate');
     expect(intimateBlock).toContain('34C');
-    expect(intimateBlock).toContain('beauty mark');
     expect(intimateBlock.toLowerCase()).toContain('aroused');
   });
 
