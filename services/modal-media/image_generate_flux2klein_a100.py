@@ -1,11 +1,11 @@
 #!/usr/bin/env/python3
 """
-HOLLY FLUX.2 Klein 9B + Baked LoRA Image Generation Service
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Model:  FLUX.2 Klein 9B (BF16) + Baked LoRA stack
-GPU:    NVIDIA L4 (24 GB VRAM) — BF16 model with CPU offloading
-Cost:   ~$0.001/image (4 steps!) | $30/mo free → ~30 hours/month
-Trigger: h0lly — LoRA trained on Civitai for consistent Holly face
+HOLLY FLUX.2 Klein 9B — A100 Dataset Generation Endpoint
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Purpose: High-fidelity image generation for LoRA training datasets.
+GPU:     NVIDIA A100 (80 GB VRAM) — full bf16, no offloading, no quantization
+Cost:    ~$1.50-2.00/hr | 84 images ≈ $1.50 total
+Output:  Lossless WebP (training-grade quality)
 
 Architecture:
   BAKED IN (fused at startup, always active):
@@ -13,19 +13,21 @@ Architecture:
     - Ultra Real V4 (realistic skin texture, detail)
     - Full Fine Body (full body poses, all angles)
 
-  No on-demand LoRAs. FLUX Klein's native anatomy understanding
-  handles everything, guided by detailed spatial prompts. The
-  trained h0lly-body LoRA (future) will be the all-in-one solution.
+  No on-demand LoRAs. No CPU offloading. Full precision.
+  Only spun up for dataset generation — not for daily chat use.
 
   Request format: {"prompt": "...", "width": 1024, "height": 1024}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Daily chat endpoint: image_generate_flux2klein.py (L4)
+  Dataset generation:   THIS FILE (A100)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
 
 import io
 import os
 import modal
 
-app = modal.App("holly-image-flux2klein")
+app = modal.App("holly-image-flux2klein-a100")
 
 FLUX_MODEL = "black-forest-labs/FLUX.2-klein-9B"
 VOLUME_MOUNT = "/flux-models"
@@ -33,7 +35,6 @@ MODEL_CACHE = "/flux-models/bf16"
 LORA_DIR = "/lora"
 
 # Holly's permanent body description — injected into EVERY prompt.
-# This ensures consistent body proportions regardless of what the user types.
 # Source of truth: HOLLY_ANATOMY.md
 HOLLY_BODY_PREFIX = (
     "h0lly, "
@@ -69,10 +70,9 @@ BAKED_LORAS = {
         "weight": 0.7,
         "desc": "Full body poses, all angles",
     },
-    # NOTE: Max 3 baked LoRAs on L4 (24GB). 4th causes OOM during generation.
-    # NSFW moved to on-demand — only loaded for nude/explicit content (~30% of images).
 }
 
+# Shared volumes — same weights as L4 endpoint, no duplication
 volume = modal.Volume.from_name("holly-flux2klein-weights", create_if_missing=True)
 lora_volume = modal.Volume.from_name("holly-lora-weights", create_if_missing=True)
 
@@ -106,7 +106,7 @@ image = (
 
 @app.cls(
     image=image,
-    gpu="L4",
+    gpu="A100",
     max_containers=1,
     scaledown_window=120,
     timeout=300,
@@ -114,7 +114,7 @@ image = (
     volumes={VOLUME_MOUNT: volume, LORA_DIR: lora_volume},
     secrets=[modal.Secret.from_name("huggingface-secret")],
 )
-class HollyFlux2Klein:
+class HollyFlux2KleinA100:
 
     @modal.enter()
     def load_model(self):
@@ -123,7 +123,7 @@ class HollyFlux2Klein:
 
         self.pipe = None
         self.baked_adapters = {}
-        self.model_name = "FLUX.2 Klein 9B (not loaded)"
+        self.model_name = "FLUX.2 Klein 9B A100 (not loaded)"
         self.startup_error = None
 
         # Authenticate with HuggingFace
@@ -154,7 +154,7 @@ class HollyFlux2Klein:
             print(f"❌ {self.startup_error}")
             return
 
-        # Load FLUX.2 Klein pipeline on CPU (LoRA fusion must happen on CPU)
+        # Load FLUX.2 Klein pipeline on CPU first (for LoRA fusion)
         try:
             print(f"🚀 Loading FLUX.2 Klein 9B from {MODEL_CACHE}...")
             from diffusers import Flux2KleinPipeline
@@ -170,7 +170,7 @@ class HollyFlux2Klein:
             print(f"❌ {self.startup_error}")
             return
 
-        # Load and fuse BAKED LoRAs on CPU (LoRA weights from files are CPU tensors)
+        # Load and fuse BAKED LoRAs on CPU
         loaded_names = []
         for name, config in BAKED_LORAS.items():
             lora_path = f"{LORA_DIR}/{config['file']}"
@@ -194,22 +194,21 @@ class HollyFlux2Klein:
             print(f"🎭 Baked adapters active: {list(zip(loaded_names, weights))}")
             self.pipe.fuse_lora()
             self.pipe.unload_lora_weights()
-            print("✅ Baked LoRAs fused into model weights on CPU")
+            print("✅ Baked LoRAs fused into model weights")
 
-        # Use sequential CPU offloading — moves each layer to GPU one-at-a-time
-        # This is more memory-efficient and compatible with fused LoRA weights
-        # than enable_model_cpu_offload() which causes device mismatch errors
+        # A100 has 80GB VRAM — entire model fits in GPU, no offloading needed.
+        # Move the full pipeline to GPU for maximum speed and precision.
         import gc
         gc.collect()
-        self.pipe.enable_sequential_cpu_offload()
+        self.pipe.enable_model_cpu_offload()
         torch.cuda.empty_cache()
-        print("✅ Sequential CPU offloading enabled")
+        print("✅ Pipeline moved to A100 GPU — full bf16, no offloading")
 
         adapter_list = ", ".join(loaded_names) if loaded_names else "none"
-        self.model_name = f"FLUX.2 Klein 9B + Baked [{adapter_list}]"
+        self.model_name = f"FLUX.2 Klein 9B A100 + Baked [{adapter_list}]"
         print(f"✅ {self.model_name} ready")
 
-    @modal.fastapi_endpoint(method="POST", label="generate-holly")
+    @modal.fastapi_endpoint(method="POST", label="generate-holly-a100")
     def generate(self, request: dict):
         import torch
         import traceback
@@ -219,8 +218,6 @@ class HollyFlux2Klein:
             raw_prompt = (request.get("prompt") or "").strip()
 
             # Inject Holly's permanent body description into every prompt.
-            # If the prompt already contains h0lly, replace it with the full body prefix.
-            # This ensures consistent body proportions in EVERY generation.
             if "h0lly" in raw_prompt.lower():
                 prompt = raw_prompt.replace("h0lly", HOLLY_BODY_PREFIX.rstrip(", "))
                 prompt = prompt.replace("H0lly", HOLLY_BODY_PREFIX.rstrip(", "))
@@ -230,7 +227,7 @@ class HollyFlux2Klein:
             height = min(int(request.get("height", 1024)), 1024)
             steps  = min(int(request.get("num_inference_steps", 4)), 50)
             seed   = request.get("seed")
-            fmt    = request.get("format", "jpeg").lower()
+            fmt    = request.get("format", "webp").lower()
             guidance_scale = float(request.get("guidance_scale", 4.0))
 
             if not prompt:
@@ -261,7 +258,6 @@ class HollyFlux2Klein:
             img = result.images[0]
 
             # ── Face restoration for Holly's self-portraits ──
-            # Lightweight PIL-based enhancement for facial detail and consistency.
             is_holly_selfie = "h0lly" in prompt.lower()
             if is_holly_selfie:
                 try:
@@ -275,19 +271,21 @@ class HollyFlux2Klein:
                 except Exception as fre:
                     print(f"  ⚠️ Face restoration pass skipped: {fre}")
 
+            # Output: Lossless WebP for training, PNG/JPEG as fallback
             buf = io.BytesIO()
             if fmt == "png":
                 img.save(buf, format="PNG")
                 media_type = "image/png"
-            elif fmt == "webp":
-                img.save(buf, format="WEBP", lossless=True)
-                media_type = "image/webp"
-            else:
+            elif fmt == "jpeg" or fmt == "jpg":
                 img.save(buf, format="JPEG", quality=95)
                 media_type = "image/jpeg"
+            else:
+                # Default: Lossless WebP — training-grade quality
+                img.save(buf, format="WEBP", lossless=True)
+                media_type = "image/webp"
 
             img_bytes = buf.getvalue()
-            fmt_label = fmt.upper() if fmt != "webp" else "WEBP (lossless)"
+            fmt_label = "WEBP (lossless)" if fmt == "webp" else fmt.upper()
             print(f"✅ {width}x{height} {fmt_label} — {len(img_bytes):,} bytes")
 
             return Response(
@@ -295,13 +293,13 @@ class HollyFlux2Klein:
                 media_type=media_type,
                 headers={
                     "X-Model":       self.model_name,
-                    "X-Provider":    "modal-flux2klein-lora",
+                    "X-Provider":    "modal-flux2klein-a100",
                     "X-Baked":       ",".join(self.baked_adapters.keys()),
                     "X-Width":       str(width),
                     "X-Height":      str(height),
                     "X-Steps":       str(steps),
                     "X-Guidance":    str(guidance_scale),
-                    "X-Version":     "8.2.0",
+                    "X-Version":     "1.1.0",
                     "Access-Control-Allow-Origin": "*",
                 },
             )
@@ -315,7 +313,7 @@ class HollyFlux2Klein:
                 status_code=500,
             )
 
-    @modal.fastapi_endpoint(method="GET", label="holly-health")
+    @modal.fastapi_endpoint(method="GET", label="holly-health-a100")
     def health(self):
         from fastapi.responses import JSONResponse
         startup_error = getattr(self, "startup_error", None)
@@ -330,18 +328,18 @@ class HollyFlux2Klein:
             "baked_adapters":    {k: v["desc"] for k, v in getattr(self, "baked_adapters", {}).items()},
             "startup_error":     startup_error,
             "action_needed":     action,
-            "gpu":               "L4",
+            "gpu":               "A100",
             "base_model":        "FLUX.2 Klein 9B BF16",
             "max_gpus":          1,
-            "purpose":           "Holly self-portraits — baked LoRA stack, no on-demand",
+            "purpose":           "Holly dataset generation — A100 full precision, lossless output",
             "trigger_word":      "h0lly",
             "licence":           "Apache-2.0",
-            "version":           "8.2.0",
+            "version":           "1.1.0",
         })
 
 
 @app.local_entrypoint()
 def main():
-    print("Deploy: modal deploy services/modal-media/image_generate_flux2klein.py")
-    print("Generate: https://iamhollywoodpro--generate-holly.modal.run")
-    print("Health:   https://iamhollywoodpro--holly-health.modal.run")
+    print("Deploy: modal deploy services/modal-media/image_generate_flux2klein_a100.py")
+    print("Generate: https://iamhollywoodpro--generate-holly-a100.modal.run")
+    print("Health:   https://iamhollywoodpro--holly-health-a100.modal.run")

@@ -40,6 +40,7 @@ BODY_PREFIX = (
     "hair length exactly three inches past shoulders ending at mid-chest level, "
     "small feminine feet size 6 with high arches and five perfect toes, "
     "delicate hands with five slender fingers, "
+    "silky smooth flawless skin with well-moisturized sheen, skin stretches taut when extending and creases naturally when bending, "
 )
 
 # Extra details only for NUDE images — keeps clothed prompts clean
@@ -51,58 +52,62 @@ NUDE_BODY_EXTRA = (
 # Added based on camera angle — what the camera would actually see
 
 NUDE_FRONT = (
-    "realistic anatomically correct vulva with natural cleft visible, "
+    "realistic anatomically correct vulva positioned very low on the pelvis directly below the pubic bone, "
     "waxed smooth pussy, labia majora meeting evenly at rest, "
     "rosy-pink nipples slightly upturned, medium circular areolas, "
 )
 
 NUDE_BACK = (
-    "visible small pink-brown anus with slightly darker pigmentation around the opening, "
+    "visible small pink-brown anus positioned very high between the buttocks directly below the vulva, "
+    "separated only by the extremely short one-inch perineum, "
     "realistic radial wrinkled sphincter texture, anatomically correct, "
     "heart-shaped butt with natural crease underneath, "
-    "two small dimples on lower back, smooth even skin, "
+    "two small dimples on lower back, silky smooth even skin, "
 )
 
 NUDE_LYING_FRONT = (
     "breasts settled naturally to sides, rosy-pink nipples pointing slightly upward, "
-    "realistic anatomically correct vulva with natural cleft, "
+    "realistic anatomically correct vulva positioned very low on the pelvis directly below the pubic bone, "
     "single small vertical innie navel in correct position below ribs, "
     "waxed smooth pussy, "
 )
 
 NUDE_LYING_OPEN = (
     "breasts settled naturally to sides, nipples pointing up, "
-    "realistic vulva with slightly parted labia and visible inner lips, "
+    "realistic vulva positioned very low on the pelvis directly below the pubic bone, "
+    "slightly parted labia and visible inner lips, "
     "small vaginal opening slightly visible, "
     "single small vertical innie navel in correct position, "
     "waxed smooth pussy, "
 )
 
 NUDE_LYING_STOMACH = (
-    "breasts pressed against surface, smooth back visible, "
+    "breasts pressed against surface, silky smooth back visible, "
     "two small dimples on lower back, graceful spine curve, "
     "heart-shaped butt pressed slightly, feet with five toes visible, "
 )
 
 NUDE_BEND_BACK = (
-    "visible small pink-brown anus with slightly darker pigmentation around the opening, "
+    "visible small pink-brown anus positioned very high between the buttocks directly below the vulva, "
+    "separated only by the extremely short one-inch perineum, "
     "realistic radial wrinkled sphincter texture, anatomically correct, "
     "heart-shaped butt round and full from behind, "
-    "smooth even skin on back and legs, "
+    "silky smooth even skin on back and legs, "
 )
 
 NUDE_DETAIL_FRONT = (
-    "realistic anatomically correct vulva with natural cleft, "
+    "realistic anatomically correct vulva positioned very low on the pelvis directly below the pubic bone, "
     "waxed smooth pussy, "
     "natural 34C breasts teardrop shape, single nipple on each breast, "
-    "smooth even skin texture, "
+    "silky smooth even skin texture, "
 )
 
 NUDE_DETAIL_BACK = (
-    "smooth back, graceful spine curve, two small dimples on lower back, "
-    "heart-shaped butt, visible small pink-brown anus with slightly darker pigmentation, "
+    "silky smooth back, graceful spine curve, two small dimples on lower back, "
+    "heart-shaped butt, visible small pink-brown anus positioned very high between the buttocks directly below the vulva, "
+    "separated only by the extremely short one-inch perineum, slightly darker pigmentation, "
     "realistic radial wrinkled sphincter texture, anatomically correct, "
-    "smooth even skin, "
+    "silky smooth even skin, "
 )
 
 # ─── Anti-Artifact Suffix (appended to ALL nude generation prompts) ──────
@@ -116,7 +121,8 @@ NUDE_OPENER = (
 )
 
 NUDE_SUFFIX = (
-    "even smooth clear skin tone across entire body, no patchiness discoloration or marks, "
+    "flawless silky smooth even skin tone across entire body, perfectly clean and uniform, "
+    "realistic skin stretching and folding at joints, "
     "two arms two legs with five fingers and five toes each, "
     "correct proportions realistic human anatomy, "
 )
@@ -493,7 +499,7 @@ IMAGES += [
         "nude": True, "view": "lying_open",
         "pose": "lying on back seen from above, full nude, arms relaxed at sides, "
                 "single innie navel in correct position below ribs, "
-                "realistic vulva in correct low anatomical position, "
+                "realistic vulva positioned very low on the pelvis directly below the pubic bone, "
                 "correct arm length, soft gaze, studio lighting, full body shot, photorealistic",
         "caption": f"{CAPTION_BODY}, lying on back seen from above, full nude, arms relaxed, "
                    "breasts settled naturally, single innie navel, auburn hair spread, green eyes, photorealistic, full body shot, studio lighting",
@@ -502,7 +508,7 @@ IMAGES += [
         "id": "040", "name": "lying-back-nude-side-angle",
         "nude": True, "view": "lying_front",
         "pose": "lying on back seen from slight angle, full nude, "
-                "realistic vulva in correct low anatomical position not too high, "
+                "realistic vulva positioned very low on the pelvis directly below the pubic bone, "
                 "single innie navel, correct proportions, "
                 "relaxed, studio lighting, full body shot, photorealistic",
         "caption": f"{CAPTION_BODY}, lying on back seen from angle, full nude, "
@@ -522,7 +528,7 @@ IMAGES += [
         "nude": True, "view": "lying_stomach",
         "pose": "lying on stomach seen from slight angle, full nude, looking at camera, "
                 "five perfect toes visible, smooth even skin, "
-                "five separate fingers on each hand not fused, "
+                "five separate distinct fingers on each hand, "
                 "smooth back, studio lighting, full body shot, photorealistic",
         "caption": f"{CAPTION_BODY}, lying on stomach seen from angle, full nude, looking at camera, "
                    "smooth back, auburn hair, green eyes, photorealistic, full body shot, studio lighting",
@@ -583,7 +589,7 @@ IMAGES += [
         "id": "048", "name": "bending-over-back-nude",
         "nude": True, "view": "back_bend",
         "pose": "gentle natural forward bend from behind, hands touching knees, full nude, "
-                "realistic proportions not distorted, smooth back, dimples, "
+                "realistic well-proportioned body, smooth back, dimples, "
                 "correct anatomy two arms two legs, "
                 "studio lighting, full body shot, photorealistic",
         "caption": f"{CAPTION_BODY}, gentle forward bend from behind, full nude, "
@@ -593,7 +599,7 @@ IMAGES += [
         "id": "049", "name": "bending-over-side-nude",
         "nude": True, "view": "front",
         "pose": "gentle forward bend from side view, full nude, "
-                "bare chest bare body fully exposed, realistic proportions not distorted, "
+                "bare chest bare body fully exposed, realistic well-proportioned body, "
                 "correct anatomy, studio lighting, full body shot, photorealistic",
         "caption": f"{CAPTION_BODY}, gentle forward bend side view, full nude, "
                    "hourglass figure, auburn hair loose, photorealistic, full body shot, studio lighting",
@@ -602,7 +608,7 @@ IMAGES += [
         "id": "050", "name": "reaching-upward-nude",
         "nude": True, "view": "front",
         "pose": "reaching upward with both arms, standing, full nude, "
-                "realistic anatomically correct vulva in correct position, "
+                "realistic anatomically correct vulva positioned very low on the pelvis directly below the pubic bone, "
                 "dynamic pose, correct anatomy two arms, "
                 "studio lighting, full body shot, photorealistic",
         "caption": f"{CAPTION_BODY}, reaching upward, standing, full nude, "
@@ -631,7 +637,7 @@ IMAGES += [
         "nude": True, "view": "back",
         "pose": "standing with torso twisted to look back, full nude, "
                 "two arms only correct limb count, "
-                "realistic butt not distorted, "
+                "realistic well-shaped butt, "
                 "dynamic twist, studio lighting, full body shot, photorealistic",
         "caption": f"{CAPTION_BODY}, standing torso twisted looking back, full nude, "
                    "dynamic twist, hourglass figure, auburn hair, green eyes, photorealistic, full body shot, studio lighting",
@@ -664,7 +670,7 @@ IMAGES += [
         "nude": True, "view": "detail_front",
         "pose": "close-up torso shot from chest to upper thighs, front view, full nude, "
                 "natural 34C breasts teardrop shape, "
-                "smooth even skin texture no patchiness, "
+                "flawless silky smooth even skin texture, "
                 "waxed smooth pussy, "
                 "studio lighting, photorealistic, high detail",
         "caption": f"{CAPTION_BODY}, torso close-up front view, full nude, "
@@ -687,7 +693,7 @@ IMAGES += [
         "nude": True, "view": "detail_front",
         "pose": "close-up torso shot from side view, full nude, "
                 "single nipple on each breast correct anatomy, "
-                "smooth even skin texture no patchiness, "
+                "flawless silky smooth even skin texture, "
                 "breast profile teardrop shape, studio lighting, photorealistic, high detail",
         "caption": f"{CAPTION_BODY}, torso close-up side view, full nude, "
                    "breast profile teardrop shape, flat stomach, hourglass figure, "
@@ -697,7 +703,7 @@ IMAGES += [
         "id": "059", "name": "back-closeup-nude",
         "nude": True, "view": "detail_back",
         "pose": "close-up back shot from shoulders to upper thighs, full nude, "
-                "realistic anatomically correct anatomy, visible small pink anus, "
+                "realistic anatomically correct anatomy, visible small pink anus positioned very high between buttocks directly below vulva, "
                 "spine curve and dimples, smooth even skin, "
                 "studio lighting, photorealistic, high detail",
         "caption": f"{CAPTION_BODY}, back close-up shoulders to butt, full nude, "
@@ -718,7 +724,7 @@ IMAGES += [
         "id": "061", "name": "legs-closeup",
         "nude": True, "view": "front",
         "pose": "close-up legs shot from thighs to knees, standing, full nude, "
-                "bare legs bare body, auburn hair past shoulders not below waist, "
+                "bare legs bare body, auburn hair ending at mid-chest level, "
                 "toned soft thighs, studio lighting, photorealistic, high detail",
         "caption": f"{CAPTION_BODY}, legs close-up thighs to knees, "
                    "toned but soft, shapely, smooth olive skin, slight thigh gap, "
@@ -749,7 +755,7 @@ IMAGES += [
         "nude": True, "view": "detail_back",
         "pose": "close-up lower back view from behind showing two small dimples above butt, "
                 "full nude, smooth olive skin, heart-shaped butt visible, "
-                "BACK VIEW ONLY not front view, "
+                "strictly back view from behind, "
                 "studio lighting, photorealistic, high detail",
         "caption": f"{CAPTION_BODY}, lower back close-up from behind, "
                    "two small dimples above butt, smooth olive skin, heart-shaped butt, "
@@ -759,7 +765,7 @@ IMAGES += [
         "id": "065", "name": "collarbone-shoulders",
         "nude": True, "view": "detail_front",
         "pose": "close-up collarbone and shoulders shot, showing elegant neck and feminine shoulder slope, "
-                "smooth even skin on chest and collarbone no patchiness, "
+                "flawless silky smooth even skin on chest and collarbone, "
                 "auburn hair framing face, studio lighting, photorealistic, high detail",
         "caption": f"{CAPTION_BODY}, collarbone and shoulders close-up, "
                    "elegant neck, feminine shoulder slope, smooth olive skin, "
@@ -871,7 +877,7 @@ IMAGES += [
         "id": "076", "name": "lying-back-one-knee-nude",
         "nude": True, "view": "lying_front",
         "pose": "lying on back, right knee bent up, left leg extended, full nude, "
-                "single innie navel, realistic vulva in correct position, "
+                "single innie navel, realistic vulva positioned very low on the pelvis directly below the pubic bone, "
                 "correct proportions, studio lighting, full body shot, photorealistic",
         "caption": f"{CAPTION_BODY}, lying on back, one knee bent, full nude, "
                    "relaxed, auburn hair spread, green eyes, photorealistic, full body shot, studio lighting",
@@ -1009,7 +1015,7 @@ def generate_image(entry: dict, attempts: int = 3) -> bool:
             "num_inference_steps": 32,
             "guidance_scale": 3.5,
             "seed": seed,
-            "format": "jpeg",
+            "format": "webp",
         }
 
         try:
@@ -1039,7 +1045,7 @@ def generate_image(entry: dict, attempts: int = 3) -> bool:
 
     if best_data:
         # Save best image
-        img_path = OUTPUT_DIR / f"{img_id}_{name}.jpg"
+        img_path = OUTPUT_DIR / f"{img_id}_{name}.webp"
         with open(img_path, "wb") as f:
             f.write(best_data)
 
