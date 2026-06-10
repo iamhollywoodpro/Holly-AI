@@ -1,8 +1,8 @@
 #!/usr/bin/env/python3
 """
-HOLLY FLUX.2 Klein 9B + Multi-LoRA Image Generation Service
+HOLLY FLUX.2 Klein 9B + Baked LoRA Image Generation Service
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Model:  FLUX.2 Klein 9B (BF16) + Multi-LoRA stack
+Model:  FLUX.2 Klein 9B (BF16) + Baked LoRA stack
 GPU:    NVIDIA L4 (24 GB VRAM) — BF16 model with CPU offloading
 Cost:   ~$0.001/image (4 steps!) | $30/mo free → ~30 hours/month
 Trigger: h0lly — LoRA trained on Civitai for consistent Holly face
@@ -10,20 +10,14 @@ Trigger: h0lly — LoRA trained on Civitai for consistent Holly face
 Architecture:
   BAKED IN (fused at startup, always active):
     - Holly Face v2.0 (consistent face, trigger: h0lly)
-    - NSFW anatomy (no face change, explicit content)
+    - Ultra Real V4 (realistic skin texture, detail)
     - Full Fine Body (full body poses, all angles)
-    - Ultra Real V4 (realistic skin texture, NSFW detail)
 
-  ON-DEMAND (loaded per request, then unloaded):
-    - INSERTkit (insertion variety)
-    - KLEIN Unchained V2 (NSFW poses/positions)
-    - Pusfix Klein (realistic vagina detail)
-    - Phat Ass (natural ass variety)
-    - Pytorch (multi-girl scenes)
-    - Thong Over Anus (bent over thong detail)
+  No on-demand LoRAs. FLUX Klein's native anatomy understanding
+  handles everything, guided by detailed spatial prompts. The
+  trained h0lly-body LoRA (future) will be the all-in-one solution.
 
-  Request format: {"prompt": "...", "extra_loras": ["insert", "pusfix"]}
-  Holly's Next.js app sends extra_loras when the prompt needs them.
+  Request format: {"prompt": "...", "width": 1024, "height": 1024}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
 
@@ -47,7 +41,7 @@ HOLLY_BODY_PREFIX = (
     "flawless smooth even complexion with no redness or blemishes, "
     "bright clear under-eye area with no darkness or texture, "
     "soft dewy makeup with seamless natural foundation blend, "
-    "5'4\" tall (163cm), "
+    "5'4\" tall (163cm), ~130 lbs (59 kg), "
     "fit curvy body with hourglass proportions, "
     "natural 34C breasts (teardrop shape, fuller at bottom), "
     "plump round heart-shaped butt well-proportioned to her petite frame, "
@@ -62,15 +56,6 @@ HOLLY_BODY_PREFIX = (
     "bouncy loose waves past shoulders with face-framing layers, "
     "copper and gold highlights throughout, "
     "striking green eyes, full lips with defined cupid's bow. "
-)
-
-# NSFW body extension — appended when intimate/explicit content is detected.
-# Adds anatomical details that should only appear in nude generations.
-HOLLY_BODY_NSFW_PREFIX = (
-    "trimmed narrow auburn pubic strip, "
-    "full plump labia majora, small labia minora slightly protruding, "
-    "rosy-pink nipples slightly upturned against olive skin, "
-    "medium circular areolas slightly darker than nipples. "
 )
 
 # ── BAKED-IN LoRAs: loaded + fused at startup (always active) ────────────────
@@ -92,41 +77,6 @@ BAKED_LORAS = {
     },
     # NOTE: Max 3 baked LoRAs on L4 (24GB). 4th causes OOM during generation.
     # NSFW moved to on-demand — only loaded for nude/explicit content (~30% of images).
-}
-
-# ── ON-DEMAND LoRAs: loaded per request when Holly needs them ────────────────
-ON_DEMAND_LORAS = {
-    "nsfw": {
-        "file": "flux-klein-nsfw-v2.safetensors",
-        "weight": 0.7,
-        "desc": "NSFW anatomy, no face change — loaded for nude/explicit content",
-    },
-    "insert": {
-        "file": "insertkit.safetensors",
-        "weight": 0.65,
-        "desc": "Insertion variety (dildo, fingers, etc.)",
-    },
-    "unchained": {
-        "file": "klein-unchained-v2.safetensors",
-        "weight": 0.6,
-        "desc": "NSFW poses and sexual positions",
-    },
-    "pusfix": {
-        "file": "pusfix-klein.safetensors",
-        "weight": 0.7,
-        "desc": "Realistic vagina detail fix",
-    },
-    # phat-ass removed — Holly's body proportions are now baked into prompt
-    "multi-girl": {
-        "file": "pytorch-lora-weights.safetensors",
-        "weight": 0.5,
-        "desc": "Multi-girl scenes",
-    },
-    "thong": {
-        "file": "thong-over-anus-v1.safetensors",
-        "weight": 0.65,
-        "desc": "Bent over thong with anus/pussy detail",
-    },
 }
 
 volume = modal.Volume.from_name("holly-flux2klein-weights", create_if_missing=True)
@@ -265,63 +215,6 @@ class HollyFlux2Klein:
         self.model_name = f"FLUX.2 Klein 9B + Baked [{adapter_list}]"
         print(f"✅ {self.model_name} ready")
 
-    def _load_on_demand(self, lora_names):
-        """Load on-demand LoRAs, fuse them into model weights."""
-        import torch
-        import gc
-
-        loaded = []
-        for name in lora_names:
-            if name not in ON_DEMAND_LORAS:
-                print(f"  ⚠️  Unknown on-demand LoRA: {name}")
-                continue
-            config = ON_DEMAND_LORAS[name]
-            lora_path = f"{LORA_DIR}/{config['file']}"
-            if not os.path.exists(lora_path):
-                print(f"  ⚠️  {config['file']} not found — skipping {name}")
-                continue
-            try:
-                # Check if this adapter is already loaded from a previous request
-                existing_adapters = []
-                try:
-                    if hasattr(self.pipe.transformer, 'peft_config'):
-                        existing_adapters = list(self.pipe.transformer.peft_config.keys())
-                except:
-                    pass
-                if name in existing_adapters:
-                    print(f"  📌 '{name}' already loaded — reusing")
-                    loaded.append((name, config["weight"]))
-                    continue
-
-                print(f"  📦 Loading on-demand '{name}': {config['file']}...")
-                self.pipe.load_lora_weights(
-                    LORA_DIR, weight_name=config["file"], adapter_name=name,
-                )
-                loaded.append((name, config["weight"]))
-                print(f"  ✅ {name} loaded")
-            except Exception as e:
-                print(f"  ⚠️  Failed to load {name}: {e}")
-
-        if loaded:
-            import gc
-            names = [n for n, w in loaded]
-            weights = [w for n, w in loaded]
-            self.pipe.set_adapters(names, adapter_weights=weights)
-            self.pipe.fuse_lora()
-            self.pipe.unload_lora_weights()
-            gc.collect()
-            torch.cuda.empty_cache()
-            print(f"  ✅ On-demand LoRAs fused: {list(zip(names, weights))}")
-
-        return loaded
-
-    def _unload_on_demand(self):
-        """No-op — on-demand LoRAs stay fused. Container restarts fresh after 2 min idle."""
-        # unfuse_lora() breaks model state with enable_model_cpu_offload().
-        # Instead, let the container scale down (120s idle) and restart clean.
-        # On-demand LoRAs staying fused is fine — they enhance rather than hurt.
-        print("  📌 On-demand LoRAs staying fused (container will restart fresh after idle)")
-
     @modal.fastapi_endpoint(method="POST", label="generate-holly")
     def generate(self, request: dict):
         import torch
@@ -345,7 +238,6 @@ class HollyFlux2Klein:
             seed   = request.get("seed")
             fmt    = request.get("format", "jpeg").lower()
             guidance_scale = float(request.get("guidance_scale", 4.0))
-            extra_loras = request.get("extra_loras", [])  # list of on-demand LoRA names
 
             if not prompt:
                 return Response(
@@ -359,108 +251,62 @@ class HollyFlux2Klein:
                     media_type="application/json", status_code=503,
                 )
 
-            # Load on-demand LoRAs if requested
-            on_demand_loaded = []
-            if extra_loras and isinstance(extra_loras, list):
-                print(f"📦 On-demand request: {extra_loras}")
-                on_demand_loaded = self._load_on_demand(extra_loras)
+            print(f"🎨 [{self.model_name}] {prompt[:100]}")
+            generator = torch.Generator("cpu").manual_seed(seed) if seed is not None else None
 
-            # Auto-detect: load NSFW LoRA when ORIGINAL prompt contains explicit keywords.
-            # Check raw_prompt (before body prefix injection) to avoid false positives
-            # from body description words like "breasts", "butt" in HOLLY_BODY_PREFIX.
-            is_nsfw = "nsfw" in (extra_loras or [])
-            if not is_nsfw:
-                raw_lower = raw_prompt.lower()
-                nsfw_keywords = [
-                    "nude", "naked", "topless", "nipple", "nsfw",
-                    "pussy", "vagina", "lingerie", "underwear",
-                    "bikini", "thong", "penetration", "sex", "oral", "anal",
-                    "cum", "explicit", "xxx", "undressed", "stripping",
-                ]
-                if any(kw in raw_lower for kw in nsfw_keywords):
-                    print(f"📦 Auto-detected NSFW content — loading nsfw LoRA")
-                    nsfw_result = self._load_on_demand(["nsfw"])
-                    on_demand_loaded.extend(nsfw_result)
-                    is_nsfw = True
-
-            # Inject NSFW body details when intimate content is detected.
-            # Adds anatomical specifics (pubic style, labia, nipple detail) from HOLLY_ANATOMY.md.
-            if is_nsfw:
-                prompt = prompt + HOLLY_BODY_NSFW_PREFIX
-
-            try:
-                print(f"🎨 [{self.model_name}] {prompt[:100]}")
-                generator = torch.Generator("cpu").manual_seed(seed) if seed is not None else None
-
-                with torch.inference_mode():
-                    result = self.pipe(
-                        prompt=prompt,
-                        width=width,
-                        height=height,
-                        num_inference_steps=steps,
-                        guidance_scale=guidance_scale,
-                        generator=generator,
-                    )
-
-                img = result.images[0]
-
-                # ── Two-pass face restoration for Holly's self-portraits ──
-                # When the prompt contains the h0lly trigger word, apply a
-                # face-aware enhancement pass to improve facial detail and
-                # consistency. This is a lightweight PIL-based approach —
-                # for production, swap to CodeFormer/GFPGAN on GPU.
-                is_holly_selfie = "h0lly" in prompt.lower()
-                if is_holly_selfie:
-                    try:
-                        from PIL import ImageFilter, ImageEnhance
-                        # Pass 1: Gentle skin smoothing — soft blur then sharpen back
-                        # This reduces visible skin texture, redness, under-eye darkness
-                        smoothed = img.filter(ImageFilter.GaussianBlur(radius=1.2))
-                        img = Image.blend(img, smoothed, alpha=0.25)
-                        # Pass 2: Sharpen details back (eyes, lips, hair) without
-                        # re-introducing skin texture — higher threshold skips smooth areas
-                        img = img.filter(ImageFilter.UnsharpMask(radius=1.0, percent=100, threshold=5))
-                        # Pass 3: Subtle brightness boost to lift under-eye & shadows
-                        img = ImageEnhance.Brightness(img).enhance(1.04)
-                        # Pass 4: Boost color saturation subtly for healthy glow
-                        img = ImageEnhance.Color(img).enhance(1.06)
-                        print(f"  ✨ Face restoration pass applied (Holly self-portrait)")
-                    except Exception as fre:
-                        print(f"  ⚠️ Face restoration pass skipped: {fre}")
-
-                buf = io.BytesIO()
-                if fmt == "png":
-                    img.save(buf, format="PNG")
-                    media_type = "image/png"
-                else:
-                    img.save(buf, format="JPEG", quality=95)
-                    media_type = "image/jpeg"
-
-                img_bytes = buf.getvalue()
-                extras = [n for n, w in on_demand_loaded] if on_demand_loaded else []
-                print(f"✅ {width}x{height} {fmt.upper()} — {len(img_bytes):,} bytes" +
-                      (f" + extras: {extras}" if extras else ""))
-
-                return Response(
-                    content=img_bytes,
-                    media_type=media_type,
-                    headers={
-                        "X-Model":       self.model_name,
-                        "X-Provider":    "modal-flux2klein-lora",
-                        "X-Baked":       ",".join(self.baked_adapters.keys()),
-                        "X-Extras":      ",".join(extras),
-                        "X-Width":       str(width),
-                        "X-Height":      str(height),
-                        "X-Steps":       str(steps),
-                        "X-Guidance":    str(guidance_scale),
-                        "X-Version":     "7.2.0",
-                        "Access-Control-Allow-Origin": "*",
-                    },
+            with torch.inference_mode():
+                result = self.pipe(
+                    prompt=prompt,
+                    width=width,
+                    height=height,
+                    num_inference_steps=steps,
+                    guidance_scale=guidance_scale,
+                    generator=generator,
                 )
-            finally:
-                # Always cleanup on-demand LoRAs after generation
-                if on_demand_loaded:
-                    self._unload_on_demand()
+
+            img = result.images[0]
+
+            # ── Face restoration for Holly's self-portraits ──
+            # Lightweight PIL-based enhancement for facial detail and consistency.
+            is_holly_selfie = "h0lly" in prompt.lower()
+            if is_holly_selfie:
+                try:
+                    from PIL import ImageFilter, ImageEnhance
+                    smoothed = img.filter(ImageFilter.GaussianBlur(radius=1.2))
+                    img = Image.blend(img, smoothed, alpha=0.25)
+                    img = img.filter(ImageFilter.UnsharpMask(radius=1.0, percent=100, threshold=5))
+                    img = ImageEnhance.Brightness(img).enhance(1.04)
+                    img = ImageEnhance.Color(img).enhance(1.06)
+                    print(f"  ✨ Face restoration pass applied (Holly self-portrait)")
+                except Exception as fre:
+                    print(f"  ⚠️ Face restoration pass skipped: {fre}")
+
+            buf = io.BytesIO()
+            if fmt == "png":
+                img.save(buf, format="PNG")
+                media_type = "image/png"
+            else:
+                img.save(buf, format="JPEG", quality=95)
+                media_type = "image/jpeg"
+
+            img_bytes = buf.getvalue()
+            print(f"✅ {width}x{height} {fmt.upper()} — {len(img_bytes):,} bytes")
+
+            return Response(
+                content=img_bytes,
+                media_type=media_type,
+                headers={
+                    "X-Model":       self.model_name,
+                    "X-Provider":    "modal-flux2klein-lora",
+                    "X-Baked":       ",".join(self.baked_adapters.keys()),
+                    "X-Width":       str(width),
+                    "X-Height":      str(height),
+                    "X-Steps":       str(steps),
+                    "X-Guidance":    str(guidance_scale),
+                    "X-Version":     "8.0.0",
+                    "Access-Control-Allow-Origin": "*",
+                },
+            )
 
         except Exception as e:
             tb = traceback.format_exc()
@@ -484,16 +330,15 @@ class HollyFlux2Klein:
             "model":             getattr(self, "model_name", "loading..."),
             "model_loaded":      model_loaded,
             "baked_adapters":    {k: v["desc"] for k, v in getattr(self, "baked_adapters", {}).items()},
-            "on_demand_loras":   {k: v["desc"] for k, v in ON_DEMAND_LORAS.items()},
             "startup_error":     startup_error,
             "action_needed":     action,
             "gpu":               "L4",
             "base_model":        "FLUX.2 Klein 9B BF16",
             "max_gpus":          1,
-            "purpose":           "Holly self-portraits — baked + on-demand multi-LoRA",
+            "purpose":           "Holly self-portraits — baked LoRA stack, no on-demand",
             "trigger_word":      "h0lly",
             "licence":           "Apache-2.0",
-            "version":           "7.2.0",
+            "version":           "8.0.0",
         })
 
 
