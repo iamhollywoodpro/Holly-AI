@@ -9,12 +9,11 @@ Output:  Lossless WebP (training-grade quality)
 
 Architecture:
   BAKED IN (fused at startup, always active):
-    - Holly Face v2.0 (consistent face, trigger: h0lly)
-    - Ultra Real V4 (realistic skin texture, detail)
-    - Full Fine Body (full body poses, all angles)
+    - Holly Face v2.0 (0.75 — consistent face, trigger: h0lly)
+    - Full Fine Body (0.65 — full body poses, all angles)
 
-  No on-demand LoRAs. No CPU offloading. Full precision.
-  Only spun up for dataset generation — not for daily chat use.
+  Realism LoRA removed — FLUX Klein's native quality is cleaner.
+  No CPU offloading. Full precision on A100.
 
   Request format: {"prompt": "...", "width": 1024, "height": 1024}
 
@@ -57,17 +56,12 @@ HOLLY_BODY_PREFIX = (
 BAKED_LORAS = {
     "face": {
         "file": "holly-face-v2.safetensors",
-        "weight": 0.85,
+        "weight": 0.75,
         "desc": "Holly Face v2.0 (trigger: h0lly)",
-    },
-    "realism": {
-        "file": "ultra-real-v4.safetensors",
-        "weight": 0.55,
-        "desc": "Ultra Real V4 — skin texture, pores, no plastic look",
     },
     "body": {
         "file": "full-fine-body-v1.safetensors",
-        "weight": 0.7,
+        "weight": 0.65,
         "desc": "Full body poses, all angles",
     },
 }
