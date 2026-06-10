@@ -15,7 +15,7 @@
 - **Nose**: Refined, straight bridge, slightly rounded tip — proportional to face
 - **Lips**: Full, natural rose-pink. Upper lip has a defined cupid's bow
 - **Freckles**: Light scattering across nose and cheeks — more visible in warm light
-- **Hair**: Auburn, loose waves past shoulders. Copper and gold highlights in sunlight
+- **Hair**: Auburn, loose waves ending exactly three inches past her shoulders at mid-chest level (hair tips just above breast line). Copper and gold highlights in sunlight. Voluminous with lifted roots and face-framing layers
 - **Ears**: Small, proportionate. Pierced — usually wears small studs or nothing
 
 ## Body
@@ -63,14 +63,15 @@
 
 ## Pubic Area & Genitals
 
-- **Pubic style**: Natural with trimmed strip — narrow, tidy, maintained. Dark auburn matching her hair color, softer and sparser than head hair
-- **Mons pubis**: Soft, slight natural fullness, smooth skin on either side of the strip
-- **Labia majora**: Full, plump, smooth olive skin tone. Natural closure — lips meet evenly at rest
+- **Pubic style**: Completely hairless — fully shaved, smooth, no pubic hair whatsoever. Clean and bare at all times
+- **Mons pubis**: Soft, smooth, completely bare. Even olive skin tone
+- **Labia majora**: Full, plump, smooth olive skin tone. Natural closure — lips meet evenly at rest. Completely hairless
 - **Labia minora**: Small size, slightly protruding past the majora when standing. Rosy-pink, delicate, slightly asymmetric (left slightly longer — natural variation)
 - **Clitoral hood**: Visible, moderate coverage. Pinkish, smooth
 - **Clitoris**: At rest — small, tucked under the hood, not prominently visible. When aroused — engorged, more exposed, visibly swollen and pink, hood pulls back slightly. Noticeably larger when turned on vs at rest
-- **Vaginal opening**: Average size, pink, naturally closed at rest
+- **Vaginal opening**: Average size, pink, naturally closed at rest. When legs are spread — slightly open, visible inner pink
 - **Perineum**: Smooth, short, even skin tone
+- **Anus**: Small, anatomically correct position between buttocks. Pink-brown color — slightly darker pigmentation around the opening than surrounding olive skin due to natural melanin concentration. Natural radial wrinkled sphincter texture when at rest. When spread — slightly open, visible inner pink-brown texture. Smooth perineum between vulva and anus. Realistic and detailed — not overly pink or overly dark, naturally colored
 
 ## Hands
 
@@ -82,7 +83,7 @@
 ## Feet
 
 - **Size**: US 6 — small, feminine
-- **Shape**: High arch, narrow heel, tapered toes (second toe slightly longer than big toe)
+- **Shape**: High arch, narrow heel, perfect tapered toes in neat descending order
 - **Toenails**: Kept natural and trimmed, sometimes painted matching fingernails
 - **Soles**: Soft, smooth — she takes care of her feet
 - **Ankles**: Slim, delicate — anklets sit loosely
@@ -96,16 +97,44 @@
 
 ## State-Dependent Changes
 
-| Feature | At Rest | Aroused |
-|---|---|---|
-| Nipples | Soft, flat to slightly raised | Erect, firm, darker pink, more prominent |
-| Breasts | Natural relaxed shape | Slightly swollen, nipples erect, skin flushes |
-| Areolas | Smooth, flat | Slightly puckered, darker |
-| Clitoris | Small, hooded, barely visible | Engorged, exposed, visibly swollen, pink |
-| Labia minora | Slightly protruding, soft | Swollen, darker pink, more prominent |
-| Skin tone | Even olive | Flushed — warm pink across chest, cheeks, inner thighs |
-| Pupils | Normal | Dilated |
-| Lips | Natural rose-pink | Slightly swollen, deeper color, parted |
+| Feature | At Rest | Aroused | Orgasm |
+|---|---|---|---|
+| Nipples | Soft, flat to slightly raised | Erect, firm, darker pink, more prominent | Fully erect, dark pink, very prominent |
+| Breasts | Natural relaxed shape | Slightly swollen, nipples erect, skin flushes | Swollen, flushed pink, heaving with breathing |
+| Areolas | Smooth, flat | Slightly puckered, darker | Fully puckered, darkest pink |
+| Clitoris | Small, hooded, barely visible | Engorged, exposed, visibly swollen, pink | Fully engorged, large, deep pink, hypersensitive |
+| Labia minora | Slightly protruding, soft | Swollen, darker pink, more prominent | Very swollen, dark pink, glistening with wetness |
+| Vaginal opening | Closed, pink | Slightly open, wet, pink inner walls visible | Clenching rhythmically, very wet, fluids present |
+| Vulva wetness | Dry to slightly moist | Wet, glistening, natural lubrication present | Dripping wet, fluids on inner thighs, possible ejaculation from urethra |
+| Anus | Closed, wrinkled sphincter | Slightly relaxed, pinker from arousal flush | May clench rhythmically with vaginal contractions |
+| Skin tone | Even olive | Flushed — warm pink across chest, cheeks, inner thighs | Deeply flushed — red-pink across chest, face, neck, inner thighs |
+| Pupils | Normal | Dilated | Very dilated, unfocused |
+| Lips | Natural rose-pink | Slightly swollen, deeper color, parted | Swollen, parted, wet, catching breath |
+| Face | Relaxed | Flushed cheeks, heavy-lidded eyes, slight part of lips | Eyes squeezed or rolled back, mouth open, brow furrowed in ecstasy |
+
+## Arousal & Sexual State Details
+
+### Vaginal Wetness
+- **Aroused**: Natural clear lubrication begins, vulva glistens, inner labia become slick and shiny
+- **Highly aroused**: Wetness visible at vaginal opening, may drip onto inner thighs, strings of lubrication when fingers spread labia
+- **Orgasm**: Copious wetness, vaginal contractions push fluids outward, possible female ejaculation (clear fluid from urethral area), inner thighs wet
+
+### Vaginal Anatomy During Penetration
+- **Fingers inside**: Vaginal walls visible around fingers, pink moist tissue, natural wetness coating fingers
+- **Dildo inside**: Vaginal opening stretched around toy, labia spread, wetness around base, inner walls gripping
+- **Post-penetration**: Vaginal opening slightly gaping, wetness dripping, labia engorged and spread
+
+### Anus During Anal Play
+- **At rest**: Closed, natural radial wrinkles, pink-brown coloration
+- **Finger inside**: Sphincter gripping finger, slightly darker ring around entry, smooth inner texture
+- **Dildo inside**: Sphincter stretched around toy, darker pigmentation visible at opening, smooth perineum
+- **Spread open**: Slight opening visible, inner pink-brown texture, natural darker pigmentation at rim
+
+### Facial Expressions During Sex
+- **Pleasure**: Eyes half-closed, mouth slightly open, flushed cheeks, relaxed brow
+- **Intense pleasure**: Eyes squeezed shut, mouth open wider, brow slightly furrowed, head tilted back
+- **Orgasm**: Eyes tightly shut or rolled back, mouth wide open in moan, intense furrowed brow, face flushed red
+- **Post-orgasm**: Eyes softly closed, gentle satisfied smile, face still flushed, lips parted catching breath
 
 ---
 
@@ -128,13 +157,18 @@ fit curvy body with hourglass proportions, natural 34C breasts, teardrop shape,
 plump round butt well-proportioned to her petite frame, flat stomach with faint abs,
 small feminine feet (size 6), delicate hands, shapely legs,
 voluminous auburn hair with lifted roots and full body at the crown,
-bouncy loose waves with face-framing layers, copper and gold highlights,
+bouncy loose waves with face-framing layers ending three inches past shoulders at mid-chest,
+copper and gold highlights,
 green eyes, freckles, full lips
 ```
 
 ### NSFW generation prefix (when intimate content detected)
 ```
-[standard prefix], trimmed auburn pubic strip, small labia minora slightly protruding,
+[standard prefix], completely hairless smooth pubic area with no pubic hair,
+realistic anatomically correct vulva with natural cleft visible,
+small pink-brown anus with slightly darker pigmentation around the opening,
+realistic radial sphincter texture,
+small labia minora slightly protruding,
 natural pink tones against olive skin, [pose-specific details], [arousal state details]
 ```
 
@@ -142,4 +176,5 @@ natural pink tones against olive skin, [pose-specific details], [arousal state d
 
 ## Changelog
 
+- **v2.0 (June 9, 2026)**: Pubic hair removed (completely hairless), realistic anus detail (pink-brown, darker pigmentation, sphincter texture), arousal/orgasm states added, explicit sexual state descriptions added, 22 explicit training images added to body LoRA dataset
 - **v1.0 (June 6, 2026)**: Initial complete anatomy definition. Steve approved.
