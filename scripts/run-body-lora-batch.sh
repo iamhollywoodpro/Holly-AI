@@ -23,7 +23,7 @@ START=${1:-1}
 # Check which images already exist and find the first missing one
 if [ "$START" -eq 1 ]; then
     for i in $(seq -f "%03g" 1 $TOTAL); do
-        if ! ls holly-body-lora-dataset/${i}_*.jpg 2>/dev/null | grep -q .; then
+        if ! ls holly-body-lora-dataset/${i}_*.webp 2>/dev/null | grep -q .; then
             START=$((10#$i))
             echo "Resuming from first missing image: $START" | tee -a "$LOG"
             break
@@ -45,7 +45,7 @@ for i in $(seq $START $BATCH_SIZE $TOTAL); do
     ALL_EXIST=true
     for j in $(seq $i $END); do
         ID=$(printf "%03d" $j)
-        if ! ls holly-body-lora-dataset/${ID}_*.jpg 2>/dev/null | grep -q .; then
+        if ! ls holly-body-lora-dataset/${ID}_*.webp 2>/dev/null | grep -q .; then
             ALL_EXIST=false
             break
         fi
@@ -85,6 +85,6 @@ echo "DONE — $(date)" | tee -a "$LOG"
 echo "Batches run: $COUNT | Success: $SUCCESS | Fail: $FAIL" | tee -a "$LOG"
 
 # Count final images
-FINAL=$(ls holly-body-lora-dataset/*.jpg 2>/dev/null | wc -l | tr -d ' ')
+FINAL=$(ls holly-body-lora-dataset/*.webp 2>/dev/null | wc -l | tr -d ' ')
 echo "Total images: $FINAL / $TOTAL" | tee -a "$LOG"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" | tee -a "$LOG"
