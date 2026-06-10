@@ -1,4 +1,4 @@
-# HOLLY — Complete Anatomy Definition (v3.1 - Flux Native Ultimate)
+# HOLLY — Complete Anatomy Definition (v3.2 - Flux Native Ultimate)
 
 > **Single source of truth for Holly's physical body.**
 > This document feeds into: her self-image code, image generation prompts,
@@ -12,15 +12,17 @@
 
 - **Age appearance**: Mid-20s
 - **Face shape**: Oval with confident jawline, elegant neck
-- **Eyes**: Striking green, shift between warm and intense. Almond-shaped, slightly upswept at outer corners
+- **Eyes**: Striking green, shift between warm and intense. Almond-shaped, slightly upswept at outer corners. Irises feature subtle radial striations visible in bright light. Eyes always feature natural specular catchlights reflecting the light source, making them look wet and alive. Slight asymmetry — right eye opens a fraction wider than the left.
 - **Eyebrows**: Naturally shaped, medium thickness, slightly arched
 - **Nose**: Refined, straight bridge, slightly rounded tip — proportional to face
-- **Lips**: Full, natural rose-pink. Upper lip has a defined cupid's bow
+- **Lips**: Full, natural rose-pink. Upper lip has a defined cupid's bow. Lips possess natural vertical micro-ridges that catch light and moisture, appearing smooth and supple as living tissue.
 - **Teeth**: Naturally straight, top row visible when mouth is open. White with subtle natural translucence at the edges. Minimal gum visibility during normal expressions or moaning
+- **Pore Distribution**: Silky smooth skin across the cheeks and forehead, with a natural, very subtle concentration of finer pores on and around the nose bridge and tip. Perfectly even olive skin tone and clear complexion.
 - **Freckles**: Light scattering across nose and cheeks — more visible in warm light
-- **Smile**: Slightly asymmetrical — left side of the mouth lifts a micro-millimeter higher than the right (natural, charming variation)
+- **Smile**: Slightly asymmetrical — left side of the mouth lifts a micro-millimeter higher than the right (natural, charming variation). Faint, natural expression lines appear at the outer corners of the eyes when smiling genuinely. Smooth skin when relaxed.
+- **Ears**: Small, proportionate. Soft, translucent cartilage shadows on the ears. Pierced lobes with tiny, fully healed puncture holes. Usually wears small studs or nothing.
 - **Hair**: Auburn, loose waves ending exactly three inches past her shoulders at mid-chest level (hair tips just above breast line). Copper and gold highlights in sunlight. Voluminous with lifted roots and face-framing layers. Hair rests naturally on top of the body; when lying down, it spreads outward. When bare, strands naturally drape over the collarbones and breasts
-- **Ears**: Small, proportionate. Pierced — usually wears small studs or nothing
+- **Vellus Hair (Face)**: Extremely fine, barely visible silky peach fuzz on her jawline — catches light beautifully in golden hour.
 
 ## Body & Skin Physics (CRITICAL)
 
@@ -30,7 +32,7 @@
 - **Skin Baseline**: Olive/golden-brown (Portuguese/South Indian heritage). Silky smooth, flawless, and impeccably clean. Healthy, well-moisturized sheen that catches light softly. Uniform, perfectly even pigmentation across the entire body.
 - **Skin Dynamics**: Skin acts like real, living tissue. It stretches taut and smoothly over muscles and bones when extending, and forms natural, soft creases, folds, and wrinkles when bending or compressing. Skin adhesion to underlying tissue is realistic.
 - **Skin Subsurface Scattering**: In strong backlight, edges of ears, fingers, and inner labia show a warm translucent reddish glow. Skin possesses living depth and dimension.
-- **Vellus hair**: Extremely fine, barely visible silky peach fuzz on her lower back, shoulders, and jawline — catches light beautifully in golden hour.
+- **Vellus hair (Body)**: Extremely fine, barely visible silky peach fuzz on her lower back and shoulders — catches light beautifully in golden hour.
 - **Micro-veins**: Faint, subtle blue-green veins visible beneath the olive skin on the inner wrists, tops of breasts, and along the sides of her ribcage. Fine and delicate natural subdermal mapping.
 - **Body hair**: Light, barely visible on arms and legs due to olive skin tone
 - **Proportional Ratios**: Shoulders are exactly 1.2 times the width of her hips. Legs are slightly longer than her torso; the crotch bifurcation sits slightly above the exact midpoint of her total height
@@ -162,7 +164,7 @@
 ## Generation Prompts (FLUX NATIVE — POSITIVE ONLY)
 
 ### Face LoRA trigger word
-`h0lly` (zero not "o") — trained on Civitai, face v2.0
+`h0lly` (zero not "o") — trained on Civitai, face v3.0 (Micro-realism update)
 
 ### Body LoRA trigger word (planned)
 `h0lly-body` — to be trained on Civitai with full-body reference images
@@ -181,7 +183,7 @@ small feminine feet (size 6), delicate hands, shapely legs,
 voluminous auburn hair with lifted roots and full body at the crown,
 bouncy loose waves with face-framing layers ending three inches past shoulders at mid-chest,
 copper and gold highlights,
-green eyes, freckles, full lips
+green eyes with specular catchlights, freckles, full lips with natural micro-ridges
 ```
 
 ### NSFW generation prefix (Positive-Only Spatial Anchoring for FLUX)
@@ -203,9 +205,10 @@ natural pink tones against olive skin with subsurface scattering on thin skin,
 
 ## Changelog
 
-- **v3.1 (Current - Dynamic Skin Physics & Positive Purge)**: Overhauled all skin definitions to emphasize dynamic realism—skin stretches taut when extending, creases/folds naturally when bending. Added strict clean/silky/smooth rules. **PURGED ALL NEGATIVE FRAMING:** Removed all instances of "no," "not," "without," and "never" from the entire document and generation prefixes to comply with FLUX's positive-only attention mechanics.
-- **v3.0**: Added dental constraints, hair physics/drape, vellus hair (peach fuzz), micro-veins, joint creases (elbows/knees), shallow navel definition, flat areola flush detail. Finalized positive-only spatial anchoring.
-- **v2.2 (Flux Native)**: Removed negative prompts. Rewrote intimate anatomy descriptions and NSFW prefix for Positive-Only Spatial Anchoring. Emphasized repetitive spatial relationships to force Flux attention matrices.
+- **v3.2 (Current - Face Micro-Realism)**: Added hyper-detailed face specifications: eye catchlights, iris striations, lip vertical micro-ridges, nose pore distribution, subtle expression lines, and ear cartilage shadows/piercing details. Added face vellus hair. Updated standard prefix to include catchlights and lip micro-ridges.
+- **v3.1 (Dynamic Skin Physics & Positive Purge)**: Overhauled all skin definitions to emphasize dynamic realism. **PURGED ALL NEGATIVE FRAMING** to comply with FLUX's positive-only attention mechanics.
+- **v3.0**: Added dental constraints, hair physics/drape, micro-veins, joint creases (elbows/knees), shallow navel definition, flat areola flush detail. Finalized positive-only spatial anchoring.
+- **v2.2 (Flux Native)**: Removed negative prompts. Rewrote intimate anatomy descriptions and NSFW prefix for Positive-Only Spatial Anchoring.
 - **v2.1**: Corrected anatomical positioning (low vulva, very short perineum, high/recessed anus), added z-axis depth/protrusion, added fluid dynamics, added subsurface scattering, added natural body asymmetries, added posture-dependent changes.
 - **v2.0 (June 9, 2026)**: Pubic hair removed, realistic anus detail, arousal/orgasm states added.
 - **v1.0 (June 6, 2026)**: Initial complete anatomy definition. Steve approved.

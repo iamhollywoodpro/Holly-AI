@@ -49,7 +49,7 @@ HOLLY_BODY_PREFIX = (
     "voluminous auburn hair with lifted roots and full body at the crown, "
     "bouncy loose waves with face-framing layers ending three inches past shoulders at mid-chest, "
     "copper and gold highlights, "
-    "green eyes, freckles, full lips. "
+    "green eyes with specular catchlights, freckles, full lips with natural micro-ridges. "
 )
 
 # ── BAKED-IN LoRAs: loaded + fused at startup (always active) ────────────────
@@ -301,7 +301,7 @@ class HollyFlux2Klein:
                     "X-Height":      str(height),
                     "X-Steps":       str(steps),
                     "X-Guidance":    str(guidance_scale),
-                    "X-Version":     "8.2.0",
+                    "X-Version":     "8.3.0",
                     "Access-Control-Allow-Origin": "*",
                 },
             )
