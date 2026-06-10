@@ -9,13 +9,11 @@ Trigger: h0lly — LoRA trained on Civitai for consistent Holly face
 
 Architecture:
   BAKED IN (fused at startup, always active):
-    - Holly Face v2.0 (consistent face, trigger: h0lly)
-    - Ultra Real V4 (realistic skin texture, detail)
-    - Full Fine Body (full body poses, all angles)
+    - Holly Face v2.0 (0.75 — consistent face, trigger: h0lly)
+    - Full Fine Body (0.65 — full body poses, all angles)
 
-  No on-demand LoRAs. FLUX Klein's native anatomy understanding
-  handles everything, guided by detailed spatial prompts. The
-  trained h0lly-body LoRA (future) will be the all-in-one solution.
+  Realism LoRA removed — FLUX Klein's native quality is cleaner.
+  No on-demand LoRAs. Detailed spatial prompts guide anatomy.
 
   Request format: {"prompt": "...", "width": 1024, "height": 1024}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -56,21 +54,14 @@ HOLLY_BODY_PREFIX = (
 BAKED_LORAS = {
     "face": {
         "file": "holly-face-v2.safetensors",
-        "weight": 0.85,
+        "weight": 0.75,
         "desc": "Holly Face v2.0 (trigger: h0lly)",
-    },
-    "realism": {
-        "file": "ultra-real-v4.safetensors",
-        "weight": 0.55,
-        "desc": "Ultra Real V4 — skin texture, pores, no plastic look",
     },
     "body": {
         "file": "full-fine-body-v1.safetensors",
-        "weight": 0.7,
+        "weight": 0.65,
         "desc": "Full body poses, all angles",
     },
-    # NOTE: Max 3 baked LoRAs on L4 (24GB). 4th causes OOM during generation.
-    # NSFW moved to on-demand — only loaded for nude/explicit content (~30% of images).
 }
 
 volume = modal.Volume.from_name("holly-flux2klein-weights", create_if_missing=True)
