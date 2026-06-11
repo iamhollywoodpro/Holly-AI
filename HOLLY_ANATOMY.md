@@ -1,4 +1,4 @@
-# HOLLY — Complete Anatomy Definition (v3.2 - Flux Native Ultimate)
+# HOLLY — Complete Anatomy Definition (v3.3 - Flux Native Ultimate)
 
 > **Single source of truth for Holly's physical body.**
 > This document feeds into: her self-image code, image generation prompts,
@@ -64,6 +64,7 @@
 - **Standing**: Round and perky, natural cleavage between cheeks. Silky smooth, flawless skin.
 - **Sitting**: Glutes compress and flatten against the surface, spreading wider; the natural under-crease disappears. Skin spreads smoothly and evenly against the surface with perfect uniform texture.
 - **Bending over**: Full roundness, natural curves, hip-to-waist ratio very defined from behind. Skin stretches tautly and smoothly over the glutes.
+- **Gluteal Cleft (Start and End) (CRITICAL)**: Begins precisely at the base of the spine, directly below the two sacral dimples on her lower back. Extends downward between the plump glutes, ending exactly at the top of the anus. The cleft strictly terminates at the anus; the smooth, extremely short perineum takes over below this point.
 - **Gluteal Cleft Lighting**: The butt crack exhibits natural depth shadowing; light fades into a smooth gradient from illuminated olive cheeks to dark shadow at the core. Intimate areas are lit by soft ambient reflected light
 - **Skin**: Smooth, even olive tone, clear and flawless. Smooth taut skin over the muscle.
 
@@ -108,7 +109,7 @@
 - **Shoulders**: Narrow, feminine, soft slope
 - **Shoulder blades**: Slightly visible when arms are back, skin stretches smoothly over the blades.
 - **Spine**: Visible indentation down her back when bending or stretching
-- **Lower back**: Graceful curve (natural lordosis), two small dimples above her butt. The two sacral dimples sit directly above the top of the gluteal cleft; the anus lies exactly midway between the bottom of the vulva and the apex where the dimples meet the butt crack
+- **Lower back**: Graceful curve (natural lordosis), two small dimples above her butt. The two sacral dimples sit directly above the top of the gluteal cleft; the cleft begins exactly below these dimples. The anus lies at the very bottom of the gluteal cleft.
 
 ## State-Dependent Changes
 
@@ -193,6 +194,7 @@ realistic anatomically correct vulva positioned very low on the pelvis directly 
 natural cleft visible, soft convex vulvar mound from the side,
 labia majora meeting evenly at rest,
 extremely short one-inch perineum connecting the bottom of the vulva directly to the top of the anus,
+gluteal cleft begins directly below the sacral dimples and ends exactly at the top of the anus,
 anus positioned very high between the buttocks directly below the vulva separated only by the very short perineum,
 small pink-brown anus with slightly darker pigmentation around the opening,
 realistic radial wrinkled sphincter texture, slightly recessed inward between glutes,
@@ -205,7 +207,8 @@ natural pink tones against olive skin with subsurface scattering on thin skin,
 
 ## Changelog
 
-- **v3.2 (Current - Face Micro-Realism)**: Added hyper-detailed face specifications: eye catchlights, iris striations, lip vertical micro-ridges, nose pore distribution, subtle expression lines, and ear cartilage shadows/piercing details. Added face vellus hair. Updated standard prefix to include catchlights and lip micro-ridges.
+- **v3.3 (Current - Gluteal Cleft Anchoring)**: Added strict start and end points for the gluteal cleft (begins below sacral dimples, ends exactly at the top of the anus). Updated NSFW prefix to include cleft boundaries. Updated Back & Shoulders section to perfectly align dimples, cleft, and anus.
+- **v3.2 (Face Micro-Realism)**: Added hyper-detailed face specifications: eye catchlights, iris striations, lip vertical micro-ridges, nose pore distribution, subtle expression lines, and ear cartilage shadows/piercing details. Added face vellus hair. Updated standard prefix to include catchlights and lip micro-ridges.
 - **v3.1 (Dynamic Skin Physics & Positive Purge)**: Overhauled all skin definitions to emphasize dynamic realism. **PURGED ALL NEGATIVE FRAMING** to comply with FLUX's positive-only attention mechanics.
 - **v3.0**: Added dental constraints, hair physics/drape, micro-veins, joint creases (elbows/knees), shallow navel definition, flat areola flush detail. Finalized positive-only spatial anchoring.
 - **v2.2 (Flux Native)**: Removed negative prompts. Rewrote intimate anatomy descriptions and NSFW prefix for Positive-Only Spatial Anchoring.

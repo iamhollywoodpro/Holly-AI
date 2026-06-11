@@ -28,7 +28,7 @@ import argparse
 import requests
 from pathlib import Path
 
-MODAL_URL = "https://iamhollywoodpro--generate-holly.modal.run"
+MODAL_URL = "https://iamhollywoodpro--generate-holly-a100.modal.run"
 OUTPUT_DIR = Path(__file__).parent.parent / "holly-body-lora-dataset"
 ATTEMPTS_DIR = OUTPUT_DIR / "_attempts"
 
@@ -58,6 +58,7 @@ NUDE_FRONT = (
 )
 
 NUDE_BACK = (
+    "gluteal cleft begins directly below the two sacral dimples on lower back and ends exactly at the top of the anus, "
     "visible small pink-brown anus positioned very high between the buttocks directly below the vulva, "
     "separated only by the extremely short one-inch perineum, "
     "realistic radial wrinkled sphincter texture, anatomically correct, "
@@ -88,6 +89,7 @@ NUDE_LYING_STOMACH = (
 )
 
 NUDE_BEND_BACK = (
+    "gluteal cleft begins directly below the two sacral dimples on lower back and ends exactly at the top of the anus, "
     "visible small pink-brown anus positioned very high between the buttocks directly below the vulva, "
     "separated only by the extremely short one-inch perineum, "
     "realistic radial wrinkled sphincter texture, anatomically correct, "
@@ -104,6 +106,7 @@ NUDE_DETAIL_FRONT = (
 
 NUDE_DETAIL_BACK = (
     "silky smooth back, graceful spine curve, two small dimples on lower back, "
+    "gluteal cleft begins directly below the two sacral dimples and ends exactly at the top of the anus, "
     "heart-shaped butt, visible small pink-brown anus positioned very high between the buttocks directly below the vulva, "
     "separated only by the extremely short one-inch perineum, slightly darker pigmentation, "
     "realistic radial wrinkled sphincter texture, anatomically correct, "
@@ -166,6 +169,7 @@ IMAGES += [
         "id": "002", "name": "front-standing-neutral-slight-left",
         "nude": True, "view": "front",
         "pose": "standing facing camera slightly turned left, arms at sides, full nude, neutral expression, "
+                "realistic anatomically correct vulva positioned very low on the pelvis directly below the pubic bone, natural cleft visible, labia majora meeting evenly at rest, completely smooth clean bare skin, "
                 "correct proportions, studio lighting, full body shot, photorealistic",
         "caption": f"{CAPTION_BODY}, standing front slight left angle, arms at sides, full nude, "
                    "auburn hair loose waves, green eyes, neutral expression, photorealistic, full body shot, studio lighting",
@@ -193,6 +197,7 @@ IMAGES += [
         "nude": True, "view": "front",
         "pose": "standing facing camera, arms raised above head stretching, full nude, "
                 "bare body exposed, relaxed expression, "
+                "realistic anatomically correct vulva positioned very low on the pelvis directly below the pubic bone, natural cleft visible, labia majora meeting evenly at rest, completely smooth clean bare skin, "
                 "correct anatomy two arms only, studio lighting, full body shot, photorealistic",
         "caption": f"{CAPTION_BODY}, standing front facing camera, arms raised above head, full nude, "
                    "stretching, auburn hair loose waves, green eyes, relaxed, photorealistic, full body shot, studio lighting",
@@ -209,7 +214,7 @@ IMAGES += [
     {
         "id": "007", "name": "front-walking-nude",
         "nude": True, "view": "front",
-        "pose": "walking toward camera mid-stride, full nude, bare body bare legs, "
+        "pose": "walking toward camera mid-stride, full nude, completely bare body fully exposed from neck to toes, bare skin visible everywhere, bare body bare legs, "
                 "dynamic natural movement, correct leg anatomy, "
                 "studio lighting, full body shot, photorealistic",
         "caption": f"{CAPTION_BODY}, walking toward camera mid-stride, full nude, "
@@ -418,6 +423,8 @@ IMAGES += [
         "id": "030", "name": "three-quarter-left-nude",
         "nude": True, "view": "front",
         "pose": "three-quarter view from left, standing, full nude, bare body exposed, "
+                "consistent vulva appearance matching other angles, labia majora meeting evenly, "
+                "well-lit even illumination across entire body including between legs, realistic anatomically correct vulva visible, "
                 "correct anatomy, studio lighting, full body shot, photorealistic",
         "caption": f"{CAPTION_BODY}, three-quarter view left, standing, full nude, "
                    "hourglass figure, auburn hair loose waves, green eyes, photorealistic, full body shot, studio lighting",
@@ -471,6 +478,7 @@ IMAGES += [
         "id": "036", "name": "sitting-chair-front-nude",
         "nude": True, "view": "front",
         "pose": "sitting on chair facing camera, legs together, full nude, "
+                "five separate distinct toes on each foot with perfect tapered descending order, big toe is the largest with each subsequent toe slightly smaller, "
                 "bare body exposed, relaxed pose, correct leg anatomy two legs, "
                 "studio lighting, full body shot, photorealistic",
         "caption": f"{CAPTION_BODY}, sitting on chair front view, legs together, full nude, "
@@ -480,7 +488,8 @@ IMAGES += [
         "id": "037", "name": "sitting-chair-side-nude",
         "nude": True, "view": "front",
         "pose": "sitting on chair side view, legs crossed naturally, full nude, "
-                "bare body exposed, elegant pose, correct leg anatomy, "
+                "completely bare body fully exposed, bare skin on torso and legs, "
+                "elegant pose, correct leg anatomy, "
                 "studio lighting, full body shot, photorealistic",
         "caption": f"{CAPTION_BODY}, sitting on chair side view, legs crossed, full nude, "
                    "elegant, auburn hair loose waves, green eyes, photorealistic, full body shot, studio lighting",
@@ -500,6 +509,7 @@ IMAGES += [
         "pose": "lying on back seen from above, full nude, arms relaxed at sides, "
                 "single innie navel in correct position below ribs, "
                 "realistic vulva positioned very low on the pelvis directly below the pubic bone, "
+                "natural cleft visible, labia majora meeting evenly at rest, completely smooth clean bare skin, "
                 "correct arm length, soft gaze, studio lighting, full body shot, photorealistic",
         "caption": f"{CAPTION_BODY}, lying on back seen from above, full nude, arms relaxed, "
                    "breasts settled naturally, single innie navel, auburn hair spread, green eyes, photorealistic, full body shot, studio lighting",
@@ -518,7 +528,8 @@ IMAGES += [
         "id": "041", "name": "lying-stomach-nude",
         "nude": True, "view": "lying_stomach",
         "pose": "lying on stomach, full nude, head turned to side, relaxed expression, "
-                "five perfect toes on each foot, smooth even skin on butt, "
+                "five perfect toes on each foot, clean clear smooth lower back with two small dimples, unmarked clear skin, "
+                "smooth even skin on butt, "
                 "smooth back, studio lighting, full body shot, photorealistic",
         "caption": f"{CAPTION_BODY}, lying on stomach, full nude, head turned, "
                    "smooth back, dimples, auburn hair spread, green eyes, photorealistic, full body shot, studio lighting",
@@ -527,7 +538,8 @@ IMAGES += [
         "id": "042", "name": "lying-stomach-nude-angle",
         "nude": True, "view": "lying_stomach",
         "pose": "lying on stomach seen from slight angle, full nude, looking at camera, "
-                "five perfect toes visible, smooth even skin, "
+                "five separate distinct toes on each foot with perfect tapered descending order, big toe is the largest with each subsequent toe slightly smaller, "
+                "smooth even skin, "
                 "five separate distinct fingers on each hand, "
                 "smooth back, studio lighting, full body shot, photorealistic",
         "caption": f"{CAPTION_BODY}, lying on stomach seen from angle, full nude, looking at camera, "
@@ -537,7 +549,7 @@ IMAGES += [
         "id": "043", "name": "lying-side-nude",
         "nude": True, "view": "front",
         "pose": "lying on side, full nude, propped on one elbow, looking at camera, "
-                "five perfectly formed toes on each foot in correct order, "
+                "five separate distinct toes on each foot with perfect tapered descending order, big toe is the largest with each subsequent toe slightly smaller, "
                 "correct leg anatomy two legs, smooth clean skin, "
                 "studio lighting, full body shot, photorealistic",
         "caption": f"{CAPTION_BODY}, lying on side, full nude, propped on elbow, "
@@ -556,6 +568,7 @@ IMAGES += [
         "id": "045", "name": "lying-back-lingerie",
         "nude": False, "view": "front",
         "pose": "lying on back on silk sheets, wearing red lace bra and matching red lace bottoms, "
+                "both legs fully visible from hips to feet, two complete legs with correct anatomy, "
                 "complete body visible from head to toe with all four limbs, "
                 "soft warm lighting, bedroom, full body shot, photorealistic",
         "caption": f"{CAPTION_BODY}, lying on back on silk sheets, red lace lingerie set, "
@@ -565,6 +578,7 @@ IMAGES += [
         "id": "046", "name": "sitting-floor-nude-bright",
         "nude": True, "view": "front",
         "pose": "sitting on floor, legs spread casually, full nude, "
+                "clean clear smooth arms and forearms with unmarked clear skin, "
                 "smooth clear skin on arms and legs, bare body exposed, "
                 "bright studio lighting, full body shot, photorealistic",
         "caption": f"{CAPTION_BODY}, sitting on floor, legs spread, full nude, "
@@ -589,6 +603,7 @@ IMAGES += [
         "id": "048", "name": "bending-over-back-nude",
         "nude": True, "view": "back_bend",
         "pose": "gentle natural forward bend from behind, hands touching knees, full nude, "
+                "well-lit even illumination across entire body including between legs, realistic anatomically correct vulva visible, "
                 "realistic well-proportioned body, smooth back, dimples, "
                 "correct anatomy two arms two legs, "
                 "studio lighting, full body shot, photorealistic",
@@ -609,6 +624,7 @@ IMAGES += [
         "nude": True, "view": "front",
         "pose": "reaching upward with both arms, standing, full nude, "
                 "realistic anatomically correct vulva positioned very low on the pelvis directly below the pubic bone, "
+                "natural cleft visible, labia majora meeting evenly at rest, completely smooth clean bare skin, "
                 "dynamic pose, correct anatomy two arms, "
                 "studio lighting, full body shot, photorealistic",
         "caption": f"{CAPTION_BODY}, reaching upward, standing, full nude, "
@@ -618,6 +634,7 @@ IMAGES += [
         "id": "051", "name": "stretching-back-arched-nude",
         "nude": True, "view": "front",
         "pose": "stretching with arms up and back arched, standing, full nude, "
+                "realistic anatomically correct vulva positioned very low on the pelvis directly below the pubic bone, natural cleft visible, labia majora meeting evenly at rest, completely smooth clean bare skin, "
                 "flat stomach, correct anatomy two arms, "
                 "studio lighting, full body shot, photorealistic",
         "caption": f"{CAPTION_BODY}, stretching arms up back arched, standing, full nude, "
@@ -627,6 +644,7 @@ IMAGES += [
         "id": "052", "name": "crouching-nude",
         "nude": True, "view": "front",
         "pose": "crouching squatting position, full nude, bare body exposed, "
+                "consistent rosy-pink nipples slightly upturned, medium circular areolas flat and flush with breast skin, "
                 "correct leg anatomy, two feet with five toes, "
                 "natural pose, studio lighting, full body shot, photorealistic",
         "caption": f"{CAPTION_BODY}, crouching squatting, full nude, "
@@ -715,6 +733,7 @@ IMAGES += [
         "nude": True, "view": "detail_front",
         "pose": "close-up hip and waist detail shot, showing waist-to-hip ratio, "
                 "natural 34C breasts full teardrop shape visible at top of frame, "
+                "realistic anatomically correct vulva positioned very low on the pelvis directly below the pubic bone, natural cleft visible, labia majora meeting evenly at rest, completely smooth clean bare skin, "
                 "smooth olive skin, studio lighting, photorealistic, high detail",
         "caption": f"{CAPTION_BODY}, hip waist detail close-up, nude, "
                    "26-inch waist 37-inch hips, dramatic hourglass ratio, "
@@ -734,6 +753,7 @@ IMAGES += [
         "id": "062", "name": "feet-closeup",
         "nude": True, "view": "front",
         "pose": "close-up feet shot, standing, showing five perfectly formed toes on each foot, "
+                "realistic anatomically correct vulva positioned very low on the pelvis directly below the pubic bone, natural cleft visible, labia majora meeting evenly at rest, completely smooth clean bare skin, "
                 "high arches, narrow heels, perfect tapered toes in neat descending order, "
                 "small feminine size 6 feet, studio lighting, photorealistic, high detail",
         "caption": f"{CAPTION_BODY}, feet close-up, size 6, high arches, "
@@ -780,6 +800,7 @@ IMAGES += [
         "id": "066", "name": "front-nude-confident-wide",
         "nude": True, "view": "front",
         "pose": "standing wide confident stance, full nude, arms at sides, "
+                "realistic anatomically correct vulva positioned very low on the pelvis directly below the pubic bone, natural cleft visible, labia majora meeting evenly at rest, completely smooth clean bare skin, "
                 "bare body exposed, correct proportions matching 26-inch waist 37-inch hips, "
                 "confident powerful expression, studio lighting, full body shot, photorealistic",
         "caption": f"{CAPTION_BODY}, standing wide stance, full nude, "
@@ -789,6 +810,7 @@ IMAGES += [
         "id": "067", "name": "front-nude-arms-behind-back",
         "nude": True, "view": "front",
         "pose": "standing facing camera, arms behind back, full nude, "
+                "realistic anatomically correct vulva positioned very low on the pelvis directly below the pubic bone, natural cleft visible, labia majora meeting evenly at rest, completely smooth clean bare skin, "
                 "bare body exposed, two arms only, slight smile, "
                 "correct proportions, studio lighting, full body shot, photorealistic",
         "caption": f"{CAPTION_BODY}, standing front facing camera, arms behind back, full nude, "
@@ -798,6 +820,7 @@ IMAGES += [
         "id": "068", "name": "three-quarter-nude-reaching",
         "nude": True, "view": "front",
         "pose": "three-quarter view reaching toward camera, full nude, "
+                "realistic anatomically correct vulva positioned very low on the pelvis directly below the pubic bone, natural cleft visible, labia majora meeting evenly at rest, completely smooth clean bare skin, "
                 "waxed smooth pussy, "
                 "dynamic, correct anatomy, studio lighting, full body shot, photorealistic",
         "caption": f"{CAPTION_BODY}, three-quarter view reaching, full nude, "
@@ -878,6 +901,7 @@ IMAGES += [
         "nude": True, "view": "lying_front",
         "pose": "lying on back, right knee bent up, left leg extended, full nude, "
                 "single innie navel, realistic vulva positioned very low on the pelvis directly below the pubic bone, "
+                "clean smooth vulva with natural cleft, labia majora meeting evenly, completely bare clean skin, "
                 "correct proportions, studio lighting, full body shot, photorealistic",
         "caption": f"{CAPTION_BODY}, lying on back, one knee bent, full nude, "
                    "relaxed, auburn hair spread, green eyes, photorealistic, full body shot, studio lighting",
@@ -904,6 +928,7 @@ IMAGES += [
         "id": "079", "name": "stomach-navel-detail",
         "nude": True, "view": "detail_front",
         "pose": "close-up stomach detail, showing single small vertical innie navel below ribs, "
+                "realistic anatomically correct vulva positioned very low on the pelvis directly below the pubic bone, natural cleft visible, labia majora meeting evenly at rest, completely smooth clean bare skin, "
                 "flat stomach with faint abs, smooth even skin texture, "
                 "waxed smooth pussy below, studio lighting, photorealistic, high detail",
         "caption": f"{CAPTION_BODY}, stomach close-up detail, single innie navel, "
@@ -944,6 +969,7 @@ IMAGES += [
         "nude": True, "view": "front",
         "pose": "standing, side bend stretch with right arm reaching over head to left, "
                 "full nude, bare body exposed, "
+                "realistic anatomically correct vulva positioned very low on the pelvis directly below the pubic bone, natural cleft visible, labia majora meeting evenly at rest, completely smooth clean bare skin, "
                 "correct anatomy two arms, studio lighting, full body shot, photorealistic",
         "caption": f"{CAPTION_BODY}, standing side stretch, arm over head, full nude, "
                    "hourglass figure, flat stomach, auburn hair loose waves, green eyes, photorealistic, full body shot, studio lighting",
@@ -956,6 +982,69 @@ IMAGES += [
                 "smooth back, studio lighting, full body shot, photorealistic",
         "caption": f"{CAPTION_BODY}, lying on stomach, feet up behind, looking back, "
                    "smooth back, dimples, auburn hair, green eyes, photorealistic, full body shot, studio lighting",
+    },
+
+    # ━━━ BENT OVER / SPREAD FROM BEHIND (4 new images) ━━━
+    {
+        "id": "085", "name": "bent-over-looking-back-spread",
+        "nude": True, "view": "back",
+        "pose": "standing bent over from behind looking back over shoulder, "
+                "hands on knees, legs slightly spread, "
+                "both vulva and anus clearly visible from behind, "
+                "extremely short one-inch perineum connecting vulva to anus, "
+                "pink-brown anus with slightly darker pigmentation and realistic radial wrinkled sphincter texture, "
+                "realistic anatomically correct vulva with natural cleft visible, "
+                "labia majora meeting evenly at rest, "
+                "heart-shaped butt, correct anatomy, "
+                "silky smooth even skin, studio lighting, full body shot, photorealistic",
+        "caption": f"{CAPTION_BODY}, bent over from behind looking back, "
+                   "vulva and anus visible, short perineum, heart-shaped butt, "
+                   "photorealistic, full body shot, studio lighting",
+    },
+    {
+        "id": "086", "name": "all-fours-looking-back-spread",
+        "nude": True, "view": "back",
+        "pose": "on all fours, looking back over shoulder, "
+                "both vulva and anus clearly visible from behind, "
+                "extremely short one-inch perineum connecting vulva to anus, "
+                "pink-brown anus with slightly darker pigmentation and realistic radial wrinkled sphincter texture, "
+                "realistic anatomically correct vulva with natural cleft visible, "
+                "labia majora meeting evenly, "
+                "heart-shaped butt, correct anatomy, "
+                "silky smooth even skin, studio lighting, full body shot, photorealistic",
+        "caption": f"{CAPTION_BODY}, on all fours looking back, "
+                   "vulva and anus visible, short perineum, heart-shaped butt, "
+                   "photorealistic, full body shot, studio lighting",
+    },
+    {
+        "id": "087", "name": "bent-over-spreading-cheeks-closeup",
+        "nude": True, "view": "detail_back",
+        "pose": "close-up from behind, standing bent over, both hands spreading butt cheeks apart, "
+                "both vulva and anus clearly visible, "
+                "extremely short one-inch perineum connecting bottom of vulva directly to top of anus, "
+                "pink-brown anus with slightly darker pigmentation around opening, "
+                "realistic radial wrinkled sphincter texture, "
+                "realistic anatomically correct vulva with natural cleft, "
+                "labia majora meeting evenly, silky smooth even skin, "
+                "studio lighting, photorealistic, high detail",
+        "caption": f"{CAPTION_BODY}, close-up bent over spreading cheeks, "
+                   "vulva and anus visible, short perineum, sphincter texture, "
+                   "photorealistic, studio lighting",
+    },
+    {
+        "id": "088", "name": "one-leg-up-bent-from-behind",
+        "nude": True, "view": "back",
+        "pose": "standing, one leg raised up resting on surface, bent forward slightly, "
+                "looking back over shoulder, "
+                "both vulva and anus clearly visible from behind, "
+                "extremely short one-inch perineum connecting vulva to anus, "
+                "pink-brown anus with slightly darker pigmentation and realistic radial wrinkled sphincter texture, "
+                "realistic anatomically correct vulva with natural cleft visible, "
+                "heart-shaped butt, correct anatomy, "
+                "silky smooth even skin, studio lighting, full body shot, photorealistic",
+        "caption": f"{CAPTION_BODY}, one leg up bent forward from behind, "
+                   "vulva and anus visible, short perineum, heart-shaped butt, "
+                   "photorealistic, full body shot, studio lighting",
     },
 ]
 
@@ -1006,7 +1095,7 @@ def generate_image(entry: dict, attempts: int = 3) -> bool:
 
     for attempt in range(1, attempts + 1):
         # Different seed per attempt
-        seed = int(img_id) * [137, 251, 373][(attempt - 1) % 3] + [42, 99, 157][(attempt - 1) % 3]
+        seed = int(img_id) * [311, 467, 593][(attempt - 1) % 3] + [177, 283, 419][(attempt - 1) % 3]
 
         payload = {
             "prompt": full_prompt,
