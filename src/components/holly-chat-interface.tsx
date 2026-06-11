@@ -2574,10 +2574,7 @@ export default function HollyChatInterface() {
   const showWelcome = messages.length === 0 && !isProcessing;
 
   return (
-    <div className="chat-layout flex flex-row bg-background text-white overflow-hidden sdi-neural-bg transition-colors duration-700">
-
-    {/* ── Main chat column (left) ── */}
-    <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+    <div className="chat-layout flex flex-col bg-background text-white overflow-hidden sdi-neural-bg transition-colors duration-700">
 
       {/* ── Mode transition overlay ── */}
       <AnimatePresence>
@@ -3357,45 +3354,43 @@ export default function HollyChatInterface() {
         <ScrollToBottomButton visible={showScrollBtn} onClick={() => scrollToBottom()} />
       </div>
 
-      {/* ── Sandbox panel (RIGHT SIDE — IDE style) ── */}
-    </div>{/* end main chat column */}
-
-    <AnimatePresence>
-      {sandboxOpen && (
-        <motion.div
-          initial={{ width: 0, opacity: 0 }}
-          animate={{ width: 480, opacity: 1 }}
-          exit={{ width: 0, opacity: 0 }}
-          transition={{ type: "spring", stiffness: 300, damping: 30 }}
-          className="border-l border-gray-800 overflow-hidden flex-shrink-0 h-full"
-        >
-          <SandboxWindow
-            isOpen={sandboxOpen}
-            onClose={() => setSandboxOpen(false)}
-            currentAction={currentStatus}
-            terminalOutput={toolExecutions.map(e => {
-              let content: string;
-              if (e.status === 'start') {
-                content = `⏳ Starting ${(e.toolName || '').replace(/^mcp_[^_]+_/, '').replace(/_/g, ' ')}…`;
-              } else if (e.result && typeof e.result === 'object' && (e.result as any)?.content?.[0]?.text) {
-                content = (e.result as any).content[0].text;
-              } else if (e.result && typeof e.result === 'string') {
-                content = e.result;
-              } else if (e.status === 'error') {
-                content = `❌ ${(e.toolName || '').replace(/_/g, ' ')} failed — check console for details`;
-              } else {
-                content = JSON.stringify(e.result, null, 2);
-              }
-              return {
-                type: e.status === "error" ? "stderr" : "stdout" as const,
-                content,
-                timestamp: e.timestamp.getTime(),
-              };
-            })}
-          />
-        </motion.div>
-      )}
-    </AnimatePresence>
+      {/* ── Sandbox panel (RIGHT SIDE overlay) ── */}
+      <AnimatePresence>
+        {sandboxOpen && (
+          <motion.div
+            initial={{ x: 480, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: 480, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            className="fixed top-0 right-0 bottom-0 w-[480px] z-40 border-l border-gray-800 bg-[#1e1e1e] shadow-2xl"
+          >
+            <SandboxWindow
+              isOpen={sandboxOpen}
+              onClose={() => setSandboxOpen(false)}
+              currentAction={currentStatus}
+              terminalOutput={toolExecutions.map(e => {
+                let content: string;
+                if (e.status === 'start') {
+                  content = `⏳ Starting ${(e.toolName || '').replace(/^mcp_[^_]+_/, '').replace(/_/g, ' ')}…`;
+                } else if (e.result && typeof e.result === 'object' && (e.result as any)?.content?.[0]?.text) {
+                  content = (e.result as any).content[0].text;
+                } else if (e.result && typeof e.result === 'string') {
+                  content = e.result;
+                } else if (e.status === 'error') {
+                  content = `❌ ${(e.toolName || '').replace(/_/g, ' ')} failed — check console for details`;
+                } else {
+                  content = JSON.stringify(e.result, null, 2);
+                }
+                return {
+                  type: e.status === "error" ? "stderr" : "stdout" as const,
+                  content,
+                  timestamp: e.timestamp.getTime(),
+                };
+              })}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── Input area ── */}
       <div
@@ -3734,7 +3729,6 @@ export default function HollyChatInterface() {
         </div>
         </div>{/* end max-w-3xl */}
       </div>
-    </div>{/* end main chat column */}
-    </div>{/* end chat-layout flex-row */}
+    </div>
   );
 }
