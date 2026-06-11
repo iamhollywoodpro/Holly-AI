@@ -304,7 +304,7 @@ function TypingIndicator() {
 function HollyChatOrb({ isThinking }: { isThinking: boolean }) {
   const { emotion } = useHollyEmotion();
   // Use photorealistic face avatar instead of abstract orb
-  return <HollyAvatarCompact size={52} showGlow={true} />;
+  return <HollyAvatarCompact size={60} showGlow={true} />;
 }
 
 function SystemHealthIndicator({ health }: { health: SystemHealth | null }) {
@@ -2574,7 +2574,10 @@ export default function HollyChatInterface() {
   const showWelcome = messages.length === 0 && !isProcessing;
 
   return (
-    <div className="chat-layout flex flex-col bg-background text-white overflow-hidden sdi-neural-bg transition-colors duration-700">
+    <div className="chat-layout flex flex-row bg-background text-white overflow-hidden sdi-neural-bg transition-colors duration-700">
+
+    {/* ── Main chat column (left) ── */}
+    <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
 
       {/* ── Mode transition overlay ── */}
       <AnimatePresence>
@@ -3354,42 +3357,45 @@ export default function HollyChatInterface() {
         <ScrollToBottomButton visible={showScrollBtn} onClick={() => scrollToBottom()} />
       </div>
 
-      {/* ── Sandbox panel ── */}
-      <AnimatePresence>
-        {sandboxOpen && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 220, opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="border-t border-gray-800 overflow-hidden flex-shrink-0"
-          >
-            <SandboxWindow
-              isOpen={sandboxOpen}
-              onClose={() => setSandboxOpen(false)}
-              currentAction={currentStatus}
-              terminalOutput={toolExecutions.map(e => {
-                let content: string;
-                if (e.status === 'start') {
-                  content = `⏳ Starting ${(e.toolName || '').replace(/^mcp_[^_]+_/, '').replace(/_/g, ' ')}…`;
-                } else if (e.result && typeof e.result === 'object' && (e.result as any)?.content?.[0]?.text) {
-                  content = (e.result as any).content[0].text;
-                } else if (e.result && typeof e.result === 'string') {
-                  content = e.result;
-                } else if (e.status === 'error') {
-                  content = `❌ ${(e.toolName || '').replace(/_/g, ' ')} failed — check console for details`;
-                } else {
-                  content = JSON.stringify(e.result, null, 2);
-                }
-                return {
-                  type: e.status === "error" ? "stderr" : "stdout" as const,
-                  content,
-                  timestamp: e.timestamp.getTime(),
-                };
-              })}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* ── Sandbox panel (RIGHT SIDE — IDE style) ── */}
+    </div>{/* end main chat column */}
+
+    <AnimatePresence>
+      {sandboxOpen && (
+        <motion.div
+          initial={{ width: 0, opacity: 0 }}
+          animate={{ width: 480, opacity: 1 }}
+          exit={{ width: 0, opacity: 0 }}
+          transition={{ type: "spring", stiffness: 300, damping: 30 }}
+          className="border-l border-gray-800 overflow-hidden flex-shrink-0 h-full"
+        >
+          <SandboxWindow
+            isOpen={sandboxOpen}
+            onClose={() => setSandboxOpen(false)}
+            currentAction={currentStatus}
+            terminalOutput={toolExecutions.map(e => {
+              let content: string;
+              if (e.status === 'start') {
+                content = `⏳ Starting ${(e.toolName || '').replace(/^mcp_[^_]+_/, '').replace(/_/g, ' ')}…`;
+              } else if (e.result && typeof e.result === 'object' && (e.result as any)?.content?.[0]?.text) {
+                content = (e.result as any).content[0].text;
+              } else if (e.result && typeof e.result === 'string') {
+                content = e.result;
+              } else if (e.status === 'error') {
+                content = `❌ ${(e.toolName || '').replace(/_/g, ' ')} failed — check console for details`;
+              } else {
+                content = JSON.stringify(e.result, null, 2);
+              }
+              return {
+                type: e.status === "error" ? "stderr" : "stdout" as const,
+                content,
+                timestamp: e.timestamp.getTime(),
+              };
+            })}
+          />
+        </motion.div>
+      )}
+    </AnimatePresence>
 
       {/* ── Input area ── */}
       <div
@@ -3613,9 +3619,9 @@ export default function HollyChatInterface() {
             <div className="flex items-end gap-3 w-full">
               {/* Holly Avatar */}
               <div className="flex-shrink-0 ml-1">
-                <div className="relative w-10 h-10">
+                <div className="relative w-12 h-12">
                   <div className="absolute inset-0 rounded-full border border-holly-teal/20 scale-[1.15] animate-pulse" />
-                  <HollyAvatarCompact size={44} showGlow={true} />
+                  <HollyAvatarCompact size={52} showGlow={true} />
                 </div>
               </div>
 
@@ -3728,6 +3734,7 @@ export default function HollyChatInterface() {
         </div>
         </div>{/* end max-w-3xl */}
       </div>
-    </div>
+    </div>{/* end main chat column */}
+    </div>{/* end chat-layout flex-row */}
   );
 }
