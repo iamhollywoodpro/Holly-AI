@@ -5,10 +5,6 @@ import { generateMorningBriefing, persistBriefingNotification } from '@/lib/auto
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-function validateCronOrAuth(req: NextRequest): { dbUserId: string; clerkUserId: string } | NextResponse {
-  return null as any;
-}
-
 async function resolveUserIdentity(req: NextRequest): Promise<{ dbUserId: string; clerkUserId: string } | NextResponse> {
   const cronSecret = process.env.CRON_SECRET;
   const authHeader = req.headers.get('authorization');

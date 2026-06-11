@@ -1,54 +1,63 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# HOLLY Cron Schedule — replaces ALL 7 vercel.json crons
+# HOLLY Cron Schedule — Optimized for free-tier credit efficiency
 # Runs inside the holly-cron Alpine container
 # All times are UTC
 # ─────────────────────────────────────────────────────────────────────────────
 
-# Architecture generation  — 3 AM daily
-0 3 * * *    /run-cron.sh /api/admin/architecture/generate >> /proc/1/fd/1 2>&1
+# ── DAILY (no LLM cost concerns — runs once per day) ─────────────────────────
 
 # Self-heal               — midnight daily
 0 0 * * *    /run-cron.sh /api/autonomy/self-heal >> /proc/1/fd/1 2>&1
 
-# Evolution cycle         — 2 AM daily
-0 2 * * *    /run-cron.sh /api/cron/evolve >> /proc/1/fd/1 2>&1
-
-# Identity evolution      — 4 AM daily
-0 4 * * *    /run-cron.sh /api/cron/identity-evolve >> /proc/1/fd/1 2>&1
-
-# Initiative / proactive  — 9 AM daily
-0 9 * * *    /run-cron.sh /api/initiative >> /proc/1/fd/1 2>&1
-
-# Background learning     — every 2 hours (on the hour)
-0 */2 * * *  /run-cron.sh /api/background-learning >> /proc/1/fd/1 2>&1
-
-# Background learning     — every 2 hours (offset 30 min, staggered)
-30 */2 * * * /run-cron.sh /api/background-learning >> /proc/1/fd/1 2>&1
-
-# Model discovery & auto-upgrade — 5 AM daily
-# Checks providers for newer free/OSS models and promotes them to the router
-0 5 * * *    /run-cron.sh /api/admin/model-update >> /proc/1/fd/1 2>&1
-
 # Daily diagnostic — 9 AM UTC (5 AM ET) daily
-# Silent maintenance: pings all APIs, checks TTS/LLM providers, verifies routes,
-# runs Mirror Protocol spec-to-state comparison. Reports "All Systems Nominal" or
-# generates an incident report with self-repair recommendations.
+# Pings all APIs, checks TTS/LLM providers, verifies routes.
 0 9 * * *    /run-cron.sh /api/autonomy/daily-diagnostic >> /proc/1/fd/1 2>&1
 
 # Morning Briefing — 12 PM UTC (8 AM ET) daily
 # Synthesizes overnight learning, diagnostics, and goals into a proactive briefing
-# pushed to the NEXA Dashboard via the Notification system.
+# pushed to the dashboard + SMS to creator.
 0 12 * * *   /run-cron.sh /api/autonomy/morning-briefing >> /proc/1/fd/1 2>&1
 
-# Consciousness Loop — every hour (offset 15 min, staggered from background-learning)
-# The heartbeat of HOLLY's autonomous existence: processes experiences, generates
-# LLM-powered insights, evaluates initiatives, and evolves identity daily.
-15 * * * *   /run-cron.sh /api/cron/consciousness-loop >> /proc/1/fd/1 2>&1
+# Model discovery & auto-upgrade — 5 AM daily
+0 5 * * *    /run-cron.sh /api/admin/model-update >> /proc/1/fd/1 2>&1
 
-# Tool Discovery — every 6 hours (offset 45 min)
-# Scans Holly's tool registry for new MCP tools and registers them.
-45 */6 * * *  /run-cron.sh /api/cron/tool-discovery >> /proc/1/fd/1 2>&1
+# Architecture generation — 3 AM daily
+0 3 * * *    /run-cron.sh /api/admin/architecture/generate >> /proc/1/fd/1 2>&1
 
-# Goal Evaluation — every 3 hours (offset 30 min)
-# Evaluates pending autonomous goals and triggers execution.
-30 */3 * * *  /run-cron.sh /api/goals/evaluate >> /proc/1/fd/1 2>&1
+# Initiative / proactive — 9 AM daily
+0 9 * * *    /run-cron.sh /api/initiative >> /proc/1/fd/1 2>&1
+
+# ── EVERY 6 HOURS (reduced from hourly/every-2h to save free-tier credits) ───
+
+# Consciousness Loop — every 6 hours (0, 6, 12, 18 UTC)
+# Processes experiences, generates LLM-powered insights, evaluates initiatives.
+# Was: every hour (24x/day) → Now: 4x/day
+0 */6 * * *   /run-cron.sh /api/cron/consciousness-loop >> /proc/1/fd/1 2>&1
+
+# Background learning — every 6 hours (offset 30 min, staggered)
+# Was: every 2 hours x2 (24x/day) → Now: 4x/day
+30 */6 * * *  /run-cron.sh /api/background-learning >> /proc/1/fd/1 2>&1
+
+# Goal Evaluation — every 6 hours (offset 15 min)
+# Was: every 3 hours (8x/day) → Now: 4x/day
+15 */6 * * *  /run-cron.sh /api/goals/evaluate >> /proc/1/fd/1 2>&1
+
+# ── WEEKLY (slow, deliberate changes — no need to rush) ──────────────────────
+
+# Evolution cycle — weekly (Sundays at 2 AM UTC)
+# Was: daily → Now: weekly. Evolution should be deliberate, not daily.
+0 2 * * 0    /run-cron.sh /api/cron/evolve >> /proc/1/fd/1 2>&1
+
+# Identity evolution — bi-weekly (1st and 15th at 4 AM UTC)
+# Was: daily → Now: twice/month. Personality shifts should be slow.
+0 4 1,15 * * /run-cron.sh /api/cron/identity-evolve >> /proc/1/fd/1 2>&1
+
+# Tool Discovery — weekly (Saturdays at 4:45 AM UTC)
+# Was: every 6 hours (4x/day) → Now: weekly. New tools don't appear that often.
+45 4 * * 6   /run-cron.sh /api/cron/tool-discovery >> /proc/1/fd/1 2>&1
+
+# ── ALWAYS ON (zero cost — no LLM calls, just database + SSE) ────────────────
+
+# Push Pending Notifications — every 15 minutes (FREE — no LLM calls)
+# Delivers queued proactive insights to online users via SSE.
+*/15 * * * * /run-cron.sh /api/cron/push-pending >> /proc/1/fd/1 2>&1
