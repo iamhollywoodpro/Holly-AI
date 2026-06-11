@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Only return if it's from the last 24 hours
-    const isRecent = new Date() > new Date(latestBriefing.createdAt.getTime() - 24 * 60 * 60 * 1000);
+    const isRecent = new Date(latestBriefing.createdAt.getTime() + 24 * 60 * 60 * 1000) > new Date();
 
     return NextResponse.json({ 
       briefing: isRecent ? latestBriefing : null 
