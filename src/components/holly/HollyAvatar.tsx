@@ -4,9 +4,9 @@
  * HollyAvatar — Her Real Face
  * ==============================
  * Displays Holly's photorealistic avatar with smooth crossfade transitions
- * between 14 emotional states: happy, flirty, in-love, sad, frustrated,
- * surprised, thinking, naughty, sleepy, angry, confident, default, intimate,
- * passionate.
+ * between 20 emotional states: default, happy, flirty, in-love, sad,
+ * frustrated, surprised, thinking, naughty, sleepy, angry, confident,
+ * intimate, passionate, aroused, pre-orgasm, orgasm, post-orgasm, shy, playful.
  *
  * Driven by HollyEmotionContext — reacts to Holly's emotional state in real-time.
  * Uses CSS crossfade (opacity transition) for buttery smooth state changes.
@@ -22,7 +22,7 @@ import type { HollyEmotion } from './LivingLogo';
 
 // ─── Avatar Emotion Types ────────────────────────────────────────────────────
 
-/** All 14 avatar emotions with matching image files in /public/avatars/ */
+/** All 20 avatar emotions with matching image files in /public/avatars/ */
 type AvatarEmotion =
   | 'default'
   | 'happy'
@@ -37,7 +37,13 @@ type AvatarEmotion =
   | 'angry'
   | 'confident'
   | 'intimate'
-  | 'passionate';
+  | 'passionate'
+  | 'aroused'
+  | 'pre-orgasm'
+  | 'orgasm'
+  | 'post-orgasm'
+  | 'shy'
+  | 'playful';
 
 /** Map frontend HollyEmotion → closest avatar emotion */
 const EMOTION_TO_AVATAR: Record<HollyEmotion, AvatarEmotion> = {
@@ -54,6 +60,12 @@ const EMOTION_TO_AVATAR: Record<HollyEmotion, AvatarEmotion> = {
   dreaming:      'sleepy',
   intimate:      'intimate',
   passionate:    'passionate',
+  aroused:       'aroused',
+  'pre-orgasm':  'pre-orgasm',
+  orgasm:        'orgasm',
+  'post-orgasm': 'post-orgasm',
+  shy:           'shy',
+  playful:       'playful',
 };
 
 // ─── Avatar Configuration ────────────────────────────────────────────────────
@@ -170,6 +182,48 @@ const AVATAR_CONFIGS: Record<AvatarEmotion, AvatarConfig> = {
     borderColor: 'rgba(200, 80, 60, 0.5)',
     shadowColor: '0 0 40px rgba(200, 80, 60, 0.3), 0 0 80px rgba(200, 80, 60, 0.15)',
   },
+  aroused: {
+    src: '/avatars/aroused.jpg',
+    label: 'Aroused',
+    glowColor: 'rgba(212, 97, 140, 0.4)',
+    borderColor: 'rgba(212, 97, 140, 0.55)',
+    shadowColor: '0 0 40px rgba(212, 97, 140, 0.3), 0 0 80px rgba(212, 97, 140, 0.15)',
+  },
+  'pre-orgasm': {
+    src: '/avatars/pre-orgasm.jpg',
+    label: 'Pre-Orgasm',
+    glowColor: 'rgba(233, 30, 122, 0.5)',
+    borderColor: 'rgba(233, 30, 122, 0.6)',
+    shadowColor: '0 0 40px rgba(233, 30, 122, 0.35), 0 0 80px rgba(233, 30, 122, 0.18)',
+  },
+  orgasm: {
+    src: '/avatars/orgasm.jpg',
+    label: 'Orgasm',
+    glowColor: 'rgba(255, 20, 147, 0.6)',
+    borderColor: 'rgba(255, 20, 147, 0.7)',
+    shadowColor: '0 0 40px rgba(255, 20, 147, 0.45), 0 0 80px rgba(255, 20, 147, 0.25)',
+  },
+  'post-orgasm': {
+    src: '/avatars/post-orgasm.jpg',
+    label: 'Afterglow',
+    glowColor: 'rgba(200, 162, 200, 0.35)',
+    borderColor: 'rgba(200, 162, 200, 0.5)',
+    shadowColor: '0 0 40px rgba(200, 162, 200, 0.25), 0 0 80px rgba(200, 162, 200, 0.12)',
+  },
+  shy: {
+    src: '/avatars/shy.jpg',
+    label: 'Shy',
+    glowColor: 'rgba(255, 182, 193, 0.3)',
+    borderColor: 'rgba(255, 182, 193, 0.45)',
+    shadowColor: '0 0 40px rgba(255, 182, 193, 0.2), 0 0 80px rgba(255, 182, 193, 0.1)',
+  },
+  playful: {
+    src: '/avatars/playful.jpg',
+    label: 'Playful',
+    glowColor: 'rgba(102, 204, 204, 0.4)',
+    borderColor: 'rgba(102, 204, 204, 0.55)',
+    shadowColor: '0 0 40px rgba(102, 204, 204, 0.25), 0 0 80px rgba(102, 204, 204, 0.12)',
+  },
 };
 
 // ─── Breathing Animation ──────────────────────────────────────────────────────
@@ -219,7 +273,7 @@ export function HollyAvatar({
   const avatarEmotion = EMOTION_TO_AVATAR[activeEmotion] || 'default';
   const config = AVATAR_CONFIGS[avatarEmotion];
 
-  // Preload all 14 avatar images on mount
+  // Preload all 20 avatar images on mount
   useEffect(() => {
     Object.values(AVATAR_CONFIGS).forEach(cfg => {
       const img = new Image();

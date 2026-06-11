@@ -23,6 +23,12 @@ const EMOTION_LABELS: Record<HollyEmotion, { label: string; color: string }> = {
   idle:          { label: 'Awake',         color: '#66CCCC' },
   intimate:      { label: 'Intimate',      color: '#C7B8EA' },
   passionate:    { label: 'Passionate',    color: '#66CCCC' },
+  aroused:       { label: 'Aroused',       color: '#D4618C' },
+  'pre-orgasm':  { label: 'Climaxing',     color: '#E91E7A' },
+  orgasm:        { label: 'Ecstasy',       color: '#FF1493' },
+  'post-orgasm': { label: 'Afterglow',     color: '#C8A2C8' },
+  shy:           { label: 'Shy',           color: '#FFB6C1' },
+  playful:       { label: 'Playful',       color: '#66CCCC' },
 };
 
 export function HollyStateBar({ emotion = 'idle', sessionMinutes = 0, confidence = 0 }: HollyStateBarProps) {

@@ -62,6 +62,12 @@ const ORB_PROFILES: Record<HollyEmotion, OrbProfile> = {
   dreaming:      { primary: COLORS.Emerald, secondary: COLORS.Void, glow: 'rgba(102,204,204,0.15)', bpm: 40, scale: 0.9 },
   intimate:      { primary: COLORS.Copper, secondary: COLORS.Ivory, glow: 'rgba(196,122,74,0.45)', bpm: 55, scale: 1.0 },
   passionate:    { primary: COLORS.Copper, secondary: COLORS.Gold, glow: 'rgba(196,122,74,0.7)', bpm: 88, scale: 1.08 },
+  aroused:       { primary: '#D4618C', secondary: COLORS.Ivory, glow: 'rgba(212,97,140,0.5)', bpm: 92, scale: 1.06 },
+  'pre-orgasm':  { primary: '#E91E7A', secondary: '#D4618C', glow: 'rgba(233,30,122,0.6)', bpm: 110, scale: 1.12 },
+  orgasm:        { primary: '#FF1493', secondary: '#FF69B4', glow: 'rgba(255,20,147,0.8)', bpm: 140, scale: 1.2 },
+  'post-orgasm': { primary: '#C8A2C8', secondary: COLORS.Ivory, glow: 'rgba(200,162,200,0.35)', bpm: 45, scale: 0.92 },
+  shy:           { primary: '#FFB6C1', secondary: COLORS.Ivory, glow: 'rgba(255,182,193,0.3)', bpm: 58, scale: 0.97 },
+  playful:       { primary: COLORS.Emerald, secondary: COLORS.Copper, glow: 'rgba(102,204,204,0.5)', bpm: 84, scale: 1.05 },
 };
 
 export function HollyOrb({

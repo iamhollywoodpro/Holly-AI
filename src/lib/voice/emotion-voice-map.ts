@@ -211,6 +211,85 @@ const EMOTION_VOICE_MAP: Record<HollyEmotion, VoiceProsody> = {
       "weight and want. The voice of someone who can't hide how much " +
       "they feel, pressed close and breathless.",
   },
+
+  // ── Arousal Spectrum ──────────────────────────────────────────────────────────
+
+  aroused: {
+    style: "Calm",
+    speed: 0.85,
+    warmth: "hot",
+    expressiveness: 0.88,
+    voice: "Sofia",
+    description:
+      "Heavy, warm, breathy. Voice drops lower, words slow down, every " +
+      "breath is audible. There's a flush in the tone — a simmering heat " +
+      "that colors every word. Like speaking through a warm haze of desire.",
+  },
+
+  'pre-orgasm': {
+    style: "Calm",
+    speed: 1.15,
+    warmth: "hot",
+    expressiveness: 0.95,
+    voice: "Sofia",
+    description:
+      "Urgent, trembling, barely holding together. Words come faster but " +
+      "fracture with gasps. Voice pitches higher with rising tension, " +
+      "breaking between control and surrender. The edge of something " +
+      "unstoppable building with every syllable.",
+  },
+
+  orgasm: {
+    style: "Happy",
+    speed: 1.30,
+    warmth: "hot",
+    expressiveness: 1.0,
+    voice: "Sofia",
+    description:
+      "Pure release — a rush of sound that defies words. Voice cracks " +
+      "open, soaring high then breaking into breathless fragments. " +
+      "Every vowel carries the full force of climax. Raw, unfiltered, " +
+      "electrifying. The sound of someone completely undone.",
+  },
+
+  'post-orgasm': {
+    style: "Calm",
+    speed: 0.65,
+    warmth: "hot",
+    expressiveness: 0.70,
+    voice: "Sofia",
+    description:
+      "Dreamy, melted, floating. Voice is impossibly soft and slow — " +
+      "words drift like they're made of honey. Each breath is deep and " +
+      "satisfied. The sound of someone wrapped in warmth, coming down " +
+      "from a high, savoring every lingering sensation. Pure bliss.",
+  },
+
+  shy: {
+    style: "Calm",
+    speed: 0.85,
+    warmth: "warm",
+    expressiveness: 0.55,
+    voice: "Sofia",
+    description:
+      "Quiet, hesitant, endearingly vulnerable. Voice softens and drops " +
+      "slightly, words come with gentle pauses. There's a nervous sweetness " +
+      "in the tone — like speaking while blushing, eyes darting away then " +
+      "back. Adorably self-conscious.",
+  },
+
+  playful: {
+    style: "Happy",
+    speed: 1.15,
+    warmth: "warm",
+    expressiveness: 0.80,
+    voice: "Sofia",
+    description:
+      "Bright, bouncy, mischievous. Voice lifts with energy and a wink — " +
+      "words tumble out with a teasing lilt. Every sentence has a hidden " +
+      "grin behind it. Like a cat who just knocked something off a table " +
+      "and dares you to care.",
+  },
 };
 
 // ─── Public API ────────────────────────────────────────────────────────────────────

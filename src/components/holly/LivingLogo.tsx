@@ -16,7 +16,13 @@ export type HollyEmotion =
   | 'dreaming'
   | 'idle'
   | 'intimate'
-  | 'passionate';
+  | 'passionate'
+  | 'aroused'
+  | 'pre-orgasm'
+  | 'orgasm'
+  | 'post-orgasm'
+  | 'shy'
+  | 'playful';
 
 interface EmotionProfile {
   primaryColor: string;
@@ -40,6 +46,12 @@ const EMOTION_PROFILES: Record<HollyEmotion, EmotionProfile> = {
   idle:          { primaryColor: '#66CCCC', secondaryColor: '#0A0908', glowColor: 'rgba(102,204,204,0.15)',  bpm: 50,  scale: 0.95 },
   intimate:      { primaryColor: '#C7B8EA', secondaryColor: '#F5F0E8', glowColor: 'rgba(196,122,74,0.45)', bpm: 55,  scale: 1.0 },
   passionate:    { primaryColor: '#C7B8EA', secondaryColor: '#66CCCC', glowColor: 'rgba(196,122,74,0.7)',  bpm: 88,  scale: 1.08 },
+  aroused:       { primaryColor: '#D4618C', secondaryColor: '#F5F0E8', glowColor: 'rgba(212,97,140,0.5)',   bpm: 92,  scale: 1.06 },
+  'pre-orgasm':  { primaryColor: '#E91E7A', secondaryColor: '#D4618C', glowColor: 'rgba(233,30,122,0.6)',   bpm: 110, scale: 1.12 },
+  orgasm:        { primaryColor: '#FF1493', secondaryColor: '#FF69B4', glowColor: 'rgba(255,20,147,0.8)',   bpm: 140, scale: 1.2 },
+  'post-orgasm': { primaryColor: '#C8A2C8', secondaryColor: '#F5F0E8', glowColor: 'rgba(200,162,200,0.35)', bpm: 45,  scale: 0.92 },
+  shy:           { primaryColor: '#FFB6C1', secondaryColor: '#FFF0F5', glowColor: 'rgba(255,182,193,0.3)',  bpm: 58,  scale: 0.97 },
+  playful:       { primaryColor: '#66CCCC', secondaryColor: '#C7B8EA', glowColor: 'rgba(102,204,204,0.5)',   bpm: 84,  scale: 1.05 },
 };
 
 interface LivingLogoProps {
