@@ -1045,6 +1045,118 @@ const MarkdownContent = memo(function MarkdownContent({ content }: { content: st
   );
 });
 
+// ─── Inline Image Card — thumbnail with download + share actions ─────────────
+
+function InlineImageCard({ src, index, label }: { src: string; index: number; label: string }) {
+  const [showActions, setShowActions] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownload = useCallback(async () => {
+    setDownloading(true);
+    try {
+      const response = await fetch(src);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `holly-image-${Date.now()}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      // Fallback: open in new tab
+      window.open(src, '_blank');
+    }
+    setDownloading(false);
+  }, [src]);
+
+  const handleShare = useCallback(async () => {
+    try {
+      // Try native Web Share API first (works on mobile + some desktop browsers)
+      if (navigator.share) {
+        const response = await fetch(src);
+        const blob = await response.blob();
+        const file = new File([blob], `holly-image-${index + 1}.png`, { type: 'image/png' });
+        await navigator.share({
+          title: 'Holly AI Image',
+          text: 'Check out this image from Holly!',
+          files: [file],
+        });
+        return;
+      }
+    } catch {
+      // User cancelled or share failed — fall through to clipboard
+    }
+
+    // Fallback: copy URL to clipboard
+    try {
+      await navigator.clipboard.writeText(src);
+      // Brief visual feedback — could use toast but keeping it simple
+    } catch {
+      // Final fallback — do nothing, the button just won't work
+    }
+  }, [src, index]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className="group relative rounded-xl overflow-hidden border border-holly-cream/10 shadow-lg hover:border-holly-teal/40 transition-colors"
+      onMouseEnter={() => setShowActions(true)}
+      onMouseLeave={() => setShowActions(false)}
+    >
+      <a href={src} target="_blank" rel="noopener noreferrer">
+        <img
+          src={src}
+          alt={label}
+          className="max-w-[300px] max-h-[300px] object-contain bg-black/20"
+          onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
+        />
+      </a>
+
+      {/* Action overlay — appears on hover */}
+      <AnimatePresence>
+        {showActions && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-2 flex items-center justify-end gap-1.5"
+          >
+            <button
+              onClick={handleShare}
+              className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white/80 hover:text-white transition-colors"
+              title="Share or copy link"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+              </svg>
+            </button>
+            <button
+              onClick={handleDownload}
+              disabled={downloading}
+              className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white/80 hover:text-white transition-colors disabled:opacity-50"
+              title="Download image"
+            >
+              {downloading ? (
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+              )}
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+}
+
 // Lightweight streaming text — renders text + detects inline images during live streaming
 // Once streaming is complete, the message moves to the full MarkdownContent renderer
 function StreamingText({ content }: { content: string }) {
@@ -1065,24 +1177,9 @@ function StreamingText({ content }: { content: string }) {
     <>
       {cleanText && <p className="whitespace-pre-wrap leading-relaxed">{cleanText}</p>}
       {images.length > 0 && (
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="mt-3 flex flex-wrap gap-3">
           {images.map((src, i) => (
-            <motion.a
-              key={i}
-              href={src}
-              target="_blank"
-              rel="noopener noreferrer"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="block rounded-xl overflow-hidden border border-holly-cream/10 shadow-lg hover:border-holly-teal/40 transition-colors"
-            >
-              <img
-                src={src}
-                alt={`Generating image ${i + 1}...`}
-                className="max-w-[300px] max-h-[300px] object-contain"
-                onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
-              />
-            </motion.a>
+            <InlineImageCard key={i} src={src} index={i} label={`Generating image ${i + 1}...`} />
           ))}
         </div>
       )}
@@ -1126,24 +1223,9 @@ function AssistantContent({ content }: { content: string }) {
       } />
       {/* Phase B: inline image rendering */}
       {images.length > 0 && (
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="mt-3 flex flex-wrap gap-3">
           {images.map((src, i) => (
-            <motion.a
-              key={i}
-              href={src}
-              target="_blank"
-              rel="noopener noreferrer"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="block rounded-xl overflow-hidden border border-holly-cream/10 shadow-lg hover:border-holly-teal/40 transition-colors"
-            >
-              <img
-                src={src}
-                alt={`Generated image ${i + 1}`}
-                className="max-w-[300px] max-h-[300px] object-contain"
-                onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
-              />
-            </motion.a>
+            <InlineImageCard key={i} src={src} index={i} label={`Generated image ${i + 1}`} />
           ))}
         </div>
       )}
