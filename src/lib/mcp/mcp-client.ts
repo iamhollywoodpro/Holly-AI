@@ -195,6 +195,12 @@ export class MCPClientManager {
 
     // 12. Project Lifecycle Hub — HTTP proxy for full project building, deployment, monitoring, and client handoff
     this._registerProjectHub();
+
+    // 13. Local FS Hub — HTTP proxy for file read/write/list/run (stdio-independent)
+    this._registerLocalFsHub();
+
+    // 14. Diagnostic Hub — HTTP proxy for system diagnostics (stdio-independent)
+    this._registerDiagnosticHub();
   }
 
   // ── AURA Hub registration ──────────────────────────────────────────────────
@@ -1455,6 +1461,125 @@ export class MCPClientManager {
           return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
         } catch (e: unknown) {
           return { content: [{ type: 'text', text: `Collaborative Hub error: ${(e as Error).message}` }] };
+        }
+      }
+    );
+  }
+
+  // ── Local FS Hub registration ──────────────────────────────────────────────
+  // Provides local_read_file, local_write_file, local_list_dir, local_run_command
+  // via HTTP so they work even when the stdio MCP subprocess fails in Docker.
+  private _registerLocalFsHub(): void {
+    const baseUrl = this._getBaseUrl();
+    this.registerHttpServer(
+      'local-fs-hub',
+      [
+        {
+          name: 'local_read_file',
+          description: "Read a file from Holly's local codebase. Returns file contents with line count.",
+          inputSchema: {
+            type: 'object',
+            properties: {
+              path: { type: 'string', description: "Relative file path (e.g. 'app/api/chat/route.ts')" },
+            },
+            required: ['path'],
+          },
+        },
+        {
+          name: 'local_write_file',
+          description: "Write content to a file in Holly's local codebase. Creates directories if needed.",
+          inputSchema: {
+            type: 'object',
+            properties: {
+              path: { type: 'string', description: "Relative file path (e.g. 'src/lib/utils.ts')" },
+              content: { type: 'string', description: 'File content to write' },
+            },
+            required: ['path', 'content'],
+          },
+        },
+        {
+          name: 'local_list_dir',
+          description: "List contents of a directory in Holly's local codebase.",
+          inputSchema: {
+            type: 'object',
+            properties: {
+              path: { type: 'string', description: "Relative directory path (default: '.')" },
+            },
+            required: [],
+          },
+        },
+        {
+          name: 'local_run_command',
+          description: "Run a shell command in Holly's local codebase. Use for builds, tests, git operations.",
+          inputSchema: {
+            type: 'object',
+            properties: {
+              command: { type: 'string', description: "Shell command to run (e.g. 'npm run build')" },
+              cwd: { type: 'string', description: "Working directory (default: repo root)" },
+              timeout: { type: 'number', description: "Timeout in ms (default: 30000, max: 120000)" },
+            },
+            required: ['command'],
+          },
+        },
+      ],
+      async (toolName, args) => {
+        try {
+          const res = await fetch(`${baseUrl}/api/hub/local-fs`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-internal-token': process.env.INTERNAL_API_SECRET || '',
+            },
+            body: JSON.stringify({ tool: toolName, args }),
+            signal: AbortSignal.timeout(60_000),
+          });
+          const data = await res.json();
+          return { content: [{ type: 'text', text: data.result || JSON.stringify(data) }] };
+        } catch (e: unknown) {
+          return { content: [{ type: 'text', text: `Local FS Hub error: ${(e as Error).message}` }] };
+        }
+      }
+    );
+  }
+
+  // ── Diagnostic Hub registration ────────────────────────────────────────────
+  // Provides diagnostic_check via HTTP so it works without stdio subprocess.
+  private _registerDiagnosticHub(): void {
+    const baseUrl = this._getBaseUrl();
+    this.registerHttpServer(
+      'diagnostic-hub',
+      [
+        {
+          name: 'diagnostic_check',
+          description: "Run diagnostic checks on Holly's systems. Checks: health, tts, llm, memory, image.",
+          inputSchema: {
+            type: 'object',
+            properties: {
+              checks: {
+                type: 'array',
+                items: { type: 'string', enum: ['health', 'tts', 'llm', 'memory', 'image'] },
+                description: "Which checks to run (default: all)",
+              },
+            },
+            required: [],
+          },
+        },
+      ],
+      async (toolName, args) => {
+        try {
+          const res = await fetch(`${baseUrl}/api/hub/diagnostic`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-internal-token': process.env.INTERNAL_API_SECRET || '',
+            },
+            body: JSON.stringify({ checks: args.checks }),
+            signal: AbortSignal.timeout(30_000),
+          });
+          const data = await res.json();
+          return { content: [{ type: 'text', text: data.result || JSON.stringify(data) }] };
+        } catch (e: unknown) {
+          return { content: [{ type: 'text', text: `Diagnostic Hub error: ${(e as Error).message}` }] };
         }
       }
     );
