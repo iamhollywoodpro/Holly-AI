@@ -813,7 +813,7 @@ export async function POST(req: NextRequest) {
                 for (let groqAttempt = 0; groqAttempt < 2; groqAttempt++) {
                   try {
                     const completion = await groqClient.chat.completions.create({
-                      messages: gm as any, model: 'llama-3.3-70b-versatile', temperature: userAiSettings.creativity, max_tokens: 16384,
+                      messages: gm as any, model: 'qwen/qwen3-32b', temperature: userAiSettings.creativity, max_tokens: 16384,
                       tools: groqTools as any, tool_choice: 'auto', stream: true,
                     }, { timeout: 60_000 });
                     for await (const chunk of completion) {
