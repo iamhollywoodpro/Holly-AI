@@ -1045,10 +1045,49 @@ const MarkdownContent = memo(function MarkdownContent({ content }: { content: st
   );
 });
 
-// Lightweight streaming text — plain text during HOLLY's live response (no markdown parsing overhead)
+// Lightweight streaming text — renders text + detects inline images during live streaming
 // Once streaming is complete, the message moves to the full MarkdownContent renderer
 function StreamingText({ content }: { content: string }) {
-  return <p className="whitespace-pre-wrap leading-relaxed">{content}</p>;
+  // Detect Pollinations image URLs during streaming
+  const pollinationsRegex = /https?:\/\/image\.pollinations\.ai\/prompt\/[^\s)\]"']+/gi;
+  const images: string[] = [];
+  let m;
+  while ((m = pollinationsRegex.exec(content)) !== null) images.push(m[0]);
+
+  // Strip markdown image syntax and bare image URL lines from displayed text
+  const cleanText = content
+    .replace(/!\[.*?\]\(https?:\/\/image\.pollinations\.ai\/prompt\/[^\s)]+\)/gi, '')
+    .replace(/Image URL:\s*https?:\/\/image\.pollinations\.ai\/prompt\/[^\s]+/gi, '')
+    .replace(/https?:\/\/image\.pollinations\.ai\/prompt\/[^\s)\]"']+/gi, '')
+    .trim();
+
+  return (
+    <>
+      {cleanText && <p className="whitespace-pre-wrap leading-relaxed">{cleanText}</p>}
+      {images.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {images.map((src, i) => (
+            <motion.a
+              key={i}
+              href={src}
+              target="_blank"
+              rel="noopener noreferrer"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="block rounded-xl overflow-hidden border border-holly-cream/10 shadow-lg hover:border-holly-teal/40 transition-colors"
+            >
+              <img
+                src={src}
+                alt={`Generating image ${i + 1}...`}
+                className="max-w-[300px] max-h-[300px] object-contain"
+                onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
+              />
+            </motion.a>
+          ))}
+        </div>
+      )}
+    </>
+  );
 }
 
 // ─── AssistantContent — renders markdown AND detects inline images/audio ──────
@@ -1074,7 +1113,17 @@ function AssistantContent({ content }: { content: string }) {
 
   return (
     <>
-      <MarkdownContent content={content.replace(dataUrlRegex, '[image]')} />
+      <MarkdownContent content={
+        content
+          .replace(dataUrlRegex, '[image]')
+          // Strip markdown image syntax for Pollinations URLs (rendered separately below)
+          .replace(/!\[.*?\]\(https?:\/\/image\.pollinations\.ai\/prompt\/[^\s)]+\)/gi, '')
+          // Strip bare "Image URL:" lines
+          .replace(/Image URL:\s*https?:\/\/image\.pollinations\.ai\/prompt\/[^\s]+/gi, '')
+          // Strip bare Pollinations URLs that aren't inside markdown syntax
+          .replace(/(?<!!\[.*?)https?:\/\/image\.pollinations\.ai\/prompt\/[^\s)\]"']+/gi, '')
+          .trim()
+      } />
       {/* Phase B: inline image rendering */}
       {images.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-2">
