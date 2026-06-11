@@ -58,9 +58,9 @@ BAKED_LORAS = {
         "desc": "Holly Face v2.0 (trigger: h0lly)",
     },
     "body": {
-        "file": "full-fine-body-v1.safetensors",
+        "file": "holly-body-v1.safetensors",
         "weight": 0.65,
-        "desc": "Full body poses, all angles",
+        "desc": "Holly Body v1.0 (trigger: h0lly-body) — Civitai trained",
     },
 }
 
