@@ -136,10 +136,10 @@ export function ChatMessage({ message }: ChatMessageProps) {
       {/* Avatar */}
       <div className="flex-shrink-0">
         {isAssistant ? (
-          <HollyAvatarCompact size={48} />
+          <HollyAvatarCompact size={56} />
         ) : (
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center">
-            <User className="w-6 h-6 text-gray-300" />
+          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center">
+            <User className="w-7 h-7 text-gray-300" />
           </div>
         )}
       </div>
