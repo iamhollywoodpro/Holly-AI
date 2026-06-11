@@ -382,6 +382,30 @@ export async function applyProposal(
     const newContent = currentContent.replace(proposal.currentCode.trim(), proposal.proposedCode.trim());
     await fs.writeFile(fullPath, newContent, 'utf-8');
 
+    // ── TypeScript Validation Gate ─────────────────────────────────────────────
+    // If the modified file is TypeScript/TSX, run tsc --noEmit to catch type errors.
+    // On failure, revert to backup and reject the proposal.
+    if (/\.(tsx?|jsx?)$/.test(proposal.filePath)) {
+      try {
+        const { execFile } = await import('child_process');
+        const { promisify } = await import('util');
+        const execAsync = promisify(execFile);
+        await execAsync('npx', ['tsc', '--noEmit'], {
+          cwd: REPO_ROOT,
+          timeout: 60_000,
+          maxBuffer: 5 * 1024 * 1024,
+        });
+      } catch (tscErr: unknown) {
+        // TypeScript compilation failed — revert the change
+        await fs.writeFile(fullPath, currentContent, 'utf-8');
+        const tscOutput = (tscErr as any)?.stderr || (tscErr as any)?.stdout || (tscErr as Error).message;
+        return {
+          success: false,
+          message: `TypeScript validation FAILED. Change reverted.\n\n${String(tscOutput).substring(0, 3000)}\n\nFix the type errors and try again.`,
+        };
+      }
+    }
+
     // Update proposal record
     await prisma.evolutionProposal.updateMany({
       where: { title: proposal.title },
