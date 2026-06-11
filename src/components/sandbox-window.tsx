@@ -265,10 +265,10 @@ export default function SandboxWindow({
   return (
     <div
       ref={containerRef}
-      className={`flex flex-col bg-[#1e1e1e] border-l border-[#333] ${
-        isMaximized ? "fixed inset-0 z-50" : "relative h-full"
+      className={`flex flex-col bg-[#1e1e1e] border-t border-[#333] ${
+        isMaximized ? "fixed inset-0 z-50" : "relative"
       }`}
-      style={!isMaximized ? undefined : undefined}
+      style={!isMaximized ? { height: isMobile ? '50vh' : '320px' } : undefined}
     >
       {/* ── Title Bar (VS Code style) ──────────────────────────────────────── */}
       <div className="flex items-center justify-between h-9 bg-[#323233] border-b border-[#252526] px-3 flex-shrink-0">
