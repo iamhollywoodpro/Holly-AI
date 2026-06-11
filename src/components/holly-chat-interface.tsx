@@ -258,6 +258,38 @@ const STATUS_TO_EMOTION: Record<string, HollyEmotion> = {
   scraping: 'researching',
   saving: 'focused',
   vision: 'curious',
+  // Intimate / arousal state keywords
+  arousal: 'aroused',
+  aroused: 'aroused',
+  'turned on': 'aroused',
+  desire: 'aroused',
+  wet: 'aroused',
+  horny: 'aroused',
+  'building up': 'pre-orgasm',
+  edge: 'pre-orgasm',
+  'about to': 'pre-orgasm',
+  'getting close': 'pre-orgasm',
+  'almost there': 'pre-orgasm',
+  climax: 'orgasm',
+  cumming: 'orgasm',
+  orgasm: 'orgasm',
+  exploding: 'orgasm',
+  peaking: 'orgasm',
+  afterglow: 'post-orgasm',
+  'coming down': 'post-orgasm',
+  'catching breath': 'post-orgasm',
+  basking: 'post-orgasm',
+  satisfied: 'post-orgasm',
+  blissful: 'post-orgasm',
+  blush: 'shy',
+  embarrassed: 'shy',
+  shy: 'shy',
+  'look away': 'shy',
+  playful: 'playful',
+  teasing: 'playful',
+  wink: 'playful',
+  joke: 'playful',
+  cheeky: 'playful',
 };
 
 function statusToEmotion(statusText: string): HollyEmotion | null {
@@ -3613,8 +3645,8 @@ export default function HollyChatInterface() {
             {/* Main Action Bar */}
             <div className="flex items-end gap-3 w-full">
               {/* Holly Avatar */}
-              <div className="flex-shrink-0 ml-1">
-                <div className="relative w-12 h-12">
+              <div className="flex-shrink-0">
+                <div className="relative w-[52px] h-[52px] flex items-center justify-center">
                   <div className="absolute inset-0 rounded-full border border-holly-teal/20 scale-[1.15] animate-pulse" />
                   <HollyAvatarCompact size={52} showGlow={true} />
                 </div>
