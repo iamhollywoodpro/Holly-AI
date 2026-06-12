@@ -56,20 +56,20 @@ describe('HollyAvatar — State Mapping', () => {
 describe('HollyAvatar — Config', () => {
   it('provides config for default avatar', () => {
     const config = getAvatarConfig('default');
-    expect(config.src).toBe('/avatars/default.jpg');
+    expect(config.src).toBe('/avatars/default.jpg?v3');
     expect(config.label).toBe('Holly');
     expect(config.glowColor).toContain('74, 144, 82'); // green-ish
   });
 
   it('provides config for intimate avatar', () => {
     const config = getAvatarConfig('intimate');
-    expect(config.src).toBe('/avatars/intimate.jpg');
+    expect(config.src).toBe('/avatars/intimate.jpg?v3');
     expect(config.glowColor).toContain('180, 100, 120'); // warm pink
   });
 
   it('provides config for passionate avatar', () => {
     const config = getAvatarConfig('passionate');
-    expect(config.src).toBe('/avatars/passionate.jpg');
+    expect(config.src).toBe('/avatars/passionate.jpg?v3');
     expect(config.glowColor).toContain('200, 80, 60'); // red-ish
   });
 
