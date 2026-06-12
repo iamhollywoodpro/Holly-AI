@@ -4,6 +4,8 @@ export interface VoiceOutputOptions {
   voiceDescription?: string;
   voice?: string;
   speed?: number;
+  /** Holly's current emotional state — activates Voice Character Engine (NVIDIA Magpie) */
+  emotion?: string;
   useBrowserFallback?: boolean;
   onStart?: () => void;
   onEnd?: () => void;
@@ -181,6 +183,7 @@ class EnhancedVoiceOutput {
           voice: options.voice,
           speed: options.speed ?? 1.0,
           temperature: options.temperature ?? 1.0,
+          emotion: options.emotion || undefined,
         }),
         signal: AbortSignal.timeout(30_000),
       });
