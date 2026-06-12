@@ -133,7 +133,7 @@ export async function generateImage(
       const encoded = encodeURIComponent(prompt);
       const w = options.width || 1024;
       const h = options.height || 1024;
-      resultUrl = `https://image.pollinations.ai/prompt/${encoded}?width=${w}&height=${h}&nologo=true&enhance=true&model=flux`;
+      resultUrl = `https://gen.pollinations.ai/image/${encoded}?width=${w}&height=${h}&nologo=true&enhance=true&model=flux`;
     }
 
     await prisma.generationJob.update({

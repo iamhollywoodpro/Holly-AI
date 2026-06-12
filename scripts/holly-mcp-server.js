@@ -1338,7 +1338,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const encoded = encodeURIComponent(args.prompt);
       const model   = args.model || "flux";
       const seed    = Math.floor(Math.random() * 1000000);
-      const pollinationsUrl = `https://image.pollinations.ai/prompt/${encoded}?width=${w}&height=${h}&model=${model}&seed=${seed}&nologo=true`;
+      const pollinationsUrl = `https://gen.pollinations.ai/image/${encoded}?width=${w}&height=${h}&model=${model}&seed=${seed}&nologo=true`;
 
       // Return the Pollinations URL directly — the frontend detects it and renders inline.
       // We do NOT fetch the image bytes here (avoids transferring megabytes of base64 through SSE).
@@ -1353,16 +1353,16 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
     // ── generate_music ────────────────────────────────────────────────────────
     if (name === "generate_music") {
-      const SUNO_KEY = process.env.SUNOAPI_KEY || process.env.SUNO_API_KEY;
+      const SUNO_KEY = process.env.SUNO_API_KEY || process.env.SUNOAPI_KEY;
       if (!SUNO_KEY) {
-        return text("❌ Music generation is not configured. SUNOAPI_KEY is missing from environment variables.");
+        return text("❌ Music generation is not configured. SUNO_API_KEY is missing from environment variables.");
       }
       try {
         const sunoBody = {
           prompt:       args.prompt,
           customMode:   args.customMode   || false,
           instrumental: args.instrumental || false,
-          model:        "V4_5ALL",
+          model:        "V5_5",
           callBackUrl:  "https://holly.nexamusicgroup.com/api/music/callback",
         };
         if (args.customMode) {
@@ -1919,7 +1919,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const groqKey = process.env.GROQ_API_KEY ? '✅' : '❌';
         const openrouterKey = process.env.OPENROUTER_API_KEY ? '✅' : '❌';
         const nvidiaKey = process.env.NVIDIA_API_KEY ? '✅' : '❌';
-        const sunoKey = (process.env.SUNOAPI_KEY || process.env.SUNO_API_KEY) ? '✅' : '❌';
+        const sunoKey = (process.env.SUNO_API_KEY || process.env.SUNOAPI_KEY) ? '✅' : '❌';
         results.push(`${groqKey} Groq API Key`);
         results.push(`${openrouterKey} OpenRouter API Key`);
         results.push(`${nvidiaKey} NVIDIA API Key`);

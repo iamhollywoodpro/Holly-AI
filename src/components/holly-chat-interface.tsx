@@ -1050,6 +1050,7 @@ const MarkdownContent = memo(function MarkdownContent({ content }: { content: st
 function InlineImageCard({ src, index, label }: { src: string; index: number; label: string }) {
   const [showActions, setShowActions] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [imgError, setImgError] = useState(false);
 
   const handleDownload = useCallback(async () => {
     setDownloading(true);
@@ -1106,14 +1107,26 @@ function InlineImageCard({ src, index, label }: { src: string; index: number; la
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
     >
-      <a href={src} target="_blank" rel="noopener noreferrer">
-        <img
-          src={src}
-          alt={label}
-          className="max-w-[300px] max-h-[300px] object-contain bg-black/20"
-          onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
-        />
-      </a>
+      {imgError ? (
+        <div className="max-w-[300px] max-h-[150px] flex flex-col items-center justify-center gap-2 p-4 bg-red-500/10 border border-red-500/30 rounded-lg text-center">
+          <span className="text-red-400 text-sm">⚠️ Image failed to load</span>
+          <button
+            onClick={() => setImgError(false)}
+            className="text-xs px-3 py-1 rounded bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      ) : (
+        <a href={src} target="_blank" rel="noopener noreferrer">
+          <img
+            src={src}
+            alt={label}
+            className="max-w-[300px] max-h-[300px] object-contain bg-black/20"
+            onError={() => setImgError(true)}
+          />
+        </a>
+      )}
 
       {/* Action overlay — appears on hover */}
       <AnimatePresence>
@@ -1161,16 +1174,16 @@ function InlineImageCard({ src, index, label }: { src: string; index: number; la
 // Once streaming is complete, the message moves to the full MarkdownContent renderer
 function StreamingText({ content }: { content: string }) {
   // Detect Pollinations image URLs during streaming
-  const pollinationsRegex = /https?:\/\/image\.pollinations\.ai\/prompt\/[^\s)\]"']+/gi;
+  const pollinationsRegex = /https?:\/\/(?:image\.pollinations\.ai\/prompt|gen\.pollinations\.ai\/image)\/[^\s)\]"']+/gi;
   const images: string[] = [];
   let m;
   while ((m = pollinationsRegex.exec(content)) !== null) images.push(m[0]);
 
   // Strip markdown image syntax and bare image URL lines from displayed text
   const cleanText = content
-    .replace(/!\[.*?\]\(https?:\/\/image\.pollinations\.ai\/prompt\/[^\s)]+\)/gi, '')
-    .replace(/Image URL:\s*https?:\/\/image\.pollinations\.ai\/prompt\/[^\s]+/gi, '')
-    .replace(/https?:\/\/image\.pollinations\.ai\/prompt\/[^\s)\]"']+/gi, '')
+    .replace(/!\[.*?\]\(https?:\/\/(?:image\.pollinations\.ai\/prompt|gen\.pollinations\.ai\/image)\/[^\s)]+\)/gi, '')
+    .replace(/Image URL:\s*https?:\/\/(?:image\.pollinations\.ai\/prompt|gen\.pollinations\.ai\/image)\/[^\s]+/gi, '')
+    .replace(/https?:\/\/(?:image\.pollinations\.ai\/prompt|gen\.pollinations\.ai\/image)\/[^\s)\]"']+/gi, '')
     .trim();
 
   return (
@@ -1192,8 +1205,8 @@ function StreamingText({ content }: { content: string }) {
 function AssistantContent({ content }: { content: string }) {
   // Detect image URLs (standard image file extensions)
   const imageUrlRegex = /(?:!\[.*?\]\(|^|\s)(https?:\/\/[^\s)]+\.(?:png|jpg|jpeg|gif|webp))(?:\)|\s|$)/gi;
-  // Detect Pollinations image URLs (no file extension — image.pollinations.ai/prompt/...)
-  const pollinationsRegex = /https?:\/\/image\.pollinations\.ai\/prompt\/[^\s)\]]+/gi;
+  // Detect Pollinations image URLs (old and new API formats)
+  const pollinationsRegex = /https?:\/\/(?:image\.pollinations\.ai\/prompt|gen\.pollinations\.ai\/image)\/[^\s)\]]+/gi;
   // Detect audio URLs (Suno, SoundCloud, mp3 links)
   const audioUrlRegex = /(?:audio|music|track|song).*?(https?:\/\/[^\s]+\.(?:mp3|wav|ogg|m4a|aac)|https?:\/\/(?:suno\.com|soundcloud\.com|cdn\.suno\.ai)[^\s]*)/gi;
   // Detect plain image data URLs embedded in text
@@ -1214,11 +1227,11 @@ function AssistantContent({ content }: { content: string }) {
         content
           .replace(dataUrlRegex, '[image]')
           // Strip markdown image syntax for Pollinations URLs (rendered separately below)
-          .replace(/!\[.*?\]\(https?:\/\/image\.pollinations\.ai\/prompt\/[^\s)]+\)/gi, '')
+          .replace(/!\[.*?\]\(https?:\/\/(?:image\.pollinations\.ai\/prompt|gen\.pollinations\.ai\/image)\/[^\s)]+\)/gi, '')
           // Strip bare "Image URL:" lines
-          .replace(/Image URL:\s*https?:\/\/image\.pollinations\.ai\/prompt\/[^\s]+/gi, '')
+          .replace(/Image URL:\s*https?:\/\/(?:image\.pollinations\.ai\/prompt|gen\.pollinations\.ai\/image)\/[^\s]+/gi, '')
           // Strip bare Pollinations URLs that aren't inside markdown syntax
-          .replace(/(?<!!\[.*?)https?:\/\/image\.pollinations\.ai\/prompt\/[^\s)\]"']+/gi, '')
+          .replace(/(?<!!\[.*?)https?:\/\/(?:image\.pollinations\.ai\/prompt|gen\.pollinations\.ai\/image)\/[^\s)\]"']+/gi, '')
           .trim()
       } />
       {/* Phase B: inline image rendering */}
