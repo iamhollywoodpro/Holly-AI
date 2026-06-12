@@ -23,6 +23,7 @@ import { loadChatContext } from '@/lib/chat/context-loader';
 import { buildPrompt } from '@/lib/chat/prompt-builder';
 import { saveMessages, runBackgroundTasks, markResponseStart } from '@/lib/chat/background-tasks';
 import { getIntimacyState, getIntimacyDirective, analyzeInteractionSignals } from '@/lib/relationship/intimacy-gate';
+import { generateImage } from '@/lib/ai/media-generator';
 import type { ChatMessage } from '@/lib/ai/providers/free-providers';
 import { chatLimiter, getRateLimitKey } from '@/lib/rate-limiter';
 
@@ -576,6 +577,7 @@ export async function POST(req: NextRequest) {
 
           // Track generated image URLs to send directly to the frontend after the model responds
           const generatedImageUrls: string[] = [];
+          let imageSentByPreDetection = false;
 
           // ── IMAGE/VIDEO PRE-DETECTION BYPASS ──────────────────────────────────
           // If the user asked for an image/video, generate it DIRECTLY without
@@ -605,25 +607,37 @@ export async function POST(req: NextRequest) {
                 } catch {}
               }
 
-              const w = 1024, h = 1024;
-              const seed = Math.floor(Math.random() * 1000000);
-              // Quality suffix for better Pollinations results
+              // Route through media-generator.ts waterfall:
+              // Holly LoRA → Modal → Pollinations (server-side fetch, returns data URI)
               const qualitySuffix = 'flawless smooth skin, bright under-eye area, soft dewy makeup, voluminous hair with lifted roots, professional beauty photography, photorealistic';
-              const fullPrompt = imagePrompt.includes('h0lly') ? `${imagePrompt}, ${qualitySuffix}` : `${imagePrompt}, ${qualitySuffix}`;
-              const encoded = encodeURIComponent(fullPrompt);
-              const pollinationsUrl = `https://image.pollinations.ai/prompt/${encoded}?width=${w}&height=${h}&model=flux&seed=${seed}&nologo=true`;
+              const fullPrompt = `${imagePrompt}, ${qualitySuffix}`;
 
-              sendProgress(controller, { phase: 'generate_image', percent: 75, message: '🎨 Almost done…' });
+              sendProgress(controller, { phase: 'generate_image', percent: 50, message: '🎨 Rendering image…' });
 
-              // Track the URL for frontend rendering
-              generatedImageUrls.push(pollinationsUrl);
+              let imageDataUri: string;
+              try {
+                const result = await generateImage({
+                  prompt: fullPrompt,
+                  width: 1024,
+                  height: 1024,
+                  seed: Math.floor(Math.random() * 1000000),
+                  enhance: true,
+                });
+                imageDataUri = result.url; // data:image/jpeg;base64,... or URL
+              } catch (genErr) {
+                console.error('[CHAT] Image generation waterfall failed:', genErr);
+                throw genErr;
+              }
 
               sendProgress(controller, { phase: 'generate_image', percent: 100, message: '✅ Image created!' });
-              sendTool(controller, 'generate_image', 'complete', { content: [{ type: 'text', text: `Image generated: ${pollinationsUrl}` }] });
+              sendTool(controller, 'generate_image', 'complete', { content: [{ type: 'text', text: `Image generated via server-side waterfall` }] });
+
+              // Flag so post-loop dedup doesn't re-send this image
+              imageSentByPreDetection = true;
 
               // Send the image directly to the frontend as markdown
-              sendText(controller, `\n\n![${imagePrompt.slice(0, 80)}](${pollinationsUrl})`);
-              fullResponse += `\n\n![${imagePrompt.slice(0, 80)}](${pollinationsUrl})`;
+              sendText(controller, `\n\n![${imagePrompt.slice(0, 80)}](${imageDataUri})`);
+              fullResponse += `\n\n![${imagePrompt.slice(0, 80)}](${imageDataUri})`;
 
               // Now have the model describe what was created
               const describeMessages: ChatMessage[] = [
@@ -701,11 +715,11 @@ export async function POST(req: NextRequest) {
                 const toolSpec = mcpTools?.find(t => t.name === tName);
                 const argsParsed = typeof tArgs === 'string' ? JSON.parse(tArgs) : tArgs;
 
-                // ── Direct Pollinations fallback for generate_image ──────────
+                // ── Direct generateImage fallback for generate_image ──────────
                 // When the MCP stdio server isn't connected (common in Docker),
                 // toolSpec is undefined. Instead of returning { executed: false }
-                // and dumping raw JSON to the user, construct the Pollinations
-                // URL directly — zero dependency on the MCP server.
+                // and dumping raw JSON to the user, call generateImage() directly
+                // — zero dependency on the MCP server.
                 if (!toolSpec && tName === 'generate_image') {
                   const imgPrompt = (argsParsed?.prompt || argsParsed?.description || argsParsed?.input || '') as string;
                   if (imgPrompt.length > 0) {
@@ -726,15 +740,18 @@ export async function POST(req: NextRequest) {
 
                     const w = (argsParsed?.width as number) || 1024;
                     const h = (argsParsed?.height as number) || 1024;
-                    const model = (argsParsed?.model as string) || 'flux';
                     const seed = Math.floor(Math.random() * 1000000);
-                    const encoded = encodeURIComponent(imgPrompt);
-                    const pollinationsUrl = `https://image.pollinations.ai/prompt/${encoded}?width=${w}&height=${h}&model=${model}&seed=${seed}&nologo=true`;
 
-                    const resultText = `Image generated successfully.\n\nPrompt: ${imgPrompt}\n\n![${imgPrompt.slice(0, 80)}](${pollinationsUrl})\n\nImage URL: ${pollinationsUrl}`;
+                    let imgResult: { url: string };
+                    try {
+                      imgResult = await generateImage({ prompt: imgPrompt, width: w, height: h, seed, enhance: true });
+                    } catch (err: any) {
+                      sendTool(controller, tName, 'error', { content: [{ type: 'text', text: 'Image generation failed: ' + err.message }] });
+                      const cleanText = responseText.slice(0, startPos) + responseText.slice(startPos + endIdx + 1);
+                      return { executed: true, cleanText };
+                    }
 
-                    // Track for direct frontend injection
-                    generatedImageUrls.push(pollinationsUrl);
+                    const resultText = `Image generated successfully.\n\nPrompt: ${imgPrompt}\n\n![${imgPrompt.slice(0, 80)}](${imgResult.url})\n\nImage URL: ${imgResult.url}`;
 
                     sendTool(controller, tName, 'complete', { content: [{ type: 'text', text: resultText }] });
                     pendingMessages.push({ role: 'system', content: `[TOOL EXECUTION RESULT]\nTool: generate_image\nResult: ${resultText}\n\nRespond to the user naturally. Briefly describe what you created.` });
@@ -770,7 +787,7 @@ export async function POST(req: NextRequest) {
                 sendTool(controller, tName, 'complete', result);
                 // Track image URLs from text-intercepted generate_image results
                 if (tName === 'generate_image') {
-                  const pollMatch = resultText.match(/https?:\/\/image\.pollinations\.ai\/prompt\/[^\s"')\]]+/);
+                  const pollMatch = resultText.match(/https?:\/\/(?:image\.pollinations\.ai\/prompt|gen\.pollinations\.ai\/image)\/[^\s"')\]]+/);
                   if (pollMatch) {
                     generatedImageUrls.push(pollMatch[0]);
                   }
@@ -963,7 +980,7 @@ export async function POST(req: NextRequest) {
                     sendTool(controller, toolName, 'complete', result);
                     // Track image URLs from generate_image results for direct frontend rendering
                     if (toolName === 'generate_image') {
-                      const pollinationsMatch = resultStr.match(/https?:\/\/image\.pollinations\.ai\/prompt\/[^\s"')\]]+/);
+                      const pollinationsMatch = resultStr.match(/https?:\/\/(?:image\.pollinations\.ai\/prompt|gen\.pollinations\.ai\/image)\/[^\s"')\]]+/);
                       if (pollinationsMatch) {
                         generatedImageUrls.push(pollinationsMatch[0]);
                       }
@@ -1047,15 +1064,8 @@ export async function POST(req: NextRequest) {
             }
           }
 
-          // ── Send generated images directly to the frontend ──
-          // The model's text response describes the image, but doesn't include the actual
-          // image markdown. We send the image URLs separately so the frontend can render them.
-          if (generatedImageUrls.length > 0) {
-            for (const imgUrl of generatedImageUrls) {
-              sendText(controller, `\n\n![Generated image](${imgUrl})`);
-              fullResponse += `\n\n![Generated image](${imgUrl})`;
-            }
-          }
+          // NOTE: Images are now sent directly in pre-detection/tool-interception paths.
+          // generatedImageUrls is only used for tracking, not re-sending (prevents duplicates).
 
           // ── RAW JSON CLEANUP ──────────────────────────────────────────────────
           // Final safety net: strip any remaining raw JSON tool call patterns.

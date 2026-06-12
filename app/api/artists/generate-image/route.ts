@@ -5,7 +5,7 @@ export const runtime = 'nodejs';
 /**
  * Artist Image Generation — 100% FREE via Pollinations AI
  * No API key needed. No limits. MIT-friendly.
- * https://image.pollinations.ai/prompt/{prompt}
+ * https://gen.pollinations.ai/image/{prompt}
  */
 
 interface GenerateArtistImageRequest {
@@ -16,7 +16,7 @@ interface GenerateArtistImageRequest {
 
 function buildPollinationsUrl(prompt: string, width = 1024, height = 1024): string {
   const encoded = encodeURIComponent(prompt);
-  return `https://image.pollinations.ai/prompt/${encoded}?width=${width}&height=${height}&nologo=true&enhance=true&model=flux`;
+  return `https://gen.pollinations.ai/image/${encoded}?width=${width}&height=${height}&nologo=true&enhance=true&model=flux`;
 }
 
 export async function POST(request: NextRequest) {

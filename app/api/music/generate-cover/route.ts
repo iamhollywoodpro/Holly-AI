@@ -8,7 +8,7 @@ import { auth } from '@clerk/nextjs/server';
 
 function buildPollinationsUrl(prompt: string, size = 1024): string {
   const encoded = encodeURIComponent(prompt);
-  return `https://image.pollinations.ai/prompt/${encoded}?width=${size}&height=${size}&nologo=true&enhance=true&model=flux`;
+  return `https://gen.pollinations.ai/image/${encoded}?width=${size}&height=${size}&nologo=true&enhance=true&model=flux`;
 }
 
 export async function POST(req: NextRequest) {

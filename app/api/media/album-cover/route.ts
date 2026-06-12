@@ -10,7 +10,7 @@ export const runtime = 'nodejs';
 
 function buildPollinationsUrl(prompt: string, width = 1024, height = 1024): string {
   const encoded = encodeURIComponent(prompt);
-  return `https://image.pollinations.ai/prompt/${encoded}?width=${width}&height=${height}&nologo=true&enhance=true&model=flux`;
+  return `https://gen.pollinations.ai/image/${encoded}?width=${width}&height=${height}&nologo=true&enhance=true&model=flux`;
 }
 
 export async function POST(request: NextRequest) {
