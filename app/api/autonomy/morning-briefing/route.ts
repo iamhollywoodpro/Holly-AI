@@ -47,9 +47,13 @@ async function runMorningBriefing(req: NextRequest) {
     const briefing = await generateMorningBriefing(dbUserId);
     await persistBriefingNotification(clerkUserId, dbUserId, briefing);
 
-    // Send morning briefing SMS to the creator
+    // ── Send morning briefing SMS to the creator ─────────────────────────────
     const creatorPhone = process.env.CREATOR_PHONE;
-    if (creatorPhone) {
+    const twilioConfigured = !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER);
+
+    console.log(`[MorningBriefing] SMS check — CREATOR_PHONE: ${creatorPhone ? 'set' : 'NOT SET'}, Twilio: ${twilioConfigured ? 'configured' : 'NOT CONFIGURED'}`);
+
+    if (creatorPhone && twilioConfigured) {
       try {
         const { sendSMS } = await import('@/lib/integrations/sms-service');
         // Build SMS-friendly summary from briefing fields
@@ -66,15 +70,18 @@ async function runMorningBriefing(req: NextRequest) {
           ``,
           `Chat with me at holly.nexamusicgroup.com 💚`,
         ].filter(Boolean).join('\n');
+        console.log(`[MorningBriefing] Sending SMS to ${creatorPhone} (${parts.length} chars)`);
         const result = await sendSMS({ to: creatorPhone, body: parts.substring(0, 800) });
         if (result.sent) {
-          console.log(`[MorningBriefing] SMS sent to ${creatorPhone}`);
+          console.log(`[MorningBriefing] ✅ SMS sent — messageId: ${result.messageId}`);
         } else {
-          console.warn(`[MorningBriefing] SMS failed: ${result.error}`);
+          console.warn(`[MorningBriefing] ❌ SMS failed: ${result.error}`);
         }
       } catch (smsErr) {
-        console.warn('[MorningBriefing] SMS dispatch error:', smsErr);
+        console.warn('[MorningBriefing] ❌ SMS dispatch error:', smsErr);
       }
+    } else {
+      console.warn(`[MorningBriefing] ⚠️ SMS skipped — CREATOR_PHONE: ${creatorPhone ? 'set' : 'MISSING'}, Twilio: ${twilioConfigured ? 'configured' : 'MISSING'}`);
     }
 
     return NextResponse.json({ success: true, briefing });
