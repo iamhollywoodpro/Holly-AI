@@ -105,6 +105,10 @@ function getIntegrationStatus() {
     dropbox:        !!process.env.DROPBOX_APP_KEY,
     slack:          !!process.env.SLACK_CLIENT_ID,
     apple_music:    !!process.env.APPLE_MUSIC_KEY_ID,
+    // SMS / Morning Briefing pipeline
+    twilio:         !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER),
+    creator_phone:  !!process.env.CREATOR_PHONE,
+    cron_secret:    !!process.env.CRON_SECRET,
   };
 }
 
