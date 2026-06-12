@@ -426,7 +426,7 @@ function ToolCard({ execution }: { execution: ToolExecution }) {
 
 // ─── Speak Button (Kokoro TTS) ────────────────────────────────────────────────
 
-function SpeakButton({ text, messageId }: { text: string; messageId: string }) {
+function SpeakButton({ text, messageId, emotion }: { text: string; messageId: string; emotion?: string }) {
   const [loading, setLoading]       = useState(false);
   const [playing, setPlaying]       = useState(false);
   const [error, setError]           = useState<string | null>(null);
@@ -498,6 +498,7 @@ function SpeakButton({ text, messageId }: { text: string; messageId: string }) {
     try {
       await speakText(text, {
         temperature: 0.4,
+        emotion: emotion || undefined,
         onStart: () => {
           clearLoadingGuard();
           stopDotsAnimation();
@@ -2701,7 +2702,7 @@ export default function HollyChatInterface() {
         playReceive();
         // Phase 0: auto-play if voice input OR auto-read is enabled
         if (wasVoiceInput || autoRead) {
-          speakText(assistantContent, { volume: 0.9 }).catch(console.error);
+          speakText(assistantContent, { volume: 0.9, emotion: emotion || undefined }).catch(console.error);
         }
         // Phase A: auto-generate title for new conversations (first exchange)
         const isNewConv = messages.length === 0;
@@ -3406,7 +3407,7 @@ export default function HollyChatInterface() {
                     )}
                     {msg.role === "assistant" && (
                       <>
-                        <SpeakButton text={msg.content} messageId={msg.id} />
+                        <SpeakButton text={msg.content} messageId={msg.id} emotion={msg.emotion} />
                         <FeedbackButtons
                           messageId={msg.id}
                           conversationId={conversationId}

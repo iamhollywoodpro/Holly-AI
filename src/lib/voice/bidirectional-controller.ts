@@ -92,6 +92,7 @@ export class BidirectionalController {
       voiceDescription?: string;
       addEmotions?: boolean;
       emotionContext?: any;
+      emotion?: string;
     }
   ): Promise<string> {
     try {
@@ -118,13 +119,14 @@ export class BidirectionalController {
         category: "voice",
       });
 
-      // Call the unified TTS endpoint (Kokoro → VoxCPM2 fallback)
+      // Call the unified TTS endpoint (Voice Character Engine → Kokoro fallback)
       const response = await fetch("/api/voice/synthesize", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           text: processedContent,
           voiceDescription: options?.voiceDescription,
+          emotion: options?.emotion || undefined,
         }),
         signal: AbortSignal.timeout(30_000),
       });
@@ -182,6 +184,7 @@ export class BidirectionalController {
       voiceDescription?: string;
       addEmotions?: boolean;
       emotionContext?: any;
+      emotion?: string;
     }
   ): AsyncGenerator<Uint8Array, void, unknown> {
     try {
@@ -197,13 +200,14 @@ export class BidirectionalController {
         category: "voice",
       });
 
-      // Fetch audio from unified TTS endpoint (Kokoro → VoxCPM2)
+      // Fetch audio from unified TTS endpoint (Voice Character Engine → Kokoro)
       const response = await fetch("/api/voice/synthesize", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           text: processedContent,
           voiceDescription: options?.voiceDescription,
+          emotion: options?.emotion || undefined,
         }),
         signal: AbortSignal.timeout(30_000),
       });

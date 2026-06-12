@@ -103,6 +103,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
       
       await speakText(message.content, {
         volume: voiceSettings.volume,
+        emotion: message.emotion || undefined,
         onStart: () => {
           console.log('[HOLLY Voice] Audio started playing');
         },
