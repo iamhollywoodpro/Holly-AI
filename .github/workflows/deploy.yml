@@ -65,6 +65,19 @@ jobs:
           cache-to: type=gha,mode=max
           platforms: linux/arm64
 
+      - name: Build and push Cron image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./docker/cron
+          file: ./docker/cron/Dockerfile.cron
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/holly-cron:latest
+            ghcr.io/${{ github.repository_owner }}/holly-cron:${{ steps.meta.outputs.sha_short }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/arm64
+
       - name: Trigger Coolify Webhook
         if: vars.COOLIFY_WEBHOOK_URL != ''
         run: |
@@ -112,6 +125,7 @@ jobs:
           echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
           echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Image:** \`${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.sha_short }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **App Image:** \`${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.sha_short }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Cron Image:** \`ghcr.io/${{ github.repository_owner }}/holly-cron:${{ steps.meta.outputs.sha_short }}\`" >> $GITHUB_STEP_SUMMARY
           echo "- **CI Result:** ${{ github.event.workflow_run.conclusion }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Timestamp:** $(date -u)" >> $GITHUB_STEP_SUMMARY
