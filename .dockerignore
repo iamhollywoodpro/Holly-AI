@@ -58,6 +58,12 @@ scratch/
 *.gif
 stitch-overview.png
 
+# ── EXCEPT: Holly's avatar images (needed at runtime) ────────────────────────
+!public/avatars/*.jpg
+# Exclude old backups and poses (not referenced by code)
+public/avatars/v2-backup/
+public/avatars/poses/
+
 # ── Large public assets (53MB of logo PNGs — not needed at runtime) ───────────
 # Only favicon.png/favicon.svg/manifest.json are needed from public/
 public/assets/
