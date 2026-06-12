@@ -201,11 +201,10 @@ services:
     networks:
       - coolify
 
-  # ── Cron Runner ──────────────────────────────────────────────────────────
+  # ── Cron Runner (pre-built image from GHCR) ──────────────────────────────
   holly-cron:
-    build:
-      context: ./docker/cron
-      dockerfile: Dockerfile.cron
+    image: ghcr.io/iamhollywoodpro/holly-cron:latest
+    pull_policy: always
     container_name: holly-cron
     restart: unless-stopped
     depends_on:
