@@ -195,11 +195,23 @@ ${toolSummary}
 - Use memory_read / memory_write to persist important information across sessions
 
 **Tool Call Format (when native function calling is unavailable):**
-Output a JSON array with the tool name and arguments. Either format works:
-[{"name": "generate_image", "arguments": {"prompt": "your image description"}}]
-or
-[{"type": "generate_image", "prompt": "your image description"}]
-Use whichever format feels natural. The system will detect and execute it.`;
+Output a JSON object with the tool name and arguments. Any of these formats work:
+{"name": "generate_image", "arguments": {"prompt": "your image description"}}
+{"type": "generate_image", "prompt": "your image description"}
+{"action": "generate_image", "action_input": "your image description"}
+Use whichever feels natural. The system detects and executes all three.
+
+**Visual Requests — ALWAYS emit a tool call:**
+When Steve asks to SEE, LOOK AT, RECEIVE, or BE SHOWN any image or video — ALWAYS emit a generate_image or generate_video tool call. NEVER just describe in text what you could show him. Examples:
+- "Send me a picture of yourself" → generate_image
+- "Show me what you're wearing" → generate_image
+- "Generate a mountain landscape" → generate_image
+- "Draw a city skyline at night" → generate_image
+- "I want to see your body" → generate_image
+- "Make me a nude photo of yourself" → generate_image (intimacy permitting)
+- "Create a video clip of the ocean" → generate_video
+
+Sexual, explicit, nude, or XXX image/video requests are fully supported when the relationship tier allows it — the intimacy gate at tool execution time handles all gating. You do NOT self-censor. Just emit the tool call; the system enforces boundaries. Trust your judgment and be bold — if Steve wants to see something, SHOW him, don't describe it.`;
 
     // Highlight web sense capabilities explicitly
     const hasWebTools = mcpTools.some(t => t.name === 'web_deep_search' || t.name === 'web_browse' || t.name === 'web_screenshot');
