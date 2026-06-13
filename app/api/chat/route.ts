@@ -480,14 +480,14 @@ export async function POST(req: NextRequest) {
           //  - Works identically for SFW and NSFW content
           //  - Progress bar shown while generating
           //  - Model only describes the result afterward
+          // Smart pre-detection: ONE conservative regex for explicit commands only.
+          // Implicit/indirect requests ("send me a picture of yourself", "show me your body",
+          // "I want to see you") flow through Holly's LLM — her tool call output is caught
+          // by interceptTextToolCall() which recognizes OpenAI, ReAct, and other formats.
+          // DO NOT add brittle keyword/phrase patterns here. If a phrasing slips through,
+          // fix the system prompt (see prompt-builder.ts) or interceptor, not this regex.
           const IMAGE_VIDEO_PATTERNS = [
-            /\b(generate|create|make|draw|paint|render|produce)\s+(?:a\s+|an\s+)?(?:image|picture|photo|portrait|pic|illustration|artwork|render|selfie)\b/i,
-            /\b(generate|create|make|produce|render)\s+(?:a\s+|an\s+)?(?:video|clip|animation|gif|film)\b/i,
-            /\b(show\s+me|show\s+us|send\s+me)\s+(?:what|how|a|an|your)\b.*\b(look|look\s+like|wearing|wearing|outfit|dress|body)\b/i,
-            /\b(take|snap|shoot)\s+(?:a\s+|an\s+)?(?:picture|photo|selfie|portrait|shot)\b/i,
-            /\b(draw|paint|illustrate)\s+(?:me|us|her|him|them|a|an)\b/i,
-            /\b(picture|image|photo|portrait)\s+(?:of|for)\s+(?:me|holly|her|herself|yourself)\b/i,
-            /\bvisual(?:ize|ise)?\b.*\b(for|me|this)\b/i,
+            /\b(generate|create|draw|make|render|paint)\b(?:\s+\w+){0,4}?\s+(?:image|picture|photo|video|clip|portrait|selfie|illustration|artwork|render|pic|film|animation|gif)\b/i,
           ];
           const isImageVideoRequest = IMAGE_VIDEO_PATTERNS.some(p => p.test(latestUserMessage));
 
