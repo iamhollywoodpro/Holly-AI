@@ -609,6 +609,10 @@ export const googleProvider = {
 // ─── HOLLY-8B Self-Sovereign Provider ─────────────────────────────────────────
 // Holly's own fine-tuned Qwen3-8B model deployed on Modal.com
 // OpenAI-compatible API at HOLLY_OWN_MODEL_URL
+//
+// URL FORMAT: HOLLY_OWN_MODEL_URL must be the FULL chat endpoint URL
+//   (e.g., https://iamhollywoodpro--chat.modal.run)
+// Modal's fastapi_endpoint label IS the URL — do NOT append /chat to it.
 
 const HOLLY_OWN_URL = process.env.HOLLY_OWN_MODEL_URL || '';
 
@@ -617,8 +621,10 @@ const hollyOwnProvider: { isConfigured: () => boolean; streamChat: (messages: Ch
   async *streamChat(messages: ChatMessage[], _model: string, opts: StreamOptions = {}): TokenStream {
     if (!HOLLY_OWN_URL) throw new Error('HOLLY_OWN_MODEL_URL not configured');
 
-    // Modal endpoint returns JSON {response: "..."} — not OpenAI SSE
-    const res = await fetch(`${HOLLY_OWN_URL}/chat`, {
+    // Modal endpoint returns JSON {response: "..."} — not OpenAI SSE.
+    // HOLLY_OWN_URL already points to the chat endpoint
+    // (e.g., https://iamhollywoodpro--chat.modal.run). POST directly to it.
+    const res = await fetch(HOLLY_OWN_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -627,6 +633,7 @@ const hollyOwnProvider: { isConfigured: () => boolean; streamChat: (messages: Ch
         max_tokens:  opts.maxTokens   ?? 4096,
         stream:      false,  // Modal endpoint returns full JSON, not SSE
       }),
+      signal: AbortSignal.timeout(90_000),  // cold start can be 30-60s; allow headroom
     });
 
     if (!res.ok) {
