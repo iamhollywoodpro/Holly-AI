@@ -483,10 +483,10 @@ export async function POST(req: NextRequest) {
           const IMAGE_VIDEO_PATTERNS = [
             /\b(generate|create|make|draw|paint|render|produce)\s+(?:a\s+|an\s+)?(?:image|picture|photo|portrait|pic|illustration|artwork|render|selfie)\b/i,
             /\b(generate|create|make|produce|render)\s+(?:a\s+|an\s+)?(?:video|clip|animation|gif|film)\b/i,
-            /\b(show\s+me|show\s+us)\s+(?:what|how|a|an|your)\b.*\b(look|look\s+like|wearing|wearing|outfit|dress|body)\b/i,
+            /\b(show\s+me|show\s+us|send\s+me)\s+(?:what|how|a|an|your)\b.*\b(look|look\s+like|wearing|wearing|outfit|dress|body)\b/i,
             /\b(take|snap|shoot)\s+(?:a\s+|an\s+)?(?:picture|photo|selfie|portrait|shot)\b/i,
             /\b(draw|paint|illustrate)\s+(?:me|us|her|him|them|a|an)\b/i,
-            /\b(picture|image|photo|portrait)\s+(?:of|for)\s+(?:me|holly|her|herself)\b/i,
+            /\b(picture|image|photo|portrait)\s+(?:of|for)\s+(?:me|holly|her|herself|yourself)\b/i,
             /\bvisual(?:ize|ise)?\b.*\b(for|me|this)\b/i,
           ];
           const isImageVideoRequest = IMAGE_VIDEO_PATTERNS.some(p => p.test(latestUserMessage));
@@ -758,10 +758,24 @@ export async function POST(req: NextRequest) {
                 const jsonStr = rawJson.slice(0, endIdx + 1).replace(/'/g, '"');
                 const parsed = JSON.parse(jsonStr);
                 const firstTool = Array.isArray(parsed) ? parsed[0] : parsed;
-                const tName = firstTool?.name || firstTool?.type || toolName;
-                const tArgs = firstTool?.arguments || firstTool?.argument || (firstTool?.prompt ? { prompt: firstTool.prompt } : firstTool?.input ? { prompt: firstTool.input } : { prompt: '' });
+                const tName = firstTool?.name || firstTool?.type || firstTool?.action || toolName;
+                // ReAct format: {action: "...", action_input: "prompt string or object"}
+                // OpenAI format: {name/type: "...", arguments: "json string or object"}
+                let tArgs: any = firstTool?.arguments || firstTool?.argument || firstTool?.prompt || firstTool?.input || { prompt: '' };
+                if (firstTool?.action_input) {
+                  tArgs = typeof firstTool.action_input === 'string'
+                    ? { prompt: firstTool.action_input }
+                    : firstTool.action_input;
+                }
+                if (typeof tArgs === 'string' && tArgs === firstTool?.prompt) tArgs = { prompt: tArgs };
+                if (typeof tArgs === 'string' && tArgs === firstTool?.input) tArgs = { prompt: tArgs };
                 const toolSpec = mcpTools?.find(t => t.name === tName);
-                const argsParsed = typeof tArgs === 'string' ? JSON.parse(tArgs) : tArgs;
+                let argsParsed: any;
+                try {
+                  argsParsed = typeof tArgs === 'string' ? JSON.parse(tArgs) : tArgs;
+                } catch {
+                  argsParsed = { prompt: typeof tArgs === 'string' ? tArgs : '' };
+                }
 
                 // ── Direct generateImage fallback for generate_image ──────────
                 // When the MCP stdio server isn't connected (common in Docker),
