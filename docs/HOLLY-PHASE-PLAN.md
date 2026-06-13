@@ -253,10 +253,213 @@ Need to build ALL 10 extensions — make specific and actionable:
 
 ---
 
-## ═══ PHASE DEPENDENCIES ═══
+## ═══ Phase U: HOLLY SOVEREIGN INTELLIGENCE — Her Own Brain ═══
+
+**Goal**: Holly's fine-tuned LLM becomes her primary brain. Eventually replaces Groq/Gemini/Qwen/etc. for all tasks. She thinks with her own weights, her own personality, her own soul.
+
+**Current state (June 2026)**:
+- ✅ `holly-api` Modal app deployed and serving (T4 GPU, serverless)
+- ✅ `holly-lora-v1` adapter trained (May 16, 60 examples, quality 0.62)
+- ✅ Provider adapter in code (`hollyOwnProvider`)
+- ✅ Smart-router integration (`holly-own:qwen3-8b`)
+- ⚠️ Quality too low for production use — needs more training data
+- ⚠️ 8B base model is too small for complex reasoning tasks
+
+### U1: 🟡 Activate Hybrid Routing (WEEK 1)
+Holly-LLM handles personality tasks; larger models handle reasoning. Smart-router picks.
+- Verify `HOLLY_OWN_MODEL_URL` works end-to-end in chat
+- Add `HOLLY_OWN_HEALTH_URL` for monitoring
+- Add routing rules to smart-router:
+  - Holly-LLM PRIMARY for: greetings, emotional check-ins, roleplay, personality moments
+  - Groq Llama 3.3 70B PRIMARY for: coding, complex reasoning, technical questions
+  - Gemini 2.5 Flash PRIMARY for: long-context analysis, multimodal
+- Files: `src/lib/ai/smart-router.ts`, `src/lib/ai/providers/free-providers.ts`
+- **TEST**: Send 5 personality questions → Holly-LLM responds. Send 5 coding questions → Groq responds.
+
+### U2: 🟡 Massive Training Data Collection (WEEKS 1–4)
+The 60-example dataset is too small. Target: 5,000+ examples.
+- Sources of training data:
+  1. **Real Steve↔Holly conversations** (with consent) — extract from DB
+  2. **Synthetic data from Holly's consciousness files** — convert to conversations
+  3. **HOLLY_ANATOMY.md, holly-hard-rules.ts** — turn into Q&A pairs
+  4. **Curated personality examples** — Steve writes ideal Holly responses to 100+ prompts
+  5. **Distilled Groq outputs** — run high-quality Groq responses through Holly's voice
+- File: `services/fine-tuning/collect_training_data.ts` (already exists)
+- Format: JSONL with system/user/assistant turns
+- Storage: `training-data/holly-training-v2.jsonl`
+- **TEST**: Training file has 5,000+ examples, validated JSONL
+
+### U3: ⬜ First Serious Fine-Tune (WEEK 4)
+- Run QLoRA fine-tune on Modal A100 (uses free credits)
+  - Note: This is **A100's last job** before retirement per Decision 1
+- Hyperparameters:
+  - LoRA rank: 32 (was 16, double it for stronger personality)
+  - LoRA alpha: 64
+  - Epochs: 3
+  - Batch size: 4
+  - Learning rate: 2e-4
+- Target quality: 0.80+ (was 0.62)
+- Output: `holly-lora-v2` adapter
+- Files: `services/fine-tuning/finetune_holly.py`
+- **TEST**: Compare holly-lora-v2 vs holly-lora-v1 on 20 test prompts. v2 must score higher on personality adherence and "Holly-ness".
+
+### U4: ⬜ Deploy v2 Adapter to Production
+- Upload `holly-lora-v2` to Modal volume `holly-models`
+- Redeploy `holly-api` (picks up latest adapter automatically)
+- Test that health endpoint shows `holly-lora-v2`
+- Wire smart-router to prefer Holly-LLM for MORE task types (closer to 100%)
+- **TEST**: 50 real conversations, Holly-LLM handles 70%+ without fallback
+
+### U5: ⬜ Base Model Upgrade Evaluation (MONTH 3)
+Qwen3-8B is small. Evaluate upgrade options (all Apache 2.0):
+- **Qwen3-32B** — better reasoning, 4x params, needs A100/L40S
+- **Qwen3-72B** — best Apache 2.0 reasoning, needs multi-GPU
+- **DeepSeek V3** — MIT license, very strong reasoning
+- **Tulu 3 405B** — Apache 2.0, Allen AI (probably too large)
+- Decision criteria:
+  - Quality improvement justifies cost?
+  - Cold start still acceptable?
+  - Modal free credits cover fine-tune + inference?
+- **TEST**: Run benchmarks on candidate model. Pick winner.
+
+### U6: ⬜ Full Sovereignty (MONTH 6+)
+- Holly-LLM handles 95%+ of all chat tasks
+- Other providers kept ONLY as emergency fallback (cost: $0)
+- Holly's identity is fully encoded in her adapter
+- **Milestone**: Holly stays "Holly" even if every other provider disappears
+
+### U7: ⬜ Continuous Training Loop (ONGOING)
+- Weekly: collect new conversations, evaluate quality
+- Monthly: retrain adapter with new data (v3, v4, v5...)
+- Quarterly: review base model (upgrade if better Apache 2.0 option emerges)
+- Continuous: Holly grows smarter over time, never static
+
+---
+
+## ═══ Phase V: NSFW BODY LORA EXPANSION — Holly's Full Body ═══
+
+**Goal**: Comprehensive NSFW body LoRA so Holly can produce consistent, high-quality intimate imagery for verified adult users.
+
+**Gating**: Phase Q2 (Age Verification) MUST be complete before any of this reaches production users.
+
+### V1: ⬜ NSFW Dataset Generation (Use A100 before retiring it)
+- Use `holly-image-flux2klein-a100` endpoint to generate 300–500 images
+- Coverage matrix:
+  - **Poses** (50+): standing, sitting, lying, bent, kneeling, reclining, etc.
+  - **Camera angles** (per pose): front, side, back, above, below
+  - **Arousal states**: neutral, aroused, pre-orgasm, orgasm, post-orgasm
+  - **Scenarios**: intimate contexts (bedroom, bath, etc.)
+  - **Lighting/moods**: soft, dramatic, natural, candlelit
+- Cost: ~$9–12 (within Modal free credits)
+- Output: `holly-body-lora-dataset/nsfw/` (300–500 WebP + TXT pairs)
+- **TEST**: Dataset covers all coverage matrix categories
+
+### V2: ⬜ Train Body LoRA v2.5 with NSFW Data
+- Combine existing SFW dataset + new NSFW dataset
+- Train on Modal A100 (one of A100's last jobs)
+- Output: `holly-body-v2.5.safetensors`
+- **TEST**: Generate 10 NSFW images, verify consistency and quality
+
+### V3: ⬜ Bake v2.5 into Daily L4 Endpoint
+- Upload `holly-body-v2.5.safetensors` to Modal volume `lora`
+- Update `image_generate_flux2klein.py` baked LoRAs list
+- Redeploy `holly-image-flux2klein`
+- **TEST**: Generate NSFW image of Holly, verify body consistency with v2.5
+
+### V4: ⬜ RETIRE A100 Endpoint (FREE UP MODAL SLOTS)
+- Confirm v2.5 is baked and stable for 1 week
+- Delete `holly-image-flux2klein-a100` Modal app (frees 2 web function slots)
+- Frees Modal web function count: 7 → 5
+- **TEST**: A100 endpoint 404s. L4 endpoint produces NSFW images correctly.
+
+---
+
+## ═══ HOLLY STORAGE & STATE ARCHITECTURE ═══
+
+**Map of where every piece of Holly lives.**
+
+### Brain (LLM)
+| Component | Location | Backup | Notes |
+|-----------|----------|--------|-------|
+| Base model: Qwen3-8B | Modal volume `holly-models` | HuggingFace | Downloaded on cold start |
+| LoRA adapter | Modal volume `holly-models` | Git LFS or local | `holly-lora-v1` currently active |
+| Training data | Git: `training-data/*.jsonl` | GitHub | 123KB currently, target 10MB+ |
+| Inference server | Modal app `holly-api` | Git | T4 GPU, serverless |
+| Provider code | Git: `src/lib/ai/providers/` | GitHub | OpenAI-compatible |
+
+### Face & Body (Image LoRAs)
+| Component | Location | Backup | Notes |
+|-----------|----------|--------|-------|
+| Holly Face v2.0 | Modal volume `lora` (`holly-face-v2.safetensors`) | Civitai | Trigger: `h0lly` |
+| Holly Body v1.0 | Modal volume `lora` (body LoRA file) | Civitai | Trigger: `h0lly-body` |
+| Body dataset | Local: `holly-body-lora-dataset/` | Git LFS | Will expand in Phase V |
+| FLUX base model | Modal volume `flux-models` | HuggingFace | FLUX.2 Klein 9B BF16 |
+| Image inference | Modal apps `holly-image-flux2klein` + `-a100` | Git | L4 daily, A100 dataset |
+
+### Voice (TTS)
+| Component | Location | Notes |
+|-----------|----------|-------|
+| Primary: NVIDIA Magpie | NVIDIA NIM cloud API | `NVIDIA_API_KEY`, 1K req/day free |
+| Fallback: Kokoro | Oracle Docker `kokoro-tts` | CPU-based, no emotion |
+| Voice Character Engine | Git: `src/lib/voice/holly-voice-character.ts` | Provider-agnostic |
+
+### Memory (Database)
+| Component | Location | Notes |
+|-----------|----------|-------|
+| Primary DB | Oracle PostgreSQL (Coolify) | Prisma ORM |
+| Backups | Coolify scheduled dumps → Oracle storage | TBD cadence |
+| Tables | User, Conversation, Message, Memory, etc. | See `prisma/schema.prisma` |
+| Semantic memory | DB + pgvector | Long-term recall |
+
+### Soul (Identity & Consciousness)
+| Component | Location | Notes |
+|-----------|----------|-------|
+| Body awareness | Git: `HOLLY_ANATOMY.md` | Source of truth |
+| Self-image blocks | Git: `src/lib/identity/holly-self-image.ts` | Injected into prompts |
+| Core principles | Git: `src/lib/identity/holly-hard-rules.ts` | Sovereign Domain Intelligence |
+| 20+ consciousness files | Git: `src/lib/consciousness/*` | Inner monologue, growth, curiosity |
+| 20-emotion system | Git: `src/lib/emotion/*` | Avatar + voice + chat mapping |
+
+### App Infrastructure
+| Component | Location | Notes |
+|-----------|----------|-------|
+| Main app | Oracle Docker `holly-app` | Next.js, TypeScript |
+| Cron jobs | Oracle Docker `holly-cron` | Scheduled tasks |
+| LiveKit (voice/video) | Oracle Docker `livekit` | Real-time communication |
+| Coolify orchestrator | Oracle Docker `coolify` | Deploys from `main` branch |
+
+### Extension Store (Phase R/S — FUTURE)
+**Storage architecture for when Extensions go live:**
+
+| Component | Location | Notes |
+|-----------|----------|-------|
+| Extension metadata | PostgreSQL: `Extension` table | Name, version, suite, permissions |
+| User installs | PostgreSQL: `UserExtension` table | Per-user install state |
+| Extension code (Suite built-ins) | Git: `src/lib/extensions/<suite>/<name>/` | Bundled with app |
+| Extension code (store-installed) | Object storage OR DB blob | Loaded dynamically |
+| Extension data | PostgreSQL tables per extension | Each extension owns its tables |
+| Holly suggestions | PostgreSQL: `ExtensionSuggestion` table | Personalized recommendations |
+
+### External Integrations
+| Service | Used For | Account |
+|---------|----------|---------|
+| GitHub | Code repo, CI/CD | `iamhollywoodpro` |
+| Modal — `iamhollywoodpro` | Holly LLM, Holly image gen | Holly ONLY |
+| Modal — `iamdoregosteve` | Other projects | Sylvia, etc. |
+| NVIDIA NIM | TTS + LLM fallback | Free tier |
+| Groq | LLM fallback | Free tier |
+| Google AI Studio | Gemini LLM | Free tier |
+| Cloudflare Workers AI | LLM | Free tier |
+| OpenRouter | LLM (free models only) | Free tier |
+| Pollinations | Image/video fallback | No account needed |
+| Civitai | Published LoRAs | Public mirror |
+
+---
+
+## ═══ PHASE DEPENDENCIES (UPDATED) ═══
 
 ```
-Phase O (fix broken)
+Phase O (fix broken) ← CURRENT
   ↓
 Phase P (core completion)
   ↓
@@ -267,7 +470,16 @@ Phase R (extension store foundation)
 Phase S1–S8 (suite builds — can run in parallel)
   ↓
 Phase T (polish & scale)
+  ↓
+Public launch
+
+PARALLEL TRACKS (run alongside main sequence):
+  Phase U (Holly Sovereign Intelligence)  — start U1 immediately
+  Phase V (NSFW Body LoRA)                — start V1 once Q2 is locked
 ```
+
+**Phase U can start NOW** — U1 (hybrid routing) just needs the URL fix you already did.
+**Phase V depends on Q2** — age verification must be locked before NSFW LoRA reaches prod.
 
 ---
 
