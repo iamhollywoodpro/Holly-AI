@@ -398,12 +398,17 @@ function ToolCard({ execution }: { execution: ToolExecution }) {
         <Loader2 className="w-3.5 h-3.5 animate-spin text-holly-teal flex-shrink-0" />
       )}
       {execution.status === "start" && execution.progressPercent !== undefined && execution.progressPercent > 0 && (
-        <div className="w-20 h-1 bg-white/10 rounded-full overflow-hidden flex-shrink-0">
-          <motion.div
-            className="h-full bg-holly-teal/60 rounded-full"
-            animate={{ width: `${execution.progressPercent}%` }}
-            transition={{ duration: 0.3 }}
-          />
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          <div className="w-16 h-1 bg-white/10 rounded-full overflow-hidden">
+            <motion.div
+              className="h-full bg-holly-teal/60 rounded-full"
+              animate={{ width: `${execution.progressPercent}%` }}
+              transition={{ duration: 0.3 }}
+            />
+          </div>
+          <span className="text-[10px] font-mono tabular-nums text-holly-teal/80">
+            {Math.min(Math.round(execution.progressPercent), 100)}%
+          </span>
         </div>
       )}
       {execution.status === "complete" && (
@@ -952,14 +957,21 @@ function ActionIndicator({ text, progress }: { text: string; progress?: number }
           </span>
         </div>
         {progress !== undefined && progress > 0 && (
-          <div className="w-full mt-2 h-1.5 bg-white/5 rounded-full overflow-hidden">
-            <motion.div
-              className="h-full rounded-full"
-              style={{ backgroundColor: progress >= 100 ? '#4ade80' : 'rgba(234,179,8,0.6)' }}
-              initial={{ width: 0 }}
-              animate={{ width: `${Math.min(progress, 100)}%` }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
-            />
+          <div className="w-full mt-2">
+            <div className="flex items-center gap-2">
+              <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
+                <motion.div
+                  className="h-full rounded-full"
+                  style={{ backgroundColor: progress >= 100 ? '#4ade80' : 'rgba(234,179,8,0.6)' }}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${Math.min(progress, 100)}%` }}
+                  transition={{ duration: 0.3, ease: "easeOut" }}
+                />
+              </div>
+              <span className={`text-xs font-mono tabular-nums flex-shrink-0 ${progress >= 100 ? 'text-green-400' : 'text-yellow-400/80'}`}>
+                {Math.min(Math.round(progress), 100)}%
+              </span>
+            </div>
           </div>
         )}
       </div>

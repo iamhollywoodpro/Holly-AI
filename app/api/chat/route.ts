@@ -587,16 +587,19 @@ export async function POST(req: NextRequest) {
           //  - Progress bar shown while generating
           //  - Model then describes the result naturally
           if (isImageVideoRequest && !isInformationalMsg && !fullResponse) {
+            let imageGenerationSucceeded = false;
             try {
               sendTool(controller, 'generate_image', 'start');
               sendStatus(controller, '🎨 Generating image…');
-              sendProgress(controller, { phase: 'generate_image', percent: 25, message: '🎨 Creating your image…' });
+              sendProgress(controller, { phase: 'generate_image', percent: 5, message: '🎨 Analyzing your request…' });
 
               // Build the prompt from the user's message, enhanced with Holly body awareness
               let imagePrompt = latestUserMessage;
               // Strip command words — we want just the description
               imagePrompt = imagePrompt.replace(/^(?:can you |please |could you |holly[,]?\s*)?(?:generate|create|make|draw|paint|render|produce|show me|show us|take|snap|shoot)\s+(?:a\s+|an\s+)?(?:image|picture|photo|portrait|pic|illustration|artwork|render|selfie|video|clip|animation)\s+(?:of\s+|for\s+|for me\s*)?/i, '').trim();
               if (imagePrompt.length < 5) imagePrompt = latestUserMessage; // fallback to full message
+
+              sendProgress(controller, { phase: 'generate_image', percent: 15, message: '🎨 Composing prompt…' });
 
               // Inject Holly body awareness for self-portraits
               if (/holly|her(self)?|your(self)?/i.test(imagePrompt)) {
@@ -612,10 +615,28 @@ export async function POST(req: NextRequest) {
               const qualitySuffix = 'flawless smooth skin, bright under-eye area, soft dewy makeup, voluminous hair with lifted roots, professional beauty photography, photorealistic';
               const fullPrompt = `${imagePrompt}, ${qualitySuffix}`;
 
-              sendProgress(controller, { phase: 'generate_image', percent: 50, message: '🎨 Rendering image…' });
+              sendProgress(controller, { phase: 'generate_image', percent: 30, message: '🎨 Selecting model…' });
+
+              // HEARTBEAT: Climb progress toward 90% during long generation
+              // so the user always sees motion (Pollinations ~15-30s, Holly LoRA cold start up to 5min).
+              // Never reach 100% here — that only fires on actual success.
+              const genStartedAt = Date.now();
+              let heartbeatPercent = 40;
+              const heartbeat = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - genStartedAt) / 1000);
+                if (heartbeatPercent < 90) {
+                  heartbeatPercent = Math.min(90, heartbeatPercent + (heartbeatPercent < 70 ? 4 : 1));
+                }
+                sendProgress(controller, {
+                  phase: 'generate_image',
+                  percent: heartbeatPercent,
+                  message: `🎨 Still rendering… ${elapsed}s elapsed`,
+                });
+              }, 5000);
 
               let imageDataUri: string;
               try {
+                sendProgress(controller, { phase: 'generate_image', percent: 40, message: '🎨 Calling generation provider…' });
                 const result = await generateImage({
                   prompt: fullPrompt,
                   width: 1024,
@@ -624,9 +645,8 @@ export async function POST(req: NextRequest) {
                   enhance: true,
                 });
                 imageDataUri = result.url; // data:image/jpeg;base64,... or URL
-              } catch (genErr) {
-                console.error('[CHAT] Image generation waterfall failed:', genErr);
-                throw genErr;
+              } finally {
+                clearInterval(heartbeat);
               }
 
               sendProgress(controller, { phase: 'generate_image', percent: 100, message: '✅ Image created!' });
@@ -634,6 +654,7 @@ export async function POST(req: NextRequest) {
 
               // Flag so post-loop dedup doesn't re-send this image
               imageSentByPreDetection = true;
+              imageGenerationSucceeded = true;
 
               // Send the image directly to the frontend as markdown
               sendText(controller, `\n\n![${imagePrompt.slice(0, 80)}](${imageDataUri})`);
@@ -658,10 +679,37 @@ export async function POST(req: NextRequest) {
               fullResponse += modelDescription;
 
             } catch (imgErr) {
-              console.error('[CHAT] Image pre-detection error:', imgErr);
-              // Fall through to normal chat flow if image generation fails
+              // GRACEFUL FALLBACK — never throw.
+              // Previously: `throw imgErr` cascaded and broke the entire chat,
+              // producing "difficulty processing thoughts" when fullResponse was empty.
+              // Now: log, send a friendly note, then fall through to normal cascade so
+              // Holly still text-responds.
+              console.error('[CHAT] Image generation failed, falling back to text response:', imgErr);
+              sendProgress(controller, { phase: 'generate_image', percent: 0, message: '⚠️ Image generation failed' });
+              sendTool(controller, 'generate_image', 'error', { content: [{ type: 'text', text: 'Image generation failed' }] });
+              const errMsg = imgErr instanceof Error ? imgErr.message : String(imgErr);
+              const friendly = `I ran into trouble creating that image${errMsg ? ` (${errMsg.slice(0, 120)})` : ''} — let me respond to you directly instead. 💚`;
+              sendText(controller, friendly);
+              fullResponse += friendly;
             }
-            // Skip the rest of the tool-call loop — image was handled
+
+            // If image generation failed, run the normal cascade so Holly still
+            // text-responds. Prevents the empty-response "difficulty processing" bug.
+            if (!imageGenerationSucceeded) {
+              try {
+                for await (const token of cascade(waterfall, cascadeMessages, { temperature: userAiSettings.creativity, maxTokens: 2048, sessionId: conversationId, onModelSelected: (s) => { activeModel = s.displayName; } })) {
+                  fullResponse += token;
+                  sendText(controller, token);
+                }
+              } catch (cascadeErr: any) {
+                logger.error('Chat', 'Cascade error in image-fallback mode', { error: cascadeErr?.message || 'Cascade failed', waterfall });
+                if (!fullResponse) {
+                  fullResponse = "I had some trouble with that one. Could you try again? 💚";
+                  sendText(controller, fullResponse);
+                }
+              }
+            }
+            // Skip the rest of the tool-call loop — image was handled (or fallback ran)
           } else if (isInformationalMsg) {
             try {
               for await (const token of cascade(waterfall, cascadeMessages, { temperature: userAiSettings.creativity, maxTokens: 4096, sessionId: conversationId, onModelSelected: (s) => { activeModel = s.displayName; } })) {
