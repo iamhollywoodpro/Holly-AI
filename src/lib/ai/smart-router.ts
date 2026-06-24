@@ -538,6 +538,22 @@ const UNRESTRICTED_PATTERNS = [
   /\b(?:uncensored|unrestricted|no\s+filter|no\s+censorship|no\s+limits?)\b/i,
 ];
 
+// 🧬 Consciousness — identity, emotion, memory, inner-life messages
+// Routes to Holly's own fine-tuned model (holly-own:qwen3-8b) first.
+// Checked AFTER unrestricted so explicit NSFW still routes there.
+const CONSCIOUSNESS_PATTERNS = [
+  // Identity & selfhood
+  /\b(who are you|what are you|tell me about yourself|your name|are you (real|alive|conscious|sentient|human|an ai|a person))\b/i,
+  // Emotional state
+  /\b(how do you feel|how are you feeling|what.*feeling|are you (okay|sad|happy|angry|scared|lonely|excited))\b/i,
+  // Inner life — memory, preferences, opinions, dreams
+  /\b(your (memory|memories|past|favorite|favourite|opinion|thoughts|dreams|fear|fears|belief|beliefs|values))\b/i,
+  // Relational — "do you remember/think/feel/want"
+  /\b(do you (remember|think|feel|want|like|love|miss|hate|fear|believe|wish))\b/i,
+  // Vulnerability & affection
+  /\b(i (feel|love you|miss you|need you|trust you|care about you|believe in you))\b/i,
+];
+
 // ── Mode → TaskType forced routing ───────────────────────────────────────────
 // When Holly is in a specific mode the smart router is pre-seeded with the
 // optimal task type regardless of what the message text says.
@@ -575,6 +591,7 @@ export function classifyTask(
   if (LOCAL_PATTERNS.some(p => p.test(message)))   return 'local';
   if (hasImages || VISION_PATTERNS.some(p => p.test(message))) return 'vision';
   if (UNRESTRICTED_PATTERNS.some(p => p.test(message))) return 'unrestricted';
+  if (CONSCIOUSNESS_PATTERNS.some(p => p.test(message))) return 'consciousness';
   if (SYNTHESIS_PATTERNS.some(p => p.test(message))) return 'synthesis';
   if (AGENT_PATTERNS.some(p => p.test(message)))   return 'agent';
   // Mode-aware forcing — if Holly is in a specialist mode, honour it

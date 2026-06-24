@@ -49,7 +49,7 @@ inference_image = (
     )
 )
 
-BASE_MODEL = "Qwen/Qwen3-8B"
+BASE_MODEL = "DuoNeural/Qwen3-8B-Abliterated"
 
 
 @app.cls(
