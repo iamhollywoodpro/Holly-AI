@@ -82,9 +82,9 @@ BAKED_LORAS = {
         "desc": "Holly Face v2.0 (trigger: h0lly)",
     },
     "body": {
-        "file": "holly-body-v1.safetensors",
-        "weight": 0.50,
-        "desc": "Holly Body v1.0 (trigger: h0lly-body) — lowered so specialists can drive pose",
+        "file": "holly-body-v2.5.safetensors",
+        "weight": 0.75,
+        "desc": "Holly Body v2.5 (trigger: h0lly-body) — 207-img dataset, raised weight since v2.5 trained properly",
     },
 }
 
