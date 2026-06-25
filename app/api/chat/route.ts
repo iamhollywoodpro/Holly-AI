@@ -487,7 +487,9 @@ export async function POST(req: NextRequest) {
           // DO NOT add brittle keyword/phrase patterns here. If a phrasing slips through,
           // fix the system prompt (see prompt-builder.ts) or interceptor, not this regex.
           const IMAGE_VIDEO_PATTERNS = [
-            /\b(generate|create|draw|make|render|paint)\b(?:\s+\w+){0,4}?\s+(?:image|picture|photo|video|clip|portrait|selfie|illustration|artwork|render|pic|film|animation|gif)\b/i,
+            /\b(generate|create|draw|make|render|paint|show|send|take|snap|give)\b(?:\s+\w+){0,4}?\s+(?:image|picture|photo|video|clip|portrait|selfie|illustration|artwork|render|pic|film|animation|gif)\b/i,
+            // Indirect self-portrait requests — "show me yourself", "let me see you", "send a selfie"
+            /\b(?:show|send|let\s+me\s+see|wanna\s+see|want\s+to\s+see)\b(?:\s+\w+){0,3}?\s+(?:yourself|you|her|selfie|portrait)\b/i,
           ];
           const isImageVideoRequest = IMAGE_VIDEO_PATTERNS.some(p => p.test(latestUserMessage));
 
