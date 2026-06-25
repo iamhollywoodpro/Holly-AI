@@ -351,8 +351,8 @@ async function main() {
     fs.writeFileSync(outputFile, lines.join('\n') + '\n');
 
     const sizeMb = (fs.statSync(outputFile).size / 1024 / 1024).toFixed(2);
-    const totalTokens = trainingExamples.reduce((s, ex) =>
-      s + ex.messages.reduce((ms, m) => ms + estimateTokens(m.content), 0), 0);
+    const totalTokens = trainingExamples.reduce((s: number, ex: any) =>
+      s + ex.messages.reduce((ms: number, m: { content: string }) => ms + estimateTokens(m.content), 0), 0);
 
     console.log('═'.repeat(70));
     console.log('EXPORT COMPLETE');

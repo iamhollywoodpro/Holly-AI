@@ -251,8 +251,8 @@ export async function GET(req: NextRequest) {
     const filename = `holly-v2-${today}.jsonl`;
     const lines = trainingExamples.map(ex => JSON.stringify(ex));
     const body = lines.join('\n') + '\n';
-    const totalTokens = trainingExamples.reduce((s, ex) =>
-      s + ex.messages.reduce((ms, m) => ms + Math.ceil(m.content.length / 4), 0), 0);
+    const totalTokens = trainingExamples.reduce((s: number, ex: any) =>
+      s + ex.messages.reduce((ms: number, m: { content: string }) => ms + Math.ceil(m.content.length / 4), 0), 0);
 
     return new NextResponse(body, {
       status: 200,
