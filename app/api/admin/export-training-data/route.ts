@@ -95,7 +95,8 @@ export async function GET(req: NextRequest) {
     }
 
     const adminEmail = clerkUser.primaryEmailAddress?.emailAddress;
-    if (adminEmail !== 'iamhollywoodpro@gmail.com') {
+    const ADMIN_EMAILS = ['iamhollywoodpro@gmail.com', 'iamdoregosteve@gmail.com'];
+    if (!adminEmail || !ADMIN_EMAILS.includes(adminEmail)) {
       return NextResponse.json({ error: 'Unauthorized — admin only' }, { status: 403 });
     }
 
