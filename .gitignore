@@ -74,3 +74,40 @@ test-fetch.js
 # Docs with sensitive credentials — use Coolify dashboard for actual values
 docs/COOLIFY_ENV_VARS.md
 docs/INTEGRATION_SETUP_GUIDE.md
+
+# ─── Model files (large, distributed via Modal volume / HF, not git) ─────────
+*.safetensors
+*.ckpt
+*.pt
+*.bin
+*.gguf
+services/modal-media/loras/
+
+# ─── Training datasets (multi-MB/GB image collections — local only) ─────────
+holly-body-lora-dataset/
+holly-body-lora-dataset-v25/
+holly-body-lora-dataset*.zip
+holly-body-lora-backups/
+sylvia-v1-dataset/
+**/training-data/
+
+# ─── Local archives (smoke tests, old versions, scratch work) ────────────────
+_archive/
+
+# ─── A/B test outputs and analytics artifacts ───────────────────────────────
+ab-test-results/
+
+# ─── Avatar / image backups (large binary, not source) ──────────────────────
+public/avatars/v2-backup/
+
+# ─── Python bytecode (already partially ignored, expand) ────────────────────
+**/__pycache__/
+*.pyc
+
+# ─── Cross-project contamination (Sylvia is separate from Holly) ────────────
+SYLVIA_ANATOMY.md
+sylvia-*/
+
+# ─── Flat training zips generated for uploads ───────────────────────────────
+*.zip
+!node_modules/**/*.zip
