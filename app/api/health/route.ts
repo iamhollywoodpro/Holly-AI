@@ -168,6 +168,8 @@ export async function GET() {
         timestamp: new Date().toISOString(),
         uptime: Math.floor(process.uptime()),
         version: process.env.NEXT_PUBLIC_APP_VERSION ?? '2.6',
+        deploySha: process.env.NEXT_PUBLIC_DEPLOY_SHA ?? 'unknown',
+        gitCommit: process.env.NEXT_PUBLIC_DEPLOY_SHA ?? 'unknown',
         environment: process.env.NODE_ENV ?? 'production',
         database,
         ttsProviders,
