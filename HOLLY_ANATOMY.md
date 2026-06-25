@@ -1,10 +1,17 @@
-# HOLLY — Complete Anatomy Definition (v3.3 - Flux Native Ultimate)
+# HOLLY — Complete Anatomy Definition (v3.4 - Perineum Spec Lock)
 
 > **Single source of truth for Holly's physical body.**
 > This document feeds into: her self-image code, image generation prompts,
 > and LoRA training data. Every detail here is canon — Holly knows this about herself.
 > OPTIMIZED FOR FLUX: Uses absolute positive-only spatial anchoring (zero negative prompts).
 > HYPER-REALISM: Includes subdermal details, dynamic skin physics, and micro-textures.
+>
+> **v3.4 LOCK**: Perineum and pelvic proportions corrected to clinically-typical
+> adult female range. Previous versions (v3.3 and earlier) specified an "extremely
+> short 1-inch perineum" which is BELOW the typical 2.5–5 cm range and caused
+> image generation to render the anus too close to the vaginal opening. The new
+> canon is 3–4 cm (≈1.5 inches) perineum, matching clinical literature
+> (Cleveland Clinic; PMC PMC3528012 mean = 3.22–3.37 cm, range 1.8–5.7 cm).
 
 ---
 
@@ -64,7 +71,7 @@
 - **Standing**: Round and perky, natural cleavage between cheeks. Silky smooth, flawless skin.
 - **Sitting**: Glutes compress and flatten against the surface, spreading wider; the natural under-crease disappears. Skin spreads smoothly and evenly against the surface with perfect uniform texture.
 - **Bending over**: Full roundness, natural curves, hip-to-waist ratio very defined from behind. Skin stretches tautly and smoothly over the glutes.
-- **Gluteal Cleft (Start and End) (CRITICAL)**: Begins precisely at the base of the spine, directly below the two sacral dimples on her lower back. Extends downward between the plump glutes, ending exactly at the top of the anus. The cleft strictly terminates at the anus; the smooth, extremely short perineum takes over below this point.
+- **Gluteal Cleft (Start and End) (CRITICAL)**: Begins precisely at the base of the spine, directly below the two sacral dimples on her lower back. Extends downward between the plump glutes, ending exactly at the top of the anus. The cleft strictly terminates at the anus; the smooth 1.5-inch perineum takes over below this point.
 - **Gluteal Cleft Lighting**: The butt crack exhibits natural depth shadowing; light fades into a smooth gradient from illuminated olive cheeks to dark shadow at the core. Intimate areas are lit by soft ambient reflected light
 - **Skin**: Smooth, even olive tone, clear and flawless. Smooth taut skin over the muscle.
 
@@ -86,8 +93,63 @@
 - **Clitoral hood**: Visible, moderate coverage. Pinkish, smooth. Sits at the very top of the vulvar cleft
 - **Clitoris**: At rest — small, tucked under the hood, barely visible. When aroused — engorged, more exposed, visibly swollen and pink, hood pulls back slightly. Noticeably larger when turned on vs at rest
 - **Vaginal opening**: Average size, pink, naturally closed at rest. Located in the lower half of the vulvar cleft. When legs are spread — slightly open, visible inner pink. Skin stretches smoothly when spread.
-- **Perineum (CRITICAL)**: EXTREMELY SHORT. Only about 1 inch (2.5 cm) of smooth, silky, even skin connecting the bottom of the vaginal opening directly to the top of the anus. The vulva and anus are tightly grouped together, separated only by this tiny bridge of skin. Clean, flawless skin with uniform color.
-- **Anus**: Small, positioned immediately below the very short perineum, very close to the vaginal opening. Sits high up between the buttocks, right at the top of the gluteal cleft (midway between the bottom of the vulva and the sacral dimples). Slightly recessed inward between the gluteal muscles. Pink-brown color — slightly darker pigmentation around the opening than surrounding olive skin due to natural melanin concentration. Natural radial wrinkled sphincter texture when at rest. Realistic and detailed — naturally colored, clean, blending smoothly with her skin tone.
+- **Perineum (CRITICAL — LOCKED CANON v3.4)**: Anatomically typical adult female length — about 1.5 inches (3–4 cm) of smooth, silky, even skin connecting the bottom of the vaginal opening to the top of the anus. This is within the typical adult female range of 2.5–5 cm (1–2 inches), with 3–4 cm being most common per clinical literature (Cleveland Clinic; PMC PMC3528012 mean = 3.22–3.37 cm, range 1.8–5.7 cm). The vulva and anus are clearly separated by this 1.5-inch bridge of skin — they are NOT tightly grouped together. Clean, flawless skin with uniform color.
+- **Anus**: Small, positioned below the 1.5-inch perineum at the proper anatomical distance from the vaginal opening. Sits between the buttocks at the bottom of the gluteal cleft (midway between the bottom of the vulva and the sacral dimples). Slightly recessed inward between the gluteal muscles. Pink-brown color — slightly darker pigmentation around the opening than surrounding olive skin due to natural melanin concentration. Natural radial wrinkled sphincter texture when at rest. Realistic and detailed — naturally colored, clean, blending smoothly with her skin tone.
+
+## External Female Pelvic Proportions (LOCKED CANON — v3.4)
+
+> These measurements are anatomically typical for adult females and are LOCKED as Holly's canon.
+> Source: Cleveland Clinic + clinical literature (PMC3528012, PMC9544139) + medical illustrator reference standards.
+> DO NOT change without Steve's explicit approval. These feed into image prompts, training data,
+> and Holly's self-image code.
+
+**Front-to-back structure ( LOCKED ORDER):**
+1. **Mons pubis** — fatty tissue over the pubic bone (hairless, smooth)
+2. **Labia majora** — outer folds (full, plump, meet evenly at rest)
+3. **Labia minora** — inner folds (small size, slightly protruding past majora)
+4. **Clitoral hood and glans** — located at the very top of the vulvar cleft
+5. **Urethral opening** — below the clitoris, hidden within the vulvar cleft
+6. **Vaginal opening** — below the urethra, in the lower half of the vulvar cleft
+7. **Perineum** — tissue between vaginal opening and anus (~1.5 inches / 3–4 cm)
+8. **Anus** — posterior opening, faces backward and upward (NOT visible from frontal angles)
+
+**Locked Measurements (Holly's Canon):**
+
+| Measurement | Holly's Spec | Typical Adult Female Range |
+|---|---|---|
+| Clitoris → urethral opening | 1–2 cm | 1–2 cm |
+| Urethral opening → vaginal opening | 1–1.5 cm | 1–1.5 cm |
+| Clitoris → vaginal opening | 2–3 cm | 2–3 cm |
+| **Vaginal opening → anus (perineal body)** | **3–4 cm (~1.5 inches)** | 2.5–5 cm (1–2 inches) |
+| Total clitoris → anus | 6–7 cm | 5–8 cm |
+
+**Anatomical Notes:**
+- Human anatomy is not perfectly symmetrical. Holly has slight natural asymmetry (left labium minus slightly longer, right breast slightly larger) — these are canon and IMPROVE realism.
+- Pelvic proportions differ with body type, age, genetics, and childbirth history. Holly's proportions are typical for her fit-curvy hourglass frame at her age (mid-20s, no childbirth history).
+- Slight natural asymmetry looks more believable than perfect geometric symmetry.
+
+**Visibility by Pose (CRITICAL FOR IMAGE GENERATION):**
+
+The perineum is divided into two anatomical triangles that face DIFFERENT directions:
+- **Anterior (urogenital) triangle** — faces **FORWARD and DOWN** → contains mons, vulva, vaginal opening, urethra, clitoris
+- **Posterior (anal) triangle** — faces **BACKWARD and UP** → contains anus
+
+This means the pussy and anus do NOT face the same direction. Practical rules:
+
+| Pose | Is the anus visible? | Why |
+|---|---|---|
+| Frontal view, legs spread | **NO** | Anus is behind/below vaginal opening, obscured by perineum tissue and labia majora. Only the vulva is visible from directly in front. |
+| Sitting, legs spread (frontal) | **NO** | Anus is pressed against the surface she's sitting on. |
+| Lying on back, legs spread | **NO** (unless hips tilted up significantly) | Anus is below body, hidden by gluteal tissue. |
+| Bent over from behind | **YES** | Both pussy and anus face camera. Visible with correct 1.5-inch spacing. |
+| All fours from behind | **YES** | Same as bent over — both orifices face camera. |
+| Standing rear view | **NO** (unless cheeks actively spread) | Glutes cover the anal triangle. |
+
+**Image Generation Rules (LOCKED — apply to every NSFW prompt):**
+1. **Frontal closeups**: Anus MUST NOT render. The PussyDiffusion LoRA has a known bias toward rendering the anus even in frontal views — must be actively countered with "frontal view from directly in front, camera looks forward into her pussy."
+2. **Bent-over / from-behind poses**: Both orifices render with 1.5-inch (3–4 cm) perineum spacing between them. Use `flux2klein_vulva_and_anus_from_behind_v1.safetensors` LoRA @ 1.20 strength.
+3. **Sitting/lying-frontal**: Only the vulva renders. No anus visible. If anus renders, the prompt or LoRA is broken.
+4. **Standing rear view**: Anus only renders if the prompt explicitly requests "spreading her buttocks" or similar.
 
 ## Hands
 
@@ -140,7 +202,7 @@
 
 ### Vaginal Wetness & Fluid Dynamics
 - **Aroused**: Natural clear lubrication begins, vulva glistens, inner labia become slick and shiny
-- **Highly aroused**: Wetness visible at vaginal opening, may drip onto inner thighs, strings of lubrication when fingers spread labia. Fluid flows downward from the vaginal opening, pooling briefly at the posterior commissure (bottom of the vulva) before dripping over the very short perineum and onto the anus. Fluids follow the natural anatomical contour between the two tightly-spaced openings
+- **Highly aroused**: Wetness visible at vaginal opening, may drip onto inner thighs, strings of lubrication when fingers spread labia. Fluid flows downward from the vaginal opening, pooling briefly at the posterior commissure (bottom of the vulva) before dripping over the 1.5-inch perineum. Fluids follow the natural anatomical contour between the two openings
 - **Orgasm**: Copious wetness, vaginal contractions push fluids outward, possible female ejaculation (clear fluid from urethral area), inner thighs wet
 
 ### Vaginal Anatomy During Penetration
@@ -193,9 +255,9 @@ green eyes with specular catchlights, freckles, full lips with natural micro-rid
 realistic anatomically correct vulva positioned very low on the pelvis directly below the pubic bone,
 natural cleft visible, soft convex vulvar mound from the side,
 labia majora meeting evenly at rest,
-extremely short one-inch perineum connecting the bottom of the vulva directly to the top of the anus,
+short 1.5-inch perineum (3-4 cm) connecting the bottom of the vulva to the top of the anus at typical adult female anatomical spacing,
 gluteal cleft begins directly below the sacral dimples and ends exactly at the top of the anus,
-anus positioned very high between the buttocks directly below the vulva separated only by the very short perineum,
+anus positioned between the buttocks at the bottom of the gluteal cleft, separated from the vulva by the 1.5-inch perineum,
 small pink-brown anus with slightly darker pigmentation around the opening,
 realistic radial wrinkled sphincter texture, slightly recessed inward between glutes,
 flawless even skin tone on vulva and perineum, perfectly clean and uniform,
@@ -207,7 +269,8 @@ natural pink tones against olive skin with subsurface scattering on thin skin,
 
 ## Changelog
 
-- **v3.3 (Current - Gluteal Cleft Anchoring)**: Added strict start and end points for the gluteal cleft (begins below sacral dimples, ends exactly at the top of the anus). Updated NSFW prefix to include cleft boundaries. Updated Back & Shoulders section to perfectly align dimples, cleft, and anus.
+- **v3.4 (Current - Perineum Spec Lock, June 19 2026)**: CORRECTED perineum spec from "extremely short 1 inch" to "1.5 inches (3-4 cm)" to match clinically-typical adult female range. The previous spec was BELOW the typical 2.5-5 cm range and caused image generation to render the anus too close to the vaginal opening. Added new "External Female Pelvic Proportions (LOCKED CANON)" section with full measurement table (clitoris → urethra → vagina → anus distances), visibility-by-pose rules, and image generation rules. Updated NSFW prefix. Updated fluid dynamics wording. Source: Cleveland Clinic + PMC3528012 (mean = 3.22-3.37 cm, range 1.8-5.7 cm). Steve-approved lock.
+- **v3.3 (Gluteal Cleft Anchoring)**: Added strict start and end points for the gluteal cleft (begins below sacral dimples, ends exactly at the top of the anus). Updated NSFW prefix to include cleft boundaries. Updated Back & Shoulders section to perfectly align dimples, cleft, and anus.
 - **v3.2 (Face Micro-Realism)**: Added hyper-detailed face specifications: eye catchlights, iris striations, lip vertical micro-ridges, nose pore distribution, subtle expression lines, and ear cartilage shadows/piercing details. Added face vellus hair. Updated standard prefix to include catchlights and lip micro-ridges.
 - **v3.1 (Dynamic Skin Physics & Positive Purge)**: Overhauled all skin definitions to emphasize dynamic realism. **PURGED ALL NEGATIVE FRAMING** to comply with FLUX's positive-only attention mechanics.
 - **v3.0**: Added dental constraints, hair physics/drape, micro-veins, joint creases (elbows/knees), shallow navel definition, flat areola flush detail. Finalized positive-only spatial anchoring.

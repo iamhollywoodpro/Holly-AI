@@ -9,8 +9,8 @@
 LOG="/tmp/body-lora-v2-batch.log"
 SCRIPT="scripts/generate-body-lora-dataset.py"
 BATCH_SIZE=1
-ATTEMPTS=1
-TOTAL=84
+ATTEMPTS=3
+TOTAL=88
 
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" | tee -a "$LOG"
 echo "Holly Body LoRA Batch Runner — $(date)" | tee -a "$LOG"
