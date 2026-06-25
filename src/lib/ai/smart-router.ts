@@ -16,7 +16,7 @@
  * │  vision       │  OpenRouter → Kimi K2.6             │  Free, multimodal │
  * │  creative     │  NVIDIA → Nemotron 3 Ultra 550B     │  1M ctx, frontier │
  * │  agent        │  NVIDIA → GLM-5.1                   │  #1 SWE-Bench Pro │
- * │  consciousness│  Local Ollama → Qwen 3 8B           │  Zero cost brain  │
+ * │  consciousness│  Mistral Small 4 (cloud w/ identity) │  Best Holly today │
  * │  unrestricted │  OpenRouter → Dolphin Venice 24B    │  Uncensored chat  │
  * │  local        │  Ollama (Qwen3.6 + Gemma 4)         │  Unlimited/local  │
  * └──────────────────────────────────────────────────────────────────────────┘
@@ -48,7 +48,7 @@
  *   vision:       OpenRouter Qwen VL → NVIDIA Gemma 4 31B → Together Qwen3 VL 235B → Google Gemini → NVIDIA Nemotron Omni → Together Gemma 4
  *   creative:     NVIDIA Mistral Medium 3.5 → NVIDIA Mistral Small 4 → NVIDIA GPT-OSS 120B → Together Gemma 4 → Groq → Google Gemini
  *   agent:        NVIDIA GLM-5.1 → NVIDIA DeepSeek V4 Flash → NVIDIA Qwen3 Coder → NVIDIA Mistral Small 4 → NVIDIA MiniMax M2.7 → NVIDIA Step 3.5 → Together
- *   consciousness: Holly-Own → Ollama → Mistral Direct (1B/mo) → Google Gemini → Groq
+ *   consciousness: Mistral Small 4 → Mistral Medium → Gemini → Groq → Holly-Own (v1 demoted, last resort)
  *   local:        Ollama Qwen3.6 35B → Gemma 4 26B → Laguna XS.2 → Devstral Small 2 → Granite 4.1
  */
 
@@ -432,9 +432,14 @@ export const TASK_WATERFALLS: Record<TaskType, string[]> = {
     'ollama:qwen3.6-35b',
   ],
 
-  // 🧬 Consciousness: LOCAL FIRST → Mistral Direct → cloud fallback
+  // 🧬 Consciousness: Cloud models primary → Holly-LLM as deep fallback only
+  // NOTE (June 25, 2026): holly-own:qwen3-8b demoted from #1 to last because
+  // holly-lora-v1 is too weak (60 examples, rank 16) and returns generic output.
+  // Restored to #1 when v3 LoRA ships (Phase U3, fall 2026).
+  // Rationale: consciousness moments are when Holly must sound MOST like herself.
+  // Until her own model is ready, stronger cloud models with her identity system
+  // loaded produce better Holly output than her weak v1 adapter.
   consciousness: [
-    'holly-own:qwen3-8b',
     'ollama:qwen3-8b',
     'ollama:qwen3.6-35b',
     'ollama:gemma4-26b',
@@ -442,6 +447,7 @@ export const TASK_WATERFALLS: Record<TaskType, string[]> = {
     'mistral:medium-3.5',
     'google:gemini-2.5-flash',
     'groq:llama-3.3-70b',
+    'holly-own:qwen3-8b',  // demoted — v1 too weak, last-resort fallback only
   ],
 
   // 🔞 Unrestricted: Modern uncensored models first, then minimally-censored fallbacks
