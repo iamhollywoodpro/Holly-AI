@@ -294,20 +294,33 @@ function classifySpecialist(prompt: string): SpecialistRecipe | null {
   // BENT_OVER — rear view showing holes (no hands). Musubituner LoRA produces
   // perfect bent-over anus/vulva geometry. Match: bent over, on all fours,
   // doggy style, from behind (rear views only — not "looking back over shoulder").
-  // Anti-clothing anchors are CRITICAL here — the musubituner LoRA at 1.0 can
-  // pull clothing onto the upper body if not explicitly forbidden.
+  // Anti-clothing anchors + foot anchors are CRITICAL — the musubituner LoRA
+  // at 1.0 can pull clothing onto the upper body, and Klein's known failure
+  // mode for bent-over is duplicated/malformed feet (Smoke8 fix per FACT.md).
   if (/\b(bent over|on all fours|all fours|on her knees and|doggy|doggi|from behind|rear view|kneeling facing away)\b/.test(p)) {
     return {
       category: 'bent_over',
       loras: [{ file: 'femaleasshole-f2-klein-9b-musubituner.safetensors', strength: 1.0 }],
       reinforcement:
-        'bent over at the waist showing her pussy and anus from behind, ' +
-        'both holes visible between her thighs, anus visible, vulva visible, ' +
+        'bent over forward at waist, legs shoulder-width apart, ' +
+        'viewed from directly behind, camera positioned behind her, her back fully to camera, face not visible, ' +
+        'her pussy and anus visible between her thighs and buttocks, ' +
+        '1.5 inch perineum of skin between her vaginal opening and her anus, correct anatomical spacing, ' +
+        'very large plump round butt filling the frame, thick full butt cheeks, ' +
         'smooth bare buttocks, bald hairless pussy from behind, ' +
         'completely topless, completely nude from behind, bare back, bare shoulders, ' +
         'no bra, no shirt, no top, no clothing on her upper body, no clothing anywhere, ' +
         'zero garments, bare skin from her neck to her ankles, ' +
-        LIMB_ANCHORS + ', both hands placed flat on the floor or her thighs, ' +
+        // Foot/leg anchors lifted from the SMOKE8-locked bent_over recipe —
+        // Klein Distilled is notorious for duplicating or malformed feet in
+        // rear-view poses without these explicit anchors.
+        'exactly two legs, right leg on right side and left leg on left side, ' +
+        'exactly two feet total, one left foot and one right foot, single pair of feet, ' +
+        'only two feet in the entire image, five toes on each foot, ten toes total, ' +
+        'both feet flat on the floor, feet pointing forward, natural foot pose from behind, ' +
+        'both arms visible reaching from her shoulders, exactly two arms, ' +
+        'both hands placed flat on the floor in front of her or resting on her thighs, ' +
+        'correct human anatomy, proper body proportions, ' +
         'single camera angle from behind, not looking back over shoulder',
     };
   }
