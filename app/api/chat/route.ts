@@ -608,7 +608,9 @@ export async function POST(req: NextRequest) {
           if (isImageVideoRequest && !isInformationalMsg && !fullResponse) {
             let imageGenerationSucceeded = false;
             try {
-              sendTool(controller, 'generate_image', 'start');
+              // NOTE: Do NOT call sendTool() here — that opens the side panel UI.
+              // Media generation (images/video/music) should render INLINE in chat only.
+              // Side panel is reserved for code work (start_build, run_code, self_code_apply, etc.).
               sendStatus(controller, '🎨 Generating image…');
               sendProgress(controller, { phase: 'generate_image', percent: 5, message: '🎨 Analyzing your request…' });
 
@@ -669,7 +671,9 @@ export async function POST(req: NextRequest) {
               }
 
               sendProgress(controller, { phase: 'generate_image', percent: 100, message: '✅ Image created!' });
-              sendTool(controller, 'generate_image', 'complete', { content: [{ type: 'text', text: `Image generated via server-side waterfall` }] });
+              // No sendTool() here — image renders inline as markdown below.
+              // Calling sendTool would open the sandbox side panel, which is reserved
+              // for code work only (run_code, start_build, self_code_apply, etc.).
 
               // Flag so post-loop dedup doesn't re-send this image
               imageSentByPreDetection = true;
@@ -705,7 +709,7 @@ export async function POST(req: NextRequest) {
               // Holly still text-responds.
               console.error('[CHAT] Image generation failed, falling back to text response:', imgErr);
               sendProgress(controller, { phase: 'generate_image', percent: 0, message: '⚠️ Image generation failed' });
-              sendTool(controller, 'generate_image', 'error', { content: [{ type: 'text', text: 'Image generation failed' }] });
+              // No sendTool() error event — keeps error inline, no side panel.
               const errMsg = imgErr instanceof Error ? imgErr.message : String(imgErr);
               const friendly = `I ran into trouble creating that image${errMsg ? ` (${errMsg.slice(0, 120)})` : ''} — let me respond to you directly instead. 💚`;
               sendText(controller, friendly);
