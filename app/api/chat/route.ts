@@ -491,7 +491,24 @@ export async function POST(req: NextRequest) {
             // Indirect self-portrait requests — "show me yourself", "let me see you", "send a selfie"
             /\b(?:show|send|let\s+me\s+see|wanna\s+see|want\s+to\s+see)\b(?:\s+\w+){0,3}?\s+(?:yourself|you|her|selfie|portrait)\b/i,
           ];
-          const isImageVideoRequest = IMAGE_VIDEO_PATTERNS.some(p => p.test(latestUserMessage));
+          // Suppress image gen when user is TALKING ABOUT images rather than REQUESTING them.
+          // Catches: past-tense references ("you sent", "earlier when I asked"), complaints,
+          // memories, meta-conversation about image gen. Without this, any message containing
+          // "send image" or similar triggers gen — even "you ignored me when I asked for an image."
+          const IMAGE_VIDEO_SUPPRESS_PATTERNS = [
+            // Time markers indicating past reference
+            /\b(earlier|yesterday|before|last\s+week|last\s+night|previously|just\s+now|the\s+other\s+day|a\s+minute\s+ago)\b/i,
+            // Past-tense verbs about Holly's actions
+            /\b(you\s+(?:sent|showed|gave|shared|generated|created|drew|made|ignored|refused|failed))\b/i,
+            // User referencing their own past request
+            /\b(I\s+asked\s+you\s+to|when\s+I\s+asked\s+for|I\s+told\s+you\s+to)\b/i,
+            // "When you..." conversational constructions
+            /\b(when\s+(?:you|I)\s+(?:sent|showed|asked|tried|generated))\b/i,
+            // Reflective/memory markers
+            /\b(was\s+thinking\s+about\s+when|about\s+when\s+you|remember\s+when)\b/i,
+          ];
+          const isConversationalReference = IMAGE_VIDEO_SUPPRESS_PATTERNS.some(p => p.test(latestUserMessage));
+          const isImageVideoRequest = IMAGE_VIDEO_PATTERNS.some(p => p.test(latestUserMessage)) && !isConversationalReference;
 
           if (isImageVideoRequest && !isInformationalMsg) {
             // Intimacy gate for image generation
