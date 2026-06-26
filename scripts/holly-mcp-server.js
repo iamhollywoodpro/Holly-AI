@@ -1338,7 +1338,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const encoded = encodeURIComponent(args.prompt);
       const model   = args.model || "flux";
       const seed    = Math.floor(Math.random() * 1000000);
-      const pollinationsUrl = `https://gen.pollinations.ai/image/${encoded}?width=${w}&height=${h}&model=${model}&seed=${seed}&nologo=true`;
+      const pollinationsUrl = `https://image.pollinations.ai/prompt/${encoded}?width=${w}&height=${h}&model=${model}&seed=${seed}&nologo=true`;
 
       // Return the Pollinations URL directly — the frontend detects it and renders inline.
       // We do NOT fetch the image bytes here (avoids transferring megabytes of base64 through SSE).

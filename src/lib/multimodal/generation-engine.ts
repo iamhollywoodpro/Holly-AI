@@ -285,7 +285,7 @@ async function generateImagePollinations(
   const [w, h] = resolveImageDimensions(req);
   const seed = req.seed || Math.floor(Math.random() * 1_000_000);
   const encodedPrompt = encodeURIComponent(prompt);
-  const url = `https://gen.pollinations.ai/image/${encodedPrompt}?seed=${seed}&width=${w}&height=${h}&model=flux&nologo=true`;
+  const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?seed=${seed}&width=${w}&height=${h}&model=flux&nologo=true`;
 
   // Verify Pollinations responds
   const check = await fetch(url, { method: 'HEAD', signal: AbortSignal.timeout(30_000) });
