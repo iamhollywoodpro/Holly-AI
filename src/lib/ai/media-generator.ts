@@ -294,6 +294,8 @@ function classifySpecialist(prompt: string): SpecialistRecipe | null {
   // BENT_OVER — rear view showing holes (no hands). Musubituner LoRA produces
   // perfect bent-over anus/vulva geometry. Match: bent over, on all fours,
   // doggy style, from behind (rear views only — not "looking back over shoulder").
+  // Anti-clothing anchors are CRITICAL here — the musubituner LoRA at 1.0 can
+  // pull clothing onto the upper body if not explicitly forbidden.
   if (/\b(bent over|on all fours|all fours|on her knees and|doggy|doggi|from behind|rear view|kneeling facing away)\b/.test(p)) {
     return {
       category: 'bent_over',
@@ -302,6 +304,9 @@ function classifySpecialist(prompt: string): SpecialistRecipe | null {
         'bent over at the waist showing her pussy and anus from behind, ' +
         'both holes visible between her thighs, anus visible, vulva visible, ' +
         'smooth bare buttocks, bald hairless pussy from behind, ' +
+        'completely topless, completely nude from behind, bare back, bare shoulders, ' +
+        'no bra, no shirt, no top, no clothing on her upper body, no clothing anywhere, ' +
+        'zero garments, bare skin from her neck to her ankles, ' +
         LIMB_ANCHORS + ', both hands placed flat on the floor or her thighs, ' +
         'single camera angle from behind, not looking back over shoulder',
     };
@@ -309,6 +314,9 @@ function classifySpecialist(prompt: string): SpecialistRecipe | null {
 
   // DILDO MASTURBATION — toy penetration, self-pleasure. FK LoRA @ 1.0.
   // Match: dildo/toy/vibrator + masturbation context.
+  // Critical anchors: BOTH feet must be positioned (flat on bed) and BOTH arms
+  // must reach from shoulders with visible hand placement. Without these,
+  // Klein drops or duplicates legs (R1-R8 limb failures per FACT.md).
   const hasToy = /\b(dildo|toy|vibrator|silicone shaft|glass rod)\b/.test(p);
   const hasMasturbate =
     /\b(masturbat|fuck(ing|s)? herself|pleasuring herself|screwing herself|penetrat(e|ing|ion)|inside her (pussy|ass)|her pussy (with|using))\b/.test(p);
@@ -320,8 +328,13 @@ function classifySpecialist(prompt: string): SpecialistRecipe | null {
         'dildo penetrating her pussy, shaft visibly entering her body, toy half buried inside her, ' +
         'her pussy visibly wet and aroused, translucent natural lubrication with slight creamy cloudiness, ' +
         'glistening wetness coating the toy shaft, slick moisture on her inner labia, ' +
-        LIMB_ANCHORS + ', her right hand holding the dildo, her left hand resting on her thigh or stomach, ' +
-        'looking down at the penetration, lips parted in pleasure, explicit intimate detail',
+        'both legs visible reaching from her hips, both feet flat on the bed, ' +
+        'knees up and legs spread wide open, right leg on right side and left leg on left side, ' +
+        'exactly two feet, ten toes total, both feet planted firmly, ' +
+        'both arms visible reaching from her shoulders, exactly two arms, ' +
+        'her right hand holding the dildo, her left hand resting on the bed beside her hip or on her stomach, ' +
+        'both hands visible in front of her body, looking down at the penetration, ' +
+        'lips parted in pleasure, explicit intimate detail',
     };
   }
 
