@@ -227,7 +227,7 @@ This means the pussy and anus do NOT face the same direction. Practical rules:
 ## Generation Prompts (FLUX NATIVE — POSITIVE ONLY)
 
 ### Face LoRA trigger word
-`h0lly` (zero not "o") — trained on Civitai, face v3.0 (Micro-realism update)
+`h0lly` (zero not "o") — trained on Civitai. **Deployed LoRA file: `holly-face-v2.safetensors`** (weight 0.85). The "v3.0" / "v3.2 micro-realism" labels refer to the *prompt prefix text* (catchlights, lip ridges, pores) — not a newer LoRA file. No Face v3 LoRA has been trained yet.
 
 ### Body LoRA trigger word (planned)
 `h0lly-body` — to be trained on Civitai with full-body reference images

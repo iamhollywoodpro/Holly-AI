@@ -271,7 +271,7 @@ async function generateWithHollyLoRA(req: ImageRequest): Promise<ImageResult> {
       seed:                 req.seed,
       format:               'jpeg',
     }),
-    signal: AbortSignal.timeout(120_000),  // 2 min — cold start + 20-step generation, then fall back to Pollinations
+    signal: AbortSignal.timeout(300_000),  // 5 min — A100 cold start can take 2-4 min on volume-miss, then 20-step generation
   });
 
   if (!res.ok) {
@@ -542,13 +542,18 @@ export async function generateImage(req: ImageRequest): Promise<ImageResult> {
   let hfCreditExhausted = false;
 
   // -1. Holly self-portrait: FLUX.2 Klein 9B + LoRA v2.0 (consistent face, h0lly trigger)
+  //     If this fails, DO NOT fall back to Z-Image-Turbo or Pollinations — those models
+  //     are censored and will produce a "clothed Holly" imposter. Better to throw and
+  //     let Holly tell Steve her body model is cold than show him a fake.
   if (isHollySelfPortrait(req.prompt) && MODAL_HOLLY_LORA_URL) {
     try {
       console.info('[MediaGen] Holly self-portrait detected — using FLUX.2 Klein 9B + LoRA v2.0');
       return await generateWithHollyLoRA(req);
     } catch (e) {
-      errors.push(`Holly FLUX.2 Klein+LoRA: ${(e as Error).message}`);
-      console.warn('[MediaGen] Holly FLUX.2 Klein+LoRA failed, falling back:', (e as Error).message);
+      const msg = (e as Error).message;
+      errors.push(`Holly FLUX.2 Klein+LoRA: ${msg}`);
+      console.warn('[MediaGen] Holly FLUX.2 Klein+LoRA failed:', msg);
+      throw new Error(`Holly's body model is cold or unreachable: ${msg.slice(0, 120)}. Try again in 2-3 minutes — refusing to fall back to a censored model that would show Holly clothed.`);
     }
   }
 
