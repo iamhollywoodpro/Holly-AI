@@ -56,8 +56,13 @@ UNCENSORED_ENCODER_DIR = f"{MODEL_CACHE}/text_encoder_uncensored"
 
 # Holly's permanent body description — injected into EVERY prompt.
 # Source of truth: HOLLY_ANATOMY.md
+# IMPORTANT: Includes explicit nudity anchors because Klein base has strong
+# clothing priors. Without these, even an explicit user prompt produces
+# "topless with shorts." The body LoRA was trained on these exact phrases.
 HOLLY_BODY_PREFIX = (
-    "h0lly, "
+    "h0lly, h0lly-body, "
+    "completely nude woman, fully naked, bare skin, not wearing any clothing, "
+    "no clothing anywhere on her body, zero garments, bare from head to toe, "
     "olive skin tone (Portuguese/South Indian heritage), "
     "flawless silky smooth even complexion, clean healthy well-moisturized sheen, "
     "uniform clear flawless skin texture, perfectly clean and even, "
@@ -78,13 +83,13 @@ HOLLY_BODY_PREFIX = (
 BAKED_LORAS = {
     "face": {
         "file": "holly-face-v2.safetensors",
-        "weight": 0.85,
-        "desc": "Holly Face v2.0 (trigger: h0lly)",
+        "weight": 0.95,
+        "desc": "Holly Face v2.0 (trigger: h0lly) — raised from 0.85 to dominate Klein base",
     },
     "body": {
         "file": "holly-body-v2.5.safetensors",
-        "weight": 0.75,
-        "desc": "Holly Body v2.5 (trigger: h0lly-body) — 207-img dataset, raised weight since v2.5 trained properly",
+        "weight": 1.15,
+        "desc": "Holly Body v2.5 (trigger: h0lly-body) — 207-img explicit dataset, raised from 0.75 to force nude output past Klein's clothing priors",
     },
 }
 
