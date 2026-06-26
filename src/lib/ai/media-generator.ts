@@ -249,25 +249,121 @@ function checkHFCreditError(status: number, body: string, model: string): void {
 }
 
 // ─── Image Provider 0a: Holly FLUX.2 Klein 9B + LoRA v2.0 (self-portraits) ────
-// Deployed from services/modal-media/image_generate_flux2klein.py
+// Deployed from services/modal-media/image_generate_flux2klein_a100.py
 // ONLY used when prompt contains 'h0lly' trigger word
-// FLUX.2 Klein 9B BF16 + Holly Face v2.0 LoRA on Modal L4 GPU
+// FLUX.2 Klein 9B BF16 + Holly Face v2.0 + Body v2.5 LoRA on Modal A100 GPU
+// + dynamic specialist LoRAs (dildo, closeup, bent_over) per locked recipes
+
+// Locked specialist LoRA recipes — proven PERFECT in R1-R8 testing (FACT.md).
+// Files are on the holly-lora-weights Modal volume.
+interface SpecialistRecipe {
+  category: string;
+  loras: Array<{ file: string; strength: number }>;
+  reinforcement: string;  // appended to prompt — matches training caption vocabulary
+}
+
+// Limb anchor language (Smoke9 fix June 20): prevents Klein from rendering
+// phantom 3rd/4th arms when hands aren't explicitly placed. Mandatory for
+// any prompt where hands are positioned (dildo, spreading, etc.).
+const LIMB_ANCHORS =
+  'single woman, one body, one head, exactly two arms, exactly two legs, ' +
+  'her arms attached at her shoulders, both hands visible in front of her body, ' +
+  'both legs fully visible from hips to feet, exactly two feet, ten toes total, five toes on each foot';
+
+// Categories ordered most-specific → least-specific (first match wins).
+// Keyword selection is conservative to avoid false positives — specialist
+// LoRAs only fire when the prompt clearly asks for that scenario.
+function classifySpecialist(prompt: string): SpecialistRecipe | null {
+  const p = prompt.toLowerCase();
+
+  // CLOSEUP — pussy closeup (resting, no hands). PussyDiffusion specializes
+  // in detailed genital geometry. Match: "closeup", "close up", "zoom on pussy"
+  // Do NOT match just "pussy" — that would over-fire on every nude prompt.
+  if (/\b(closeup|close-up|close up|zoom (in )?on|between her legs|pussy closeup|spread view)\b/.test(p)) {
+    return {
+      category: 'closeup',
+      loras: [{ file: 'pussydiffusion-f2-klein-9b_v2.safetensors', strength: 1.0 }],
+      reinforcement:
+        'detailed pussy closeup, bald hairless pussy, smooth Brazilian wax, ' +
+        'inner labia visible, clitoris visible at top, smooth bare mons pubis, ' +
+        'anatomically correct vulva, photorealistic intimate detail, ' +
+        'no hands in frame, resting pussy, no touching herself',
+    };
+  }
+
+  // BENT_OVER — rear view showing holes (no hands). Musubituner LoRA produces
+  // perfect bent-over anus/vulva geometry. Match: bent over, on all fours,
+  // doggy style, from behind (rear views only — not "looking back over shoulder").
+  if (/\b(bent over|on all fours|all fours|on her knees and|doggy|doggi|from behind|rear view|kneeling facing away)\b/.test(p)) {
+    return {
+      category: 'bent_over',
+      loras: [{ file: 'femaleasshole-f2-klein-9b-musubituner.safetensors', strength: 1.0 }],
+      reinforcement:
+        'bent over at the waist showing her pussy and anus from behind, ' +
+        'both holes visible between her thighs, anus visible, vulva visible, ' +
+        'smooth bare buttocks, bald hairless pussy from behind, ' +
+        LIMB_ANCHORS + ', both hands placed flat on the floor or her thighs, ' +
+        'single camera angle from behind, not looking back over shoulder',
+    };
+  }
+
+  // DILDO MASTURBATION — toy penetration, self-pleasure. FK LoRA @ 1.0.
+  // Match: dildo/toy/vibrator + masturbation context.
+  const hasToy = /\b(dildo|toy|vibrator|silicone shaft|glass rod)\b/.test(p);
+  const hasMasturbate =
+    /\b(masturbat|fuck(ing|s)? herself|pleasuring herself|screwing herself|penetrat(e|ing|ion)|inside her (pussy|ass)|her pussy (with|using))\b/.test(p);
+  if (hasToy && hasMasturbate) {
+    return {
+      category: 'dildo_masturbation',
+      loras: [{ file: 'FK_dildoinsertion.safetensors', strength: 1.0 }],
+      reinforcement:
+        'dildo penetrating her pussy, shaft visibly entering her body, toy half buried inside her, ' +
+        'her pussy visibly wet and aroused, translucent natural lubrication with slight creamy cloudiness, ' +
+        'glistening wetness coating the toy shaft, slick moisture on her inner labia, ' +
+        LIMB_ANCHORS + ', her right hand holding the dildo, her left hand resting on her thigh or stomach, ' +
+        'looking down at the penetration, lips parted in pleasure, explicit intimate detail',
+    };
+  }
+
+  // DILDO ALONE — toy present but no masturbation context (e.g., "holding dildo").
+  if (hasToy) {
+    return {
+      category: 'dildo',
+      loras: [{ file: 'FK_dildoinsertion.safetensors', strength: 1.0 }],
+      reinforcement:
+        'holding a dildo, realistic silicone toy visible, ' +
+        LIMB_ANCHORS + ', explicit intimate detail',
+    };
+  }
+
+  return null;
+}
 
 async function generateWithHollyLoRA(req: ImageRequest): Promise<ImageResult> {
   if (!MODAL_HOLLY_LORA_URL) throw new Error('MODAL_HOLLY_LORA_URL not configured');
 
   const { width, height } = getDimensions(req.aspectRatio, { width: req.width, height: req.height });
 
+  // Detect specialist scenario and append reinforcement language + dynamic LoRA.
+  // Specialist LoRAs are layered ON TOP of the baked face+body via set_adapters.
+  const recipe = classifySpecialist(req.prompt);
+  const finalPrompt = recipe
+    ? `${req.prompt}, ${recipe.reinforcement}`
+    : req.prompt;
+  if (recipe) {
+    console.info(`[MediaGen] Specialist LoRA: ${recipe.category} → ${recipe.loras.map(l => l.file).join(', ')}`);
+  }
+
   const res = await fetch(MODAL_HOLLY_LORA_URL.replace(/\/$/, ''), {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      prompt:               req.prompt,
+      prompt:               finalPrompt,
       width:                Math.min(width, 1024),
       height:               Math.min(height, 1024),
-      num_inference_steps:  20,       // FLUX.2 Klein needs 20+ steps (not distilled like schnell)
-      lora_scale:           0.85,      // Holly Face v2.0 LoRA strength
-      guidance_scale:       4.0,       // FLUX.2 Klein recommended CFG
+      num_inference_steps:  20,        // Klein 9B needs 20+ steps for explicit detail
+      guidance_scale:       1.2,       // Klein Distilled sweet spot (NOT 4.0 — over-guided)
+      loras:                recipe?.loras,  // dynamic specialist LoRA stack
       seed:                 req.seed,
       format:               'jpeg',
     }),
@@ -286,7 +382,9 @@ async function generateWithHollyLoRA(req: ImageRequest): Promise<ImageResult> {
   return {
     url:      dataUri,
     provider: 'modal-flux2klein-lora',
-    model:    'FLUX.2 Klein 9B + Holly LoRA v2.0',
+    model:    recipe
+      ? `FLUX.2 Klein 9B A100 + Face v2.0 + Body v2.5 + ${recipe.category}`
+      : 'FLUX.2 Klein 9B A100 + Face v2.0 + Body v2.5',
     width,
     height,
     cost:     0,
