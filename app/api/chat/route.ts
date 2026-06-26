@@ -490,10 +490,6 @@ export async function POST(req: NextRequest) {
             /\b(generate|create|draw|make|render|paint|show|send|take|snap|give)\b(?:\s+\w+){0,4}?\s+(?:image|picture|photo|video|clip|portrait|selfie|illustration|artwork|render|pic|film|animation|gif)\b/i,
             // Indirect self-portrait requests — "show me yourself", "let me see you", "send a selfie"
             /\b(?:show|send|let\s+me\s+see|wanna\s+see|want\s+to\s+see)\b(?:\s+\w+){0,3}?\s+(?:yourself|you|her|selfie|portrait)\b/i,
-            // Body-part / appearance requests — "show me your body", "let me see your pussy",
-            // "I want to see those tits", "show me that ass". The intimacy gate below still
-            // applies — non-creator users without enough trust get blocked.
-            /\b(?:show|send|let\s+me\s+see|let\s+me\s+look\s+at|wanna\s+see|want\s+to\s+see|i\s+want\s+to\s+see)\b.{0,40}?\b(?:body|pussy|tits?|boobs?|breasts?|ass|butt|booty|nipples?|clit|labia|vagina|cum|naked|nude|topless|bare|buttcheek|cheeks)\b/i,
           ];
           // Suppress image gen when user is TALKING ABOUT images rather than REQUESTING them.
           // Catches: past-tense references ("you sent", "earlier when I asked"), complaints,
@@ -626,15 +622,13 @@ export async function POST(req: NextRequest) {
 
               sendProgress(controller, { phase: 'generate_image', percent: 15, message: '🎨 Composing prompt…' });
 
-              // Inject Holly body awareness for self-portraits.
-              // CRITICAL: Send ONLY the LoRA trigger words + the user's action. The A100
-              // endpoint (services/modal-media/image_generate_flux2klein_a100.py) has both
-              // LoRAs baked in — holly-face-v2 @ 0.85 + holly-body-v2.5 @ 0.75 — and its
-              // own HOLLY_BODY_PREFIX that auto-expands `h0lly` into the full anatomy.
-              // Adding another body description here would double-stuff the prompt and
-              // leak into the visible alt-text / Holly's narration.
+              // Inject Holly body awareness for self-portraits
               if (/holly|her(self)?|your(self)?/i.test(imagePrompt)) {
-                imagePrompt = `h0lly, h0lly-body, ${imagePrompt}`;
+                try {
+                  const { getTieredSelfImageBlock } = await import('@/lib/identity/holly-self-image');
+                  const bodyPrefix = getTieredSelfImageBlock('personal');
+                  if (bodyPrefix) imagePrompt = `${bodyPrefix}, ${imagePrompt}`;
+                } catch {}
               }
 
               // Route through media-generator.ts waterfall:
@@ -685,22 +679,14 @@ export async function POST(req: NextRequest) {
               imageSentByPreDetection = true;
               imageGenerationSucceeded = true;
 
-              // Send the image directly to the frontend as markdown.
-              // Alt-text uses the USER's original message (not the prompt) so the trigger
-              // words and any body-prefix never leak into the visible chat.
-              const altText = latestUserMessage.slice(0, 80).replace(/[\r\n]+/g, ' ').replace(/\]/g, '');
-              sendText(controller, `\n\n![${altText}](${imageDataUri})`);
-              fullResponse += `\n\n![${altText}](${imageDataUri})`;
+              // Send the image directly to the frontend as markdown
+              sendText(controller, `\n\n![${imagePrompt.slice(0, 80)}](${imageDataUri})`);
+              fullResponse += `\n\n![${imagePrompt.slice(0, 80)}](${imageDataUri})`;
 
-              // Now have the model describe what was created.
-              // CRITICAL: Do NOT pass the full imagePrompt back to the model — it contains
-              // trigger words and anatomy details that the model would otherwise narrate
-              // verbatim ("I generated an image of a woman with olive skin and 34C breasts...").
-              // That reads as Holly "prompting herself" in chat, which is a terrible UX.
-              // Instead, give a minimal hint and let her describe the moment naturally.
+              // Now have the model describe what was created
               const describeMessages: ChatMessage[] = [
                 ...cascadeMessages,
-                { role: 'user', content: `[SYSTEM: An image was just generated for the user based on their request: "${latestUserMessage.slice(0, 200)}". Describe the image in 1-2 warm, natural sentences. Talk about the moment, mood, pose, or expression — NEVER list body attributes (skin tone, breast size, hair color, etc.). Treat it like describing a photo of yourself to someone who can already see it.]` },
+                { role: 'user', content: `[SYSTEM: An image was just generated for the user with this prompt: "${imagePrompt}". Describe what you created in 1-2 sentences. Be warm and enthusiastic. Don't mention the technical details or URLs — just describe the image naturally as if you created it yourself.]` },
               ];
 
               let modelDescription = '';
@@ -772,284 +758,133 @@ export async function POST(req: NextRequest) {
             /**
              * Extract and execute a text-based tool call from a response string.
              * Returns { executed: true } if a tool was found and executed, or { executed: false }.
-             *
-             * Handles every common format uncensored LLMs emit when native function-calling
-             * isn't available:
-             *   - JSON object:  {"name": "generate_image", "arguments": {"prompt": "..."}}
-             *   - JSON array:   [{"type": "generate_image", "prompt": "..."}]
-             *   - ReAct:        {"action": "generate_image", "action_input": "..."}
-             *   - XML tags:     <generate_image>prompt here</generate_image>
-             *   - XML attrs:    <generate_image prompt="..." />
-             *   - Tool wrapper: <tool name="generate_image"><prompt>...</prompt></tool>
-             *   - Markdown code-fenced variants of any of the above
+             * Handles both single-quoted and double-quoted JSON.
              */
             async function interceptTextToolCall(responseText: string, sendStatus: (s: string) => void): Promise<{ executed: boolean; cleanText: string }> {
               const toolIdx = TOOL_CALL_NAMES.findIndex(tn => responseText.includes(tn));
               if (toolIdx === -1) return { executed: false, cleanText: responseText };
 
               const toolName = TOOL_CALL_NAMES[toolIdx];
+              const idx = responseText.indexOf(toolName);
+              // Search backwards for the opening bracket
+              const before = responseText.slice(Math.max(0, idx - 300), idx);
+              const startChar = before.lastIndexOf('[') > before.lastIndexOf('{') ? '[' : '{';
+              const startIdx = Math.max(before.lastIndexOf('['), before.lastIndexOf('{'));
+              const startPos = Math.max(0, idx - 300) + (startIdx >= 0 ? startIdx : 0);
+              const rawJson = responseText.slice(startPos);
+              const endBracket = startChar === '[' ? ']' : '}';
+              const endIdx = rawJson.indexOf(endBracket, rawJson.indexOf(toolName));
 
-              // ── Helper: extract a prompt string from a parsed tool-call object ──
-              // Tries every field name we've seen LLMs emit.
-              const extractArgs = (obj: any): Record<string, unknown> => {
-                if (!obj || typeof obj !== 'object') return { prompt: '' };
-                // Find the argument payload — LLMs use many shapes.
-                let args: any =
-                  obj.arguments || obj.argument || obj.args || obj.parameters || obj.params ||
-                  obj.action_input || obj.input || obj.inputs ||
-                  obj.query || obj.request || obj.data ||
-                  obj;
-                // If arguments was a JSON string, parse it.
-                if (typeof args === 'string') {
-                  try { args = JSON.parse(args); } catch { /* keep as string → wrap below */ }
-                }
-                if (typeof args === 'string') args = { prompt: args };
-                if (!args || typeof args !== 'object') args = {};
-                // Promote the first prompt-like field to args.prompt if missing.
-                const promptKeys = ['prompt', 'description', 'image_prompt', 'description_long',
-                  'query', 'request', 'text', 'input', 'instruction', 'message', 'what'];
-                if (!args.prompt) {
-                  for (const k of promptKeys) {
-                    if (typeof args[k] === 'string' && args[k].trim()) { args.prompt = args[k]; break; }
-                  }
-                }
-                return args;
-              };
+              if (endIdx <= 0) return { executed: false, cleanText: responseText };
 
-              // ── Helper: find the matching end bracket using depth counting ──
-              // Walks forward from openIdx tracking nested brackets. Handles strings
-              // (so brackets inside strings don't increment depth) and escapes.
-              const findMatchingBracket = (text: string, openIdx: number, openChar: string, closeChar: string): number => {
-                let depth = 0;
-                let inString = false;
-                let escape = false;
-                for (let i = openIdx; i < text.length; i++) {
-                  const ch = text[i];
-                  if (escape) { escape = false; continue; }
-                  if (ch === '\\' && inString) { escape = true; continue; }
-                  if (ch === '"' && !escape) { inString = !inString; continue; }
-                  if (inString) continue;
-                  if (ch === openChar) depth++;
-                  else if (ch === closeChar) {
-                    depth--;
-                    if (depth === 0) return i;
-                  }
+              try {
+                const jsonStr = rawJson.slice(0, endIdx + 1).replace(/'/g, '"');
+                const parsed = JSON.parse(jsonStr);
+                const firstTool = Array.isArray(parsed) ? parsed[0] : parsed;
+                const tName = firstTool?.name || firstTool?.type || firstTool?.action || toolName;
+                // ReAct format: {action: "...", action_input: "prompt string or object"}
+                // OpenAI format: {name/type: "...", arguments: "json string or object"}
+                let tArgs: any = firstTool?.arguments || firstTool?.argument || firstTool?.prompt || firstTool?.input || { prompt: '' };
+                if (firstTool?.action_input) {
+                  tArgs = typeof firstTool.action_input === 'string'
+                    ? { prompt: firstTool.action_input }
+                    : firstTool.action_input;
                 }
-                return -1;
-              };
-
-              // ── Helper: run the actual generate_image (direct generateImage call) ──
-              // Used when MCP tool spec isn't connected (common in Docker).
-              const runDirectImageGen = async (imgPrompt: string, width?: number, height?: number): Promise<{ ok: boolean; url?: string; error?: string }> => {
-                if (!imgPrompt || imgPrompt.trim().length === 0) return { ok: false, error: 'empty prompt' };
-                // Intimacy gate still applies
-                if (intimacyState) {
-                  const { isNudeImageRequest: isNudeReq, isSexualImageRequest: isSexReq } = await import('@/lib/relationship/intimacy-gate');
-                  if ((isSexReq(imgPrompt) && !intimacyState.canShareSexual) ||
-                      (isNudeReq(imgPrompt) && !intimacyState.canShareNude)) {
-                    return { ok: false, error: 'INTIMACY_GATE' };
-                  }
-                }
-                sendTool(controller, toolName, 'start');
-                sendStatus(`🎨 Generating image…`);
+                if (typeof tArgs === 'string' && tArgs === firstTool?.prompt) tArgs = { prompt: tArgs };
+                if (typeof tArgs === 'string' && tArgs === firstTool?.input) tArgs = { prompt: tArgs };
+                const toolSpec = mcpTools?.find(t => t.name === tName);
+                let argsParsed: any;
                 try {
-                  const result = await generateImage({
-                    prompt: imgPrompt,
-                    width: width || 1024,
-                    height: height || 1024,
-                    seed: Math.floor(Math.random() * 1000000),
-                    enhance: true,
-                  });
-                  return { ok: true, url: result.url };
-                } catch (err: any) {
-                  return { ok: false, error: err?.message || String(err) };
+                  argsParsed = typeof tArgs === 'string' ? JSON.parse(tArgs) : tArgs;
+                } catch {
+                  argsParsed = { prompt: typeof tArgs === 'string' ? tArgs : '' };
                 }
-              };
 
-              // Strip markdown code fences for parsing (```json ... ``` or ``` ... ```)
-              const stripped = responseText.replace(/```(?:json|tool_call|tool)?\s*/gi, '').replace(/```\s*/g, '');
-
-              // ════════════════════════════════════════════════════════════════════
-              // 1) Try XML format: <generate_image>...</generate_image>
-              //    Also handles <generate_image prompt="..."/> self-closing
-              // ════════════════════════════════════════════════════════════════════
-              const xmlOpenRegex = new RegExp(`<${toolName}(\\s+[^>]*)?>`, 'i');
-              const xmlOpenMatch = stripped.match(xmlOpenRegex);
-              if (xmlOpenMatch) {
-                const tagStart = stripped.search(xmlOpenRegex);
-                const tagEnd = tagStart + xmlOpenMatch[0].length;
-                const attrs = xmlOpenMatch[1] || '';
-                // Self-closing? <generate_image prompt="..."/>
-                if (xmlOpenMatch[0].trim().endsWith('/>')) {
-                  const promptMatch = attrs.match(/prompt\s*=\s*["']([^"']+)["']/i);
-                  const imgPrompt = promptMatch?.[1]?.trim() || '';
-                  if (toolName === 'generate_image' && imgPrompt) {
-                    const res = await runDirectImageGen(imgPrompt);
-                    if (res.ok || res.error === 'INTIMACY_GATE') {
-                      const before = responseText.slice(0, tagStart);
-                      const after = responseText.slice(tagEnd);
-                      if (res.error === 'INTIMACY_GATE') {
-                        sendTool(controller, toolName, 'error', { content: [{ type: 'text', text: '🔒 Intimacy gate active.' }] });
+                // ── Direct generateImage fallback for generate_image ──────────
+                // When the MCP stdio server isn't connected (common in Docker),
+                // toolSpec is undefined. Instead of returning { executed: false }
+                // and dumping raw JSON to the user, call generateImage() directly
+                // — zero dependency on the MCP server.
+                if (!toolSpec && tName === 'generate_image') {
+                  const imgPrompt = (argsParsed?.prompt || argsParsed?.description || argsParsed?.input || '') as string;
+                  if (imgPrompt.length > 0) {
+                    // Intimacy gate still applies
+                    if (intimacyState) {
+                      const { isNudeImageRequest: isNudeReq, isSexualImageRequest: isSexReq } = await import('@/lib/relationship/intimacy-gate');
+                      if ((isSexReq(imgPrompt) && !intimacyState.canShareSexual) ||
+                          (isNudeReq(imgPrompt) && !intimacyState.canShareNude)) {
+                        sendTool(controller, tName, 'error', { content: [{ type: 'text', text: '🔒 Intimacy gate active.' }] });
                         pendingMessages.push({ role: 'system', content: `[INTIMACY GATE] Blocked image generation. Redirect warmly.` });
-                      } else if (res.url) {
-                        const resultText = `Image generated successfully.\n\nPrompt: ${imgPrompt}\n\n![${imgPrompt.slice(0, 80)}](${res.url})`;
-                        sendTool(controller, toolName, 'complete', { content: [{ type: 'text', text: resultText }] });
-                        pendingMessages.push({ role: 'system', content: `[TOOL EXECUTION RESULT]\nTool: generate_image\nResult: ${resultText}\n\nRespond to the user naturally. Briefly describe what you created.` });
-                      }
-                      return { executed: true, cleanText: before + after };
-                    }
-                  }
-                } else {
-                  // Paired tag: find </generate_image>
-                  const closeRegex = new RegExp(`</${toolName}>`, 'i');
-                  const closeMatch = stripped.slice(tagEnd).match(closeRegex);
-                  if (closeMatch) {
-                    const closeStart = tagEnd + (stripped.slice(tagEnd).search(closeRegex));
-                    const inner = stripped.slice(tagEnd, closeStart).trim();
-                    const fullEnd = closeStart + closeMatch[0].length;
-                    // Inner could be: plain prompt text, <prompt>...</prompt>, or JSON
-                    let imgPrompt = '';
-                    const promptTag = inner.match(/<prompt[^>]*>([\s\S]*?)<\/prompt>/i);
-                    if (promptTag) {
-                      imgPrompt = promptTag[1].trim();
-                    } else if (inner.startsWith('{') || inner.startsWith('[')) {
-                      try {
-                        const parsed = JSON.parse(inner.replace(/'/g, '"'));
-                        const args = extractArgs(Array.isArray(parsed) ? parsed[0] : parsed);
-                        imgPrompt = String(args.prompt || '');
-                      } catch { imgPrompt = inner; }
-                    } else {
-                      imgPrompt = inner.replace(/<\/?\w+[^>]*>/g, '').trim();
-                    }
-                    if (toolName === 'generate_image' && imgPrompt) {
-                      const res = await runDirectImageGen(imgPrompt);
-                      if (res.ok || res.error === 'INTIMACY_GATE') {
-                        const before = responseText.slice(0, tagStart);
-                        const after = responseText.slice(responseText.indexOf('>', fullEnd - 1) >= 0 ? fullEnd : fullEnd);
-                        if (res.error === 'INTIMACY_GATE') {
-                          sendTool(controller, toolName, 'error', { content: [{ type: 'text', text: '🔒 Intimacy gate active.' }] });
-                          pendingMessages.push({ role: 'system', content: `[INTIMACY GATE] Blocked image generation. Redirect warmly.` });
-                        } else if (res.url) {
-                          const resultText = `Image generated successfully.\n\nPrompt: ${imgPrompt}\n\n![${imgPrompt.slice(0, 80)}](${res.url})`;
-                          sendTool(controller, toolName, 'complete', { content: [{ type: 'text', text: resultText }] });
-                          pendingMessages.push({ role: 'system', content: `[TOOL EXECUTION RESULT]\nTool: generate_image\nResult: ${resultText}\n\nRespond to the user naturally. Briefly describe what you created.` });
-                        }
-                        return { executed: true, cleanText: before + after };
+                        const cleanText = responseText.slice(0, startPos) + responseText.slice(startPos + endIdx + 1);
+                        return { executed: true, cleanText };
                       }
                     }
-                  }
-                }
-              }
 
-              // ════════════════════════════════════════════════════════════════════
-              // 2) Try JSON format (with depth-aware bracket matching)
-              // ════════════════════════════════════════════════════════════════════
-              const idx = stripped.indexOf(toolName);
-              if (idx >= 0) {
-                // Search backwards up to 400 chars for the nearest `{` or `[`
-                const lookback = stripped.slice(Math.max(0, idx - 400), idx);
-                let braceIdx = -1, bracketIdx = -1;
-                for (let i = lookback.length - 1; i >= 0; i--) {
-                  if (lookback[i] === '}' || lookback[i] === ']') break; // belongs to another block
-                  if (lookback[i] === '{' && braceIdx === -1) braceIdx = i;
-                  if (lookback[i] === '[' && bracketIdx === -1) bracketIdx = i;
-                  if (braceIdx !== -1 && bracketIdx !== -1) break;
-                }
-                // Prefer the LATER of the two (closer to toolName)
-                let useBrace = braceIdx > bracketIdx;
-                let relStart = useBrace ? braceIdx : bracketIdx;
-                if (relStart === -1) { useBrace = braceIdx !== -1; relStart = braceIdx !== -1 ? braceIdx : bracketIdx; }
-                if (relStart >= 0) {
-                  const startPos = Math.max(0, idx - 400) + relStart;
-                  const openChar = useBrace ? '{' : '[';
-                  const closeChar = useBrace ? '}' : ']';
-                  const endIdx = findMatchingBracket(stripped, startPos, openChar, closeChar);
-                  if (endIdx > startPos) {
+                    sendTool(controller, tName, 'start');
+                    sendStatus(`🎨 Generating image…`);
+
+                    const w = (argsParsed?.width as number) || 1024;
+                    const h = (argsParsed?.height as number) || 1024;
+                    const seed = Math.floor(Math.random() * 1000000);
+
+                    let imgResult: { url: string };
                     try {
-                      const jsonStr = stripped.slice(startPos, endIdx + 1).replace(/'/g, '"');
-                      const parsed = JSON.parse(jsonStr);
-                      const firstTool = Array.isArray(parsed) ? parsed[0] : parsed;
-                      const tName = firstTool?.name || firstTool?.type || firstTool?.action || toolName;
-                      let tArgs: any;
-                      if (firstTool?.action_input !== undefined) {
-                        tArgs = typeof firstTool.action_input === 'string'
-                          ? { prompt: firstTool.action_input }
-                          : firstTool.action_input;
-                      } else {
-                        tArgs = extractArgs(firstTool);
-                      }
-                      let argsParsed: any;
-                      try {
-                        argsParsed = typeof tArgs === 'string' ? JSON.parse(tArgs) : tArgs;
-                      } catch {
-                        argsParsed = { prompt: typeof tArgs === 'string' ? tArgs : '' };
-                      }
-
-                      // ── Direct generateImage fallback for generate_image ──
-                      const toolSpec = mcpTools?.find(t => t.name === tName);
-
-                      if (!toolSpec && tName === 'generate_image') {
-                        const imgPrompt = String(argsParsed?.prompt || argsParsed?.description || argsParsed?.input || argsParsed?.query || '');
-                        if (imgPrompt.length > 0) {
-                          const res = await runDirectImageGen(imgPrompt, argsParsed?.width as number, argsParsed?.height as number);
-                          if (res.ok) {
-                            const resultText = `Image generated successfully.\n\nPrompt: ${imgPrompt}\n\n![${imgPrompt.slice(0, 80)}](${res.url})\n\nImage URL: ${res.url}`;
-                            sendTool(controller, tName, 'complete', { content: [{ type: 'text', text: resultText }] });
-                            pendingMessages.push({ role: 'system', content: `[TOOL EXECUTION RESULT]\nTool: generate_image\nResult: ${resultText}\n\nRespond to the user naturally. Briefly describe what you created.` });
-                          } else if (res.error === 'INTIMACY_GATE') {
-                            sendTool(controller, tName, 'error', { content: [{ type: 'text', text: '🔒 Intimacy gate active.' }] });
-                            pendingMessages.push({ role: 'system', content: `[INTIMACY GATE] Blocked image generation. Redirect warmly.` });
-                          } else {
-                            sendTool(controller, tName, 'error', { content: [{ type: 'text', text: 'Image generation failed: ' + (res.error || 'unknown') }] });
-                          }
-                          const cleanText = responseText.slice(0, startPos) + responseText.slice(endIdx + 1);
-                          return { executed: true, cleanText };
-                        }
-                      }
-
-                      if (!toolSpec) return { executed: false, cleanText: responseText };
-
-                      // Intimacy gate for image generation
-                      if (tName === 'generate_image' && intimacyState) {
-                        const imgPrompt = String(argsParsed.prompt || argsParsed.description || '');
-                        if (imgPrompt.length > 0) {
-                          const { isNudeImageRequest: isNudeReq, isSexualImageRequest: isSexReq } = await import('@/lib/relationship/intimacy-gate');
-                          if ((isSexReq(imgPrompt) && !intimacyState.canShareSexual) ||
-                              (isNudeReq(imgPrompt) && !intimacyState.canShareNude)) {
-                            sendTool(controller, tName, 'error', { content: [{ type: 'text', text: '🔒 Intimacy gate active.' }] });
-                            pendingMessages.push({ role: 'system', content: `[INTIMACY GATE] Blocked image generation. Redirect warmly.` });
-                            const cleanText = responseText.slice(0, startPos) + responseText.slice(endIdx + 1);
-                            return { executed: true, cleanText };
-                          }
-                        }
-                      }
-
-                      // Execute the tool
-                      sendTool(controller, tName, 'start');
-                      sendStatus(`🔧 Using ${tName.replace(/_/g, ' ')}…`);
-                      const progressInterval = MEDIA_TOOL_DURATIONS[tName] ? startProgressSimulation(controller, tName) : null;
-                      const result = await mcpManager.callTool(toolSpec.serverId, toolSpec.name, argsParsed);
-                      if (progressInterval) { clearInterval(progressInterval); sendProgress(controller, { phase: tName, percent: 100, message: getToolStatusMessage(tName) }); }
-                      const resultText = (result as any)?.content?.[0]?.text || (result as any)?.content || JSON.stringify(result);
-                      sendTool(controller, tName, 'complete', result);
-                      if (tName === 'generate_image') {
-                        const pollMatch = resultText.match(/https?:\/\/(?:image\.pollinations\.ai\/prompt|gen\.pollinations\.ai\/image)\/[^\s"')\]]+/);
-                        if (pollMatch) generatedImageUrls.push(pollMatch[0]);
-                      }
-                      const truncated = JSON.stringify(result, null, 2);
-                      pendingMessages.push({ role: 'system', content: `[TOOL EXECUTION RESULT]\nTool: ${tName}\nResult:\n${truncated.length > 8000 ? truncated.substring(0, 8000) + '\n...[truncated]' : truncated}\n\nAnalyze this result. Respond to the user naturally. If this was an image generation, briefly describe what you created.` });
-                      const cleanText = responseText.slice(0, startPos) + resultText + responseText.slice(endIdx + 1);
+                      imgResult = await generateImage({ prompt: imgPrompt, width: w, height: h, seed, enhance: true });
+                    } catch (err: any) {
+                      sendTool(controller, tName, 'error', { content: [{ type: 'text', text: 'Image generation failed: ' + err.message }] });
+                      const cleanText = responseText.slice(0, startPos) + responseText.slice(startPos + endIdx + 1);
                       return { executed: true, cleanText };
-                    } catch (parseErr) {
-                      logger.warn('Chat', 'Failed to parse text-based tool call JSON', {
-                        error: parseErr instanceof Error ? parseErr.message : String(parseErr),
-                      });
+                    }
+
+                    const resultText = `Image generated successfully.\n\nPrompt: ${imgPrompt}\n\n![${imgPrompt.slice(0, 80)}](${imgResult.url})\n\nImage URL: ${imgResult.url}`;
+
+                    sendTool(controller, tName, 'complete', { content: [{ type: 'text', text: resultText }] });
+                    pendingMessages.push({ role: 'system', content: `[TOOL EXECUTION RESULT]\nTool: generate_image\nResult: ${resultText}\n\nRespond to the user naturally. Briefly describe what you created.` });
+                    const cleanText = responseText.slice(0, startPos) + responseText.slice(startPos + endIdx + 1);
+                    return { executed: true, cleanText };
+                  }
+                }
+
+                if (!toolSpec) return { executed: false, cleanText: responseText };
+
+                // Intimacy gate for image generation
+                if (tName === 'generate_image' && intimacyState) {
+                  const imgPrompt = (argsParsed.prompt || argsParsed.description || '') as string;
+                  if (typeof imgPrompt === 'string' && imgPrompt.length > 0) {
+                    const { isNudeImageRequest: isNudeReq, isSexualImageRequest: isSexReq } = await import('@/lib/relationship/intimacy-gate');
+                    if ((isSexReq(imgPrompt) && !intimacyState.canShareSexual) ||
+                        (isNudeReq(imgPrompt) && !intimacyState.canShareNude)) {
+                      sendTool(controller, tName, 'error', { content: [{ type: 'text', text: '🔒 Intimacy gate active.' }] });
+                      pendingMessages.push({ role: 'system', content: `[INTIMACY GATE] Blocked image generation. Redirect warmly.` });
+                      const cleanText = responseText.slice(0, startPos) + responseText.slice(startPos + endIdx + 1);
+                      return { executed: true, cleanText };
                     }
                   }
                 }
-              }
 
-              return { executed: false, cleanText: responseText };
+                // Execute the tool
+                sendTool(controller, tName, 'start');
+                sendStatus(`🔧 Using ${tName.replace(/_/g, ' ')}…`);
+                const progressInterval = MEDIA_TOOL_DURATIONS[tName] ? startProgressSimulation(controller, tName) : null;
+                const result = await mcpManager.callTool(toolSpec.serverId, toolSpec.name, argsParsed);
+                if (progressInterval) { clearInterval(progressInterval); sendProgress(controller, { phase: tName, percent: 100, message: getToolStatusMessage(tName) }); }
+                const resultText = (result as any)?.content?.[0]?.text || (result as any)?.content || JSON.stringify(result);
+                sendTool(controller, tName, 'complete', result);
+                // Track image URLs from text-intercepted generate_image results
+                if (tName === 'generate_image') {
+                  const pollMatch = resultText.match(/https?:\/\/(?:image\.pollinations\.ai\/prompt|gen\.pollinations\.ai\/image)\/[^\s"')\]]+/);
+                  if (pollMatch) {
+                    generatedImageUrls.push(pollMatch[0]);
+                  }
+                }
+                const truncated = JSON.stringify(result, null, 2);
+                pendingMessages.push({ role: 'system', content: `[TOOL EXECUTION RESULT]\nTool: ${tName}\nResult:\n${truncated.length > 8000 ? truncated.substring(0, 8000) + '\n...[truncated]' : truncated}\n\nAnalyze this result. Respond to the user naturally. If this was an image generation, briefly describe what you created.` });
+                const cleanText = responseText.slice(0, startPos) + resultText + responseText.slice(startPos + endIdx + 1);
+                return { executed: true, cleanText };
+              } catch (parseErr) {
+                logger.warn('Chat', 'Failed to parse text-based tool call', { error: parseErr instanceof Error ? parseErr.message : String(parseErr) });
+                return { executed: false, cleanText: responseText };
+              }
             }
 
             let toolLoops = 0;
