@@ -1,5 +1,32 @@
 # Holly AI — Project State & Roadmap
 
+## CRITICAL LESSON — Read The Deploy Log End-to-End (June 26, 2026)
+Steve spent hours thinking a deploy failure was a "Docker race" because I theorized instead of reading the Coolify deploy log carefully. The error `no space left on device` was in the very first log paste, plain as day. I missed it twice.
+
+**NEW STANDARD — When a deploy fails:**
+1. Read the FULL deploy log start-to-finish BEFORE opening my mouth
+2. Quote the exact error string from the log, not a paraphrase
+3. Do not theorize about root causes — the log already tells you
+4. "It auto-recovered in ~60 min" usually means Docker GC'd something that was asphyxiating the box. Investigate WHY it was asphyxiated.
+
+## Production Server Access (Oracle Cloud Free Tier ARM64)
+- **IP**: `40.233.70.207` (also accessible via `holly.nexamusicgroup.com` through Cloudflare)
+- **SSH**: `ssh -i ~/.ssh/holly_server ubuntu@40.233.70.207`
+- **Key location**: `~/.ssh/holly_server` (ed25519, generated for Steve's iMac)
+- **Username**: `ubuntu` (not `root` or `opc`)
+- **Architecture**: `aarch64` (Ampere A1, 4 OCPU / 24GB RAM / 146GB disk)
+- **Coolify app dir**: `/data/coolify/applications/tx7n3f3clrlvdaiitob2vi3o/` (owned by uid 9999, requires `sudo -i bash -c '...'` — NOT `sudo bash -c` because sudo preserves user traversal perms)
+- **Coolify DB**: `docker exec coolify-db psql -U coolify -d coolify` — application FQDNs live in `docker_compose_domains` JSON column (the `fqdn` column is empty for compose-based apps)
+- **Health verify**: `curl https://holly.nexamusicgroup.com/api/health` → JSON with `deploySha` confirms which commit is live
+
+## Disk Space Failure Mode (RECURRING)
+Holly-ai image is 8.45GB. Every deploy that pulls a new layer keeps old ones as dangling until pruned. With 146GB total disk and Coolify infra eating ~12GB, disk fills within ~15 deploys if not pruned. **Symptoms of disk exhaustion**:
+- `tee: /data/coolify/.../docker-compose.yaml: No space left on device` → Coolify compose file gets TRUNCATED mid-write (typically at 8192-byte stdio buffer boundary)
+- `failed to extract layer ... no space left on device` → image pull fails at a specific layer
+- App status flips to `exited` in Coolify DB even though no code bug exists
+**Recovery**: `sudo docker image prune -f` removes dangling layers (~12GB typically). `sudo docker rmi <tagged-but-unused>` reclaims more. Target: keep 50GB+ free.
+**PREVENTION TODO**: Weekly cron on server running `docker image prune -a -f --filter "until=72h"` to auto-prune old unused images. Steve approved the approach but cron not yet set up.
+
 ## CRITICAL LESSON — No More Lazy Work (June 24, 2026)
 Steve called out that I've been treating Holly like a checkbox exercise:
 - Proposed "demote Holly-LLM" when the right answer was "train v2 LoRA properly"
@@ -13,6 +40,53 @@ Steve called out that I've been treating Holly like a checkbox exercise:
 - Read the code first, make the call, execute, show result
 - Cautious ONLY where it matters: production deploys, real money, secrets
 - Holly's voice/personality IS the project. Not a "Phase U3 someday" — the core.
+
+---
+
+## IMAGE GENERATION ARCHITECTURE — LOCKED (June 26, 2026)
+
+**The A100 endpoint is the single source of truth for Holly's likeness.**
+
+`services/modal-media/image_generate_flux2klein_a100.py` has:
+- **Both LoRAs BAKED at container startup** (loaded + fused, always active):
+  - `holly-face-v2.safetensors` @ 0.95 (raised from 0.85 by Steve June 25)
+  - `holly-body-v2.5.safetensors` @ 1.15 (raised from 0.75 by Steve June 25)
+- **Its own `HOLLY_BODY_PREFIX`** that auto-expands the `h0lly` trigger:
+  - Starts with `"h0lly, h0lly-body, completely nude woman, fully naked, bare skin, not wearing any clothing..."` then full anatomy from HOLLY_ANATOMY.md
+- When endpoint sees `h0lly` in prompt → REPLACES `h0lly` with full prefix
+- When endpoint doesn't see `h0lly` → PREPENDS prefix to prompt
+- Both paths result in Holly's full anatomy being injected automatically
+
+**CRITICAL RULE for chat route (app/api/chat/route.ts):**
+The chat route's job is to send ONLY: `"h0lly, h0lly-body, ${user_action}"`.
+- ❌ NEVER add body description in chat route — endpoint already does it
+- ❌ NEVER inject `getTieredSelfImageBlock('personal')` as image prompt — that's MARKDOWN TEXT for the LLM system prompt, not an image-gen prompt
+- ❌ NEVER pass the full imagePrompt back to the model for description — body attributes leak into Holly's chat text (the "Holly prompting herself" bug)
+- ✅ Alt-text in markdown should use `latestUserMessage`, not the prompt
+- ✅ Describe-message should ask Holly to describe mood/pose/moment, NOT body attributes
+
+**Specialist LoRA layer (media-generator.ts, June 25):**
+- `classifySpecialist()` detects dildo / closeup / bent_over from prompt keywords
+- Layers dynamic LoRAs (FK_dildoinsertion, pussydiffusion, femaleasshole-musubituner) on top of baked face+body
+- Each category has `reinforcement` language appended (matches training caption vocabulary)
+- `LIMB_ANCHORS` const prevents Klein phantom limbs: "single woman, one body, one head, exactly two arms..."
+- If A100 fails for Holly self-portrait → THROWS (refuses to fall back to censored model that would show clothed imposter)
+
+**Chat route image gen paths (3 total):**
+- **Path A** (pre-detection regex) — most reliable. Direct `generateImage()` call. Sends `h0lly, h0lly-body, ${user_action}`. Image renders inline as markdown.
+- **Path B** (native Groq/Arcee tool_calls) — used for non-NSFW when tools available
+- **Path C** (text-intercepted tool call JSON/XML) — catches everything Holly emits as text. Handles: nested OpenAI JSON, ReAct, multi-line JSON, single-quoted, code-fenced, `<generate_image>...</generate_image>` XML, self-closing attrs.
+
+**Path A regex patterns (3):**
+1. Direct media command: `(generate|create|draw|make|render|paint|show|send|take|snap|give) + 0-4 words + (image|picture|photo|video|clip|portrait|selfie|illustration|artwork|render|pic|film|animation|gif)`
+2. Indirect self-portrait: `(show|send|let me see|wanna see|want to see) + 0-3 words + (yourself|you|her|selfie|portrait)`
+3. Body-part NSFW: `(show|send|let me see|let me look at|wanna see|want to see|i want to see) + .{0,40}? + (body|pussy|tits|boobs|breasts|ass|butt|booty|nipples|clit|labia|vagina|cum|naked|nude|topless|bare|buttcheek|cheeks)`
+
+**Suppress patterns** (prevent false positives on meta-conversation):
+- Past time markers ("earlier", "yesterday", "last night")
+- Past-tense Holly actions ("you sent", "you ignored")
+- User past requests ("I asked you to", "when I asked for")
+- Reflective ("remember when", "was thinking about when")
 
 ---
 
@@ -46,7 +120,7 @@ CORRECTED to 1.5 inches per Steve's directive + clinical literature confirmation
 **Files updated for v3.4 lock**:
 - `HOLLY_ANATOMY.md` — v3.4 (master source, added Pelvic Proportions table + pose rules)
 - `src/lib/identity/holly-self-image.ts` — BODY_AWARENESS lines 72, 77
-- `services/modal-media/image_generate_flux2klein_a100.py` — HOLLY_BODY_PREFIX (butt desc, no perineum mention in global prefix)
+- `services/modal-media/image_generate_flux2klein_a100.py` — HOLLY_BODY_PREFIX (now starts with `h0lly, h0lly-body, completely nude woman, fully naked...`)
 - `scripts/batch-klein-v25-locked.py` — ANATOMY constant + bent_over/closeup prompts use "1.5 inch perineum"
 
 **NEVER change these measurements without Steve's explicit written approval.**
@@ -164,6 +238,8 @@ Prompt sheet: holly-body-lora-dataset-v25/CIVITAI-PROMPTS.md
 - Workspace: iamhollywoodpro (funded with $20, Holly-only account)
 - Code change: Added encoder auto-download logic (lines 172-189) for workspace portability
 - Code change: Increased startup_timeout from 1200 to 2400 (first cold start downloads models)
+- **LoRA weights raised June 25, 2026**: face 0.85 → 0.95, body 0.75 → 1.15 (force nude past Klein clothing priors)
+- **HOLLY_BODY_PREFIX updated June 25**: now starts with `h0lly, h0lly-body, completely nude woman, fully naked, bare skin, not wearing any clothing...` (explicit nudity anchors because Klein base has strong clothing priors)
 
 ## Modal Cost Tracking
 - Total spent (Rounds 1-8 + Smoke7 + Smoke8): ~$9.15
@@ -183,7 +259,7 @@ Steve has made this absolutely clear. NEVER say something is "WORKING" or "LIVE"
 
 ## Multi-Project Rule — CRITICAL
 - **HOLLY IS ALWAYS PRIORITY ONE**
-- **Two Modal accounts**: `iamhollywoodpro` (Holly ONLY) and `iamdoregosteve` (everything else)
+- **Two Modal accounts**: `iamhollywoodpro` (Holly ONLY) and `iamhollywoodpro` (everything else)
 - **NEVER deploy Sylvia/other projects on Holly's Modal account**
 
 ## LESSON LEARNED — No More Guessing
@@ -333,5 +409,5 @@ Schema has: Conversation, Message, ConversationSummary, ConversationPattern, Mem
   - **Provenance**: Klein generation prompts+seeds preserved in `_provenance/klein/`
   - **Archive**: All smoke/test/pre-QA/legacy folders moved to `_archive/legacy/{klein_smoke_tests,civitai_pre_qa,pre_v25_experiments,old_prompt_templates,smoke_logs}/`
   - **Manifest**: `holly-body-lora-dataset-v25/README.md`
-- V4: 🟡 NEXT — Train v2.5 LoRA on 207-image unified dataset
-- V5: ⬜ RETIRE old A100 endpoint after v2.5 training complete
+- V4: ✅ TRAINED v2.5 LoRA — deployed to A100 endpoint at weight 1.15 (June 25, 2026)
+- V5: ✅ CHAT ROUTE WIRED — Path A sends `h0lly, h0lly-body, ${user_action}` (commit 0652f36 June 26)
