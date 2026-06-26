@@ -271,7 +271,7 @@ async function generateWithHollyLoRA(req: ImageRequest): Promise<ImageResult> {
       seed:                 req.seed,
       format:               'jpeg',
     }),
-    signal: AbortSignal.timeout(300_000),  // cold start + 20-step generation
+    signal: AbortSignal.timeout(120_000),  // 2 min — cold start + 20-step generation, then fall back to Pollinations
   });
 
   if (!res.ok) {
@@ -362,7 +362,7 @@ function pollinationsImageUrl(
     model,
   });
   if (seed !== undefined) params.set('seed', String(seed));
-  return `https://gen.pollinations.ai/image/${encoded}?${params}`;
+  return `https://image.pollinations.ai/prompt/${encoded}?${params}`;
 }
 
 async function generateWithPollinations(req: ImageRequest): Promise<ImageResult> {
@@ -828,7 +828,7 @@ async function generateVideoWithPollinations(req: VideoRequest): Promise<VideoRe
   const fps      = req.fps ?? 8;
 
   const encoded = encodeURIComponent(req.prompt);
-  const pollUrl = `https://gen.pollinations.ai/image/${encoded}?width=${width}&height=${height}&nologo=true&model=flux&seed=${Math.floor(Math.random() * 99999)}`;
+  const pollUrl = `https://image.pollinations.ai/prompt/${encoded}?width=${width}&height=${height}&nologo=true&model=flux&seed=${Math.floor(Math.random() * 99999)}`;
 
   const res = await fetch(pollUrl, {
     signal: AbortSignal.timeout(120_000),
