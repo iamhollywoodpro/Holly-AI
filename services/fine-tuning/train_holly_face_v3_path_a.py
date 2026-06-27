@@ -71,18 +71,19 @@ image = (
         "datasets",
     )
     .pip_install("huggingface_hub>=0.25.0")
+    .add_local_dir("holly-face-v3-dataset/images", "/root/dataset")
 )
 
 
 @app.function(
     image=image,
-    gpu="A100",
+    gpu="A100-80GB",
     timeout=60 * 60 * 2,
     volumes={VOLUME_MOUNT: volume, LORA_DIR: lora_volume},
     secrets=[modal.Secret.from_name("huggingface-secret")],
 )
 def train_face_v3(
-    dataset_local_path: str = "holly-face-v3-dataset/images",
+    dataset_local_path: str = "/root/dataset",
     rank: int = 64,
     alpha: int = 32,
     learning_rate: float = 1e-4,
@@ -109,6 +110,7 @@ def train_face_v3(
     print(f"  Effective batch: {batch_size} x {gradient_accumulation_steps}")
     print(f"  Resolution: {resolution}x{resolution}")
     print(f"  Output:     {LORA_DIR}/{output_filename}")
+    print(f"  Dataset:    {dataset_local_path}")
     print("=" * 70)
 
     hf_token = os.environ.get("HF_TOKEN") or os.environ.get("HUGGINGFACE_HUB_TOKEN")
@@ -123,27 +125,16 @@ def train_face_v3(
             "Run the A100 endpoint once to populate the volume."
         )
 
-    # ─── Stage dataset to container fs ──────────────────────────────────────
-    print("\n📥 Staging dataset...")
-    dataset_remote = "/root/dataset"
-    os.makedirs(dataset_remote, exist_ok=True)
-
+    # Dataset is baked into the image via modal.Image.add_local_dir()
+    print(f"\n📥 Dataset at {dataset_local_path}")
     pairs = []
     for fname in sorted(os.listdir(dataset_local_path)):
         if not fname.endswith(('.jpg', '.jpeg', '.png', '.webp')):
             continue
-        img_path = os.path.join(dataset_local_path, fname)
         stem = Path(fname).stem
-        txt_path = os.path.join(dataset_local_path, f"{stem}.txt")
-        if not os.path.exists(txt_path):
-            print(f"  ⚠️ No caption for {fname}, skipping")
-            continue
-        with open(img_path, 'rb') as src, open(os.path.join(dataset_remote, fname), 'wb') as dst:
-            dst.write(src.read())
-        with open(txt_path, 'r') as src, open(os.path.join(dataset_remote, f"{stem}.txt"), 'w') as dst:
-            dst.write(src.read())
-        pairs.append(fname)
-    print(f"  ✅ {len(pairs)} pairs staged")
+        if os.path.exists(os.path.join(dataset_local_path, f"{stem}.txt")):
+            pairs.append(fname)
+    print(f"  ✅ {len(pairs)} image+caption pairs found")
     if len(pairs) < 10:
         raise RuntimeError(f"Need >=10 pairs, got {len(pairs)}")
 
@@ -199,9 +190,11 @@ def train_face_v3(
     transformer.train()
     if hasattr(transformer, "gradient_checkpointing_enable"):
         transformer.gradient_checkpointing_enable()
+        transformer.enable_input_require_grads()  # needed for grad checkpointing with LoRA
 
-    print("📦 Moving transformer to A100 GPU...")
+    print("📦 Moving transformer to A100-80GB GPU...")
     transformer.to("cuda")
+    torch.cuda.empty_cache()
 
     # ─── Dataset + DataLoader ───────────────────────────────────────────────
     from torch.utils.data import Dataset, DataLoader
@@ -238,7 +231,7 @@ def train_face_v3(
             tensor = (tensor * 2.0) - 1.0  # [-1, 1] for VAE
             return {"image": tensor, "caption": caption}
 
-    dataset = HollyFaceDataset(dataset_remote, resolution)
+    dataset = HollyFaceDataset(dataset_local_path, resolution)
     loader = DataLoader(
         dataset,
         batch_size=batch_size,
@@ -297,9 +290,9 @@ def train_face_v3(
                 prompt_embeds, text_ids = pipe.encode_prompt(
                     prompt=captions,
                     device="cuda",
-                    dtype=dtype,
                     num_images_per_prompt=1,
                 )
+                prompt_embeds = prompt_embeds.to(dtype)
                 text_ids = text_ids.to("cuda")
 
             # ── Prepare latent IDs for positional encoding ──
@@ -437,7 +430,7 @@ def train_face_v3(
 
 @app.local_entrypoint()
 def main(
-    dataset: str = "holly-face-v3-dataset/images",
+    dataset: str = "/root/dataset",
     rank: int = 64,
     alpha: int = 32,
     lr: float = 1e-4,
