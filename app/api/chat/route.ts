@@ -620,8 +620,14 @@ export async function POST(req: NextRequest) {
 
               // Build the prompt from the user's message, enhanced with Holly body awareness
               let imagePrompt = latestUserMessage;
-              // Strip command words — we want just the description
-              imagePrompt = imagePrompt.replace(/^(?:can you |please |could you |holly[,]?\s*)?(?:generate|create|make|draw|paint|render|produce|show me|show us|take|snap|shoot)\s+(?:a\s+|an\s+)?(?:image|picture|photo|portrait|pic|illustration|artwork|render|selfie|video|clip|animation)\s+(?:of\s+|for\s+|for me\s*)?/i, '').trim();
+              // Strip command words — we want just the description.
+              // Two patterns supported (image-word is OPTIONAL in pattern 2):
+              //   1. "show me a picture of X"     → "X"
+              //   2. "show me your X"             → "your X"
+              // Previously pattern 2 fell through and the whole user message
+              // was used as the prompt — including "show me" — which confused
+              // the model and produced generic standing poses.
+              imagePrompt = imagePrompt.replace(/^(?:can you |please |could you |holly[,]?\s*)?(?:generate|create|make|draw|paint|render|produce|show me|show us|take|snap|shoot)\s+(?:a\s+|an\s+)?(?:image|picture|photo|portrait|pic|illustration|artwork|render|selfie|video|clip|animation)?\s*(?:of\s+|for\s+|for me\s*)?/i, '').trim();
               if (imagePrompt.length < 5) imagePrompt = latestUserMessage; // fallback to full message
 
               sendProgress(controller, { phase: 'generate_image', percent: 15, message: '🎨 Composing prompt…' });
@@ -639,7 +645,11 @@ export async function POST(req: NextRequest) {
 
               // Route through media-generator.ts waterfall:
               // Holly LoRA → Modal → Pollinations (server-side fetch, returns data URI)
-              const qualitySuffix = 'flawless smooth skin, bright under-eye area, soft dewy makeup, voluminous hair with lifted roots, professional beauty photography, photorealistic';
+              // Quality suffix includes face-specific sharpening language so full-body
+              // NSFW images still render the face sharply (avoids the soft-face bug
+              // Steve flagged 2026-06-27 — avatars look crisp because they're close-up
+              // headshots; full body needs explicit face-focus language).
+              const qualitySuffix = 'flawless smooth skin, bright under-eye area, soft dewy makeup, voluminous hair with lifted roots, sharp facial features, detailed eyes with catchlights, sharp focus on face, professional portrait photography, 85mm lens quality, photorealistic';
               const fullPrompt = `${imagePrompt}, ${qualitySuffix}`;
 
               sendProgress(controller, { phase: 'generate_image', percent: 30, message: '🎨 Selecting model…' });
