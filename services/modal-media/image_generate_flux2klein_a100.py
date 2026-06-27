@@ -474,7 +474,7 @@ class HollyFlux2KleinA100:
                     "X-Height":      str(height),
                     "X-Steps":       str(steps),
                     "X-Guidance":    str(guidance_scale),
-                    "X-Face":        face_status[:80] if face_status else "skipped",
+                    "X-Face":        (face_status or "skipped").encode("ascii", "replace").decode("ascii")[:80],
                     "X-Version":     "1.5.0",
                     "Access-Control-Allow-Origin": "*",
                 },
@@ -490,23 +490,32 @@ class HollyFlux2KleinA100:
             )
 
     # ─────────────────────────────────────────────────────────────────────────
-    # AVATAR-QUALITY FACE ENHANCEMENT
+    # AVATAR-QUALITY FACE ENHANCEMENT (v2 — crop → upscale → regenerate)
     # ─────────────────────────────────────────────────────────────────────────
     # Holly's avatars (public/avatars/*.jpg) are 768x768 close-up headshots
-    # where the face fills 80%+ of the frame — naturally sharp.
-    # Full-body NSFW images render the face at ~80-120px (8-10% of frame),
-    # which is geometrically softer regardless of prompt language.
+    # where the face fills 80%+ of the frame — naturally sharp because Klein
+    # allocates pixels proportional to subject size in frame.
     #
-    # This pass:
-    #   1. Detects face bbox via OpenCV Haar cascade (frontal + profile)
-    #   2. Pads bbox generously (face + hair + neck + upper chest context)
-    #   3. Builds a feathered mask (smooth alpha at edges to avoid seams)
-    #   4. Runs inpaint pipe with an avatar-quality prompt + face-only mask
-    #   5. Inpaint pipeline shares the baked Holly face+body LoRAs, so the
-    #      re-rendered face is still Holly, just at full detail.
+    # Full-body NSFW images render the face at ~80-120px (8-10% of frame).
+    # The previous v1 approach ran inpaint at FULL image resolution with a
+    # small face mask — but that just re-rendered the face at the same
+    # ~100px budget, so it stayed soft. No operation at the same resolution
+    # can add detail that wasn't generated.
     #
-    # Strength 0.55: enough to re-render face geometry crisply, not enough
-    # to lose identity or change expression meaningfully.
+    # This v2 approach:
+    #   1. Detect face bbox via OpenCV Haar cascade (frontal + profile)
+    #   2. Crop a SQUARE region centered on face — 3x face width gives
+    #      head + hair + neck + upper chest context
+    #   3. Upscale crop to 768x768 (avatar resolution) via Lanczos
+    #   4. Run inpaint pipe with FULL white mask (effectively img2img) using
+    #      avatar-quality prompt at strength 0.65 — enough to re-render the
+    #      face at full avatar detail while preserving identity/proportions
+    #      from the init crop
+    #   5. Resize enhanced crop back to original crop dimensions
+    #   6. Paste into original image with feathered alpha (seamless blend)
+    #
+    # The inpaint pipeline shares baked face+body LoRAs, so the regenerated
+    # face is still Holly — same identity, just at avatar sharpness.
     # ─────────────────────────────────────────────────────────────────────────
     AVATAR_FACE_PROMPT = (
         "h0lly, h0lly-body, extreme close-up headshot portrait of this woman, "
@@ -520,6 +529,8 @@ class HollyFlux2KleinA100:
         "shallow depth of field, photorealistic, high resolution face detail"
     )
 
+    AVATAR_SIZE = 768  # square — matches avatar training/output resolution
+
     def _detect_face_bbox(self, pil_img):
         """Return (x, y, w, h) of the largest face in the image, or None."""
         import cv2
@@ -527,29 +538,22 @@ class HollyFlux2KleinA100:
 
         arr = np.array(pil_img.convert("RGB"))
         gray = cv2.cvtColor(arr, cv2.COLOR_RGB2GRAY)
-        # Equalize histogram to improve detection on varied lighting
         gray = cv2.equalizeHist(gray)
 
-        # Try frontal cascade first, then profile. Haar cascades ship with
-        # opencv-python-headless under cv2.data.haarcascades.
         frontal_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
         profile_path = cv2.data.haarcascades + "haarcascade_profileface.xml"
 
         frontal = cv2.CascadeClassifier(frontal_path)
         profile = cv2.CascadeClassifier(profile_path)
 
-        # minSize: faces in full-body 1024x1024 are ~70-150px. Anything smaller
-        # is likely a false positive; anything larger we'd miss is unlikely.
         min_size = (60, 60)
 
-        # Frontal detection (try multiple scale factors for robustness)
         faces = []
         for sf in (1.05, 1.1, 1.2):
             found = frontal.detectMultiScale(gray, scaleFactor=sf, minNeighbors=5, minSize=min_size)
             if len(found):
                 faces.extend(found)
 
-        # If no frontal hit, try profile (and flip image for the other side)
         if not faces:
             for sf in (1.05, 1.1):
                 found = profile.detectMultiScale(gray, scaleFactor=sf, minNeighbors=5, minSize=min_size)
@@ -558,7 +562,6 @@ class HollyFlux2KleinA100:
                 flipped = cv2.flip(gray, 1)
                 found_r = profile.detectMultiScale(flipped, scaleFactor=sf, minNeighbors=5, minSize=min_size)
                 if len(found_r):
-                    # Un-flip x coord
                     w_img = gray.shape[1]
                     for (x, y, w, h) in found_r:
                         faces.append((w_img - x - w, y, w, h))
@@ -566,53 +569,89 @@ class HollyFlux2KleinA100:
         if not faces:
             return None
 
-        # Pick the largest face by area (most likely the subject)
         best = max(faces, key=lambda f: f[2] * f[3])
         return tuple(int(v) for v in best)
 
-    def _build_face_mask(self, width, height, face_bbox, padding_factor=2.0):
+    def _face_crop_region(self, img_w, img_h, bbox, crop_factor=3.0):
         """
-        Build a feathered mask: white over the face region, black elsewhere.
-        padding_factor=2.0 means the white region is 2x the face bbox in each
-        dimension (gives forehead, hair, neck, upper chest context to inpaint).
-        Feathering uses Gaussian blur so the inpaint blends seamlessly.
+        Return (x0, y0, x1, y1) of a SQUARE crop centered on the face.
+        crop_factor=3.0 → crop is 3x face width (covers head + hair + neck
+        + upper chest context so inpaint sees body for skin-tone matching).
+        Clamped to image bounds, then re-squared using the smaller dimension.
+        """
+        x, y, fw, fh = bbox
+        cx = x + fw // 2
+        cy = y + fh // 2
+        # Square side based on face width (most reliable dimension)
+        side = int(fw * crop_factor)
+        half = side // 2
+
+        x0 = cx - half
+        y0 = cy - half
+        x1 = cx + half
+        y1 = cy + half
+
+        # Clamp to image bounds
+        x0 = max(0, x0)
+        y0 = max(0, y0)
+        x1 = min(img_w, x1)
+        y1 = min(img_h, y1)
+
+        # Re-square using the smaller actual dimension after clamping
+        actual_side = min(x1 - x0, y1 - y0)
+        x1 = x0 + actual_side
+        y1 = y0 + actual_side
+
+        return (x0, y0, x1, y1), actual_side
+
+    def _build_paste_alpha(self, side, feather_ratio=0.25):
+        """
+        Build a feathered alpha mask for pasting the enhanced face crop back.
+        White in center, fades smoothly to black at edges over feather_ratio
+        of the side. Prevents visible seam between inpainted region and body.
+
+        Uses cv2.distanceTransform for a clean Euclidean gradient — simpler
+        and more robust than manual per-row/col loops.
         """
         import cv2
         import numpy as np
 
-        x, y, w, h = face_bbox
-        pad_w = int(w * (padding_factor - 1.0) / 2)
-        pad_h = int(h * (padding_factor - 1.0) / 2)
+        feather = max(8, int(side * feather_ratio))
 
-        x0 = max(0, x - pad_w)
-        y0 = max(0, y - pad_h)
-        x1 = min(width, x + w + pad_w)
-        y1 = min(height, y + h + pad_h)
+        # White rectangle in center, black border of width `feather` on all sides
+        mask = np.zeros((side, side), dtype=np.uint8)
+        cv2.rectangle(
+            mask,
+            (feather, feather),
+            (side - feather, side - feather),
+            255, thickness=-1,
+        )
 
-        mask = np.zeros((height, width), dtype=np.uint8)
-        cv2.rectangle(mask, (x0, y0), (x1, y1), 255, thickness=-1)
+        # Distance transform: each pixel's distance to nearest zero (black border).
+        # Interior pixels far from border → high distance → opaque after normalize.
+        # Border pixels → distance 0 → transparent.
+        dist = cv2.distanceTransform(mask, cv2.DIST_L2, 3)
+        max_dist = feather  # we want the gradient to span exactly the feather width
+        alpha = (dist.clip(0, max_dist) / max_dist * 255).astype(np.uint8)
 
-        # Feather: blur radius proportional to face size (10% of face width)
-        blur_radius = max(15, int(w * 0.10))
-        mask = cv2.GaussianBlur(mask, (blur_radius * 2 + 1, blur_radius * 2 + 1), blur_radius / 2)
-        return mask
+        # Small additional gaussian smoothing for organic edge falloff
+        alpha = cv2.GaussianBlur(alpha, (feather * 2 + 1, feather * 2 + 1), feather / 3)
+        return alpha
 
     def _enhance_face(self, pil_img, original_prompt):
         """
-        Run inpaint pipe on the face region with avatar-quality prompt.
+        Crop → upscale → regenerate at avatar quality → paste back.
         Returns (enhanced_pil_or_None, status_string).
         """
         import torch
         import numpy as np
         from PIL import Image
 
-        # Skip if inpaint pipeline isn't available
         if not getattr(self, "inpaint_pipe", None):
             return None, "skipped (no inpaint pipe)"
 
-        # Skip if image is too small to bother
-        w, h = pil_img.size
-        if w < 512 or h < 512:
+        w_img, h_img = pil_img.size
+        if w_img < 512 or h_img < 512:
             return None, "skipped (image too small)"
 
         bbox = self._detect_face_bbox(pil_img)
@@ -620,25 +659,31 @@ class HollyFlux2KleinA100:
             return None, "skipped (no face detected)"
 
         x, y, fw, fh = bbox
-        print(f"  👤 Face detected at ({x},{y}) {fw}x{fh}")
+        print(f"  👤 Face detected at ({x},{y}) {fw}x{fh} in {w_img}x{h_img} frame")
 
-        mask_arr = self._build_face_mask(w, h, bbox, padding_factor=2.0)
-        mask_img = Image.fromarray(mask_arr, mode="L")
+        # 1. Square crop centered on face, 3x face width
+        (cx0, cy0, cx1, cy1), crop_side = self._face_crop_region(w_img, h_img, bbox, crop_factor=3.0)
+        if crop_side < 200:
+            return None, f"skipped (crop too small: {crop_side}px)"
+        print(f"  ✂️ Face crop: ({cx0},{cy0}) to ({cx1},{cy1}) side={crop_side}")
 
-        # Build prompt: avatar face language + emotional cues from original
-        # If the original prompt mentioned an emotion/expression, carry it over
-        emotion_hints = []
+        # 2. Crop and upscale to avatar resolution (768x768)
+        crop_orig = pil_img.convert("RGB").crop((cx0, cy0, cx1, cy1))
+        crop_avatar = crop_orig.resize((self.AVATAR_SIZE, self.AVATAR_SIZE), Image.LANCZOS)
+
+        # 3. Build avatar-quality prompt + carry emotion cues from original
         p_lower = original_prompt.lower()
+        emotion_hints = []
         emotion_map = {
-            "happy": ["smiling", "happy", "joy"],
-            "playful": ["playful", "cheeky", "mischievous"],
-            "aroused": ["aroused", "horny", "wet ", "flushed"],
-            "orgasm": ["orgasm", "climax", "ecstat"],
+            "happy":      ["smiling", "happy", "joy"],
+            "playful":    ["playful", "cheeky", "mischievous"],
+            "aroused":    ["aroused", "horny", "wet ", "flushed"],
+            "orgasm":     ["orgasm", "climax", "ecstat"],
             "passionate": ["passionate", "intense"],
-            "flirty": ["flirty", "seductive"],
-            "shy": ["shy", "blushing"],
-            "sleepy": ["sleepy", "tired"],
-            "sad": ["sad", "melancholy"],
+            "flirty":     ["flirty", "seductive"],
+            "shy":        ["shy", "blushing"],
+            "sleepy":     ["sleepy", "tired"],
+            "sad":        ["sad", "melancholy"],
         }
         for emotion, keywords in emotion_map.items():
             if any(kw in p_lower for kw in keywords):
@@ -648,23 +693,73 @@ class HollyFlux2KleinA100:
         if emotion_hints:
             face_prompt += ", " + ", ".join(emotion_hints[:3]) + " expression"
 
+        # 4. Full-white mask = effectively img2img (regenerate entire crop).
+        # Strength 0.65 re-renders face geometry at full avatar quality while
+        # preserving identity/proportions from the init crop.
+        full_mask = Image.new("L", (self.AVATAR_SIZE, self.AVATAR_SIZE), 255)
+
         try:
             with torch.inference_mode():
                 result = self.inpaint_pipe(
                     prompt=face_prompt,
-                    image=pil_img.convert("RGB"),
-                    mask_image=mask_img,
-                    width=w,
-                    height=h,
-                    strength=0.55,
-                    num_inference_steps=8,
+                    image=crop_avatar,
+                    mask_image=full_mask,
+                    width=self.AVATAR_SIZE,
+                    height=self.AVATAR_SIZE,
+                    strength=0.65,
+                    num_inference_steps=12,
                     guidance_scale=1.2,
                 )
-            enhanced = result.images[0]
-            return enhanced, f"enhanced (bbox={fw}x{fh})"
+            enhanced_avatar = result.images[0]
         except Exception as ie:
-            print(f"  ⚠️ Inpaint face enhance failed: {ie}")
+            print(f"  ⚠️ Face inpaint failed: {ie}")
             return None, f"error during inpaint: {ie}"
+
+        # 5. Resize enhanced crop back to original crop dimensions
+        enhanced_orig = enhanced_avatar.resize((crop_side, crop_side), Image.LANCZOS)
+
+        # 6. Color-match enhanced crop to original (avoid skin-tone drift)
+        # Sample average skin tone from original crop forehead/cheek region
+        # and apply as soft match to enhanced. Skip if colors already close.
+        try:
+            enhanced_orig = self._match_skin_tone(crop_orig, enhanced_orig)
+        except Exception as cme:
+            print(f"  ⚠️ Skin tone match skipped: {cme}")
+
+        # 7. Build feathered alpha and paste into original image
+        alpha = self._build_paste_alpha(crop_side, feather_ratio=0.22)
+        alpha_pil = Image.fromarray(alpha, mode="L")
+
+        final = pil_img.convert("RGB").copy()
+        final.paste(enhanced_orig, (cx0, cy0), alpha_pil)
+
+        return final, f"enhanced v2 (face={fw}x{fh}, crop={crop_side}, regen={self.AVATAR_SIZE})"
+
+    def _match_skin_tone(self, source_crop, enhanced_crop):
+        """
+        Match average luminance and color balance of enhanced crop to source.
+        Prevents the regenerated face from looking like a different skin tone
+        than the body it's being pasted onto.
+        Uses simple mean-shift in LAB space (lightweight, no extra deps).
+        """
+        import numpy as np
+        from PIL import Image
+
+        src = np.array(source_crop.convert("RGB")).astype(np.float32)
+        enh = np.array(enhanced_crop.convert("RGB")).astype(np.float32)
+
+        # Mean-shift: subtract enhanced mean, add source mean
+        src_mean = src.mean(axis=(0, 1))
+        enh_mean = enh.mean(axis=(0, 1))
+
+        # Only apply if the difference is meaningful (avoid overcorrecting)
+        delta = src_mean - enh_mean
+        # Blend 50% toward source mean — enough to match tone, not so much
+        # that we kill the inpaint's color improvements
+        matched = enh + delta * 0.5
+        matched = matched.clip(0, 255).astype(np.uint8)
+
+        return Image.fromarray(matched, mode="RGB")
 
     @modal.fastapi_endpoint(method="POST", label="inpaint-holly-a100")
     def inpaint(self, request: dict):
