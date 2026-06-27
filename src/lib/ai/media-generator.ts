@@ -415,8 +415,13 @@ async function generateWithHollyLoRA(req: ImageRequest): Promise<ImageResult> {
       loras:                recipe?.loras,  // dynamic specialist LoRA stack
       seed:                 req.seed,
       format:               'jpeg',
+      // Avatar-quality face enhancement: endpoint detects Holly's face and
+      // re-renders it via the inpaint pipe with an 85mm-headshot prompt.
+      // Default behavior when h0lly is in prompt; passes explicit true here
+      // to make intent clear in request logs.
+      enhance_face:         true,
     }),
-    signal: AbortSignal.timeout(300_000),  // 5 min — A100 cold start can take 2-4 min on volume-miss, then 20-step generation
+    signal: AbortSignal.timeout(450_000),  // 7.5 min — generation + face inpaint pass + cold-start buffer
   });
 
   if (!res.ok) {
