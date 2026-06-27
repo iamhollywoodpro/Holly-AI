@@ -510,6 +510,18 @@ export async function POST(req: NextRequest) {
             /\b(when\s+(?:you|I)\s+(?:sent|showed|asked|tried|generated))\b/i,
             // Reflective/memory markers
             /\b(was\s+thinking\s+about\s+when|about\s+when\s+you|remember\s+when)\b/i,
+            // Technical / meta-discussion markers — user is pasting code, regex,
+            // commit summaries, or feature docs that QUOTE example phrases like
+            // "show me your pussy" as illustrations. Without this suppress, the
+            // body-part regex fires on the quoted example and Holly starts
+            // generating an image instead of responding to the paste.
+            //   Signals (any one is enough — all are extremely rare in real requests):
+            //   - Code file extensions: media-generator.ts, route.ts, deploy.py
+            //   - Regex backslash sequences: \b, \w, \d, \s (and digit backrefs \1-\9)
+            //   - Triple-backtick code blocks
+            /\b\w[\w-]*\.(?:ts|tsx|py|js|jsx|mjs|json|md|sh|css|yaml|yml)\b/i,
+            /\\[bwdBsS1-9]/,
+            /```/,
           ];
           const isConversationalReference = IMAGE_VIDEO_SUPPRESS_PATTERNS.some(p => p.test(latestUserMessage));
           const isImageVideoRequest = IMAGE_VIDEO_PATTERNS.some(p => p.test(latestUserMessage)) && !isConversationalReference;
