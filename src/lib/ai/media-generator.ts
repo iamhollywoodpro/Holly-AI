@@ -277,9 +277,18 @@ function classifySpecialist(prompt: string): SpecialistRecipe | null {
   const p = prompt.toLowerCase();
 
   // CLOSEUP — pussy closeup (resting, no hands). PussyDiffusion specializes
-  // in detailed genital geometry. Match: "closeup", "close up", "zoom on pussy"
-  // Do NOT match just "pussy" — that would over-fire on every nude prompt.
-  if (/\b(closeup|close-up|close up|zoom (in )?on|between her legs|pussy closeup|spread view)\b/.test(p)) {
+  // in detailed genital geometry.
+  //
+  // Triggers on BOTH explicit closeup language AND natural body-part requests:
+  //   - "closeup of pussy", "zoom on pussy"
+  //   - "show me your pussy", "let me see her pussy", "i want to see her pussy"
+  //   - "show pussy", "spread pussy"
+  // The verb-based patterns catch what users actually say in chat. Without
+  // these, "show me your pussy" was producing a generic standing nude because
+  // no specialist LoRA fired.
+  const CLOSEUP_VERB_PATTERNS = /\b(show me (your|her|us)|let me see (your|her)|want to see (your|her)|i want to see (your|her)|wanna see (your|her))\b.*\b(pussy|vulva|clit|labia)\b/;
+  const CLOSEUP_EXPLICIT_PATTERNS = /\b(closeup|close-up|close up|zoom (in )?on|between her legs|pussy closeup|spread view|spread pussy|show pussy)\b/;
+  if (CLOSEUP_VERB_PATTERNS.test(p) || CLOSEUP_EXPLICIT_PATTERNS.test(p)) {
     return {
       category: 'closeup',
       loras: [{ file: 'pussydiffusion-f2-klein-9b_v2.safetensors', strength: 1.0 }],
@@ -287,7 +296,9 @@ function classifySpecialist(prompt: string): SpecialistRecipe | null {
         'detailed pussy closeup, bald hairless pussy, smooth Brazilian wax, ' +
         'inner labia visible, clitoris visible at top, smooth bare mons pubis, ' +
         'anatomically correct vulva, photorealistic intimate detail, ' +
-        'no hands in frame, resting pussy, no touching herself',
+        'intimate camera distance, between her legs viewpoint, ' +
+        'no hands in frame, resting pussy, no touching herself, ' +
+        'sharp focus on anatomy, professional intimate photography',
     };
   }
 
@@ -297,7 +308,7 @@ function classifySpecialist(prompt: string): SpecialistRecipe | null {
   // Anti-clothing anchors + foot anchors are CRITICAL — the musubituner LoRA
   // at 1.0 can pull clothing onto the upper body, and Klein's known failure
   // mode for bent-over is duplicated/malformed feet (Smoke8 fix per FACT.md).
-  if (/\b(bent over|on all fours|all fours|on her knees and|doggy|doggi|from behind|rear view|kneeling facing away)\b/.test(p)) {
+  if (/\b(bent over|bend over|on all fours|all fours|on her knees and|doggy|doggi|from behind|rear view|kneeling facing away)\b/.test(p)) {
     return {
       category: 'bent_over',
       loras: [{ file: 'femaleasshole-f2-klein-9b-musubituner.safetensors', strength: 1.0 }],
@@ -327,22 +338,34 @@ function classifySpecialist(prompt: string): SpecialistRecipe | null {
 
   // DILDO MASTURBATION — toy penetration, self-pleasure. FK LoRA @ 1.0.
   // Match: dildo/toy/vibrator + masturbation context.
+  // ALSO: "masturbating" alone defaults to dildo because Klein Distilled
+  // CANNOT render active finger penetration (confirmed R4-R8, FACT.md).
+  // Without this default, "show me an image of you masturbating" produced a
+  // standing nude because no LoRA fired and Klein has no fingering capability.
   // Critical anchors: BOTH feet must be positioned (flat on bed) and BOTH arms
   // must reach from shoulders with visible hand placement. Without these,
   // Klein drops or duplicates legs (R1-R8 limb failures per FACT.md).
   const hasToy = /\b(dildo|toy|vibrator|silicone shaft|glass rod)\b/.test(p);
+  // \w* after masturbat so we catch "masturbating", "masturbates", "masturbate".
+  // "yourself" added alongside "herself" so 2nd-person chat ("fuck yourself")
+  // classifies the same as 3rd-person captions ("fucking herself").
   const hasMasturbate =
-    /\b(masturbat|fuck(ing|s)? herself|pleasuring herself|screwing herself|penetrat(e|ing|ion)|inside her (pussy|ass)|her pussy (with|using))\b/.test(p);
-  if (hasToy && hasMasturbate) {
+    /\b(masturbat\w*|fuck(ing|s)? (herself|yourself)|pleasuring herself|screwing herself|penetrat(e|ing|ion)|inside her (pussy|ass)|her pussy (with|using))\b/.test(p);
+  // Default plain-"masturbating" to dildo path (with toy injected into prompt)
+  if ((hasToy && hasMasturbate) || (hasMasturbate && !hasToy)) {
     return {
       category: 'dildo_masturbation',
       loras: [{ file: 'FK_dildoinsertion.safetensors', strength: 1.0 }],
       reinforcement:
-        'dildo penetrating her pussy, shaft visibly entering her body, toy half buried inside her, ' +
+        // Always include dildo in the reinforcement so when user said just
+        // "masturbating", the prompt now has explicit toy language that the
+        // FK LoRA was trained on.
+        'using a glass dildo, dildo penetrating her pussy, shaft visibly entering her body, toy half buried inside her, ' +
         'her pussy visibly wet and aroused, translucent natural lubrication with slight creamy cloudiness, ' +
         'glistening wetness coating the toy shaft, slick moisture on her inner labia, ' +
+        'lying on her back on white sheets, knees up and legs spread wide open, ' +
         'both legs visible reaching from her hips, both feet flat on the bed, ' +
-        'knees up and legs spread wide open, right leg on right side and left leg on left side, ' +
+        'right leg on right side and left leg on left side, ' +
         'exactly two feet, ten toes total, both feet planted firmly, ' +
         'both arms visible reaching from her shoulders, exactly two arms, ' +
         'her right hand holding the dildo, her left hand resting on the bed beside her hip or on her stomach, ' +
