@@ -121,6 +121,11 @@ image = (
         "safetensors",
         "einops",
         "peft",
+        # Face enhancement pass — Haar cascade + array math for face detection
+        # and mask generation. Used by _enhance_face() to re-render Holly's
+        # face at avatar quality after full-body generation.
+        "opencv-python-headless>=4.10.0",
+        "numpy>=1.26.0",
     )
 )
 
@@ -415,19 +420,28 @@ class HollyFlux2KleinA100:
                 except Exception as ce:
                     print(f"  ⚠️ LoRA cleanup issue: {ce}")
 
-            # ── Face restoration for Holly's self-portraits ──
+            # ── Avatar-quality face enhancement for Holly's self-portraits ──
+            # Full-body NSFW images render the face at ~80-120px (8-10% of frame),
+            # which is fundamentally softer than the avatar set (face fills 80%
+            # of frame at 768x768). No prompt language can fix this — pixel
+            # allocation is geometric. The fix: after main generation, detect
+            # the face bbox and re-render JUST that region with an avatar-style
+            # prompt via the inpaint pipeline (shares baked face+body LoRAs).
+            # The result: full-body image with avatar-quality face detail.
             is_holly_selfie = "h0lly" in prompt.lower()
-            if is_holly_selfie:
+            enhance_face = request.get("enhance_face")
+            if enhance_face is None:
+                enhance_face = is_holly_selfie  # default true for Holly, false otherwise
+            face_status = "skipped"
+            if enhance_face:
                 try:
-                    from PIL import ImageFilter, ImageEnhance
-                    smoothed = img.filter(ImageFilter.GaussianBlur(radius=1.2))
-                    img = Image.blend(img, smoothed, alpha=0.25)
-                    img = img.filter(ImageFilter.UnsharpMask(radius=1.0, percent=100, threshold=5))
-                    img = ImageEnhance.Brightness(img).enhance(1.04)
-                    img = ImageEnhance.Color(img).enhance(1.06)
-                    print(f"  ✨ Face restoration pass applied (Holly self-portrait)")
-                except Exception as fre:
-                    print(f"  ⚠️ Face restoration pass skipped: {fre}")
+                    enhanced, face_status = self._enhance_face(img, prompt)
+                    if enhanced is not None:
+                        img = enhanced
+                    print(f"  ✨ Face enhancement: {face_status}")
+                except Exception as fee:
+                    print(f"  ⚠️ Face enhancement failed: {fee}")
+                    face_status = f"error: {fee}"
 
             # Output: Lossless WebP for training, PNG/JPEG as fallback
             buf = io.BytesIO()
@@ -460,6 +474,7 @@ class HollyFlux2KleinA100:
                     "X-Height":      str(height),
                     "X-Steps":       str(steps),
                     "X-Guidance":    str(guidance_scale),
+                    "X-Face":        face_status[:80] if face_status else "skipped",
                     "X-Version":     "1.5.0",
                     "Access-Control-Allow-Origin": "*",
                 },
@@ -473,6 +488,183 @@ class HollyFlux2KleinA100:
                 media_type="application/json",
                 status_code=500,
             )
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # AVATAR-QUALITY FACE ENHANCEMENT
+    # ─────────────────────────────────────────────────────────────────────────
+    # Holly's avatars (public/avatars/*.jpg) are 768x768 close-up headshots
+    # where the face fills 80%+ of the frame — naturally sharp.
+    # Full-body NSFW images render the face at ~80-120px (8-10% of frame),
+    # which is geometrically softer regardless of prompt language.
+    #
+    # This pass:
+    #   1. Detects face bbox via OpenCV Haar cascade (frontal + profile)
+    #   2. Pads bbox generously (face + hair + neck + upper chest context)
+    #   3. Builds a feathered mask (smooth alpha at edges to avoid seams)
+    #   4. Runs inpaint pipe with an avatar-quality prompt + face-only mask
+    #   5. Inpaint pipeline shares the baked Holly face+body LoRAs, so the
+    #      re-rendered face is still Holly, just at full detail.
+    #
+    # Strength 0.55: enough to re-render face geometry crisply, not enough
+    # to lose identity or change expression meaningfully.
+    # ─────────────────────────────────────────────────────────────────────────
+    AVATAR_FACE_PROMPT = (
+        "h0lly, h0lly-body, extreme close-up headshot portrait of this woman, "
+        "sharp detailed facial features, crisp eyes with vivid green irises and bright catchlights, "
+        "detailed iris pattern, sharp eyelashes, perfectly shaped eyebrows, "
+        "flawless smooth skin with realistic texture and micro-detail, "
+        "bright clear under-eye area, soft dewy makeup with seamless foundation, "
+        "natural rose-pink lips with crisp lip line and cupid's bow, "
+        "voluminous auburn hair with lifted roots and full body, "
+        "sharp focus on face, professional portrait photography, 85mm lens, "
+        "shallow depth of field, photorealistic, high resolution face detail"
+    )
+
+    def _detect_face_bbox(self, pil_img):
+        """Return (x, y, w, h) of the largest face in the image, or None."""
+        import cv2
+        import numpy as np
+
+        arr = np.array(pil_img.convert("RGB"))
+        gray = cv2.cvtColor(arr, cv2.COLOR_RGB2GRAY)
+        # Equalize histogram to improve detection on varied lighting
+        gray = cv2.equalizeHist(gray)
+
+        # Try frontal cascade first, then profile. Haar cascades ship with
+        # opencv-python-headless under cv2.data.haarcascades.
+        frontal_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+        profile_path = cv2.data.haarcascades + "haarcascade_profileface.xml"
+
+        frontal = cv2.CascadeClassifier(frontal_path)
+        profile = cv2.CascadeClassifier(profile_path)
+
+        # minSize: faces in full-body 1024x1024 are ~70-150px. Anything smaller
+        # is likely a false positive; anything larger we'd miss is unlikely.
+        min_size = (60, 60)
+
+        # Frontal detection (try multiple scale factors for robustness)
+        faces = []
+        for sf in (1.05, 1.1, 1.2):
+            found = frontal.detectMultiScale(gray, scaleFactor=sf, minNeighbors=5, minSize=min_size)
+            if len(found):
+                faces.extend(found)
+
+        # If no frontal hit, try profile (and flip image for the other side)
+        if not faces:
+            for sf in (1.05, 1.1):
+                found = profile.detectMultiScale(gray, scaleFactor=sf, minNeighbors=5, minSize=min_size)
+                if len(found):
+                    faces.extend(found)
+                flipped = cv2.flip(gray, 1)
+                found_r = profile.detectMultiScale(flipped, scaleFactor=sf, minNeighbors=5, minSize=min_size)
+                if len(found_r):
+                    # Un-flip x coord
+                    w_img = gray.shape[1]
+                    for (x, y, w, h) in found_r:
+                        faces.append((w_img - x - w, y, w, h))
+
+        if not faces:
+            return None
+
+        # Pick the largest face by area (most likely the subject)
+        best = max(faces, key=lambda f: f[2] * f[3])
+        return tuple(int(v) for v in best)
+
+    def _build_face_mask(self, width, height, face_bbox, padding_factor=2.0):
+        """
+        Build a feathered mask: white over the face region, black elsewhere.
+        padding_factor=2.0 means the white region is 2x the face bbox in each
+        dimension (gives forehead, hair, neck, upper chest context to inpaint).
+        Feathering uses Gaussian blur so the inpaint blends seamlessly.
+        """
+        import cv2
+        import numpy as np
+
+        x, y, w, h = face_bbox
+        pad_w = int(w * (padding_factor - 1.0) / 2)
+        pad_h = int(h * (padding_factor - 1.0) / 2)
+
+        x0 = max(0, x - pad_w)
+        y0 = max(0, y - pad_h)
+        x1 = min(width, x + w + pad_w)
+        y1 = min(height, y + h + pad_h)
+
+        mask = np.zeros((height, width), dtype=np.uint8)
+        cv2.rectangle(mask, (x0, y0), (x1, y1), 255, thickness=-1)
+
+        # Feather: blur radius proportional to face size (10% of face width)
+        blur_radius = max(15, int(w * 0.10))
+        mask = cv2.GaussianBlur(mask, (blur_radius * 2 + 1, blur_radius * 2 + 1), blur_radius / 2)
+        return mask
+
+    def _enhance_face(self, pil_img, original_prompt):
+        """
+        Run inpaint pipe on the face region with avatar-quality prompt.
+        Returns (enhanced_pil_or_None, status_string).
+        """
+        import torch
+        import numpy as np
+        from PIL import Image
+
+        # Skip if inpaint pipeline isn't available
+        if not getattr(self, "inpaint_pipe", None):
+            return None, "skipped (no inpaint pipe)"
+
+        # Skip if image is too small to bother
+        w, h = pil_img.size
+        if w < 512 or h < 512:
+            return None, "skipped (image too small)"
+
+        bbox = self._detect_face_bbox(pil_img)
+        if bbox is None:
+            return None, "skipped (no face detected)"
+
+        x, y, fw, fh = bbox
+        print(f"  👤 Face detected at ({x},{y}) {fw}x{fh}")
+
+        mask_arr = self._build_face_mask(w, h, bbox, padding_factor=2.0)
+        mask_img = Image.fromarray(mask_arr, mode="L")
+
+        # Build prompt: avatar face language + emotional cues from original
+        # If the original prompt mentioned an emotion/expression, carry it over
+        emotion_hints = []
+        p_lower = original_prompt.lower()
+        emotion_map = {
+            "happy": ["smiling", "happy", "joy"],
+            "playful": ["playful", "cheeky", "mischievous"],
+            "aroused": ["aroused", "horny", "wet ", "flushed"],
+            "orgasm": ["orgasm", "climax", "ecstat"],
+            "passionate": ["passionate", "intense"],
+            "flirty": ["flirty", "seductive"],
+            "shy": ["shy", "blushing"],
+            "sleepy": ["sleepy", "tired"],
+            "sad": ["sad", "melancholy"],
+        }
+        for emotion, keywords in emotion_map.items():
+            if any(kw in p_lower for kw in keywords):
+                emotion_hints.append(emotion)
+
+        face_prompt = self.AVATAR_FACE_PROMPT
+        if emotion_hints:
+            face_prompt += ", " + ", ".join(emotion_hints[:3]) + " expression"
+
+        try:
+            with torch.inference_mode():
+                result = self.inpaint_pipe(
+                    prompt=face_prompt,
+                    image=pil_img.convert("RGB"),
+                    mask_image=mask_img,
+                    width=w,
+                    height=h,
+                    strength=0.55,
+                    num_inference_steps=8,
+                    guidance_scale=1.2,
+                )
+            enhanced = result.images[0]
+            return enhanced, f"enhanced (bbox={fw}x{fh})"
+        except Exception as ie:
+            print(f"  ⚠️ Inpaint face enhance failed: {ie}")
+            return None, f"error during inpaint: {ie}"
 
     @modal.fastapi_endpoint(method="POST", label="inpaint-holly-a100")
     def inpaint(self, request: dict):
