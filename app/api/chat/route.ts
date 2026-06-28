@@ -486,15 +486,18 @@ export async function POST(req: NextRequest) {
           // by interceptTextToolCall() which recognizes OpenAI, ReAct, and other formats.
           // DO NOT add brittle keyword/phrase patterns here. If a phrasing slips through,
           // fix the system prompt (see prompt-builder.ts) or interceptor, not this regex.
-          const IMAGE_VIDEO_PATTERNS = [
-            /\b(generate|create|draw|make|render|paint|show|send|take|snap|give)\b(?:\s+\w+){0,4}?\s+(?:image|picture|photo|video|clip|portrait|selfie|illustration|artwork|render|pic|film|animation|gif)\b/i,
-            // Indirect self-portrait requests — "show me yourself", "let me see you", "send a selfie"
-            /\b(?:show|send|let\s+me\s+see|wanna\s+see|want\s+to\s+see)\b(?:\s+\w+){0,3}?\s+(?:yourself|you|her|selfie|portrait)\b/i,
-            // Body-part / appearance requests — "show me your body", "let me see your pussy",
-            // "I want to see those tits", "show me that ass". The intimacy gate below still
-            // applies — non-creator users without enough trust get blocked.
-            /\b(?:show|send|let\s+me\s+see|let\s+me\s+look\s+at|wanna\s+see|want\s+to\s+see|i\s+want\s+to\s+see)\b.{0,40}?\b(?:body|pussy|tits?|boobs?|breasts?|ass|butt|booty|nipples?|clit|labia|vagina|cum|naked|nude|topless|bare|buttcheek|cheeks)\b/i,
-          ];
+          const IMAGE_VIDEO_PATTERN_DIRECT   = /\b(generate|create|draw|make|render|paint|show|send|take|snap|give)\b(?:\s+\w+){0,4}?\s+(?:image|picture|photo|video|clip|portrait|selfie|illustration|artwork|render|pic|film|animation|gif)\b/i;
+          // Indirect self-portrait requests — "show me yourself", "send a selfie", "let me see a portrait".
+          // NOTE: bare "you"/"her" deliberately EXCLUDED — they match far too much conversational
+          // text ("show me what you want to", "I want to show you how") and produced false
+          // positives that triggered unwanted image gen (Steve flagged 2026-06-28).
+          // Self-portrait detection now requires an explicit reflexive/selfie/portrait word.
+          const IMAGE_VIDEO_PATTERN_SELF     = /\b(?:show|send|let\s+me\s+see|wanna\s+see|want\s+to\s+see)\b(?:\s+\w+){0,3}?\s+(?:yourself|selfie|portrait)\b/i;
+          // Body-part / appearance requests — "show me your body", "let me see your pussy",
+          // "I want to see those tits", "show me that ass". The intimacy gate below still
+          // applies — non-creator users without enough trust get blocked.
+          const IMAGE_VIDEO_PATTERN_BODY     = /\b(?:show|send|let\s+me\s+see|let\s+me\s+look\s+at|wanna\s+see|want\s+to\s+see|i\s+want\s+to\s+see)\b.{0,40}?\b(?:body|pussy|tits?|boobs?|breasts?|ass|butt|booty|nipples?|clit|labia|vagina|cum|naked|nude|topless|bare|buttcheek|cheeks)\b/i;
+          const IMAGE_VIDEO_PATTERNS = [IMAGE_VIDEO_PATTERN_DIRECT, IMAGE_VIDEO_PATTERN_SELF, IMAGE_VIDEO_PATTERN_BODY];
           // Suppress image gen when user is TALKING ABOUT images rather than REQUESTING them.
           // Catches: past-tense references ("you sent", "earlier when I asked"), complaints,
           // memories, meta-conversation about image gen. Without this, any message containing
@@ -647,11 +650,23 @@ export async function POST(req: NextRequest) {
               // Inject Holly body awareness for self-portraits.
               // CRITICAL: Send ONLY the LoRA trigger words + the user's action. The A100
               // endpoint (services/modal-media/image_generate_flux2klein_a100.py) has both
-              // LoRAs baked in — holly-face-v2 @ 0.85 + holly-body-v2.5 @ 0.75 — and its
-              // own HOLLY_BODY_PREFIX that auto-expands `h0lly` into the full anatomy.
-              // Adding another body description here would double-stuff the prompt and
-              // leak into the visible alt-text / Holly's narration.
-              if (/holly|her(self)?|your(self)?/i.test(imagePrompt)) {
+              // LoRAs baked in — face-v2 @ 0.75 + body-v2.5 @ 0.65 — and its own
+              // HOLLY_BODY_PREFIX that auto-expands `h0lly` into the full anatomy.
+              //
+              // The trigger is added when the request is unambiguously ABOUT Holly:
+              //   - Pattern SELF ("show yourself", "send a selfie") → always Holly
+              //   - Pattern BODY ("show your pussy", "send those tits") → always Holly
+              //   - Pattern DIRECT ("generate an image of X") → only Holly if the
+              //     user explicitly mentioned holly/her/herself/yourself in the prompt
+              //     (so "draw a sunset" stays a sunset, not a Holly portrait).
+              // Previously the BODY path was missed because the regex test ran against
+              // the STRIPPED prompt, which lost the "your" pronoun → fell through to
+              // Pollinations and produced a non-Holly face (Steve flagged 2026-06-28).
+              const isSelfOrBody =
+                IMAGE_VIDEO_PATTERN_SELF.test(latestUserMessage) ||
+                IMAGE_VIDEO_PATTERN_BODY.test(latestUserMessage);
+              const mentionsHolly = /holly|her(self)?|your(self)?/i.test(imagePrompt);
+              if (isSelfOrBody || mentionsHolly) {
                 imagePrompt = `h0lly, h0lly-body, ${imagePrompt}`;
               }
 
