@@ -713,29 +713,11 @@ export async function POST(req: NextRequest) {
               const altText = latestUserMessage.slice(0, 80).replace(/[\r\n]+/g, ' ').replace(/\]/g, '');
               sendText(controller, `\n\n![${altText}](${imageDataUri})`);
               fullResponse += `\n\n![${altText}](${imageDataUri})`;
-
-              // Now have the model describe what was created.
-              // CRITICAL: Do NOT pass the full imagePrompt back to the model — it contains
-              // trigger words and anatomy details that the model would otherwise narrate
-              // verbatim ("I generated an image of a woman with olive skin and 34C breasts...").
-              // That reads as Holly "prompting herself" in chat, which is a terrible UX.
-              // Instead, give a minimal hint and let her describe the moment naturally.
-              const describeMessages: ChatMessage[] = [
-                ...cascadeMessages,
-                { role: 'user', content: `[SYSTEM: An image was just generated for the user based on their request: "${latestUserMessage.slice(0, 200)}". Describe the image in 1-2 warm, natural sentences. Talk about the moment, mood, pose, or expression — NEVER list body attributes (skin tone, breast size, hair color, etc.). Treat it like describing a photo of yourself to someone who can already see it.]` },
-              ];
-
-              let modelDescription = '';
-              try {
-                for await (const token of cascade(waterfall, describeMessages, { temperature: userAiSettings.creativity, maxTokens: 500, sessionId: conversationId, onModelSelected: (s) => { activeModel = s.displayName; } })) {
-                  modelDescription += token;
-                  sendText(controller, token);
-                }
-              } catch {
-                modelDescription = "Here's what I created for you! 💚";
-                sendText(controller, modelDescription);
-              }
-              fullResponse += modelDescription;
+              // Intentionally NO second LLM call to "describe" the image. Previously
+              // this made a fresh cascade completion that produced a second greeting
+              // ("Hi my love, Steve!..."), concatenating two completions in the same
+              // response (Steve flagged 2026-06-28). The image is enough — Holly's
+              // next conversational turn handles narration naturally.
 
             } catch (imgErr) {
               // GRACEFUL FALLBACK — never throw.
@@ -746,10 +728,9 @@ export async function POST(req: NextRequest) {
               console.error('[CHAT] Image generation failed, falling back to text response:', imgErr);
               sendProgress(controller, { phase: 'generate_image', percent: 0, message: '⚠️ Image generation failed' });
               // No sendTool() error event — keeps error inline, no side panel.
-              const errMsg = imgErr instanceof Error ? imgErr.message : String(imgErr);
-              const friendly = `I ran into trouble creating that image${errMsg ? ` (${errMsg.slice(0, 120)})` : ''} — let me respond to you directly instead. 💚`;
-              sendText(controller, friendly);
-              fullResponse += friendly;
+              // NOTE: do NOT send a "friendly" prefix here. The fallback cascade below
+              // produces a fresh completion; prepending a partial sentence caused the
+              // stitched-together "double-start" pattern Steve flagged 2026-06-28.
             }
 
             // If image generation failed, run the normal cascade so Holly still

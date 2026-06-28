@@ -58,6 +58,12 @@ export async function* cascade(
   const CASCADE_DEADLINE = 60_000;
   const startTime = Date.now();
 
+  // Tracks whether we've sent any tokens from ANY provider to the caller.
+  // Once true, we CANNOT retry on a different provider — doing so would
+  // concatenate two completions mid-sentence (Steve's "double start" bug).
+  // If a provider fails after we've yielded, we propagate the error instead.
+  let hasYielded = false;
+
   for (let i = 0; i < waterfall.length; i++) {
     if (Date.now() - startTime > CASCADE_DEADLINE) {
       console.warn('[Cascade] ⏱️ Hard deadline reached, aborting');
@@ -109,11 +115,18 @@ export async function* cascade(
         if (!detectedRefusal && buffered.length >= 100) {
           yield buffered;
           buffered = '';
+          hasYielded = true;
         }
       }
 
       if (detectedRefusal) {
-        // Model refused — try next model in waterfall
+        // Model refused before any token was yielded — safe to retry.
+        // If it refused AFTER yielding (rare, but possible if refusal check
+        // missed it), we're committed and must propagate.
+        if (hasYielded) {
+          console.warn(`[Cascade] ⚠️ ${spec.displayName} refused AFTER streaming started — cannot retry without concatenating`);
+          throw new Error(`${spec.displayName} refused mid-stream`);
+        }
         lastError = new Error(`${spec.displayName} refused the request`);
         opts.onModelFailed?.(spec, lastError, i);
         continue; // next waterfall entry
@@ -122,6 +135,7 @@ export async function* cascade(
       // Yield any remaining buffered text
       if (buffered.length > 0) {
         yield buffered;
+        hasYielded = true;
       }
       console.log(`[Cascade] ✅ Completed with ${spec.displayName}`);
       return;
@@ -132,6 +146,16 @@ export async function* cascade(
       const emoji = isRateLimit ? '⏳' : '❌';
 
       console.warn(`[Cascade] ${emoji} ${spec.displayName} failed: ${lastError.message}`);
+
+      // CRITICAL: If we've already sent tokens to the caller from this or a
+      // previous provider, we cannot fall through to the next model. Doing
+      // so would stitch two completions together mid-sentence, producing
+      // the "double-start" pattern Steve flagged on 2026-06-28.
+      if (hasYielded) {
+        console.warn(`[Cascade] 🛑 Aborting cascade — output already streamed, cannot retry without concatenating`);
+        throw lastError;
+      }
+
       opts.onModelFailed?.(spec, lastError, i);
     }
   }
