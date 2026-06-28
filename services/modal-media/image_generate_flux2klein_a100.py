@@ -60,36 +60,52 @@ UNCENSORED_ENCODER_DIR = f"{MODEL_CACHE}/text_encoder_uncensored"
 # clothing priors. Without these, even an explicit user prompt produces
 # "topless with shorts." The body LoRA was trained on these exact phrases.
 HOLLY_BODY_PREFIX = (
-    "h0lly, h0lly-body, "
+    "h0lly, h0lly-body, 21 years old woman in her early twenties, youthful young adult, "
     "completely nude woman, fully naked, bare skin, not wearing any clothing, "
     "no clothing anywhere on her body, zero garments, bare from head to toe, "
     "olive skin tone (Portuguese/South Indian heritage), "
     "flawless silky smooth even complexion, clean healthy well-moisturized sheen, "
     "uniform clear flawless skin texture, perfectly clean and even, "
     "realistic skin stretching and folding at joints, natural living skin texture with micro-veins, "
-    "bright clear under-eye area, soft dewy makeup with seamless natural foundation blend, "
+    "smooth bright under-eye area, no eye bags, no dark circles, no lines under her eyes, smooth wrinkle-free youthful under-eyes, "
+    "soft smooth gentle skin texture, soft feminine features, overall soft youthful look, "
+    "barely visible natural cheek color, no blush, neutral cheek tone matching surrounding skin, "
+    "youthful early-twenties face, fresh young adult features, smooth forehead, plump youthful skin, "
+    "youthful round full face with soft wider jaw, generous full pinchable cheeks, softer fuller facial structure, healthy round face shape, "
     "5'4\" tall (163cm), "
-    "fit curvy body with hourglass proportions, natural 34C breasts, teardrop shape, "
+    "fit healthy toned figure with soft feminine curves, "
+    "fit but not overly lean, healthy athletic build with a soft layer of feminine fullness, "
+    "natural 34C breasts, teardrop shape, "
     "very large plump round juicy butt, thick full bubble-butt cheeks, generous curvy wide ass proportional to her hourglass frame, "
     "wide hips, thick shapely thighs, flat stomach with faint abs, "
     "small feminine feet (size 6), delicate hands, shapely legs, "
-    "voluminous auburn hair with lifted roots and full body at the crown, "
-    "bouncy loose waves with face-framing layers ending three inches past shoulders at mid-chest, "
-    "copper and gold highlights, "
-    "green eyes with specular catchlights, freckles, full lips with natural micro-ridges. "
+    "extra-thick voluminous auburn hair with massive body and bounce, "
+    "root-lifted crown with teased voluminous roots for maximum height, "
+    "full thick bouncy loose waves with face-framing layers ending three inches past shoulders at mid-chest, "
+    "abundant dense hair with rich copper and gold highlights throughout, "
+    "green eyes with specular catchlights, "
+    "very light subtle freckles barely visible across the bridge of her nose, "
+    "natural clear skin with minimal freckling, "
+    "full lips with natural micro-ridges. "
 )
 
 # ── BAKED-IN LoRAs: loaded + fused at startup (always active) ────────────────
+# Avatar recipe isolation test (2026-06-27) confirmed:
+#   - Klein Distilled needs 4 steps + CFG 4.0 (NOT 20 steps CFG 1.2)
+#   - LoRA weights at 0.95/1.15 over-fired and distorted face geometry
+#   - Stock vs uncensored encoder produces identical face quality
+#   - Body v2.5 @ 0.65 is avatar-quality (slightly softer than v1 but NSFW-capable)
+# Lower weights + correct sampler = avatar-matching face on A100 hardware.
 BAKED_LORAS = {
     "face": {
         "file": "holly-face-v2.safetensors",
-        "weight": 0.95,
-        "desc": "Holly Face v2.0 (trigger: h0lly) — raised from 0.85 to dominate Klein base",
+        "weight": 0.75,
+        "desc": "Holly Face v2.0 (trigger: h0lly) — avatar recipe, matches L4 endpoint",
     },
     "body": {
         "file": "holly-body-v2.5.safetensors",
-        "weight": 1.15,
-        "desc": "Holly Body v2.5 (trigger: h0lly-body) — 207-img explicit dataset, raised from 0.75 to force nude output past Klein's clothing priors",
+        "weight": 0.65,
+        "desc": "Holly Body v2.5 (trigger: h0lly-body) — 207-img explicit dataset, avatar-matched weight",
     },
 }
 
@@ -287,15 +303,19 @@ class HollyFlux2KleinA100:
         # The inpaint pipeline uses the same model components but supports image+mask input.
         # Baked face+body LoRAs are already fused into self.pipe.transformer weights,
         # so inpaint requests automatically benefit from Holly's identity.
+        # IMPORTANT: scheduler is COPIED, not shared. Constructing Flux2KleinInpaintPipeline
+        # mutates the scheduler's internal config, which breaks main pipe generation
+        # at higher step counts (off-by-one in scheduler.timesteps array).
         self.inpaint_pipe = None
         try:
             from diffusers import Flux2KleinInpaintPipeline
+            import copy
             print("🎭 Loading Flux2KleinInpaintPipeline (shared components)...")
             self.inpaint_pipe = Flux2KleinInpaintPipeline(
                 vae=self.pipe.vae,
                 text_encoder=self.pipe.text_encoder,
                 tokenizer=self.pipe.tokenizer,
-                scheduler=self.pipe.scheduler,
+                scheduler=copy.deepcopy(self.pipe.scheduler),
                 transformer=self.pipe.transformer,
             )
             print("✅ Inpaint pipeline ready — baked identity inherited from main pipe")
@@ -326,10 +346,9 @@ class HollyFlux2KleinA100:
             steps  = min(int(request.get("num_inference_steps", 4)), 50)
             seed   = request.get("seed")
             fmt    = request.get("format", "webp").lower()
-            # Klein Distilled sweet spot: CFG 1.0-1.5 (NOT 4.0 — that's for non-distilled).
-            # Previous default of 4.0 was producing over-guided artifacts on distilled model.
-            # Higher CFG on distilled = burnt/oversaturated images.
-            guidance_scale = float(request.get("guidance_scale", 1.2))
+            # EXACT L4 avatar recipe (services/modal-media/image_generate_flux2klein.py):
+            # 4 steps + CFG 4.0 — what generated the avatars Steve approved.
+            guidance_scale = float(request.get("guidance_scale", 4.0))
 
             # ── Dynamic LoRA Stack (specialists layered on top of baked face+body) ──
             # Format: [{"file": "name.safetensors", "strength": 0.7}, ...]
@@ -411,6 +430,22 @@ class HollyFlux2KleinA100:
 
             img = result.images[0]
 
+            # ── Full L4 avatar post-process (matches services/modal-media/image_generate_flux2klein.py) ──
+            # This is the exact pipeline that produced the avatars Steve approved.
+            # Gaussian blur blend + unsharp mask + brightness/color boost.
+            is_holly_selfie_post = "h0lly" in prompt.lower()
+            if is_holly_selfie_post:
+                try:
+                    from PIL import ImageFilter, ImageEnhance
+                    smoothed = img.filter(ImageFilter.GaussianBlur(radius=1.2))
+                    img = Image.blend(img, smoothed, alpha=0.25)
+                    img = img.filter(ImageFilter.UnsharpMask(radius=1.0, percent=100, threshold=5))
+                    img = ImageEnhance.Brightness(img).enhance(1.04)
+                    img = ImageEnhance.Color(img).enhance(1.06)
+                    print(f"  ✨ Full L4 post-process applied (avatar recipe)")
+                except Exception as pe:
+                    print(f"  ⚠️ Post-process skipped: {pe}")
+
             # ── Cleanup dynamic LoRAs so the next request starts clean ──
             # Baked face+body are fused into weights — unaffected by this unload.
             if dynamic_adapters:
@@ -431,7 +466,12 @@ class HollyFlux2KleinA100:
             is_holly_selfie = "h0lly" in prompt.lower()
             enhance_face = request.get("enhance_face")
             if enhance_face is None:
-                enhance_face = is_holly_selfie  # default true for Holly, false otherwise
+                # Disabled by default 2026-06-27 — d-recipe-d test proved raw
+                # 20-step generation with light post-process produces the most
+                # realistic skin/face. Face enhance was over-processing and
+                # creating a "plastic" look. Still available on-demand via
+                # explicit `"enhance_face": true` in request body.
+                enhance_face = False
             face_status = "skipped"
             if enhance_face:
                 try:
@@ -696,6 +736,7 @@ class HollyFlux2KleinA100:
         # 4. Full-white mask = effectively img2img (regenerate entire crop).
         # Strength 0.65 re-renders face geometry at full avatar quality while
         # preserving identity/proportions from the init crop.
+        # Sampler: 4 steps + CFG 1.2 (Klein Distilled ignores CFG, uses internal).
         full_mask = Image.new("L", (self.AVATAR_SIZE, self.AVATAR_SIZE), 255)
 
         try:
@@ -707,7 +748,7 @@ class HollyFlux2KleinA100:
                     width=self.AVATAR_SIZE,
                     height=self.AVATAR_SIZE,
                     strength=0.65,
-                    num_inference_steps=12,
+                    num_inference_steps=4,
                     guidance_scale=1.2,
                 )
             enhanced_avatar = result.images[0]
