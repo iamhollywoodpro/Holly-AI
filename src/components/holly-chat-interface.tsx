@@ -1064,6 +1064,21 @@ function InlineImageCard({ src, index, label }: { src: string; index: number; la
   const [showActions, setShowActions] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [imgError, setImgError] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+
+  useEffect(() => {
+    if (!lightboxOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setLightboxOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [lightboxOpen]);
 
   const handleDownload = useCallback(async () => {
     setDownloading(true);
@@ -1131,14 +1146,19 @@ function InlineImageCard({ src, index, label }: { src: string; index: number; la
           </button>
         </div>
       ) : (
-        <a href={src} target="_blank" rel="noopener noreferrer">
+        <button
+          type="button"
+          onClick={() => setLightboxOpen(true)}
+          className="block cursor-zoom-in p-0 m-0 border-0 bg-transparent"
+          title="Click to view fullscreen"
+        >
           <img
             src={src}
             alt={label}
             className="max-w-[300px] max-h-[300px] object-contain bg-black/20"
             onError={() => setImgError(true)}
           />
-        </a>
+        </button>
       )}
 
       {/* Action overlay — appears on hover */}
@@ -1176,6 +1196,62 @@ function InlineImageCard({ src, index, label }: { src: string; index: number; la
                 </svg>
               )}
             </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {lightboxOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-[9999] bg-black/95 flex items-center justify-center p-4"
+            onClick={() => setLightboxOpen(false)}
+          >
+            <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
+              <button
+                onClick={(e) => { e.stopPropagation(); handleShare(); }}
+                className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white/90 hover:text-white transition-colors backdrop-blur"
+                title="Share or copy link"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                </svg>
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); handleDownload(); }}
+                disabled={downloading}
+                className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white/90 hover:text-white transition-colors disabled:opacity-50 backdrop-blur"
+                title="Download image"
+              >
+                {downloading ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                )}
+              </button>
+              <button
+                onClick={() => setLightboxOpen(false)}
+                className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white/90 hover:text-white transition-colors backdrop-blur"
+                title="Close (Esc)"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <img
+              src={src}
+              alt={label}
+              onClick={(e) => e.stopPropagation()}
+              className="max-w-[95vw] max-h-[95vh] object-contain shadow-2xl"
+            />
           </motion.div>
         )}
       </AnimatePresence>
