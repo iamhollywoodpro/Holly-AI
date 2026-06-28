@@ -1314,7 +1314,12 @@ function AssistantContent({ content }: { content: string }) {
     <>
       <MarkdownContent content={
         content
-          .replace(dataUrlRegex, '[image]')
+          // Strip the entire markdown image syntax when the URL is a base64 data URI.
+          // The InlineImageCard below handles rendering. Previously we replaced the data
+          // URI with `[image]`, which turned `![alt](data:…)` into `![alt][image]` —
+          // a reference-style image with no definition, which rendered as raw text
+          // `![alt][image]` (Steve flagged 2026-06-28).
+          .replace(/!\[[^\]]*\]\(data:image\/[a-z]+;base64,[A-Za-z0-9+/=]+\)/gi, '')
           // Strip markdown image syntax for Pollinations URLs (rendered separately below)
           .replace(/!\[.*?\]\(https?:\/\/(?:image\.pollinations\.ai\/prompt|gen\.pollinations\.ai\/image)\/[^\s)]+\)/gi, '')
           // Strip bare "Image URL:" lines
