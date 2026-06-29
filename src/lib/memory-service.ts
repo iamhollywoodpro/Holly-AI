@@ -65,7 +65,23 @@ Keep each item concise (1-2 sentences max).`,
       jsonText = jsonText.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
     }
 
-    const memories: Memory = JSON.parse(jsonText);
+    const parsed = JSON.parse(jsonText);
+
+    // Defensive: LLM may return prose, partial JSON, or wrong shapes.
+    // Coerce every field to a string array so the spreads below can't throw.
+    const memories: Memory = {
+      facts:       Array.isArray(parsed?.facts)       ? parsed.facts.filter((x: unknown) => typeof x === 'string')       : [],
+      preferences: Array.isArray(parsed?.preferences) ? parsed.preferences.filter((x: unknown) => typeof x === 'string') : [],
+      projects:    Array.isArray(parsed?.projects)    ? parsed.projects.filter((x: unknown) => typeof x === 'string')    : [],
+      context:     Array.isArray(parsed?.context)     ? parsed.context.filter((x: unknown) => typeof x === 'string')     : [],
+    };
+
+    // If the LLM returned nothing usable, don't write a junk summary.
+    if (memories.facts.length + memories.preferences.length
+      + memories.projects.length + memories.context.length === 0) {
+      console.log('[Memory] ⏭️  No extractable memories in conversation:', conversationId);
+      return;
+    }
 
     const conversation = await prisma.conversation.findUnique({
       where: { id: conversationId },
@@ -95,7 +111,14 @@ Keep each item concise (1-2 sentences max).`,
     });
 
     console.log('[Memory] ✅ Extracted memories for conversation:', conversationId);
-  } catch (error) {
+  } catch (error: any) {
+    // P2002 = unique constraint violation. On concurrent chat turns, two
+    // extractMemories calls can race on the same conversationId upsert.
+    // The winner writes; the loser hits P2002. That's expected — swallow it.
+    if (error?.code === 'P2002') {
+      console.log('[Memory] ⏭️  Summary already written by concurrent task for:', conversationId);
+      return;
+    }
     console.error('[Memory] ❌ Failed to extract memories:', error);
   }
 }

@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { cloudflareProvider } from '@/lib/ai/providers/free-providers';
 
@@ -278,18 +279,28 @@ export async function semanticSearch(
     const queryVec = await embed(query);
 
     // Cosine similarity search using pgvector <=> operator
-    // 1 - (vec1 <=> vec2) = Cosine Similarity
+    // 1 - (vec1 <=> vec2) = Cosine Similarity.
+    // CRITICAL: Compose the type-filter fragment with Prisma.sql / Prisma.empty.
+    // A nested prisma.$queryRaw inside this outer $queryRaw compiles inner
+    // params to $3+ but the outer template never emits those placeholders in
+    // its SQL text → "syntax error at or near "$3"". Do NOT nest raw tags.
+    const typesClause = opts.types?.length
+      ? Prisma.sql`AND type = ANY(${opts.types}::text[])`
+      : Prisma.empty;
+
+    const vecLiteral = JSON.stringify(queryVec);
+
     const rows = await prisma.$queryRaw<Array<{
       id: string; content: string; type: string;
       similarity: number; createdAt: Date; metadata: unknown;
     }>>`
       SELECT
         id, content, type, metadata, "createdAt",
-        1 - (embedding <=> ${JSON.stringify(queryVec)}::vector) AS similarity
+        1 - (embedding <=> ${vecLiteral}::vector) AS similarity
       FROM "memory_embeddings"
       WHERE "userId" = ${userId}
-        ${opts.types?.length ? prisma.$queryRaw`AND type = ANY(${opts.types})` : prisma.$queryRaw``}
-      ORDER BY embedding <=> ${JSON.stringify(queryVec)}::vector
+        ${typesClause}
+      ORDER BY embedding <=> ${vecLiteral}::vector
       LIMIT ${limit}
     `;
 
