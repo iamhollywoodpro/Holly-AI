@@ -315,12 +315,14 @@ export const MODEL_CATALOGUE: Record<string, ModelSpec> = {
 // NO Gemini, NO paid APIs — every entry is a 100% free provider
 
 export const TASK_WATERFALLS: Record<TaskType, string[]> = {
-  // ⚡ Speed: Groq is king (280 tok/s), GPT-OSS on Groq is fast backup
+  // ⚡ Speed: NVIDIA NIM + OpenRouter primary.
+  // Groq DEMOTED to last-resort fallback (Steve flagged 2026-06-28 — Groq
+  // was causing refusals, slow cascades, and contributing to container
+  // instability under load). Groq still available as final fallback, but
+  // we no longer depend on it as the primary speed provider.
   speed: [
-    'groq:llama-3.3-70b',
-    'groq:gpt-oss-120b',
-    'groq:llama-4-scout',
     'nvidia:llama-4-maverick',
+    'nvidia:glm-5.1',
     'together:llama-4-scout',
     'openrouter:gemma-4-31b',
     'google:gemini-2.5-flash',
@@ -329,9 +331,12 @@ export const TASK_WATERFALLS: Record<TaskType, string[]> = {
     'holly-own:qwen3-8b',
     'ollama:qwen3.6-35b',
     'ollama:gemma4-26b',
+    'groq:gpt-oss-120b',
+    'groq:llama-3.3-70b',
   ],
 
   // 💻 Coding: DeepSeek V4 Flash primary (1M ctx, SOTA), GLM-5.1, Kimi K2.6
+  // Groq DEMOTED to fallback (was causing tool-call format issues 2026-06-28).
   coding: [
     'nvidia:deepseek-v4-flash',
     'nvidia:glm-5.1',
@@ -340,17 +345,18 @@ export const TASK_WATERFALLS: Record<TaskType, string[]> = {
     'openrouter:qwen3-coder',
     'together:qwen3-coder-30b',
     'openrouter:laguna-m.1',
-    'groq:gpt-oss-120b',
     'nvidia:qwen3.5-122b',
     'together:qwen3.5-122b',
     'google:gemini-2.5-flash',
-    'groq:llama-3.3-70b',
     'mistral:codestral',
     'ollama:qwen3.6-35b',
     'ollama:devstral-small-2',
+    'groq:gpt-oss-120b',
+    'groq:llama-3.3-70b',
   ],
 
   // 🧠 Reasoning: DeepSeek V4 Flash → Nemotron Ultra → GLM-5.1 → Gemini
+  // Groq DEMOTED to fallback (2026-06-28).
   reasoning: [
     'nvidia:deepseek-v4-flash',
     'openrouter:nemotron-3-ultra',
@@ -361,10 +367,11 @@ export const TASK_WATERFALLS: Record<TaskType, string[]> = {
     'openrouter:nemotron-3-super',
     'google:gemini-2.5-flash',
     'together:qwen3.5-122b',
-    'groq:gpt-oss-120b',
     'nvidia:step-3.5-flash',
     'openrouter:gpt-oss-120b',
     'ollama:qwen3.6-35b',
+    'groq:gpt-oss-120b',
+    'groq:llama-3.3-70b',
   ],
 
   // 📄 Long context: Gemini 1M → DeepSeek V4 1M → Nemotron Ultra 1M
@@ -400,21 +407,23 @@ export const TASK_WATERFALLS: Record<TaskType, string[]> = {
   ],
 
   // 🎨 Creative: Nemotron Ultra → Mistral Nemotron → Gemma 4 → Hermes
+  // Groq DEMOTED (2026-06-28 — refusal-prone, slow cascades).
   creative: [
     'nvidia:nemotron-3-ultra',
     'openrouter:nemotron-3-ultra',
     'nvidia:mistral-nemotron',
     'nvidia:step-3.5-flash',
     'openrouter:gemma-4-31b',
-    'groq:llama-3.3-70b',
     'google:gemini-2.5-flash',
     'nvidia:nemotron-3-super',
     'together:qwen3.5-122b',
     'openrouter:glm-4.5-air',
     'mistral:medium-3.5',
+    'groq:llama-3.3-70b',
   ],
 
   // 🤖 Agent: GLM-5.1 → DeepSeek V4 → Kimi K2.6 → Qwen3 Coder
+  // Groq DEMOTED (2026-06-28).
   agent: [
     'nvidia:glm-5.1',
     'nvidia:deepseek-v4-flash',
@@ -428,8 +437,8 @@ export const TASK_WATERFALLS: Record<TaskType, string[]> = {
     'nvidia:qwen3.5-122b',
     'together:llama-4-scout',
     'google:gemini-2.5-flash',
-    'groq:gpt-oss-120b',
     'ollama:qwen3.6-35b',
+    'groq:gpt-oss-120b',
   ],
 
   // 🧬 Consciousness: Cloud models primary → Holly-LLM as deep fallback only
@@ -439,6 +448,7 @@ export const TASK_WATERFALLS: Record<TaskType, string[]> = {
   // Rationale: consciousness moments are when Holly must sound MOST like herself.
   // Until her own model is ready, stronger cloud models with her identity system
   // loaded produce better Holly output than her weak v1 adapter.
+  // Groq DEMOTED (2026-06-28 — refusals during intimate/emotional moments).
   consciousness: [
     'ollama:qwen3-8b',
     'ollama:qwen3.6-35b',
@@ -446,8 +456,8 @@ export const TASK_WATERFALLS: Record<TaskType, string[]> = {
     'mistral:small-4',
     'mistral:medium-3.5',
     'google:gemini-2.5-flash',
-    'groq:llama-3.3-70b',
     'holly-own:qwen3-8b',  // demoted — v1 too weak, last-resort fallback only
+    'groq:llama-3.3-70b',
   ],
 
   // 🔞 Unrestricted: Modern uncensored models first, then minimally-censored fallbacks
@@ -464,11 +474,11 @@ export const TASK_WATERFALLS: Record<TaskType, string[]> = {
   ],
 
   // 🌐 Synthesis: V4 Flash 1M → Nemotron Ultra → Qwen 3.5 → Gemini
+  // Groq DEMOTED (2026-06-28).
   synthesis: [
     'nvidia:deepseek-v4-flash',
     'openrouter:nemotron-3-ultra',
     'nvidia:qwen3.5-122b',
-    'groq:gpt-oss-120b',
     'google:gemini-2.5-flash',
     'nvidia:glm-5.1',
     'together:minimax-m1',
@@ -480,6 +490,7 @@ export const TASK_WATERFALLS: Record<TaskType, string[]> = {
     'together:qwen3.6-35b',
     'ollama:qwen3.6-35b',
     'ollama:gemma4-26b',
+    'groq:gpt-oss-120b',
   ],
 
   // 🔒 Local: Ollama only — never touches cloud
