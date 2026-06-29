@@ -38,6 +38,23 @@ export interface StreamOptions {
 
 export type TokenStream = AsyncGenerator<string, void, unknown>;
 
+/**
+ * Compute a fetch timeout appropriate for the message content.
+ * Vision requests (messages containing image_url blocks) need longer because
+ * the model must download + encode the image before producing the first token.
+ * Text-only requests stay at the snappier base timeout.
+ */
+function timeoutFor(
+  messages: ChatMessage[],
+  baseMs:    number = 15_000,
+  visionMs:  number = 45_000,
+): number {
+  const hasImages = messages.some(m =>
+    Array.isArray(m.content) && m.content.some(b => b.type === 'image_url')
+  );
+  return hasImages ? visionMs : baseMs;
+}
+
 // ─── GROQ ─────────────────────────────────────────────────────────────────────
 // Free tier: 14,400 req/day · 6,000 TPM · 300+ tok/s
 // Models: Llama 3.3 70B, Llama 3.1 8B, DeepSeek R1 70B
@@ -218,7 +235,7 @@ export const nvidiaProvider = {
         temperature: opts.temperature ?? 0.7,
         max_tokens:  opts.maxTokens  ?? 2048,
       }),
-      signal: AbortSignal.timeout(15_000),
+      signal: AbortSignal.timeout(timeoutFor(messages)),
     });
 
     if (!res.ok) {
@@ -274,7 +291,7 @@ export const openrouterProvider = {
         temperature: opts.temperature ?? 0.7,
         max_tokens:  opts.maxTokens  ?? 2048,
       }),
-      signal: AbortSignal.timeout(15_000),
+      signal: AbortSignal.timeout(timeoutFor(messages)),
     });
 
     if (!res.ok) {
@@ -406,7 +423,7 @@ export const togetherProvider = {
         temperature: opts.temperature ?? 0.7,
         max_tokens:  opts.maxTokens  ?? 2048,
       }),
-      signal: AbortSignal.timeout(15_000),
+      signal: AbortSignal.timeout(timeoutFor(messages)),
     });
 
     if (!res.ok) {

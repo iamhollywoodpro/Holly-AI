@@ -9,8 +9,8 @@ Output:  Lossless WebP (training-grade quality)
 
 Architecture:
   BAKED IN (fused at startup, always active):
-    - Holly Face v2.0 (0.85 — consistent face, trigger: h0lly)
-    - Holly Body v1.0 (0.50 — lowered so specialists can drive pose, trigger: h0lly-body)
+    - Holly Face v2.0 (0.75 — avatar recipe, trigger: h0lly)
+    - Holly Body v2.5 (1.0 — NSFW-capable, trigger: h0lly-body)
 
   Realism LoRA removed — FLUX Klein's native quality is cleaner.
   No CPU offloading. Full precision on A100.
@@ -92,10 +92,14 @@ HOLLY_BODY_PREFIX = (
 # ── BAKED-IN LoRAs: loaded + fused at startup (always active) ────────────────
 # Avatar recipe isolation test (2026-06-27) confirmed:
 #   - Klein Distilled needs 4 steps + CFG 4.0 (NOT 20 steps CFG 1.2)
-#   - LoRA weights at 0.95/1.15 over-fired and distorted face geometry
+#   - Face LoRA at 0.95 over-fired and distorted face geometry → keep at 0.75
 #   - Stock vs uncensored encoder produces identical face quality
-#   - Body v2.5 @ 0.65 is avatar-quality (slightly softer than v1 but NSFW-capable)
-# Lower weights + correct sampler = avatar-matching face on A100 hardware.
+# Body weight FIX (2026-06-29 Steve flagged see-through clothing on NSFW):
+#   - 0.65 was "avatar recipe" but too weak to override Klein's clothing priors
+#     on NSFW prompts → rendered transparent bras/panties instead of nudity
+#   - Raised to 1.0 — strong enough to force nude past clothing priors without
+#     the face-bleed that plagued 1.15 paired with face 0.95
+#   - Face stays at 0.75 (the avatar-tested weight that avoids geometric distortion)
 BAKED_LORAS = {
     "face": {
         "file": "holly-face-v2.safetensors",
@@ -104,8 +108,8 @@ BAKED_LORAS = {
     },
     "body": {
         "file": "holly-body-v2.5.safetensors",
-        "weight": 0.65,
-        "desc": "Holly Body v2.5 (trigger: h0lly-body) — 207-img explicit dataset, avatar-matched weight",
+        "weight": 1.0,
+        "desc": "Holly Body v2.5 (trigger: h0lly-body) — 207-img explicit dataset, NSFW-capable weight",
     },
 }
 
