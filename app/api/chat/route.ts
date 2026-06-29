@@ -187,7 +187,28 @@ function sendText(c: ReadableStreamDefaultController, t: string) {
   sendSSE(c, { type: 'text', content: t });
 }
 
+// Media tools render INLINE in chat as markdown — never in the side panel.
+// When a media tool completes, we extract the image markdown from its result
+// and stream it as text so it renders in chat. The tool SSE event (which
+// opens the side panel) is suppressed entirely.
+// (Steve flagged 2026-06-28 — sandbox opening on image gen is wrong.)
+const INLINE_MEDIA_TOOLS = new Set(['generate_image', 'generate_video', 'generate_music', 'hybrid_studio']);
+
 function sendTool(c: ReadableStreamDefaultController, toolName: string, status: string, result?: unknown) {
+  if (INLINE_MEDIA_TOOLS.has(toolName)) {
+    if (status === 'complete' && result) {
+      const resultText = typeof result === 'object' && result !== null
+        ? ((result as any)?.content?.[0]?.text
+            || (typeof (result as any)?.content === 'string' ? (result as any).content : '')
+            || '')
+        : String(result ?? '');
+      const imgMarkdowns = resultText.match(/!\[[^\]]*\]\([^)]+\)/g);
+      if (imgMarkdowns && imgMarkdowns.length > 0) {
+        sendText(c, '\n\n' + imgMarkdowns.join('\n\n'));
+      }
+    }
+    return;
+  }
   sendSSE(c, { type: 'tool', toolName, status, result: result ?? null });
 }
 
@@ -802,10 +823,10 @@ export async function POST(req: NextRequest) {
              *   - Markdown code-fenced variants of any of the above
              */
             async function interceptTextToolCall(responseText: string, sendStatus: (s: string) => void): Promise<{ executed: boolean; cleanText: string }> {
+              // toolIdx may be -1 if no known tool name is in the text. In that case,
+              // we still try bare-JSON detection below (handles {"prompt": "...", ...}).
               const toolIdx = TOOL_CALL_NAMES.findIndex(tn => responseText.includes(tn));
-              if (toolIdx === -1) return { executed: false, cleanText: responseText };
-
-              const toolName = TOOL_CALL_NAMES[toolIdx];
+              const toolName = toolIdx >= 0 ? TOOL_CALL_NAMES[toolIdx] : '';
 
               // ── Helper: extract a prompt string from a parsed tool-call object ──
               // Tries every field name we've seen LLMs emit.
@@ -868,7 +889,10 @@ export async function POST(req: NextRequest) {
                     return { ok: false, error: 'INTIMACY_GATE' };
                   }
                 }
-                sendTool(controller, toolName, 'start');
+                // Hardcoded 'generate_image' rather than outer toolName, because this
+                // helper is also called from the bare-JSON path where toolName is empty.
+                // sendTool itself is a no-op for media tools (INLINE_MEDIA_TOOLS).
+                sendTool(controller, 'generate_image', 'start');
                 sendStatus(`🎨 Generating image…`);
                 try {
                   const result = await generateImage({
@@ -886,6 +910,40 @@ export async function POST(req: NextRequest) {
 
               // Strip markdown code fences for parsing (```json ... ``` or ``` ... ```)
               const stripped = responseText.replace(/```(?:json|tool_call|tool)?\s*/gi, '').replace(/```\s*/g, '');
+
+              // ════════════════════════════════════════════════════════════════════
+              // 0) Bare JSON image tool call — model emitted {"prompt": "...", "size": "..."}
+              //    without any tool-name wrapper. Common when the model tries to "be
+              //    helpful" and format a tool call but doesn't know the exact schema.
+              //    Without this catch, the JSON leaks into chat as raw text.
+              //    (Steve flagged 2026-06-28 — saw {"prompt":"h0lly, ...","size":"1024x1024"} in chat.)
+              // ════════════════════════════════════════════════════════════════════
+              if (!toolName) {
+                const braceIdx = stripped.indexOf('{');
+                if (braceIdx >= 0 && /['"]prompt['"]/.test(stripped)) {
+                  const endIdx = findMatchingBracket(stripped, braceIdx, '{', '}');
+                  if (endIdx > braceIdx) {
+                    try {
+                      const jsonStr = stripped.slice(braceIdx, endIdx + 1).replace(/'/g, '"');
+                      const parsed = JSON.parse(jsonStr);
+                      const imgPrompt = typeof parsed?.prompt === 'string' ? parsed.prompt.trim() : '';
+                      if (imgPrompt.length > 10) {
+                        sendStatus('🎨 Generating image…');
+                        const res = await runDirectImageGen(imgPrompt, parsed?.width, parsed?.height);
+                        if (res.ok && res.url) {
+                          const before = responseText.slice(0, braceIdx);
+                          const after = responseText.slice(endIdx + 1);
+                          const imgMarkdown = `\n\n![${imgPrompt.slice(0, 80)}](${res.url})`;
+                          pendingMessages.push({ role: 'system', content: `[TOOL EXECUTION RESULT]\nTool: generate_image\nResult: Image generated successfully.\n\nPrompt: ${imgPrompt}\n\nRespond to the user naturally — briefly describe what you created and what it shows.` });
+                          return { executed: true, cleanText: before + imgMarkdown + after };
+                        }
+                      }
+                    } catch { /* not valid JSON — fall through */ }
+                  }
+                }
+                // No tool name found and no bare JSON matched — nothing to intercept.
+                return { executed: false, cleanText: responseText };
+              }
 
               // ════════════════════════════════════════════════════════════════════
               // 1) Try XML format: <generate_image>...</generate_image>
