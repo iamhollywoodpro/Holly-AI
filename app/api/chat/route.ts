@@ -485,7 +485,13 @@ export async function POST(req: NextRequest) {
 
           // ── 9. ROUTING ──
           const hasImages = imageDataUrls?.length > 0;
-          const taskType = isUnrestricted ? 'unrestricted' : (hasImages ? 'vision' : classifyTask(latestUserMessage, false, latestUserMessage.length, detectedMode));
+          // When an image is attached, ALWAYS route to vision regardless of NSFW
+          // content. Previously `isUnrestricted` overrode `hasImages`, sending the
+          // image-attached message to non-vision unrestricted models (dolphin, hermes,
+          // deepseek) which would respond "I can't see you." Vision models (Gemini,
+          // Kimi, Llama-4) handle intimate content fine — they just need to actually
+          // be called. (Steve flagged 2026-06-28.)
+          const taskType = hasImages ? 'vision' : (isUnrestricted ? 'unrestricted' : classifyTask(latestUserMessage, false, latestUserMessage.length, detectedMode));
           const routing = await smartRoute(latestUserMessage, { forceTask: taskType });
           const waterfall = routing.waterfall;
 
