@@ -394,16 +394,21 @@ export const TASK_WATERFALLS: Record<TaskType, string[]> = {
     'ollama:gemma4-26b',
   ],
 
-  // 👁️ Vision: Kimi K2.6 → Gemma 4 31B → Nemotron Omni → Gemini
+  // 👁️ Vision — FIX (2026-06-29): previous waterfall had 4 broken entries
+  // above the only working one (Gemini). REMOVED:
+  //   - openrouter:kimi-k2.6      (Kimi K2.x is TEXT-ONLY, cannot see images)
+  //   - openrouter:gemma-4-31b    (fabricated slug — google/gemma-4-31b-it:free
+  //                                does not exist on OpenRouter, returns 404)
+  //   - nvidia:nemotron-3-nano-omni (fabricated NIM ID)
+  //   - openrouter:nemotron-3-nano-omni (fabricated slug)
+  // Confirmed multimodal entries only. Gemini is the highest-quality free vision
+  // model we have — it goes FIRST so users don't burn 30s cascading through 404s.
   vision: [
-    'openrouter:kimi-k2.6',
-    'openrouter:gemma-4-31b',
-    'nvidia:nemotron-3-nano-omni',
-    'openrouter:nemotron-3-nano-omni',
-    'google:gemini-2.5-flash',
-    'together:qwen3-vl-235b',
-    'nvidia:llama-4-maverick',
-    'together:llama-4-scout',
+    'google:gemini-2.5-flash',     // ✅ confirmed working inlineData vision
+    'google:gemini-2.5-pro',       // ✅ Gemini Pro, strictly more capable
+    'together:qwen3-vl-235b',      // ✅ Qwen3-VL (VL = Vision-Language)
+    'nvidia:llama-4-maverick',     // ✅ Llama 4 MoE is natively multimodal
+    'together:llama-4-scout',      // ✅ Llama 4 Scout is multimodal
   ],
 
   // 🎨 Creative: Nemotron Ultra → Mistral Nemotron → Gemma 4 → Hermes

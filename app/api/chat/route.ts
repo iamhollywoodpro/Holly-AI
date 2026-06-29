@@ -266,7 +266,7 @@ function getToolStatusMessage(toolName: string): string {
 }
 
 const MEDIA_TOOL_DURATIONS: Record<string, number> = {
-  'generate_image': 15_000,
+  'generate_image': 35_000,   // A100 warm ~30s, cold ~40s — 15s made progress asymptote early
   'generate_video': 40_000,
   'generate_music': 10_000,
   'hybrid_studio': 45_000,
@@ -708,15 +708,17 @@ export async function POST(req: NextRequest) {
 
               sendProgress(controller, { phase: 'generate_image', percent: 30, message: '🎨 Selecting model…' });
 
-              // HEARTBEAT: Climb progress toward 90% during long generation
+              // HEARTBEAT: Climb progress toward 95% during long generation
               // so the user always sees motion (Pollinations ~15-30s, Holly LoRA cold start up to 5min).
               // Never reach 100% here — that only fires on actual success.
+              // FIX (2026-06-29): cap raised from 90 → 95 to match startProgressSimulation
+              // asymptote. The old 90 cap caused the "stuck at 90%" hang Steve flagged.
               const genStartedAt = Date.now();
               let heartbeatPercent = 40;
               const heartbeat = setInterval(() => {
                 const elapsed = Math.floor((Date.now() - genStartedAt) / 1000);
-                if (heartbeatPercent < 90) {
-                  heartbeatPercent = Math.min(90, heartbeatPercent + (heartbeatPercent < 70 ? 4 : 1));
+                if (heartbeatPercent < 95) {
+                  heartbeatPercent = Math.min(95, heartbeatPercent + (heartbeatPercent < 70 ? 4 : 1));
                 }
                 sendProgress(controller, {
                   phase: 'generate_image',
@@ -900,6 +902,11 @@ export async function POST(req: NextRequest) {
                 // sendTool itself is a no-op for media tools (INLINE_MEDIA_TOOLS).
                 sendTool(controller, 'generate_image', 'start');
                 sendStatus(`🎨 Generating image…`);
+                // FIX (2026-06-29): Without progress simulation these interception
+                // paths (bare JSON, XML, tool-call JSON) showed 0% motion during the
+                // 30s generation. startProgressSimulation sends an asymptotic curve
+                // that caps at 95% — cleared + 100% sent below on completion.
+                const _progressInterval = startProgressSimulation(controller, 'generate_image');
                 try {
                   const result = await generateImage({
                     prompt: imgPrompt,
@@ -911,6 +918,9 @@ export async function POST(req: NextRequest) {
                   return { ok: true, url: result.url };
                 } catch (err: any) {
                   return { ok: false, error: err?.message || String(err) };
+                } finally {
+                  clearInterval(_progressInterval);
+                  sendProgress(controller, { phase: 'generate_image', percent: 100, message: '✅ Image created!' });
                 }
               };
 
