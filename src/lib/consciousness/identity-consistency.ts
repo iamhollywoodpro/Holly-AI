@@ -116,11 +116,16 @@ export async function checkIdentityConsistency(
 
   // Check for dramatic value shifts
   for (const [trait, newValue] of Object.entries(proposedTraits)) {
-    if (established[trait]) {
-      const delta = Math.abs(newValue - established[trait].value);
+    const establishedTrait = established[trait];
+    // Runtime guard: DB JSON values aren't guaranteed to be numbers despite
+    // the TS cast. Skip non-numeric entries instead of throwing on .toFixed().
+    if (establishedTrait
+        && typeof newValue === 'number' && !Number.isNaN(newValue)
+        && typeof establishedTrait.value === 'number' && !Number.isNaN(establishedTrait.value)) {
+      const delta = Math.abs(newValue - establishedTrait.value);
       if (delta > 0.3) {
         flaggedInconsistencies.push(
-          `"${trait}" shifted by ${delta.toFixed(2)} (from ${established[trait].value.toFixed(2)} to ${newValue.toFixed(2)})`
+          `"${trait}" shifted by ${delta.toFixed(2)} (from ${establishedTrait.value.toFixed(2)} to ${newValue.toFixed(2)})`
         );
         consistencyScore -= 0.15;
       }
@@ -150,6 +155,7 @@ export async function checkIdentityConsistency(
 export async function getIdentityConsistencyPrompt(userId: string): Promise<string> {
   const established = await getEstablishedTraits(userId);
   const traits = Object.entries(established)
+    .filter(([, data]) => typeof data?.value === 'number' && !Number.isNaN(data.value))
     .sort(([, a], [, b]) => b.value - a.value)
     .slice(0, 5)
     .map(([name, data]) => `${name} (${data.value.toFixed(2)}, ${data.daysPresent}d)`);
