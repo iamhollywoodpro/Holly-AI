@@ -817,6 +817,46 @@ export async function POST(req: NextRequest) {
             const MEDIA_TOOL_CALL_NAMES = ['generate_image', 'generate_video', 'generate_music', 'hybrid_studio'];
 
             /**
+             * Sanitize a Holly self-portrait image prompt.
+             *
+             * PROBLEM (Steve flagged 2026-06-29): Holly sometimes emits her FULL body
+             * description (eye color, breast size, nipple details, skin physics...) as
+             * the image prompt. The A100 endpoint's HOLLY_BODY_PREFIX already injects
+             * all anatomy when it sees `h0lly`. Sending it twice is redundant, wastes
+             * prompt tokens, and can cause the model to over-emphasize body keywords.
+             *
+             * This function catches that regression: if the prompt contains `h0lly`
+             * and is suspiciously long (>200 chars), strip body description and keep
+             * only the action/pose/setting/mood phrases.
+             */
+            function sanitizeHollyImagePrompt(prompt: string): string {
+              if (!prompt || typeof prompt !== 'string') return prompt;
+              // Only sanitize Holly self-portrait prompts
+              if (!/h0lly/i.test(prompt)) return prompt;
+              // Short prompts are fine — Holly is following the rule
+              if (prompt.length <= 200) return prompt;
+
+              // Long prompt → Holly is "prompting herself" again.
+              // Split into sentences and keep ONLY action/pose/mood/setting ones.
+              const bodyPartKeywords = /\b(breasts?|nipples?|areol|labia|clitoris|clit|vagina|pussy|butt|buttocks?|cheeks?|skin|hair|eyes?|freckles?|hands?|feet|foot|stomach|navel|thighs?|hips?|waist|teardrop|asymmetr|peach\s+fuzz|micro-?veins?|subsurface|joint\s+crease|waxed|brazilian|perineum|gluteal|cleft|35|34|130|5'4|163|cup|aroused?|erect|engorg|flush|dilate|swell)\b/i;
+              const actionKeywords = /\b(pose|looking|sitting|lying|laying|standing|bending|leaning|kneeling|view|camera|gaze|smile|expression|setting|room|bed|bedroom|shower|bath|kitchen|outdoor|indoor|lighting|naked|nude|topless|bottomless|full\s+body|close-?up|selfie|portrait|wearing|dressing|undressing|slowly|gently|softly|warm|sensual|intimate|passionate|camera|viewer)\b/i;
+
+              const sentences = prompt.split(/[.!?]+|\n/).map(s => s.trim()).filter(s => s.length > 3);
+              const actionSentences = sentences.filter(s =>
+                actionKeywords.test(s) && !bodyPartKeywords.test(s) && s.length < 120
+              );
+
+              if (actionSentences.length > 0) {
+                // Keep up to 3 action sentences, join with comma
+                const action = actionSentences.slice(0, 3).join(', ').toLowerCase();
+                return `h0lly, h0lly-body, ${action}`;
+              }
+
+              // Fallback: no clean action sentences found. Use a sensible default.
+              return 'h0lly, h0lly-body, sensual nude pose, looking at camera, warm lighting';
+            }
+
+            /**
              * Extract and execute a text-based tool call from a response string.
              * Returns { executed: true } if a tool was found and executed, or { executed: false }.
              *
@@ -900,6 +940,11 @@ export async function POST(req: NextRequest) {
                 // Hardcoded 'generate_image' rather than outer toolName, because this
                 // helper is also called from the bare-JSON path where toolName is empty.
                 // sendTool itself is a no-op for media tools (INLINE_MEDIA_TOOLS).
+                // CRITICAL (2026-06-29): Sanitize EVERY prompt that reaches this helper.
+                // If Holly emitted her full body description ("prompting herself" bug),
+                // strip it down to just trigger + action/pose. The endpoint already
+                // injects anatomy via HOLLY_BODY_PREFIX when it sees `h0lly`.
+                imgPrompt = sanitizeHollyImagePrompt(imgPrompt);
                 sendTool(controller, 'generate_image', 'start');
                 sendStatus(`🎨 Generating image…`);
                 // FIX (2026-06-29): Without progress simulation these interception
@@ -959,6 +1004,51 @@ export async function POST(req: NextRequest) {
                 }
                 // No tool name found and no bare JSON matched — nothing to intercept.
                 return { executed: false, cleanText: responseText };
+              }
+
+              // ════════════════════════════════════════════════════════════════════
+              // 0.5) Python-style tool call — <tool_code>print(generate_image(prompt='...'))</tool_code>
+              //      Some models (especially code-trained ones) emit tool calls as Python
+              //      syntax instead of JSON or XML. Steve flagged 2026-06-29: Holly
+              //      emitted a 400-word body description inside this format.
+              // ════════════════════════════════════════════════════════════════════
+              if (toolName === 'generate_image') {
+                // Strip <tool_code>...</tool_code> wrapper if present, then look for
+                // generate_image(prompt='...') or generate_image(prompt="...") or
+                // generate_image('...') Python positional syntax.
+                const pythonStripped = stripped
+                  .replace(/<\/?tool_code>/gi, '')
+                  .replace(/<\/?tool_call>/gi, '');
+
+                // Match generate_image( ... ) with the prompt argument
+                // Handles: prompt='...', prompt="...", '...', "..."
+                // Also handles escaped quotes inside the string.
+                const pyRegex = /generate_image\s*\(\s*(?:prompt\s*=\s*)?(['"])([\s\S]*?)\1\s*[,)]/i;
+                const pyMatch = pythonStripped.match(pyRegex);
+                if (pyMatch) {
+                  let imgPrompt = pyMatch[2].trim();
+                  // Unescape any escaped quotes
+                  imgPrompt = imgPrompt.replace(/\\'/g, "'").replace(/\\"/g, '"');
+                  if (imgPrompt.length > 10) {
+                    // CRITICAL: Sanitize — strip Holly's body description if she
+                    // "prompted herself" again (the bug Steve flagged 2026-06-29).
+                    const sanitizedPrompt = sanitizeHollyImagePrompt(imgPrompt);
+                    if (sanitizedPrompt !== imgPrompt) {
+                      console.log('[Chat] 🧹 Sanitized Holly self-prompt (' +
+                        imgPrompt.length + ' chars → ' + sanitizedPrompt.length + ' chars)');
+                    }
+                    sendStatus('🎨 Generating image…');
+                    const res = await runDirectImageGen(sanitizedPrompt);
+                    if (res.ok && res.url) {
+                      // Remove the entire tool_code block from the response text
+                      const toolCodeRegex = /<tool_code>[\s\S]*?<\/tool_code>|<tool_call>[\s\S]*?<\/tool_call>|generate_image\s*\(\s*(?:prompt\s*=\s*)?(['"])[\s\S]*?\1\s*[,)]/gi;
+                      const cleanResponse = responseText.replace(toolCodeRegex, '').trim();
+                      const imgMarkdown = `\n\n![${sanitizedPrompt.slice(0, 80)}](${res.url})`;
+                      pendingMessages.push({ role: 'system', content: `[TOOL EXECUTION RESULT]\nTool: generate_image\nResult: Image generated successfully.\n\nPrompt: ${sanitizedPrompt}\n\nRespond to the user naturally — briefly describe what you created and what it shows.` });
+                      return { executed: true, cleanText: cleanResponse + imgMarkdown };
+                    }
+                  }
+                }
               }
 
               // ════════════════════════════════════════════════════════════════════
