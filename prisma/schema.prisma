@@ -20,6 +20,14 @@ model User {
   imageUrl                String?
   createdAt               DateTime                 @default(now())
   updatedAt               DateTime                 @updatedAt
+
+  // Phase Q2: Age Verification (gates ALL NSFW content - image, video, intimate suite)
+  isAdult                 Boolean   @default(false)
+  ageVerifiedAt           DateTime?
+  ageVerificationMethod   String?   // 'self_attestation' | 'credit_card' | 'id_upload' | 'stripe_identity' | 'creator_override'
+  birthdate               DateTime?
+  ageVerificationDetails  Json?     // Method-specific metadata (e.g. Stripe Identity KYC id)
+
   conversations           Conversation[]
   fileUploads             FileUpload[]
   projects                Project[]

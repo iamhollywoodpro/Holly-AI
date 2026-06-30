@@ -2,6 +2,27 @@ import { auth, currentUser } from '@clerk/nextjs/server';
 import { getOrCreateUser } from '@/lib/user-manager';
 import { prisma } from '@/lib/db';
 
+// ─── Phase Q2: Creator Auto-Adult Flag ───────────────────────────────────────
+// When isCreator is detected, we also auto-set isAdult=true on the user record
+// (idempotent — only writes if not already set). This ensures creator accounts
+// never need to manually verify age, even on first login.
+async function ensureCreatorAdultFlag(dbUserId: string | null): Promise<void> {
+  if (!dbUserId) return;
+  try {
+    await prisma.user.updateMany({
+      where: { id: dbUserId, isAdult: false },
+      data: {
+        isAdult: true,
+        ageVerifiedAt: new Date(),
+        ageVerificationMethod: 'creator_override',
+      },
+    });
+  } catch (err) {
+    // Don't fail auth if this side-effect fails — just log
+    console.warn('[AUTH] Failed to set creator adult flag:', err);
+  }
+}
+
 // ─── Env-based creator identifiers (optional, extends hardcoded list) ────
 const CREATOR_EMAILS = (process.env.CREATOR_EMAILS || '').split(',').filter(Boolean);
 const CREATOR_CLERK_IDS = (process.env.CREATOR_CLERK_IDS || '').split(',').filter(Boolean);
@@ -195,6 +216,11 @@ export async function authenticateAndLoadUser(): Promise<AuthResult | null> {
   // Debug: log creator recognition status
   console.log(`[AUTH] userId=${userId} userName=${userName} isCreator=${isCreator} clerkEmail=${clerkEmail || 'none'} clerkUsername=${clerkUsername || 'none'}`);
 
+  // Phase Q2: Auto-flag creator as adult if recognized via this path
+  if (isCreator) {
+    await ensureCreatorAdultFlag(dbUserId);
+  }
+
   return { userId, dbUserId, userName, userEmail, isCreator };
 }
 
@@ -214,6 +240,11 @@ async function finalizeAuth(userId: string, email: string, name: string, isCreat
       dbUserId = user.id;
     }
   } catch {}
+
+  // Phase Q2: Auto-flag creator as adult on first login (idempotent)
+  if (isCreator) {
+    await ensureCreatorAdultFlag(dbUserId);
+  }
 
   console.log(`[AUTH] userId=${userId} userName=${isCreator ? 'Steve' : name} isCreator=${isCreator} clerkEmail=${email} (EARLY RECOGNITION)`);
 
