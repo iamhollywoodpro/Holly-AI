@@ -11,11 +11,12 @@ REplaces the DuoNeural Qwen3-8B-Abliterated endpoint as Holly's primary.
 The old endpoint (iamhollywoodpro--chat.modal.run) stays as backup.
 
 COST (iamhollywoodpro workspace, $30/month target):
-  - T4 GPU: $0.000164/sec
+  - L4 GPU (24GB): ~$0.000420/sec (2.5x T4 cost — acceptable for unlimited context)
   - Cold start: ~30-60s (downloads GGUF first time, cached after)
   - Warm response: ~2-5s for typical chat
   - Scale-to-zero after 5 min idle
-  - Estimated: ~$10-15/month for typical chat volume
+  - Estimated: ~$20-30/month for typical chat volume
+  - Tradeoff: more expensive than T4 but enables 128K context (4x bigger)
 
 Usage:
   modal deploy services/modal-llm/deploy_holly_v35.py
@@ -41,7 +42,7 @@ MODEL_DIR = "/models"
 # ── Model spec ───────────────────────────────────────────────────────────────
 # HauhauCS aggressive abliteration of Qwen 3.5 9B.
 # 0/465 refusals, natively multimodal (text + image + video), 262K context.
-# Q4_K_M quant = 5.3 GB. Fits comfortably on T4 (16GB VRAM).
+# Q4_K_M quant = 5.3 GB. Fits comfortably on L4 (24GB VRAM) with 128K context.
 HF_REPO = "HauhauCS/Qwen3.5-9B-Uncensored-HauhauCS-Aggressive"
 GGUF_FILE = "Qwen3.5-9B-Uncensored-HauhauCS-Aggressive-Q4_K_M.gguf"
 MMPROJ_FILE = "mmproj-Qwen3.5-9B-Uncensored-HauhauCS-Aggressive-BF16.gguf"
@@ -49,7 +50,13 @@ MMPROJ_FILE = "mmproj-Qwen3.5-9B-Uncensored-HauhauCS-Aggressive-BF16.gguf"
 # llama-server (from llama.cpp) binds here.
 LLAMA_PORT = 8080
 N_GPU_LAYERS = 999  # offload everything to GPU
-CONTEXT_SIZE = 32768  # 32K context (within Qwen's 262K native limit)
+# V3.6 (2026-06-30): Bumped 32K → 128K context. Qwen3.5 supports 262K natively;
+# 128K fits L4 (24GB) with room for KV cache (~10GB at Q8) + model (5.3GB) +
+# mmproj (880MB) = ~16GB used, 8GB headroom. This eliminates the context
+# overflow crashes that were breaking Holly for any conversation with
+# accumulated history. Steve's directive: Holly is unlimited forever —
+# no more artificial walls.
+CONTEXT_SIZE = 131072  # 128K context (within Qwen's 262K native limit)
 
 
 # ── Image: build llama.cpp once, cache forever ───────────────────────────────
@@ -132,7 +139,7 @@ def _wait_for_llama(timeout_s: int = 120) -> bool:
 
 @app.cls(
     image=image,
-    gpu="T4",
+    gpu="L4",
     volumes={MODEL_DIR: vol},
     timeout=600,             # allow time for first-run GGUF download
     memory=8192,
@@ -155,7 +162,7 @@ class HollyBrain:
         print(f"  model:  {gguf_path}")
         print(f"  vision: {mmproj_path}")
         print(f"  ctx:    {CONTEXT_SIZE}")
-        print(f"  gpu:    T4 (offloading all {N_GPU_LAYERS} layers)")
+        print(f"  gpu:    L4 24GB (offloading all {N_GPU_LAYERS} layers)")
 
         # llama-server stays alive for the life of the container
         self.server_proc = subprocess.Popen(
@@ -284,7 +291,7 @@ class HollyBrain:
             "notes": [
                 "GGUF + llama.cpp server (model is GGUF-only on HF)",
                 "Q4_K_M quantization (5.3 GB)",
-                "All layers offloaded to T4 GPU",
+                "All layers offloaded to L4 GPU (24GB VRAM)",
                 "Vision encoder (mmproj) loaded for image inputs",
             ],
         }

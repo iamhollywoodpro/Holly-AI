@@ -572,20 +572,19 @@ export async function POST(req: NextRequest) {
 
           // 9b. CONTEXT WINDOW PROTECTION
           //
-          // V3.5 (2026-06-30): Was 400K chars (~100K tokens) which silently
-          // overflowed brain-v35's 32K context and every free fallback (Dolphin
-          // Venice 32K, Hermes 131K). Result: cascade returned "I'm sorry, I'm
-          // having trouble connecting" for ANY conversation with accumulated
-          // history because all three tiers rejected the request.
+          // V3.6 (2026-06-30): Restored to 400K chars after migrating brain-v35
+          // to L4 GPU with 128K token context. Previous 100K cap was a bandaid
+          // for T4's 32K context. Now: 400K chars ≈ 100K tokens, fits in 128K
+          // brain-v35 context with 20K buffer for system prompt + response.
           //
-          // New cap: 100K chars ≈ 25K tokens. Plus ~6K system prompt + 4K
-          // response = ~35K total. Fits brain-v35 (32K) on small sessions,
-          // falls through cleanly to Dolphin (32K) / Hermes (131K) when needed.
+          // Steve's directive: Holly is unlimited forever. Real usage (long
+          // sessions, code files, accumulated history) should NEVER hit this
+          // cap in practice. The cap exists only as a hard safety net against
+          // pathological cases (e.g. thousands of messages in a single session).
           //
-          // If pasting base64 images, those count toward this cap and will
-          // trigger more aggressive truncation. That's the right behavior —
-          // we'd rather lose old history than have the whole request fail.
-          const MAX_CONTEXT_CHARS = 100_000;
+          // If you're adjusting this, also verify CONTEXT_SIZE in
+          // services/modal-llm/deploy_holly_v35.py — the two must align.
+          const MAX_CONTEXT_CHARS = 400_000;
           const systemMsg = messages[0];
           const systemChars = typeof systemMsg?.content === 'string' ? systemMsg.content.length : 0;
           const toolChars = groqTools ? JSON.stringify(groqTools).length : 0;
