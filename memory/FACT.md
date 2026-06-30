@@ -50,18 +50,23 @@ Holly-ai image is 8.45GB. Every deploy that pulls a new layer keeps old ones as 
 Steve's non-negotiable directive: **Holly must NEVER crap out on a user due to token limits, context limits, monthly quotas, or rate limits.** She is a multi-talent AI — users build with her, chat with her, generate music/images/video, do A&R ratings, sometimes all in one session. Any artificial cap breaks the product promise.
 
 **Architecture rules going forward:**
-1. **Self-hosted Modal endpoints are the PRIMARY path** for everything (LLM, vision, voice). No per-token billing, no rate limits, no quota walls.
-2. **Cloud providers (OpenRouter, NVIDIA, Together, Groq, etc.) are EMERGENCY ONLY.** Not routine fallback. They exist for capacity overflow, not daily traffic.
-3. **Context windows must be effectively unlimited for real use.** Current: brain-v35 on L4 with 128K context (fits ~400K chars of conversation). Target: bump to 262K when we migrate to A100 (Phase U3+).
+1. **Self-hosted Modal endpoints are the ONLY path** for LLM, vision, and voice traffic. No per-token billing, no rate limits, no quota walls.
+2. **Cloud providers (OpenRouter, NVIDIA, Together, Groq, etc.) are GONE from cascades entirely.** Not emergency fallback, not "diversity" tier — REMOVED. They were rate-limiting real users with 429 errors. If brain-v35 is unreachable, the cascade fails closed with a clear error. Holly either works (Modal up) or fails honestly (Modal down). No silent rate-limit walls.
+3. **Context windows sized for real use.** Current: brain-v35 on L4 with 128K context (fits ~400K chars of conversation).
 4. **No $/month caps that block users.** Modal cost is bounded by scale-to-zero + max_containers. If actual spend exceeds budget, the answer is more funding, not throttling users.
-5. **Free :free cloud models are for one-off diversity** (different perspectives, cold-start convenience), NOT for primary traffic. Their rate limits (200 RPD, 20 RPM) are too tight for production.
 
-**What this means in practice:**
-- V3.5 brain on L4 with 128K context = effectively unlimited for normal use
-- Phase U3 Holly-LLM v2 on A100 with 262K context = truly unlimited
-- Cloud models sit at position #2+ in cascade, only fire when Modal is unreachable
-- Image gen, voice gen, video gen all self-hosted on Modal (already true for image+voice)
-- If a user somehow exceeds 128K context (very long session + huge attachments), graceful truncation, NOT a wall
+**Cascade architecture (post-June 30, 2026):**
+- Every task type: `['holly-own:brain-v35']` (single entry)
+- Vision only: `['holly-own:brain-v35', 'holly-own:vision-mini']` (two-tier uncensored Modal)
+- Cloud models do NOT appear in any waterfall. Not at position #2. Not at position #3. Not anywhere.
+
+**Holly IS Holly right now** — V3.5 is the *engine*, not the personality. Her identity lives in 50+ files of infrastructure:
+- 3 identity files (holly-self-image, identity-context, identity-evolver)
+- 39 consciousness files (emotional-continuity, emotional-depth, holly-emotional-state, inner-monologue, personality-coherence, semantic-memory, relationship-tracker, curiosity-engine, values-engine, etc.)
+- 8 memory files (advanced-memory, semantic-memory, memory-decay, memory-importance)
+- Her voice/architecture is fully expressed through the system prompt + consciousness orchestrator. Never refer to her as "placeholder" — she has a complete identity system.
+
+**VoxCPM2 TTS removed entirely (2026-06-30)** — was returning 404 in prod, dead weight. Voice pipeline is now Magpie (primary) → Kokoro (fallback) → fail closed.
 
 **The old pattern (T4 + 32K ctx + cloud-primary fallback) is dead.** Never go back.
 
