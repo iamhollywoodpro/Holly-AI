@@ -490,19 +490,18 @@ describe('smartRoute', () => {
   });
 
   it('filters unhealthy providers from the waterfall', async () => {
-    // Re-require to get the mock and change its implementation.
-    // V3.5 cascade: speed waterfall is [holly-own, nvidia_nim, google].
-    // Mock nvidia_nim as unhealthy → it should be filtered out.
+    // V3.5 cascade: speed waterfall is [holly-own, openrouter, openrouter].
+    // Mock openrouter as unhealthy → both OpenRouter entries should be filtered.
     const { providerHealthMonitor } = jest.requireMock('@/lib/ai/provider-health');
     providerHealthMonitor.getAllHealthStatus.mockReturnValue([
-      { provider: 'nvidia_nim', healthy: false, lastCheck: new Date() },
+      { provider: 'openrouter', healthy: false, lastCheck: new Date() },
     ]);
 
     const result = await smartRoute('Hello');
     expect(result.filteredByHealth).toBe(true);
-    // No nvidia_nim models in filtered waterfall
+    // No openrouter models in filtered waterfall
     for (const spec of result.waterfall) {
-      expect(spec.provider).not.toBe('nvidia_nim');
+      expect(spec.provider).not.toBe('openrouter');
     }
 
     // Restore mock
