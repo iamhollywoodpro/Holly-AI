@@ -14,6 +14,35 @@ export interface LogEntry {
   requestId?: string;
 }
 
+// ─── Error ring buffer (for self-healing log scanning) ────────────────────────
+// Keeps the last 200 ERROR-level entries in memory so self-healing can detect
+// repeated error patterns without needing a DB migration or external log store.
+// In-memory only — resets on container restart. Sufficient for hourly scans.
+interface BufferedError {
+  timestamp: number;
+  message: string;
+  context?: Record<string, any>;
+}
+
+const ERROR_BUFFER_SIZE = 200;
+const errorBuffer: BufferedError[] = [];
+
+function pushToErrorBuffer(message: string, context?: Record<string, any>) {
+  errorBuffer.push({ timestamp: Date.now(), message, context });
+  if (errorBuffer.length > ERROR_BUFFER_SIZE) {
+    errorBuffer.shift();
+  }
+}
+
+/**
+ * Returns error entries from the last `minutes` minutes.
+ * Used by self-healing.ts checkLogErrors() to detect repeating error patterns.
+ */
+export function getRecentErrors(minutes: number): BufferedError[] {
+  const cutoff = Date.now() - minutes * 60 * 1000;
+  return errorBuffer.filter(e => e.timestamp >= cutoff);
+}
+
 class Logger {
   private formatLog(entry: LogEntry): string {
     return JSON.stringify({
@@ -44,6 +73,8 @@ class Logger {
         break;
       case LogLevel.ERROR:
         console.error(formatted);
+        // Feed the self-healing error ring buffer
+        pushToErrorBuffer(message, context);
         break;
     }
   }
