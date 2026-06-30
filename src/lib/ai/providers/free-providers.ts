@@ -623,13 +623,24 @@ export const googleProvider = {
   },
 };
 
-// ─── HOLLY-8B Self-Sovereign Provider ─────────────────────────────────────────
-// Holly's own fine-tuned Qwen3-8B model deployed on Modal.com
-// OpenAI-compatible API at HOLLY_OWN_MODEL_URL
+// ─── HOLLY Brain V3.5 Provider (HauhauCS Qwen3.5-9B Uncensored) ───────────────
+// Holly's primary reasoning model on Modal (iamhollywoodpro workspace).
+// llama.cpp server exposes OpenAI-compatible /v1/chat/completions.
+//
+// V3.5 (2026-06-30): Replaced the old DuoNeural Qwen3-8B endpoint as primary.
+//   - Fully uncensored (0/465 refusals — HauhauCS Aggressive abliteration)
+//   - Natively multimodal (text + image via mmproj)
+//   - Q4_K_M GGUF (5.3 GB), all layers on T4 GPU
+//   - ~45 tok/s warm, scale-to-zero after 5 min idle
 //
 // URL FORMAT: HOLLY_OWN_MODEL_URL must be the FULL chat endpoint URL
-//   (e.g., https://iamhollywoodpro--chat.modal.run)
+//   (e.g., https://iamhollywoodpro--brain-chat.modal.run)
 // Modal's fastapi_endpoint label IS the URL — do NOT append /chat to it.
+//
+// THINKING MODE: Qwen3.5 has a <think> block that activates by default and
+// will consume ALL max_tokens on reasoning_content if not disabled. We pass
+// chat_template_kwargs.enable_thinking=false by default for fast natural chat.
+// Override per-request via opts.enableThinking if a task needs deep reasoning.
 
 const HOLLY_OWN_URL = process.env.HOLLY_OWN_MODEL_URL || '';
 
@@ -638,29 +649,42 @@ const hollyOwnProvider: { isConfigured: () => boolean; streamChat: (messages: Ch
   async *streamChat(messages: ChatMessage[], _model: string, opts: StreamOptions = {}): TokenStream {
     if (!HOLLY_OWN_URL) throw new Error('HOLLY_OWN_MODEL_URL not configured');
 
-    // Modal endpoint returns JSON {response: "..."} — not OpenAI SSE.
-    // HOLLY_OWN_URL already points to the chat endpoint
-    // (e.g., https://iamhollywoodpro--chat.modal.run). POST directly to it.
     const res = await fetch(HOLLY_OWN_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         messages,
         temperature: opts.temperature ?? 0.7,
-        max_tokens:  opts.maxTokens   ?? 4096,
-        stream:      false,  // Modal endpoint returns full JSON, not SSE
+        max_tokens:  opts.maxTokens   ?? 1024,
+        stream:      false,
+        // Disable Qwen3.5 thinking mode for fast chat. Without this, the model
+        // spends all tokens on chain-of-thought and returns empty content.
+        // Override per-request via opts.enableThinking for reasoning tasks.
+        chat_template_kwargs: {
+          enable_thinking: (opts as any).enableThinking ?? false,
+        },
       }),
       signal: AbortSignal.timeout(90_000),  // cold start can be 30-60s; allow headroom
     });
 
     if (!res.ok) {
       const text = await res.text().catch(() => 'unknown error');
-      throw new Error(`HOLLY-8B API error ${res.status}: ${text}`);
+      throw new Error(`HOLLY Brain V3.5 API error ${res.status}: ${text}`);
     }
 
-    const data = await res.json() as { response?: string; error?: string };
-    if (data.error) throw new Error(`HOLLY-8B: ${data.error}`);
-    if (data.response) yield data.response;
+    const data = await res.json() as {
+      // OpenAI format (V3.5 llama-server)
+      choices?: Array<{ message?: { content?: string }; delta?: { content?: string } }>;
+      // Legacy format (old DuoNeural endpoint — kept for backward compat)
+      response?: string;
+      error?: string;
+    };
+
+    if (data.error) throw new Error(`HOLLY Brain V3.5: ${data.error}`);
+
+    // Prefer OpenAI format (V3.5), fall back to legacy format
+    const content = data.choices?.[0]?.message?.content ?? data.response;
+    if (content) yield content;
   },
 };
 
