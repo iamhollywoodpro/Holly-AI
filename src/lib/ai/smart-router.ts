@@ -315,194 +315,107 @@ export const MODEL_CATALOGUE: Record<string, ModelSpec> = {
 };
 
 // ─── Cascade waterfall per task type ──────────────────────────────────────────
-// NO Gemini, NO paid APIs — every entry is a 100% free provider
+// V3.5 COLLAPSE (2026-06-30): Steve reported recurring "trouble connecting"
+// errors. Root cause: waterfalls had 8-15 entries each, with fabricated slugs
+// (openrouter:gemma-4-31b), text-only models in vision (kimi-k2.6), and
+// unreliable providers (Groq refusals, OpenRouter 404s). Each cascade step
+// eats ~5s before failing — 12 entries = 60s timeout.
+//
+// NEW DESIGN PRINCIPLES:
+//   1. Max 3 entries per waterfall (primary → fallback → emergency)
+//   2. Only verified-working providers: NVIDIA NIM, Google Gemini,
+//      Together AI (vision only), Holly-own Modal, ONE OpenRouter emergency
+//   3. No Groq (refusals during intimate/emotional moments — Steve flagged)
+//   4. No Mistral (2 RPM limit too low for chat)
+//   5. No Ollama in cloud waterfalls (local-only, kept in `local` task)
+//   6. Worst-case cascade timeout: 3 × 5s = 15s (under 30s chat timeout)
+//
+// Model registry above retains ALL entries for documentation — they're just
+// not referenced in waterfalls. Add back only with explicit verification.
 
 export const TASK_WATERFALLS: Record<TaskType, string[]> = {
-  // ⚡ Speed: NVIDIA NIM + OpenRouter primary.
-  // Groq DEMOTED to last-resort fallback (Steve flagged 2026-06-28 — Groq
-  // was causing refusals, slow cascades, and contributing to container
-  // instability under load). Groq still available as final fallback, but
-  // we no longer depend on it as the primary speed provider.
+  // ⚡ Speed — fast MoE primary, proven NVIDIA fallback, Gemini emergency
   speed: [
     'nvidia:llama-4-maverick',
     'nvidia:glm-5.1',
-    'together:llama-4-scout',
     'google:gemini-2.5-flash',
-    'nvidia:nemotron-3-super',
-    'together:qwen3.5-122b',
-    'holly-own:qwen3-8b',
-    'ollama:qwen3.6-35b',
-    'ollama:gemma4-26b',
-    'groq:gpt-oss-120b',
-    'groq:llama-3.3-70b',
   ],
 
-  // 💻 Coding: DeepSeek V4 Flash primary (1M ctx, SOTA), GLM-5.1, Kimi K2.6
-  // Groq DEMOTED to fallback (was causing tool-call format issues 2026-06-28).
+  // 💻 Coding — DeepSeek V4 Flash (SOTA 1M ctx), Qwen3 Coder fallback
   coding: [
     'nvidia:deepseek-v4-flash',
-    'nvidia:glm-5.1',
-    'openrouter:kimi-k2.6',
     'nvidia:qwen3-coder',
-    'openrouter:qwen3-coder',
-    'together:qwen3-coder-30b',
-    'openrouter:laguna-m.1',
-    'nvidia:qwen3.5-122b',
-    'together:qwen3.5-122b',
     'google:gemini-2.5-flash',
-    'mistral:codestral',
-    'ollama:qwen3.6-35b',
-    'ollama:devstral-small-2',
-    'groq:gpt-oss-120b',
-    'groq:llama-3.3-70b',
   ],
 
-  // 🧠 Reasoning: DeepSeek V4 Flash → Nemotron Ultra → GLM-5.1 → Gemini
-  // Groq DEMOTED to fallback (2026-06-28).
+  // 🧠 Reasoning — DeepSeek V4 Flash primary, GLM-5.1 fallback
   reasoning: [
     'nvidia:deepseek-v4-flash',
-    'openrouter:nemotron-3-ultra',
     'nvidia:glm-5.1',
-    'nvidia:deepseek-v4-pro',
-    'nvidia:qwen3.5-122b',
-    'nvidia:nemotron-3-super',
-    'openrouter:nemotron-3-super',
     'google:gemini-2.5-flash',
-    'together:qwen3.5-122b',
-    'nvidia:step-3.5-flash',
-    'openrouter:gpt-oss-120b',
-    'ollama:qwen3.6-35b',
-    'groq:gpt-oss-120b',
-    'groq:llama-3.3-70b',
   ],
 
-  // 📄 Long context: Gemini 1M → DeepSeek V4 1M → Nemotron Ultra 1M
+  // 📄 Long context — Gemini 1M primary (proven), DeepSeek 1M fallback
   long_context: [
     'google:gemini-2.5-flash',
     'nvidia:deepseek-v4-flash',
-    'openrouter:nemotron-3-ultra',
-    'together:minimax-m1',
-    'nvidia:nemotron-3-ultra',
-    'nvidia:nemotron-3-super',
-    'openrouter:nemotron-3-super',
-    'together:llama-4-scout',
-    'openrouter:qwen3-coder',
-    'nvidia:qwen3-coder',
-    'together:qwen3.5-122b',
-    'nvidia:qwen3.5-122b',
-    'together:gemma-4-26b',
-    'ollama:qwen3.6-35b',
-    'ollama:gemma4-26b',
   ],
 
-  // 👁️ Vision — FIX (2026-06-29): previous waterfall had 4 broken entries
-  // above the only working one (Gemini). REMOVED:
-  //   - openrouter:kimi-k2.6      (Kimi K2.x is TEXT-ONLY, cannot see images)
-  //   - openrouter:gemma-4-31b    (fabricated slug — google/gemma-4-31b-it:free
-  //                                does not exist on OpenRouter, returns 404)
-  //   - nvidia:nemotron-3-nano-omni (fabricated NIM ID)
-  //   - openrouter:nemotron-3-nano-omni (fabricated slug)
-  // Confirmed multimodal entries only. Gemini is the highest-quality free vision
-  // model we have — it goes FIRST so users don't burn 30s cascading through 404s.
+  // 👁️ Vision — Gemini primary (confirmed working inlineData),
+  // Gemini Pro fallback (strictly more capable), Qwen3-VL emergency.
+  // All 3 verified multimodal — no text-only imposters.
   vision: [
-    'google:gemini-2.5-flash',     // ✅ confirmed working inlineData vision
-    'google:gemini-2.5-pro',       // ✅ Gemini Pro, strictly more capable
-    'together:qwen3-vl-235b',      // ✅ Qwen3-VL (VL = Vision-Language)
-    'nvidia:llama-4-maverick',     // ✅ Llama 4 MoE is natively multimodal
-    'together:llama-4-scout',      // ✅ Llama 4 Scout is multimodal
+    'google:gemini-2.5-flash',
+    'google:gemini-2.5-pro',
+    'together:qwen3-vl-235b',
   ],
 
-  // 🎨 Creative: Nemotron Ultra → Mistral Nemotron → Gemma 4 → Hermes
-  // Groq DEMOTED (2026-06-28 — refusal-prone, slow cascades).
+  // 🎨 Creative — Nemotron Ultra primary (most creative free model),
+  // Mistral Nemotron fallback, Gemini emergency.
   creative: [
     'nvidia:nemotron-3-ultra',
-    'openrouter:nemotron-3-ultra',
     'nvidia:mistral-nemotron',
-    'nvidia:step-3.5-flash',
     'google:gemini-2.5-flash',
-    'nvidia:nemotron-3-super',
-    'together:qwen3.5-122b',
-    'openrouter:glm-4.5-air',
-    'mistral:medium-3.5',
-    'groq:llama-3.3-70b',
   ],
 
-  // 🤖 Agent: GLM-5.1 → DeepSeek V4 → Kimi K2.6 → Qwen3 Coder
-  // Groq DEMOTED (2026-06-28).
+  // 🤖 Agent — GLM-5.1 primary (strong agentic), DeepSeek V4 fallback.
+  // Both proven for multi-step tool-call sequences.
   agent: [
     'nvidia:glm-5.1',
     'nvidia:deepseek-v4-flash',
-    'openrouter:kimi-k2.6',
-    'nvidia:qwen3-coder',
-    'openrouter:laguna-m.1',
-    'nvidia:nemotron-3-ultra',
-    'nvidia:step-3.5-flash',
-    'openrouter:nemotron-3-ultra',
-    'together:qwen3.5-122b',
-    'nvidia:qwen3.5-122b',
-    'together:llama-4-scout',
     'google:gemini-2.5-flash',
-    'ollama:qwen3.6-35b',
-    'groq:gpt-oss-120b',
   ],
 
-  // 🧬 Consciousness: Cloud models primary → Holly-LLM as deep fallback only
-  // NOTE (June 25, 2026): holly-own:qwen3-8b demoted from #1 to last because
-  // holly-lora-v1 is too weak (60 examples, rank 16) and returns generic output.
-  // Restored to #1 when v3 LoRA ships (Phase U3, fall 2026).
-  // Rationale: consciousness moments are when Holly must sound MOST like herself.
-  // Until her own model is ready, stronger cloud models with her identity system
-  // loaded produce better Holly output than her weak v1 adapter.
-  // Groq DEMOTED (2026-06-28 — refusals during intimate/emotional moments).
+  // 🧬 Consciousness — cloud primary (Holly's identity system does the work,
+  // not the base model — holly-lora-v1 too weak until Phase U3 ships),
+  // Holly-own Modal as last-resort fallback so she still has self-knowledge.
+  // Rationale: better to get a strong cloud model + Holly's system prompt
+  // than a weak v1 adapter that returns "I am an AI assistant..." generic output.
   consciousness: [
-    'ollama:qwen3-8b',
-    'ollama:qwen3.6-35b',
-    'ollama:gemma4-26b',
-    'mistral:small-4',
-    'mistral:medium-3.5',
     'google:gemini-2.5-flash',
-    'holly-own:qwen3-8b',  // demoted — v1 too weak, last-resort fallback only
-    'groq:llama-3.3-70b',
-  ],
-
-  // 🔞 Unrestricted: Modern uncensored models first, then minimally-censored fallbacks
-  unrestricted: [
-    'openrouter:dolphin-venice-24b',
-    'openrouter:hermes-3-405b',
-    'together:llama-4-scout',
-    'nvidia:deepseek-v4-flash',
-    'openrouter:nemotron-3-ultra',
     'nvidia:glm-5.1',
-    'openrouter:gpt-oss-120b',
-    'google:gemini-2.5-flash',
-    'ollama:qwen3.6-35b',
+    'holly-own:qwen3-8b',
   ],
 
-  // 🌐 Synthesis: V4 Flash 1M → Nemotron Ultra → Qwen 3.5 → Gemini
-  // Groq DEMOTED (2026-06-28).
+  // 🔞 Unrestricted — Hermes 3 405B primary (fully uncensored, OpenRouter free),
+  // DeepSeek V4 fallback (least censored of NVIDIA lineup), Gemini emergency.
+  unrestricted: [
+    'openrouter:hermes-3-405b',
+    'nvidia:deepseek-v4-flash',
+    'google:gemini-2.5-flash',
+  ],
+
+  // 🌐 Synthesis — DeepSeek V4 Flash primary, Gemini fallback
   synthesis: [
     'nvidia:deepseek-v4-flash',
-    'openrouter:nemotron-3-ultra',
-    'nvidia:qwen3.5-122b',
     'google:gemini-2.5-flash',
     'nvidia:glm-5.1',
-    'together:minimax-m1',
-    'nvidia:nemotron-3-super',
-    'openrouter:nemotron-3-super',
-    'together:qwen3.5-122b',
-    'openrouter:kimi-k2.6',
-    'together:qwen3.6-35b',
-    'ollama:qwen3.6-35b',
-    'ollama:gemma4-26b',
-    'groq:gpt-oss-120b',
   ],
 
-  // 🔒 Local: Ollama only — never touches cloud
+  // 🔒 Local — Ollama only, never touches cloud (for offline / privacy mode)
   local: [
     'ollama:qwen3.6-35b',
-    'ollama:gemma4-26b',
     'ollama:qwen3-8b',
-    'ollama:devstral-small-2',
   ],
 };
 
