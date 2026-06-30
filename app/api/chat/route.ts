@@ -571,7 +571,21 @@ export async function POST(req: NextRequest) {
           }
 
           // 9b. CONTEXT WINDOW PROTECTION
-          const MAX_CONTEXT_CHARS = 400_000;
+          //
+          // V3.5 (2026-06-30): Was 400K chars (~100K tokens) which silently
+          // overflowed brain-v35's 32K context and every free fallback (Dolphin
+          // Venice 32K, Hermes 131K). Result: cascade returned "I'm sorry, I'm
+          // having trouble connecting" for ANY conversation with accumulated
+          // history because all three tiers rejected the request.
+          //
+          // New cap: 100K chars ≈ 25K tokens. Plus ~6K system prompt + 4K
+          // response = ~35K total. Fits brain-v35 (32K) on small sessions,
+          // falls through cleanly to Dolphin (32K) / Hermes (131K) when needed.
+          //
+          // If pasting base64 images, those count toward this cap and will
+          // trigger more aggressive truncation. That's the right behavior —
+          // we'd rather lose old history than have the whole request fail.
+          const MAX_CONTEXT_CHARS = 100_000;
           const systemMsg = messages[0];
           const systemChars = typeof systemMsg?.content === 'string' ? systemMsg.content.length : 0;
           const toolChars = groqTools ? JSON.stringify(groqTools).length : 0;
