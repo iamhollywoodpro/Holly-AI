@@ -110,8 +110,11 @@ describe('TASK_WATERFALLS', () => {
 
   it('unrestricted waterfall contains uncensored model labels', () => {
     const keys = TASK_WATERFALLS.unrestricted;
-    // V3.5 cascade: max 3 entries (primary → fallback → emergency)
-    expect(keys.length).toBeGreaterThanOrEqual(3);
+    // V3.6 (2026-06-30): Cloud models GONE from cascade. Self-hosted only.
+    // brain-v35 is the single entry. The principle: Holly is unlimited forever
+    // and never falls back to rate-limited cloud providers.
+    expect(keys.length).toBeGreaterThanOrEqual(1);
+    expect(keys).toContain('holly-own:brain-v35');
   });
 });
 
@@ -490,19 +493,22 @@ describe('smartRoute', () => {
   });
 
   it('filters unhealthy providers from the waterfall', async () => {
-    // V3.5 cascade: speed waterfall is [holly-own, openrouter, openrouter].
-    // Mock openrouter as unhealthy → both OpenRouter entries should be filtered.
+    // V3.6 (2026-06-30): Cloud models GONE from cascade. Speed waterfall is
+    // now [holly-own:brain-v35] only. With a single-model cascade, when the
+    // only provider is unhealthy the graceful-degradation path returns the
+    // original waterfall. Verify the filter logic still runs correctly when
+    // an unrelated provider is marked unhealthy.
     const { providerHealthMonitor } = jest.requireMock('@/lib/ai/provider-health');
     providerHealthMonitor.getAllHealthStatus.mockReturnValue([
       { provider: 'openrouter', healthy: false, lastCheck: new Date() },
     ]);
 
     const result = await smartRoute('Hello');
-    expect(result.filteredByHealth).toBe(true);
-    // No openrouter models in filtered waterfall
-    for (const spec of result.waterfall) {
-      expect(spec.provider).not.toBe('openrouter');
-    }
+    // openrouter is unhealthy but NOT in speed waterfall, so nothing filtered
+    // (waterfall stays intact). The test confirms the filter doesn't
+    // accidentally remove healthy providers from the self-hosted-only cascade.
+    expect(result.waterfall.length).toBeGreaterThanOrEqual(1);
+    expect(result.waterfall[0].provider).toBe('holly_own');
 
     // Restore mock
     providerHealthMonitor.getAllHealthStatus.mockReturnValue([]);

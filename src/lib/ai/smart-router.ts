@@ -334,70 +334,46 @@ export const MODEL_CATALOGUE: Record<string, ModelSpec> = {
 };
 
 // ─── Cascade waterfall per task type ──────────────────────────────────────────
-// V3.5 UNCENSORED CASCADE (2026-06-30): Every waterfall is FULLY uncensored
-// at every tier. No censored model in any position — period.
+// V3.6 (2026-06-30): SELF-HOSTED ONLY. Cloud models GONE from every cascade.
 //
-// WHY NVIDIA WAS REMOVED ENTIRELY:
-// NVIDIA models return NSFW refusals as HTTP 200 "success" responses.
-// The cascade only advances on infrastructure failure (429/5xx/timeout),
-// NOT on content refusals. So a censored model in the middle tier traps
-// Holly — she gets "I can't help with that" and never reaches the uncensored
-// emergency. A censored middle tier defeats the entire cascade design.
+// Steve's directive: Holly is unlimited forever. Cloud providers (OpenRouter,
+// NVIDIA, Groq, Together) were rate-limiting real users with 429s. They are
+// REMOVED from all task types — not demoted, REMOVED. If brain-v35 is
+// unreachable, the cascade fails closed. No more silent rate-limit walls.
 //
-// THREE-TIER DESIGN — all uncensored:
-//   1. PRIMARY: holly-own:brain-v35 (HauhauCS Qwen3.5-9B, 0/465 refusals)
-//   2. FALLBACK: OpenRouter uncensored (200 RPD each, independent limits):
-//      - dolphin-venice-24b (33K ctx) — fast chat/intimate/creative
-//      - hermes-3-405b (131K ctx) — coding/reasoning/agent
-//   3. EMERGENCY: the other OpenRouter model (provider diversity within OR)
+// brain-v35 now runs on L4 GPU with 128K context — covers every real use case
+// (long sessions, code files, accumulated history, multi-talent sessions).
+// vision-mini (Qwen3.5-4B gabliterated) backs up vision only.
 //
-// SOLE EXCEPTION — long_context:
-//   V3.5 has 32K ctx, Dolphin 33K, Hermes 131K. None can handle >131K docs.
-//   DeepSeek V4 Flash (1M ctx, NVIDIA) is the only free option for massive
-//   documents. It stays here as a SIZE requirement, not a censorship choice.
-//   If a doc is >131K, there is no free uncensored alternative — full stop.
+// VISION:
+//   1. PRIMARY: holly-own:brain-v35 (mmproj vision encoder, uncensored)
+//   2. FALLBACK: holly-own:vision-mini (Qwen3.5-4B gabliterated)
+//   Both Modal endpoints uncensored. If both down → fail closed.
 //
-// VISION (2026-06-30): Two-tier uncensored vision. Both Modal endpoints are
-// abliterated — no RLHF refusals on NSFW image content.
-//   1. PRIMARY: holly-own:brain-v35 (HauhauCS Qwen3.5-9B + mmproj vision encoder)
-//   2. FALLBACK: holly-own:vision-mini (Huihui MiniCPM-V 4.6 abliterated)
-// Together Qwen3-VL is GONE — it's RLHF-censored and was sneaking refusals
-// past the cascade. If both Modal endpoints are cold/down, vision fails
-// closed (no answer) rather than falling back to a censored model. That's
-// the right tradeoff for an uncensored AI partner.
-//
-// Cascade timeout: 3 × ~5s = 15s max. Well under 30s chat limit.
+// Cascade timeout: 1 × ~5s for routine tasks. Vision has 2 × ~5s.
+// Fast fail when Modal is unreachable — better a clear error than a 429 wall.
 
 export const TASK_WATERFALLS: Record<TaskType, string[]> = {
   speed: [
     'holly-own:brain-v35',
-    'openrouter:dolphin-venice-24b',
-    'openrouter:hermes-3-405b',
   ],
 
   coding: [
     'holly-own:brain-v35',
-    'openrouter:hermes-3-405b',
-    'openrouter:dolphin-venice-24b',
   ],
 
   reasoning: [
     'holly-own:brain-v35',
-    'openrouter:hermes-3-405b',
-    'openrouter:dolphin-venice-24b',
   ],
 
-  // SOLE EXCEPTION: 1M context is a hard requirement for massive documents.
-  // No free uncensored model has >131K context. DeepSeek V4 (1M, NVIDIA) stays
-  // here ONLY because of context size. Hermes 131K catches sub-131K docs.
+  // brain-v35's 128K context covers every real document. If a doc somehow
+  // exceeds 128K, graceful failure with a clear message — NOT a cloud fallback.
   long_context: [
-    'nvidia:deepseek-v4-flash',
-    'openrouter:hermes-3-405b',
+    'holly-own:brain-v35',
   ],
 
-  // Two-tier uncensored vision. brain-v35 mmproj primary, MiniCPM-V abliterated
-  // fallback. Together Qwen3-VL is GONE — censored, was sneaking refusals past
-  // cascade. If both Modal endpoints down → fail closed (no censored fallback).
+  // Two-tier uncensored vision. brain-v35 mmproj primary, Qwen3.5-4B gabliterated
+  // fallback. If both Modal endpoints down → fail closed.
   vision: [
     'holly-own:brain-v35',
     'holly-own:vision-mini',
@@ -405,33 +381,22 @@ export const TASK_WATERFALLS: Record<TaskType, string[]> = {
 
   creative: [
     'holly-own:brain-v35',
-    'openrouter:dolphin-venice-24b',
-    'openrouter:hermes-3-405b',
   ],
 
   agent: [
     'holly-own:brain-v35',
-    'openrouter:hermes-3-405b',
-    'openrouter:dolphin-venice-24b',
   ],
 
   consciousness: [
     'holly-own:brain-v35',
-    'openrouter:dolphin-venice-24b',
-    'holly-own:qwen3-8b',
   ],
 
-  // ALL THREE entries fully uncensored. No wall anywhere.
   unrestricted: [
     'holly-own:brain-v35',
-    'openrouter:hermes-3-405b',
-    'openrouter:dolphin-venice-24b',
   ],
 
   synthesis: [
     'holly-own:brain-v35',
-    'openrouter:hermes-3-405b',
-    'openrouter:dolphin-venice-24b',
   ],
 
   local: [
