@@ -12,6 +12,7 @@
 - Comfortable with Dev acting independently on safe/routine tasks
 - Wants to understand what's being changed before it hits production
 - Values speed but never at the cost of breaking Holly
+- **DO NOT monitor CI/CD pipelines, deployment status, or build progress.** Steve handles deploy monitoring himself. Never spawn `gh run watch`, background deploy pollers, or similar long-running watch tasks — they hang the session and waste Steve's time. Push the code, confirm the push succeeded, then stop. Steve will tell you when the deploy is live.
 
 ## The Holly Vision
 - Holly is an **AI partner** — not a chatbot, not a generic assistant

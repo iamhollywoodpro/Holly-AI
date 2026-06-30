@@ -12,7 +12,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { generateMorningBriefing, persistBriefingNotification } from '@/lib/autonomy/morning-briefing';
+import { generateMorningBriefing, persistBriefingNotification, dispatchBriefingSMS } from '@/lib/autonomy/morning-briefing';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -82,6 +82,12 @@ export async function POST(req: NextRequest) {
           user.id,
           briefing,
         );
+
+        // ── Dispatch SMS to the creator (the actual point of the morning briefing) ──
+        // Previously this only lived in the on-demand /api/autonomy route.
+        // Without this call here, the SCHEDULED cron route generated briefings
+        // that nobody received via SMS — root cause of "I'm not getting morning briefings".
+        await dispatchBriefingSMS(briefing);
 
         results.push({ userId: user.id, success: true });
         console.log(`[MorningBriefing Cron] Briefing generated for user ${user.id}: ${briefing.overallStatus}`);

@@ -1,5 +1,24 @@
 # Holly AI — Project State & Roadmap
 
+## CRITICAL LESSON — The Self-Prompting Bug (Recurring, June 29, 2026)
+Holly keeps emitting her FULL body description (eye color, breast size, nipple details, skin physics — 400+ words) as the image generation prompt. This is the **third time** this bug has surfaced. Root cause: her system prompt (`holly-self-image.ts`) says "draw from this" when describing image generation, which she interprets as "copy everything into the prompt."
+
+**Defense-in-depth fix (June 29, all 3 layers now in place):**
+1. **System prompt** — rewritten to explicitly say "ONLY trigger words + action/pose, 10-30 words max. Do NOT describe body/anatomy."
+2. **Sanitizer** — `sanitizeHollyImagePrompt()` in route.ts strips body description if prompt >200 chars and contains `h0lly`. Applied inside `runDirectImageGen` (covers all call paths).
+3. **Endpoint** — `HOLLY_BODY_PREFIX` auto-injects full anatomy when it sees `h0lly`. This was already working; the bug was upstream.
+
+**If this bug surfaces again:** The sanitizer is the safety net. Check whether the prompt reaching `runDirectImageGen` is being sanitized. If it's bypassing the sanitizer (e.g., a new call path), add sanitization there too.
+
+## CRITICAL LESSON — Fabricated Model IDs in the Cascade (June 29, 2026)
+The vision waterfall had 4 entries with model IDs that **did not exist** on their providers:
+- `google/gemma-4-31b-it:free` on OpenRouter (fabricated — no such slug)
+- `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning` on NVIDIA NIM (fabricated ID)
+- Same model `:free` variant on OpenRouter (also fabricated)
+- `moonshotai/kimi-k2.6:free` was real but **text-only** — cannot do vision at all
+
+**LESSON:** When adding models to the cascade, VERIFY the model ID exists on the provider BEFORE adding it. A fabricated ID in position #1 of a waterfall silently breaks the entire task type because every request cascades through 404s before reaching a working model. Gemini was the only working vision entry but was buried at position #5.
+
 ## CRITICAL LESSON — Read The Deploy Log End-to-End (June 26, 2026)
 Steve spent hours thinking a deploy failure was a "Docker race" because I theorized instead of reading the Coolify deploy log carefully. The error `no space left on device` was in the very first log paste, plain as day. I missed it twice.
 
@@ -49,8 +68,8 @@ Steve called out that I've been treating Holly like a checkbox exercise:
 
 `services/modal-media/image_generate_flux2klein_a100.py` has:
 - **Both LoRAs BAKED at container startup** (loaded + fused, always active):
-  - `holly-face-v2.safetensors` @ 0.95 (raised from 0.85 by Steve June 25)
-  - `holly-body-v2.5.safetensors` @ 1.15 (raised from 0.75 by Steve June 25)
+  - `holly-face-v2.safetensors` @ 0.75 (avatar recipe — 0.95 distorted face geometry per June 27 isolation test)
+  - `holly-body-v2.5.safetensors` @ 1.0 (raised from 0.65 on June 29 — 0.65 caused see-through clothing on NSFW because it couldn't override Klein's clothing priors)
 - **Its own `HOLLY_BODY_PREFIX`** that auto-expands the `h0lly` trigger:
   - Starts with `"h0lly, h0lly-body, completely nude woman, fully naked, bare skin, not wearing any clothing..."` then full anatomy from HOLLY_ANATOMY.md
 - When endpoint sees `h0lly` in prompt → REPLACES `h0lly` with full prefix
@@ -65,6 +84,9 @@ The chat route's job is to send ONLY: `"h0lly, h0lly-body, ${user_action}"`.
 - ✅ Alt-text in markdown should use `latestUserMessage`, not the prompt
 - ✅ Describe-message should ask Holly to describe mood/pose/moment, NOT body attributes
 
+**Self-prompting sanitizer (June 29, 2026):**
+`sanitizeHollyImagePrompt()` in route.ts is the belt-and-suspenders guard. If an intercepted prompt contains `h0lly` and exceeds 200 chars, it strips body-description sentences (detected via body-part keywords) and keeps only action/pose/mood/setting phrases. Applied inside `runDirectImageGen` so ALL call paths are covered. The system prompt instruction was also rewritten to be explicit: "ONLY trigger words + action/pose, 10-30 words max. Do NOT describe body/face/anatomy."
+
 **Specialist LoRA layer (media-generator.ts, June 25):**
 - `classifySpecialist()` detects dildo / closeup / bent_over from prompt keywords
 - Layers dynamic LoRAs (FK_dildoinsertion, pussydiffusion, femaleasshole-musubituner) on top of baked face+body
@@ -72,10 +94,11 @@ The chat route's job is to send ONLY: `"h0lly, h0lly-body, ${user_action}"`.
 - `LIMB_ANCHORS` const prevents Klein phantom limbs: "single woman, one body, one head, exactly two arms..."
 - If A100 fails for Holly self-portrait → THROWS (refuses to fall back to censored model that would show clothed imposter)
 
-**Chat route image gen paths (3 total):**
+**Chat route image gen paths (4 total):**
 - **Path A** (pre-detection regex) — most reliable. Direct `generateImage()` call. Sends `h0lly, h0lly-body, ${user_action}`. Image renders inline as markdown.
 - **Path B** (native Groq/Arcee tool_calls) — used for non-NSFW when tools available
 - **Path C** (text-intercepted tool call JSON/XML) — catches everything Holly emits as text. Handles: nested OpenAI JSON, ReAct, multi-line JSON, single-quoted, code-fenced, `<generate_image>...</generate_image>` XML, self-closing attrs.
+- **Path C.5** (`<tool_code>` Python format, added June 29) — catches Python-style `generate_image(prompt='...')` calls wrapped in `<tool_code>`/`<tool_call>` tags. Some code-trained models emit this instead of JSON/XML.
 
 **Path A regex patterns (3):**
 1. Direct media command: `(generate|create|draw|make|render|paint|show|send|take|snap|give) + 0-4 words + (image|picture|photo|video|clip|portrait|selfie|illustration|artwork|render|pic|film|animation|gif)`
