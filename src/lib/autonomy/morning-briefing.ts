@@ -195,6 +195,58 @@ function fallbackBriefing(
   };
 }
 
+/**
+ * Dispatch the morning briefing via SMS to the creator.
+ *
+ * Extracted from the on-demand route so BOTH the on-demand route
+ * AND the scheduled cron route use the same dispatch path.
+ *
+ * No-ops cleanly if Twilio or CREATOR_PHONE is not configured.
+ */
+export async function dispatchBriefingSMS(briefing: MorningBriefing): Promise<void> {
+  const creatorPhone = process.env.CREATOR_PHONE;
+  const twilioConfigured = !!(
+    process.env.TWILIO_ACCOUNT_SID &&
+    process.env.TWILIO_AUTH_TOKEN &&
+    process.env.TWILIO_PHONE_NUMBER
+  );
+
+  if (!creatorPhone || !twilioConfigured) {
+    console.warn(
+      `[MorningBriefing] ⚠️ SMS skipped — CREATOR_PHONE: ${creatorPhone ? 'set' : 'MISSING'}, ` +
+      `Twilio: ${twilioConfigured ? 'configured' : 'MISSING'}`
+    );
+    return;
+  }
+
+  try {
+    const { sendSMS } = await import('@/lib/integrations/sms-service');
+    const parts = [
+      `☀️ Holly's Morning Briefing`,
+      ``,
+      briefing.greeting || '',
+      briefing.overnightSummary || '',
+      ``,
+      `Health: ${briefing.systemHealth || 'OK'}`,
+      briefing.emotionalState ? `Mood: ${briefing.emotionalState}` : '',
+      briefing.activeGoals?.length ? `Goals: ${briefing.activeGoals.slice(0, 3).join(', ')}` : '',
+      briefing.recommendedActions?.length ? `Next: ${briefing.recommendedActions[0]}` : '',
+      ``,
+      `Chat with me at holly.nexamusicgroup.com 💚`,
+    ].filter(Boolean).join('\n');
+
+    console.log(`[MorningBriefing] Sending SMS to ${creatorPhone} (${parts.length} chars)`);
+    const result = await sendSMS({ to: creatorPhone, body: parts.substring(0, 800) });
+    if (result.sent) {
+      console.log(`[MorningBriefing] ✅ SMS sent — messageId: ${result.messageId}`);
+    } else {
+      console.warn(`[MorningBriefing] ❌ SMS failed: ${result.error}`);
+    }
+  } catch (smsErr) {
+    console.warn('[MorningBriefing] ❌ SMS dispatch error:', smsErr);
+  }
+}
+
 export async function persistBriefingNotification(
   clerkUserId: string,
   dbUserId: string,

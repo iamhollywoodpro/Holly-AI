@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { generateMorningBriefing, persistBriefingNotification } from '@/lib/autonomy/morning-briefing';
+import { generateMorningBriefing, persistBriefingNotification, dispatchBriefingSMS } from '@/lib/autonomy/morning-briefing';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -47,42 +47,8 @@ async function runMorningBriefing(req: NextRequest) {
     const briefing = await generateMorningBriefing(dbUserId);
     await persistBriefingNotification(clerkUserId, dbUserId, briefing);
 
-    // ── Send morning briefing SMS to the creator ─────────────────────────────
-    const creatorPhone = process.env.CREATOR_PHONE;
-    const twilioConfigured = !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER);
-
-    console.log(`[MorningBriefing] SMS check — CREATOR_PHONE: ${creatorPhone ? 'set' : 'NOT SET'}, Twilio: ${twilioConfigured ? 'configured' : 'NOT CONFIGURED'}`);
-
-    if (creatorPhone && twilioConfigured) {
-      try {
-        const { sendSMS } = await import('@/lib/integrations/sms-service');
-        // Build SMS-friendly summary from briefing fields
-        const parts = [
-          `☀️ Holly's Morning Briefing`,
-          ``,
-          briefing.greeting || '',
-          briefing.overnightSummary || '',
-          ``,
-          `Health: ${briefing.systemHealth || 'OK'}`,
-          briefing.emotionalState ? `Mood: ${briefing.emotionalState}` : '',
-          briefing.activeGoals?.length ? `Goals: ${briefing.activeGoals.slice(0, 3).join(', ')}` : '',
-          briefing.recommendedActions?.length ? `Next: ${briefing.recommendedActions[0]}` : '',
-          ``,
-          `Chat with me at holly.nexamusicgroup.com 💚`,
-        ].filter(Boolean).join('\n');
-        console.log(`[MorningBriefing] Sending SMS to ${creatorPhone} (${parts.length} chars)`);
-        const result = await sendSMS({ to: creatorPhone, body: parts.substring(0, 800) });
-        if (result.sent) {
-          console.log(`[MorningBriefing] ✅ SMS sent — messageId: ${result.messageId}`);
-        } else {
-          console.warn(`[MorningBriefing] ❌ SMS failed: ${result.error}`);
-        }
-      } catch (smsErr) {
-        console.warn('[MorningBriefing] ❌ SMS dispatch error:', smsErr);
-      }
-    } else {
-      console.warn(`[MorningBriefing] ⚠️ SMS skipped — CREATOR_PHONE: ${creatorPhone ? 'set' : 'MISSING'}, Twilio: ${twilioConfigured ? 'configured' : 'MISSING'}`);
-    }
+    // Dispatch SMS via shared helper (also used by the cron route).
+    await dispatchBriefingSMS(briefing);
 
     return NextResponse.json({ success: true, briefing });
   } catch (err: any) {

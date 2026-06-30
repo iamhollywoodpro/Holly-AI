@@ -191,9 +191,12 @@ export const MODEL_CATALOGUE: Record<string, ModelSpec> = {
     provider: 'openrouter', model: 'openai/gpt-oss-120b:free',
     displayName: 'GPT-OSS 120B (OpenRouter free)', contextK: 128, streaming: true,
   },
+  // ⚠️ FABRICATED SLUG (2026-06-29): "google/gemma-4-31b-it:free" does NOT exist
+  // on OpenRouter and returns 404. Kept here as a tombstone so nobody re-adds it.
+  // If you want Gemma 4 on OpenRouter, find the REAL slug first and verify it.
   'openrouter:gemma-4-31b': {
     provider: 'openrouter', model: 'google/gemma-4-31b-it:free',
-    displayName: 'Gemma 4 31B Multimodal (OpenRouter free)', contextK: 256, streaming: true,
+    displayName: 'Gemma 4 31B Multimodal (OpenRouter free — DOES NOT EXIST)', contextK: 256, streaming: true,
   },
   'openrouter:qwen3-coder': {
     provider: 'openrouter', model: 'qwen/qwen3-coder:free',
@@ -324,7 +327,6 @@ export const TASK_WATERFALLS: Record<TaskType, string[]> = {
     'nvidia:llama-4-maverick',
     'nvidia:glm-5.1',
     'together:llama-4-scout',
-    'openrouter:gemma-4-31b',
     'google:gemini-2.5-flash',
     'nvidia:nemotron-3-super',
     'together:qwen3.5-122b',
@@ -388,7 +390,6 @@ export const TASK_WATERFALLS: Record<TaskType, string[]> = {
     'nvidia:qwen3-coder',
     'together:qwen3.5-122b',
     'nvidia:qwen3.5-122b',
-    'openrouter:gemma-4-31b',
     'together:gemma-4-26b',
     'ollama:qwen3.6-35b',
     'ollama:gemma4-26b',
@@ -418,7 +419,6 @@ export const TASK_WATERFALLS: Record<TaskType, string[]> = {
     'openrouter:nemotron-3-ultra',
     'nvidia:mistral-nemotron',
     'nvidia:step-3.5-flash',
-    'openrouter:gemma-4-31b',
     'google:gemini-2.5-flash',
     'nvidia:nemotron-3-super',
     'together:qwen3.5-122b',
@@ -490,7 +490,6 @@ export const TASK_WATERFALLS: Record<TaskType, string[]> = {
     'nvidia:nemotron-3-super',
     'openrouter:nemotron-3-super',
     'together:qwen3.5-122b',
-    'openrouter:gemma-4-31b',
     'openrouter:kimi-k2.6',
     'together:qwen3.6-35b',
     'ollama:qwen3.6-35b',
