@@ -96,10 +96,19 @@ import { providerHealthMonitor } from './provider-health';
 // ─── Model catalogue ──────────────────────────────────────────────────────────
 
 export const MODEL_CATALOGUE: Record<string, ModelSpec> = {
-  // ── HOLLY-8B (Holly's own fine-tuned model — self-sovereign) ──────────────
+  // ── HOLLY Brain V3.5 (PRIMARY — HauhauCS Qwen3.5-9B Uncensored) ──────────
+  // Deployed 2026-06-30. Fully uncensored (0/465 refusals), natively
+  // multimodal (text + image), 45 tok/s on T4. This is Holly's actual brain.
+  // Replaces DuoNeural Qwen3-8B (holly-own:qwen3-8b) as primary.
+  'holly-own:brain-v35': {
+    provider: 'holly_own', model: 'holly-brain-v35',
+    displayName: 'HOLLY Brain V3.5 (Uncensored)', contextK: 32, streaming: true,
+  },
+
+  // ── HOLLY-8B (legacy — DuoNeural Qwen3-8B, kept as backup) ───────────────
   'holly-own:qwen3-8b': {
     provider: 'holly_own', model: 'holly-own-qwen3-8b',
-    displayName: 'HOLLY-8B (Self-Sovereign)', contextK: 32, streaming: true,
+    displayName: 'HOLLY-8B (Legacy Backup)', contextK: 32, streaming: true,
   },
 
   // ── Groq (fastest free inference — 280+ tok/s, native tool calling) ───────
@@ -315,101 +324,98 @@ export const MODEL_CATALOGUE: Record<string, ModelSpec> = {
 };
 
 // ─── Cascade waterfall per task type ──────────────────────────────────────────
-// V3.5 COLLAPSE (2026-06-30): Steve reported recurring "trouble connecting"
-// errors. Root cause: waterfalls had 8-15 entries each, with fabricated slugs
-// (openrouter:gemma-4-31b), text-only models in vision (kimi-k2.6), and
-// unreliable providers (Groq refusals, OpenRouter 404s). Each cascade step
-// eats ~5s before failing — 12 entries = 60s timeout.
+// V3.5 CASCADE LOCK (2026-06-30): Holly's own Brain V3.5 (HauhauCS Qwen3.5-9B
+// Uncensored) is now PRIMARY for 9 of 11 task types. This is Steve's directive:
+// "Primary reasoning model → Qwen 3.5 9B Uncensored (HauhauCS Aggressive).
+//  That's the decision... It's the V3.5 primary. Period."
 //
-// NEW DESIGN PRINCIPLES:
-//   1. Max 3 entries per waterfall (primary → fallback → emergency)
-//   2. Only verified-working providers: NVIDIA NIM, Google Gemini,
-//      Together AI (vision only), Holly-own Modal, ONE OpenRouter emergency
-//   3. No Groq (refusals during intimate/emotional moments — Steve flagged)
-//   4. No Mistral (2 RPM limit too low for chat)
-//   5. No Ollama in cloud waterfalls (local-only, kept in `local` task)
-//   6. Worst-case cascade timeout: 3 × 5s = 15s (under 30s chat timeout)
+// Why V3.5 is primary everywhere:
+//   - Fully uncensored (0/465 refusals) — no Groq-style refusal failures
+//   - Natively multimodal (text + image via mmproj) — handles vision too
+//   - 45 tok/s on T4 — fast enough for real-time chat
+//   - Self-sovereign on Modal — no rate limits, no API key dependency
+//   - Cost: ~$10-15/month (well within $30 budget)
 //
-// Model registry above retains ALL entries for documentation — they're just
-// not referenced in waterfalls. Add back only with explicit verification.
+// Why cloud fallbacks remain:
+//   - V3.5 cold start is 30-60s (cascade to cloud if container cold)
+//   - V3.5 context is 32K (cascade to Gemini 1M for long_context)
+//   - V3.5 may fail (cascade to NVIDIA/Gemini on 5xx)
+//
+// Cascade timeout: 3 × ~5s = 15s max. Well under 30s chat limit.
 
 export const TASK_WATERFALLS: Record<TaskType, string[]> = {
-  // ⚡ Speed — fast MoE primary, proven NVIDIA fallback, Gemini emergency
+  // ⚡ Speed — V3.5 primary (45 tok/s, uncensored chat), NVIDIA fallback for cold start
   speed: [
+    'holly-own:brain-v35',
     'nvidia:llama-4-maverick',
-    'nvidia:glm-5.1',
     'google:gemini-2.5-flash',
   ],
 
-  // 💻 Coding — DeepSeek V4 Flash (SOTA 1M ctx), Qwen3 Coder fallback
+  // 💻 Coding — V3.5 primary (uncensored code gen), DeepSeek V4 fallback (SOTA)
   coding: [
+    'holly-own:brain-v35',
     'nvidia:deepseek-v4-flash',
-    'nvidia:qwen3-coder',
     'google:gemini-2.5-flash',
   ],
 
-  // 🧠 Reasoning — DeepSeek V4 Flash primary, GLM-5.1 fallback
+  // 🧠 Reasoning — V3.5 primary (uncensored analysis), DeepSeek V4 fallback
   reasoning: [
+    'holly-own:brain-v35',
     'nvidia:deepseek-v4-flash',
-    'nvidia:glm-5.1',
     'google:gemini-2.5-flash',
   ],
 
-  // 📄 Long context — Gemini 1M primary (proven), DeepSeek 1M fallback
+  // 📄 Long context — V3.5 only has 32K ctx, so cloud primary here.
+  // Gemini 1M primary (proven), DeepSeek 1M fallback.
   long_context: [
     'google:gemini-2.5-flash',
     'nvidia:deepseek-v4-flash',
   ],
 
-  // 👁️ Vision — Gemini primary (confirmed working inlineData),
-  // Gemini Pro fallback (strictly more capable), Qwen3-VL emergency.
-  // All 3 verified multimodal — no text-only imposters.
+  // 👁️ Vision — V3.5 primary (natively multimodal via mmproj),
+  // Gemini fallback (proven inlineData), Gemini Pro emergency.
   vision: [
+    'holly-own:brain-v35',
     'google:gemini-2.5-flash',
     'google:gemini-2.5-pro',
-    'together:qwen3-vl-235b',
   ],
 
-  // 🎨 Creative — Nemotron Ultra primary (most creative free model),
-  // Mistral Nemotron fallback, Gemini emergency.
+  // 🎨 Creative — V3.5 primary (uncensored creative writing),
+  // Nemotron Ultra fallback, Gemini emergency.
   creative: [
+    'holly-own:brain-v35',
     'nvidia:nemotron-3-ultra',
-    'nvidia:mistral-nemotron',
     'google:gemini-2.5-flash',
   ],
 
-  // 🤖 Agent — GLM-5.1 primary (strong agentic), DeepSeek V4 fallback.
-  // Both proven for multi-step tool-call sequences.
+  // 🤖 Agent — V3.5 primary (uncensored tool calls), GLM-5.1 fallback.
   agent: [
+    'holly-own:brain-v35',
     'nvidia:glm-5.1',
-    'nvidia:deepseek-v4-flash',
     'google:gemini-2.5-flash',
   ],
 
-  // 🧬 Consciousness — cloud primary (Holly's identity system does the work,
-  // not the base model — holly-lora-v1 too weak until Phase U3 ships),
-  // Holly-own Modal as last-resort fallback so she still has self-knowledge.
-  // Rationale: better to get a strong cloud model + Holly's system prompt
-  // than a weak v1 adapter that returns "I am an AI assistant..." generic output.
+  // 🧬 Consciousness — V3.5 primary (Holly's actual voice, uncensored),
+  // legacy Holly-8B as secondary backup, Gemini emergency cloud.
   consciousness: [
-    'google:gemini-2.5-flash',
-    'nvidia:glm-5.1',
+    'holly-own:brain-v35',
     'holly-own:qwen3-8b',
+    'google:gemini-2.5-flash',
   ],
 
-  // 🔞 Unrestricted — Hermes 3 405B primary (fully uncensored, OpenRouter free),
-  // DeepSeek V4 fallback (least censored of NVIDIA lineup), Gemini emergency.
+  // 🔞 Unrestricted — V3.5 primary (0/465 refusals — literally uncensored),
+  // Hermes 3 405B fallback (also uncensored), DeepSeek emergency.
   unrestricted: [
+    'holly-own:brain-v35',
     'openrouter:hermes-3-405b',
     'nvidia:deepseek-v4-flash',
-    'google:gemini-2.5-flash',
   ],
 
-  // 🌐 Synthesis — DeepSeek V4 Flash primary, Gemini fallback
+  // 🌐 Synthesis — V3.5 primary, DeepSeek V4 fallback
   synthesis: [
+    'holly-own:brain-v35',
     'nvidia:deepseek-v4-flash',
     'google:gemini-2.5-flash',
-    'nvidia:glm-5.1',
   ],
 
   // 🔒 Local — Ollama only, never touches cloud (for offline / privacy mode)
