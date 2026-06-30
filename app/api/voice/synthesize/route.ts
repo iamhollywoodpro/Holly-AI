@@ -322,121 +322,101 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Text is required" }, { status: 400 });
     }
 
-    // ── Voice Character Engine Path (emotion-aware) ──────────────────────────
+    // ── Voice Character Engine (ALWAYS — Magpie primary, Kokoro fallback) ─────
     //
-    // When an emotion is provided, route through the full character engine
-    // which handles: verbal markers → voice style mapping → NVIDIA Magpie → Kokoro fallback
-    const validEmotion = emotion as HollyEmotion | undefined;
-    if (validEmotion) {
-      const result = await synthesizeWithCharacter(
-        {
-          text,
-          emotion: validEmotion,
-          previousEmotion: previousEmotion as HollyEmotion | undefined,
-          blendRatio,
-          speed,
-          voice,
-          isGreeting,
-          isHumorResponse,
-          isProcessing,
-          userId,
-        },
-        // Inject Kokoro as fallback synthesizer
-        async (txt, v, s) => {
-          if (!KOKORO_TTS_URL) throw new Error("Kokoro not configured");
-          return generateWithKokoro(preprocessText(txt, true), v, s);
-        }
-      );
-
-      if (result.audio) {
-        const providerHeader = result.provider === "nvidia-magpie"
-          ? "nvidia-magpie"
-          : "kokoro";
-
-        return new NextResponse(result.audio as unknown as BodyInit, {
-          status: 200,
-          headers: {
-            "Content-Type":    result.contentType || "audio/wav",
-            "Content-Length":  result.audio.length.toString(),
-            "Cache-Control":   "private, max-age=3600",
-            "X-Voice-Provider": providerHeader,
-            "X-Voice-Emotion":  validEmotion,
-            "X-Voice-Style":    result.prosody.style,
-            "X-Voice-Speed":   result.prosody.speed.toString(),
-            "X-Voice-Markers": result.markersApplied.join(","),
-          },
-        });
-      }
-
-      // No audio from character engine — fall through to legacy path
-    }
-
-    // ── Legacy Path (no emotion specified) ───────────────────────────────────
+    // V3.5 (2026-06-30): Previously this path was gated on `if (validEmotion)`,
+    // which meant callers who didn't pass an emotion fell through to a legacy
+    // Kokoro-first path — Magpie was never tried. That defeated the entire
+    // Voice Character Engine for the common case.
     //
-    // Maintains backward compatibility for callers that don't send emotion.
+    // FIX: Always route through the character engine. Default emotion to
+    // "idle" when caller doesn't pass one. Magpie is now the actual primary
+    // for every voice request. Kokoro stays as fallback inside the engine.
+    // VoxCPM2 stays as the third-tier final fallback (engine doesn't try it).
 
-    if (!VOXCPM2_TTS_URL && !KOKORO_TTS_URL) {
+    if (!VOXCPM2_TTS_URL && !KOKORO_TTS_URL && !process.env.NVIDIA_API_KEY) {
       return NextResponse.json(
         {
           error: "Voice not available",
           detail:
             "No TTS provider configured. " +
-            "Set NVIDIA_API_KEY for Magpie TTS or " +
-            "KOKORO_TTS_URL for Kokoro fallback.",
+            "Set NVIDIA_API_KEY for Magpie TTS (primary), " +
+            "KOKORO_TTS_URL for Kokoro fallback, or " +
+            "VOXCPM2_TTS_URL for VoxCPM2 final fallback.",
         },
         { status: 503 }
       );
     }
 
-    logger.info("Voice synthesis requested (legacy path)", {
+    const finalEmotion = (emotion as HollyEmotion | undefined) ?? "idle";
+
+    logger.info("Voice synthesis requested", {
       userId,
       textLength: text.length,
-      primaryProvider: KOKORO_TTS_URL ? "kokoro" : "voxcpm2",
+      emotion: finalEmotion,
+      primaryProvider: "nvidia-magpie",
       category: "voice",
     });
 
-    // Primary: Kokoro (CPU-based, $0 cost) — saves GPU credits
-    const kokoroText = preprocessText(text, true);
-    const kokoroVoice = voice || KOKORO_VOICE;
-
-    if (KOKORO_TTS_URL) {
-      try {
-        const audioBuffer = await generateWithKokoro(kokoroText, kokoroVoice, speed);
-
-        logger.info("Voice synthesis completed via Kokoro", {
-          userId,
-          audioSize: audioBuffer.length,
-          provider: "kokoro",
-          category: "voice",
-        });
-
-        return new NextResponse(audioBuffer as unknown as BodyInit, {
-          status: 200,
-          headers: {
-            "Content-Type":   "audio/wav",
-            "Content-Length": audioBuffer.length.toString(),
-            "Cache-Control":  "private, max-age=3600",
-            "X-Voice-Provider": "kokoro",
-            "X-Voice-Model":    "kokoro-82m",
-          },
-        });
-      } catch (kokoroErr: any) {
-        console.warn(`[TTS] Kokoro failed: ${kokoroErr.message} — falling back to VoxCPM2`);
-        logger.warn("Kokoro TTS failed, falling back to VoxCPM2", {
-          error: kokoroErr.message,
-          category: "voice",
-        });
+    const result = await synthesizeWithCharacter(
+      {
+        text,
+        emotion: finalEmotion,
+        previousEmotion: previousEmotion as HollyEmotion | undefined,
+        blendRatio,
+        speed,
+        voice,
+        isGreeting,
+        isHumorResponse,
+        isProcessing,
+        userId,
+      },
+      // Inject Kokoro as fallback synthesizer (used by character engine
+      // when Magpie is unavailable or fails)
+      async (txt, v, s) => {
+        if (!KOKORO_TTS_URL) throw new Error("Kokoro not configured");
+        return generateWithKokoro(preprocessText(txt, true), v, s);
       }
+    );
+
+    if (result.audio) {
+      const providerHeader = result.provider === "nvidia-magpie"
+        ? "nvidia-magpie"
+        : "kokoro";
+
+      logger.info("Voice synthesis completed", {
+        userId,
+        audioSize: result.audio.length,
+        provider: providerHeader,
+        emotion: finalEmotion,
+        category: "voice",
+      });
+
+      return new NextResponse(result.audio as unknown as BodyInit, {
+        status: 200,
+        headers: {
+          "Content-Type":    result.contentType || "audio/wav",
+          "Content-Length":  result.audio.length.toString(),
+          "Cache-Control":   "private, max-age=3600",
+          "X-Voice-Provider": providerHeader,
+          "X-Voice-Emotion":  finalEmotion,
+          "X-Voice-Style":    result.prosody.style,
+          "X-Voice-Speed":   result.prosody.speed.toString(),
+          "X-Voice-Markers": result.markersApplied.join(","),
+        },
+      });
     }
 
-    // Fallback: VoxCPM2 (GPU-based, uses Modal credits) — only when Kokoro is unavailable
-    const voxcpmText = preprocessText(text, false);
-
+    // ── Final fallback: VoxCPM2 (only reached if Magpie AND Kokoro both failed)
+    //
+    // The character engine already tried Magpie → Kokoro. If we land here,
+    // both are down. VoxCPM2 is the last resort (GPU-based, Modal credits).
     if (VOXCPM2_TTS_URL) {
       try {
+        const voxcpmText = preprocessText(text, false);
         const audioBuffer = await generateWithVoxCPM2(voxcpmText);
 
-        logger.info("Voice synthesis completed via VoxCPM2 fallback", {
+        logger.warn("Voice synthesis fell back to VoxCPM2 (Magpie + Kokoro both failed)", {
           userId,
           audioSize: audioBuffer.length,
           provider: "voxcpm2",
@@ -454,7 +434,7 @@ export async function POST(req: NextRequest) {
           },
         });
       } catch (voxcpmErr: any) {
-        console.warn(`[TTS] VoxCPM2 fallback also failed: ${voxcpmErr.message}`);
+        console.warn(`[TTS] VoxCPM2 final fallback also failed: ${voxcpmErr.message}`);
         logger.error("All TTS providers failed", {
           error: voxcpmErr.message,
           category: "voice",
@@ -465,7 +445,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         error: "TTS synthesis failed",
-        detail: `All providers failed. Kokoro: ${KOKORO_TTS_URL ? "error" : "not configured"}, VoxCPM2: ${VOXCPM2_TTS_URL ? "error" : "not configured"}`,
+        detail: `All providers failed. Magpie: ${process.env.NVIDIA_API_KEY ? "error" : "not configured"}, Kokoro: ${KOKORO_TTS_URL ? "error" : "not configured"}, VoxCPM2: ${VOXCPM2_TTS_URL ? "error" : "not configured"}`,
       },
       { status: 503 }
     );

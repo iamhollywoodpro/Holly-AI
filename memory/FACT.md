@@ -318,7 +318,18 @@ Steve has explicitly instructed: **NEVER guess or assume.** Always:
 - **Ollama**: configured when local
 - **Arcee**: API key configured
 - **Mistral AI Direct**: API key configured
-- **HOLLY-LLM (Holly's own)**: WORKING at iamhollywoodpro--chat.modal.run — DuoNeural/Qwen3-8B-Abliterated base + holly-lora-v1 adapter (June 24, 2026). Routing wired but v1 LoRA is too weak to dominate base — needs Phase U3 v2 fine-tune.
+- **HOLLY Brain V3.5 (PRIMARY)**: `https://iamhollywoodpro--brain-chat.modal.run` — HauhauCS/Qwen3.5-9B-Uncensored-HauhauCS-Aggressive (Q4_K_M GGUF, 5.3GB). Fully uncensored (0/465 refusals), natively multimodal (text+image via mmproj), ~45 tok/s on T4. Deployed via llama.cpp server with CUDA (all layers offloaded). Persistent Modal Volume caches GGUF for fast cold starts. **V3.5 IS PRIMARY for 9/11 task types** (speed, coding, reasoning, vision, creative, agent, consciousness, unrestricted, synthesis). long_context stays cloud-primary (32K ctx vs Gemini 1M). local stays Ollama-only. Env var: `HOLLY_OWN_MODEL_URL=https://iamhollywoodpro--brain-chat.modal.run` (set in Coolify DB June 30 2026).
+- **HOLLY Vision (VISION FALLBACK)**: `https://iamhollywoodpro--vision-chat.modal.run` — manuojvv/Qwen3.5-4B-gabliterated-Q8 (Q8_0 GGUF 4.27GB + bf16 mmproj 644MB). gabliterated multimodal (multi-directional SVD removes primary AND secondary refusal directions). Sits behind brain-v35 in vision cascade. **DEPLOYED + VERIFIED 2026-06-30** — health check returns healthy, vision inference returns valid OpenAI-format JSON. Env var: `HOLLY_VISION_MODEL_URL=https://iamhollywoodpro--vision-chat.modal.run` (set in Coolify DB June 30 2026).
+- **HOLLY-8B (legacy backup)**: `https://iamhollywoodpro--chat.modal.run` — DuoNeural/Qwen3-8B-Abliterated + holly-lora-v1 adapter. Kept as secondary in consciousness waterfall. v1 LoRA too weak to dominate base — needs Phase U3 v2 fine-tune.
+
+## HOLLY Brain V3.5 — Critical Operation Notes
+**Thinking mode**: Qwen3.5 has `<think>` block ENABLED BY DEFAULT. Without `chat_template_kwargs.enable_thinking=false`, the model spends ALL max_tokens on `reasoning_content` and returns EMPTY `content`. The `hollyOwnProvider` in `free-providers.ts` disables thinking by default. Override per-request via `opts.enableThinking` for deep-reasoning tasks.
+
+**Response format**: V3.5 returns OpenAI format `{choices:[{message:{content}}]}`. Old endpoint returned `{response:"..."}`. Provider handles BOTH formats (backward compatible).
+
+**Modal fastapi_endpoint quirk**: Do NOT return `JSONResponse` from `@modal.fastapi_endpoint` methods — Modal returns the OpenAPI schema description instead of actual data. Return plain dicts and use `HTTPException` for errors.
+
+**CUDA build**: llama.cpp link step needs `libcuda.so.1` which the CUDA devel image doesn't ship. Fix: `ln -sf /usr/local/cuda/lib64/stubs/libcuda.so /usr/lib/x86_64-linux-gnu/libcuda.so.1` before cmake build. Also pass `-DCMAKE_CUDA_ARCHITECTURES=75` for T4.
 
 ## Voice Architecture
 - **NVIDIA Magpie TTS** — SHOULD be primary via Voice Character Engine (5 emotional styles, 5 voices). Sofia selected as Holly's voice.

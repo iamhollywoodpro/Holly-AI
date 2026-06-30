@@ -637,19 +637,46 @@ export const googleProvider = {
 //   (e.g., https://iamhollywoodpro--brain-chat.modal.run)
 // Modal's fastapi_endpoint label IS the URL — do NOT append /chat to it.
 //
+// VISION FALLBACK (2026-06-30): Added HOLLY_VISION_MODEL_URL pointing to the
+// MiniCPM-V abliterated endpoint. Provider routes by model ID — brain-v35 hits
+// HOLLY_OWN_MODEL_URL, vision-mini hits HOLLY_VISION_MODEL_URL. Both are
+// uncensored Modal endpoints. Together Qwen3-VL is removed from vision cascade
+// entirely — if both Modal endpoints are down, vision fails closed rather than
+// falling back to a censored model.
+//
 // THINKING MODE: Qwen3.5 has a <think> block that activates by default and
 // will consume ALL max_tokens on reasoning_content if not disabled. We pass
 // chat_template_kwargs.enable_thinking=false by default for fast natural chat.
 // Override per-request via opts.enableThinking if a task needs deep reasoning.
 
 const HOLLY_OWN_URL = process.env.HOLLY_OWN_MODEL_URL || '';
+const HOLLY_VISION_URL = process.env.HOLLY_VISION_MODEL_URL || '';
+
+/**
+ * Pick the right Modal endpoint URL for a given holly_own model ID.
+ * - holly-vision-mini → MiniCPM-V abliterated (vision fallback)
+ * - everything else → brain-v35 (primary reasoning)
+ */
+function pickHollyEndpoint(model: string): string {
+  if (model === 'holly-vision-mini' && HOLLY_VISION_URL) {
+    return HOLLY_VISION_URL;
+  }
+  return HOLLY_OWN_URL;
+}
 
 const hollyOwnProvider: { isConfigured: () => boolean; streamChat: (messages: ChatMessage[], _model: string, opts?: StreamOptions) => TokenStream } = {
   isConfigured: () => !!HOLLY_OWN_URL,
   async *streamChat(messages: ChatMessage[], _model: string, opts: StreamOptions = {}): TokenStream {
-    if (!HOLLY_OWN_URL) throw new Error('HOLLY_OWN_MODEL_URL not configured');
+    const endpointUrl = pickHollyEndpoint(_model);
+    if (!endpointUrl) {
+      throw new Error(
+        _model === 'holly-vision-mini'
+          ? 'HOLLY_VISION_MODEL_URL not configured'
+          : 'HOLLY_OWN_MODEL_URL not configured'
+      );
+    }
 
-    const res = await fetch(HOLLY_OWN_URL, {
+    const res = await fetch(endpointUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -669,7 +696,7 @@ const hollyOwnProvider: { isConfigured: () => boolean; streamChat: (messages: Ch
 
     if (!res.ok) {
       const text = await res.text().catch(() => 'unknown error');
-      throw new Error(`HOLLY Brain V3.5 API error ${res.status}: ${text}`);
+      throw new Error(`HOLLY endpoint (${_model}) API error ${res.status}: ${text}`);
     }
 
     const data = await res.json() as {
@@ -680,7 +707,7 @@ const hollyOwnProvider: { isConfigured: () => boolean; streamChat: (messages: Ch
       error?: string;
     };
 
-    if (data.error) throw new Error(`HOLLY Brain V3.5: ${data.error}`);
+    if (data.error) throw new Error(`HOLLY endpoint (${_model}): ${data.error}`);
 
     // Prefer OpenAI format (V3.5), fall back to legacy format
     const content = data.choices?.[0]?.message?.content ?? data.response;

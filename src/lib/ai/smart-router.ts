@@ -105,6 +105,16 @@ export const MODEL_CATALOGUE: Record<string, ModelSpec> = {
     displayName: 'HOLLY Brain V3.5 (Uncensored)', contextK: 32, streaming: true,
   },
 
+  // ── HOLLY Vision (MiniCPM-V abliterated — vision fallback) ────────────────
+  // Huihui-ai MiniCPM-V 4.6 Thinking abliterated. Fully uncensored multimodal
+  // (text + image). Sits behind brain-v35 in the vision cascade. Only fires
+  // when brain-v35 is unreachable (cold start, container cycling, etc).
+  // Provider routes by model ID: 'holly-vision-mini' → HOLLY_VISION_MODEL_URL.
+  'holly-own:vision-mini': {
+    provider: 'holly_own', model: 'holly-vision-mini',
+    displayName: 'HOLLY Vision (MiniCPM-V abliterated)', contextK: 8, streaming: true,
+  },
+
   // ── HOLLY-8B (legacy — DuoNeural Qwen3-8B, kept as backup) ───────────────
   'holly-own:qwen3-8b': {
     provider: 'holly_own', model: 'holly-own-qwen3-8b',
@@ -347,11 +357,14 @@ export const MODEL_CATALOGUE: Record<string, ModelSpec> = {
 //   documents. It stays here as a SIZE requirement, not a censorship choice.
 //   If a doc is >131K, there is no free uncensored alternative — full stop.
 //
-// VISION:
-//   V3.5's mmproj vision encoder handles ALL uncensored image input as primary.
-//   Together Qwen3-VL 235B is the SFW-only fallback (has RLHF). Gemini is GONE
-//   — V3.5 is the only free uncensored multimodal model. If her container is
-//   cold, the first image waits 30-60s. Uncensored > fast. That's the priority.
+// VISION (2026-06-30): Two-tier uncensored vision. Both Modal endpoints are
+// abliterated — no RLHF refusals on NSFW image content.
+//   1. PRIMARY: holly-own:brain-v35 (HauhauCS Qwen3.5-9B + mmproj vision encoder)
+//   2. FALLBACK: holly-own:vision-mini (Huihui MiniCPM-V 4.6 abliterated)
+// Together Qwen3-VL is GONE — it's RLHF-censored and was sneaking refusals
+// past the cascade. If both Modal endpoints are cold/down, vision fails
+// closed (no answer) rather than falling back to a censored model. That's
+// the right tradeoff for an uncensored AI partner.
 //
 // Cascade timeout: 3 × ~5s = 15s max. Well under 30s chat limit.
 
@@ -382,11 +395,12 @@ export const TASK_WATERFALLS: Record<TaskType, string[]> = {
     'openrouter:hermes-3-405b',
   ],
 
-  // V3.5's mmproj handles all uncensored vision. Together Qwen3-VL is SFW
-  // fallback only. No Gemini — V3.5 is the sole free uncensored multimodal.
+  // Two-tier uncensored vision. brain-v35 mmproj primary, MiniCPM-V abliterated
+  // fallback. Together Qwen3-VL is GONE — censored, was sneaking refusals past
+  // cascade. If both Modal endpoints down → fail closed (no censored fallback).
   vision: [
     'holly-own:brain-v35',
-    'together:qwen3-vl-235b',
+    'holly-own:vision-mini',
   ],
 
   creative: [
