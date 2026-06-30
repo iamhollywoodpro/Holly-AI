@@ -1,22 +1,23 @@
 """
-HOLLY Vision — Huihui-MiniCPM-V-4.6-Thinking-abliterated
+HOLLY Vision — Qwen3.5-4B-gabliterated (Multimodal Uncensored)
 
 Holly's UNCENSORED multimodal vision fallback. Sits behind brain-v35 in the
 vision cascade. When brain-v35's container is cold or down, this endpoint
-takes over image understanding duties — fully uncensored (abliterated).
+takes over image understanding duties — fully uncensored (gabliterated).
 
 WHY THIS MODEL:
-  - MiniCPM-V 4.6 is natively multimodal (text + image)
-  - huihui-ai's abliteration removes the RLHF refusals WITHOUT breaking
-    vision capability (rank-1 orthogonal projection, same technique as
-    DuoNeural/Qwen3-8B-Abliterated that powers our text brain)
-  - ~1B params → fits on T4 with room to spare
-  - GGUF available → runs on llama.cpp (same stack as brain-v35)
-  - Zero providers host this abliterated variant → must self-host
+  - Qwen3.5-4B is natively multimodal (text + image via CLIP-style projector)
+  - gabliteration removes refusal directions (multi-directional SVD-based
+    abliteration — removes primary AND secondary refusal vectors, more
+    thorough than rank-1 projection)
+  - 4B params + 644MB mmproj = ~5GB → fits on T4 with 11GB headroom
+  - GGUF verified available (Q8_0 main + bf16/f32/q8_0 mmproj variants)
+  - Same Qwen3.5 family as brain-v35 — proven llama.cpp compatibility
+  - Zero providers host this uncensored variant → must self-host
 
 COST (iamhollywoodpro workspace, $30/month target):
   - T4 GPU: $0.000164/sec
-  - Cold start: ~30-60s (downloads GGUF first time, cached after)
+  - Cold start: ~60-90s first time (downloads 4.9GB GGUF + mmproj), cached after
   - Warm response: ~2-5s for typical image+question
   - Scale-to-zero after 5 min idle
   - Estimated: ~$3-5/month (only fires when brain-v35 is unreachable)
@@ -50,18 +51,18 @@ vol = modal.Volume.from_name("holly-vision", create_if_missing=True)
 MODEL_DIR = "/models"
 
 # ── Model spec ───────────────────────────────────────────────────────────────
-# huihui-ai's abliterated MiniCPM-V 4.6 Thinking. Same abliteration technique
-# as DuoNeural/Qwen3-8B-Abliterated (rank-1 orthogonal projection) applied to
-# the multimodal MiniCPM-V 4.6 base. RLHF refusals removed, vision capability
-# preserved.
-HF_REPO = "huihui-ai/Huihui-MiniCPM-V-4.6-Thinking-abliterated"
-GGUF_FILE = "Huihui-MiniCPM-V-4.6-Thinking-abliterated-Q4_K_M.gguf"
-MMPROJ_FILE = "mmproj-Huihui-MiniCPM-V-4.6-Thinking-abliterated-f16.gguf"
+# manuojvv's gabliterated Qwen3.5-4B. Multi-directional SVD abliteration
+# removes primary AND secondary refusal directions while preserving the CLIP
+# vision projector. Q8_0 main + bf16 mmproj is the recommended combo per
+# the model card.
+HF_REPO = "manuojvv/Qwen3.5-4B-gabliterated-Q8"
+GGUF_FILE = "Qwen3.5-4B-gabliterated.q8_0.gguf"  # 4.27 GB
+MMPROJ_FILE = "mmproj-bf16.gguf"  # 644 MB — recommended default
 
 # llama-server (from llama.cpp) binds here.
 LLAMA_PORT = 8081  # 8080 is brain-v35; this endpoint uses 8081 to avoid clash
 N_GPU_LAYERS = 999  # offload everything to GPU
-CONTEXT_SIZE = 8192  # MiniCPM-V handles 8K image+text context easily
+CONTEXT_SIZE = 8192  # Qwen3.5-4B handles 8K image+text context comfortably
 
 
 # ── Image: build llama.cpp once, cache forever ───────────────────────────────
@@ -177,6 +178,7 @@ class HollyVision:
                 "--ctx-size", str(CONTEXT_SIZE),
                 "--parallel", "4",
                 "--cont-batching",
+                "--jinja",  # required for Qwen3.5 chat template + tools
                 "--metrics",
             ],
             stdout=subprocess.PIPE,
@@ -249,9 +251,10 @@ class HollyVision:
         return {
             "status": "healthy" if alive else "degraded",
             "model": HF_REPO,
-            "quant": "Q4_K_M",
+            "quant": "Q8_0 + bf16 mmproj",
             "multimodal": True,
             "abliterated": True,
+            "abliteration_method": "gabliteration (multi-directional SVD)",
             "context_window": CONTEXT_SIZE,
             "serverless": True,
             "max_containers": 1,
@@ -268,18 +271,18 @@ class HollyVision:
         return {
             "name": "HOLLY Vision",
             "model": HF_REPO,
-            "description": "Holly's uncensored vision fallback — abliterated MiniCPM-V 4.6",
+            "description": "Holly's uncensored vision fallback — gabliterated Qwen3.5-4B multimodal",
             "endpoints": {
                 "chat": "/vision-chat",
                 "health": "/vision-health",
                 "info": "/vision-info",
             },
             "notes": [
-                "GGUF + llama.cpp server (model is GGUF-only on HF)",
-                "Q4_K_M quantization",
-                "All layers offloaded to T4 GPU",
-                "Vision encoder (mmproj) loaded for image inputs",
-                "Abliterated — no RLHF refusals on NSFW image content",
+                "GGUF + llama.cpp server with CUDA (all layers offloaded to T4)",
+                "Q8_0 main GGUF (4.27 GB) + bf16 mmproj vision projector (644 MB)",
+                "gabliteration = multi-directional SVD abliteration (primary + secondary refusal directions removed)",
+                "Same Qwen3.5 family as brain-v35 — proven llama.cpp compatibility",
+                "Sits behind brain-v35 in vision cascade; only fires when primary is unreachable",
             ],
         }
 
