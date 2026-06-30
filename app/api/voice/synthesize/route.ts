@@ -24,18 +24,12 @@ export const maxDuration = 60;
  *   - OpenAI-compatible API at /v1/audio/speech
  */
 
-const VOXCPM2_TTS_URL    = process.env.VOXCPM2_TTS_URL    || "";   // primary
 const KOKORO_TTS_URL     = process.env.KOKORO_TTS_URL     || "";   // fallback
 const HOLLY_TTS_API_KEY  = process.env.HOLLY_TTS_API_KEY  || "";
 const KOKORO_VOICE       = process.env.KOKORO_VOICE       || "af_heart";
 
-const HOLLY_VOICE_DESCRIPTION =
-  process.env.HOLLY_VOICE_DESCRIPTION ||
-  "Female voice in her 30s with an American accent. " +
-  "Confident, intelligent, warm tone with clear diction. " +
-  "Professional yet friendly, conversational pacing with emotional depth.";
-
-const VOXCPM2_STYLE_GUIDANCE = process.env.VOXCPM2_STYLE_GUIDANCE || "natural, warm, confident";
+// VoxCPM2 removed 2026-06-30 — was returning 404 in prod, dead weight.
+// Magpie (primary) → Kokoro (fallback) is the full pipeline now.
 
 // ─── Comprehensive TTS Text Preprocessing ────────────────────────────────────────
 //
@@ -214,42 +208,6 @@ function preprocessText(text: string, stripEmotionTags = false): string {
   return t;
 }
 
-// ─── VoxCPM2 Synthesis ────────────────────────────────────────────────────────
-
-async function generateWithVoxCPM2(text: string): Promise<Buffer> {
-  if (!VOXCPM2_TTS_URL) {
-    throw new Error("VOXCPM2_TTS_URL not configured");
-  }
-
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (HOLLY_TTS_API_KEY) headers["X-API-Key"] = HOLLY_TTS_API_KEY;
-
-  const response = await fetch(VOXCPM2_TTS_URL.replace(/\/$/, ""), {
-    method: "POST",
-    headers,
-    body: JSON.stringify({
-      text,
-      voice_description: HOLLY_VOICE_DESCRIPTION,
-      style_guidance: VOXCPM2_STYLE_GUIDANCE,
-      sample_rate: 48000,
-    }),
-    signal: AbortSignal.timeout(60_000),
-   });
-
-   console.log(`[TTS] VoxCPM2 response status: ${response.status} for URL: ${VOXCPM2_TTS_URL.replace(/\/$/, "")}`);
-
-   if (!response.ok) {
-     const errText = await response.text().catch(() => `HTTP ${response.status}`);
-     throw new Error(`VoxCPM2 error ${response.status}: ${errText}`);
-   }
-
-  const arrayBuffer = await response.arrayBuffer();
-  if (arrayBuffer.byteLength === 0) {
-    throw new Error("VoxCPM2 returned empty audio buffer");
-  }
-  return Buffer.from(arrayBuffer);
-}
-
 // ─── Kokoro Synthesis (fallback) ──────────────────────────────────────────────
 
 async function generateWithKokoro(
@@ -332,17 +290,18 @@ export async function POST(req: NextRequest) {
     // FIX: Always route through the character engine. Default emotion to
     // "idle" when caller doesn't pass one. Magpie is now the actual primary
     // for every voice request. Kokoro stays as fallback inside the engine.
-    // VoxCPM2 stays as the third-tier final fallback (engine doesn't try it).
+    //
+    // V3.6 (2026-06-30): VoxCPM2 removed entirely — was returning 404 in prod
+    // and adding noise to logs. Magpie → Kokoro is the complete pipeline.
 
-    if (!VOXCPM2_TTS_URL && !KOKORO_TTS_URL && !process.env.NVIDIA_API_KEY) {
+    if (!KOKORO_TTS_URL && !process.env.NVIDIA_API_KEY) {
       return NextResponse.json(
         {
           error: "Voice not available",
           detail:
             "No TTS provider configured. " +
-            "Set NVIDIA_API_KEY for Magpie TTS (primary), " +
-            "KOKORO_TTS_URL for Kokoro fallback, or " +
-            "VOXCPM2_TTS_URL for VoxCPM2 final fallback.",
+            "Set NVIDIA_API_KEY for Magpie TTS (primary) or " +
+            "KOKORO_TTS_URL for Kokoro fallback.",
         },
         { status: 503 }
       );
@@ -407,45 +366,10 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // ── Final fallback: VoxCPM2 (only reached if Magpie AND Kokoro both failed)
-    //
-    // The character engine already tried Magpie → Kokoro. If we land here,
-    // both are down. VoxCPM2 is the last resort (GPU-based, Modal credits).
-    if (VOXCPM2_TTS_URL) {
-      try {
-        const voxcpmText = preprocessText(text, false);
-        const audioBuffer = await generateWithVoxCPM2(voxcpmText);
-
-        logger.warn("Voice synthesis fell back to VoxCPM2 (Magpie + Kokoro both failed)", {
-          userId,
-          audioSize: audioBuffer.length,
-          provider: "voxcpm2",
-          category: "voice",
-        });
-
-        return new NextResponse(audioBuffer as unknown as BodyInit, {
-          status: 200,
-          headers: {
-            "Content-Type":   "audio/wav",
-            "Content-Length": audioBuffer.length.toString(),
-            "Cache-Control":  "private, max-age=3600",
-            "X-Voice-Provider": "voxcpm2",
-            "X-Voice-Model":    "voxcpm2-48khz",
-          },
-        });
-      } catch (voxcpmErr: any) {
-        console.warn(`[TTS] VoxCPM2 final fallback also failed: ${voxcpmErr.message}`);
-        logger.error("All TTS providers failed", {
-          error: voxcpmErr.message,
-          category: "voice",
-        });
-      }
-    }
-
     return NextResponse.json(
       {
         error: "TTS synthesis failed",
-        detail: `All providers failed. Magpie: ${process.env.NVIDIA_API_KEY ? "error" : "not configured"}, Kokoro: ${KOKORO_TTS_URL ? "error" : "not configured"}, VoxCPM2: ${VOXCPM2_TTS_URL ? "error" : "not configured"}`,
+        detail: `All providers failed. Magpie: ${process.env.NVIDIA_API_KEY ? "error" : "not configured"}, Kokoro: ${KOKORO_TTS_URL ? "error" : "not configured"}`,
       },
       { status: 503 }
     );
@@ -498,12 +422,6 @@ export async function GET() {
           "bf_emma", "bf_isabella", "am_adam", "bm_lewis",
         ],
         active_voice: KOKORO_VOICE,
-      },
-      legacy: {
-        name:        "VoxCPM2",
-        description: "48kHz studio-quality synthesis (GPU-based, Modal credits)",
-        configured:  !!VOXCPM2_TTS_URL,
-        url:         VOXCPM2_TTS_URL || "not set",
       },
     },
     text_preprocessing: {
