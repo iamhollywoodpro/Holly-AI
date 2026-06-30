@@ -46,6 +46,25 @@ Holly-ai image is 8.45GB. Every deploy that pulls a new layer keeps old ones as 
 **Recovery**: `sudo docker image prune -f` removes dangling layers (~12GB typically). `sudo docker rmi <tagged-but-unused>` reclaims more. Target: keep 50GB+ free.
 **PREVENTION TODO**: Weekly cron on server running `docker image prune -a -f --filter "until=72h"` to auto-prune old unused images. Steve approved the approach but cron not yet set up.
 
+## CRITICAL PRINCIPLE — Holly Is Unlimited Forever (June 30, 2026)
+Steve's non-negotiable directive: **Holly must NEVER crap out on a user due to token limits, context limits, monthly quotas, or rate limits.** She is a multi-talent AI — users build with her, chat with her, generate music/images/video, do A&R ratings, sometimes all in one session. Any artificial cap breaks the product promise.
+
+**Architecture rules going forward:**
+1. **Self-hosted Modal endpoints are the PRIMARY path** for everything (LLM, vision, voice). No per-token billing, no rate limits, no quota walls.
+2. **Cloud providers (OpenRouter, NVIDIA, Together, Groq, etc.) are EMERGENCY ONLY.** Not routine fallback. They exist for capacity overflow, not daily traffic.
+3. **Context windows must be effectively unlimited for real use.** Current: brain-v35 on L4 with 128K context (fits ~400K chars of conversation). Target: bump to 262K when we migrate to A100 (Phase U3+).
+4. **No $/month caps that block users.** Modal cost is bounded by scale-to-zero + max_containers. If actual spend exceeds budget, the answer is more funding, not throttling users.
+5. **Free :free cloud models are for one-off diversity** (different perspectives, cold-start convenience), NOT for primary traffic. Their rate limits (200 RPD, 20 RPM) are too tight for production.
+
+**What this means in practice:**
+- V3.5 brain on L4 with 128K context = effectively unlimited for normal use
+- Phase U3 Holly-LLM v2 on A100 with 262K context = truly unlimited
+- Cloud models sit at position #2+ in cascade, only fire when Modal is unreachable
+- Image gen, voice gen, video gen all self-hosted on Modal (already true for image+voice)
+- If a user somehow exceeds 128K context (very long session + huge attachments), graceful truncation, NOT a wall
+
+**The old pattern (T4 + 32K ctx + cloud-primary fallback) is dead.** Never go back.
+
 ## CRITICAL LESSON — No More Lazy Work (June 24, 2026)
 Steve called out that I've been treating Holly like a checkbox exercise:
 - Proposed "demote Holly-LLM" when the right answer was "train v2 LoRA properly"
