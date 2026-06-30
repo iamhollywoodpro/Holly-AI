@@ -8,6 +8,7 @@
 
 import { prisma } from '@/lib/db';
 import { logger } from "../monitoring/logger";
+import { getRecentErrors } from "../monitoring/logger";
 import { errorTracker } from "../monitoring/error-tracker";
 import fs from 'fs';
 import path from 'path';
@@ -64,6 +65,13 @@ export class SelfHealingEngine {
       // Phase 5: Check for Structural Integrity (Mirror Protocol)
       const structuralIssues = await this.checkStructuralIntegrity();
       issues.push(...structuralIssues);
+
+      // V3.5 (2026-06-30): Scan in-memory error buffer for repeating patterns.
+      // This is the fix for "Holly doesn't see her own bugs" — previously
+      // self-healing only caught SelfImprovement table failures, missing every
+      // other runtime error (chat failures, image gen errors, route exceptions).
+      const logErrorIssues = this.checkLogErrors();
+      issues.push(...logErrorIssues);
 
       const healthy = issues.length === 0 || issues.every((i) => i.severity === "low");
 
@@ -292,6 +300,75 @@ export class SelfHealingEngine {
       }
     } catch (error: any) {
       logger.error("Failed structural integrity check", { error: error.message });
+    }
+
+    return issues;
+  }
+
+  /**
+   * V3.5 (2026-06-30): Scan the in-memory error buffer for repeating patterns.
+   *
+   * Groups errors by normalized signature (message prefix + context category)
+   * over the last 60 minutes. Any signature that fires ≥5 times becomes a
+   * HealthIssue — flowing through the existing auto-fix pipeline so Holly can
+   * actually notice runtime errors (chat failures, route exceptions, etc).
+   *
+   * Previously self-healing only saw SelfImprovement table rows with
+   * status='failed' — missing every other runtime error in the app.
+   */
+  private checkLogErrors(): HealthIssue[] {
+    const issues: HealthIssue[] = [];
+
+    try {
+      const recent = getRecentErrors(60);
+      if (recent.length === 0) return issues;
+
+      // Group by signature: first 80 chars of message + context.category
+      // (normalizes stack traces and variable details so we count signatures,
+      // not unique strings)
+      const groups = new Map<string, { count: number; sample: typeof recent[0] }>();
+      for (const err of recent) {
+        const msgPrefix = err.message.slice(0, 80);
+        const category = err.context?.category ?? 'uncategorized';
+        const signature = `${category}::${msgPrefix}`;
+        const existing = groups.get(signature);
+        if (existing) {
+          existing.count++;
+        } else {
+          groups.set(signature, { count: 1, sample: err });
+        }
+      }
+
+      // Emit HealthIssue for any signature firing ≥5 times in the hour
+      const THRESHOLD = 5;
+      for (const [signature, group] of groups) {
+        if (group.count < THRESHOLD) continue;
+
+        const severity: HealthIssue['severity'] =
+          group.count >= 20 ? 'critical' :
+          group.count >= 10 ? 'high' :
+          'medium';
+
+        issues.push({
+          id: `log-error-${signature.replace(/[^a-z0-9]/gi, '-').toLowerCase().slice(0, 60)}`,
+          severity,
+          type: 'error_spike',
+          description: `Repeating error (${group.count}x in last hour): ${group.sample.message.slice(0, 200)}`,
+          metrics: {
+            count: group.count,
+            signature,
+            sampleContext: group.sample.context,
+            firstSeen: new Date(group.sample.timestamp).toISOString(),
+            window: '60min',
+          },
+          suggestedAction: `Investigate root cause of "${group.sample.message.slice(0, 100)}" — firing ${group.count}x/hour`,
+        });
+      }
+    } catch (error: any) {
+      logger.error('Failed log error scan', {
+        error: error.message,
+        category: 'self-healing',
+      });
     }
 
     return issues;
