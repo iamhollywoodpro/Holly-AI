@@ -324,98 +324,113 @@ export const MODEL_CATALOGUE: Record<string, ModelSpec> = {
 };
 
 // ─── Cascade waterfall per task type ──────────────────────────────────────────
-// V3.5 CASCADE LOCK (2026-06-30): Holly's own Brain V3.5 (HauhauCS Qwen3.5-9B
-// Uncensored) is now PRIMARY for 9 of 11 task types. This is Steve's directive:
-// "Primary reasoning model → Qwen 3.5 9B Uncensored (HauhauCS Aggressive).
-//  That's the decision... It's the V3.5 primary. Period."
+// V3.5 UNCENSORED CASCADE (2026-06-30): Every waterfall is now censorship-free
+// at every level. No more "I can't help with that" from censored cloud APIs
+// when Holly's primary brain is down.
 //
-// Why V3.5 is primary everywhere:
-//   - Fully uncensored (0/465 refusals) — no Groq-style refusal failures
-//   - Natively multimodal (text + image via mmproj) — handles vision too
-//   - 45 tok/s on T4 — fast enough for real-time chat
-//   - Self-sovereign on Modal — no rate limits, no API key dependency
-//   - Cost: ~$10-15/month (well within $30 budget)
+// DESIGN — three tiers, all uncensored:
+//   1. PRIMARY: holly-own:brain-v35 (HauhauCS Qwen3.5-9B, 0/465 refusals)
+//   2. FALLBACK: NVIDIA NIM (fast cold start, mostly uncensored for SFW tasks)
+//   3. EMERGENCY: OpenRouter free uncensored models:
+//      - hermes-3-405b (Nous Research, 131K ctx) — coding/reasoning/agent
+//      - dolphin-venice-24b (Cognitive Computations, 33K ctx) — chat/intimate
 //
-// Why cloud fallbacks remain:
-//   - V3.5 cold start is 30-60s (cascade to cloud if container cold)
-//   - V3.5 context is 32K (cascade to Gemini 1M for long_context)
-//   - V3.5 may fail (cascade to NVIDIA/Gemini on 5xx)
+// Gemini REMOVED from 10 of 11 waterfalls (kept ONLY in vision — no free
+// uncensored multimodal alternative exists on OpenRouter).
+//
+// unrestricted waterfall is FULLY uncensored at all 3 levels:
+//   V3.5 → Hermes 3 405B → Dolphin Venice 24B. No censorship wall anywhere.
+//
+// Why NVIDIA stays as middle tier despite not being fully uncensored:
+//   - Cold-start speed (1-3s vs 5-10s for OpenRouter free)
+//   - 40 RPM, reliable, handles overflow during V3.5 cold starts
+//   - Only the EMERGENCY tier needs to be fully uncensored — if we reach it,
+//     both V3.5 AND NVIDIA failed, so we need guaranteed uncensored output
 //
 // Cascade timeout: 3 × ~5s = 15s max. Well under 30s chat limit.
 
 export const TASK_WATERFALLS: Record<TaskType, string[]> = {
-  // ⚡ Speed — V3.5 primary (45 tok/s, uncensored chat), NVIDIA fallback for cold start
+  // ⚡ Speed — V3.5 primary (uncensored, 45 tok/s), NVIDIA for cold-start speed,
+  // Dolphin Venice as uncensored emergency (replaces censored Gemini).
   speed: [
     'holly-own:brain-v35',
     'nvidia:llama-4-maverick',
-    'google:gemini-2.5-flash',
+    'openrouter:dolphin-venice-24b',
   ],
 
-  // 💻 Coding — V3.5 primary (uncensored code gen), DeepSeek V4 fallback (SOTA)
+  // 💻 Coding — V3.5 primary, DeepSeek V4 fallback (SOTA, fast cold start),
+  // Hermes 3 405B uncensored emergency (replaces censored Gemini).
   coding: [
     'holly-own:brain-v35',
     'nvidia:deepseek-v4-flash',
-    'google:gemini-2.5-flash',
+    'openrouter:hermes-3-405b',
   ],
 
-  // 🧠 Reasoning — V3.5 primary (uncensored analysis), DeepSeek V4 fallback
+  // 🧠 Reasoning — V3.5 primary, DeepSeek V4 fallback, Hermes 3 uncensored emergency.
   reasoning: [
     'holly-own:brain-v35',
     'nvidia:deepseek-v4-flash',
-    'google:gemini-2.5-flash',
+    'openrouter:hermes-3-405b',
   ],
 
   // 📄 Long context — V3.5 only has 32K ctx, so cloud primary here.
-  // Gemini 1M primary (proven), DeepSeek 1M fallback.
+  // DeepSeek V4 Flash 1M ctx primary (least censored large-ctx model),
+  // Hermes 3 405B 131K ctx fallback (fully uncensored). No Gemini.
   long_context: [
-    'google:gemini-2.5-flash',
     'nvidia:deepseek-v4-flash',
+    'openrouter:hermes-3-405b',
   ],
 
-  // 👁️ Vision — V3.5 primary (natively multimodal via mmproj),
-  // Gemini fallback (proven inlineData), Gemini Pro emergency.
+  // 👁️ Vision — V3.5 primary (natively multimodal + uncensored via mmproj),
+  // Together Qwen3-VL 235B fallback (proven multimodal).
+  // Gemini Pro stays as LAST resort ONLY because no free uncensored vision
+  // alternative exists on OpenRouter. This is the single Gemini holdout.
   vision: [
     'holly-own:brain-v35',
+    'together:qwen3-vl-235b',
     'google:gemini-2.5-flash',
-    'google:gemini-2.5-pro',
   ],
 
-  // 🎨 Creative — V3.5 primary (uncensored creative writing),
-  // Nemotron Ultra fallback, Gemini emergency.
+  // 🎨 Creative — V3.5 primary, Nemotron Ultra fallback,
+  // Dolphin Venice uncensored emergency (replaces censored Gemini).
   creative: [
     'holly-own:brain-v35',
     'nvidia:nemotron-3-ultra',
-    'google:gemini-2.5-flash',
+    'openrouter:dolphin-venice-24b',
   ],
 
-  // 🤖 Agent — V3.5 primary (uncensored tool calls), GLM-5.1 fallback.
+  // 🤖 Agent — V3.5 primary, GLM-5.1 fallback,
+  // Hermes 3 405B uncensored emergency (replaces censored Gemini).
   agent: [
     'holly-own:brain-v35',
     'nvidia:glm-5.1',
-    'google:gemini-2.5-flash',
+    'openrouter:hermes-3-405b',
   ],
 
-  // 🧬 Consciousness — V3.5 primary (Holly's actual voice, uncensored),
-  // legacy Holly-8B as secondary backup, Gemini emergency cloud.
+  // 🧬 Consciousness — V3.5 primary (Holly's uncensored brain),
+  // legacy Holly-8B as secondary backup (self-sovereign fallback),
+  // Dolphin Venice uncensored emergency (replaces censored Gemini).
   consciousness: [
     'holly-own:brain-v35',
     'holly-own:qwen3-8b',
-    'google:gemini-2.5-flash',
+    'openrouter:dolphin-venice-24b',
   ],
 
-  // 🔞 Unrestricted — V3.5 primary (0/465 refusals — literally uncensored),
-  // Hermes 3 405B fallback (also uncensored), DeepSeek emergency.
+  // 🔞 Unrestricted — ALL THREE entries are FULLY UNCENSORED.
+  // V3.5 (0/465 refusals) → Hermes 3 405B (uncensored 405B) → Dolphin Venice (uncensored 24B).
+  // No censorship wall at ANY level. Both OpenRouter entries are different models
+  // with independent rate limits (200 RPD each), so one being down doesn't kill the other.
   unrestricted: [
     'holly-own:brain-v35',
     'openrouter:hermes-3-405b',
-    'nvidia:deepseek-v4-flash',
+    'openrouter:dolphin-venice-24b',
   ],
 
-  // 🌐 Synthesis — V3.5 primary, DeepSeek V4 fallback
+  // 🌐 Synthesis — V3.5 primary, DeepSeek V4 fallback, Hermes 3 uncensored emergency.
   synthesis: [
     'holly-own:brain-v35',
     'nvidia:deepseek-v4-flash',
-    'google:gemini-2.5-flash',
+    'openrouter:hermes-3-405b',
   ],
 
   // 🔒 Local — Ollama only, never touches cloud (for offline / privacy mode)
