@@ -72,10 +72,14 @@ export async function assessConversation(opts: {
   // Clamp
   qualityScore = Math.max(0, Math.min(1, qualityScore));
 
-  // Save analytics
+  // Save analytics — upsert handles race conditions where multiple calls
+  // happen for the same conversation (parallel post-response hooks, retries).
+  // Schema has @@unique([conversationId]) so only one record per conversation.
+  // Update semantics: latest call wins (refreshes analytics with most recent data).
   try {
-    await prisma.conversationAnalytics.create({
-      data: {
+    await prisma.conversationAnalytics.upsert({
+      where: { conversationId },
+      create: {
         userId,
         conversationId,
         responseCount: messageCount,
@@ -87,8 +91,21 @@ export async function assessConversation(opts: {
         strengths,
         weaknesses,
       },
+      update: {
+        responseCount: messageCount,
+        avgResponseTime: responseTimeMs,
+        userEngagement: Math.min(1, messageCount / 10),
+        topicDepth: Math.min(1, topics.length / 5),
+        modeUsed: mode,
+        qualityScore,
+        strengths,
+        weaknesses,
+      },
     });
-  } catch { /* unique constraint — already assessed */ }
+  } catch (err) {
+    // Defensive — analytics failure must never break chat
+    console.warn('[sovereign-growth] conversationAnalytics upsert failed:', err instanceof Error ? err.message : err);
+  }
 }
 
 // ─── Metric Tracking ──────────────────────────────────────────────────────
