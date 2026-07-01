@@ -572,29 +572,21 @@ export async function POST(req: NextRequest) {
 
           // 9b. CONTEXT WINDOW PROTECTION
           //
-          // V3.7 (2026-07-01): Lowered to 120K chars as EMERGENCY fix.
-          // The deployed brain-v35 endpoint is reporting n_ctx=32768 (32K
-          // tokens) despite deploy_holly_v35.py specifying CONTEXT_SIZE=131072.
-          // The live Modal deployment is OUT OF SYNC with the script — the
-          // endpoint needs to be redeployed with the 128K config.
+          // V3.8 (2026-07-01): Restored to 400K chars after redeploying brain-v35
+          // with confirmed CONTEXT_SIZE=131072 (128K tokens). Health endpoint now
+          // reports context_window: 131072.
           //
-          // Until the endpoint is redeployed: cap at 120K chars (~30K tokens)
-          // to fit safely in 32K context with 2K buffer for response.
+          // Math: 400K chars ≈ 100K tokens, fits in 128K brain-v35 context
+          // with ~28K buffer for system prompt + model response.
           //
-          // Once brain-v35 is redeployed with CONTEXT_SIZE=131072, restore
-          // this to 400_000 (the V3.6 value below).
-          //
-          // ROOT CAUSE: see error log — "request (256686 tokens) exceeds the
-          // available context size (32768 tokens)". Holly was sending 256K
-          // tokens to a 32K endpoint because the cap assumed 128K context.
-          //
-          // Steve's directive (still stands): Holly is unlimited forever.
-          // This 120K cap is a TEMPORARY bandaid, not the final state.
-          // The fix is redeploying brain-v35 with the 128K context window.
+          // Steve's directive: Holly is unlimited forever. Real usage (long
+          // sessions, code files, accumulated history) should NEVER hit this
+          // cap in practice. The cap exists only as a hard safety net against
+          // pathological cases (e.g. thousands of messages in a single session).
           //
           // If you're adjusting this, also verify CONTEXT_SIZE in
           // services/modal-llm/deploy_holly_v35.py — the two must align.
-          const MAX_CONTEXT_CHARS = 120_000;
+          const MAX_CONTEXT_CHARS = 400_000;
           const systemMsg = messages[0];
           const systemChars = typeof systemMsg?.content === 'string' ? systemMsg.content.length : 0;
           const toolChars = groqTools ? JSON.stringify(groqTools).length : 0;
