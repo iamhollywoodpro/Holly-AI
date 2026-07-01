@@ -277,14 +277,11 @@ export default function AgeVerification({ user, redirectTo }: AgeVerificationPro
           </p>
         </form>
 
-        <div className="mt-6 text-center">
-          <button
-            onClick={() => router.push('/')}
-            className="text-xs text-gray-500 hover:text-gray-400 transition"
-          >
-            Skip for now — I'll verify later
-          </button>
-        </div>
+        {/* Phase Q3 Gap 1: Skip button REMOVED.
+            Age verification is the front door to Holly — no side entrances.
+            Users who genuinely cannot verify today can sign out via the
+            header (Clerk) and return when ready. The denial screen for
+            underage users (above) is the only terminal state. */}
       </div>
     </div>
   );
