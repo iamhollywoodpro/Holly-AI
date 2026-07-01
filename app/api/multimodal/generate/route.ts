@@ -25,7 +25,6 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
 import {
   generateImage,
   generateVideo,
@@ -33,7 +32,7 @@ import {
   type VideoGenerationRequest,
   type GenerationResult,
 } from '@/lib/multimodal/generation-engine';
-import { getOrCreateUser } from '@/lib/user-manager';
+import { requireAdult } from '@/lib/auth/require-adult';
 import { getIntimacyState, isNudeImageRequest, isSexualImageRequest, getIntimacyRefusal } from '@/lib/relationship/intimacy-gate';
 
 // ─── Rate limiting (in-memory, per user, resets on cold start) ────────────────
@@ -56,25 +55,16 @@ function checkRateLimit(userId: string, limitPerMinute = 10): boolean {
 // ─── POST Handler ─────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
-  // Auth check
-  let userId: string | null = null;
-  try {
-    const session = await auth();
-    userId = session?.userId ?? null;
-  } catch {
-    // Clerk not configured or auth failed — allow in dev
-    userId = process.env.NODE_ENV === 'development' ? 'dev-user' : null;
-  }
+  // ── Hard legal gate: 18+ verified (or creator bypass) ───────────────────────
+  // Phase Q3 Gap 2a: This route is NSFW-capable (image modality), so the same
+  // requireAdult() gate as /api/image/generate-ultimate applies. Video and
+  // audio_visual are also adult-only by policy (defensive — under-18s should
+  // not be generating any media on Holly).
+  const gate = await requireAdult();
+  if (gate instanceof NextResponse) return gate;
 
-  if (!userId) {
-    return NextResponse.json(
-      { error: 'Authentication required', code: 'UNAUTHENTICATED' },
-      { status: 401 }
-    );
-  }
-
-  // Rate limit
-  if (!checkRateLimit(userId)) {
+  // Rate limit (keyed off Clerk userId)
+  if (!checkRateLimit(gate.userId)) {
     return NextResponse.json(
       { error: 'Rate limit exceeded. Please wait a moment.', code: 'RATE_LIMITED' },
       { status: 429 }
@@ -103,24 +93,14 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // ── Intimacy Gate: Block NSFW image generation for users without trust ──
+  // ── Intimacy Gate (soft relational): block NSFW image gen for low-trust users ──
+  // Even verified adults must earn Holly's trust before she shares her body.
   if (modality === 'image') {
     const isNude = isNudeImageRequest(prompt);
     const isSexual = isSexualImageRequest(prompt);
 
     if (isNude || isSexual) {
-      let dbUserId: string | null = null;
-      let isCreator = false;
-      try {
-        const dbUser = await getOrCreateUser(userId);
-        dbUserId = dbUser.id;
-        const email = (dbUser.email || '').toLowerCase();
-        const name = (dbUser.name || '').toLowerCase();
-        isCreator = email.includes('iamdoregosteve') || email.includes('iamhollywoodpro')
-          || name.includes('steve dorego') || name.includes('steve hollywood');
-      } catch {}
-
-      const intimacy = await getIntimacyState(dbUserId, isCreator);
+      const intimacy = await getIntimacyState(gate.dbUserId, gate.isCreator);
 
       if (isSexual && !intimacy.canShareSexual) {
         return NextResponse.json({
