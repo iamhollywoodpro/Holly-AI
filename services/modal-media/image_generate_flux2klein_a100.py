@@ -17,7 +17,7 @@ Architecture:
 
   Request format: {"prompt": "...", "width": 1024, "height": 1024}
 
-  Daily chat endpoint: image_generate_flux2klein.py (L4)
+  Daily chat endpoint: L4 endpoint source archived during cleanup (Tier 2)
   Dataset generation:   THIS FILE (A100)
 
   Dynamic LoRA Stacking (v1.3.0):
@@ -350,7 +350,7 @@ class HollyFlux2KleinA100:
             steps  = min(int(request.get("num_inference_steps", 4)), 50)
             seed   = request.get("seed")
             fmt    = request.get("format", "webp").lower()
-            # EXACT L4 avatar recipe (services/modal-media/image_generate_flux2klein.py):
+            # EXACT L4 avatar recipe (L4 endpoint source archived during Tier 2 cleanup):
             # 4 steps + CFG 4.0 — what generated the avatars Steve approved.
             guidance_scale = float(request.get("guidance_scale", 4.0))
 
@@ -434,7 +434,7 @@ class HollyFlux2KleinA100:
 
             img = result.images[0]
 
-            # ── Full L4 avatar post-process (matches services/modal-media/image_generate_flux2klein.py) ──
+            # ── Full L4 avatar post-process (matches L4 avatar recipe — source archived Tier 2) ──
             # This is the exact pipeline that produced the avatars Steve approved.
             # Gaussian blur blend + unsharp mask + brightness/color boost.
             is_holly_selfie_post = "h0lly" in prompt.lower()
