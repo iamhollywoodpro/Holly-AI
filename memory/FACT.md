@@ -46,6 +46,27 @@ Holly-ai image is 8.45GB. Every deploy that pulls a new layer keeps old ones as 
 **Recovery**: `sudo docker image prune -f` removes dangling layers (~12GB typically). `sudo docker rmi <tagged-but-unused>` reclaims more. Target: keep 50GB+ free.
 **PREVENTION TODO**: Weekly cron on server running `docker image prune -a -f --filter "until=72h"` to auto-prune old unused images. Steve approved the approach but cron not yet set up.
 
+## PHASE R1 MARKETPLACE WAVE 1a — SHIPPED (July 1, 2026, commit 50a0e1c)
+Foundation for the extension marketplace. No UI yet — Wave 1b is the next milestone.
+
+**Architecture decisions (LOCKED):**
+- **Catalog lives in code** (`src/lib/extensions/catalog.ts`), NOT the database. Type-safe, versioned, no seed scripts. The DB only tracks installs.
+- **Production deploys use `prisma db push`** (docker/startup.sh line 41), which reads schema.prisma directly. Migration files in prisma/migrations/ are for local dev/audit only — they are NOT applied in prod.
+- **Pricing: everything free for now** per Steve's directive (2026-07-01). The `premium` flag exists on ExtensionManifest but is unused. Creator flag (`isCreator`) is read throughout the install path but currently bypasses nothing.
+
+**Files:**
+- `prisma/schema.prisma` — `UserExtension` model (userId, extensionId, suite, config JSON, enabled, autoInstalled, timestamps). Unique on (userId, extensionId). Cascade on user delete.
+- `src/lib/extensions/catalog.ts` — 80 extensions across 8 suites (Developer 9, Music 12, Business 10, Social 12, Web 9, Creative 8, Productivity 10, Research 10). Includes `getExtensionById`, `getExtensionsBySuite`, `getSuiteCounts`, `validateCatalogUniqueIds`.
+- `src/lib/extensions/registry.ts` — Server-side helpers: `listAvailableExtensions`, `listInstalledExtensions`, `installExtension` (idempotent, NSFW routes through requireAdult), `uninstallExtension`.
+- `app/api/extensions/{list,installed,install,uninstall}/route.ts` — 4 thin route wrappers.
+- `__tests__/extensions/catalog.test.ts` — 20 structural tests (suite counts, unique ids, accessor behavior). All passing.
+
+**Next milestones:**
+- Wave 1b: `app/extensions/page.tsx` marketplace UI (grid with suite filter, install/uninstall buttons)
+- Wave 1c: Role-based auto-install — hook into existing `ModeSelectionScreen.tsx` (which already captures music/dev role) so onboarding auto-installs the matching suite
+
+**Adding a new extension:** edit `src/lib/extensions/catalog.ts`, add a new `ExtensionManifest` entry with a unique kebab-case id, add test coverage for new suite counts in `__tests__/extensions/catalog.test.ts`. That's it — no migration, no DB seed.
+
 ## PHASE Q3 COMPLETE — Age Verification + Relational Intimacy (July 1, 2026)
 Steve's directive: age verification is the **front door** to Holly (at signup), not a speed bump during use. NSFW refusal is **embedded in Holly's character** — she says "I'm not comfortable sharing myself that way, we are just getting to know each other" instead of returning a 403.
 
