@@ -186,7 +186,7 @@ const MODAL_IMAGE_URL = process.env.MODAL_IMAGE_URL || '';  // set after deployi
 const MODAL_VIDEO_URL = process.env.MODAL_VIDEO_URL || '';  // set after deploying video_generate.py
 
 // ─── Holly FLUX.2 Klein 9B + LoRA endpoint (self-portraits with consistent face) ──
-// Deployed from services/modal-media/image_generate_flux2klein.py
+// L4 endpoint (legacy backup) — source archived from repo during cleanup (Tier 2)
 // FLUX.2 Klein 9B BF16 + Holly Face v2.0 LoRA on L4 GPU (24GB)
 // Only spins up when generating images OF Holly (h0lly trigger word detected)
 // Cost: ~$0.001/image (4 steps!) | barely touches the $30/mo free budget
