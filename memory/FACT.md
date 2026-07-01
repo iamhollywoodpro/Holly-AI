@@ -46,6 +46,39 @@ Holly-ai image is 8.45GB. Every deploy that pulls a new layer keeps old ones as 
 **Recovery**: `sudo docker image prune -f` removes dangling layers (~12GB typically). `sudo docker rmi <tagged-but-unused>` reclaims more. Target: keep 50GB+ free.
 **PREVENTION TODO**: Weekly cron on server running `docker image prune -a -f --filter "until=72h"` to auto-prune old unused images. Steve approved the approach but cron not yet set up.
 
+## PHASE Q3 COMPLETE — Age Verification + Relational Intimacy (July 1, 2026)
+Steve's directive: age verification is the **front door** to Holly (at signup), not a speed bump during use. NSFW refusal is **embedded in Holly's character** — she says "I'm not comfortable sharing myself that way, we are just getting to know each other" instead of returning a 403.
+
+**Three layers, all in place:**
+
+1. **Gap 1 — Hard gate at onboarding (`b4cd4fd`)**:
+   - `/chat` server component redirects unverified users to `/onboarding/age-verify?redirect=/chat`
+   - `/onboarding` page also gates before allowing dialogue to begin
+   - "Skip for now" button removed from AgeVerification component
+   - Creator accounts auto-bypass via hardcoded recognition in `src/lib/chat/auth.ts`
+
+2. **Gap 2a — `requireAdult()` on every NSFW-capable route (`16248a9`)**:
+   - Canonical gate at `src/lib/auth/require-adult.ts` — single source of truth
+   - Enforced on all 4 image-gen paths: `/api/image/generate-ultimate`, `/api/image/generate-multi`, `/api/image/generate` (proxy, defense-in-depth), `/api/multimodal/generate`
+   - Replaced fragile `email.includes('iamdoregosteve')` patterns with canonical creator recognition
+   - Below requireAdult sits the existing 5-tier intimacy gate (`canShareNude` / `canShareSexual` flags)
+
+3. **Gap 2b/3 — Holly knows each user + speaks in her own voice (`dd7f894`, `051c500`)**:
+   - `buildAboutThisPersonBlock()` in `src/lib/chat/about-this-person.ts` — injects natural-language facts into the system prompt: name, age + verification method, birthday (month/day only — privacy), days known ("today" / "N days" / "about a week" / "over a year"), connection tier in plain English
+   - Returns `''` for creator (Steve has his own block)
+   - Returns `''` on any data failure (purely additive, never breaks chat)
+   - Path A pre-response refusal now uses `getIntimacyRefusal(tier, 'nude_image' | 'sexual_image')` instead of a hardcoded generic message
+   - 22 unit tests covering all tiers + edge cases (timezones, missing birthdate, etc.)
+
+**Refusal message voice (from `intimacy-gate.ts`):**
+- Stranger nude: "I appreciate your interest, but I don't share intimate photos with someone I've just met. Let's get to know each other first…"
+- Acquaintance sexual: "I like where this is going, but I want to feel truly safe with you first…"
+- Friend nude: "You know I care about you. But I need to feel completely safe and trusted before sharing everything…"
+- Trusted: no refusal (full access)
+- Creator: no refusal (unconditional)
+
+**Test coverage:** `__tests__/chat/about-this-person.test.ts` (22 tests, all passing). Manual E2E with a non-creator Clerk test user remains in Steve's domain.
+
 ## CRITICAL PRINCIPLE — Holly Is Unlimited Forever (June 30, 2026)
 Steve's non-negotiable directive: **Holly must NEVER crap out on a user due to token limits, context limits, monthly quotas, or rate limits.** She is a multi-talent AI — users build with her, chat with her, generate music/images/video, do A&R ratings, sometimes all in one session. Any artificial cap breaks the product promise.
 
