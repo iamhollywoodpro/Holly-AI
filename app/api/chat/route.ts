@@ -21,6 +21,7 @@ import { extractTopics } from '@/lib/consciousness/post-response-hook';
 import { authenticateAndLoadUser } from '@/lib/chat/auth';
 import { loadChatContext } from '@/lib/chat/context-loader';
 import { buildPrompt } from '@/lib/chat/prompt-builder';
+import { buildAboutThisPersonBlock } from '@/lib/chat/about-this-person';
 import { saveMessages, runBackgroundTasks, markResponseStart } from '@/lib/chat/background-tasks';
 import { getIntimacyState, getIntimacyDirective, analyzeInteractionSignals } from '@/lib/relationship/intimacy-gate';
 import { generateImage } from '@/lib/ai/media-generator';
@@ -409,6 +410,40 @@ export async function POST(req: NextRequest) {
           const intimacyState = await getIntimacyState(dbUserId, isCreator);
           const intimacyDirective = getIntimacyDirective(intimacyState);
 
+          // ── 6c. ABOUT THIS PERSON — natural-language facts (Gap 2b) ──
+          // Holly knows the user's age, birthday, days known, and tier — so she
+          // can naturally refuse NSFW from someone she just met IN CHARACTER
+          // ("I appreciate it, but we just started talking — let's get to know
+          // each other first") instead of relying on the API gate alone.
+          let aboutThisPerson = '';
+          if (!isCreator && dbUserId) {
+            try {
+              const personRow = await prisma.user.findUnique({
+                where: { id: dbUserId },
+                select: {
+                  isAdult: true,
+                  birthdate: true,
+                  ageVerificationMethod: true,
+                  createdAt: true,
+                },
+              });
+              if (personRow) {
+                aboutThisPerson = buildAboutThisPersonBlock({
+                  userName,
+                  isCreator: false,
+                  isAdult: personRow.isAdult,
+                  birthdate: personRow.birthdate,
+                  ageVerificationMethod: personRow.ageVerificationMethod,
+                  accountCreatedAt: personRow.createdAt,
+                  tier: intimacyState.tier,
+                });
+              }
+            } catch (err) {
+              // Defensive — block is purely additive, never break chat
+              console.warn('[CHAT] aboutThisPerson lookup failed:', err instanceof Error ? err.message : err);
+            }
+          }
+
           // ── 7. BUILD PROMPT ──
           sendStatus(controller, isSelfCode ? '🛠️ Ready — I will verify before answering…' : '✨ Thinking…');
           const hollySystemPrompt = buildPrompt({
@@ -448,6 +483,7 @@ export async function POST(req: NextRequest) {
             visualIdentity: ctx.visualIdentity,
             intimacyState,
             intimacyDirective,
+            aboutThisPerson,
           }) + onboardingNudge;
 
           // 7b. INJECT AI BEHAVIOR SETTINGS

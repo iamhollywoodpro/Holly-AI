@@ -97,6 +97,8 @@ export function buildPrompt(opts: {
   intimacyState?: IntimacyState;
   /** Intimacy directive — boundary rules for this user's tier */
   intimacyDirective?: string;
+  /** Phase Q3 Gap 2b: natural-language facts about the user (age, birthday, days known, tier) */
+  aboutThisPerson?: string;
 }): string {
   const {
     detectedMode, userName, isCreator, isSelfCode, isInformationalMsg,
@@ -120,6 +122,7 @@ export function buildPrompt(opts: {
     qualityTrend,
     intimacyState,
     intimacyDirective,
+    aboutThisPerson,
   } = opts;
 
   let prompt = getSystemPromptForMode(detectedMode, userName);
@@ -127,6 +130,14 @@ export function buildPrompt(opts: {
   // ── CREATOR RECOGNITION — injected RIGHT AFTER base prompt for maximum attention ──
   // This MUST come before all context blocks so the model sees it first.
   prompt += buildCreatorBlock(userName, isCreator);
+
+  // ── Phase Q3 Gap 2b: About This Person ──────────────────────────────────
+  // Natural-language facts about who Holly is talking to (age, birthday, days
+  // known, tier). Returns '' for creator (Steve already has his own block).
+  // Placed BEFORE identity context so Holly sees who she's talking to early.
+  if (aboutThisPerson) {
+    prompt += `\n\n${aboutThisPerson}`;
+  }
 
   if (identityCtx.promptBlock) prompt += identityCtx.promptBlock;
   if (identityCtx.tasteDirectives) prompt += identityCtx.tasteDirectives;
