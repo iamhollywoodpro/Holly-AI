@@ -184,6 +184,9 @@ model User {
   onboardingState     OnboardingState?
   pluginInstallations PluginInstallation[]
 
+  // Phase R1: Extension Marketplace
+  userExtensions      UserExtension[]
+
   // Phase 25: Visual Identity and Presence
   visualIdentity     VisualIdentity?
 
@@ -5317,6 +5320,41 @@ model PluginInstallation {
 
   @@unique([userId, pluginId])
   @@map("plugin_installations")
+}
+
+// ─── Phase R1: Extension Marketplace ───────────────────────────────────────
+// Extension catalog lives in code (src/lib/extensions/catalog.ts) so it's
+// type-safe and versioned. The DB only tracks who has installed what.
+//
+// An "extension" is a named capability Holly can offer (e.g. "Music Distribution",
+// "Code Review", "Crypto Trading"). Installing one signals to Holly that the
+// user wants this capability surfaced — it does not (yet) run arbitrary code.
+// Future phases can add manifest-driven plugin loading on top of this schema.
+
+/// Per-user install record for an extension from the marketplace catalog.
+model UserExtension {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// Matches the `id` field in the code-defined catalog (e.g. "music-distribution")
+  extensionId String
+  /// Denormalized suite key (e.g. "music", "developer") for quick filtering
+  suite       String
+  /// Per-user config blob — shape varies per extension
+  config      Json     @default("{}")
+  /// false = disabled (hidden from active use) but not uninstalled
+  enabled     Boolean  @default(true)
+  /// Soft-set when auto-installed by onboarding role detection (vs explicit user action)
+  autoInstalled Boolean @default(false)
+
+  installedAt DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, extensionId])
+  @@index([userId])
+  @@index([suite])
+  @@map("user_extensions")
 }
 
 // ─── Plugin Data Models (Phase F) ───────────────────────────────────────
