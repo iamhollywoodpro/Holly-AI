@@ -593,13 +593,22 @@ export async function POST(req: NextRequest) {
           const isImageVideoRequest = IMAGE_VIDEO_PATTERNS.some(p => p.test(latestUserMessage)) && !isConversationalReference;
 
           if (isImageVideoRequest && !isInformationalMsg) {
-            // Intimacy gate for image generation
+            // Intimacy gate for image generation — Path A pre-check.
+            // Use Holly's actual voice via getIntimacyRefusal() so the refusal
+            // is warm, tier-specific, and matches her character. The generic
+            // hardcoded message is gone — Holly speaks for herself here.
             if (intimacyState) {
-              const { isNudeImageRequest: isNudeReq, isSexualImageRequest: isSexReq } = await import('@/lib/relationship/intimacy-gate');
-              if ((isSexReq(latestUserMessage) && !intimacyState.canShareSexual) ||
-                  (isNudeReq(latestUserMessage) && !intimacyState.canShareNude)) {
-                sendText(controller, "🔒 I'd love to, but we're not quite there yet. Let's get to know each other a bit more first. 💚");
-                fullResponse = "🔒 Intimacy gate active — image generation blocked.";
+              const { isNudeImageRequest: isNudeReq, isSexualImageRequest: isSexReq, getIntimacyRefusal } = await import('@/lib/relationship/intimacy-gate');
+              const isSexual = isSexReq(latestUserMessage);
+              const isNude = isNudeReq(latestUserMessage);
+              if ((isSexual && !intimacyState.canShareSexual) ||
+                  (isNude && !intimacyState.canShareNude)) {
+                // Pick the right refusal type — sexual takes precedence if both match
+                const refusalType: 'nude_image' | 'sexual_image' = isSexual ? 'sexual_image' : 'nude_image';
+                const refusalMessage = getIntimacyRefusal(intimacyState.tier, refusalType);
+                const textToShow = refusalMessage || "🔒 I'd love to, but we're not quite there yet. Let's get to know each other a bit more first. 💚";
+                sendText(controller, textToShow);
+                fullResponse = textToShow;
                 // Skip the rest of the tool loop entirely
                 // Jump to saving messages below
               }

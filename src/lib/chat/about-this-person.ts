@@ -87,38 +87,37 @@ function formatAgeLine(
   method: string | null | undefined,
 ): string {
   const age = birthdate ? computeAge(birthdate) : null;
+  const methodSuffix = humanizeMethod(method); // e.g. ', self-verified'
 
-  // Build verification clause
-  let verifyClause = '';
-  if (isAdult) {
-    const methodName = humanizeMethod(method);
-    verifyClause = age !== null
-      ? ` (verified adult${methodName})`
-      : ` (verified adult${methodName}, birthdate not on file)`;
-  } else {
-    verifyClause = ' (NOT verified — under 18 or unverified)';
+  // Unverified / under 18
+  if (!isAdult) {
+    return 'Age: unknown (not verified)';
   }
 
+  // Verified adult WITH usable age
   if (age !== null && age > 0) {
-    return `Age: ${age}${verifyClause}`;
+    return `Age: ${age} (verified adult${methodSuffix})`;
   }
-  if (isAdult) {
-    return `Age: verified adult${methodNameSuffix(method)}`;
-  }
-  return 'Age: unknown (not verified)';
+
+  // Verified adult but no usable birthdate on file
+  return `Age: verified adult${methodSuffix}, birthdate not on file`;
 }
 
 function formatBirthdayLine(birthdate: Date): string {
+  // Use UTC to preserve the calendar date the user entered — a birthdate of
+  // 1995-06-15 stored as UTC midnight should render as "June 15" everywhere,
+  // not "June 14" for users behind UTC.
   const monthDay = birthdate.toLocaleDateString('en-US', {
     month: 'long',
     day: 'numeric',
+    timeZone: 'UTC',
   });
   // Omit year for privacy — Holly doesn't need to know the birth YEAR,
   // just the month/day so she can wish them happy birthday.
   const today = new Date();
   const isToday =
-    birthdate.getMonth() === today.getMonth() &&
-    birthdate.getDate() === today.getDate();
+    birthdate.getUTCMonth() === today.getUTCMonth() &&
+    birthdate.getUTCDate() === today.getUTCDate();
   return isToday
     ? `Birthday: ${monthDay} — TODAY 🎂`
     : `Birthday: ${monthDay}`;
@@ -172,11 +171,6 @@ function humanizeMethod(method: string | null | undefined): string {
     default:
       return `, ${method.replace(/_/g, ' ')}`;
   }
-}
-
-function methodNameSuffix(method: string | null | undefined): string {
-  const h = humanizeMethod(method);
-  return h || '';
 }
 
 function computeAge(birthdate: Date): number {
