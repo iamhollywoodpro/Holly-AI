@@ -141,24 +141,48 @@ export async function storeQualityScores(
     const periodStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
     await Promise.all(
-      dimensions.map(d =>
-        prisma.growthMetric.create({
-          data: {
-            metric: d.metric,
-            category: 'quality',
-            value: d.value,
-            period: 'per-response',
-            periodStart,
-            periodEnd: now,
-            sampleSize: 1,
-            hollyNote: d.note || null,
-            trend: 'stable',
-            userId,
-          },
-        }).catch(() => {
-          // If GrowthMetric doesn't have userId field, just skip
-        })
-      )
+      dimensions.map(async (d) => {
+        // GrowthMetric schema has @@unique([metric, period, periodStart]) and no
+        // userId field — it tracks Holly's AGGREGATE growth, not per-user metrics.
+        // Multiple responses in the same day for the same metric should UPDATE
+        // the existing record (averaging the value, incrementing sampleSize).
+        try {
+          const existing = await prisma.growthMetric.findUnique({
+            where: { metric_period_periodStart: { metric: d.metric, period: 'per-response', periodStart } },
+          });
+
+          if (existing) {
+            const newSampleSize = existing.sampleSize + 1;
+            const newValue = (existing.value * existing.sampleSize + d.value) / newSampleSize;
+            await prisma.growthMetric.update({
+              where: { id: existing.id },
+              data: {
+                value: newValue,
+                sampleSize: newSampleSize,
+                periodEnd: now,
+                hollyNote: d.note || existing.hollyNote,
+              },
+            });
+          } else {
+            await prisma.growthMetric.create({
+              data: {
+                metric: d.metric,
+                category: 'quality',
+                value: d.value,
+                period: 'per-response',
+                periodStart,
+                periodEnd: now,
+                sampleSize: 1,
+                hollyNote: d.note || null,
+                trend: 'stable',
+              },
+            });
+          }
+        } catch (err) {
+          // Defensive — never let analytics failure break chat
+          console.warn('[response-quality] growthMetric write failed:', err instanceof Error ? err.message : err);
+        }
+      })
     );
 
     // Also store as ResponseFeedback for detailed analysis
