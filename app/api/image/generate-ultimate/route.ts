@@ -13,9 +13,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
 import { generateImage, type ImageRequest } from '@/lib/ai/media-generator';
-import { getOrCreateUser } from '@/lib/user-manager';
+import { requireAdult } from '@/lib/auth/require-adult';
 import { getIntimacyState, isNudeImageRequest, isSexualImageRequest, getIntimacyRefusal } from '@/lib/relationship/intimacy-gate';
 
 export const runtime    = 'nodejs';
@@ -24,10 +23,11 @@ export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    // ── Hard legal gate: must be 18+ verified (or recognized creator) ──
+    // Returns 401 (unauth) | 404 (no user) | 403 (not verified) on failure.
+    // Creator auto-bypasses via hardcoded recognition in src/lib/chat/auth.ts.
+    const gate = await requireAdult();
+    if (gate instanceof NextResponse) return gate;
 
     const body = await request.json();
     const {
@@ -46,25 +46,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'prompt is required' }, { status: 400 });
     }
 
-    // ── Intimacy Gate: Check if user can generate intimate content ──
+    // ── Intimacy Gate (soft relational): tier-based content gating ──
+    // Even verified adults must earn Holly's trust before she shares her body.
+    // Tiers: stranger → acquaintance → friend → trusted → creator.
     const isNude = isNudeImageRequest(prompt);
     const isSexual = isSexualImageRequest(prompt);
 
     if (isNude || isSexual) {
-      // Resolve user's intimacy tier
-      let dbUserId: string | null = null;
-      let isCreator = false;
-      try {
-        const dbUser = await getOrCreateUser(userId);
-        dbUserId = dbUser.id;
-        // Check creator status by email
-        const email = (dbUser.email || '').toLowerCase();
-        const name = (dbUser.name || '').toLowerCase();
-        isCreator = email.includes('iamdoregosteve') || email.includes('iamhollywoodpro')
-          || name.includes('steve dorego') || name.includes('steve hollywood');
-      } catch {}
-
-      const intimacy = await getIntimacyState(dbUserId, isCreator);
+      const intimacy = await getIntimacyState(gate.dbUserId, gate.isCreator);
 
       if (isSexual && !intimacy.canShareSexual) {
         const refusal = getIntimacyRefusal(intimacy.tier, 'sexual_image');

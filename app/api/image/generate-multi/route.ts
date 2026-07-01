@@ -10,10 +10,16 @@
  *   OPT-IN:  HF FLUX.2-klein 4B → HF FLUX.1-schnell → HF SDXL → Pollinations retry
  *
  * Blocked forever: Midjourney, DALL-E, Imagen, Fal.ai, Replicate, Adobe Firefly
+ *
+ * Phase Q3 Gap 2a: Both gates enforced.
+ *   - requireAdult(): hard legal age gate (18+ verified or creator bypass)
+ *   - intimacy gate: soft relational tier gate (stranger → trusted)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { generateImage, type ImageRequest } from '@/lib/ai/media-generator';
+import { requireAdult } from '@/lib/auth/require-adult';
+import { getIntimacyState, isNudeImageRequest, isSexualImageRequest, getIntimacyRefusal } from '@/lib/relationship/intimacy-gate';
 
 export const runtime    = 'nodejs';
 export const dynamic    = 'force-dynamic';
@@ -21,6 +27,10 @@ export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
   try {
+    // ── Hard legal gate: 18+ verified (or creator bypass) ──
+    const gate = await requireAdult();
+    if (gate instanceof NextResponse) return gate;
+
     const body = await request.json() as ImageRequest & {
       width?: number;
       height?: number;
@@ -44,6 +54,32 @@ export async function POST(request: NextRequest) {
 
     if (!prompt || typeof prompt !== 'string') {
       return NextResponse.json({ error: 'prompt is required' }, { status: 400 });
+    }
+
+    // ── Intimacy Gate: tier-based content gating (stranger → trusted) ──
+    const isNude = isNudeImageRequest(prompt);
+    const isSexual = isSexualImageRequest(prompt);
+
+    if (isNude || isSexual) {
+      const intimacy = await getIntimacyState(gate.dbUserId, gate.isCreator);
+
+      if (isSexual && !intimacy.canShareSexual) {
+        return NextResponse.json({
+          success: false,
+          error: 'intimacy_gate',
+          message: getIntimacyRefusal(intimacy.tier, 'sexual_image'),
+          tier: intimacy.tier,
+        }, { status: 403 });
+      }
+
+      if (isNude && !intimacy.canShareNude) {
+        return NextResponse.json({
+          success: false,
+          error: 'intimacy_gate',
+          message: getIntimacyRefusal(intimacy.tier, 'nude_image'),
+          tier: intimacy.tier,
+        }, { status: 403 });
+      }
     }
 
     const result = await generateImage({
