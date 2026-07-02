@@ -538,6 +538,10 @@ export async function POST(req: NextRequest) {
           const taskType = hasImages ? 'vision' : (isUnrestricted ? 'unrestricted' : classifyTask(latestUserMessage, false, latestUserMessage.length, detectedMode));
           const routing = await smartRoute(latestUserMessage, { forceTask: taskType });
           const waterfall = routing.waterfall;
+          // DEBUG (2026-07-02): Triangulate the "trouble connecting" outage.
+          // Brain-v35 itself works fine when probed directly. Failure is somewhere
+          // in this code path. Log entry point + routing decision.
+          console.log('[DEBUG-ROUTE] taskType=' + taskType + ' waterfall=' + (waterfall?.map(s => s.displayName).join('|') || 'EMPTY') + ' msgCount=' + messages.length + ' lastUserMsg=' + latestUserMessage.substring(0, 80).replace(/\n/g, ' '));
 
           const groqTools = mcpTools?.map(t => ({
             type: 'function' as const,
@@ -865,11 +869,14 @@ export async function POST(req: NextRequest) {
             // text-responds. Prevents the empty-response "difficulty processing" bug.
             if (!imageGenerationSucceeded) {
               try {
+                console.log('[DEBUG-CASCADE-D image-fallback] ENTRY waterfall=' + waterfall.map(s => s.displayName).join('|'));
                 for await (const token of cascade(waterfall, cascadeMessages, { temperature: userAiSettings.creativity, maxTokens: 2048, sessionId: conversationId, onModelSelected: (s) => { activeModel = s.displayName; } })) {
                   fullResponse += token;
                   sendText(controller, token);
                 }
+                console.log('[DEBUG-CASCADE-D image-fallback] SUCCESS len=' + fullResponse.length);
               } catch (cascadeErr: any) {
+                console.error('[DEBUG-CASCADE-D image-fallback] FAILED msg=' + cascadeErr?.message);
                 logger.error('Chat', 'Cascade error in image-fallback mode', { error: cascadeErr?.message || 'Cascade failed', waterfall });
                 if (!fullResponse) {
                   fullResponse = "I had some trouble with that one. Could you try again? 💚";
@@ -884,9 +891,11 @@ export async function POST(req: NextRequest) {
                 fullResponse += token;
                 sendText(controller, token);
               }
+              console.log('[DEBUG-CASCADE-C informational] SUCCESS len=' + fullResponse.length);
             } catch (err: any) {
               // Log error and send SSE error event
               const errorMsg = err?.message || 'Cascade failed';
+              console.error('[DEBUG-CASCADE-C informational] FAILED msg=' + errorMsg);
               logger.error('Chat', 'Cascade error in informational mode', { error: errorMsg, waterfall });
               sendError(controller, errorMsg, waterfall[0]?.displayName, 'provider');
               fullResponse = "I'm sorry, I'm having trouble connecting right now. Please try again.";
@@ -1523,10 +1532,18 @@ export async function POST(req: NextRequest) {
                 // Buffer cascade output — don't stream until we check for tool calls
                 let cascadeBuffer = '';
                 try {
+                  // DEBUG (2026-07-02): Steve's chat is returning "trouble connecting"
+                  // but brain-v35 endpoint works fine when probed directly. Logging
+                  // the EXACT messages shape + waterfall so we can see what's failing.
+                  console.log('[DEBUG-CASCADE-A] taskType=' + taskType + ' waterfall=' + waterfall.map(s => s.displayName).join('|'));
+                  console.log('[DEBUG-CASCADE-A] pendingMessages count=' + pendingMessages.length + ' roles=' + pendingMessages.map(m => m.role).join(','));
+                  console.log('[DEBUG-CASCADE-A] last user msg: ' + (pendingMessages[pendingMessages.length - 1]?.content || '').toString().substring(0, 150).replace(/\n/g, ' '));
                   for await (const token of cascade(waterfall, pendingMessages, { temperature: userAiSettings.creativity, maxTokens: 4096, sessionId: conversationId, onModelSelected: (s) => { activeModel = s.displayName; } })) {
                     cascadeBuffer += token;
                   }
-                } catch {
+                  console.log('[DEBUG-CASCADE-A] SUCCESS bufferLen=' + cascadeBuffer.length + ' preview=' + cascadeBuffer.substring(0, 120).replace(/\n/g, ' '));
+                } catch (err: any) {
+                  console.error('[DEBUG-CASCADE-A] FAILED name=' + err?.name + ' msg=' + err?.message + ' stack=' + err?.stack?.split('\n').slice(0, 3).join(' | '));
                   cascadeBuffer = "I'm sorry, I'm having trouble connecting right now. Please try again.";
                 }
                 fullResponse = cascadeBuffer;
@@ -1545,10 +1562,13 @@ export async function POST(req: NextRequest) {
                 console.warn('[CHAT] Tool provider failed silently, falling back to cascade');
                 let fallbackBuffer = '';
                 try {
+                  console.log('[DEBUG-CASCADE-B] fallback entry. pendingMessages count=' + pendingMessages.length + ' roles=' + pendingMessages.map(m => m.role).join(','));
                   for await (const token of cascade(waterfall, pendingMessages, { temperature: userAiSettings.creativity, maxTokens: 4096, sessionId: conversationId, onModelSelected: (s) => { activeModel = s.displayName; } })) {
                     fallbackBuffer += token;
                   }
-                } catch {
+                  console.log('[DEBUG-CASCADE-B] SUCCESS bufferLen=' + fallbackBuffer.length);
+                } catch (err: any) {
+                  console.error('[DEBUG-CASCADE-B] FAILED name=' + err?.name + ' msg=' + err?.message);
                   fallbackBuffer = "I'm sorry, I'm having trouble connecting right now. Please try again.";
                 }
                 fullResponse = fallbackBuffer;
