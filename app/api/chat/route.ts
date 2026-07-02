@@ -505,10 +505,18 @@ export async function POST(req: NextRequest) {
           let messages: { role: string; content: string | ContentBlock[] }[] = [
             { role: 'system', content: finalSystemPrompt },
             ...userMessages.map((msg: any, idx: number) => {
-              if (idx === userMessages.length - 1 && msg.role === 'user' && imageDataUrls?.length > 0) {
-                return { role: msg.role, content: [{ type: 'text' as const, text: msg.content || 'Please analyze the attached file(s).' }, ...imageDataUrls.map((url: string) => ({ type: 'image_url' as const, image_url: { url, detail: 'auto' as const } }))] };
+              // CRITICAL (2026-07-02): Convert any historical 'system' role
+              // messages to 'user' role on the fly. Old tool-result messages
+              // saved before the Jinja fix (commit dcbea1d) are still in the
+              // DB with role:'system'. Qwen3.5's chat template rejects system
+              // messages not at index 0 — Jinja Exception: "System message
+              // must be at the beginning." This sanitizer prevents that without
+              // requiring a database migration.
+              const safeRole = msg.role === 'system' ? 'user' : msg.role;
+              if (idx === userMessages.length - 1 && safeRole === 'user' && imageDataUrls?.length > 0) {
+                return { role: 'user', content: [{ type: 'text' as const, text: msg.content || 'Please analyze the attached file(s).' }, ...imageDataUrls.map((url: string) => ({ type: 'image_url' as const, image_url: { url, detail: 'auto' as const } }))] };
               }
-              return { role: msg.role, content: msg.content };
+              return { role: safeRole, content: msg.content };
             }),
           ];
 
