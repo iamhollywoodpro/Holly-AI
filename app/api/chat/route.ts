@@ -631,19 +631,23 @@ export async function POST(req: NextRequest) {
           //
           // If you're adjusting this, also verify CONTEXT_SIZE in
           // services/modal-llm/deploy_holly_v35.py — the two must align.
-          // CRITICAL FIX (2026-07-02): Was 400_000, which is ~100K tokens — 3x
-          // brain-v35's actual 32K-token context. Even when enforced perfectly,
-          // the request was 256K tokens → 400 error → cascade failed →
-          // "I'm sorry, I'm having trouble connecting" for 3 days straight.
+          // CRITICAL FIX (2026-07-02): Was 400_000 based on assumption brain-v35
+          // had 128K context. Actually deployed with 32K → every long-conversation
+          // request failed with 400 → "I'm sorry, I'm having trouble connecting"
+          // for 3 days straight.
           //
-          // Math: brain-v35 n_ctx = 32,768 tokens (~131K chars at 4 chars/tok)
-          // Reserve ~30K chars for system prompt (identity, memory, tools)
-          // Reserve ~16K chars for model response (~4K tokens)
-          // → conversation history cap = ~60K chars (15K tokens)
+          // ROOT CAUSE was in services/modal-llm/deploy_holly_v35.py: --parallel 4
+          // divided 128K context into 4 slots of 32K each. Set to --parallel 1 so
+          // each request gets the full 128K. Verified via container logs:
+          //   n_slots = 1, n_ctx_slot = 131072
           //
-          // If brain-v35 is ever redeployed with 128K context as intended,
-          // bump this back up. Verify via health endpoint context_window field.
-          const MAX_CONTEXT_CHARS = 60_000;
+          // New cap math (brain-v35 actually has 128K tokens = ~524K chars):
+          //   - Reserve ~4K tokens (~16K chars) for model response
+          //   - Reserve ~25K tokens (~100K chars) for system prompt (identity, memory, tools)
+          //   - Leaves ~100K tokens (~400K chars) for conversation history
+          // Set to 300K for safety margin while Steve's directive holds:
+          // "Holly is unlimited forever — real usage should NEVER hit this cap."
+          const MAX_CONTEXT_CHARS = 300_000;
           const systemMsg = messages[0];
           const systemChars = typeof systemMsg?.content === 'string' ? systemMsg.content.length : 0;
           const toolChars = groqTools ? JSON.stringify(groqTools).length : 0;

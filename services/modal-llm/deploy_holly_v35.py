@@ -174,7 +174,14 @@ class HollyBrain:
                 "--host", "127.0.0.1",
                 "--n-gpu-layers", str(N_GPU_LAYERS),
                 "--ctx-size", str(CONTEXT_SIZE),
-                "--parallel", "4",             # allow 4 concurrent requests
+                # CRITICAL: --parallel N divides context into N slots.
+                # With parallel=4 + ctx=131072, each slot was only 32K —
+                # every chat request hit "exceeds context size 32768" →
+                # 3-day production outage. Set parallel=1 so each request
+                # gets the full 128K. L4 VRAM can't fit 4×128K KV cache
+                # (~40GB), so we trade concurrency for full context.
+                # If concurrency becomes critical, upgrade to A100 40GB.
+                "--parallel", "1",
                 "--cont-batching",
                 "--metrics",
             ],
