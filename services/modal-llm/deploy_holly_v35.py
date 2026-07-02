@@ -139,27 +139,19 @@ def _wait_for_llama(timeout_s: int = 120) -> bool:
 
 @app.cls(
     image=image,
-    gpu="A100",              # Migrated 2026-07-02 from L4 → A100 40GB.
-                             # Reason: Steve flagged Holly as too slow on L4 (~40 tok/s
-                             # warm, 30-40s per message at typical context). A100 gives
-                             # ~100 tok/s warm + ~2x faster prompt processing →
-                             # 10-15s per message, ~3x speedup. VRAM math:
-                             #   model (5.3GB) + mmproj (880MB) + KV cache @128K (~10GB)
-                             #   = ~16GB used, 24GB headroom on A100 40GB.
-                             # Cost: A100 is ~$0.0011/sec vs L4 $0.00042/sec — about
-                             # 2.6x more expensive per second. But inference is 2-3x
-                             # faster, so per-message cost is roughly equivalent AND
-                             # UX is dramatically better. Free-tier budget still works
-                             # for beta (5-10 users, ~7,500 msg/mo = ~$25/mo).
-                             # If launch (50+ users) outgrows free tier, answer is
-                             # paid Modal plan or subscription revenue — not downgrading
-                             # back to L4.
-                             # NOT bumping --parallel beyond 1 in this change.
-                             # Steve's 3-day outage (July 2) came from --parallel 4
-                             # dividing context silently. Keeping parallel=1 for safety.
-                             # A100 40GB has room for parallel=2 (20GB cache + 6GB
-                             # model = 26GB, 14GB headroom) but that's a separate
-                             # change after this one stabilizes.
+    gpu="L4",                # Reverted 2026-07-02 from A100 back to L4.
+                             # The A100 migration was a mistake — I proposed it
+                             # without showing Steve the cost math first. A100
+                             # burned $7.97 of free-tier budget in 2 days while
+                             # Holly was mostly broken, mostly from my diagnostic
+                             # probes triggering cold starts. L4 is 2.6x cheaper
+                             # per second — $30/mo buys 20 hours on L4 vs 7.5
+                             # hours on A100. The speedup from A100 was marginal
+                             # (~3-5s per message) because prompt processing is
+                             # similar between L4 and A100; only generation speed
+                             # differs. With the 60K context cap shipped in 769003d,
+                             # L4 should give ~10-20s per message instead of the
+                             # 30-40s Steve felt with the 140K-token bloated context.
     volumes={MODEL_DIR: vol},
     timeout=600,             # allow time for first-run GGUF download
     memory=8192,
