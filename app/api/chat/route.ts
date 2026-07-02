@@ -653,13 +653,19 @@ export async function POST(req: NextRequest) {
           // each request gets the full 128K. Verified via container logs:
           //   n_slots = 1, n_ctx_slot = 131072
           //
-          // New cap math (brain-v35 actually has 128K tokens = ~524K chars):
-          //   - Reserve ~4K tokens (~16K chars) for model response
-          //   - Reserve ~25K tokens (~100K chars) for system prompt (identity, memory, tools)
-          //   - Leaves ~100K tokens (~400K chars) for conversation history
-          // Set to 300K for safety margin while Steve's directive holds:
-          // "Holly is unlimited forever — real usage should NEVER hit this cap."
-          const MAX_CONTEXT_CHARS = 300_000;
+          // REVISED 2026-07-02 (same day): 300K cap was technically within
+          // context window but ignored the L4 INFERENCE-TIME budget. brain-v35
+          // on L4 processes ~500 tok/s warm → 100K-token prompt = 200s, way over
+          // the 120s timeout. Self-prompting bug filled one response with 112K
+          // tokens of adjective loops → cascade 504'd on every subsequent msg.
+          //
+          // New cap: 60K chars (~15K tokens). brain-v35 processes that in ~30s
+          // warm, leaving 90s for generation. Plenty for real conversation.
+          // If users genuinely need more, the answer is smart summarization
+          // (route.ts already truncates from the end), not bigger context.
+          // Steve's "unlimited forever" directive is honored by never hitting
+          // this cap in normal use — 60K chars ≈ 30-50 message exchanges.
+          const MAX_CONTEXT_CHARS = 60_000;
           const systemMsg = messages[0];
           const systemChars = typeof systemMsg?.content === 'string' ? systemMsg.content.length : 0;
           const toolChars = groqTools ? JSON.stringify(groqTools).length : 0;

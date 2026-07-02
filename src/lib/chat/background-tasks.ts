@@ -25,6 +25,30 @@ export async function saveMessages(
   fullResponse: string,
 ): Promise<void> {
   try {
+    // DEFENSE (2026-07-02): Hard-cap response length before saving. A
+    // degenerate model loop (self-prompting bug) previously generated a
+    // 449K-char response — that single message exceeded brain-v35's 128K
+    // context window and broke every subsequent request with 504 timeouts.
+    // 8K chars (~2K tokens) is plenty for any legitimate Holly response;
+    // anything longer is almost certainly a loop.
+    //
+    // ALSO strip base64 data URIs before saving. The image-gen path in
+    // route.ts appends `![alt](data:image/jpeg;base64,...)` to fullResponse
+    // so the user sees the image via SSE during the session. But saving
+    // a 340KB base64 blob to the DB as part of the message means the next
+    // request loads it as history and brain-v35 chokes. Replace with a
+    // short placeholder so future loads see "[Image: description]" instead.
+    const MAX_RESPONSE_CHARS = 8_000;
+    const DATA_URI_PATTERN = /!\[([^\]]*)\]\(data:image\/[a-zA-Z+]+;base64,[A-Za-z0-9+/=]+\)/g;
+    let normalized = fullResponse.replace(DATA_URI_PATTERN, (_m, alt) => `[Image: ${(alt || '').slice(0, 80)}]`);
+    // Also strip any standalone base64 data URIs not wrapped in markdown
+    normalized = normalized.replace(/data:image\/[a-zA-Z+]+;base64,[A-Za-z0-9+/=]{200,}/g, '[base64 image data stripped]');
+    const safeResponse = normalized.length > MAX_RESPONSE_CHARS
+      ? normalized.substring(0, MAX_RESPONSE_CHARS) + '\n\n[Response truncated: was ' + normalized.length + ' chars after data-URI strip. First 8K kept.]'
+      : normalized;
+    if (fullResponse.length > MAX_RESPONSE_CHARS || normalized.length !== fullResponse.length) {
+      console.warn('[saveMessages] Normalizing response: original=' + fullResponse.length + ' chars, after strip=' + normalized.length + ', final=' + safeResponse.length);
+    }
     // Performance: run upsert and both message creates in parallel
     // The upsert ensures the conversation exists; message creates are independent
     await Promise.all([
@@ -35,16 +59,16 @@ export async function saveMessages(
           userId: dbUserId,
           title: null,
           messageCount: 2,
-          lastMessagePreview: fullResponse.substring(0, 100) + (fullResponse.length > 100 ? '...' : ''),
+          lastMessagePreview: safeResponse.substring(0, 100) + (safeResponse.length > 100 ? '...' : ''),
         },
         update: {
           messageCount: { increment: 2 },
-          lastMessagePreview: fullResponse.substring(0, 100) + (fullResponse.length > 100 ? '...' : ''),
+          lastMessagePreview: safeResponse.substring(0, 100) + (safeResponse.length > 100 ? '...' : ''),
           updatedAt: new Date(),
         },
       }),
       prisma.message.create({ data: { conversationId, role: 'user', content: latestUserMessage, userId: dbUserId } }),
-      prisma.message.create({ data: { conversationId, role: 'assistant', content: fullResponse, userId: dbUserId } }),
+      prisma.message.create({ data: { conversationId, role: 'assistant', content: safeResponse, userId: dbUserId } }),
     ]);
   } catch (dbErr) {
     console.error('[Chat API] ⚠️ DB save failed:', dbErr);
