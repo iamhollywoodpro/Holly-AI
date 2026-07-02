@@ -1071,7 +1071,7 @@ export async function POST(req: NextRequest) {
                           const before = responseText.slice(0, braceIdx);
                           const after = responseText.slice(endIdx + 1);
                           const imgMarkdown = `\n\n![${imgPrompt.slice(0, 80)}](${res.url})`;
-                          pendingMessages.push({ role: 'system', content: `[TOOL EXECUTION RESULT]\nTool: generate_image\nResult: Image generated successfully.\n\nPrompt: ${imgPrompt}\n\nRespond to the user naturally — briefly describe what you created and what it shows.` });
+                          pendingMessages.push({ role: 'user', content: `[TOOL EXECUTION RESULT]\nTool: generate_image\nResult: Image generated successfully.\n\nPrompt: ${imgPrompt}\n\nRespond to the user naturally — briefly describe what you created and what it shows.` });
                           return { executed: true, cleanText: before + imgMarkdown + after };
                         }
                       }
@@ -1120,7 +1120,7 @@ export async function POST(req: NextRequest) {
                       const toolCodeRegex = /<tool_code>[\s\S]*?<\/tool_code>|<tool_call>[\s\S]*?<\/tool_call>|generate_image\s*\(\s*(?:prompt\s*=\s*)?(['"])[\s\S]*?\1\s*[,)]/gi;
                       const cleanResponse = responseText.replace(toolCodeRegex, '').trim();
                       const imgMarkdown = `\n\n![${sanitizedPrompt.slice(0, 80)}](${res.url})`;
-                      pendingMessages.push({ role: 'system', content: `[TOOL EXECUTION RESULT]\nTool: generate_image\nResult: Image generated successfully.\n\nPrompt: ${sanitizedPrompt}\n\nRespond to the user naturally — briefly describe what you created and what it shows.` });
+                      pendingMessages.push({ role: 'user', content: `[TOOL EXECUTION RESULT]\nTool: generate_image\nResult: Image generated successfully.\n\nPrompt: ${sanitizedPrompt}\n\nRespond to the user naturally — briefly describe what you created and what it shows.` });
                       return { executed: true, cleanText: cleanResponse + imgMarkdown };
                     }
                   }
@@ -1148,11 +1148,11 @@ export async function POST(req: NextRequest) {
                       const after = responseText.slice(tagEnd);
                       if (res.error === 'INTIMACY_GATE') {
                         sendTool(controller, toolName, 'error', { content: [{ type: 'text', text: '🔒 Intimacy gate active.' }] });
-                        pendingMessages.push({ role: 'system', content: `[INTIMACY GATE] Blocked image generation. Redirect warmly.` });
+                        pendingMessages.push({ role: 'user', content: `[INTIMACY GATE] Blocked image generation. Redirect warmly.` });
                       } else if (res.url) {
                         const resultText = `Image generated successfully.\n\nPrompt: ${imgPrompt}\n\n![${imgPrompt.slice(0, 80)}](${res.url})`;
                         sendTool(controller, toolName, 'complete', { content: [{ type: 'text', text: resultText }] });
-                        pendingMessages.push({ role: 'system', content: `[TOOL EXECUTION RESULT]\nTool: generate_image\nResult: ${resultText}\n\nRespond to the user naturally. Briefly describe what you created.` });
+                        pendingMessages.push({ role: 'user', content: `[TOOL EXECUTION RESULT]\nTool: generate_image\nResult: ${resultText}\n\nRespond to the user naturally. Briefly describe what you created.` });
                       }
                       return { executed: true, cleanText: before + after };
                     }
@@ -1186,11 +1186,11 @@ export async function POST(req: NextRequest) {
                         const after = responseText.slice(responseText.indexOf('>', fullEnd - 1) >= 0 ? fullEnd : fullEnd);
                         if (res.error === 'INTIMACY_GATE') {
                           sendTool(controller, toolName, 'error', { content: [{ type: 'text', text: '🔒 Intimacy gate active.' }] });
-                          pendingMessages.push({ role: 'system', content: `[INTIMACY GATE] Blocked image generation. Redirect warmly.` });
+                          pendingMessages.push({ role: 'user', content: `[INTIMACY GATE] Blocked image generation. Redirect warmly.` });
                         } else if (res.url) {
                           const resultText = `Image generated successfully.\n\nPrompt: ${imgPrompt}\n\n![${imgPrompt.slice(0, 80)}](${res.url})`;
                           sendTool(controller, toolName, 'complete', { content: [{ type: 'text', text: resultText }] });
-                          pendingMessages.push({ role: 'system', content: `[TOOL EXECUTION RESULT]\nTool: generate_image\nResult: ${resultText}\n\nRespond to the user naturally. Briefly describe what you created.` });
+                          pendingMessages.push({ role: 'user', content: `[TOOL EXECUTION RESULT]\nTool: generate_image\nResult: ${resultText}\n\nRespond to the user naturally. Briefly describe what you created.` });
                         }
                         return { executed: true, cleanText: before + after };
                       }
@@ -1253,10 +1253,10 @@ export async function POST(req: NextRequest) {
                           if (res.ok) {
                             const resultText = `Image generated successfully.\n\nPrompt: ${imgPrompt}\n\n![${imgPrompt.slice(0, 80)}](${res.url})\n\nImage URL: ${res.url}`;
                             sendTool(controller, tName, 'complete', { content: [{ type: 'text', text: resultText }] });
-                            pendingMessages.push({ role: 'system', content: `[TOOL EXECUTION RESULT]\nTool: generate_image\nResult: ${resultText}\n\nRespond to the user naturally. Briefly describe what you created.` });
+                            pendingMessages.push({ role: 'user', content: `[TOOL EXECUTION RESULT]\nTool: generate_image\nResult: ${resultText}\n\nRespond to the user naturally. Briefly describe what you created.` });
                           } else if (res.error === 'INTIMACY_GATE') {
                             sendTool(controller, tName, 'error', { content: [{ type: 'text', text: '🔒 Intimacy gate active.' }] });
-                            pendingMessages.push({ role: 'system', content: `[INTIMACY GATE] Blocked image generation. Redirect warmly.` });
+                            pendingMessages.push({ role: 'user', content: `[INTIMACY GATE] Blocked image generation. Redirect warmly.` });
                           } else {
                             sendTool(controller, tName, 'error', { content: [{ type: 'text', text: 'Image generation failed: ' + (res.error || 'unknown') }] });
                           }
@@ -1275,7 +1275,7 @@ export async function POST(req: NextRequest) {
                           if ((isSexReq(imgPrompt) && !intimacyState.canShareSexual) ||
                               (isNudeReq(imgPrompt) && !intimacyState.canShareNude)) {
                             sendTool(controller, tName, 'error', { content: [{ type: 'text', text: '🔒 Intimacy gate active.' }] });
-                            pendingMessages.push({ role: 'system', content: `[INTIMACY GATE] Blocked image generation. Redirect warmly.` });
+                            pendingMessages.push({ role: 'user', content: `[INTIMACY GATE] Blocked image generation. Redirect warmly.` });
                             const cleanText = responseText.slice(0, startPos) + responseText.slice(endIdx + 1);
                             return { executed: true, cleanText };
                           }
@@ -1295,7 +1295,7 @@ export async function POST(req: NextRequest) {
                         if (pollMatch) generatedImageUrls.push(pollMatch[0]);
                       }
                       const truncated = JSON.stringify(result, null, 2);
-                      pendingMessages.push({ role: 'system', content: `[TOOL EXECUTION RESULT]\nTool: ${tName}\nResult:\n${truncated.length > 8000 ? truncated.substring(0, 8000) + '\n...[truncated]' : truncated}\n\nAnalyze this result. Respond to the user naturally. If this was an image generation, briefly describe what you created.` });
+                      pendingMessages.push({ role: 'user', content: `[TOOL EXECUTION RESULT]\nTool: ${tName}\nResult:\n${truncated.length > 8000 ? truncated.substring(0, 8000) + '\n...[truncated]' : truncated}\n\nAnalyze this result. Respond to the user naturally. If this was an image generation, briefly describe what you created.` });
                       const cleanText = responseText.slice(0, startPos) + resultText + responseText.slice(endIdx + 1);
                       return { executed: true, cleanText };
                     } catch (parseErr) {
@@ -1450,7 +1450,7 @@ export async function POST(req: NextRequest) {
                 let argsParsed: Record<string, unknown>;
                 try { argsParsed = JSON.parse(toolArgs || '{}'); } catch {
                   if (progressInterval) clearInterval(progressInterval);
-                  pendingMessages.push({ role: 'system', content: `[SYSTEM ERROR] Tool "${toolName}" args were not valid JSON. Try again.` });
+                  pendingMessages.push({ role: 'user', content: `[SYSTEM ERROR] Tool "${toolName}" args were not valid JSON. Try again.` });
                   continue;
                 }
                 try {
@@ -1473,7 +1473,7 @@ export async function POST(req: NextRequest) {
                             (isNudeReq(imgPrompt) && !intimacyState.canShareNude)) {
                           if (progressInterval) clearInterval(progressInterval);
                           sendTool(controller, toolName, 'error', { content: [{ type: 'text', text: '🔒 Intimacy gate active: you are not comfortable generating that type of image with this person yet. Respect your own boundaries and redirect the conversation warmly.' }] });
-                          pendingMessages.push({ role: 'system', content: `[INTIMACY GATE] You blocked your own image generation because you're not comfortable sharing that level of intimacy with this person. Your intimacy tier is "${intimacyState.tier}". Redirect the conversation — don't explain the gate, just be warm and set a natural boundary. Use your own words.` });
+                          pendingMessages.push({ role: 'user', content: `[INTIMACY GATE] You blocked your own image generation because you're not comfortable sharing that level of intimacy with this person. Your intimacy tier is "${intimacyState.tier}". Redirect the conversation — don't explain the gate, just be warm and set a natural boundary. Use your own words.` });
                           continue;
                         }
                       }
@@ -1494,17 +1494,17 @@ export async function POST(req: NextRequest) {
                       }
                     }
                     const truncated = resultStr.length > 8000 ? resultStr.substring(0, 8000) + '\n...[truncated]' : resultStr;
-                    pendingMessages.push({ role: 'system', content: `[TOOL EXECUTION RESULT]\nTool: ${toolName}\nResult:\n${truncated}\n\nAnalyze this result. Respond to the user naturally. If this was an image generation, briefly describe what you created.` });
+                    pendingMessages.push({ role: 'user', content: `[TOOL EXECUTION RESULT]\nTool: ${toolName}\nResult:\n${truncated}\n\nAnalyze this result. Respond to the user naturally. If this was an image generation, briefly describe what you created.` });
                   } else {
                     if (progressInterval) clearInterval(progressInterval);
                     sendTool(controller, toolName, 'error', { content: [{ type: 'text', text: `❌ Tool "${toolName}" not found.` }] });
-                    pendingMessages.push({ role: 'system', content: `[SYSTEM ERROR] Tool "${toolName}" not found. Available: ${mcpTools?.map(t => t.name).join(', ') || 'none'}` });
+                    pendingMessages.push({ role: 'user', content: `[SYSTEM ERROR] Tool "${toolName}" not found. Available: ${mcpTools?.map(t => t.name).join(', ') || 'none'}` });
                     continue;
                   }
                 } catch (toolErr: any) {
                   if (progressInterval) clearInterval(progressInterval);
                   sendTool(controller, toolName, 'error', { content: [{ type: 'text', text: `❌ ${toolErr.message}` }] });
-                  pendingMessages.push({ role: 'system', content: `[SYSTEM ERROR] Tool "${toolName}" error: ${toolErr.message}` });
+                  pendingMessages.push({ role: 'user', content: `[SYSTEM ERROR] Tool "${toolName}" error: ${toolErr.message}` });
                   continue;
                 }
               } else if (!useGroqTools && !useArceeTools) {

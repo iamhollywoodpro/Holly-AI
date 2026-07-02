@@ -144,7 +144,7 @@ def _wait_for_llama(timeout_s: int = 120) -> bool:
     timeout=600,             # allow time for first-run GGUF download
     memory=8192,
     max_containers=1,        # never spin up more than 1 GPU
-    scaledown_window=300,    # 5 min idle → scale to zero
+    scaledown_window=120,    # 2 min idle → scale to zero (lowered 2026-07-02 to cut idle cost)
 )
 @modal.concurrent(max_inputs=4)
 class HollyBrain:
