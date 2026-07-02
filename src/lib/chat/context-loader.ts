@@ -87,7 +87,7 @@ const emptyIdentity = {
   raw: { identity: null, goals: [], emotionalState: null, taste: null, patterns: [], partner: null },
 };
 
-function ctxTimeout<T>(p: Promise<T>, fallback: T, label: string, ms = 3_000): Promise<T> {
+function ctxTimeout<T>(p: Promise<T>, fallback: T, label: string, ms = 1_000): Promise<T> {
   return Promise.race([
     p.catch((err: unknown) => {
       console.warn(`[Chat API] ⚠️ ${label} failed:`, (err as Error).message);

@@ -631,7 +631,19 @@ export async function POST(req: NextRequest) {
           //
           // If you're adjusting this, also verify CONTEXT_SIZE in
           // services/modal-llm/deploy_holly_v35.py — the two must align.
-          const MAX_CONTEXT_CHARS = 400_000;
+          // CRITICAL FIX (2026-07-02): Was 400_000, which is ~100K tokens — 3x
+          // brain-v35's actual 32K-token context. Even when enforced perfectly,
+          // the request was 256K tokens → 400 error → cascade failed →
+          // "I'm sorry, I'm having trouble connecting" for 3 days straight.
+          //
+          // Math: brain-v35 n_ctx = 32,768 tokens (~131K chars at 4 chars/tok)
+          // Reserve ~30K chars for system prompt (identity, memory, tools)
+          // Reserve ~16K chars for model response (~4K tokens)
+          // → conversation history cap = ~60K chars (15K tokens)
+          //
+          // If brain-v35 is ever redeployed with 128K context as intended,
+          // bump this back up. Verify via health endpoint context_window field.
+          const MAX_CONTEXT_CHARS = 60_000;
           const systemMsg = messages[0];
           const systemChars = typeof systemMsg?.content === 'string' ? systemMsg.content.length : 0;
           const toolChars = groqTools ? JSON.stringify(groqTools).length : 0;

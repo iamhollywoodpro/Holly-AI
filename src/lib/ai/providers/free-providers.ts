@@ -691,7 +691,7 @@ const hollyOwnProvider: { isConfigured: () => boolean; streamChat: (messages: Ch
           enable_thinking: (opts as any).enableThinking ?? false,
         },
       }),
-      signal: AbortSignal.timeout(90_000),  // cold start can be 30-60s; allow headroom
+      signal: AbortSignal.timeout(180_000),  // cold start can be 90-110s on T4; bumped from 90s after 2026-07-01 outage where cold starts timed out and cascade returned "trouble connecting"
     });
 
     if (!res.ok) {

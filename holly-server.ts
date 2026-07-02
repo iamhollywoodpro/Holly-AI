@@ -242,6 +242,40 @@ async function main() {
       console.log(`[HOLLY] Heartbeat — Uptime: ${Math.floor(process.uptime())}s | RSS: ${Math.round(process.memoryUsage().rss / 1024 / 1024)}MB`);
     }, 60000).unref();
 
+    // ─── brain-v35 keep-alive ────────────────────────────────────────────────
+    // PROBLEM (2026-07-01 outage): Modal scales brain-v35 to zero after ~5-10 min
+    // of inactivity. Cold start = 90-110s. Provider timeout was 90s → first message
+    // of every active period timed out → cascade failed → "I'm having trouble
+    // connecting." Warm requests are <1s.
+    //
+    // FIX: Ping brain-v35 every 4 minutes with a 5-token request. Keeps the
+    // container warm. Cost is negligible (~360 requests/day at ~5 tokens each).
+    // Also pre-warms on boot with a 30s delay so the first real user request
+    // doesn't pay the cold-start penalty.
+    const brainUrl = process.env.HOLLY_OWN_MODEL_URL;
+    if (brainUrl) {
+      const pingBrain = (reason: string) => {
+        const start = Date.now();
+        fetch(brainUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messages: [{ role: 'user', content: 'ping' }],
+            max_tokens: 1,
+            chat_template_kwargs: { enable_thinking: false },
+          }),
+          signal: AbortSignal.timeout(180_000),
+        }).then((r) => {
+          console.log(`[HOLLY] brain-v35 keep-alive (${reason}) — ${r.status} in ${Date.now() - start}ms`);
+        }).catch((err) => {
+          console.warn(`[HOLLY] brain-v35 keep-alive (${reason}) FAILED: ${err instanceof Error ? err.message : err}`);
+        });
+      };
+      // Pre-warm after 30s (let server boot first), then keep-alive every 4 min
+      setTimeout(() => pingBrain('pre-warm'), 30_000);
+      setInterval(() => pingBrain('keep-alive'), 4 * 60_000).unref();
+    }
+
     try {
       require(standaloneServerPath);
       console.log('[HOLLY] Standalone server required successfully');
