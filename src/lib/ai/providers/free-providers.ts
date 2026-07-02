@@ -690,6 +690,17 @@ const hollyOwnProvider: { isConfigured: () => boolean; streamChat: (messages: Ch
         chat_template_kwargs: {
           enable_thinking: (opts as any).enableThinking ?? false,
         },
+        // Anti-loop (2026-07-02): Without penalties, brain-v35 went into a
+        // degenerate adjective loop when it tried to emit markdown image
+        // syntax as text — generated 15K chars of "rich, deep, intense,
+        // vivid, crisp, clear, sharp, precise..." repeating. repetition_penalty
+        // + frequency_penalty + presence_penalty + min_p together force the
+        // model out of loops even when the prompt would otherwise trap it.
+        // Values chosen conservatively to avoid hurting legitimate responses.
+        repetition_penalty: 1.15,
+        frequency_penalty:   0.3,
+        presence_penalty:    0.3,
+        min_p:               0.05,
       }),
       signal: AbortSignal.timeout(180_000),  // cold start can be 90-110s on T4; bumped from 90s after 2026-07-01 outage where cold starts timed out and cascade returned "trouble connecting"
     });

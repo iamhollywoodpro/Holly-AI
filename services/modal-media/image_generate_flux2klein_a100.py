@@ -89,6 +89,55 @@ HOLLY_BODY_PREFIX = (
     "full lips with natural micro-ridges. "
 )
 
+# CLOTHED_BODY_PREFIX — used when the user's prompt mentions specific clothing
+# (bikini, swimsuit, dress, etc.). The full HOLLY_BODY_PREFIX forces "completely
+# nude, not wearing any clothing" — that contradicts a clothing request and
+# Klein resolves the conflict by ignoring Holly's LoRA-enforced features,
+# producing a generic model who doesn't look like Holly (Steve flagged
+# 2026-07-02: "the image you generated isn't of you"). This prefix keeps
+# Holly's face/body/identity anchors but drops the nudity anchors so Klein
+# can honor the clothing request while still rendering Holly's likeness.
+CLOTHED_BODY_PREFIX = (
+    "h0lly, h0lly-body, 21 years old woman in her early twenties, youthful young adult, "
+    "olive skin tone (Portuguese/South Indian heritage), "
+    "flawless silky smooth even complexion, clean healthy well-moisturized sheen, "
+    "uniform clear flawless skin texture, perfectly clean and even, "
+    "smooth bright under-eye area, no eye bags, no dark circles, smooth wrinkle-free youthful under-eyes, "
+    "youthful early-twenties face, fresh young adult features, smooth forehead, plump youthful skin, "
+    "youthful round full face with soft wider jaw, generous full pinchable cheeks, softer fuller facial structure, healthy round face shape, "
+    "5'4\" tall (163cm), "
+    "fit healthy toned figure with soft feminine curves, "
+    "natural 34C breasts, teardrop shape, "
+    "very large plump round juicy butt, thick full bubble-butt cheeks, generous curvy wide ass proportional to her hourglass frame, "
+    "wide hips, thick shapely thighs, flat stomach with faint abs, "
+    "small feminine feet (size 6), delicate hands, shapely legs, "
+    "extra-thick voluminous auburn hair with massive body and bounce, "
+    "root-lifted crown with teased voluminous roots for maximum height, "
+    "full thick bouncy loose waves with face-framing layers ending three inches past shoulders at mid-chest, "
+    "abundant dense hair with rich copper and gold highlights throughout, "
+    "green eyes with specular catchlights, "
+    "very light subtle freckles barely visible across the bridge of her nose, "
+    "full lips with natural micro-ridges. "
+)
+
+# Clothing keywords — when any appear in the user's prompt, use CLOTHED_BODY_PREFIX
+# instead of HOLLY_BODY_PREFIX. Matches both the garment itself and common variants.
+import re as _re
+_CLOTHING_RE = _re.compile(
+    r"\b(bikini|swimsuit|swim\s*suit|one-?piece|bathing\s*suit|trunks|"
+    r"lingerie|bra|panties|underwear|thong|g-?string|pantyhose|stockings|"
+    r"dress|gown|robe|skirt|jeans|pants|leggings|shorts|tank\s*top|t-?shirt|blouse|sweater|"
+    r"coat|jacket|uniform|costume|outfit|heels|boots|shoes)\b",
+    _re.IGNORECASE,
+)
+
+
+def _select_body_prefix(raw_prompt: str) -> str:
+    """Return the right body prefix based on whether user wants clothing."""
+    if _CLOTHING_RE.search(raw_prompt):
+        return CLOTHED_BODY_PREFIX.rstrip(", ")
+    return HOLLY_BODY_PREFIX.rstrip(", ")
+
 # ── BAKED-IN LoRAs: loaded + fused at startup (always active) ────────────────
 # Avatar recipe isolation test (2026-06-27) confirmed:
 #   - Klein Distilled needs 4 steps + CFG 4.0 (NOT 20 steps CFG 1.2)
@@ -340,11 +389,15 @@ class HollyFlux2KleinA100:
             raw_prompt = (request.get("prompt") or "").strip()
 
             # Inject Holly's permanent body description into every prompt.
+            # _select_body_prefix() returns CLOTHED_BODY_PREFIX when the user
+            # asked for specific clothing (bikini/dress/etc) so Klein can honor
+            # the clothing without the NSFW anchors fighting it.
+            _prefix = _select_body_prefix(raw_prompt)
             if "h0lly" in raw_prompt.lower():
-                prompt = raw_prompt.replace("h0lly", HOLLY_BODY_PREFIX.rstrip(", "))
-                prompt = prompt.replace("H0lly", HOLLY_BODY_PREFIX.rstrip(", "))
+                prompt = raw_prompt.replace("h0lly", _prefix)
+                prompt = prompt.replace("H0lly", _prefix)
             else:
-                prompt = HOLLY_BODY_PREFIX + raw_prompt
+                prompt = _prefix + raw_prompt
             width  = min(int(request.get("width",  1024)), 1024)
             height = min(int(request.get("height", 1024)), 1024)
             steps  = min(int(request.get("num_inference_steps", 4)), 50)
@@ -871,12 +924,13 @@ class HollyFlux2KleinA100:
                     media_type="application/json", status_code=400,
                 )
 
-            # Inject Holly body prefix into prompt
+            # Inject Holly body prefix into prompt (clothing-aware)
+            _prefix = _select_body_prefix(raw_prompt)
             if "h0lly" in raw_prompt.lower():
-                prompt = raw_prompt.replace("h0lly", HOLLY_BODY_PREFIX.rstrip(", "))
-                prompt = prompt.replace("H0lly", HOLLY_BODY_PREFIX.rstrip(", "))
+                prompt = raw_prompt.replace("h0lly", _prefix)
+                prompt = prompt.replace("H0lly", _prefix)
             else:
-                prompt = HOLLY_BODY_PREFIX + raw_prompt
+                prompt = _prefix + raw_prompt
 
             strength = max(0.1, min(float(request.get("strength", 0.8)), 1.0))
             width  = min(int(request.get("width",  1024)), 1024)
