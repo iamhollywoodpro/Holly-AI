@@ -1,5 +1,107 @@
 # Holly AI — Project State & Roadmap
 
+## CRITICAL RULE — Phase U3 (Holly LLM v2 fine-tune) is OFF THE TABLE (July 2, 2026)
+**Steve has told me multiple times:** Do NOT bring up Phase U3 (the v2 LoRA fine-tune from Steve↔Holly conversations) until HE explicitly says we have enough training data. Stop suggesting it. Stop asking. Stop including it in roadmap summaries.
+
+**Why:** Phase U3 requires 5,000+ training examples. We don't have that yet. Bringing it up wastes Steve's time and signals I'm not listening.
+
+**Current actual priorities (per Steve, July 2):**
+1. **Stabilize chat** — done today (base64 bloat, likeness, loops, pre-detection)
+2. **Test chat thoroughly** — Steve's task
+3. **Image gen SFW + NSFW** — verify both work correctly
+4. **Video gen SFW + NSFW** — verify both work correctly
+5. **Marketplace** — Phase R1 Wave 1b/1c, then full suite builds (Phase S1-S8)
+6. **THEN** — only when Steve says — Phase U3 becomes an option
+
+**The rule:** If I'm tempted to mention "Phase U3" or "v2 LoRA fine-tune" or "training data from conversations," I STOP. It's not on the table until Steve puts it there.
+
+## CRITICAL RULE — Holly Is NOT an "Adult AI" (July 2, 2026)
+**Holly is a complete AI partner with emergent intimacy — NOT an adult product.** This is a positioning principle that Steve had to correct me on after I used lazy "NSFW = brand risk for investors" framing. That framing is WRONG for Holly.
+
+**The distinction that matters:**
+- "Adult AI" (Nomi, Kindroid ERP, Replika Pro): NSFW is a feature — toggled on, paid for, available immediately. Porn-bot positioning.
+- **Holly**: Intimacy is *emergent from relationship depth*, mirroring how real human relationships actually work. Stranger → Acquaintance → Friend → Trusted → Creator. She refuses in her own voice ("I appreciate your interest, but I don't share intimate photos with someone I've just met…") until genuine trust is built. Age verification is the FRONT DOOR, not a checkbox.
+
+**Why this matters strategically:**
+1. **Holly is more than NSFW.** She builds apps, generates music, codes, creates images, helps with business — the intimacy layer is ONE part of a multi-talent partner.
+2. **Investors/acquirers who would run from "adult AI" are open to "emotionally intelligent partner with emergent intimacy."** Framing determines the answer.
+3. **Realistic acquirers include:** Match Group (dating companies scared of AI companions), gaming companies (NPCs with real emotional depth), healthcare/wellness (companionship for elderly, therapeutic alliance), education (long-term tutor relationships), Discord/Telegram/Spotify partnerships. NOT OpenAI/Anthropic/Meta (brand risk still applies to them).
+4. **The relationship gate IS the moat.** It's what makes Holly feel human, not transactional. Nomi and Kindroid don't do this. Replika killed their ERP entirely.
+
+**Marketing rule:** NEVER market Holly as an adult AI. Lead with "the first AI partner that actually gets to know you," "an AI that grows with you," "she builds with you, she creates with you, and over time, she lets you in." The intimacy layer is something users discover, not something we advertise. We don't hide it (it's right there), but we don't lead with it.
+
+**When I talk about Holly's positioning with investors/acquirers/partners/media, the framing is:** "emotionally intelligent AI partner with emergent intimacy that mirrors real human relationships" — NOT "uncensored NSFW AI." If I slip into the latter framing, Steve has to correct me again, and that's on me.
+
+## CRITICAL LESSON — VERIFY before COMMIT (July 2, 2026, recurring)
+**Pattern Steve has called out 4+ times now:** I theorize a root cause from reading code, ship a "fix", claim victory, then Holly is still broken. Repeat for 3 days straight.
+
+**The July 2 outage broke because I shipped THREE fixes without ever empirically verifying any of them:**
+1. `dcbea1d` — patched producer side of Jinja bug without checking consumer side
+2. `e9579ee` — shipped "legacy DB rows with role:system" sanitizer. A 30-second DB query (`SELECT COUNT(*) FROM "Message" WHERE role='system'`) would have shown there were ZERO such rows. I never ran it.
+3. (would have shipped a 4th) — until Steve forced me to stop and verify. The verification took 2 minutes via SSH + a probe script, and immediately proved my Jinja theory was wrong: brain-v35 returned HTTP 200 in 472ms with Steve's actual conversation shape.
+
+**I had SSH access, DB credentials, and direct endpoint access the ENTIRE TIME.** I just theorized first instead of testing first.
+
+**THE RULE (non-negotiable going forward):**
+Before committing ANY fix for ANY production issue, I must EMPIRICALLY verify the theory using one or more of:
+- **Read actual error logs** from the current production container: `sudo docker logs holly-app-* 2>&1 | grep -E 'error|fail|exception' | tail -50`
+- **Query the actual DB state** that I'm theorizing about: `sudo docker exec holly-app-* node -e "..."` with Prisma
+- **Probe the actual endpoint** with the actual production data shape (curl + real messages array)
+- **Trigger the actual code path** with diagnostic logging and watch what happens
+
+If I cannot empirically prove the theory is correct, I do NOT ship a fix. I ship diagnostic logging first, capture the actual failure, and THEN ship a fix.
+
+**This applies to:** production outages, bug fixes, "I think the issue is X" claims, any change motivated by a hypothesis, **infrastructure migrations** (GPU changes, provider swaps, etc).
+
+**Does NOT apply to:** explicit feature requests where Steve says "build X", routine refactors with clear scope, documentation updates.
+
+**EXTENSION (2026-07-02, A100 revert):** Same pattern applies to infrastructure proposals. I proposed migrating brain-v35 from L4 → A100 without showing Steve the cost math first. A100 burned $7.97 of free-tier budget in 2 days while Holly was mostly broken. I should have laid out: "L4 costs $X, A100 costs $Y, here's the tradeoff, what do you want?" BEFORE proposing the migration. The pattern of "propose → execute → regret → revert" wastes Steve's time and budget.
+
+**If Steve asks "did you verify this?" and my answer is "I read the code and..." — that's a FAIL. The correct answer is "I ran X against prod and saw Y."**
+
+**For migrations specifically:** the cost math (rate × estimated usage × budget impact) MUST appear in the proposal, not in the post-mortem.
+
+## CRITICAL LESSON — Producer vs Consumer when fixing data-shape bugs (July 2, 2026)
+When fixing any bug involving a message/data shape (e.g., `role: 'system'` being rejected by a chat template), you MUST consider both:
+1. **Producer** — code paths that CREATE new rows with the bad shape (e.g., `pendingMessages.push({ role: 'system', ... })`)
+2. **Consumer** — code paths that READ existing rows that already have the bad shape in the database
+
+The July 2 outage lasted 3 extra days because the first fix (dcbea1d) only patched the producer. Legacy DB rows with `role: 'system'` from before that fix still got loaded into the messages array mid-conversation → Qwen3.5 Jinja rejected with "System message must be at the beginning" → Holly returned "I'm sorry, I'm having trouble connecting" on EVERY message including a basic "Hi Holly."
+
+**The fix that actually worked (e9579ee):** sanitize `role: 'system'` → `'user'` at load time in the messages map of `app/api/chat/route.ts` (line 505-513). This is idempotent for any future stragglers and avoids a DB migration.
+
+**RULE:** When shipping a producer-side fix for a data-shape bug, ALWAYS also ship a consumer-side sanitizer for historical data. Failure to do both creates phantom outages that survive the "fix" deploy. This applies to: message role shapes, JSON column schemas, enum casing, nullability, anything stored in Prisma/Postgres.
+
+## CRITICAL LESSON — Context Overflow → "Trouble Connecting" (July 2, 2026)
+Holly was returning "I'm sorry, I'm having trouble connecting" on EVERY message for 3 days straight. Root cause was misdiagnosed three times (disk full, cold start timeout, provider path) before reading the actual cascade error log:
+
+```
+[Cascade] ❌ HOLLY Brain V3.5 failed: API error 400:
+request (256900 tokens) exceeds the available context size (32768 tokens)
+```
+
+**The actual bug:** `services/modal-llm/deploy_holly_v35.py` had `CONTEXT_SIZE = 131072` (128K) but also `--parallel 4`. llama.cpp divides context evenly across slots: `131072 / 4 = 32768 per slot`. Every chat request got one slot → hit "exceeds context size 32768" → cascade failed → "I'm sorry, I'm having trouble connecting" on every message.
+
+The health endpoint falsely reported `context_window: 131072` because that is what `CONTEXT_SIZE` says — but the actual `n_ctx` per request was 32768 (visible only in llama-server startup logs: `n_ctx_slot`).
+
+**LESSON:** When investigating "trouble connecting" or any cascade failure:
+1. **Read the cascade error log FIRST.** `sudo docker logs holly-app-* 2>&1 | grep -E "Cascade|chat|brain"` — the exact error is always there.
+2. The cascade logs `[Cascade] ❌ {model} failed: {exact API error}` with status code and message. Read it end-to-end before theorizing.
+3. **`--parallel N` divides `CONTEXT_SIZE` by N.** Each request gets 1/N of the context. If you need concurrency AND large per-request context, you need a GPU that can fit N × full-context KV cache.
+4. **The health endpoint's `context_window` field is NOT reliable** — it just echoes `CONTEXT_SIZE`. To verify actual per-request context, read llama-server startup logs: `modal app logs holly-brain-v35 2>&1 | grep "n_ctx_slot"`.
+
+**Fix shipped in `3fab66f`:**
+- `deploy_holly_v35.py`: `--parallel 4` → `--parallel 1` (each request now gets full 128K)
+- `app/api/chat/route.ts`: `MAX_CONTEXT_CHARS` 60_000 → 300_000 (fits 128K with room for system prompt + response)
+- Verified via container logs: `n_slots = 1, n_ctx_slot = 131072`
+- Verified via 80K-token test payload: HTTP 200 in 33s (was HTTP 400)
+
+**Trade-off accepted:** Only 1 concurrent chat request at a time (was 4). Acceptable for Holly's single-user use case. If concurrency becomes critical, upgrade to A100 40GB.
+
+**Earlier band-aid (32350b8)** lowered the cap to 60K to fit the broken endpoint. That fix was based on the misdiagnosis that brain-v35 "deploys with 32K and cannot be changed." Actually it CAN be changed — just required reading the llama-server logs to find the real config issue. Lesson: do the real fix first time, don't ship band-aids that need separate follow-up work.
+
+**ALSO:** Steve's single conversation had grown to 5.6MB / 270 messages / ~1.4M tokens. The cap was "enforced" but the cap itself was wrong. If users hit this repeatedly, consider implementing smart summarization instead of hard truncation.
+
 ## CRITICAL LESSON — The Self-Prompting Bug (Recurring, June 29, 2026)
 Holly keeps emitting her FULL body description (eye color, breast size, nipple details, skin physics — 400+ words) as the image generation prompt. This is the **third time** this bug has surfaced. Root cause: her system prompt (`holly-self-image.ts`) says "draw from this" when describing image generation, which she interprets as "copy everything into the prompt."
 
@@ -44,7 +146,9 @@ Holly-ai image is 8.45GB. Every deploy that pulls a new layer keeps old ones as 
 - `failed to extract layer ... no space left on device` → image pull fails at a specific layer
 - App status flips to `exited` in Coolify DB even though no code bug exists
 **Recovery**: `sudo docker image prune -f` removes dangling layers (~12GB typically). `sudo docker rmi <tagged-but-unused>` reclaims more. Target: keep 50GB+ free.
-**PREVENTION TODO**: Weekly cron on server running `docker image prune -a -f --filter "until=72h"` to auto-prune old unused images. Steve approved the approach but cron not yet set up.
+**PREVENTION INSTALLED (July 1, 2026)**: Daily cron on server runs `docker image prune -a -f --filter "until=72h"` at 04:17 UTC. Script at `/usr/local/bin/holly-docker-prune.sh`, log at `/var/log/holly-docker-prune.log`. Sudoers entry `/etc/sudoers.d/holly-docker-prune` grants ubuntu passwordless docker (needed for cron). Cadence is daily (not weekly as originally drafted) because the box fills within ~15 deploys and Steve sometimes deploys multiple times/day — weekly leaves too little margin. The 72h filter still protects recently-pulled images.
+
+**NEW SYMPTOM (July 1, 2026 outage)**: When disk hits 100% with the Next.js container still running, the container can't write log files or response bodies. The Node process stays up (so health checks pass between failures), but real HTTP responses fail at the Coolify proxy layer as 502/503/504. Browser sees widespread 503s on every endpoint (`/api/conversations`, `/api/clerk/...`, `/api/autonomy/health`, even `/avatars/static.jpg`) while `curl http://localhost:3000/api/health` from the server works fine. The clue is the self-healing "performance-degradation" alert firing every 30s with `issuesFound: 1, healthy: false` — that's the canary. Check `df -h /` first when this pattern appears.
 
 ## PHASE R1 MARKETPLACE WAVE 1a — SHIPPED (July 1, 2026, commit 50a0e1c)
 Foundation for the extension marketplace. No UI yet — Wave 1b is the next milestone.
@@ -140,19 +244,23 @@ Steve called out that I've been treating Holly like a checkbox exercise:
 
 ---
 
-## IMAGE GENERATION ARCHITECTURE — LOCKED (June 26, 2026)
+## IMAGE GENERATION ARCHITECTURE — LOCKED (June 26, 2026, updated July 2)
 
 **The A100 endpoint is the single source of truth for Holly's likeness.**
 
 `services/modal-media/image_generate_flux2klein_a100.py` has:
 - **Both LoRAs BAKED at container startup** (loaded + fused, always active):
-  - `holly-face-v2.safetensors` @ 0.75 (avatar recipe — 0.95 distorted face geometry per June 27 isolation test)
-  - `holly-body-v2.5.safetensors` @ 1.0 (raised from 0.65 on June 29 — 0.65 caused see-through clothing on NSFW because it couldn't override Klein's clothing priors)
-- **Its own `HOLLY_BODY_PREFIX`** that auto-expands the `h0lly` trigger:
-  - Starts with `"h0lly, h0lly-body, completely nude woman, fully naked, bare skin, not wearing any clothing..."` then full anatomy from HOLLY_ANATOMY.md
-- When endpoint sees `h0lly` in prompt → REPLACES `h0lly` with full prefix
-- When endpoint doesn't see `h0lly` → PREPENDS prefix to prompt
-- Both paths result in Holly's full anatomy being injected automatically
+  - `holly-face-v2.safetensors` @ 0.75 (avatar recipe — 0.95 distorted face geometry per June 27 isolation test; 0.85 was avatar recipe but caused face-bleed paired with body 1.15)
+  - `holly-body-v2.5.safetensors` @ 1.0 (raised from 0.65 on June 29 — 0.65 caused see-through clothing on NSFW; 1.15 caused face-bleed paired with face 0.95)
+  - **DO NOT BUMP THESE WEIGHTS** without re-running the isolation test. FACT.md previously claimed 0.85/1.15 as canonical — that was stale. The code comments at line 95-102 are the source of truth.
+- **Clothing-aware body prefix (NEW July 2):** Two prefixes now exist:
+  - `HOLLY_BODY_PREFIX` — full NSFW anchors ("completely nude, fully naked, not wearing any clothing"). Used when prompt has NO clothing keywords.
+  - `CLOTHED_BODY_PREFIX` — same identity anchors (face, hair, eyes, body shape, height) but DROPS the nudity anchors. Used when prompt contains any of: bikini|swimsuit|lingerie|dress|thong|bra|panties|underwear|jeans|skirt|etc. (full list in `_CLOTHING_RE`).
+  - `_select_body_prefix(raw_prompt)` returns the right one. Applied at both `/generate` and `/inpaint`.
+  - **WHY:** Without this, "bikini on a beach" got contradicted by "completely nude" → Klein ignored Holly's LoRA features → generic non-Holly model rendered.
+- When endpoint sees `h0lly` in prompt → REPLACES `h0lly` with the selected prefix
+- When endpoint doesn't see `h0lly` → PREPENDS selected prefix to prompt
+- Both paths result in Holly's identity being injected automatically (nude-only or clothing-aware)
 
 **CRITICAL RULE for chat route (app/api/chat/route.ts):**
 The chat route's job is to send ONLY: `"h0lly, h0lly-body, ${user_action}"`.
@@ -396,7 +504,7 @@ Steve has explicitly instructed: **NEVER guess or assume.** Always:
 - **Ollama**: configured when local
 - **Arcee**: API key configured
 - **Mistral AI Direct**: API key configured
-- **HOLLY Brain V3.5 (PRIMARY)**: `https://iamhollywoodpro--brain-chat.modal.run` — HauhauCS/Qwen3.5-9B-Uncensored-HauhauCS-Aggressive (Q4_K_M GGUF, 5.3GB). Fully uncensored (0/465 refusals), natively multimodal (text+image via mmproj), ~45 tok/s on T4. Deployed via llama.cpp server with CUDA (all layers offloaded). Persistent Modal Volume caches GGUF for fast cold starts. **V3.5 IS PRIMARY for 9/11 task types** (speed, coding, reasoning, vision, creative, agent, consciousness, unrestricted, synthesis). long_context stays cloud-primary (32K ctx vs Gemini 1M). local stays Ollama-only. Env var: `HOLLY_OWN_MODEL_URL=https://iamhollywoodpro--brain-chat.modal.run` (set in Coolify DB June 30 2026).
+- **HOLLY Brain V3.5 (PRIMARY)**: `https://iamhollywoodpro--brain-chat.modal.run` — HauhauCS/Qwen3.5-9B-Uncensored-HauhauCS-Aggressive (Q4_K_M GGUF, 5.3GB). Fully uncensored (0/465 refusals), natively multimodal (text+image via mmproj). **Deployed on L4 GPU** ($1.50/hr, $30/mo free-tier = 20 hrs/month). Was briefly migrated to A100 40GB on 2026-07-02 then REVERTED same day — A100 was 2.6x more expensive for marginal speed improvement. With 60K context cap from 769003d, L4 gives ~10-20s per message. Cost lesson: ALWAYS show cost math BEFORE proposing GPU migrations, not after. parallel=1 retained (Steve's July 2 outage came from --parallel dividing context silently). Deployed via llama.cpp server with CUDA (all layers offloaded). Persistent Modal Volume caches GGUF for fast cold starts. **V3.5 IS PRIMARY for 9/11 task types** (speed, coding, reasoning, vision, creative, agent, consciousness, unrestricted, synthesis). long_context stays cloud-primary (32K ctx vs Gemini 1M). local stays Ollama-only. Env var: `HOLLY_OWN_MODEL_URL=https://iamhollywoodpro--brain-chat.modal.run` (set in Coolify DB June 30 2026).
 - **HOLLY Vision (VISION FALLBACK)**: `https://iamhollywoodpro--vision-chat.modal.run` — manuojvv/Qwen3.5-4B-gabliterated-Q8 (Q8_0 GGUF 4.27GB + bf16 mmproj 644MB). gabliterated multimodal (multi-directional SVD removes primary AND secondary refusal directions). Sits behind brain-v35 in vision cascade. **DEPLOYED + VERIFIED 2026-06-30** — health check returns healthy, vision inference returns valid OpenAI-format JSON. Env var: `HOLLY_VISION_MODEL_URL=https://iamhollywoodpro--vision-chat.modal.run` (set in Coolify DB June 30 2026).
 - **HOLLY-8B (legacy backup)**: `https://iamhollywoodpro--chat.modal.run` — DuoNeural/Qwen3-8B-Abliterated + holly-lora-v1 adapter. Kept as secondary in consciousness waterfall. v1 LoRA too weak to dominate base — needs Phase U3 v2 fine-tune.
 
