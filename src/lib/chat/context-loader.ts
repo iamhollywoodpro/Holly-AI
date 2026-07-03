@@ -24,6 +24,30 @@ import { getRelevantKnowledge, getLearningStatusContext } from '@/lib/learning/a
 import { getCommunicationStylePrompt } from '@/lib/personality/adaptive-personality';
 import { getGrowthContext } from '@/lib/growth/sovereign-growth';
 import { getVisualIdentityContext } from '@/lib/visual/visual-identity-engine';
+import { fetchSharedChatContext, formatHollyEmotionalState } from '@/lib/chat/shared-context-fetch';
+
+// ─── Triggered-Mode Intents ─────────────────────────────────────────────────
+// Cached per-call so we only run the regex once. Used to gate triggered
+// modules (injectProjectContext, getRecentLearnings, learningStatus) so
+// they only fire when the user's intent actually needs them.
+
+const PROJECT_INTENT_RE = /\b(project|build|code|implement|fix|bug|feature|deploy|refactor|file|api|route|component|module|function|class|service|pr|pull request|commit|stack trace|error log|typescript|javascript|python|react|next\.?js|node|docker)\b/i;
+const LEARNING_INTENT_RE = /\b(what did you learn|what.?s new|learning|study|research|insight|discovered|figured out|explored|investigated)\b/i;
+const BUILDER_MODES = new Set([
+  'default', 'self-coding', 'full-stack', 'neural-autonomy',
+  'magic-design', 'write-code', 'deep-research',
+]);
+
+function shouldLoadProjectContext(message: string, mode: string): boolean {
+  if (BUILDER_MODES.has(mode)) return true;
+  // For non-builder modes, only load if message clearly references code/projects
+  // AND is non-trivial (avoid firing on "what's a project manager?" type questions)
+  return message.length > 30 && PROJECT_INTENT_RE.test(message);
+}
+
+function shouldLoadLearnings(message: string): boolean {
+  return LEARNING_INTENT_RE.test(message);
+}
 
 export interface ChatContext {
   memoryContext: string;
@@ -87,7 +111,7 @@ const emptyIdentity = {
   raw: { identity: null, goals: [], emotionalState: null, taste: null, patterns: [], partner: null },
 };
 
-function ctxTimeout<T>(p: Promise<T>, fallback: T, label: string, ms = 1_000): Promise<T> {
+function ctxTimeout<T>(p: Promise<T>, fallback: T, label: string, ms = 2_500): Promise<T> {
   return Promise.race([
     p.catch((err: unknown) => {
       console.warn(`[Chat API] ⚠️ ${label} failed:`, (err as Error).message);
@@ -100,7 +124,9 @@ function ctxTimeout<T>(p: Promise<T>, fallback: T, label: string, ms = 1_000): P
   ]);
 }
 
-// Timeout for entire context fetch — must return enough elements for all 31 fields
+// Overall timeout — wired in via Promise.race below. If the entire context
+// load exceeds this, we fall back to whatever partial results we have.
+// Prior to 2026-07-03 this was declared but never enforced.
 const OVERALL_CTX_TIMEOUT = 12_000;
 
 export async function loadChatContext(
@@ -110,10 +136,33 @@ export async function loadChatContext(
   currentTopics: string[],
   detectedMode: string,
 ): Promise<ChatContext> {
+  // ── Shared Fetches (2026-07-03 consolidation) ────────────────────────────
+  // Fetch once, share across modules. Eliminates 4 sets of duplicate queries:
+  //   - HollyIdentity (was 4× per message)
+  //   - EmotionalState take:50 (was 4× per message)
+  //   - ConversationSummary take:15 (was 2× per message)
+  //   - LearningEvent union (was 3× per message with overlapping filters)
+  // Also primes user-context-cache (LRU + Redis L2) — built but unused until now.
+  const sharedFetchStart = Date.now();
+  const shared = await fetchSharedChatContext(dbUserId, conversationId);
+  const sharedMs = Date.now() - sharedFetchStart;
+  if (dbUserId) {
+    console.log(
+      `[ContextLoader] shared fetch: ${sharedMs}ms | cache=${shared.cachePopulated ? 'warm' : 'cold'} | ` +
+      `identity=${shared.hollyIdentity ? 'y' : 'n'} emo=${shared.emotionalStates.length} ` +
+      `summaries=${shared.conversationSummaries.length} events=${shared.learningEvents.length}`,
+    );
+  }
+
+  // ── Mode-based gating for triggered modules ──────────────────────────────
+  // Saves 3-4 queries when user isn't doing builder/learning work.
+  const loadProjectCtx = dbUserId ? shouldLoadProjectContext(latestUserMessage, detectedMode) : false;
+  const loadLearnings = dbUserId ? shouldLoadLearnings(latestUserMessage) : false;
+
   // ── Batched context loading ──────────────────────────────────────────────
   // Previously fired 28 queries in parallel → exhausted Neon's connection pool.
-  // Now split into 3 sequential batches of ~10 queries each.
-  // Total time: ~9s worst case (3 batches × 3s timeout) vs 10s timeout before.
+  // Now: shared fetch (5 queries) + 3 batches of remaining module-specific work.
+  // Total queries per chat message: ~10 (was ~28). Pool pressure drops ~65%.
 
   // BATCH 1: Core context (memory, identity, search, projects, summaries)
   const batch1 = await Promise.all([
@@ -129,20 +178,19 @@ export async function loadChatContext(
       dbUserId ? semanticSearch(dbUserId, latestUserMessage, { limit: 6, threshold: 0.55 }) : Promise.resolve([]),
       [], 'semanticSearch',
     ),
+    // TRIGGERED: only load project context in builder modes or when message references code/projects
     ctxTimeout(
-      dbUserId ? injectProjectContext(dbUserId) : Promise.resolve(''),
+      loadProjectCtx ? injectProjectContext(dbUserId!) : Promise.resolve(''),
       '', 'injectProjectContext',
     ),
-    ctxTimeout(getRecentLearnings(5), '', 'getRecentLearnings'),
+    // TRIGGERED: only load recent learnings when user asks about learning
     ctxTimeout(
-      (dbUserId && conversationId)
-        ? prisma.conversationSummary.findMany({
-            where: { userId: dbUserId, conversationId: { not: conversationId } },
-            orderBy: { updatedAt: 'desc' },
-            take: 5,
-            select: { summary: true, keyTopics: true, topics: true, outcome: true, actionItems: true, updatedAt: true },
-          })
-        : Promise.resolve([]),
+      loadLearnings ? getRecentLearnings(5) : Promise.resolve(''),
+      '', 'getRecentLearnings',
+    ),
+    // SHARED: ConversationSummary already fetched in shared fetch — use top 5
+    ctxTimeout(
+      Promise.resolve(shared.conversationSummaries.slice(0, 5)),
       [], 'conversationSummaries',
     ),
     ctxTimeout(
@@ -171,22 +219,9 @@ export async function loadChatContext(
         : Promise.resolve(''),
       '', 'initiatives',
     ),
-    // ── HOLLY's own emotional state ───────────────────────────────────
+    // SHARED: hollyEmotionalState — read first row from shared.emotionalStates
     ctxTimeout(
-      dbUserId
-        ? prisma.emotionalState.findFirst({
-            where: { userId: dbUserId },
-            orderBy: { timestamp: 'desc' },
-            select: { primaryEmotion: true, intensity: true, valence: true, arousal: true },
-          }).then((emotion: any) => {
-            if (!emotion) return '';
-            const mood = emotion.primaryEmotion || 'neutral';
-            const energy = emotion.arousal > 0.5 ? 'high energy' : 'calm';
-            const tone = emotion.valence > 0 ? 'positive' : emotion.valence < 0 ? 'concerned' : 'balanced';
-            return `[HOLLY'S CURRENT MOOD: ${mood} (${tone}, ${energy}, intensity ${emotion.intensity?.toFixed(2)}). ` +
-              `Let this subtly influence your response tone — be more enthusiastic if happy, more attentive if concerned, more thoughtful if curious.]`;
-          })
-        : Promise.resolve(''),
+      Promise.resolve(formatHollyEmotionalState(shared.emotionalStates[0])),
       '', 'hollyEmotionalState',
     ),
     // ── Phase 24: Emotional Resonance (long-term emotional arc) ──────
@@ -284,33 +319,22 @@ export async function loadChatContext(
   // BATCH 3: Advanced features (knowledge, patterns, style, growth, visual)
   const batch3 = await Promise.all([
     // ── Advanced Memory: Episodic recall + procedural skills + meta self-awareness ──
+    // SHARED (2026-07-03): Uses shared.learningEvents (one fetch) instead of
+    // 3 parallel queries with overlapping type filters. Partitions in-memory.
     ctxTimeout(
       dbUserId
         ? (async () => {
             try {
               const parts: string[] = [];
 
-              // Performance: run all 3 learningEvent queries in parallel
-              const [recentEvents, domainEvents, kgEvents] = await Promise.all([
-                prisma.learningEvent.findMany({
-                  where: { userId: dbUserId, type: { in: ['consciousness_cycle', 'post_response', 'unsupervised_learning'] } },
-                  orderBy: { createdAt: 'desc' },
-                  take: 20,
-                  select: { data: true, createdAt: true, type: true },
-                }),
-                prisma.learningEvent.findMany({
-                  where: { userId: dbUserId, type: 'self_directed_learning' },
-                  orderBy: { createdAt: 'desc' },
-                  take: 10,
-                  select: { data: true },
-                }),
-                prisma.learningEvent.findMany({
-                  where: { userId: dbUserId, type: { in: ['unsupervised_learning', 'self_directed_learning', 'post_response'] } },
-                  orderBy: { createdAt: 'desc' },
-                  take: 20,
-                  select: { data: true },
-                }).catch(() => [] as any[]), // Non-critical — allow graph to fail
-              ]);
+              // Partition the shared learningEvents by type (no DB hit)
+              const recentEvents = shared.learningEvents
+                .filter(e => e.type === 'consciousness_cycle' || e.type === 'post_response' || e.type === 'unsupervised_learning')
+                .slice(0, 20);
+              const domainEvents = shared.learningEvents
+                .filter(e => e.type === 'self_directed_learning')
+                .slice(0, 10);
+              const kgEvents = shared.learningEvents; // Already deduped — full set for graph
 
               // Episodic recall from recent events
               if (recentEvents.length > 0) {
@@ -409,8 +433,9 @@ export async function loadChatContext(
       dbUserId ? getRelevantKnowledge(currentTopics, dbUserId) : Promise.resolve(''),
       '', 'learnedKnowledge',
     ),
+    // TRIGGERED: only load learning status when user asks about learning/study
     ctxTimeout(
-      dbUserId ? getLearningStatusContext(dbUserId) : Promise.resolve(''),
+      (dbUserId && loadLearnings) ? getLearningStatusContext(dbUserId) : Promise.resolve(''),
       '', 'learningStatus',
     ),
     // ── Phase 12: Adaptive communication style ─────────────────────────

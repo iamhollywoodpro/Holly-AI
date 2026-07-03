@@ -278,10 +278,12 @@ export async function runBackgroundTasks(opts: {
       const { evolveVisualIdentity } = await import('@/lib/visual/visual-identity-engine');
 
       // Parallel: load relationship profile + shared emotion detection
+      // FIX (2026-07-03): schema fields are `trustLevel` and `relationshipDepth`,
+      // not `trustScore` and `depth`. Was silently failing every chat message.
       const [relProfile, emotionResult] = await Promise.all([
         prisma.relationshipProfile.findUnique({
           where: { userId: dbUserId },
-          select: { trustScore: true, depth: true, communicationStyle: true },
+          select: { trustLevel: true, relationshipDepth: true, communicationStyle: true },
         }).catch(() => null),
         emotionPromise,
       ]);
@@ -290,8 +292,9 @@ export async function runBackgroundTasks(opts: {
         dominantEmotion: emotionResult?.primary,
         energyLevel: emotionResult?.arousal,
         warmthLevel: emotionResult?.valence !== undefined ? (emotionResult.valence + 1) / 2 : undefined,
-        relationshipDepth: relProfile?.depth ? relProfile.depth / 10 : undefined,
-        trustScore: relProfile?.trustScore ?? undefined,
+        // relationshipDepth is already 0-1 in the schema — no /10 needed
+        relationshipDepth: relProfile?.relationshipDepth,
+        trustScore: relProfile?.trustLevel,
       });
     } catch (err) {
       bgLog('visual-identity-evolution', err);
