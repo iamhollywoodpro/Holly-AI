@@ -885,7 +885,10 @@ Respond ONLY with a JSON array of insight objects:
     const userMsg = `My recent experiences:\n${experienceSummary}\n\nMy existing insights:\n${existingInsights || 'None yet'}\n\nWhat new insights can I draw from these experiences?`;
 
     const { text } = await cascadeCollect(
-      (await smartRoute(userMsg, { forceTask: 'consciousness' })).waterfall,
+      // 2026-07-03: was 'consciousness' → brain-v35 ($$$). This is metadata
+      // insight extraction, not user-facing content. Groq's Llama 3.3 70B
+      // handles this fine and is free.
+      (await smartRoute(userMsg, { forceTask: 'analytics' })).waterfall,
       [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userMsg },
@@ -994,7 +997,9 @@ Respond ONLY with JSON:
     const userMsg = `Current traits: ${traits}\nCurrent interests: ${interests}\nRecent emotions: ${emotionSummary}\nRecent experiences: ${recentExperiences.length} recorded\n\nHow should HOLLY's identity evolve?`;
 
     const { text } = await cascadeCollect(
-      (await smartRoute(userMsg, { forceTask: 'consciousness' })).waterfall,
+      // 2026-07-03: was 'consciousness' → brain-v35 ($$$). Identity evolution
+      // is metadata (trait adjustments), not user-facing. Route to Groq.
+      (await smartRoute(userMsg, { forceTask: 'analytics' })).waterfall,
       [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userMsg },

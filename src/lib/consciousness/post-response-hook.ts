@@ -216,18 +216,17 @@ async function runImmediateConsciousness(
   userMessage: string,
   emotion: { primary: string; valence: number; arousal: number; intensity: number }
 ): Promise<void> {
-  try {
-    // Only trigger for high-intensity emotional exchanges
-    if (emotion.intensity >= 0.7 || emotion.arousal >= 0.7) {
-      console.log(`[PostHook:ImmediateConsciousness] High-significance exchange detected (emotion=${emotion.primary}, intensity=${emotion.intensity.toFixed(2)})`);
-      await triggerImmediateConsciousness(userId, {
-        content: userMessage.substring(0, 200),
-        significance: Math.max(emotion.intensity, emotion.arousal),
-      });
-    }
-  } catch (err) {
-    console.error('[PostHook:ImmediateConsciousness] ⚠️', err);
+  // 2026-07-03: DISABLED — was firing a full consciousness cycle on every
+  // emotional message (intensity >= 0.7), which is the #1 Modal spend bleed
+  // source. Each trigger = 4-6 brain-v35 completions just to "process" one
+  // emotional exchange. The 6-hour cron picks these up anyway — by design.
+  //
+  // Kept as no-op (not deleted) so the caller doesn't need refactoring and
+  // we can re-enable with a smarter gating rule later if needed.
+  if (emotion.intensity >= 0.7 || emotion.arousal >= 0.7) {
+    console.log(`[PostHook:ImmediateConsciousness] High-significance exchange detected (emotion=${emotion.primary}, intensity=${emotion.intensity.toFixed(2)}) — queued for next cron (immediate trigger disabled 2026-07-03)`);
   }
+  void userId; void userMessage;
 }
 
 // ─── Phase 3: Implicit feedback detection ───────────────────────────────────

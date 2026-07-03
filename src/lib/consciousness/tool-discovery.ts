@@ -92,7 +92,9 @@ TOOL: ${c.name} | ${c.category} | ${c.description} | Source: ${c.source}
 JSON only: {"relevance":0-1,"quality":0-1,"reasoning":"...","recommendation":"integrate|monitor|skip"}`;
 
   try {
-    const routing = await smartRoute(prompt, { taskHint: 'speed' });
+    // 2026-07-03: was taskHint:'speed' (silently ignored → brain-v35).
+    // Tool evaluation is a 4-field JSON metadata task. Groq handles it free.
+    const routing = await smartRoute(prompt, { forceTask: 'analytics' });
     const resp = await cascadeCollect(
       routing.waterfall,
       [{ role: 'user', content: prompt }],

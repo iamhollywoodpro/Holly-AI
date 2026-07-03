@@ -93,7 +93,10 @@ Generate a JSON response with your reflections:
 }`;
 
     const { text } = await cascadeCollect(
-      (await smartRoute('inner reflection', { forceTask: 'consciousness' })).waterfall,
+      // 2026-07-03: was 'consciousness' → brain-v35 every time this ran.
+      // Inner monologue output is stored for Holly's reference, NOT shown
+      // to user. Groq's 70B handles reflection fine. Free.
+      (await smartRoute('inner reflection', { forceTask: 'analytics' })).waterfall,
       [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: `Here's your context for reflection:

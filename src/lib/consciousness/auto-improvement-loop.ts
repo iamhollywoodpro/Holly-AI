@@ -218,7 +218,10 @@ Respond ONLY with JSON:
 
   try {
     const { text } = await cascadeCollect(
-      (await smartRoute(fileContent, { taskHint: 'code' })).waterfall,
+      // 2026-07-03: was taskHint:'code' (silently ignored → brain-v35).
+      // Code analysis is metadata JSON, not user-facing. Groq's 70B is
+      // stronger at static analysis than brain-v35's 9B. Free.
+      (await smartRoute(fileContent, { forceTask: 'analytics' })).waterfall,
       [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: `File: ${filePath}\n\n\`\`\`typescript\n${fileContent}\n\`\`\`` },
@@ -263,7 +266,9 @@ Rules:
 
   try {
     const { text } = await cascadeCollect(
-      (await smartRoute(currentContent, { taskHint: 'code' })).waterfall,
+      // 2026-07-03: was taskHint:'code' (silently ignored → brain-v35).
+      // Fix-generation needs strong code model — Groq 70B beats brain-v35 9B.
+      (await smartRoute(currentContent, { forceTask: 'analytics' })).waterfall,
       [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: `File: ${filePath}\nIssue: ${issue.description}\nSeverity: ${issue.severity}\nSuggested fix: ${issue.suggestedFix || 'analyze and fix'}\n\nCurrent content:\n\`\`\`typescript\n${currentContent}\n\`\`\`\n\nGenerate the COMPLETE fixed file:` },

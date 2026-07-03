@@ -387,7 +387,10 @@ ${currentContent}
 Generate the COMPLETE fixed file. Output ONLY the code, no markdown fences.`;
 
   try {
-    const routing = await smartRoute(prompt, { taskHint: 'code' });
+    // 2026-07-03: was taskHint:'code' which is silently ignored — fell
+    // through to brain-v35 (9B uncensored). Groq's Llama 3.3 70B is
+    // significantly stronger at code generation AND free. Win-win.
+    const routing = await smartRoute(prompt, { forceTask: 'analytics' });
     const { text } = await cascadeCollect(
       routing.waterfall,
       [{ role: 'user', content: prompt }],

@@ -76,7 +76,9 @@ How did Steve react? Classify as:
 Respond with ONLY one word: positive, neutral, or negative`;
 
     const { text } = await cascadeCollect(
-      (await smartRoute(prompt, { forceTask: 'consciousness' })).waterfall,
+      // 2026-07-03: 1-word sentiment classification is trivial metadata.
+      // Was routing to brain-v35 (uncensored 9B) — pure waste. Groq is free.
+      (await smartRoute(prompt, { forceTask: 'analytics' })).waterfall,
       [{ role: 'user', content: prompt }],
       { temperature: 0.1, maxTokens: 10 },
     );
@@ -319,7 +321,9 @@ Respond with JSON array:
 }]`;
 
     const { text } = await cascadeCollect(
-      (await smartRoute(prompt, { forceTask: 'consciousness' })).waterfall,
+      // 2026-07-03: research topic brainstorming — metadata JSON, not chat.
+      // Groq's Llama 3.3 70B is actually stronger than brain-v35 here.
+      (await smartRoute(prompt, { forceTask: 'analytics' })).waterfall,
       [{ role: 'user', content: prompt }],
       { temperature: 0.7, maxTokens: 500 },
     );

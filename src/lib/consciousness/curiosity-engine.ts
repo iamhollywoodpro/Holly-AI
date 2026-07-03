@@ -155,7 +155,10 @@ Respond ONLY with JSON:
 
   try {
     const { text } = await cascadeCollect(
-      (await smartRoute(userMsg, { forceTask: 'consciousness' })).waterfall,
+      // 2026-07-03: was 'consciousness' → brain-v35 ($$$). Curiosity insight
+      // extraction is metadata JSON, not user-facing content. Groq's Llama
+      // 3.3 70B handles this fine and is free.
+      (await smartRoute(userMsg, { forceTask: 'analytics' })).waterfall,
       [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userMsg },

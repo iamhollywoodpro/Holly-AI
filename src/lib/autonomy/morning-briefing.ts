@@ -157,7 +157,10 @@ Respond with a JSON object:
   let briefing: { greeting: string; overnightSummary: string; systemHealth: string; recommendedActions: string[] };
 
   try {
-    const route = await smartRoute('morning briefing generation', { taskHint: 'creative' });
+    // 2026-07-03: was taskHint:'creative' (silently ignored → brain-v35).
+    // Once-daily per user, but still a few cents/day per active user. Groq
+    // handles structured briefing JSON fine and is free.
+    const route = await smartRoute('morning briefing generation', { forceTask: 'analytics' });
     const { text } = await cascadeCollect(route.waterfall, [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: contextBlock },
