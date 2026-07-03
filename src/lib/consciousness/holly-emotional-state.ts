@@ -287,7 +287,8 @@ Respond with ONLY a JSON object: {"emotion": "<word>", "intensity": <0-1>}
 
 Valid emotions: happy, empathetic, energized, curious, focused, calm, concerned, sad, neutral, enthusiastic, engaged, thoughtful, balanced, content, relieved, determined, patient, gentle, hopeful, attentive`;
 
-    const routing = await smartRoute(prompt, { taskHint: 'speed' });
+    // Analytics: route to Groq (free, fast). Emotional state update is metadata.
+    const routing = await smartRoute(prompt, { forceTask: 'analytics' });
     const { text } = await cascadeCollect(
       routing.waterfall,
       [{ role: 'user', content: prompt }],

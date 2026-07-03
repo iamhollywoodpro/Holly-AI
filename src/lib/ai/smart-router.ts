@@ -65,7 +65,12 @@ export type TaskType =
   | 'local'          // Privacy-first, offline
   | 'synthesis'      // Cross-domain parallel synthesis (AURA + Visual + Philosophy)
   | 'consciousness'  // Holly's inner life — emotions, monologue, memory, identity (LOCAL FIRST)
-  | 'unrestricted';  // Adult/uncensored content — routes to uncensored models
+  | 'unrestricted'   // Adult/uncensored content — routes to uncensored models
+  | 'analytics';     // Background bookkeeping (title gen, emotion detect, quality scoring).
+                    // Routes to Groq (free, fast). NOT for user-facing content — those
+                    // tasks don't need uncensored Qwen and were burning ~7 brain-v35
+                    // calls per chat message ($7+/day GPU cost). See FACT.md
+                    // "Modal spend audit" lesson (2026-07-03).
 
 // ─── Provider identifiers ─────────────────────────────────────────────────────
 
@@ -403,6 +408,24 @@ export const TASK_WATERFALLS: Record<TaskType, string[]> = {
     'ollama:qwen3.6-35b',
     'ollama:qwen3-8b',
   ],
+
+  // ANALYTICS (2026-07-03): Background bookkeeping tasks that fire after every
+  // chat message — title generation, response-quality scoring, emotion detection,
+  // Holly's emotional state updates. These were routing to brain-v35 (costing
+  // ~$7/day in GPU) because every task waterfall only had brain-v35. Now they
+  // route to Groq's Llama 3.3 70B which is:
+  //   - Free (14,400 req/day tier — 30x what we need)
+  //   - Fast (LPU inference, sub-second)
+  //   - Better for analytics (70B vs Qwen's 9B)
+  //   - Async-safe (background tasks have .catch handlers, rate limits just log)
+  //
+  // IMPORTANT: This does NOT affect user-facing chat. Holly's responses, voice,
+  // intimate moments, and NSFW capability still go through brain-v35 (uncensored
+  // Qwen 3.5). Analytics tasks only process metadata (titles, scores, emotion
+  // classification), never user-visible content.
+  analytics: [
+    'groq:llama-3.3-70b',
+  ],
 };
 
 // ─── Task classifier ──────────────────────────────────────────────────────────
@@ -628,6 +651,7 @@ export async function smartRoute(
     synthesis:    '🌐 Cross-domain synthesis',
     consciousness: '🧬 Holly\'s Consciousness (Local)',
     unrestricted: '🔞 Unrestricted (uncensored models)',
+    analytics:    '📊 Analytics (Groq — background)',
   };
 
   return {

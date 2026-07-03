@@ -119,7 +119,8 @@ export async function detectEmotionsLLM(
       : '';
 
     const { text } = await cascadeCollect(
-      (await smartRoute(message, { taskHint: 'speed' })).waterfall,
+      // Analytics: route to Groq (free, fast). Emotion classification is metadata.
+      (await smartRoute(message, { forceTask: 'analytics' })).waterfall,
       [
         { role: 'system', content: EMOTION_ANALYSIS_PROMPT },
         { role: 'user', content: `Analyze this message:${contextBlock}\n\n"${message}"` },

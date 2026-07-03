@@ -114,7 +114,9 @@ export async function runBackgroundTasks(opts: {
     const titlePrompt = `Generate a concise, descriptive title (3-6 words) for a conversation that starts with:\n\n"${latestUserMessage}"\n\nReturn ONLY the title, nothing else.`;
     (async () => {
       try {
-        const routing = await smartRoute(titlePrompt, { taskHint: 'speed' });
+        // Analytics: route to Groq (free, fast) instead of brain-v35.
+        // Title generation is metadata, not user-facing — see smart-router.ts 'analytics'.
+        const routing = await smartRoute(titlePrompt, { forceTask: 'analytics' });
         const { text: raw } = await cascadeCollect(
           routing.waterfall,
           [{ role: 'user', content: titlePrompt }],

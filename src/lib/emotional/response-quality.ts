@@ -86,7 +86,8 @@ Rate each dimension 0-1:
 
 Respond with ONLY a JSON object: {"empathy":0.8,"warmth":0.7,"relevance":0.9,"toneMatch":0.8,"note":"brief improvement suggestion or praise"}`;
 
-    const routing = await smartRoute(prompt, { taskHint: 'speed' });
+    // Analytics: route to Groq (free, fast). Quality scoring is metadata.
+    const routing = await smartRoute(prompt, { forceTask: 'analytics' });
     const { text } = await cascadeCollect(
       routing.waterfall,
       [{ role: 'user', content: prompt }],
