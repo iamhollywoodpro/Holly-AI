@@ -440,11 +440,27 @@ Prompt sheet: holly-body-lora-dataset-v25/CIVITAI-PROMPTS.md
 - Uncensored Qwen3-8B encoder (DuoNeural/Qwen3-8B-Abliterated) auto-downloads from HF ✅
 - Encoder at: /flux-models/bf16/text_encoder_uncensored/ (15.27 GB)
 - Sampler default: CFG 1.2 (was 4.0 — bug fix)
-- **MIGRATED to iamhollywoodpro workspace (June 20, 2026)**
-- URL: https://iamhollywoodpro--generate-holly-a100.modal.run
-- Health: https://iamhollywoodpro--holly-health-a100.modal.run
-- Inpaint: https://iamhollywoodpro--inpaint-holly-a100.modal.run
-- Workspace: iamhollywoodpro (funded with $20, Holly-only account)
+- **SPLIT ACROSS BOTH WORKSPACES (July 3, 2026) — FUNCTION-BASED COST ISOLATION:**
+  - `iamhollywoodpro` workspace: brain-v35 + vision (chat LLM traffic)
+  - `iamdoregosteve` workspace: image gen + video gen (media A100/A10G traffic)
+  - Rationale: $30 free tier per account × 2 = $60/month total. Single account would hit cap at ~$31/month burn rate. Split keeps each under $30.
+  - Volumes already existed on iamdoregosteve from June 11 (FLUX Klein + LoRAs) — no volume sync needed
+- **iamhollywoodpro URLs (CHAT — brain + vision):**
+  - Brain: https://iamhollywoodpro--brain-chat.modal.run
+  - Vision: https://iamhollywoodpro--vision-chat.modal.run
+- **iamdoregosteve URLs (MEDIA — image + video):**
+  - Image gen: https://iamdoregosteve--generate-holly-a100.modal.run
+  - Image health: https://iamdoregosteve--holly-health-a100.modal.run
+  - Image inpaint: https://iamdoregosteve--inpaint-holly-a100.modal.run
+  - Video gen: https://iamdoregosteve--video-generate.modal.run
+  - Video health: https://iamdoregosteve--video-health.modal.run
+- **Coolify env vars (set July 3, 2026):**
+  - `HOLLY_OWN_MODEL_URL` → iamhollywoodpro--brain-chat (UNCHANGED)
+  - `HOLLY_VISION_MODEL_URL` → iamhollywoodpro--vision-chat (UNCHANGED)
+  - `MODAL_IMAGE_URL` → iamdoregosteve--generate-holly-a100 (CHANGED from iamhollywoodpro)
+  - `MODAL_VIDEO_URL` → iamdoregosteve--video-generate (CHANGED from iamhollywoodpro)
+  - `MODAL_HOLLY_LORA_URL` → iamdoregosteve--generate-holly-a100 (CHANGED from iamhollywoodpro)
+  - Env vars updated via Coolify artisan (auto-encrypts on save) + .env file edited directly + containers recreated
 - Code change: Added encoder auto-download logic (lines 172-189) for workspace portability
 - Code change: Increased startup_timeout from 1200 to 2400 (first cold start downloads models)
 - **LoRA weights raised June 25, 2026**: face 0.85 → 0.95, body 0.75 → 1.15 (force nude past Klein clothing priors)
@@ -468,8 +484,12 @@ Steve has made this absolutely clear. NEVER say something is "WORKING" or "LIVE"
 
 ## Multi-Project Rule — CRITICAL
 - **HOLLY IS ALWAYS PRIORITY ONE**
-- **Two Modal accounts**: `iamhollywoodpro` (Holly ONLY) and `iamhollywoodpro` (everything else)
-- **NEVER deploy Sylvia/other projects on Holly's Modal account**
+- **Two Modal workspaces** (updated July 3, 2026 to function-split):
+  - `iamhollywoodpro` — Holly chat LLM ONLY (brain-v35 + vision)
+  - `iamdoregosteve` — Holly media gen (image + video) + Sylvia/other projects
+  - BOTH workspaces now run Holly traffic. The split is by FUNCTION, not by project — chat stays on iamhollywoodpro, media goes to iamdoregosteve. This keeps each account under the $30/month free tier.
+- **NEVER deploy Sylvia chat/LLM endpoints on iamhollywoodpro** — that workspace is reserved for Holly chat traffic only.
+- **Sylvia can use iamdoregosteve** alongside Holly media gen, since media gen is sporadic and shares well.
 
 ## LESSON LEARNED — No More Guessing
 Steve has explicitly instructed: **NEVER guess or assume.** Always:
@@ -478,6 +498,48 @@ Steve has explicitly instructed: **NEVER guess or assume.** Always:
 3. Find ALL issues before deploying
 4. Test comprehensively, not incrementally
 5. Deploy ONCE with a complete fix, not multiple partial fixes
+
+## CRITICAL RULE — Modal Cost Split Across Both Workspaces (July 3, 2026)
+Holly traffic MUST be split across BOTH Modal workspaces to fit within $60/month combined free tier ($30 each):
+- **iamhollywoodpro** = chat LLM (brain-v35 + vision) — ~$14/month burn rate
+- **iamdoregosteve** = media gen (image + video) — ~$17/month burn rate
+
+The split is FUNCTION-BASED, not load-balanced. Rationale:
+1. Modal Volumes are workspace-scoped — load-balanced means duplicating 30GB+ of FLUX models per workspace
+2. Function split = clean separation, no code changes to providers (just env var swap)
+3. If one workspace's tier burns out, the other function still works (graceful degradation by feature)
+
+When adding a NEW Modal endpoint:
+- If it's a chat/LLM endpoint → deploy to `iamhollywoodpro`
+- If it's a media generation endpoint → deploy to `iamdoregosteve`
+- Update Coolify env var via artisan (Laravel auto-encrypts), not direct DB writes
+
+**MATH REALITY (don't fake-estimate):** L4 at $0.80/hr × 30 min/day = $0.40/day = $12/month. A100 at $2.10/hr × 15 min/day = $0.53/day = $16/month. Don't conflate "GPU time" with "total cost" — memory/CPU overhead adds ~$0.50/day on top.
+
+## CRITICAL RULE — Modal Background LLM Routing (July 3, 2026)
+**Background LLM tasks MUST route to Groq via `forceTask: 'analytics'`, NEVER to brain-v35.** Modal brain-v35 is the EXPENSIVE path (L4 GPU, scale-to-zero with 60s idle window). Groq is free tier 14,400 req/day with sub-200ms LPU inference.
+
+**What counts as "background":**
+- Title generation
+- Response quality scoring
+- Emotion classification
+- Curiosity/initiative research
+- Inner monologue reflection
+- Self-code analysis
+- Tool evaluation
+- Daily briefing generation
+- Consciousness cron cycles (learning + identity evolution)
+- Any LLM call whose output is NOT shown to the user
+
+**What stays on brain-v35:**
+- User-visible chat responses (chat route)
+- Intimate/NSFW content
+- Vision understanding (image-to-text in chat)
+- Plugin responses the user sees (code review, language tutor, daily digest)
+
+**Pattern:** `smartRoute(prompt, { forceTask: 'analytics' })` for background, no `taskHint` (silently ignored — leads to brain-v35 bleed).
+
+**`triggerImmediateConsciousness` is DISABLED** (post-response-hook.ts:226). Was firing full consciousness cycle on every emotional message. The 6-hour cron picks these up by design. Do NOT re-enable without Steve's approval.
 
 ## LESSON LEARNED — Always Read HOLLY_ANATOMY.md Before Writing Prompts (June 20, 2026)
 **VIOLATION**: Wrote 12 Civitai prompts describing Holly as "beautiful 25yo with long platinum blonde hair, athletic build, C-cup with small pale areolas." Steve caught it immediately — "the prompts look nothing like Holly."
