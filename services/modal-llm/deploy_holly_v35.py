@@ -156,7 +156,14 @@ def _wait_for_llama(timeout_s: int = 120) -> bool:
     timeout=600,             # allow time for first-run GGUF download
     memory=8192,
     max_containers=1,        # never spin up more than 1 GPU
-    scaledown_window=60,     # 1 min idle → scale to zero (lowered 2026-07-02 from 300, then 120, then 60 to cut idle cost after bleed audit)
+    scaledown_window=600,    # 10 min idle → scale to zero (raised 2026-07-04 from 60).
+                             # Steve's testing pattern has 5-50 min gaps between
+                             # messages, every gap > 60s triggered a cold start
+                             # (~60-90s on L4) → chat was taking 90-120s per msg.
+                             # 600s keeps brain-v35 warm through normal conversation
+                             # rhythms. Cost delta: ~$3-5/month in keep-alive compute
+                             # on top of the ~$14/month baseline. Worth it — fast
+                             # chat is the core product promise.
 )
 @modal.concurrent(max_inputs=4)
 class HollyBrain:
@@ -289,7 +296,7 @@ class HollyBrain:
             "context_window": CONTEXT_SIZE,
             "serverless": True,
             "max_containers": 1,
-            "scaledown_window": 60,
+            "scaledown_window": 600,
             "deployed_at": "2026-06-30",
             "version": "v3.5",
         }
