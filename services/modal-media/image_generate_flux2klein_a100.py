@@ -97,8 +97,18 @@ HOLLY_BODY_PREFIX = (
 # 2026-07-02: "the image you generated isn't of you"). This prefix keeps
 # Holly's face/body/identity anchors but drops the nudity anchors so Klein
 # can honor the clothing request while still rendering Holly's likeness.
+#
+# 2026-07-04 UPDATE (Steve flagged bikini rendering wrong — black top, waist-up,
+# not on beach): Added explicit full-body framing anchors. Klein defaults to
+# waist-up portrait when no framing is specified. Without "full body, head to
+# toe", Steve's "bikini on the beach" request rendered as a generic black-top
+# portrait. Now every clothed generation anchors full-length framing so Klein
+# can't fall back to its bust-portrait prior.
 CLOTHED_BODY_PREFIX = (
     "h0lly, h0lly-body, 21 years old woman in her early twenties, youthful young adult, "
+    "FULL BODY VISIBLE FROM HEAD TO FEET, full-length shot, full body framing, head to toe, "
+    "complete outfit visible, fashionable clothing covering her body, dressed in clothing, "
+    "standing pose showing her whole body, full length portrait, "
     "olive skin tone (Portuguese/South Indian heritage), "
     "flawless silky smooth even complexion, clean healthy well-moisturized sheen, "
     "uniform clear flawless skin texture, perfectly clean and even, "
