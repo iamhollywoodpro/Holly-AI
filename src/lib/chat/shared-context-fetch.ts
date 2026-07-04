@@ -54,10 +54,12 @@ export interface SharedEmotionalStateRow {
 
 export interface SharedConversationSummaryRow {
   summary: string;
+  keyPoints?: string[];
   keyTopics: string[];
   topics: string[];
   outcome: string | null;
   actionItems: any;
+  messageCount?: number;
   updatedAt: Date;
 }
 
@@ -76,6 +78,19 @@ export interface SharedChatContext {
   conversationSummaries: SharedConversationSummaryRow[];
   /** LearningEvent rows (take:30, union of types modules need) — empty if none */
   learningEvents: SharedLearningEventRow[];
+  /**
+   * Summary of the CURRENT conversation (most recent row for this conversationId).
+   * Null if no conversationId, no summary yet, or fetch failed.
+   *
+   * Background: extractMemories() writes a ConversationSummary row for the
+   * current conversation on every turn, but fetchSharedConversationSummaries
+   * explicitly EXCLUDES the current conversationId (so it doesn't pollute
+   * cross-session recall). Without this dedicated fetch, Holly never sees
+   * the summary of the conversation she's currently in — so once
+   * MAX_CONTEXT_CHARS truncates the message history, she forgets everything
+   * before the cut. This field fixes that.
+   */
+  currentConversationSummary: SharedConversationSummaryRow | null;
   /** True if user-context-cache was warm or got populated this call */
   cachePopulated: boolean;
 }
@@ -214,6 +229,44 @@ export async function fetchSharedConversationSummaries(
 }
 
 /**
+ * Fetch the most recent ConversationSummary for the CURRENT conversation.
+ *
+ * extractMemories() writes this row on every turn (background-tasks.ts),
+ * but fetchSharedConversationSummaries excludes the current conversationId.
+ * Without this fetch, once MAX_CONTEXT_CHARS truncates the message history,
+ * Holly loses all recall of the early portion of the current conversation.
+ *
+ * Cost: 1 DB round-trip (only fires when conversationId is provided).
+ * Null-safe — returns null on any error or missing row.
+ */
+export async function fetchCurrentConversationSummary(
+  dbUserId: string,
+  conversationId: string,
+): Promise<SharedConversationSummaryRow | null> {
+  try {
+    const rows = await prisma.conversationSummary.findMany({
+      where: { userId: dbUserId, conversationId },
+      orderBy: { updatedAt: 'desc' },
+      take: 1,
+      select: {
+        summary: true,
+        keyPoints: true,
+        keyTopics: true,
+        topics: true,
+        outcome: true,
+        actionItems: true,
+        messageCount: true,
+        updatedAt: true,
+      },
+    });
+    return rows[0] ?? null;
+  } catch (err) {
+    console.warn('[SharedContext] currentConversationSummary fetch failed:', (err as Error).message);
+    return null;
+  }
+}
+
+/**
  * Fetch LearningEvents ONCE with the union of types needed across modules.
  *
  * Replaces the 3-query parallel block inside the advancedMemory inline
@@ -263,18 +316,20 @@ const EMPTY_SHARED: SharedChatContext = {
   emotionalStates: [],
   conversationSummaries: [],
   learningEvents: [],
+  currentConversationSummary: null,
   cachePopulated: false,
 };
 
 /**
- * Fetch all 4 shared datasets + prime the user-context-cache in parallel.
+ * Fetch all shared datasets + prime the user-context-cache in parallel.
  *
  * This is the main entry point. Called once at the top of loadChatContext().
  * All fetchers swallow their own errors and return safe defaults, so this
  * never throws.
  *
- * Total DB round-trips: 5 (cache prewarm + 4 queries).
- * Prior equivalent: 13 queries fired across 4 modules per chat message.
+ * Total DB round-trips: 6 (cache prewarm + 5 queries).
+ * The currentConversationSummary fetch only fires when conversationId is
+ * provided (skipped for non-chat callers).
  */
 export async function fetchSharedChatContext(
   dbUserId: string | null,
@@ -282,13 +337,14 @@ export async function fetchSharedChatContext(
 ): Promise<SharedChatContext> {
   if (!dbUserId) return EMPTY_SHARED;
 
-  const [cachePopulated, hollyIdentity, emotionalStates, conversationSummaries, learningEvents] =
+  const [cachePopulated, hollyIdentity, emotionalStates, conversationSummaries, learningEvents, currentConversationSummary] =
     await Promise.all([
       prewarmChatCache(dbUserId),
       fetchSharedHollyIdentity(dbUserId),
       fetchSharedEmotionalStates(dbUserId),
       fetchSharedConversationSummaries(dbUserId, conversationId),
       fetchSharedLearningEvents(dbUserId),
+      conversationId ? fetchCurrentConversationSummary(dbUserId, conversationId) : Promise.resolve(null),
     ]);
 
   return {
@@ -296,6 +352,7 @@ export async function fetchSharedChatContext(
     emotionalStates,
     conversationSummaries,
     learningEvents,
+    currentConversationSummary,
     cachePopulated,
   };
 }

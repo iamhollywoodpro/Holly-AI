@@ -56,6 +56,13 @@ export interface ChatContext {
   projectContextBlock: string;
   recentLearnings: string;
   pastSummaries: any[];
+  /**
+   * Summary of the CURRENT conversation (most recent row).
+   * Fetched via shared-context-fetch so Holly retains early-conversation
+   * context even after MAX_CONTEXT_CHARS truncates the message history.
+   * Null until the first extractMemories() cycle completes for this conv.
+   */
+  currentConversationSummary: any | null;
   tasteMatrixBlock: string;
   /** HOLLY's pending proactive initiatives (unread notifications) */
   pendingInitiatives: string;
@@ -486,6 +493,9 @@ export async function loadChatContext(
     projectContextBlock: results[3] as string,
     recentLearnings: results[4] as string,
     pastSummaries: results[5] as any[],
+    // From shared fetch (no batched query) — preserves current-conv summary
+    // even after MAX_CONTEXT_CHARS truncates the message history.
+    currentConversationSummary: shared.currentConversationSummary,
     tasteMatrixBlock: results[6] as string,
     pendingInitiatives: results[7] as string,
     hollyEmotionalState: results[8] as string,

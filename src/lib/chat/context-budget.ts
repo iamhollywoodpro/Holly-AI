@@ -40,6 +40,10 @@ const BASE_PRIORITIES: Record<StreamKey, StreamConfig> = {
   projectContextBlock:     { maxTokens: 200, priority: 'medium' },
   recentLearnings:         { maxTokens: 150, priority: 'low' },
   pastSummaries:           { maxTokens: 150, priority: 'low' },
+  // Current conversation summary is HIGH priority — it's what we're talking
+  // about right now. Without it, once MAX_CONTEXT_CHARS truncates messages,
+  // Holly forgets everything before the cut.
+  currentConversationSummary: { maxTokens: 300, priority: 'high' },
   tasteMatrixBlock:        { maxTokens: 200, priority: 'low' },
   pendingInitiatives:      { maxTokens: 200, priority: 'medium' },
   hollyEmotionalState:     { maxTokens: 100, priority: 'critical' },

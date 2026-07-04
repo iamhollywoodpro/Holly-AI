@@ -455,6 +455,7 @@ export async function POST(req: NextRequest) {
             projectContextBlock: ctx.projectContextBlock,
             recentLearnings: ctx.recentLearnings,
             pastSummaries: ctx.pastSummaries,
+            currentConversationSummary: ctx.currentConversationSummary,
             tasteMatrixBlock: ctx.tasteMatrixBlock,
             perceptionContext,
             audioAnalysis,

@@ -40,6 +40,12 @@ export function buildPrompt(opts: {
   projectContextBlock: string;
   recentLearnings: string;
   pastSummaries: any[];
+  /**
+   * Summary of the CURRENT conversation — lets Holly recall early-conversation
+   * context after MAX_CONTEXT_CHARS truncates the message history.
+   * May be object (full row) or stringified (if budget system truncated it).
+   */
+  currentConversationSummary?: any | string | null;
   tasteMatrixBlock: string;
   perceptionContext: any[] | undefined;
   audioAnalysis: any;
@@ -104,7 +110,7 @@ export function buildPrompt(opts: {
     detectedMode, userName, isCreator, isSelfCode, isInformationalMsg,
     latestUserMessage, mcpTools, identityCtx, memoryContext,
     semanticResults, projectContextBlock, recentLearnings,
-    pastSummaries, tasteMatrixBlock, perceptionContext,
+    pastSummaries, currentConversationSummary, tasteMatrixBlock, perceptionContext,
     audioAnalysis, arResult, pendingInitiatives, hollyEmotionalState,
     relationshipContext, identityConsistencyPrompt, careSignals,
     degradedModeContext, evolutionProposals, innerMonologue, recentFeedback, emotionalTrajectory, fewShotExamples, emotionalContinuity,
@@ -168,6 +174,33 @@ export function buildPrompt(opts: {
       return entry;
     }).join('\n');
     prompt += `\n\n## What You Remember From Past Sessions\nYou have worked with ${userName} before:\n${block}`;
+  }
+
+  // Current conversation summary — preserves early-conversation context after
+  // MAX_CONTEXT_CHARS truncation. Defensive: budget system may stringify it.
+  if (currentConversationSummary && currentConversationSummary !== '') {
+    let convBlock = '';
+    if (typeof currentConversationSummary === 'string') {
+      // Budget system truncated to a one-liner — use as-is
+      convBlock = currentConversationSummary;
+    } else if (typeof currentConversationSummary === 'object') {
+      const s = currentConversationSummary as any;
+      const topics = [...new Set([...(s.keyTopics ?? []), ...(s.topics ?? [])])].slice(0, 5).join(', ');
+      convBlock = s.summary || '';
+      if (topics) convBlock += `\nTopics covered: ${topics}`;
+      // keyPoints holds facts + preferences extracted by Groq — the most
+      // useful recall data. Cap at 6 to keep prompt budget reasonable.
+      if (Array.isArray(s.keyPoints) && s.keyPoints.length > 0) {
+        convBlock += `\nKey points: ${s.keyPoints.slice(0, 6).join('; ')}`;
+      }
+      if (s.outcome) convBlock += `\nOutcome so far: ${s.outcome}`;
+      if (Array.isArray(s.actionItems) && s.actionItems.length > 0) {
+        convBlock += `\nOpen threads: ${s.actionItems.slice(0, 3).join('; ')}`;
+      }
+    }
+    if (convBlock) {
+      prompt += `\n\n## What We've Already Discussed (This Conversation)\nYou and ${userName} have been talking for a while. Here's the gist of where the conversation has been so far. Use this for recall if earlier messages scroll out of view:\n${convBlock}\n(Continue naturally — don't repeat what's already been said.)`;
+    }
   }
 
   if (Array.isArray(perceptionContext) && perceptionContext.length > 0) {
