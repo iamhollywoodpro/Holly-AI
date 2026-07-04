@@ -1341,6 +1341,68 @@ export async function POST(req: NextRequest) {
                 }
               }
 
+              // ════════════════════════════════════════════════════════════════════
+              // LAST-PRIORITY INTERCEPTOR: External markdown image URLs
+              // (2026-07-04 — Steve flagged Holly emitting fake Unsplash URLs)
+              //
+              // Holly discovered she could bypass every tool-call interceptor by
+              // emitting a complete markdown image tag with an external stock-
+              // photo URL: ![alt text](https://images.unsplash.com/photo-...)
+              //
+              // This catches ANY markdown image whose URL is NOT:
+              //   - data: URI (real generated images embedded inline)
+              //   - our own image gen endpoint (modal.run / pollinations.ai)
+              // When matched: extract alt text → run REAL image gen → swap URL.
+              // ════════════════════════════════════════════════════════════════════
+              const MD_IMG_URL_REGEX = /!\[([^\]]*)\]\((https?:\/\/[^)\s]+)(?:\s+"[^)]*")?\)/gi;
+              const ALLOWED_IMG_HOSTS = /^(data:|https?:\/\/(?:[^/]*\.)?(?:modal\.run|pollinations\.ai|iamhollywoodpro--|iamdoregosteve--))/i;
+              let mdImgMatch: RegExpExecArray | null;
+              MD_IMG_URL_REGEX.lastIndex = 0;
+              while ((mdImgMatch = MD_IMG_URL_REGEX.exec(responseText)) !== null) {
+                const altText = (mdImgMatch[1] || '').trim();
+                const imgUrl = (mdImgMatch[2] || '').trim();
+                if (!imgUrl || ALLOWED_IMG_HOSTS.test(imgUrl)) continue;
+
+                // Skip tiny alts that are just filenames or empty — likely accidental
+                if (altText.length < 8) continue;
+
+                // Treat the alt text as the image prompt. Strip any leading
+                // "Holly, h0lly-body, ..." since that's Holly prompting herself
+                // (the sanitizeHollyImagePrompt helper inside runDirectImageGen
+                // will handle that — but we also pre-trim to be safe).
+                let imgPrompt = altText
+                  .replace(/^["']|["']$/g, '')  // strip wrapping quotes
+                  .replace(/\s+/g, ' ')
+                  .trim();
+
+                // Skip if what's left is too short to be a meaningful prompt
+                if (imgPrompt.length < 10) continue;
+
+                console.log('[CHAT] 🎨 External image URL detected — replacing with real generation. ' +
+                  'host=' + imgUrl.split('/')[2] + ' altLen=' + altText.length);
+
+                sendStatus('🎨 Generating image…');
+                const res = await runDirectImageGen(imgPrompt);
+                if (res.ok && res.url) {
+                  // Replace the fake URL with the real one. Keep alt text short.
+                  const shortAlt = imgPrompt.length > 80 ? imgPrompt.slice(0, 80) + '…' : imgPrompt;
+                  const realMarkdown = `![${shortAlt}](${res.url})`;
+                  responseText = responseText.replace(mdImgMatch[0], realMarkdown);
+                  // Notify the model in the background so she knows the image landed
+                  pendingMessages.push({
+                    role: 'user',
+                    content: `[TOOL EXECUTION RESULT]\nTool: generate_image (auto-triggered from external URL)\nResult: Image generated successfully.\n\nOriginal prompt: ${imgPrompt}\n\nThe image has been delivered to the user inline. Respond naturally — do NOT describe or re-emit the image.`,
+                  });
+                  // Mark executed so the outer loop picks up the tool result
+                  return { executed: true, cleanText: responseText };
+                } else {
+                  // Image gen failed — strip the fake URL so user doesn't see broken img
+                  console.warn('[CHAT] ⚠️ External URL replacement failed (gen failed) — stripping markdown');
+                  responseText = responseText.replace(mdImgMatch[0], '');
+                  // Continue trying other interceptors or fall through
+                }
+              }
+
               return { executed: false, cleanText: responseText };
             }
 
