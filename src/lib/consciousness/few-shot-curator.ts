@@ -94,14 +94,28 @@ export async function curateBestResponses(userId: string): Promise<number> {
  * Get top few-shot examples for prompt injection.
  * Returns 2-3 best examples matching the current mode.
  */
-export async function getFewShotExamples(userId: string, mode?: string): Promise<string> {
+/**
+ * Load few-shot examples for the current mode.
+ *
+ * 2026-07-03 (PR 2): Optional `sharedPersonalityTraits` parameter lets the
+ * chat route pass the HollyIdentity.personalityTraits that was already
+ * fetched by shared-context-fetch.ts — skips a duplicate DB hit. Background
+ * callers (cron, tests) still work without it.
+ */
+export async function getFewShotExamples(
+  userId: string,
+  mode?: string,
+  sharedPersonalityTraits?: any,
+): Promise<string> {
   try {
-    const identity = await prisma.hollyIdentity.findFirst({
-      where: { userId },
-      select: { personalityTraits: true },
-    });
+    // Use shared data if provided; otherwise fall back to DB fetch
+    const personalityTraits: any = sharedPersonalityTraits
+      ?? (await prisma.hollyIdentity.findFirst({
+            where: { userId },
+            select: { personalityTraits: true },
+          }))?.personalityTraits;
 
-    const examples: CuratedExample[] = (identity?.personalityTraits as any)?.fewShotExamples || [];
+    const examples: CuratedExample[] = personalityTraits?.fewShotExamples || [];
     if (examples.length === 0) return '';
 
     // Prefer examples matching current mode, fall back to any

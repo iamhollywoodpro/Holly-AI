@@ -21,20 +21,37 @@ export interface ConsistencyCheck {
 
 /**
  * Get HOLLY's established identity traits (traits that have been stable for 7+ days)
+ *
+ * 2026-07-03 (PR 2): Optional `shared` parameter lets the chat route pass
+ * the HollyIdentity and consciousness_cycle learning events that were
+ * already fetched by shared-context-fetch.ts — skips 2 duplicate DB hits.
  */
-async function getEstablishedTraits(userId: string): Promise<Record<string, { value: number; daysPresent: number }>> {
+async function getEstablishedTraits(
+  userId: string,
+  shared?: {
+    identity?: { personalityTraits?: any } | null;
+    learningEvents?: Array<{ type: string; data: any; createdAt: Date }>;
+  },
+): Promise<Record<string, { value: number; daysPresent: number }>> {
   try {
-    // Get current identity
-    const identity = await prisma.hollyIdentity.findUnique({ where: { userId } });
+    // Get current identity — use shared if provided, else fetch
+    const identity = shared?.identity !== undefined
+      ? shared.identity
+      : await prisma.hollyIdentity.findUnique({ where: { userId } });
     if (!identity) return {};
 
-    // Get identity history from learning events
-    const history = await prisma.learningEvent.findMany({
-      where: { userId, type: 'consciousness_cycle' },
-      orderBy: { createdAt: 'desc' },
-      take: 30,
-      select: { data: true, createdAt: true },
-    });
+    // Get identity history — use shared learningEvents (filtered to consciousness_cycle) if provided
+    const history: Array<{ data: any; createdAt: Date }> = shared?.learningEvents !== undefined
+      ? shared.learningEvents
+          .filter(e => e.type === 'consciousness_cycle')
+          .slice(0, 30)
+          .map(e => ({ data: e.data, createdAt: e.createdAt }))
+      : await prisma.learningEvent.findMany({
+          where: { userId, type: 'consciousness_cycle' },
+          orderBy: { createdAt: 'desc' },
+          take: 30,
+          select: { data: true, createdAt: true },
+        });
 
     const currentTraits = (identity.personalityTraits as Record<string, number>) || {};
     const establishedTraits: Record<string, { value: number; daysPresent: number }> = {};
@@ -151,9 +168,18 @@ export async function checkIdentityConsistency(
 /**
  * Get an identity prompt for HOLLY's system prompt
  * Summarizes her established identity for consistent behavior
+ *
+ * 2026-07-03 (PR 2): Optional `shared` parameter passes through to
+ * getEstablishedTraits — lets chat route skip 2 duplicate DB queries.
  */
-export async function getIdentityConsistencyPrompt(userId: string): Promise<string> {
-  const established = await getEstablishedTraits(userId);
+export async function getIdentityConsistencyPrompt(
+  userId: string,
+  shared?: {
+    identity?: { personalityTraits?: any } | null;
+    learningEvents?: Array<{ type: string; data: any; createdAt: Date }>;
+  },
+): Promise<string> {
+  const established = await getEstablishedTraits(userId, shared);
   const traits = Object.entries(established)
     .filter(([, data]) => typeof data?.value === 'number' && !Number.isNaN(data.value))
     .sort(([, a], [, b]) => b.value - a.value)

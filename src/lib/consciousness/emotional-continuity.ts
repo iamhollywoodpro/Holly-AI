@@ -107,30 +107,46 @@ export async function persistEmotionalBaseline(
  * At the start of a new conversation, load the previous emotional baseline
  * so Holly "remembers" how the user was feeling.
  */
-export async function loadEmotionalBaseline(userId: string): Promise<EmotionalBaseline | null> {
+/**
+ * Load the user's emotional baseline from HollyIdentity.
+ *
+ * 2026-07-03 (PR 2): Optional `sharedEmotionalBaseline` parameter lets the
+ * chat route pass the baseline already loaded via shared-context-fetch.ts.
+ */
+export async function loadEmotionalBaseline(
+  userId: string,
+  sharedEmotionalBaseline?: any,
+): Promise<EmotionalBaseline | null> {
   try {
-    const identity = await prisma.hollyIdentity.findUnique({ where: { userId } });
-    const baseline = identity?.emotionalBaseline as unknown as EmotionalBaseline | null;
+    // Use shared data if provided; otherwise fetch HollyIdentity row
+    let baseline: any;
+    if (sharedEmotionalBaseline !== undefined) {
+      baseline = sharedEmotionalBaseline;
+    } else {
+      const identity = await prisma.hollyIdentity.findUnique({ where: { userId } });
+      baseline = identity?.emotionalBaseline;
+    }
+    const baselineTyped = baseline as unknown as EmotionalBaseline | null;
 
-    if (!baseline) return null;
+    if (!baselineTyped) return null;
 
     // Calculate hours since last interaction
-    const lastTime = new Date(baseline.lastInteractionAt);
+    const lastTime = new Date(baselineTyped.lastInteractionAt);
     const hoursSince = (Date.now() - lastTime.getTime()) / (1000 * 60 * 60);
 
     // Adjust baseline based on time passed (emotions naturally decay toward neutral)
     if (hoursSince > 24) {
       // After a day, emotions partially reset toward neutral
-      baseline.valence = baseline.valence * 0.5;
-      baseline.intensity = baseline.intensity * 0.6;
-      baseline.arousal = 0.5; // neutral energy
+      baselineTyped.valence = baselineTyped.valence * 0.5;
+      baselineTyped.intensity = baselineTyped.intensity * 0.6;
+      baselineTyped.arousal = 0.5; // neutral energy
     } else if (hoursSince > 4) {
       // After a few hours, mild decay
-      baseline.valence = baseline.valence * 0.8;
-      baseline.intensity = baseline.intensity * 0.8;
+      baselineTyped.valence = baselineTyped.valence * 0.8;
+      baselineTyped.intensity = baselineTyped.intensity * 0.8;
     }
 
-    return baseline;
+    return baselineTyped;
   } catch {
     return null;
   }
@@ -142,8 +158,18 @@ export async function loadEmotionalBaseline(userId: string): Promise<EmotionalBa
  * Generate a string for the prompt that describes the user's emotional
  * state from the previous session. This is injected into the context loader.
  */
-export async function getEmotionalContinuityContext(userId: string): Promise<string> {
-  const baseline = await loadEmotionalBaseline(userId);
+/**
+ * Generate a string for the prompt that describes the user's emotional
+ * state from the previous session. This is injected into the context loader.
+ *
+ * 2026-07-03 (PR 2): Optional `sharedEmotionalBaseline` parameter lets the
+ * chat route skip the HollyIdentity fetch inside loadEmotionalBaseline.
+ */
+export async function getEmotionalContinuityContext(
+  userId: string,
+  sharedEmotionalBaseline?: any,
+): Promise<string> {
+  const baseline = await loadEmotionalBaseline(userId, sharedEmotionalBaseline);
   if (!baseline || baseline.sessionCount < 2) return '';
 
   const hoursSince = (Date.now() - new Date(baseline.lastInteractionAt).getTime()) / (1000 * 60 * 60);

@@ -167,8 +167,22 @@ export interface CareSignal {
 
 /**
  * Detect care signals from Steve's behavior patterns
+ *
+ * 2026-07-03 (PR 2): Optional `sharedEmotionalStates` parameter lets the
+ * chat route pass the emotionalStates already fetched by shared-context-fetch.ts.
+ * We slice(0, 5) in-memory. Saves 1 DB hit. Other queries (lastMessage,
+ * recentTopics) are unique to this module and not in shared data.
  */
-export async function detectCareSignals(userId: string): Promise<CareSignal[]> {
+export async function detectCareSignals(
+  userId: string,
+  sharedEmotionalStates?: Array<{
+    primaryEmotion: string;
+    intensity: number;
+    valence: number;
+    arousal: number;
+    timestamp: Date;
+  }>,
+): Promise<CareSignal[]> {
   const signals: CareSignal[] = [];
 
   try {
@@ -192,12 +206,15 @@ export async function detectCareSignals(userId: string): Promise<CareSignal[]> {
     }
 
     // Check 2: Recent stress patterns in emotional states
-    const recentEmotions = await prisma.emotionalState.findMany({
-      where: { userId },
-      orderBy: { timestamp: 'desc' },
-      take: 5,
-      select: { primaryEmotion: true, intensity: true, valence: true },
-    });
+    // Use shared if provided (slice first 5), else DB fetch
+    const recentEmotions = sharedEmotionalStates !== undefined
+      ? sharedEmotionalStates.slice(0, 5)
+      : await prisma.emotionalState.findMany({
+          where: { userId },
+          orderBy: { timestamp: 'desc' },
+          take: 5,
+          select: { primaryEmotion: true, intensity: true, valence: true },
+        });
 
     const stressEmotions = ['frustrated', 'anxious', 'overwhelmed', 'angry', 'stressed'];
     const stressCount = recentEmotions.filter(e =>

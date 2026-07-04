@@ -111,7 +111,26 @@ interface PartnerData {
 
 // ─── main function ────────────────────────────────────────────────────────────
 
-export async function getIdentityContext(userId: string): Promise<IdentityContext> {
+/**
+ * 2026-07-03 (PR 2): Optional `sharedIdentity` parameter lets the chat route
+ * pass the HollyIdentity row already fetched by shared-context-fetch.ts.
+ * Skips 1 duplicate DB hit. Other 6 queries in this function are unique to
+ * identity-context (goals, taste, patterns, etc.) and not in shared data.
+ */
+export async function getIdentityContext(
+  userId: string,
+  sharedIdentity?: {
+    coreValues: any;
+    personalityTraits: any;
+    interests: any;
+    strengths: any;
+    growthAreas: any;
+    confidenceLevel: number;
+    purpose: string;
+    lastEvolved: Date;
+    emotionalBaseline?: any;
+  } | null,
+): Promise<IdentityContext> {
   const empty: IdentityContext = {
     promptBlock: "",
     tasteDirectives: "",
@@ -120,22 +139,24 @@ export async function getIdentityContext(userId: string): Promise<IdentityContex
   };
 
   try {
-    const [identityRecord, goals, emotionSummary, emotionalBaseline, tasteRecord, topPatterns, userSettings] =
+    const [identityRecordResult, goals, emotionSummary, emotionalBaseline, tasteRecord, topPatterns, userSettings] =
       await Promise.all([
-        // HOLLY's own identity
-        prisma.hollyIdentity.findUnique({
-          where: { userId },
-          select: {
-            coreValues: true,
-            personalityTraits: true,
-            interests: true,
-            strengths: true,
-            growthAreas: true,
-            confidenceLevel: true,
-            purpose: true,
-            lastEvolved: true,
-          },
-        }),
+        // HOLLY's own identity — use shared if provided, else fetch
+        sharedIdentity !== undefined
+          ? Promise.resolve(sharedIdentity)
+          : prisma.hollyIdentity.findUnique({
+              where: { userId },
+              select: {
+                coreValues: true,
+                personalityTraits: true,
+                interests: true,
+                strengths: true,
+                growthAreas: true,
+                confidenceLevel: true,
+                purpose: true,
+                lastEvolved: true,
+              },
+            }),
 
         // Active goals
         prisma.hollyGoal.findMany({
@@ -213,7 +234,7 @@ export async function getIdentityContext(userId: string): Promise<IdentityContex
       : null;
 
     const raw = {
-      identity: identityRecord as HollyIdentityData | null,
+      identity: identityRecordResult as HollyIdentityData | null,
       goals: goals as HollyGoalData[],
       emotionalState,
       emotionalBaseline: emotionalBaseline as EmotionalBaselineData | null,
@@ -222,7 +243,7 @@ export async function getIdentityContext(userId: string): Promise<IdentityContex
       partner: partnerData,
     };
 
-    if (!identityRecord && goals.length === 0 && !emotionalState && !tasteRecord && !partnerData) {
+    if (!identityRecordResult && goals.length === 0 && !emotionalState && !tasteRecord && !partnerData) {
       return empty;
     }
 

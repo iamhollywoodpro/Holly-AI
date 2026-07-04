@@ -31,27 +31,42 @@ export interface EmotionalTrajectory {
 /**
  * Compute the emotional trajectory for a user across recent sessions.
  * Looks at the last 7 days of emotional data.
+ *
+ * 2026-07-03 (PR 2): Optional `sharedEmotionalStates` parameter lets the
+ * chat route pass the emotionalStates already fetched by shared-context-fetch.ts
+ * (take:50, no 7-day filter). We filter to 7 days in-memory. Saves 1 DB hit.
  */
-export async function computeEmotionalTrajectory(userId: string): Promise<EmotionalTrajectory> {
+export async function computeEmotionalTrajectory(
+  userId: string,
+  sharedEmotionalStates?: Array<{
+    primaryEmotion: string;
+    intensity: number;
+    valence: number;
+    arousal: number;
+    timestamp: Date;
+  }>,
+): Promise<EmotionalTrajectory> {
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
   try {
-    // Get recent emotional states
-    const recentEmotions = await prisma.emotionalState.findMany({
-      where: {
-        userId,
-        timestamp: { gte: sevenDaysAgo },
-      },
-      orderBy: { timestamp: 'desc' },
-      take: 50,
-      select: {
-        primaryEmotion: true,
-        intensity: true,
-        valence: true,
-        arousal: true,
-        timestamp: true,
-      },
-    });
+    // Get recent emotional states — use shared if provided (filter in-memory), else DB fetch
+    const recentEmotions = sharedEmotionalStates !== undefined
+      ? sharedEmotionalStates.filter(e => new Date(e.timestamp) >= sevenDaysAgo)
+      : await prisma.emotionalState.findMany({
+          where: {
+            userId,
+            timestamp: { gte: sevenDaysAgo },
+          },
+          orderBy: { timestamp: 'desc' },
+          take: 50,
+          select: {
+            primaryEmotion: true,
+            intensity: true,
+            valence: true,
+            arousal: true,
+            timestamp: true,
+          },
+        });
 
     if (recentEmotions.length === 0) {
       return buildDefaultTrajectory(userId);

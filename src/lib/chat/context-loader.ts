@@ -171,7 +171,8 @@ export async function loadChatContext(
       '', 'getRelevantMemories',
     ),
     ctxTimeout(
-      dbUserId ? getIdentityContext(dbUserId) : Promise.resolve(emptyIdentity as any),
+      // PR 2: pass shared.hollyIdentity to skip duplicate HollyIdentity fetch
+      dbUserId ? getIdentityContext(dbUserId, shared.hollyIdentity) : Promise.resolve(emptyIdentity as any),
       emptyIdentity as any, 'getIdentityContext',
     ),
     ctxTimeout(
@@ -240,13 +241,20 @@ export async function loadChatContext(
     ),
     // ── Phase 7.2: Identity consistency ────────────────────────────────
     ctxTimeout(
-      dbUserId ? getIdentityConsistencyPrompt(dbUserId) : Promise.resolve(''),
+      // PR 2: pass shared identity + learningEvents to skip 2 duplicate fetches
+      dbUserId
+        ? getIdentityConsistencyPrompt(dbUserId, {
+            identity: shared.hollyIdentity,
+            learningEvents: shared.learningEvents,
+          })
+        : Promise.resolve(''),
       '', 'identityConsistency',
     ),
     // ── Phase 5.4: Care signals ────────────────────────────────────────
     ctxTimeout(
+      // PR 2: pass shared emotionalStates to skip 1 duplicate fetch
       dbUserId
-        ? detectCareSignals(dbUserId).then(signals =>
+        ? detectCareSignals(dbUserId, shared.emotionalStates).then(signals =>
             signals.length > 0
               ? signals.map(s => `[${s.type}] ${s.message} → ${s.suggestedAction}`).join('\n')
               : ''
@@ -266,8 +274,9 @@ export async function loadChatContext(
     ),
     // ── Phase 4: Emotional trajectory ───────────────────────────────
     ctxTimeout(
+      // PR 2: pass shared emotionalStates (filter 7d in-memory) to skip 1 fetch
       dbUserId
-        ? computeEmotionalTrajectory(dbUserId).then(t => {
+        ? computeEmotionalTrajectory(dbUserId, shared.emotionalStates).then(t => {
             if (!t.trajectorySummary) return '';
             return `${t.trajectorySummary}\n[RECOMMENDATION: ${t.recommendation}]`;
           })
@@ -276,7 +285,10 @@ export async function loadChatContext(
     ),
     // ── Phase 5: Few-shot examples (best past responses) ────────────
     ctxTimeout(
-      dbUserId ? getFewShotExamples(dbUserId, detectedMode) : Promise.resolve(''),
+      // PR 2: pass shared personalityTraits to skip 1 duplicate fetch
+      dbUserId
+        ? getFewShotExamples(dbUserId, detectedMode, shared.hollyIdentity?.personalityTraits)
+        : Promise.resolve(''),
       '', 'fewShotExamples',
     ),
     // ── Phase 7.3: Inner monologue (HOLLY's private thoughts) ────────
@@ -286,7 +298,10 @@ export async function loadChatContext(
     ),
     // ── Cross-session emotional continuity ──────────────────────────────
     ctxTimeout(
-      dbUserId ? getEmotionalContinuityContext(dbUserId) : Promise.resolve(''),
+      // PR 2: pass shared emotionalBaseline to skip 1 duplicate fetch
+      dbUserId
+        ? getEmotionalContinuityContext(dbUserId, shared.hollyIdentity?.emotionalBaseline)
+        : Promise.resolve(''),
       '', 'emotionalContinuity',
     ),
     // ── Phase 3: Recent feedback signals ──────────────────────────────
