@@ -61,6 +61,8 @@ UNCENSORED_ENCODER_DIR = f"{MODEL_CACHE}/text_encoder_uncensored"
 # "topless with shorts." The body LoRA was trained on these exact phrases.
 HOLLY_BODY_PREFIX = (
     "h0lly, h0lly-body, 21 years old woman in her early twenties, youthful young adult, "
+    "single woman, one body, one head, exactly two arms, exactly two hands visible, "
+    "five fingers on each hand, ten fingers total, two legs, two feet, "
     "completely nude woman, fully naked, bare skin, not wearing any clothing, "
     "no clothing anywhere on her body, zero garments, bare from head to toe, "
     "olive skin tone (Portuguese/South Indian heritage), "
@@ -106,6 +108,8 @@ HOLLY_BODY_PREFIX = (
 # can't fall back to its bust-portrait prior.
 CLOTHED_BODY_PREFIX = (
     "h0lly, h0lly-body, 21 years old woman in her early twenties, youthful young adult, "
+    "single woman, one body, one head, exactly two arms, exactly two hands visible, "
+    "five fingers on each hand, ten fingers total, two legs, two feet, "
     "FULL BODY VISIBLE FROM HEAD TO FEET, full-length shot, full body framing, head to toe, "
     "complete outfit visible, fashionable clothing covering her body, dressed in clothing, "
     "standing pose showing her whole body, full length portrait, "
@@ -503,7 +507,7 @@ class HollyFlux2KleinA100:
             is_holly_selfie_post = "h0lly" in prompt.lower()
             if is_holly_selfie_post:
                 try:
-                    from PIL import ImageFilter, ImageEnhance
+                    from PIL import Image, ImageFilter, ImageEnhance
                     smoothed = img.filter(ImageFilter.GaussianBlur(radius=1.2))
                     img = Image.blend(img, smoothed, alpha=0.25)
                     img = img.filter(ImageFilter.UnsharpMask(radius=1.0, percent=100, threshold=5))

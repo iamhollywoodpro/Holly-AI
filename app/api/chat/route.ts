@@ -774,7 +774,14 @@ export async function POST(req: NextRequest) {
               // Previously pattern 2 fell through and the whole user message
               // was used as the prompt — including "show me" — which confused
               // the model and produced generic standing poses.
-              imagePrompt = imagePrompt.replace(/^(?:can you |please |could you |holly[,]?\s*)?(?:generate|create|make|draw|paint|render|produce|show me|show us|take|snap|shoot)\s+(?:a\s+|an\s+)?(?:image|picture|photo|portrait|pic|illustration|artwork|render|selfie|video|clip|animation)?\s*(?:of\s+|for\s+|for me\s*)?/i, '').trim();
+              //
+              // EXPANDED (2026-07-04 — Steve flagged "send me a picture of yourself
+              // naked legs spread" producing a generic standing pose). The old regex
+              // only caught show/generate/create/etc. Steve's natural phrasing
+              // includes "send", "let me see", "i want to see", "give me" — all
+              // leaked command text into the image prompt and Klein rendered the
+              // command instead of the description. Now all of these are stripped.
+              imagePrompt = imagePrompt.replace(/^(?:can you |please |could you |holly[,]?\s*)?(?:i\s+want\s+to\s+see|i\s+want\s+you\s+to\s+show\s+me|i\s+want\s+you\s+to\s+send\s+me|let\s+me\s+see|let\s+me\s+look\s+at|wanna\s+see|want\s+to\s+see|show\s+me|show\s+us|send\s+me|send|give\s+me|generate|create|make|draw|paint|render|produce|take|snap|shoot)\s+(?:a\s+|an\s+|the\s+)?(?:image|picture|photo|portrait|pic|illustration|artwork|render|selfie|video|clip|animation)?\s*(?:of\s+|of\s+yourself\s+|of\s+herself\s+|of\s+you\s+|of\s+her\s+|for\s+|for\s+me\s+|me\s+)?/i, '').trim();
               if (imagePrompt.length < 5) imagePrompt = latestUserMessage; // fallback to full message
 
               sendProgress(controller, { phase: 'generate_image', percent: 15, message: '🎨 Composing prompt…' });
