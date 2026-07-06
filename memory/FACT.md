@@ -358,7 +358,7 @@ Confirmed by:
 - Active labia spreading with hands
 - Any "fingering" pose
 
-## LOCKED KLEIN RECIPES (4 categories — SMOKE8 LOCKED June 20, 2026)
+## LOCKED KLEIN RECIPES (5 categories — SMOKE8 LOCKED June 20, 2026 + SPREAD_POSES added July 6)
 
 **Squirting REMOVED from Klein — moved to Civitai SNOFS permanently (4 Klein LoRAs exhausted, all failed).**
 
@@ -368,6 +368,20 @@ Confirmed by:
 | dildo_masturbation | Smoke8 | FK_dildoinsertion | 1.0 | ✅ WORKING (wetness lang added) |
 | bent_over | Smoke8 | femaleasshole-musubituner | 1.0 | ✅ PERFECT (2/3 smoke8, replaced flux2klein) |
 | closeup | Smoke8 | pussydiffusion | 1.0 | 🟡 needs bald-language fix pre-batch |
+| spread_poses | July 6 | pussydiffusion | 0.85 | ✅ ADDED — catches "legs spread + hands on body" |
+
+**INFERENCE SETTINGS — LOCKED (July 6, 2026):**
+- `num_inference_steps: 4` (NOT 20 — Klein Distilled is a 4-step model)
+- `guidance_scale: 4.0` (NOT 1.2 — Klein Distilled needs HIGH CFG; 1.2 makes LoRAs too weak)
+- 1.2 was wrong for ~1 month and caused "black top + black jeans" (Klein base default) + ignored pose
+- Source: deploy script `image_generate_flux2klein_a100.py:142-145` avatar recipe isolation test
+
+**KLEIN DISTILLED KNOWN LIMITS (respect these in reinforcement language):**
+- ❌ CANNOT render finger-to-genital penetration (R4-R8 confirmed)
+- ❌ CANNOT render active labia spreading with hands
+- ✅ CAN render hands resting on body (palm flat, hand on mound)
+- ✅ CAN render dildo penetration (with FK LoRA)
+- Reinforcement must say "hand resting gently" not "fingering" for self-touch poses
 
 **Smoke7 LoRA verdicts (June 19)**:
 - ✅ `femaleasshole-f2-klein-9b-musubituner` — WINNER for bent_over (replaced flux2klein_vulva_anus)
@@ -499,7 +513,7 @@ Steve has explicitly instructed: **NEVER guess or assume.** Always:
 4. Test comprehensively, not incrementally
 5. Deploy ONCE with a complete fix, not multiple partial fixes
 
-## CRITICAL RULE — Modal Cost Split Across Both Workspaces (July 3, 2026)
+## CRITICAL RULE — Modal Cost Split Across Both Workspaces (July 3, 2026, ACTUALLY DONE July 6)
 Holly traffic MUST be split across BOTH Modal workspaces to fit within $60/month combined free tier ($30 each):
 - **iamhollywoodpro** = chat LLM (brain-v35 + vision) — ~$14/month burn rate
 - **iamdoregosteve** = media gen (image + video) — ~$17/month burn rate
@@ -515,6 +529,17 @@ When adding a NEW Modal endpoint:
 - Update Coolify env var via artisan (Laravel auto-encrypts), not direct DB writes
 
 **MATH REALITY (don't fake-estimate):** L4 at $0.80/hr × 30 min/day = $0.40/day = $12/month. A100 at $2.10/hr × 15 min/day = $0.53/day = $16/month. Don't conflate "GPU time" with "total cost" — memory/CPU overhead adds ~$0.50/day on top.
+
+**CRITICAL LESSON (July 6, 2026):** The July 3 "shipped" claim for this split was WRONG. The env vars were updated via artisan but Coolify regenerated docker-compose.yaml on next deploy and reverted to old values. The split NEVER took effect for image gen — Steve caught it because iamdoregosteve usage stayed at $0.
+
+**To update Coolify env vars DURABLY (verified process July 6):**
+1. Update BOTH rows in `environment_variables` table — there are 2 per key (is_preview=0 AND is_preview=1). Updating only one leaves the other as a revert source.
+2. Update `.env` file directly: `/data/coolify/applications/tx7n3f3clrlvdaiitob2vi3o/.env`
+3. Update `docker-compose.yaml` directly (Python str.replace on the file, not sed — sed chokes on the YAML quoting)
+4. Force-recreate container: `docker compose --project-directory . up -d --force-recreate`
+5. **VERIFY via `sudo docker exec holly-app-* env | grep MODAL`** — never trust the artisan output alone
+
+**MODAL VOLUMES ARE WORKSPACE-SCOPED (July 6):** When splitting a function across workspaces, the LoRA files (and FLUX model weights) are NOT shared. Must explicitly `modal volume get` from source workspace → local disk → `modal volume put` to target workspace. Verified file presence with `modal volume ls`. The deploy script silently skips missing LoRA files with a warning in startup logs — easy to miss.
 
 ## CRITICAL RULE — Modal Background LLM Routing (July 3, 2026)
 **Background LLM tasks MUST route to Groq via `forceTask: 'analytics'`, NEVER to brain-v35.** Modal brain-v35 is the EXPENSIVE path (L4 GPU, scale-to-zero with 60s idle window). Groq is free tier 14,400 req/day with sub-200ms LPU inference.
