@@ -276,6 +276,45 @@ const LIMB_ANCHORS =
 function classifySpecialist(prompt: string): SpecialistRecipe | null {
   const p = prompt.toLowerCase();
 
+  // SPREAD_POSES — legs spread with hands on body (self-touch, breast, pussy mound).
+  // Added 2026-07-06: Steve's "naked on bed, legs spread, one hand on breast, other on pussy"
+  // produced a standing nude because no specialist fired. This category catches:
+  //   - "legs spread" + hand placement language
+  //   - "touching herself", "feeling herself", "hand on breast", "hand on pussy"
+  //   - "spread open", "spread wide"
+  // CRITICAL CONSTRAINT per FACT.md: Klein Distilled 9B CANNOT render active
+  // finger-to-genital penetration. So reinforcement language must say "hand
+  // resting gently on" / "palm pressed flat against" — NEVER "fingering",
+  // "inserting finger", or "spreading labia with fingers" (those all fail).
+  // PussyDiffusion LoRA @ 0.85 provides anatomy detail without overpowering
+  // the pose (full 1.0 distorts body in non-closeup framing).
+  const SPREAD_LEG_PATTERN = /\b(legs?\s*(spread|open|apart|wide)|spread(?:ting)?\s*(her\s*)?(legs|open|wide)|knees\s*(up|apart|wide))\b/;
+  const HAND_ON_BODY_PATTERN = /\b(hand\s*(on|between|touching|grasping|cupping|squeezing|rubbing|caressing|resting))\b.*\b(breast|boob|tit|nipple|pussy|vulva|clit|labia|thigh|butt|hip|stomach|body)\b/;
+  const TOUCH_HERSELF_PATTERN = /\b(touch(?:ing|es)?\s*herself|feel(?:ing|s)?\s*herself|hands?\s*exploring\s*(her|own)|self[\s-]?pleasur\w*|caress(?:ing|es)?\s*(her|own)\s*(body|breast|pussy|thigh))\b/;
+  if (SPREAD_LEG_PATTERN.test(p) || HAND_ON_BODY_PATTERN.test(p) || TOUCH_HERSELF_PATTERN.test(p)) {
+    return {
+      category: 'spread_poses',
+      loras: [{ file: 'pussydiffusion-f2-klein-9b_v2.safetensors', strength: 0.85 }],
+      reinforcement:
+        'lying on her back on a bed, head resting on a pillow, knees raised and parted, legs spread open naturally, ' +
+        'both legs visible reaching from her hips to her feet, both feet flat on the bed, ' +
+        'exactly two feet, ten toes total, five toes on each foot, ' +
+        'both arms visible reaching from her shoulders, exactly two arms, ' +
+        'her right hand placed gently on her breast, her fingers resting softly on her nipple, ' +
+        'her left hand resting palm-down on her lower stomach near her mound, ' +
+        // CRITICAL: "resting" not "inserting" — Klein can't render finger penetration.
+        'hand resting gently on her pubic mound, NO finger insertion, NO spreading labia with fingers, ' +
+        'pussy visible untouched between her spread thighs, ' +
+        'detailed pussy visible, bald hairless pussy, smooth Brazilian wax, ' +
+        'inner labia visible, clitoris visible at top, smooth bare mons pubis, ' +
+        'anatomically correct vulva, photorealistic intimate detail, ' +
+        'warm natural lighting, soft shadows, intimate camera angle from slightly above, ' +
+        'looking up at the camera, lips softly parted, relaxed aroused expression, ' +
+        'completely nude, bare skin, no clothing anywhere on her body, ' +
+        'single woman, one body, one head, exactly two arms, exactly two legs',
+    };
+  }
+
   // CLOSEUP — pussy closeup (resting, no hands). PussyDiffusion specializes
   // in detailed genital geometry.
   //
@@ -409,9 +448,19 @@ async function generateWithHollyLoRA(req: ImageRequest): Promise<ImageResult> {
     body: JSON.stringify({
       prompt:               finalPrompt,
       width:                Math.min(width, 1024),
-      height:               Math.min(height, 1024),
-      num_inference_steps:  20,        // Klein 9B needs 20+ steps for explicit detail
-      guidance_scale:       1.2,       // Klein Distilled sweet spot (NOT 4.0 — over-guided)
+      height:                Math.min(height, 1024),
+      // INFERENCE SETTINGS — verified 2026-07-06 against deploy script:
+      // services/modal-media/image_generate_flux2klein_a100.py:142-145 reads
+      // "Klein Distilled needs 4 steps + CFG 4.0 (NOT 20 steps CFG 1.2)" — the
+      // avatar recipe isolation test (2026-06-27) confirmed this is what
+      // generated the avatars Steve approved.
+      //
+      // PREVIOUS BUG: media-generator.ts was sending CFG=1.2 which made both
+      // baked LoRAs (face=0.75, body=1.0) too weak to override Klein's base
+      // clothing priors — "black top + black jeans" was the base model's
+      // default rendering for "woman" winning out over the prompt.
+      num_inference_steps:  4,         // Klein Distilled avatar recipe
+      guidance_scale:       4.0,       // Klein Distilled avatar recipe
       loras:                recipe?.loras,  // dynamic specialist LoRA stack
       seed:                 req.seed,
       format:               'jpeg',
