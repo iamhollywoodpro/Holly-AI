@@ -102,7 +102,64 @@ The health endpoint falsely reported `context_window: 131072` because that is wh
 
 **ALSO:** Steve's single conversation had grown to 5.6MB / 270 messages / ~1.4M tokens. The cap was "enforced" but the cap itself was wrong. If users hit this repeatedly, consider implementing smart summarization instead of hard truncation.
 
-## CRITICAL LESSON — The Self-Prompting Bug (Recurring, June 29, 2026)
+## CRITICAL LESSON — Prompt Duplication Bug + Klein Distilled CFG Ignored (July 7, 2026)
+
+**Two findings that explain a month of broken image gen — both found via endpoint logs, not theory.**
+
+### Finding 1: Prompt Duplication Bug (root cause of "black top + black jeans")
+The endpoint at `services/modal-media/image_generate_flux2klein_a100.py:410-412` was using:
+```python
+prompt = raw_prompt.replace("h0lly", _prefix)
+```
+Python's `.replace()` does a SUBSTRING match. Chat route sends `"h0lly, h0lly-body, [user request]"` — both `h0lly` and the `h0lly` inside `h0lly-body` got replaced. Result: the 1500-char prefix was injected **TWICE in a row**, burying the user's actual request (bikini/beach/bed) under ~3000 chars of body description.
+
+Klein then rendered the dominant tokens (face + body via LoRA) and completely ignored the buried request — producing "black top + black jeans against grey background" on every single bikini attempt for nearly a month.
+
+**Fix (deployed 2026-07-07):** Use regex with negative lookahead:
+```python
+import re
+if re.search(r'h0lly(?!-body)', raw_prompt, flags=re.IGNORECASE):
+    prompt = re.sub(r'h0lly(?!-body)', _prefix, raw_prompt, flags=re.IGNORECASE)
+```
+
+**How I caught it:** Wrote a Python script that simulated the endpoint's prompt transformation locally and printed length + position of user's actual request:
+- Before fix: prompt = 679 chars, "21 years old woman" appeared 2x, "bikini" at char 635 of 679 (buried)
+- After fix: prompt = 390 chars, "21 years old woman" 1x, "bikini" at char 346 of 390 (visible)
+
+**THE LESSON (non-negotiable going forward):** When investigating ANY image gen failure where face looks right but everything else is wrong, ALWAYS check the actual prompt that hits the Modal endpoint via `modal app logs ap-XXX | grep "🎨"`. Do NOT assume the chat route's prompt is what reaches the diffusion model. The endpoint may transform it.
+
+### Finding 2: Klein Distilled IGNORES guidance_scale parameter
+Endpoint logs printed this on EVERY test variant:
+```
+Guidance scale 4.0 is ignored for step-wise distilled models.
+Guidance scale 6.5 is ignored for step-wise distilled models.
+Guidance scale 7.0 is ignored for step-wise distilled models.
+```
+This means **all CFG tuning we've done for the past month on Klein Distilled was a no-op**. The model uses its own internal distilled guidance. The only effective parameters were `num_inference_steps` (4 vs 8 vs 12) and the LoRA weights themselves.
+
+**Implication:** If a future image gen investigation involves "let me try CFG=X vs CFG=Y on Klein Distilled" — STOP. It will not work. CFG is not a lever on this model. To actually control prompt adherence via CFG, we need a non-distilled base (FLUX.2 Klein Base BF16, FLUX.1 Dev uncensored, or SDXL). Tier 3 v3 LoRA training should NOT use Klein Distilled as the base — see Steve's directive below.
+
+### Finding 3: cv2 CascadeClassifier missing in endpoint container
+```
+⚠️ Face enhancement failed: module 'cv2' has no attribute 'CascadeClassifier'
+```
+The `enhance_face: true` flag we send is being silently ignored. Face still renders well because the face LoRA handles it, but the dedicated face inpainting post-process pass isn't running. Fix: install `opencv-python-headless` (not just `opencv-python`) in the Modal image, OR pin to a cv2 version that still ships CascadeClassifier. Low priority — quality isn't visibly affected since face LoRA at 0.75 produces good face output natively.
+
+### Finding 4: Steve's anatomy canon — Holly's DNA
+**Steve's directive (July 7, 2026):** Holly's body type MUST be encoded in the LoRA, not just prompts. Specific canon:
+- **Height/weight:** 5'4" petite frame, 130 pounds
+- **Body type:** fit but soft feminine build, slim upper body with soft feminine fullness, NOT skinny, NOT fat — "fit thick 130 pound body type"
+- **Hands:** TINY PETITE FEMININE, proportional to her small frame, short slim delicate fingers, small palms, normal-sized thumbs. NOT large, NOT manly, NOT masculine. (Current LoRA produces manly hands — TRAINING DATA GAP)
+- **Ass:** VERY LARGE PLUMP PHAT ROUND JUICY APPLE-BOTTOM BUTT, thick full bubble-butt cheeks. NOT small, NOT flat. (Current LoRA produces variable ass size — TRAINING DATA GAP)
+- **Legs/thighs:** SHORT THICK shapeLY, proportional to her petite frame. NOT long, NOT model, NOT skinny. (Current LoRA produces too-long legs — TRAINING DATA GAP)
+- **Feet:** small feminine size 6, small cute feminine feet, EXACTLY five toes on each foot, ten toes total. (Current LoRA produces missing toes / 4-toe feet — TRAINING DATA GAP)
+- **Pose canon (per HOLLY_ANATOMY.md v3.4):** Frontal spread view MUST NOT show anus. Hips flat. NOT bent over.
+
+If Tier 1 (prompt anchors) + Tier 2 (body LoRA weight 1.0→1.2) doesn't fix the manly hands / 4-toe feet / inconsistent ass — Tier 3 (v3 body LoRA retrain) is REQUIRED. The current v2.5 LoRA has training data gaps that no prompt can bridge.
+
+**Tier 3 base model selection:** Do NOT retrain on Klein Distilled. Candidates: FLUX.1 Dev uncensored finetunes (Civitai), FLUX.2 Klein Base BF16 (non-distilled), or SDXL with NSFW base (RealVisXL-V50). FLUX.1 Dev uncensored is the recommended path — honors CFG, better limb rendering, mature NSFW ecosystem.
+
+
 Holly keeps emitting her FULL body description (eye color, breast size, nipple details, skin physics — 400+ words) as the image generation prompt. This is the **third time** this bug has surfaced. Root cause: her system prompt (`holly-self-image.ts`) says "draw from this" when describing image generation, which she interprets as "copy everything into the prompt."
 
 **Defense-in-depth fix (June 29, all 3 layers now in place):**

@@ -406,10 +406,15 @@ class HollyFlux2KleinA100:
             # _select_body_prefix() returns CLOTHED_BODY_PREFIX when the user
             # asked for specific clothing (bikini/dress/etc) so Klein can honor
             # the clothing without the NSFW anchors fighting it.
+            # IMPORTANT: use regex with negative lookahead, NOT str.replace().
+            # Python's .replace() does substring matching — it would also match
+            # the `h0lly` inside `h0lly-body`, causing the 1500-char prefix to
+            # be injected TWICE and burying the user's actual request.
+            # Negative lookahead `(?!-body)` matches `h0lly` only when it is
+            # NOT followed by `-body`.
             _prefix = _select_body_prefix(raw_prompt)
-            if "h0lly" in raw_prompt.lower():
-                prompt = raw_prompt.replace("h0lly", _prefix)
-                prompt = prompt.replace("H0lly", _prefix)
+            if _re.search(r'h0lly(?!-body)', raw_prompt, flags=_re.IGNORECASE):
+                prompt = _re.sub(r'h0lly(?!-body)', _prefix, raw_prompt, flags=_re.IGNORECASE)
             else:
                 prompt = _prefix + raw_prompt
             width  = min(int(request.get("width",  1024)), 1024)
@@ -939,10 +944,15 @@ class HollyFlux2KleinA100:
                 )
 
             # Inject Holly body prefix into prompt (clothing-aware)
+            # IMPORTANT: use regex with negative lookahead, NOT str.replace().
+            # Python's .replace() does substring matching — it would also match
+            # the `h0lly` inside `h0lly-body`, causing the 1500-char prefix to
+            # be injected TWICE and burying the user's actual request.
+            # Negative lookahead `(?!-body)` matches `h0lly` only when it is
+            # NOT followed by `-body`.
             _prefix = _select_body_prefix(raw_prompt)
-            if "h0lly" in raw_prompt.lower():
-                prompt = raw_prompt.replace("h0lly", _prefix)
-                prompt = prompt.replace("H0lly", _prefix)
+            if _re.search(r'h0lly(?!-body)', raw_prompt, flags=_re.IGNORECASE):
+                prompt = _re.sub(r'h0lly(?!-body)', _prefix, raw_prompt, flags=_re.IGNORECASE)
             else:
                 prompt = _prefix + raw_prompt
 
