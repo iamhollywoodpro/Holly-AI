@@ -227,11 +227,10 @@ createdb holly_dev
 DATABASE_URL="postgresql://localhost:5432/holly_dev"
 ```
 
-**Option 2: Neon (Recommended)**
+**Option 2: Docker pgvector (matches production)**
 
-1. Sign up at https://neon.tech
-2. Create a new project
-3. Copy connection string to `DATABASE_URL`
+1. Run: `docker run -d -p 5432:5432 -e POSTGRES_PASSWORD=postgres pgvector/pgvector:pg18`
+2. Set `DATABASE_URL=postgresql://postgres:postgres@localhost:5432/postgres`
 
 **Push Schema:**
 

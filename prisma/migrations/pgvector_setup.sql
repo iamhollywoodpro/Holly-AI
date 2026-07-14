@@ -1,10 +1,14 @@
 /**
  * HOLLY pgvector Migration — Enables Semantic Memory
  *
- * Run this SQL on your Neon PostgreSQL database to enable pgvector.
+ * Run this SQL on your PostgreSQL database to enable pgvector.
  *
- * Option 1: Neon SQL Editor (https://console.neon.tech)
- *   Copy and paste the SQL below into the SQL editor.
+ * Option 1: Local Docker (production uses pgvector/pgvector:pg18)
+ *   docker exec -it <pg_container> psql -U postgres -d postgres -f pgvector_setup.sql
+ *
+ * Option 2: API Endpoint (automatic)
+ *   POST /api/memory/migrate-pgvector
+ *   This runs the same SQL programmatically.
  *
  * Option 2: API Endpoint (automatic)
  *   POST /api/memory/migrate-pgvector

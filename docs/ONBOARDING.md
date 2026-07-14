@@ -10,7 +10,7 @@ Everything you need to go from zero to first PR.
 |------|---------|---------|
 | Node.js | >= 18.0.0 | `nvm install 18 && nvm use 18` |
 | npm | >= 9.0.0 | Comes with Node 18+ |
-| PostgreSQL | >= 14 | Local or [Neon](https://neon.tech) (recommended) |
+| PostgreSQL | >= 14 | Local `pgvector/pgvector:pg18` Docker container (matches production) |
 | Git | Latest | `brew install git` (macOS) |
 | VS Code | Latest | With extensions: Prisma, ESLint, Prettier, TypeScript |
 
@@ -35,8 +35,8 @@ cp .env.example .env.local
 Edit `.env.local` with credentials. **Minimum required:**
 
 ```env
-# Database (use Neon free tier for local dev)
-DATABASE_URL="postgresql://user:password@host:5432/dbname"
+# Database (run local pgvector container: docker run -d -p 5432:5432 -e POSTGRES_PASSWORD=postgres pgvector/pgvector:pg18)
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/postgres"
 
 # Clerk Authentication (free tier at clerk.com)
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="pk_test_..."
