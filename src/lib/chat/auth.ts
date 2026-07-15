@@ -26,44 +26,25 @@ async function ensureCreatorAdultFlag(dbUserId: string | null): Promise<void> {
 // ─── Env-based creator identifiers (optional, extends hardcoded list) ────
 const CREATOR_EMAILS = (process.env.CREATOR_EMAILS || '').split(',').filter(Boolean);
 const CREATOR_CLERK_IDS = (process.env.CREATOR_CLERK_IDS || '').split(',').filter(Boolean);
-const CREATOR_NAME_FRAGMENTS = (process.env.CREATOR_NAME_FRAGMENTS || '').split(',').filter(Boolean);
 
 /**
- * Hardcoded fallback creator identifiers.
+ * Hardcoded creator email addresses (EXACT match only).
  * These ensure Holly ALWAYS recognizes her creator, even if env vars aren't configured.
  * This is intentional — the creator's identity is part of Holly's core identity.
  *
- * BOTH creator email accounts:
+ * SECURITY: Only full email addresses are matched. Never substrings, local parts,
+ * or name fragments — those allowed spoofing (e.g. "Steve Musicfan" or
+ * iamdoregosteve@evil.com could bypass age verification). See docs/audit/CURRENT_STATE.md [S2].
+ *
+ * Creator accounts:
  *   - iamdoregosteve@gmail.com  (primary)
  *   - iamhollywoodpro@gmail.com (legacy)
+ *   - stevehollywood@gmail.com
  */
 const CREATOR_HARDCODED_EMAILS = [
-  // Full email addresses (exact match)
   'iamdoregosteve@gmail.com',
   'iamhollywoodpro@gmail.com',
   'stevehollywood@gmail.com',
-  // Email local parts (prefix match)
-  'iamdoregosteve',
-  'iamhollywoodpro',
-  'stevehollywood',
-  // Other known aliases
-  'hollywood',
-  'nexamusicgroup',
-  'stevendorego',
-  'stevefreshblendz',
-];
-const CREATOR_HARDCODED_NAME_FRAGMENTS = [
-  'steve hollywood',
-  'stevehollywood',
-  'steve dorego',
-  'steven dorego',
-  'stevendorego',
-  'stevefreshblendz',
-  'nexamusic',
-  'hollywood dorego',
-  'dorego steve',
-  'iamdoregosteve',
-  'iamhollywoodpro',
 ];
 
 export interface AuthResult {
@@ -75,25 +56,28 @@ export interface AuthResult {
 }
 
 /**
- * Check if an email or name matches creator identity.
- * Uses both hardcoded list and env vars for maximum reliability.
+ * Check if a verified Clerk identifier (email or Clerk user ID) matches the creator.
+ *
+ * SECURITY: EXACT match only — no substring/includes() matching.
+ * Creator status must come from a verifiable identifier (email address or Clerk ID),
+ * never from a display name someone typed at signup.
+ *
+ * Exported for security regression tests (__tests__/security/creator-detection.test.ts).
  */
-function isCreatorMatch(text: string): boolean {
-  const lower = text.toLowerCase();
-  
-  // 1. Check explicit matches
-  const hasExplicitMatch = (
-    CREATOR_HARDCODED_EMAILS.some(e => lower.includes(e)) ||
-    CREATOR_HARDCODED_NAME_FRAGMENTS.some(f => lower.includes(f)) ||
-    CREATOR_EMAILS.some(e => lower.includes(e.toLowerCase())) ||
-    CREATOR_NAME_FRAGMENTS.some(f => lower.includes(f))
-  );
-  if (hasExplicitMatch) return true;
+export function isCreatorMatch(text: string): boolean {
+  const lower = text.toLowerCase().trim();
 
-  // 2. Fuzzy brand check (requires 'steve' and a brand keyword)
-  const hasSteve = lower.includes('steve') || lower.includes('steven');
-  const hasBrand = lower.includes('hollywood') || lower.includes('dorego') || lower.includes('nexa') || lower.includes('music');
-  return hasSteve && hasBrand;
+  // 1. Exact email match (hardcoded + env-configured)
+  const exactEmails = [
+    ...CREATOR_HARDCODED_EMAILS.map(e => e.toLowerCase()),
+    ...CREATOR_EMAILS.map(e => e.toLowerCase().trim()),
+  ];
+  if (exactEmails.includes(lower)) return true;
+
+  // 2. Exact Clerk ID match (env-configured only — Clerk IDs are not hardcoded)
+  if (CREATOR_CLERK_IDS.some(id => lower === id.toLowerCase().trim())) return true;
+
+  return false;
 }
 
 export async function authenticateAndLoadUser(): Promise<AuthResult | null> {
@@ -194,12 +178,13 @@ export async function authenticateAndLoadUser(): Promise<AuthResult | null> {
       }
     }
 
-    const nameCheck = (user?.name || '').toLowerCase();
     const emailLower = userEmail.toLowerCase();
 
-    // Check env vars
+    // Check the DB-stored email against creator emails (exact match only).
+    // NOTE: names are no longer checked — they are user-controllable and were
+    // the spoof vector (see docs/audit/CURRENT_STATE.md [S2]).
     if (!isCreator) {
-      isCreator = isCreatorMatch(emailLower) || isCreatorMatch(nameCheck);
+      isCreator = isCreatorMatch(emailLower);
     }
 
     if (isCreator) {

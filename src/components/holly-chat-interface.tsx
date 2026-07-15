@@ -1868,27 +1868,16 @@ function AgentModal({ onClose }: { onClose: () => void }) {
 
 // Creator email fragments — matches Steve Hollywood Dorego's known accounts
 function detectCreator(email?: string | null, username?: string | null, fullName?: string | null): boolean {
-  const check = `${email || ''} ${username || ''} ${fullName || ''}`.toLowerCase();
-  
-  // 1. Check explicit matches
-  const fragments = [
-    'iamdoregosteve',
-    'iamhollywoodpro',
-    'stevehollywood',
-    'nexamusicgroup',
-    'stevendorego',
-    'stevefreshblendz',
-    'hollywood dorego',
-    'steve hollywood',
-    'steve dorego',
+  // SECURITY: EXACT email match only (UI-only check — server is the real gate).
+  // Mirrors src/lib/chat/auth.ts isCreatorMatch(). No substring/fuzzy matching —
+  // that allowed spoofing (e.g. "Steve Musicfan" triggered the creator UI).
+  const exactEmails = [
+    'iamdoregosteve@gmail.com',
+    'iamhollywoodpro@gmail.com',
+    'stevehollywood@gmail.com',
   ];
-  const hasExplicit = fragments.some(f => check.includes(f));
-  if (hasExplicit) return true;
-
-  // 2. Fuzzy brand check (steve + brand)
-  const hasSteve = check.includes('steve') || check.includes('steven');
-  const hasBrand = check.includes('hollywood') || check.includes('dorego') || check.includes('nexa') || check.includes('music');
-  return hasSteve && hasBrand;
+  const emailLower = (email || '').toLowerCase().trim();
+  return exactEmails.includes(emailLower);
 }
 
 export default function HollyChatInterface() {

@@ -15,6 +15,10 @@ jest.mock('groq-sdk', () => {
 jest.mock('@/lib/db', () => ({
   prisma: {
     conversationSummary: { findMany: jest.fn().mockResolvedValue([]) },
+    // Phase 0.1: chat route now runs an age gate (ageGateFromAuth) which calls
+    // user.findUnique({ select: { isAdult } }). Default to an adult user so
+    // existing message-level tests pass through the gate.
+    user: { findUnique: jest.fn().mockResolvedValue({ isAdult: true }) },
   },
 }));
 

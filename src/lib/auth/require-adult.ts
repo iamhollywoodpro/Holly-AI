@@ -20,7 +20,7 @@
 
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { authenticateAndLoadUser } from '@/lib/chat/auth';
+import { authenticateAndLoadUser, type AuthResult } from '@/lib/chat/auth';
 
 export interface AdultAuthResult {
   userId: string;
@@ -102,6 +102,57 @@ export async function requireAdult(): Promise<AdultGateResult> {
     isCreator: false,
     isAdult: true,
   };
+}
+
+/**
+ * Age gate that REUSES an existing AuthResult — avoids the double auth lookup
+ * that calling requireAdult() would cause in routes that already called
+ * authenticateAndLoadUser() (like the chat route, which is high-traffic).
+ *
+ * Returns a NextResponse (401/403/404) if the caller must be blocked,
+ * or null if the caller is an adult (or creator) and may proceed.
+ *
+ * Usage:
+ *   const auth = await authenticateAndLoadUser();
+ *   if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+ *   const ageGate = await ageGateFromAuth(auth);
+ *   if (ageGate) return ageGate;
+ */
+export async function ageGateFromAuth(auth: AuthResult): Promise<NextResponse | null> {
+  // Creator bypass — Steve and any future creator accounts skip age verification.
+  if (auth.isCreator) return null;
+
+  if (!auth.dbUserId) {
+    return NextResponse.json(
+      { error: 'User not found', code: 'USER_NOT_FOUND' },
+      { status: 404 },
+    );
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: auth.dbUserId },
+    select: { isAdult: true },
+  });
+
+  if (!user) {
+    return NextResponse.json(
+      { error: 'User not found', code: 'USER_NOT_FOUND' },
+      { status: 404 },
+    );
+  }
+
+  if (!user.isAdult) {
+    return NextResponse.json(
+      {
+        error: 'Adult verification required to access this content.',
+        code: 'AGE_VERIFICATION_REQUIRED',
+        verifyUrl: '/onboarding/age-verify',
+      },
+      { status: 403 },
+    );
+  }
+
+  return null;
 }
 
 /**

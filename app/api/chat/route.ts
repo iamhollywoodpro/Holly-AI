@@ -19,6 +19,7 @@ import { cascade, cascadeCollect } from '@/lib/ai/cascade';
 import { isARRequest, runARAnalysis } from '@/lib/ar/holly-ar-engine';
 import { extractTopics } from '@/lib/consciousness/post-response-hook';
 import { authenticateAndLoadUser } from '@/lib/chat/auth';
+import { ageGateFromAuth } from '@/lib/auth/require-adult';
 import { loadChatContext } from '@/lib/chat/context-loader';
 import { buildPrompt } from '@/lib/chat/prompt-builder';
 import { buildAboutThisPersonBlock } from '@/lib/chat/about-this-person';
@@ -318,6 +319,11 @@ export async function POST(req: NextRequest) {
     if (!authResult) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const { userId, dbUserId, userName, isCreator } = authResult;
     if (!dbUserId) return NextResponse.json({ error: 'User not found in database' }, { status: 401 });
+
+    // 1c. AGE GATE — direct API access must not bypass the /chat page redirect.
+    // Under-18 users are locked out of chat entirely, not just NSFW content.
+    const ageGate = await ageGateFromAuth(authResult);
+    if (ageGate) return ageGate;
 
     // 1a. LOAD USER AI SETTINGS — from database (falls back to defaults)
     let userAiSettings = { creativity: 0.7, responseStyle: 'casual' as string, codeComments: 'standard' as string, contextWindow: 50 };
