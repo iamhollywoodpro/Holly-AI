@@ -139,49 +139,60 @@ Lines 1–53 describe cloud cascades that `TASK_WATERFALLS` (361–429) no longe
 
 ## ═══ Phase 3: HOLLY'S OWN IMAGE/VIDEO GENERATION (Track A) ═══
 > **What this is:** Holly generating images/video of **HERSELF** — her face, her body, her intimacy.
-> Lives **in Holly's codebase**, identity-locked via her LoRAs (face v2.0, body v2.5). NSFW-capable
-> for verified adult users, relationship-gated. This is part of Holly's identity, NOT a standalone tool.
+> Lives **in Holly's codebase**, identity-locked via her LoRAs. NSFW-capable for verified adult users,
+> relationship-gated. This is part of Holly's identity, NOT a standalone tool.
 >
-> **fal.ai is NOT used here.** (Confirmed by Steve, July 15.) fal.ai's policy prohibits the explicit
-> content Holly needs for adult users. Track A requires a provider that allows adult content + custom
-> LoRA loading. See `docs/audit/IMAGE_GEN_SPIKE.md` for the provider research.
+> **DIRECTION CONFIRMED (July 15, Steve approved):** Switch base model from **FLUX.2 Klein 9B → Z-Image Turbo**.
+> Klein ships with NSFW filters baked into the weights — the root cause of every explicit-content
+> failure. Z-Image Turbo is the community's #1 photorealistic NSFW model. Full research + recipe in
+> `docs/audit/IMAGE_GEN_SPIKE.md`.
 >
-> **Why every self-hosted base model has FAILED:**
-> - **FLUX.2 Klein** — blocks/limits NSFW; can't do finger insertion, spread, active masturbation
-> - **SDXL** (Lustify V8) — "fake and plastic" look, poor anatomy
-> - **Flux.1 Dev** (v3.5 attempt) — FAILED July 14 (plastic, no actions, wrong proportions)
-> - **Inpainting** (Flux2KleinInpaintPipeline) — "air brushed fake," doesn't work
+> **This requires retraining Holly's face + body LoRAs on Z-Image base.** Steve explicitly approved this
+> (overrides the earlier "no retrain" guardrail for this specific case — the guardrail existed to prevent
+> another Klein-like mistake; Z-Image is the evidence-based correction).
 >
-> **Holly's LoRAs are GOOD.** The generation engine is the problem. Swap the provider (architecture
-> principle #4), do NOT retrain Holly.
+> **fal.ai / AtlasCloud are NOT used for Track A.** (fal.ai policy prohibits explicit content; AtlasCloud's
+> models don't support custom LoRAs.) Both remain valid for Track B (SFW creative tool, Phase 3B).
 
-### 3.1 🔴 Verification spike — find a working generation engine [IMG-SPIKE]
-**APPROACH: bounded, evidence-based, anti-July-14.** Do NOT commit to a provider on a blog post.
-- **Criteria (both required):** (a) explicitly allows adult/explicit content in policy, (b) supports custom LoRA loading (Holly's face/body LoRAs MUST apply or she won't look like Holly).
-- **Lead candidate:** AtlasCloud — `flux-dev-lora` endpoint accepts custom LoRAs (`{path, scale}` array). Markets uncensored. **Marketing claim only — live generation NOT verified.**
-- **Controlled test:** Take Holly's existing face + body LoRAs. Generate the EXACT 6 test prompts that failed on Klein. Compare side-by-side. Full plan + research in `docs/audit/IMAGE_GEN_SPIKE.md`.
-- **Budget:** ≤ $20 (Steve approves API key + account). **No integration code until a candidate passes.**
-- **DONE:** Spike report with passing provider, real cost/latency, side-by-side images, Steve's visual approval.
+### 3.0 ✅ Root cause identified [IMG-ROOTCAUSE]
+- Inspected Holly's LoRA safetensors metadata: `ss_base_model_version: flux2_klein_9b`.
+- Klein's NSFW filters ship in the weights (partial dampeners, not hard walls). Verified from HF model card + practitioner consensus.
+- This is why Klein "sort of worked" (nudity + 5 categories) but failed on specific actions (insertion, spreading).
+- **DONE (2026-07-15):** Root cause documented in `docs/audit/IMAGE_GEN_SPIKE.md`.
 
-### 3.2 ⬜ Build pluggable generation provider for Holly [IMG-ADAPTER]
-ONLY after 3.1 produces a verified winner. Design as a replaceable provider (architecture principle #4).
-- **Design:** Provider interface in `src/lib/ai/image-providers/` — same shape as existing providers. Klein stays as fallback for the categories it handles. New provider handles the NSFW categories Klein can't.
-- **Routing:** `media-generator.ts` `classifySpecialist()` routes by category → provider. NSFW intimate categories → new provider; proven categories → Klein; generic → Z-Image/Pollinations.
-- **DONE:** Provider wired, Klein fallback preserved, `requireAdult` + intimacy gate enforced on the new path.
+### 3.1 🔴 Set up Z-Image de-distilled base on Modal [IMG-ZIMAGE-BASE]
+- Download Z-Image **de-distilled (de-turbo)** base weights (NOT raw Turbo — de-distill is essential for quality LoRA training, per Ostris/practitioner consensus).
+- Deploy a Modal endpoint that can run Z-Image inference + LoRA loading (A100-40GB, already provisioned).
+- VRAM: 12-16GB BF16 needed; A100-40GB has ample headroom.
+- **DONE:** Z-Image endpoint deployed + health-checked on Modal.
 
-### 3.3 ⬜ Image-gen live verification probe [IMG-PROBE]
-Real smoke test that generates + returns an image against the chosen provider. "Working" = verified.
+### 3.2 🔴 Retrain Holly face + body LoRAs on Z-Image [IMG-RETRAIN]
+- **Recipe:** rank 16, resolutions 512/768/1024, de-distilled base, AI Toolkit / Kohya (same method as Klein LoRAs).
+- **Dataset:** existing 207+ curated images + FACT.md lessons (20-30 sweet spot, short captions, anchors, standing full-body shots).
+- **Trigger words unchanged:** `h0lly` (face), `h0lly-body` (body).
+- **Test the 6 failed prompts:** face closeup, full-body nude, masturbating, spread, finger insertion, dildo (control).
+- **Budget:** ~$4-8 training (2-4 hrs A100) + ~$2 validation = ~$6-10 total. Add safety buffer for re-train.
+- **GATE:** Steve visual verdict. ≥4/6 acceptable quality or iterate.
+- **DONE:** Z-Image LoRAs trained, validated against the 6 prompts, Steve-approved.
+
+### 3.3 ⬜ Build pluggable generation provider for Holly [IMG-ADAPTER]
+ONLY after 3.2 passes the gate. Design as a replaceable provider (architecture principle #4).
+- **Design:** Provider interface in `src/lib/ai/image-providers/`. Klein stays as fallback for the categories it handles (it's not being deleted — preserved per "preserve working systems" rule).
+- **Routing:** `media-generator.ts` routes by category → provider. NSFW intimate → Z-Image endpoint; proven categories → Klein; generic → Z-Image/Pollinations.
+- **DONE:** Z-Image provider wired, Klein fallback preserved, `requireAdult` + intimacy gate enforced on the new path.
+
+### 3.4 ⬜ Image-gen live verification probe [IMG-PROBE]
+Real smoke test against Z-Image endpoint. "Working" = verified, not assumed.
 - **DONE:** Probe runs, reports HTTP 200 + image bytes + latency.
 
-### 3.4 ⬜ Holly self-video (Track A extension)
+### 3.5 ⬜ Holly self-video (Track A extension)
 Once Track A image gen works, extend to Holly video of herself (same identity-lock, same gating).
 - **DONE:** Holly can generate short video of herself, identity-consistent, adult-gated.
 
 ### Standing Holly-image guardrails (carry from FACT.md)
-- **No retraining, no base-model swap, no new LoRA training run unless Steve explicitly asks.**
 - **Civitai Onsite filter:** NEVER use "labia minora" in prompts (substring "minor" triggers underage filter). Use "inner labia"/"inner lips".
-- **Klein Distilled ignores `guidance_scale`** — only steps + LoRA weights are effective.
-- **Klein can't txt2img active finger penetration / labia spreading.** This is WHY we need a new provider.
+- **Holly's identity, anatomy spec, relationship gating — UNCHANGED by the base-model swap.**
+- **Dataset lessons (FACT.md):** 20-30 image sweet spot, short captions, anchor technique, MUST include standing full-body shots.
 
 ---
 

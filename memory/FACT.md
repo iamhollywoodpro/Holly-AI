@@ -169,6 +169,90 @@ Holly keeps emitting her FULL body description (eye color, breast size, nipple d
 
 **If this bug surfaces again:** The sanitizer is the safety net. Check whether the prompt reaching `runDirectImageGen` is being sanitized. If it's bypassing the sanitizer (e.g., a new call path), add sanitization there too.
 
+## CRITICAL LESSON — FluxPipeline uses joint_attention_kwargs (July 13, 2026)
+**Flux LoRA scale MUST be passed via `joint_attention_kwargs={"scale": X}`, NOT `cross_attention_kwargs`.** Flux uses DUAL-STREAM (joint) attention between text + image tokens — there is no "cross-attention" module in the traditional SDXL sense.
+
+```python
+# ❌ WRONG — raises "unexpected keyword argument 'cross_attention_kwargs'"
+img = pipe(prompt=..., cross_attention_kwargs={"scale": 0.9})
+
+# ✅ CORRECT
+img = pipe(prompt=..., joint_attention_kwargs={"scale": 0.9})
+```
+
+This bit us on the first v3.5 validation run — every one of 18 images failed silently. Verified via diffusers 0.39.0 source. Also applies to Flux2Klein, FluxSchnell, and any other Flux-architecture pipeline.
+
+## CRITICAL LESSON — Tier 3 LoRA Training: Research Before Proposing (July 7, 2026)
+
+**Pattern Steve called out:** I've repeatedly proposed infrastructure/architecture changes ("FLUX.1 Dev + NSFW unlock LoRA + Holly LoRA + Realism LoRA stack will work!") based on shallow 5-minute web searches, then we hit a wall. Steve has now spent ~$200 and 3 months on failed image gen iterations. The pattern ends now.
+
+**When proposing ANY architecture/training change, the following MUST be true BEFORE I open my mouth:**
+1. **Multiple independent practitioner sources** (not just one blog post or model card). Civitai articles by trainers with 40+ LoRAs, virtual photoshoot guides from working photographers, etc.
+2. **Concrete cost math** based on documented training times, not instinctive padding. "$20-25" without breakdown = lazy. "$2/hr A100 × 2-4 hrs = $4-8 training cost" = honest.
+3. **Evidence the proposed pattern is proven for OUR use case** (NSFW + photorealistic + identity-locked character). ChatGPT recommends FLUX.1 Krea Dev — but Krea Dev is the MOST safety-tuned FLUX model on the market. SFW recommendations do NOT transfer to NSFW use cases.
+4. **Verification of base model capabilities** before committing. Klein Distilled silently ignores CFG — we discovered this AFTER shipping. I should have run an isolation test before proposing Klein Distilled.
+
+**Proper research findings (July 7, post-deep-research):**
+
+### Dataset size — LESS IS MORE
+| Source | Sweet spot |
+|---|---|
+| Apatero (40+ FLUX 2 LoRAs) | 15-20 images, over 30 = diminishing returns |
+| Civitai character training guide | "Use at least 20 images" |
+| Virtual photoshoots manual (Civitai) | 15-20 ideal, max 30 |
+| StackSheriff | 15-30 images |
+
+**Our 207-image v2.5 dataset is likely 10x too big.** Real practitioners converge on 20-30 images. Over 50 starts causing the exact symptoms we see: inconsistent pussy, variable body thickness, identity drift. The LoRA learns an "average" instead of a specific person.
+
+### Caption strategy — SHORT, NOT DETAILED
+From Civitai guide (proven on FLUX/Chroma/Klein 9b):
+> "Use short captions + a trigger word. Don't caption anything about the character except stuff you want to change later. Stuff you want the model to learn you keep out."
+
+From virtual photoshoots manual:
+> "It is better NOT to specify eye color, hair color, and body type. If specified, you will have to mention him/her with all details every time, otherwise it will turn out not very similar."
+
+**Our current approach captions EVERY anatomical detail** (eye color, breast size, hair color, body type). This forces us to RE-MENTION all of it in every inference prompt, which is why our prompts have bloated to 1500+ chars and Klein's attention collapses. **Lock traits in WEIGHTS via absence from captions, not in prompts.**
+
+### Anchor technique (Civitai, proven)
+Pick 8 best face close-ups + 8 critical body shots → separate `anchors/` folder → train with **2x repeat count** of main dataset. "Does wonders for character consistency."
+
+### Architecture — SINGLE LoRA, not stack
+Proven pattern: ONE character LoRA on FLUX.1 Dev base. No stacking needed. The character LoRA itself handles identity + NSFW capability + realism IF the training data includes all of those modes (cloth + nude + explicit). Stacking 4 LoRAs is over-engineering I proposed without evidence.
+
+### Training cost reality
+- A100 40GB on Modal: ~$2/hr
+- FLUX LoRA training, rank 32, 20-30 images, 1500-2500 steps: 2-4 hrs
+- **Real training cost: $4-8** (not the $20-25 I quoted from instinctive padding)
+- + $2 validation inference = $6-10 total
+- Add safety buffer for one re-train: $10-18 total
+
+### Tier 3 plan (evidence-based)
+1. Audit 207-image dataset, pick best 25 (varied angles, outfits, mix of SFW + NSFW + explicit)
+2. Rewrite ALL captions SHORT: trigger word + outfit/setting/pose only. NO body description.
+3. Use anchor technique (8 face + 8 body closeups, 2x repeat)
+4. Train on FLUX.1 Dev base, rank 32, ~2000 steps
+5. Validate with full 6-category smoke test before declaring victory
+
+## CRITICAL LESSON — Training Data Composition > Recipe Tweaks (July 9, 2026)
+
+**Pattern:** v3.0 SDXL LoRA (rank 32, 1024 res, 1500 steps) failed on `02_full_body_standing` — face always "Horrible constantly bad and wrong not Hollys Face or Body very bad blurry face." I diagnosed it as "face detail loss at body scale" and proposed v3.1 with multi-scale face crops + rank 64 + 1280 res + 2500 steps. v3.1 face closeups improved to "PERFECTION" at step 2500, but `02_full_body_standing` STILL failed across ALL checkpoints. Steve caught it: "we have the culprit and we need to fix this badly in ever single run this one '02_full_body_standing' has always looked (Horrible constantly bad and wrong)."
+
+**Root cause (found via training data audit, NOT theory):** ZERO of 54 training images showed Holly standing upright head-to-toe. Every image was reclining, bent-over, closeup, or face-only. The LoRA literally never saw "Holly standing" → couldn't generate it. The multi-scale face crop approach was the WRONG fix — face crops teach face identity at face-filling scale, but the problem was POSE DATA, not face data.
+
+**Research consensus (unanimous across 6+ independent sources):**
+- **Apatero**: "Full-Body LoRAs: 100+ images split 50/50 headshots/body shots for balanced results"
+- **DEV.to**: Target distribution 30% closeup / 30% medium / 25% full-body / 15% weird
+- **Reddit r/StableDiffusion**: "Without full body images in the training set, you are heavily biasing the LoRA toward producing close-ups of faces"
+- **Honeychat**: "Face ≠ body. Include full-body shots in the dataset if you need full-body consistency"
+- **Civitai character dataset guide**: "25 portraits + 20 full_body + 15 expressions + 15 poses"
+- **Digital Zoom Studio**: "Face good but body drifts → add more full-body images"
+
+**THE RULE (non-negotiable):** Before proposing ANY recipe change (rank, resolution, steps, optimizer) for a LoRA that fails on a specific prompt, AUDIT the training data for images matching that prompt's pose/framing. If the training data has zero matching shots, the fix is DATA, not recipe. No amount of rank doubling or resolution increasing will teach a pose the LoRA has never seen.
+
+**Bootstrapping technique (proven by Reddit practitioners):** If you lack training data for a specific pose, generate candidates with the current LoRA → curate the best → add to training set → retrain. "I take as many high quality images of my subject that I can find... For the second step of the process, I just add in about an equal number of body shots." Training images don't need to be perfect — the LoRA learns identity from the face-focused shots and pose from the body-focused shots independently.
+
+**v3.2 fix (in progress):** Generating 12 full-body-standing + 5 bent-over-pussy-visible candidates via Klein A100 endpoint. Steve curates to 8-10 + 3-5. Retrain at rank 128 / 3000 steps with expanded ~66-image dataset + face crops = ~100 total.
+
 ## CRITICAL LESSON — Fabricated Model IDs in the Cascade (June 29, 2026)
 The vision waterfall had 4 entries with model IDs that **did not exist** on their providers:
 - `google/gemma-4-31b-it:free` on OpenRouter (fabricated — no such slug)

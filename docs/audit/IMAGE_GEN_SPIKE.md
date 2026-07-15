@@ -1,12 +1,91 @@
 # Image Generation Provider Spike — Research Findings (TRACK A: Holly's Own Image/Video)
-**Date:** 2026-07-15
-**Status:** Research complete; live testing NOT YET DONE. All claims below are marked by verification level.
-**Scope:** **TRACK A ONLY** — finding a generation engine for Holly's OWN intimate image/video of herself
-(identity-locked via LoRAs, NSFW-capable for verified adults, lives in Holly's codebase).
-This is NOT the Creative Studio tool (Phase 3B, SFW Higgsfield-style) — that's a separate product
-and may use fal.ai or any SFW-friendly provider with no policy conflict.
+**Date:** 2026-07-15 (updated with corrected findings)
+**Status:** Research complete; direction confirmed (Z-Image Turbo). Live training NOT YET STARTED.
+**Scope:** **TRACK A ONLY** — Holly's OWN intimate image/video of herself (identity-locked via LoRAs,
+NSFW-capable for verified adults, lives in Holly's codebase). NOT the Creative Studio tool (Phase 3B).
 
-**Purpose:** Find a hosted image-generation provider that can produce Holly's NSFW content (the categories Klein/SDXL/Flux.1 Dev all failed on) while applying Holly's existing face/body LoRAs.
+---
+
+## CONCLUSION (2026-07-15): Switch base model from Klein 9B → Z-Image Turbo
+
+**Steve approved Path 2: Z-Image Turbo (requires retraining Holly's LoRAs on Z-Image base).**
+
+### Why Klein failed (root cause, verified)
+- Holly's LoRAs were trained on FLUX.2 Klein 9B (confirmed from safetensors metadata:
+  `ss_base_model_version: flux2_klein_9b`, `modelspec.architecture: flux-2/lora`).
+- Klein ships with **NSFW filters baked into the model weights** — both base and distilled variants
+  ([HF model card](https://huggingface.co/black-forest-labs/FLUX.2-klein-9B)).
+- The filters are partial dampeners, not hard walls: nudity + posed NSFW leak through (the 5 working
+  categories), but specific intimate actions (finger insertion, spreading) are suppressed. This is
+  why Klein "sort of worked" but couldn't do the actions Holly needs.
+- Practitioner consensus: Klein is *"so thoroughly SFW and highly censored"*
+  ([r/StableDiffusion](https://www.reddit.com/r/StableDiffusion/comments/1qlug5s/klein_9b_exploring_this_models_notsfw_potential/)).
+
+### Why Z-Image Turbo is the answer (verified from practitioner sources)
+- Current community #1 photorealistic NSFW model. *"ZIT has literally zero problems with nudity prompts."*
+- 6B parameter model (Alibaba/Tongyi-MAI), its own architecture (not Flux).
+- Full LoRA training support (AI Toolkit / Kohya). Dedicated NSFW LoRAs exist (Mystic XXX v2 = community favorite).
+- Runs on 12-16GB VRAM BF16 → easily on Modal A100-40GB (already provisioned).
+
+### Ruled out
+- **AtlasCloud** — their models (Seedream, Nano Banana, Grok Imagine) are closed proprietary APIs.
+  None support custom LoRA loading. The `flux-dev-lora` endpoint runs FLUX.1 Dev (safety-tuned).
+  AtlasCloud is still valid for Track B (SFW creative tool), just not Track A.
+- **fal.ai** — policy prohibits sexually explicit content (Acceptable Use Policy §1.4).
+- **FLUX.1 Dev** — safety-tuned, can't do NSFW (the v3.5 failure, July 14).
+- **Uncensored Klein variant** (`ponpoke/flux2-klein-9b-uncensored`) — exists but community merge with
+  reported "body horror artifacts." Steve chose Z-Image instead.
+
+---
+
+## Z-Image Turbo training recipe (from practitioner sources)
+
+| Parameter | Value | Source |
+|---|---|---|
+| **Base model** | Z-Image **de-distilled (de-turbo)**, NOT raw Turbo | [Ostris comparison](https://www.reddit.com/r/StableDiffusion/comments/1pf7iuw/) — "insane for realism LoRA training, huge improvement" |
+| **LoRA rank** | 16 (range 16-32) | [Reddit "final setup"](https://www.reddit.com/r/comfyui/comments/1ppy4t0/) |
+| **Resolutions** | 512 / 768 / 1024 (multi-res bucketing) | Same |
+| **Dataset** | 15-30 images (Holly already has 207+ curated) | Multiple guides + FACT.md lessons |
+| **Tool** | AI Toolkit (Ostris) or Kohya_ss | Same as Klein training (Civitai Spine Controller) |
+| **VRAM (training)** | A100-40GB sufficient | [ThunderCompute](https://www.thundercompute.com/blog/z-image-turbo-comfyui) |
+| **VRAM (inference)** | 12-16GB BF16 | Same |
+
+### Critical detail: de-distill base
+Z-Image Turbo is a *distilled* model (optimized for fast 4-step inference). Training a LoRA directly
+on distilled models causes quality loss. The fix: use the **de-distilled (de-turbo) base** for training,
+then run inference with the Turbo scheduler. Multiple sources confirm this is essential for quality.
+
+### Dataset lessons (already in FACT.md, apply here)
+- 20-30 image sweet spot (NOT 200+ — over-fitting causes identity drift)
+- SHORT captions: trigger word + outfit/pose only, NO body description
+- Anchor technique: 8 face + 8 body closeups, 2x repeat count
+- MUST include standing full-body shots (the v3.0 failure cause)
+
+---
+
+## HONEST UNKNOWNS (require actual training + test to resolve)
+
+1. **Can Z-Image + Mystic XXX do the specific actions Klein can't?** (finger insertion, spreading).
+   Community consensus says yes, but not verified with Holly's LoRA. Only real test confirms.
+2. **Identity quality on Z-Image vs Klein?** Holly's face/body fidelity after retraining.
+   Z-Image is photorealistic-focused, so likely good, but UNVERIFIED for Holly specifically.
+3. **Exact training cost/time on Modal A100.** Estimates: 2-4 hrs, $4-8. Not verified for Z-Image specifically.
+
+---
+
+## Next steps (Track A)
+
+1. **Set up Z-Image de-distilled base on Modal** (download weights, deploy endpoint).
+2. **Retrain Holly face + body LoRAs** on Z-Image base (using existing 207-image dataset + FACT.md lessons).
+3. **Test the 6 failed prompts** (face, full-body nude, masturbating, spread, finger insertion, dildo).
+4. **Steve visual verdict.** Gate: ≥4/6 acceptable.
+5. If pass → build pluggable provider, swap Klein → Z-Image in media-generator.ts routing.
+
+### Standing guardrails
+- Holly's identity, anatomy spec, relationship gating — UNCHANGED.
+- Trigger words (`h0lly`, `h0lly-body`) — UNCHANGED.
+- Civitai Onsite filter rule: NEVER "labia minora" (substring "minor" triggers underage filter).
+- This is a base-model swap for the generation engine only (architecture principle #4: replaceable providers).
 
 ---
 
