@@ -168,13 +168,15 @@ Lines 1–53 describe cloud cascades that `TASK_WATERFALLS` (361–429) no longe
 - **Reference:** [tolgaoguz.dev — ComfyUI on Modal, <3s cold start](https://tolgaoguz.dev/post/comfy-workflow-api-with-modal/), [comfyui-modal GitHub](https://github.com/JunnnnyWon/comfyui-modal), [Runflow ComfyUI API guide](https://www.runflow.io/blog/comfyui-api-developer-guide).
 - **DONE (2026-07-15):** Architecture decided and documented.
 
-### 3.2 🔴 Deploy ComfyUI on Modal with Z-Image base [IMG-COMFYUI]
-- Deploy ComfyUI as a Modal container (A100 GPU). Pre-cache Z-Image de-distilled base + text encoder on a Modal Volume for fast cold starts.
-- Base model: `ostris/Z-Image-De-Turbo` (de-distilled, for LoRA training compatibility) + `ostris/zimage_turbo_training_adapter`.
-- Expose ComfyUI's HTTP API (`POST /prompt` + WebSocket poll + `GET /view`) as a Modal web endpoint.
-- Test: can load a Z-Image LoRA via the LoRA Loader node and generate an image.
-- **Klein endpoint stays alive** as fallback until Z-Image is validated (preserve working systems).
-- **DONE:** ComfyUI running on Modal, Z-Image base loaded, LoRA loading verified, health endpoint responds.
+### 3.2 ✅ Deploy ComfyUI on Modal with Z-Image base [IMG-COMFYUI]
+- Deployed ComfyUI as a Modal container on A100 (`iamhollywoodpro` workspace).
+- Base model: `Comfy-Org/z_image_turbo` (Z-Image Turbo BF16, single-file ComfyUI format from `split_files/`).
+- Architecture: ComfyUI runs as background subprocess on localhost:8188; FastAPI wrapper handles submit→poll→fetch, returns raw image bytes (same contract as Klein endpoint).
+- **VERIFIED:** Health endpoint returns `{"status":"healthy","models":"loaded"}`. Test generation produced a valid 1024×1024 PNG (1.27 MB, ~20s warm).
+- Endpoints: `https://iamhollywoodpro--generate-comfyui-zimage.modal.run` (POST) + `https://iamhollywoodpro--comfyui-zimage-health.modal.run` (GET).
+- Files: `services/modal-media/comfyui_zimage.py` (deploy script + inlined workflow builder), `services/modal-media/comfyui_workflow_template.py` (standalone reference).
+- **Klein endpoint stays alive** as fallback until Z-Image is validated.
+- **DONE (2026-07-15):** ComfyUI running on Modal, Z-Image base loaded, test generation verified. LoRA loading will be tested in 3.3 after retraining.
 
 ### 3.3 🔴 Retrain Holly face + body LoRAs on Z-Image [IMG-RETRAIN]
 - **Recipe:** rank 16, resolutions 512/768/1024, de-distilled base, AI Toolkit (same tool that trained the Klein LoRAs via Civitai Spine Controller).
