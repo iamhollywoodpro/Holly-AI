@@ -73,13 +73,48 @@ then run inference with the Turbo scheduler. Multiple sources confirm this is es
 
 ---
 
+## Architecture decision: Modal + ComfyUI (July 15, Steve approved)
+
+**Problem:** ZImagePipeline's LoRA loading in diffusers is buggy/partial (issues #12745, #13221,
+#13249 — LoKr modules fail, weight mismatches, regressions). Our entire plan depends on loading
+Holly's custom face/body LoRAs. The diffusers path is not reliable for Z-Image LoRAs today.
+
+**Solution:** Deploy ComfyUI on Modal as Holly's image generation backend. ComfyUI's native LoRA
+Loader node is the proven, stable path for Z-Image LoRAs — it's what every Z-Image LoRA tutorial uses.
+
+### Why Modal + ComfyUI
+- **Stays in existing infra.** Same Modal account, billing, workspace. No new provider.
+- **Solves the LoRA problem.** ComfyUI's LoRA Loader is stable for Z-Image. diffusers bugs become irrelevant.
+- **Cold starts <3 sec** proven (tolgaoguz.dev) — better than current Klein (60-90 sec).
+- **Community standard.** Every Z-Image LoRA practitioner uses ComfyUI for inference.
+
+### How it works (architecture)
+```
+Holly chat route → media-generator.ts → ComfyUI adapter (new)
+  → POST /prompt (workflow JSON) to Modal ComfyUI endpoint
+  → Poll WebSocket/HTTP for completion
+  → GET /view to fetch generated image
+  → Return image bytes to Holly
+```
+The workflow JSON is a template with variables (prompt text, LoRA filenames + weights, seed, dimensions).
+ComfyUI handles model loading, LoRA stacking, and generation natively.
+
+### References
+- [ComfyUI on Modal, <3s cold start](https://tolgaoguz.dev/post/comfy-workflow-api-with-modal/)
+- [comfyui-modal GitHub](https://github.com/JunnnnyWon/comfyui-modal)
+- [ComfyUI API developer guide](https://www.runflow.io/blog/comfyui-api-developer-guide)
+- [RunPod ComfyUI serverless](https://www.runpod.io/blog/deploy-comfyui-as-a-serverless-api-endpoint) (alternative, not chosen)
+
+---
+
 ## Next steps (Track A)
 
-1. **Set up Z-Image de-distilled base on Modal** (download weights, deploy endpoint).
-2. **Retrain Holly face + body LoRAs** on Z-Image base (using existing 207-image dataset + FACT.md lessons).
-3. **Test the 6 failed prompts** (face, full-body nude, masturbating, spread, finger insertion, dildo).
-4. **Steve visual verdict.** Gate: ≥4/6 acceptable.
-5. If pass → build pluggable provider, swap Klein → Z-Image in media-generator.ts routing.
+1. **Deploy ComfyUI on Modal** with Z-Image de-distilled base pre-cached on a volume.
+2. **Verify LoRA loading** — load a test Z-Image LoRA via the LoRA Loader node, generate an image.
+3. **Retrain Holly face + body LoRAs** on Z-Image base (AI Toolkit, same dataset + FACT.md lessons).
+4. **Test the 6 failed prompts** (face, full-body nude, masturbating, spread, finger insertion, dildo).
+5. **Steve visual verdict.** Gate: ≥4/6 acceptable.
+6. If pass → build ComfyUI adapter in `media-generator.ts`, route NSFW categories to ComfyUI.
 
 ### Standing guardrails
 - Holly's identity, anatomy spec, relationship gating — UNCHANGED.
