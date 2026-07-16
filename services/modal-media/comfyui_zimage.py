@@ -289,14 +289,23 @@ class HollyComfyUIZImage:
 
         # Step 3: Symlink LoRA volume into ComfyUI's loras directory
         # The holly-lora-weights volume is mounted at /lora; ComfyUI looks in models/loras/
-        lora_link = LORA_DIR
-        if os.path.exists(LORA_VOL_MOUNT) and not os.path.exists(lora_link):
-            # Remove empty dir and symlink the volume
-            os.rmdir(lora_link)
-            os.symlink(LORA_VOL_MOUNT, lora_link)
-            print(f"✅ LoRA volume linked: {LORA_VOL_MOUNT} → {lora_link}")
-        elif os.path.islink(lora_link):
-            print(f"✅ LoRA volume already linked")
+        # Always replace the empty models/loras dir with a symlink to the volume
+        import shutil
+        if os.path.islink(LORA_DIR):
+            os.unlink(LORA_DIR)
+        if os.path.exists(LORA_DIR) and os.path.isdir(LORA_DIR):
+            shutil.rmtree(LORA_DIR)
+        os.symlink(LORA_VOL_MOUNT, LORA_DIR)
+        print(f"✅ LoRA volume linked: {LORA_VOL_MOUNT} → {LORA_DIR}")
+
+        # List available LoRAs for debugging
+        try:
+            lora_files = [f for f in os.listdir(LORA_VOL_MOUNT) if f.endswith('.safetensors')]
+            print(f"📋 LoRAs available: {len(lora_files)} files")
+            for f in lora_files[:5]:
+                print(f"   {f}")
+        except Exception:
+            pass
 
         # Step 4: Launch ComfyUI as background process
         print(f"🚀 Launching ComfyUI on port {COMFYUI_PORT}...")
