@@ -178,14 +178,67 @@ Lines 1–53 describe cloud cascades that `TASK_WATERFALLS` (361–429) no longe
 - **Klein endpoint stays alive** as fallback until Z-Image is validated.
 - **DONE (2026-07-15):** ComfyUI running on Modal, Z-Image base loaded, test generation verified. LoRA loading will be tested in 3.3 after retraining.
 
-### 3.3 🔴 Retrain Holly face + body LoRAs on Z-Image [IMG-RETRAIN]
-- **Recipe:** rank 16, resolutions 512/768/1024, de-distilled base, AI Toolkit (same tool that trained the Klein LoRAs via Civitai Spine Controller).
-- **Dataset:** existing 207+ curated images + FACT.md lessons (20-30 sweet spot, short captions, anchors, standing full-body shots).
-- **Trigger words unchanged:** `h0lly` (face), `h0lly-body` (body).
-- **Test the 6 failed prompts:** face closeup, full-body nude, masturbating, spread, finger insertion, dildo (control).
-- **Budget:** ~$4-8 training (2-4 hrs A100) + ~$2 validation = ~$6-10 total. Add safety buffer for re-train.
-- **GATE:** Steve visual verdict. ≥4/6 acceptable quality or iterate.
-- **DONE:** Z-Image LoRAs trained, validated against the 6 prompts, Steve-approved.
+### 3.3 🟡 Retrain Holly face + body LoRAs on Z-Image [IMG-RETRAIN]
+**STATUS: v1 FAILED, v2 IN PROGRESS (training started July 16, 3:17 PM EDT)**
+
+#### v1 — FAILED (July 16)
+- **What happened:** Trained rank-16 LoRA, 2000 steps, loss converged (0.24-0.60). LoRA loaded
+  in ComfyUI, all 6 test prompts generated valid PNG images. BUT quality was terrible.
+- **Steve's verdict:** "images are horrible, fuzzy and not clear, It's not Holly at all and the sexual images are bad"
+- **Root cause (3 mistakes by Dev):**
+  1. **Missing de-distill adapter** — dropped `assistant_lora_path` during debugging the `is_flux` config issue. This is the #1 requirement for training LoRAs on distilled models. Without it, the LoRA trains on corrupted gradients.
+  2. **Used raw Turbo base** (`Tongyi-MAI/Z-Image-Turbo`) instead of de-distilled base (`ostris/Z-Image-De-Turbo`). De-distilled base restores full training signal quality.
+  3. **Didn't verify the final config** before running training — the adapter was in the original plan but got lost in the 12-issue debugging marathon. This violated the FACT.md "verify before claiming" rule.
+- **LoRA file:** `holly_zimage_v1.safetensors` (85MB) — exists on `holly-lora-weights` volume but produces bad output.
+- **Test images:** on Desktop in `HOLLY Z-IMAGE TEST RESULTS/` — all 6 generated successfully but quality is poor.
+
+#### v2 — IN PROGRESS (started July 16, 3:17 PM EDT, ETA ~4:30 PM)
+- **Config:** `/tmp/ai-toolkit/config/holly_zimage_v2.yml`
+- **What's fixed:**
+  1. ✅ De-distilled base: `name_or_path: "ostris/Z-Image-De-Turbo"`
+  2. ✅ De-distill adapter: `assistant_lora_path: "ostris/zimage_turbo_training_adapter/zimage_turbo_training_adapter_v2.safetensors"`
+  3. ✅ Extras path: `extras_name_or_path: "Tongyi-MAI/Z-Image-Turbo"` (for tokenizer/text_encoder/vae)
+  4. ✅ `tiktoken` added to image (Qwen3 tokenizer needs it)
+- **Same:** rank 16, 2000 steps, Steve's 58-image dataset, short captions, flowmatch scheduler
+- **Output:** `holly_zimage_v2.safetensors` → `flux-lora-models` volume → `/holly_zimage_v2/`
+
+#### WHEN STEVE RETURNS — EXACT NEXT STEPS:
+1. **Check if v2 training completed:** `modal volume ls flux-lora-models /holly_zimage_v2/`
+2. **If completed:** retrieve LoRA, upload to `holly-lora-weights` volume, redeploy ComfyUI, run 6 tests
+3. **If failed:** check the error in `/tmp/ai-toolkit` logs, fix, re-run
+4. **Test commands:** see `scripts/generate-zimage-training-candidates.py` for the curl pattern
+5. **LoRA test config:** `{"name": "holly_zimage_v2.safetensors", "strength": 0.8}`
+6. **GATE:** Steve visual verdict. ≥4/6 acceptable quality, or iterate (try different LoRA strength, different checkpoint, or adjust recipe).
+
+#### Key infrastructure files (all working):
+- `services/modal-media/comfyui_zimage.py` — ComfyUI endpoint (DEPLOYED, HEALTHY)
+- `/tmp/ai-toolkit/run_modal.py` — AI Toolkit Modal runner (fixed for Modal 1.4.x)
+- `/tmp/ai-toolkit/config/holly_zimage_v2.yml` — corrected training config
+- Dataset: `/tmp/ai-toolkit/datasets/holly-zimage-v1/` (58 images + short captions)
+- Volume: `holly-lora-weights` (LoRA storage, symlinked into ComfyUI)
+
+#### Modal endpoints:
+- Generate: `https://iamhollywoodpro--generate-comfyui-zimage.modal.run`
+- Health: `https://iamhollywoodpro--comfyui-zimage-health.modal.run`
+
+#### Debugging history (the 12+ issues solved to get here):
+1. `pip_install("-r")` → use `run_commands`
+2. `fastapi` not in image → added
+3. Module import error → inlined workflow builder
+4. Wrong HF repo (`Tongyi-MAI` vs `Comfy-Org`) → fixed for ComfyUI, kept original for training
+5. `modal.Mount` deprecated → rewrote for Modal 1.4.x
+6. Python 3.14 SSL issues → curl subprocess
+7. Deps not pinned → used requirements.txt
+8. `add_local_dir` ordering → `copy=True`
+9. Missing `git` → added to apt_install
+10. Missing `torchaudio` → added
+11. Config path resolution → full path
+12. `is_flux: true` overriding arch → removed, use `arch: "zimage"`
+13. Training output path → mount volume at `modal_output`
+14. LoRA symlink in ComfyUI → always replace dir with symlink
+15. De-distill adapter missing (v1 failure) → added in v2
+16. Adapter path format → `org/repo/filename.safetensors` (3 parts)
+17. Tokenizer error → added `tiktoken` + `extras_name_or_path`
 
 ### 3.4 ⬜ Build pluggable ComfyUI adapter for Holly [IMG-ADAPTER]
 ONLY after 3.3 passes the gate. Design as a replaceable provider (architecture principle #4).

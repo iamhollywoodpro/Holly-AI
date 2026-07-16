@@ -169,6 +169,27 @@ Holly keeps emitting her FULL body description (eye color, breast size, nipple d
 
 **If this bug surfaces again:** The sanitizer is the safety net. Check whether the prompt reaching `runDirectImageGen` is being sanitized. If it's bypassing the sanitizer (e.g., a new call path), add sanitization there too.
 
+## CRITICAL LESSON — Z-Image Turbo LoRA Training: De-Distill Adapter is MANDATORY (July 16, 2026)
+
+**What happened:** Trained Holly v1 Z-Image LoRA (rank 16, 2000 steps, 58 images). Training "succeeded" (loss converged 0.24-0.60, LoRA saved). But every test image was "horrible, fuzzy and not clear, not Holly at all."
+
+**Root cause:** The de-distill adapter (`ostris/zimage_turbo_training_adapter`) was MISSING from the final config. I had it in the original plan, dropped it during the 12+ issue debugging marathon (removing `is_flux`, fixing API changes, etc.), and DID NOT VERIFY it was still in the config before running training.
+
+**The rule:** Z-Image Turbo is a DISTILLED model. Training a LoRA on it without the de-distill adapter produces corrupted gradients → fuzzy/degraded output. EVERY practitioner guide says this is required. The config MUST include:
+```yaml
+model:
+  name_or_path: "ostris/Z-Image-De-Turbo"              # de-distilled base
+  extras_name_or_path: "Tongyi-MAI/Z-Image-Turbo"      # tokenizer/te/vae from here
+  arch: "zimage"
+  assistant_lora_path: "ostris/zimage_turbo_training_adapter/zimage_turbo_training_adapter_v2.safetensors"
+```
+
+**ALSO:** The adapter path format must be `org/repo/filename.safetensors` (3 slash-separated parts). The handler splits on `/` and expects exactly 3 parts.
+
+**ALSO:** The de-distilled base repo (`ostris/Z-Image-De-Turbo`) only contains the transformer. Tokenizer, text encoder, and VAE must come from `extras_name_or_path: "Tongyi-MAI/Z-Image-Turbo"`.
+
+**LESSON (reinforcing FACT.md's existing rule):** Verify the FINAL config before running training. After a long debugging session, config drift happens. The "verify before claiming" rule applies to configs too — not just claims about features working.
+
 ## CRITICAL LESSON — FluxPipeline uses joint_attention_kwargs (July 13, 2026)
 **Flux LoRA scale MUST be passed via `joint_attention_kwargs={"scale": X}`, NOT `cross_attention_kwargs`.** Flux uses DUAL-STREAM (joint) attention between text + image tokens — there is no "cross-attention" module in the traditional SDXL sense.
 
