@@ -1,19 +1,19 @@
 # ═══ Holly Z-Image Turbo LoRA Training Config v1 ═══
-# Trains Holly's face + body LoRA on Z-Image Turbo base.
-# This is the CORRECT base model — Klein 9B ships with NSFW filters in the
-# weights; Z-Image Turbo is uncensored (the community #1 NSFW model).
+# Trains Holly's face + body LoRA on Z-Image Turbo base using AI Toolkit.
+#
+# Dataset: Steve's curated 58-image set from "TRAINING SET HOLLY Self Image"
+# (all poses incl. full-body standing — the critical category that was missing
+# in all prior failed training runs).
 #
 # Run via AI Toolkit on Modal:
 #   modal run run_modal.py --config-file-list-str=config/holly_zimage_v1.yml
 #
-# Recipe based on:
-#   - FACT.md: rank 16, 2000 steps, 20-30 image sweet spot, short captions
-#   - Reddit r/comfyui: "My Final Z-Image-Turbo LoRA Training Setup"
-#   - ostris/zimage_turbo_training_adapter (de-distillation, REQUIRED for Turbo)
-#   - dev.to "Best Practices for Training LoRA Models with Z-Image (2026)"
+# Key settings verified from:
+#   - AI Toolkit source: arch="zimage", ZImageModel handler
+#   - FACT.md: rank 16, 2000 steps, short captions, single LoRA
+#   - Reddit r/comfyui: Z-Image training recipe consensus
 #
-# Budget: ~$1-2 (A100, 25 images, rank 16, 2000 steps = ~20-30 min)
-# Output: holly_zimage_v1.safetensors → retrieve via `modal volume get`
+# Budget: ~$1-2 (A100, 58 images, rank 16, 2000 steps = ~20-30 min)
 
 ---
 job: extension
@@ -22,9 +22,9 @@ config:
   process:
     - type: 'sd_trainer'
       training_folder: "/root/ai-toolkit/output"
-      device: "cuda:0"
+      device: cuda:0
 
-      # Trigger word — appears in every caption
+      # Trigger word — added to captions if not present
       trigger_word: "h0lly"
 
       # ── Network (LoRA) ──────────────────────────────────────────
@@ -40,15 +40,15 @@ config:
         max_step_saves_to_keep: 4
 
       # ── Dataset ─────────────────────────────────────────────────
-      # 25 curated images with SHORT captions (trigger + pose/setting only)
+      # 58 curated images with SHORT captions (trigger + pose/setting only)
       # NO body description in captions — locked in weights per FACT.md
       datasets:
-        - folder_path: "/root/ai-toolkit/datasets/holly"
+        - folder_path: "/root/ai-toolkit/datasets/holly-zimage-v1"
           caption_ext: "txt"
-          caption_dropout_rate: 0.05  # drops caption 5% of time → learns from image alone
+          caption_dropout_rate: 0.05
           shuffle_tokens: false
           cache_latents_to_disk: true
-          resolution: [768, 1024]  # multi-res bucketing
+          resolution: [768, 1024]
 
       # ── Training ────────────────────────────────────────────────
       train:
@@ -56,46 +56,40 @@ config:
         steps: 2000               # FACT.md sweet spot (1500-2500)
         gradient_accumulation_steps: 1
         train_unet: true
-        train_text_encoder: false  # Z-Image text encoder frozen
+        train_text_encoder: false
         gradient_checkpointing: true
-        noise_scheduler: "flowmatch"   # REQUIRED for distilled/Turbo models
+        noise_scheduler: "flowmatch"
         optimizer: "adamw8bit"
         lr: 4e-4
         dtype: bf16
-        # Flow-matching settings (distilled model noise)
-        flow_matching: true
-        flow_alpha: 1.0
         ema_config:
           use_ema: true
           ema_decay: 0.99
 
       # ── Model ───────────────────────────────────────────────────
       model:
-        # Z-Image Turbo base (diffusers format — AI Toolkit downloads from HF)
+        # Z-Image Turbo base
         name_or_path: "Tongyi-MAI/Z-Image-Turbo"
-        is_flux: true          # flow-matching code path (Z-Image is DiT)
-        # DE-DISTILLATION ADAPTER — REQUIRED for Turbo/distilled models.
-        # Without this, fine-tuning collapses the distilled model's quality.
-        # ostris/zimage_turbo_training_adapter (auto-downloaded from HF)
-        de_distill_adapter: "ostris/zimage_turbo_training_adapter"
-        quantize: true         # 4-bit base → fits A100 40GB with headroom
-        assistant_lora_path: null
+        arch: "zimage"            # AI Toolkit's native Z-Image handler
+        is_flux: true             # flow-matching code path
+        quantize: true            # 4-bit base → fits A100 with headroom
+        quantize_te: true         # quantize text encoder too
 
       # ── Sampling (preview during training) ──────────────────────
       sample:
         sampler: "flowmatch"
-        sample_every: 500      # generate preview every 500 steps
+        sample_every: 500
+        sample_start_step: 0
         width: 1024
         height: 1024
         prompts:
           - "h0lly, closeup portrait of a woman smiling, soft lighting"
-          - "h0lly, h0lly-body, woman standing full body, nude, bedroom"
-          - "h0lly, h0lly-body, woman lying on bed, intimate, soft lighting"
+          - "h0lly, h0lly-body, woman standing full body, bedroom"
+          - "h0lly, h0lly-body, woman lying on bed, intimate"
         seed: 42
-        guidance_scale: 0      # Turbo/distilled → 0 CFG
-        sample_steps: 4        # Turbo = 4 steps
-        network_multiplier: 1.0
-        flow_shift: 3.0
+        guidance_scale: 0         # Turbo → 0 CFG
+        sample_steps: 4           # Turbo = 4 steps
+        walk_seed: true
 
 meta:
   name: "holly_zimage_v1"
