@@ -118,3 +118,14 @@ services/modal-training/datasets/
 services/modal-media/loras/
 
 # Old test output on desktop (local only)
+
+# Build artifacts
+tsconfig.tsbuildinfo
+*.tsbuildinfo
+
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Playwright MCP snapshots
+.playwright-mcp/
