@@ -850,7 +850,7 @@ async function generateVideoWithModal(req: VideoRequest): Promise<VideoResult> {
   return {
     url:      dataUri,
     provider: 'modal',
-    model:    'Wan2.2-TI2V-5B (Modal A10G)',
+    model:    'CogVideoX-5B (Modal A10G)',
     duration,
     fps,
     format:   'mp4',

@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
           "userId"    TEXT NOT NULL,
           "content"   TEXT NOT NULL,
           "type"      TEXT NOT NULL DEFAULT 'conversation',
-          "embedding" vector(4096),
+          "embedding" vector(1024),
           "metadata"  JSONB DEFAULT '{}',
           "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
           "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
