@@ -2,6 +2,7 @@
 // Updates actual system configuration (database-backed)
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { requireAdmin } from '@/lib/auth/require-admin';
 
 export const runtime = 'nodejs';
 
@@ -19,6 +20,8 @@ interface SystemConfig {
 
 export async function POST(req: NextRequest) {
   try {
+  const adminGate = await requireAdmin();
+  if (adminGate instanceof NextResponse) return adminGate;
     const { key, value, userId, category = 'general' } = await req.json();
 
     if (!key || value === undefined || !userId) {
@@ -113,6 +116,8 @@ export async function POST(req: NextRequest) {
 // GET endpoint to retrieve config
 export async function GET(req: NextRequest) {
   try {
+  const adminGate = await requireAdmin();
+  if (adminGate instanceof NextResponse) return adminGate;
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get('userId');
     const key = searchParams.get('key');

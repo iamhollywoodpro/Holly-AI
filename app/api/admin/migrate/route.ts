@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { requireAdmin } from '@/lib/auth/require-admin';
 
 const execAsync = promisify(exec);
 
@@ -17,6 +18,8 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
+  const adminGate = await requireAdmin();
+  if (adminGate instanceof NextResponse) return adminGate;
     // Check authentication
     const { userId } = await auth();
     if (!userId) {

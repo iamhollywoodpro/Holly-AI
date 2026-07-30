@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/db';
+import { requireAdmin } from '@/lib/auth/require-admin';
 
 export const runtime = 'nodejs';
 
@@ -14,6 +15,8 @@ export const runtime = 'nodejs';
 
 export async function GET(request: NextRequest) {
   try {
+  const adminGate = await requireAdmin();
+  if (adminGate instanceof NextResponse) return adminGate;
     const { userId } = getAuth(request);
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -145,6 +148,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+  const adminGate = await requireAdmin();
+  if (adminGate instanceof NextResponse) return adminGate;
     const { userId } = getAuth(request);
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -313,6 +318,8 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
+  const adminGate = await requireAdmin();
+  if (adminGate instanceof NextResponse) return adminGate;
     const { userId } = getAuth(request);
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -352,6 +359,8 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
+  const adminGate = await requireAdmin();
+  if (adminGate instanceof NextResponse) return adminGate;
     const { userId } = getAuth(request);
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

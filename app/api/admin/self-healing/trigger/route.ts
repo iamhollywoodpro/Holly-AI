@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/db';
 import { Octokit } from '@octokit/rest';
+import { requireAdmin } from '@/lib/auth/require-admin';
 
 export const runtime = 'nodejs';
 
@@ -159,6 +160,8 @@ async function createFixPR(
  */
 export async function POST(req: NextRequest) {
   try {
+  const adminGate = await requireAdmin();
+  if (adminGate instanceof NextResponse) return adminGate;
     // Check admin authentication
     const { userId } = auth();
     if (!userId) {
@@ -272,6 +275,8 @@ export async function POST(req: NextRequest) {
  */
 export async function GET(req: NextRequest) {
   try {
+  const adminGate = await requireAdmin();
+  if (adminGate instanceof NextResponse) return adminGate;
     // Check admin authentication
     const { userId } = auth();
     if (!userId) {

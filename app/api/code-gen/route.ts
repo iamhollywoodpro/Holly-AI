@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/auth/require-admin';
 import {
   scaffoldProject,
   generateCode,
@@ -18,7 +19,47 @@ import {
   type InsertRequest,
 } from '@/lib/code-gen';
 
+// Security: restrict file operations to the project root.
+// Reject any path that escapes the project directory or accesses sensitive files.
+const PROJECT_ROOT = process.cwd();
+const SENSITIVE_PATTERNS = [
+  /\.env/i,           // .env, .env.local, .env.production, etc.
+  /\.pem$/i,          // SSL/private keys
+  /\.key$/i,          // Private keys
+  /id_rsa/i,          // SSH keys
+  /\/\.git\//,        // Git internals
+  /\/\.ssh\//,        // SSH directory
+  /credentials/i,     // Credential files
+  /\/proc\//,         // Linux process info
+  /\/sys\//,          // Linux system info
+  /\/etc\//,          // System config
+];
+
+function isPathSafe(filePath: string): boolean {
+  const path = require('path') as typeof import('path');
+  const resolved = path.resolve(filePath);
+
+  // Must be within project root
+  if (!resolved.startsWith(PROJECT_ROOT)) {
+    return false;
+  }
+
+  // Reject sensitive file patterns
+  for (const pattern of SENSITIVE_PATTERNS) {
+    if (pattern.test(resolved)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 export async function POST(request: NextRequest) {
+  // S5 FIX: Require admin authentication — this route does raw filesystem
+  // operations and must not be accessible to unauthenticated users.
+  const adminGate = await requireAdmin();
+  if (adminGate instanceof NextResponse) return adminGate;
+
   try {
     const body = await request.json();
     const { action } = body;
@@ -75,6 +116,14 @@ export async function POST(request: NextRequest) {
           );
         }
 
+        // S5 FIX: path safety — reject paths outside project root or sensitive files
+        if (!isPathSafe(filePath)) {
+          return NextResponse.json(
+            { error: 'Access denied: path is outside the allowed directory or targets a sensitive file' },
+            { status: 403 }
+          );
+        }
+
         // Read existing file
         const fs = await import('fs');
         const path = await import('path');
@@ -98,6 +147,14 @@ export async function POST(request: NextRequest) {
           return NextResponse.json(
             { error: 'filePath is required' },
             { status: 400 }
+          );
+        }
+
+        // S5 FIX: path safety
+        if (!isPathSafe(filePath)) {
+          return NextResponse.json(
+            { error: 'Access denied: path is outside the allowed directory or targets a sensitive file' },
+            { status: 403 }
           );
         }
 
@@ -131,12 +188,26 @@ export async function POST(request: NextRequest) {
 
       case 'search-files': {
         const { directory, pattern, maxResults } = body;
+        // S5 FIX: path safety
+        if (directory && !isPathSafe(directory)) {
+          return NextResponse.json(
+            { error: 'Access denied: directory is outside the allowed root' },
+            { status: 403 }
+          );
+        }
         const results = searchFiles(directory || '.', pattern, maxResults || 100);
         return NextResponse.json({ results, count: results.length });
       }
 
       case 'file-tree': {
         const { directory, maxDepth } = body;
+        // S5 FIX: path safety
+        if (directory && !isPathSafe(directory)) {
+          return NextResponse.json(
+            { error: 'Access denied: directory is outside the allowed root' },
+            { status: 403 }
+          );
+        }
         const tree = getFileTree(directory || '.', maxDepth || 3);
         return NextResponse.json({ tree });
       }

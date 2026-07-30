@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/auth/require-admin';
 
 export const runtime = 'nodejs';
 
 
 export async function POST(req: NextRequest) {
   try {
+  const adminGate = await requireAdmin();
+  if (adminGate instanceof NextResponse) return adminGate;
     const { testSuite = 'all', coverage = false, userId } = await req.json();
     
     // Simulate test execution

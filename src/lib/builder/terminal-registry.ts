@@ -64,17 +64,25 @@ class TerminalRegistry {
     const shellExe = shell ?? (os.platform() === 'win32' ? 'cmd.exe' : (process.env.SHELL ?? '/bin/bash'));
     const cwd = fsExistsSync(workspaceDir) ? workspaceDir : os.tmpdir();
 
+    // S6 FIX: Strip server secrets from PTY terminal environment.
+    // Previously spread the full process.env which leaked DATABASE_URL,
+    // API keys, CRON_SECRET, GITHUB_WEBHOOK_SECRET, etc. to any user
+    // who opened a terminal session and ran `env` or `printenv`.
+    const safePtyEnv: Record<string, string> = {
+      PATH: process.env.PATH || '/usr/bin:/bin:/usr/local/bin',
+      HOME: cwd,
+      LANG: process.env.LANG || 'en_US.UTF-8',
+      TERM: 'xterm-256color',
+      SHELL: '/bin/bash',
+      HOLLY_SESSION: sessionId,
+    };
+
     const ptyProc = pty!.spawn(shellExe, [], {
       name: 'xterm-256color',
       cols,
       rows,
       cwd,
-      env: {
-        ...process.env as Record<string, string>,
-        TERM: 'xterm-256color',
-        HOME: cwd,
-        HOLLY_SESSION: sessionId,
-      },
+      env: safePtyEnv,
     });
 
     const session: TerminalSession = {

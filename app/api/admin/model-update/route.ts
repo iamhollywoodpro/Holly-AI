@@ -26,6 +26,7 @@ import { runModelDiscovery, getModelSummary } from '@/lib/ai/model-updater';
 import { MODEL_REGISTRY, MODEL_CANDIDATES } from '@/lib/ai/model-registry';
 import { MODEL_CATALOGUE, TASK_WATERFALLS } from '@/lib/ai/smart-router';
 import prisma from '@/lib/db';
+import { requireAdmin } from '@/lib/auth/require-admin';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -52,6 +53,8 @@ async function isAuthorised(req: NextRequest): Promise<boolean> {
 // ─── POST — run model discovery ────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
   if (!await isAuthorised(req)) {
+  const adminGate = await requireAdmin();
+  if (adminGate instanceof NextResponse) return adminGate;
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -79,6 +82,8 @@ export async function POST(req: NextRequest) {
 // ─── GET — model registry status ──────────────────────────────────────────────
 export async function GET(req: NextRequest) {
   if (!await isAuthorised(req)) {
+  const adminGate = await requireAdmin();
+  if (adminGate instanceof NextResponse) return adminGate;
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

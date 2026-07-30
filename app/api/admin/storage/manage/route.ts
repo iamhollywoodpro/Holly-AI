@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { prisma } from '@/lib/db';
+import { requireAdmin } from '@/lib/auth/require-admin';
 
 export const runtime = 'nodejs';
 
@@ -12,6 +13,8 @@ const execAsync = promisify(exec);
 
 export async function POST(req: NextRequest) {
   try {
+  const adminGate = await requireAdmin();
+  if (adminGate instanceof NextResponse) return adminGate;
     const { action = 'status', userId } = await req.json();
 
     const result: any = {

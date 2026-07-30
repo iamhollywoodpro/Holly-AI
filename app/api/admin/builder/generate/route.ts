@@ -3,6 +3,7 @@ import { getAuth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/db';
 import { smartRoute } from '@/lib/ai/smart-router';
 import { cascadeCollect } from '@/lib/ai/cascade';
+import { requireAdmin } from '@/lib/auth/require-admin';
 
 // ── Real AI code generation via smart router ──────────────────────────────────
 async function generateCodeWithAI(
@@ -122,6 +123,8 @@ function countLinesOfCode(code: string): number {
 
 export async function GET(request: NextRequest) {
   try {
+  const adminGate = await requireAdmin();
+  if (adminGate instanceof NextResponse) return adminGate;
     const { userId } = getAuth(request);
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -237,6 +240,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+  const adminGate = await requireAdmin();
+  if (adminGate instanceof NextResponse) return adminGate;
     const { userId } = getAuth(request);
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -407,6 +412,8 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
+  const adminGate = await requireAdmin();
+  if (adminGate instanceof NextResponse) return adminGate;
     const { userId } = getAuth(request);
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

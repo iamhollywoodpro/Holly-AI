@@ -189,6 +189,19 @@ export async function runCommand(
 ): Promise<CommandResult> {
   const start = Date.now();
 
+  // S6 FIX: Reject shell metacharacters that enable command injection.
+  // Only allow simple single commands — no chaining, piping, or redirection.
+  const METACHAR_PATTERN = /[;|&`$<>]|\$\(|&&|\|\|/;
+  if (METACHAR_PATTERN.test(command)) {
+    return {
+      stdout: '',
+      stderr: `Command rejected: shell metacharacters are not allowed for security`,
+      exitCode: 1,
+      durationMs: 0,
+      timedOut: false,
+    };
+  }
+
   // Safety check
   const baseCmd = command.trim().split(/\s+/)[0];
   if (!ALLOWED_COMMANDS.has(baseCmd)) {
@@ -206,9 +219,21 @@ export async function runCommand(
     let stderr = '';
     let timedOut = false;
 
+    // S6 FIX: Strip server secrets from spawned process environment.
+    // Only pass safe vars needed for command execution — NOT the full
+    // process.env which contains DATABASE_URL, API keys, etc.
+    const safeEnv: NodeJS.ProcessEnv = {
+      PATH: process.env.PATH || '/usr/bin:/bin:/usr/local/bin',
+      HOME: cwd,
+      LANG: process.env.LANG || 'en_US.UTF-8',
+      TERM: 'xterm-256color',
+      NODE_ENV: process.env.NODE_ENV || 'development',
+      ...opts.env, // caller-specified env (e.g. npm needs NODE_ENV)
+    };
+
     const proc = spawn('bash', ['-c', command], {
       cwd,
-      env: { ...process.env, ...opts.env, PATH: process.env.PATH || '/usr/bin:/bin:/usr/local/bin' },
+      env: safeEnv,
       stdio: ['ignore', 'pipe', 'pipe'],
     });
 
@@ -246,9 +271,18 @@ export function startDevServer(
   cwd: string,
   onLog: (line: string) => void
 ): { pid: number; kill: () => void } {
+  // S6 FIX: Strip server secrets from dev server environment
+  const safeDevEnv: NodeJS.ProcessEnv = {
+    PATH: process.env.PATH || '/usr/bin:/bin:/usr/local/bin',
+    HOME: cwd,
+    LANG: process.env.LANG || 'en_US.UTF-8',
+    TERM: 'xterm-256color',
+    NODE_ENV: process.env.NODE_ENV || 'development',
+  };
+
   const proc = spawn('bash', ['-c', command], {
     cwd,
-    env: { ...process.env, PATH: process.env.PATH || '/usr/bin:/bin:/usr/local/bin' },
+    env: safeDevEnv,
     stdio: ['ignore', 'pipe', 'pipe'],
   });
 

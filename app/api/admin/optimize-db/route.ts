@@ -12,6 +12,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/db';
+import { requireAdmin } from '@/lib/auth/require-admin';
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
@@ -20,6 +21,8 @@ type Operation = 'analyze' | 'vacuum' | 'stats' | 'indexes';
 
 export async function POST(request: Request) {
   try {
+  const adminGate = await requireAdmin();
+  if (adminGate instanceof NextResponse) return adminGate;
     const { userId: clerkUserId } = await auth();
     if (!clerkUserId) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });

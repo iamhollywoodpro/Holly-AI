@@ -19,6 +19,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/db';
+import { requireAdmin } from '@/lib/auth/require-admin';
 
 export const runtime = 'nodejs';
 
@@ -86,6 +87,8 @@ function isCodeHeavy(messages: { role: string; content: string }[]): boolean {
 // ─────────────────────────────────────────────────────────────────────────────
 export async function GET(req: NextRequest) {
   try {
+  const adminGate = await requireAdmin();
+  if (adminGate instanceof NextResponse) return adminGate;
     // ── Auth gate ──────────────────────────────────────────────────────────
     const clerkUser = await currentUser();
     const { userId: clerkUserId } = await auth();

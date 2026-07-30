@@ -2,6 +2,7 @@
 // Searches through stored documents and conversations
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { requireAdmin } from '@/lib/auth/require-admin';
 
 export const runtime = 'nodejs';
 
@@ -22,6 +23,8 @@ interface SearchResult {
 
 export async function POST(req: NextRequest) {
   try {
+  const adminGate = await requireAdmin();
+  if (adminGate instanceof NextResponse) return adminGate;
     const { query, userId, limit = 10 } = await req.json();
 
     if (!query) {

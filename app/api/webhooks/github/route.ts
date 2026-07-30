@@ -24,15 +24,25 @@ export const runtime = 'nodejs';
 
 const execAsync = promisify(exec);
 
-// Webhook secret from Vercel environment variables
-const WEBHOOK_SECRET = process.env.GITHUB_WEBHOOK_SECRET || 'holly-dev-secret-2025';
+// S7 FIX: Webhook secret MUST be set in environment — no hardcoded fallback.
+// If unset, the route fails closed (rejects all webhooks) instead of
+// accepting with a publicly-known secret.
+const WEBHOOK_SECRET = process.env.GITHUB_WEBHOOK_SECRET || '';
 
 /**
  * Verify GitHub webhook signature
  */
 function verifySignature(payload: string, signature: string): boolean {
+  if (!WEBHOOK_SECRET) {
+    // Fail closed — no secret configured means no webhooks accepted
+    return false;
+  }
   const hmac = crypto.createHmac('sha256', WEBHOOK_SECRET);
   const digest = 'sha256=' + hmac.update(payload).digest('hex');
+  // Length guard before timingSafeEqual (throws if lengths differ)
+  if (signature.length !== digest.length) {
+    return false;
+  }
   return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(digest));
 }
 

@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/db';
 import { monitoringEngine } from '@/lib/autonomy/monitoring-engine';
+import { requireAdmin } from '@/lib/auth/require-admin';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,6 +17,8 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   try {
+  const adminGate = await requireAdmin();
+  if (adminGate instanceof NextResponse) return adminGate;
     const { userId } = auth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

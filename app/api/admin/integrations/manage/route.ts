@@ -2,6 +2,7 @@
 // CRUD operations on Integration table
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { requireAdmin } from '@/lib/auth/require-admin';
 
 export const runtime = 'nodejs';
 
@@ -9,6 +10,8 @@ export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest) {
   try {
+  const adminGate = await requireAdmin();
+  if (adminGate instanceof NextResponse) return adminGate;
     const { integration, action = 'status', userId, config } = await req.json();
 
     if (!userId) {
@@ -154,6 +157,8 @@ export async function POST(req: NextRequest) {
 // GET endpoint to retrieve integrations
 export async function GET(req: NextRequest) {
   try {
+  const adminGate = await requireAdmin();
+  if (adminGate instanceof NextResponse) return adminGate;
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get('userId');
 

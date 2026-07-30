@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/db';
+import { requireAdmin } from '@/lib/auth/require-admin';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -159,6 +160,8 @@ function buildEmailHtml(title: string, message: string, actionUrl?: string, acti
  */
 export async function GET(request: NextRequest) {
   try {
+  const adminGate = await requireAdmin();
+  if (adminGate instanceof NextResponse) return adminGate;
     const { userId: clerkUserId } = await auth();
     
     if (!clerkUserId) {
@@ -289,6 +292,8 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+  const adminGate = await requireAdmin();
+  if (adminGate instanceof NextResponse) return adminGate;
     const { userId: clerkUserId } = await auth();
     
     if (!clerkUserId) {
@@ -431,6 +436,8 @@ export async function POST(request: NextRequest) {
  */
 export async function PUT(request: NextRequest) {
   try {
+  const adminGate = await requireAdmin();
+  if (adminGate instanceof NextResponse) return adminGate;
     const { userId: clerkUserId } = await auth();
     
     if (!clerkUserId) {
@@ -534,6 +541,8 @@ export async function PUT(request: NextRequest) {
  */
 export async function DELETE(request: NextRequest) {
   try {
+  const adminGate = await requireAdmin();
+  if (adminGate instanceof NextResponse) return adminGate;
     const { userId: clerkUserId } = await auth();
     
     if (!clerkUserId) {

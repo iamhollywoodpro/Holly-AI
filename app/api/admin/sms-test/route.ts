@@ -12,12 +12,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { sendSMS, getSMSStatus } from '@/lib/integrations/sms-service';
+import { requireAdmin } from '@/lib/auth/require-admin';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
+  const adminGate = await requireAdmin();
+  if (adminGate instanceof NextResponse) return adminGate;
     const authResult = await auth();
     if (!authResult.userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -66,6 +69,8 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
+  const adminGate = await requireAdmin();
+  if (adminGate instanceof NextResponse) return adminGate;
     const authResult = await auth();
     if (!authResult.userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
