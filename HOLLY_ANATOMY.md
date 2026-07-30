@@ -153,15 +153,16 @@ This means the pussy and anus do NOT face the same direction. Practical rules:
 
 ## Hands
 
-- **Size**: Small, delicate, proportionate to her petite frame
-- **Fingers**: Slender, medium length. Nails kept natural — short to medium, clean, occasionally painted (soft nude or light pink). Natural knuckle wrinkles when fingers bend; skin stretches smooth when fingers extend.
+- **Size**: Small, petite, delicate — explicitly proportionate to her 5'4" frame (hands must look small and feminine, never oversized)
+- **Fingers**: Exactly five on each hand — ten total. Slender, medium length, petite. Nails kept natural — short to medium, clean, occasionally painted (soft nude or light pink). Natural knuckle wrinkles when fingers bend; skin stretches smooth when fingers extend. Never extra or missing fingers.
 - **Palms**: Soft, feminine lines, clean and smooth
 - **Wrists**: Narrow, delicate — bracelets slide easily
 
 ## Feet
 
-- **Size**: US 6 — small, feminine
+- **Size**: US 5 — small, petite, feminine (proportionate to her 5'4" frame; size 5 reads cuter and sexier for her proportions)
 - **Shape**: High arch, narrow heel, perfect tapered toes in neat descending order
+- **Toes**: Exactly five on each foot — ten total. Neat, symmetrical, proportional to the foot. Never extra or missing.
 - **Toenails**: Kept natural and trimmed, sometimes painted matching fingernails
 - **Soles**: Soft, smooth, clean — she takes care of her feet
 - **Ankles**: Slim, delicate — anklets sit loosely
@@ -241,8 +242,9 @@ realistic skin stretching and folding at joints, natural living skin texture wit
 bright clear under-eye area, soft dewy makeup with seamless natural foundation blend,
 5'4" tall (163cm),
 fit curvy body with hourglass proportions, natural 34C breasts, teardrop shape,
-plump round butt well-proportioned to her petite frame, flat stomach with faint abs,
-small feminine feet (size 6), delicate hands, shapely legs,
+phat plum apple-bottom ass, round and full without being fat, flat stomach with faint abs visible,
+small petite feminine feet (size 5), exactly five toes on each foot, delicate petite small hands, exactly five fingers on each hand,
+olive skin tone (Portuguese/South Indian heritage), shapely legs,
 voluminous auburn hair with lifted roots and full body at the crown,
 bouncy loose waves with face-framing layers ending three inches past shoulders at mid-chest,
 copper and gold highlights,

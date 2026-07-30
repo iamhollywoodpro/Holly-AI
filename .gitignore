@@ -111,3 +111,10 @@ sylvia-*/
 # ─── Flat training zips generated for uploads ───────────────────────────────
 *.zip
 !node_modules/**/*.zip
+
+# Large datasets and training artifacts (on Modal volumes, not in git)
+holly-zimage-v1/
+services/modal-training/datasets/
+services/modal-media/loras/
+
+# Old test output on desktop (local only)

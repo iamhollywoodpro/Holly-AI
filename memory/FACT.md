@@ -820,6 +820,38 @@ Conversations are NOT in holly-lora-v1 (trained May 15). To lock in:
 4. Result: weights literally encode the relationship
 Schema has: Conversation, Message, ConversationSummary, ConversationPattern, MemoryEmbedding
 
+## Holly Image Gen — Klein Base vs Distilled (CRITICAL, July 27, 2026)
+**Three months of failed model swaps. Klein is the BEST — do not replace it.**
+
+- **Z-Image Turbo:** ABANDONED. Steve: "horrible, fuzzy, not Holly... asian lady." Required de-distill
+  adapter for training (without it → corrupted gradients). Even with correct config, base quality worse
+  than Klein.
+- **SDXL RealVisXL V5:** ABANDONED. Steve: "HUGE STEP BACKWARDS... weird deformed creature... extra
+  limbs, monster-like." Worse than Klein by far.
+- **Klein Distilled (current production):** BEST so far, but has known limitations:
+  - Plastic skin texture (vs reference folders' realistic skin)
+  - Extra limbs/fingers/hands/feet/toes
+  - "See-through panties" pussy artifact
+  - CANNOT do finger insertion, spreading, complex explicit anatomy
+  - Runs 4 steps + ignores CFG (guidance baked in during distillation)
+
+**KEY DISCOVERY (July 27):** Holly's LoRAs were trained on `FLUX.2-klein-base-9B` (verified from
+safetensors metadata: `ss_sd_model_name`), but production runs `FLUX.2-klein-9B` (Distilled).
+This is a model/base MISMATCH. Switching to Base is the correct base AND may fix the geometry issues
+because Base honors CFG and runs 15-50 steps.
+
+**Reference quality standard:** `~/Desktop/Holly Training V.3.1/` and `~/Desktop/v3.5-curated/`
+— these are what Holly SHOULD look like. Realistic skin, correct anatomy, no extra limbs.
+
+**Active test (July 27):** `services/modal-media/image_generate_flux2klein_base.py` deployed as
+separate test endpoint. BLOCKED on HF license acceptance (see Phase Plan 3.7). Test script:
+`scripts/test-klein-base-vs-distilled.sh`.
+
+**LESSON — verify the base model before training:** Always read LoRA safetensors metadata
+(`ss_sd_model_name`, `ss_base_model_version`) and confirm the INFERENCE endpoint loads the SAME
+base. A trained LoRA + wrong base = degraded output that looks like a bad LoRA but is actually a
+base mismatch. This mistake persisted 3 months undiagnosed.
+
 ## ═══════════════════════════════════════════════════════
 ## COMPLETE PHASE PLAN — Holly AI Master Roadmap
 ## ═══════════════════════════════════════════════════════
@@ -858,25 +890,66 @@ Schema has: Conversation, Message, ConversationSummary, ConversationPattern, Mem
 - U5: ✅ RESOLVED — DuoNeural abliterated base deployed
 - U6-U7: ⬜ Continuous training loop
 
-### Phase V: NSFW BODY LORA EXPANSION (June 23, 2026)
+### Phase V: NSFW BODY LORA EXPANSION (June 23, 2026) — SUPERSEDED by Phase W
 - V1: ✅ Modal A100 endpoint on iamhollywoodpro (uncensored encoder, auto-download)
 - V2: ✅ Recipe lock-down COMPLETE (4 Klein categories locked, squirting→Civitai)
-- V3: ✅ DATASET COMPLETE + REORGANIZED — 207 images in unified `training/` folder (June 23, 2026)
-  - **Path**: `holly-body-lora-dataset-v25/training/` (single source of truth)
-  - **8 categories** (Klein + Civitai merged by concept, source-agnostic):
-    - `01_dildo/` (16) — dildo penetration
-    - `02_dildo_masturbation/` (19) — active dildo self-pleasure
-    - `03_masturbation/` (33) — hand/finger self-pleasure
-    - `04_spread/` (23) — hands spreading labia
-    - `05_squirting/` (33) — squirting scenes
-    - `06_closeup_resting/` (28) — pussy closeup, no hands
-    - `07_closeup_hands/` (23) — closeup with fingers framing/touching
-    - `08_from_behind/` (32) — bent_over (25) + doggystyle (7)
-  - **Naming**: `{prefix}_{NNN}.{ext}` (e.g., `dildo_001.webp`, `masturbation_014.jpg`)
-  - **Captions**: Every image has paired `.txt` (same basename) — templates in `scripts/reorganize-v25-dataset.py`
-  - **Caption philosophy**: Result-describing, NO render-time workarounds (no "exactly two arms" / "ten toes"), uses "inner labia" not "labia minora", Smoke9 minimal-hand-language
-  - **Provenance**: Klein generation prompts+seeds preserved in `_provenance/klein/`
-  - **Archive**: All smoke/test/pre-QA/legacy folders moved to `_archive/legacy/{klein_smoke_tests,civitai_pre_qa,pre_v25_experiments,old_prompt_templates,smoke_logs}/`
-  - **Manifest**: `holly-body-lora-dataset-v25/README.md`
-- V4: ✅ TRAINED v2.5 LoRA — deployed to A100 endpoint at weight 1.15 (June 25, 2026)
-- V5: ✅ CHAT ROUTE WIRED — Path A sends `h0lly, h0lly-body, ${user_action}` (commit 0652f36 June 26)
+- V3: ✅ DATASET COMPLETE + REORGANIZED — 207 images (SUPERSEDED — v2.5 LoRA averaged away identity)
+- V4: ✅ TRAINED v2.5 LoRA (SUPERSEDED — too many images caused identity drift)
+- V5: ✅ CHAT ROUTE WIRED — Path A sends `h0lly, h0lly-body, ${user_action}`
+
+### Phase W: HOLLY IMAGE GENERATION — SOLVED (July 30, 2026) ✅
+**STATUS: FULLY WORKING. Identity locked, anatomy correct, explicit actions work.**
+
+#### THE SOLUTION ARCHITECTURE
+- **Base model:** FLUX.2 Klein 9B (Distilled)
+- **Runner:** ComfyUI on Modal A100 (NOT diffusers — ComfyUI loads all LoRA formats)
+- **Combined LoRA:** `holly-combined-v1.safetensors` @ 0.9 (Steve's, trained on Civitai)
+- **Anatomy LoRA:** `pussydiffusion-f2-klein-9b_v2.safetensors` @ 0.8 (Steve's)
+- **Settings:** 12 steps, CFG 1.0, Euler sampler, simple scheduler, 1024×1024
+- **No generic LoRAs** (no SNOFS, no Unchained — those caused identity drift)
+
+#### TWO GENERATION MODES
+1. **Text-only** (simple poses): faces, standing, expressions, bent-over, from-behind
+   - Endpoint: `generate-comfyui-klein`
+   - URL: `https://iamhollywoodpro--generate-comfyui-klein.modal.run`
+2. **Pose-guided** (explicit actions): dildo, fingering, spreading, complex positions
+   - Endpoint: `generate-pose-guided`
+   - URL: `https://iamhollywoodpro--generate-pose-guided.modal.run`
+   - Uses img2img with 79 reference poses at denoise 0.35
+   - Bypasses Klein's block on explicit action composition
+
+#### THE COMBINED LORA (holly-combined-v1)
+- **Trained on Civitai** (same platform as body v1 which gave "Perfect")
+- **Base:** Flux.2 Klein 9B Base, engine: ai-toolkit
+- **Settings:** rank 32, alpha 32, lr 0.0001, adamw8bit, 1024 res, 2000 steps
+- **Dataset:** 66 images, 8 categories (V3.1 structure), SHORT captions
+- **Trigger words:** `h0lly, h0lly-body`
+- **Result:** Identity locked — "YES this is Holly" across all tests
+
+#### KEY LESSONS (3 months of failures → solution)
+1. **Body v2.5 (207 images) AVERAGED AWAY Holly's identity.** Too many images = identity drift. Body v1 (81 images) and combined v1 (66 images) both work because they're within the 50-70 sweet spot.
+2. **SHORT captions only.** Trigger + pose/action, NO anatomy description. The v2.5 long-caption approach (600+ chars) was the anti-pattern.
+3. **Klein CANNOT compose explicit sexual actions from text.** No prompt, LoRA, or weight fixes this. Solution: pose-guided generation (img2img with reference poses).
+4. **Klein's CLIPLoader type is "flux2"** (NOT "flux" — that causes a 400 error).
+5. **opencv-python-headless must be <5.0.0** — v5.0 dropped Haar cascade XML files.
+6. **mediapipe must be pinned to 0.10.14** — newer versions broke the solutions API.
+7. **Generic LoRAs (SNOFS, Unchained) cause identity drift.** Use Steve's own LoRAs only.
+8. **The refinement pass (ADetailer-style) was net-negative.** It made 3/4 images worse. Disabled.
+9. **Civitai's label filter does substring matching** — "passionate" contains "ass" and gets blocked. Scrub ALL blocked substrings from captions AND filenames before upload.
+
+#### POSE LIBRARY
+- **79 reference poses** on `pose-refs/` on the `holly-lora-weights` Modal volume
+- Categories: dildo, masturbation, spread, bent-over, squirting, closeups, standing, kneeling, squatting, all-fours, side-lying, legs-up, etc.
+- Adding a new pose: generate one reference image → upload to `pose-refs/` → done
+- Different seeds produce variations (lighting/angle/expression) while keeping the pose
+
+#### FILE LOCATIONS
+- **Endpoint code:** `services/modal-media/comfyui_klein.py`
+- **Combined LoRA:** `holly-lora-weights` volume → `holly-combined-v1.safetensors`
+- **PussyDiffusion LoRA:** `holly-lora-weights` volume → `pussydiffusion-f2-klein-9b_v2.safetensors`
+- **Pose references:** `holly-lora-weights` volume → `pose-refs/` (79 files)
+- **Test scripts:** `scripts/test-combined-lora.sh`, `scripts/test-comfyui-klein.sh`
+
+#### HEALTH ENDPOINT
+`https://iamhollywoodpro--comfyui-klein-health.modal.run`
+

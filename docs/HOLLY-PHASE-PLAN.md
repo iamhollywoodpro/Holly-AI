@@ -137,21 +137,31 @@ Lines 1–53 describe cloud cascades that `TASK_WATERFALLS` (361–429) no longe
 
 ---
 
-## ═══ Phase 3: HOLLY'S OWN IMAGE/VIDEO GENERATION (Track A) ═══
-> **What this is:** Holly generating images/video of **HERSELF** — her face, her body, her intimacy.
-> Lives **in Holly's codebase**, identity-locked via her LoRAs. NSFW-capable for verified adult users,
-> relationship-gated. This is part of Holly's identity, NOT a standalone tool.
+## ═══ Phase 3: HOLLY'S OWN IMAGE/VIDEO GENERATION (Track A) ✅ SOLVED ═══
+> **STATUS: FULLY WORKING (July 30, 2026).** Identity locked, anatomy correct,
+> explicit actions work. See Phase W in FACT.md for complete documentation.
 >
-> **DIRECTION CONFIRMED (July 15, Steve approved):** Switch base model from **FLUX.2 Klein 9B → Z-Image Turbo**.
-> Klein ships with NSFW filters baked into the weights — the root cause of every explicit-content
-> failure. Z-Image Turbo is the community's #1 photorealistic NSFW model. Full research + recipe in
-> `docs/audit/IMAGE_GEN_SPIKE.md`.
+> **THE SOLUTION:**
+> - Base: FLUX.2 Klein 9B (Distilled) via ComfyUI on Modal A100
+> - Combined LoRA: `holly-combined-v1` @ 0.9 (trained on Civitai from V3.1 dataset)
+> - Anatomy LoRA: `pussydiffusion` @ 0.8 (Steve's own)
+> - Simple poses: text-only generation (face, standing, expressions, bent-over)
+> - Explicit actions: pose-guided generation (img2img with 79 reference poses)
+> - Settings: 12 steps, CFG 1.0, Euler, 1024×1024
+> - No generic LoRAs (SNOFS/Unchained caused identity drift)
 >
-> **This requires retraining Holly's face + body LoRAs on Z-Image base.** Steve explicitly approved this
-> (overrides the earlier "no retrain" guardrail for this specific case — the guardrail existed to prevent
-> another Klein-like mistake; Z-Image is the evidence-based correction).
+> **ENDPOINTS:**
+> - Text-only: `https://iamhollywoodpro--generate-comfyui-klein.modal.run`
+> - Pose-guided: `https://iamhollywoodpro--generate-pose-guided.modal.run`
+> - Health: `https://iamhollywoodpro--comfyui-klein-health.modal.run`
 >
-> **fal.ai / AtlasCloud are NOT used for Track A.** (fal.ai policy prohibits explicit content; AtlasCloud's
+> **3.1–3.7 below are ABANDONED/HISTORICAL.** The solution came from:
+> 1. Decoding EXIF metadata from Steve's perfect Civitai reference images (found exact LoRA recipe)
+> 2. Training a combined face+body+actions LoRA on Civitai (V3.1 dataset, 66 images)
+> 3. Adding Holly-PussyDiffusion for anatomy
+> 4. Building pose-guided generation to bypass Klein's action composition block
+>
+> **NEXT:** Wire into Holly's live app (media-generator.ts) — Phase 3.8 below.
 > models don't support custom LoRAs.) Both remain valid for Track B (SFW creative tool, Phase 3B).
 
 ### 3.0 ✅ Root cause identified [IMG-ROOTCAUSE]
@@ -160,7 +170,7 @@ Lines 1–53 describe cloud cascades that `TASK_WATERFALLS` (361–429) no longe
 - This is why Klein "sort of worked" (nudity + 5 categories) but failed on specific actions (insertion, spreading).
 - **DONE (2026-07-15):** Root cause documented in `docs/audit/IMAGE_GEN_SPIKE.md`.
 
-### 3.1 ✅ Architecture decision: Modal + ComfyUI [IMG-ARCH]
+### 3.1 ❌ ABANDONED — Architecture decision: Modal + ComfyUI [IMG-ARCH]
 - **Decision (July 15, Steve approved):** Deploy ComfyUI on Modal as Holly's Z-Image image generation backend.
 - **Why not diffusers (current Klein approach):** ZImagePipeline's LoRA loading is buggy/partial in diffusers (issues #12745, #13221, #13249). ComfyUI's native LoRA Loader is the proven, stable path for Z-Image.
 - **Why Modal (not RunPod/external):** Stays in existing infra/account/billing. Cold starts <3 sec proven (tolgaoguz.dev). Same volume pattern as Klein endpoint.
@@ -168,7 +178,7 @@ Lines 1–53 describe cloud cascades that `TASK_WATERFALLS` (361–429) no longe
 - **Reference:** [tolgaoguz.dev — ComfyUI on Modal, <3s cold start](https://tolgaoguz.dev/post/comfy-workflow-api-with-modal/), [comfyui-modal GitHub](https://github.com/JunnnnyWon/comfyui-modal), [Runflow ComfyUI API guide](https://www.runflow.io/blog/comfyui-api-developer-guide).
 - **DONE (2026-07-15):** Architecture decided and documented.
 
-### 3.2 ✅ Deploy ComfyUI on Modal with Z-Image base [IMG-COMFYUI]
+### 3.2 ❌ ABANDONED — Deploy ComfyUI on Modal with Z-Image base [IMG-COMFYUI]
 - Deployed ComfyUI as a Modal container on A100 (`iamhollywoodpro` workspace).
 - Base model: `Comfy-Org/z_image_turbo` (Z-Image Turbo BF16, single-file ComfyUI format from `split_files/`).
 - Architecture: ComfyUI runs as background subprocess on localhost:8188; FastAPI wrapper handles submit→poll→fetch, returns raw image bytes (same contract as Klein endpoint).
@@ -178,7 +188,7 @@ Lines 1–53 describe cloud cascades that `TASK_WATERFALLS` (361–429) no longe
 - **Klein endpoint stays alive** as fallback until Z-Image is validated.
 - **DONE (2026-07-15):** ComfyUI running on Modal, Z-Image base loaded, test generation verified. LoRA loading will be tested in 3.3 after retraining.
 
-### 3.3 🟡 Retrain Holly face + body LoRAs on Z-Image [IMG-RETRAIN]
+### 3.3 ❌ ABANDONED — Retrain Holly face + body LoRAs on Z-Image [IMG-RETRAIN]
 **STATUS: v1 FAILED, v2 IN PROGRESS (training started July 16, 3:17 PM EDT)**
 
 #### v1 — FAILED (July 16)
@@ -246,13 +256,86 @@ ONLY after 3.3 passes the gate. Design as a replaceable provider (architecture p
 - **Routing:** `media-generator.ts` routes by category → provider. NSFW intimate → ComfyUI/Z-Image endpoint; proven categories → Klein; generic → Z-Image/Pollinations.
 - **DONE:** ComfyUI provider wired, Klein fallback preserved, `requireAdult` + intimacy gate enforced on the new path.
 
-### 3.5 ⬜ Image-gen live verification probe [IMG-PROBE]
+### 3.5 ❌ ABANDONED — Image-gen live verification probe [IMG-PROBE]
 Real smoke test against ComfyUI/Z-Image endpoint. "Working" = verified, not assumed.
 - **DONE:** Probe runs, reports HTTP 200 + image bytes + latency.
 
 ### 3.6 ⬜ Holly self-video (Track A extension)
 Once Track A image gen works, extend to Holly video of herself (same identity-lock, same gating).
 - **DONE:** Holly can generate short video of herself, identity-consistent, adult-gated.
+
+### 3.7 ✅ SOLVED — Combined LoRA + Pose-Guided Generation [IMG-SOLVED]
+**STATUS: FULLY WORKING (July 30, 2026)**
+
+The solution combined:
+1. **Combined LoRA** (`holly-combined-v1`) — trained on Civitai from the V3.1 dataset (66 images, 8 categories). Locks Holly's identity across face, body, and expressions.
+2. **PussyDiffusion LoRA** @ 0.8 — Steve's own intimate anatomy specialist. Fixes Klein's inability to render realistic genitalia.
+3. **Pose-guided generation** — img2img with 79 reference poses at denoise 0.35. Bypasses Klein's block on explicit action composition (penetration, insertion, dildo use) by following a reference pose image instead of inventing from text.
+4. **Fitness/skin anchors** — prompt injections for body proportions (125lbs, slim fit, NOT fat) and skin clarity (even tone, no blotches).
+
+Klein Base test (3.7 original) was ABANDONED — Base was worse than Distilled. The Distilled + ComfyUI + combined LoRA approach won.
+
+### 3.8 ⬜ Wire image gen into Holly's live app [IMG-INTEGRATE]
+Connect the ComfyUI Klein endpoint to `media-generator.ts` so users can generate images through Holly's chat interface.
+
+**What needs to happen:**
+- Update `MODAL_HOLLY_LORA_URL` env var to point at `generate-comfyui-klein` endpoint
+- For explicit requests, route to `generate-pose-guided` with automatic pose-ref selection
+- Map user intent ("show me you masturbating") → correct pose reference
+- Maintain age gate + relationship gating (already built in Phase 0.1/0.2)
+- Test end-to-end through Holly's chat
+
+**The hypothesis:** Switch from Klein **Distilled** (4 steps, ignores CFG) to Klein **Base**
+(15-50 steps, honors CFG) — the EXACT base Holly's LoRAs were trained on. Base may fix the
+geometry/finger-insertion/anatomy limitations because it (a) runs more steps, (b) honors CFG,
+and (c) matches the LoRAs' training base.
+
+**Why this is the most promising lead in 3 months:**
+1. **Verified model/base match.** LoRA safetensors metadata shows
+   `ss_sd_model_name: black-forest-labs/FLUX.2-klein-base-9B@main.tar`. The production endpoint
+   runs `FLUX.2-klein-9B` (Distilled). This is a proven mismatch.
+2. **Distilled ignores CFG.** Distilled is a 4-step model whose guidance signal is baked in during
+   distillation — the `guidance_scale` parameter has no effect. That loss of prompt control is the
+   leading suspected cause of finger-insertion and anatomy failures.
+3. **Base honors CFG.** Model card recommends `num_inference_steps=50, guidance_scale=4.0`. Real
+   steps + real CFG = real prompt control.
+
+**What's done (July 27):**
+- ✅ Created `services/modal-media/image_generate_flux2klein_base.py` — a separate test endpoint
+  (copy of production Distilled endpoint with minimal changes: model ID, cache dir, labels, default
+  steps 4→24, face-enhance inpaint steps 4→20). Production Distilled endpoint UNTOUCHED and healthy.
+- ✅ Deployed to Modal: app `holly-image-flux2klein-base`, 3 endpoints live.
+- ✅ Test script ready: `scripts/test-klein-base-vs-distilled.sh` — generates the same 6 prompts
+  against BOTH endpoints for side-by-side comparison. Output → `~/Desktop/KLEIN-BASE-TEST/`.
+
+**BLOCKER — requires Steve's action (cannot proceed without it):**
+- `FLUX.2-klein-base-9B` is a **gated HuggingFace repo** (non-commercial license, auto-approved).
+- The HF token in Modal's `huggingface-secret` is approved for `FLUX.2-klein-9B` (Distilled) but
+  **NOT** for `FLUX.2-klein-base-9B` (separate gated repo, separate license click).
+- **Steve must:** Log into the HF account whose token is in Modal, visit
+  https://huggingface.co/black-forest-labs/FLUX.2-klein-base-9B, click "Agree and access repository".
+  Auto-approved (no manual review). Then the endpoint cold-start will download ~20GB Base weights.
+
+**After license accepted — exact steps:**
+1. Wait for cold start: `curl https://iamhollywoodpro--holly-health-base.modal.run` until
+   `"model_loaded":true` (may take 20-30 min for first download).
+2. Run the test: `bash scripts/test-klein-base-vs-distilled.sh`
+3. Compare results in `~/Desktop/KLEIN-BASE-TEST/` against reference folders
+   (`Holly Training V.3.1`, `v3.5-curated`).
+4. **Steve's visual verdict gate** — Base must match/beat Distilled on:
+   - Skin realism (less plastic than current Distilled output)
+   - Anatomy (no extra limbs/fingers/toes — the persistent failure)
+   - Pussy realism (no see-through panties artifact, real anatomy)
+   - Identity (still looks like Holly)
+   - Explicit acts (spreading, finger insertion — the categories Distilled CANNOT do)
+5. If Base wins → promote: switch production `image_generate_flux2klein_a100.py` to Base
+   (or promote this file to be production). If Base loses → revert, document, try next option
+   (CFG-distilled-aware prompting, or higher LoRA weights, or different sampler).
+
+**Endpoints:**
+- Generate: `https://iamhollywoodpro--generate-holly-base.modal.run`
+- Health:   `https://iamhollywoodpro--holly-health-base.modal.run`
+- Inpaint:  `https://iamhollywoodpro--inpaint-holly-base.modal.run`
 
 ### Standing Holly-image guardrails (carry from FACT.md)
 - **Civitai Onsite filter:** NEVER use "labia minora" in prompts (substring "minor" triggers underage filter). Use "inner labia"/"inner lips".
