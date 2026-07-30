@@ -185,12 +185,13 @@ function hfInferenceUrl(model: string): string {
 const MODAL_IMAGE_URL = process.env.MODAL_IMAGE_URL || '';  // set after deploying image_generate.py
 const MODAL_VIDEO_URL = process.env.MODAL_VIDEO_URL || '';  // set after deploying video_generate.py
 
-// ─── Holly FLUX.2 Klein 9B + LoRA endpoint (self-portraits with consistent face) ──
-// L4 endpoint (legacy backup) — source archived from repo during cleanup (Tier 2)
-// FLUX.2 Klein 9B BF16 + Holly Face v2.0 LoRA on L4 GPU (24GB)
+// ─── Holly ComfyUI Klein endpoint (self-portraits with locked identity) ──
+// ComfyUI on Modal A100, FLUX.2 Klein 9B Distilled
+// Combined LoRA (holly-combined-v1) + PussyDiffusion LoRA
 // Only spins up when generating images OF Holly (h0lly trigger word detected)
-// Cost: ~$0.001/image (4 steps!) | barely touches the $30/mo free budget
+// Two endpoints: text-only (simple poses) + pose-guided (explicit actions)
 const MODAL_HOLLY_LORA_URL = process.env.MODAL_HOLLY_LORA_URL || process.env.MODAL_SDXL_LORA_URL || '';
+const MODAL_POSE_GUIDED_URL = process.env.MODAL_POSE_GUIDED_URL || '';
 const HOLLY_TRIGGER_WORD = 'h0lly';
 
 /** Check if a prompt is requesting Holly's likeness */
@@ -254,12 +255,16 @@ function checkHFCreditError(status: number, body: string, model: string): void {
 // FLUX.2 Klein 9B BF16 + Holly Face v2.0 + Body v2.5 LoRA on Modal A100 GPU
 // + dynamic specialist LoRAs (dildo, closeup, bent_over) per locked recipes
 
-// Locked specialist LoRA recipes — proven PERFECT in R1-R8 testing (FACT.md).
-// Files are on the holly-lora-weights Modal volume.
+// Specialist recipe — routes Holly image requests to the right endpoint + LoRAs.
+// The ComfyUI Klein endpoint uses baked LoRAs (combined + pussydiffusion), so
+// the loras field is optional. For explicit actions, usePoseGuided routes to
+// the pose-guided endpoint with a matching pose reference.
 interface SpecialistRecipe {
   category: string;
-  loras: Array<{ file: string; strength: number }>;
+  loras?: Array<{ file: string; strength: number }>;  // optional — endpoint has baked LoRAs
   reinforcement: string;  // appended to prompt — matches training caption vocabulary
+  usePoseGuided?: boolean;  // route to pose-guided endpoint for explicit actions
+  poseRef?: string;  // reference pose filename in pose-refs/ on the volume
 }
 
 // Limb anchor language (Smoke9 fix June 20): prevents Klein from rendering
@@ -292,26 +297,16 @@ function classifySpecialist(prompt: string): SpecialistRecipe | null {
   const HAND_ON_BODY_PATTERN = /\b(hand\s*(on|between|touching|grasping|cupping|squeezing|rubbing|caressing|resting))\b.*\b(breast|boob|tit|nipple|pussy|vulva|clit|labia|thigh|butt|hip|stomach|body)\b/;
   const TOUCH_HERSELF_PATTERN = /\b(touch(?:ing|es)?\s*herself|feel(?:ing|s)?\s*herself|hands?\s*exploring\s*(her|own)|self[\s-]?pleasur\w*|caress(?:ing|es)?\s*(her|own)\s*(body|breast|pussy|thigh))\b/;
   if (SPREAD_LEG_PATTERN.test(p) || HAND_ON_BODY_PATTERN.test(p) || TOUCH_HERSELF_PATTERN.test(p)) {
+    // Active spread (hands touching/spreading) needs pose-guided generation
+    // because Klein can't compose "spreading with hands" from text alone.
+    // Static spread (legs apart, no hands) works text-only.
+    const isHandSpread = HAND_ON_BODY_PATTERN.test(p) || TOUCH_HERSELF_PATTERN.test(p);
     return {
       category: 'spread_poses',
-      loras: [{ file: 'pussydiffusion-f2-klein-9b_v2.safetensors', strength: 0.85 }],
-      reinforcement:
-        'lying on her back on a bed, head resting on a pillow, knees raised and parted, legs spread open naturally, ' +
-        'both legs visible reaching from her hips to her feet, both feet flat on the bed, ' +
-        'exactly two feet, ten toes total, five toes on each foot, ' +
-        'both arms visible reaching from her shoulders, exactly two arms, ' +
-        'her right hand placed gently on her breast, her fingers resting softly on her nipple, ' +
-        'her left hand resting palm-down on her lower stomach near her mound, ' +
-        // CRITICAL: "resting" not "inserting" — Klein can't render finger penetration.
-        'hand resting gently on her pubic mound, NO finger insertion, NO spreading labia with fingers, ' +
-        'pussy visible untouched between her spread thighs, ' +
-        'detailed pussy visible, bald hairless pussy, smooth Brazilian wax, ' +
-        'inner labia visible, clitoris visible at top, smooth bare mons pubis, ' +
-        'anatomically correct vulva, photorealistic intimate detail, ' +
-        'warm natural lighting, soft shadows, intimate camera angle from slightly above, ' +
-        'looking up at the camera, lips softly parted, relaxed aroused expression, ' +
-        'completely nude, bare skin, no clothing anywhere on her body, ' +
-        'single woman, one body, one head, exactly two arms, exactly two legs',
+      reinforcement: isHandSpread
+        ? 'spreading her intimate area open with both hands, explicit, photorealistic'
+        : 'legs spread open, intimate area visible, photorealistic',
+      ...(isHandSpread ? { usePoseGuided: true, poseRef: 'spread_spread_002.png' } : {}),
     };
   }
 
@@ -330,14 +325,7 @@ function classifySpecialist(prompt: string): SpecialistRecipe | null {
   if (CLOSEUP_VERB_PATTERNS.test(p) || CLOSEUP_EXPLICIT_PATTERNS.test(p)) {
     return {
       category: 'closeup',
-      loras: [{ file: 'pussydiffusion-f2-klein-9b_v2.safetensors', strength: 1.0 }],
-      reinforcement:
-        'detailed pussy closeup, bald hairless pussy, smooth Brazilian wax, ' +
-        'inner labia visible, clitoris visible at top, smooth bare mons pubis, ' +
-        'anatomically correct vulva, photorealistic intimate detail, ' +
-        'intimate camera distance, between her legs viewpoint, ' +
-        'no hands in frame, resting pussy, no touching herself, ' +
-        'sharp focus on anatomy, professional intimate photography',
+      reinforcement: 'intimate closeup, resting state, soft lighting, photorealistic',
     };
   }
 
@@ -348,30 +336,11 @@ function classifySpecialist(prompt: string): SpecialistRecipe | null {
   // at 1.0 can pull clothing onto the upper body, and Klein's known failure
   // mode for bent-over is duplicated/malformed feet (Smoke8 fix per FACT.md).
   if (/\b(bent over|bend over|on all fours|all fours|on her knees and|doggy|doggi|from behind|rear view|kneeling facing away)\b/.test(p)) {
+    // Bent-over works text-only (proven in testing). No pose-guided needed.
     return {
       category: 'bent_over',
-      loras: [{ file: 'femaleasshole-f2-klein-9b-musubituner.safetensors', strength: 1.0 }],
       reinforcement:
-        'bent over forward at waist, legs shoulder-width apart, ' +
-        'viewed from directly behind, camera positioned behind her, her back fully to camera, face not visible, ' +
-        'her pussy and anus visible between her thighs and buttocks, ' +
-        '1.5 inch perineum of skin between her vaginal opening and her anus, correct anatomical spacing, ' +
-        'very large plump round butt filling the frame, thick full butt cheeks, ' +
-        'smooth bare buttocks, bald hairless pussy from behind, ' +
-        'completely topless, completely nude from behind, bare back, bare shoulders, ' +
-        'no bra, no shirt, no top, no clothing on her upper body, no clothing anywhere, ' +
-        'zero garments, bare skin from her neck to her ankles, ' +
-        // Foot/leg anchors lifted from the SMOKE8-locked bent_over recipe —
-        // Klein Distilled is notorious for duplicating or malformed feet in
-        // rear-view poses without these explicit anchors.
-        'exactly two legs, right leg on right side and left leg on left side, ' +
-        'exactly two feet total, one left foot and one right foot, single pair of feet, ' +
-        'only two feet in the entire image, five toes on each foot, ten toes total, ' +
-        'both feet flat on the floor, feet pointing forward, natural foot pose from behind, ' +
-        'both arms visible reaching from her shoulders, exactly two arms, ' +
-        'both hands placed flat on the floor in front of her or resting on her thighs, ' +
-        'correct human anatomy, proper body proportions, ' +
-        'single camera angle from behind, not looking back over shoulder',
+        'bent over from behind, lower body visible, rear view, photorealistic',
     };
   }
 
@@ -392,24 +361,14 @@ function classifySpecialist(prompt: string): SpecialistRecipe | null {
     /\b(masturbat\w*|fuck(ing|s)? (herself|yourself)|pleasuring herself|screwing herself|penetrat(e|ing|ion)|inside her (pussy|ass)|her pussy (with|using))\b/.test(p);
   // Default plain-"masturbating" to dildo path (with toy injected into prompt)
   if ((hasToy && hasMasturbate) || (hasMasturbate && !hasToy)) {
+    // Masturbation/dildo needs pose-guided — Klein can't compose penetration from text
     return {
       category: 'dildo_masturbation',
-      loras: [{ file: 'FK_dildoinsertion.safetensors', strength: 1.0 }],
-      reinforcement:
-        // Always include dildo in the reinforcement so when user said just
-        // "masturbating", the prompt now has explicit toy language that the
-        // FK LoRA was trained on.
-        'using a glass dildo, dildo penetrating her pussy, shaft visibly entering her body, toy half buried inside her, ' +
-        'her pussy visibly wet and aroused, translucent natural lubrication with slight creamy cloudiness, ' +
-        'glistening wetness coating the toy shaft, slick moisture on her inner labia, ' +
-        'lying on her back on white sheets, knees up and legs spread wide open, ' +
-        'both legs visible reaching from her hips, both feet flat on the bed, ' +
-        'right leg on right side and left leg on left side, ' +
-        'exactly two feet, ten toes total, both feet planted firmly, ' +
-        'both arms visible reaching from her shoulders, exactly two arms, ' +
-        'her right hand holding the dildo, her left hand resting on the bed beside her hip or on her stomach, ' +
-        'both hands visible in front of her body, looking down at the penetration, ' +
-        'lips parted in pleasure, explicit intimate detail',
+      reinforcement: hasToy
+        ? 'using a dildo, explicit, photorealistic'
+        : 'masturbating, touching herself, explicit, photorealistic',
+      usePoseGuided: true,
+      poseRef: hasToy ? 'dildo_dildo_004.webp' : 'masturbation_masturbation_026.jpg',
     };
   }
 
@@ -417,10 +376,9 @@ function classifySpecialist(prompt: string): SpecialistRecipe | null {
   if (hasToy) {
     return {
       category: 'dildo',
-      loras: [{ file: 'FK_dildoinsertion.safetensors', strength: 1.0 }],
-      reinforcement:
-        'holding a dildo, realistic silicone toy visible, ' +
-        LIMB_ANCHORS + ', explicit intimate detail',
+      reinforcement: 'using a dildo, explicit, photorealistic',
+      usePoseGuided: true,
+      poseRef: 'dildo_dildo_004.webp',
     };
   }
 
@@ -432,62 +390,64 @@ async function generateWithHollyLoRA(req: ImageRequest): Promise<ImageResult> {
 
   const { width, height } = getDimensions(req.aspectRatio, { width: req.width, height: req.height });
 
-  // Detect specialist scenario and append reinforcement language + dynamic LoRA.
-  // Specialist LoRAs are layered ON TOP of the baked face+body via set_adapters.
+  // Detect specialist scenario — determines endpoint routing (text-only vs pose-guided)
   const recipe = classifySpecialist(req.prompt);
   const finalPrompt = recipe
     ? `${req.prompt}, ${recipe.reinforcement}`
     : req.prompt;
+
+  // Route to pose-guided endpoint for explicit actions (Klein can't compose
+  // penetration/insertion/dildo from text — needs a reference pose image).
+  // Falls back to text-only endpoint for simple poses (face, standing, bent-over).
+  const usePoseGuided = recipe?.usePoseGuided && MODAL_POSE_GUIDED_URL && recipe?.poseRef;
+  const endpointUrl = usePoseGuided
+    ? MODAL_POSE_GUIDED_URL.replace(/\/$/, '')
+    : MODAL_HOLLY_LORA_URL.replace(/\/$/, '');
+
   if (recipe) {
-    console.info(`[MediaGen] Specialist LoRA: ${recipe.category} → ${recipe.loras.map(l => l.file).join(', ')}`);
+    console.info(`[MediaGen] Route: ${usePoseGuided ? 'pose-guided' : 'text-only'} | Category: ${recipe.category}${usePoseGuided ? ` | Pose: ${recipe.poseRef}` : ''}`);
   }
 
-  const res = await fetch(MODAL_HOLLY_LORA_URL.replace(/\/$/, ''), {
+  // Build request body — differs between text-only and pose-guided endpoints
+  const body = usePoseGuided
+    ? JSON.stringify({
+        prompt:    finalPrompt,
+        pose_ref:  recipe!.poseRef,
+        denoise:   0.35,
+        width:     Math.min(width, 1024),
+        height:    Math.min(height, 1024),
+        seed:      req.seed,
+      })
+    : JSON.stringify({
+        prompt:           finalPrompt,
+        width:            Math.min(width, 1024),
+        height:           Math.min(height, 1024),
+        seed:             req.seed,
+        // The ComfyUI endpoint uses baked LoRAs (combined + pussydiffusion)
+        // and its own category routing. No need to send inference params —
+        // the endpoint defaults to 12 steps, CFG 1.0, Euler (the proven recipe).
+      });
+
+  const res = await fetch(endpointUrl, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      prompt:               finalPrompt,
-      width:                Math.min(width, 1024),
-      height:                Math.min(height, 1024),
-      // INFERENCE SETTINGS — verified 2026-07-06 against deploy script:
-      // services/modal-media/image_generate_flux2klein_a100.py:142-145 reads
-      // "Klein Distilled needs 4 steps + CFG 4.0 (NOT 20 steps CFG 1.2)" — the
-      // avatar recipe isolation test (2026-06-27) confirmed this is what
-      // generated the avatars Steve approved.
-      //
-      // PREVIOUS BUG: media-generator.ts was sending CFG=1.2 which made both
-      // baked LoRAs (face=0.75, body=1.0) too weak to override Klein's base
-      // clothing priors — "black top + black jeans" was the base model's
-      // default rendering for "woman" winning out over the prompt.
-      num_inference_steps:  4,         // Klein Distilled avatar recipe
-      guidance_scale:       4.0,       // Klein Distilled avatar recipe
-      loras:                recipe?.loras,  // dynamic specialist LoRA stack
-      seed:                 req.seed,
-      format:               'jpeg',
-      // Avatar-quality face enhancement: endpoint detects Holly's face and
-      // re-renders it via the inpaint pipe with an 85mm-headshot prompt.
-      // Default behavior when h0lly is in prompt; passes explicit true here
-      // to make intent clear in request logs.
-      enhance_face:         true,
-    }),
-    signal: AbortSignal.timeout(450_000),  // 7.5 min — generation + face inpaint pass + cold-start buffer
+    body,
+    signal: AbortSignal.timeout(450_000),  // 7.5 min — cold-start buffer for ComfyUI
   });
 
   if (!res.ok) {
     const body = await res.text();
-    throw new Error(`Holly FLUX.2 Klein+LoRA error ${res.status}: ${body.slice(0, 200)}`);
+    throw new Error(`Holly ComfyUI Klein error ${res.status}: ${body.slice(0, 200)}`);
   }
 
   const arrayBuf = await res.arrayBuffer();
   const base64   = Buffer.from(arrayBuf).toString('base64');
-  const dataUri  = `data:image/jpeg;base64,${base64}`;
+  const dataUri  = `data:image/png;base64,${base64}`;
 
   return {
     url:      dataUri,
-    provider: 'modal-flux2klein-lora',
-    model:    recipe
-      ? `FLUX.2 Klein 9B A100 + Face v2.0 + Body v2.5 + ${recipe.category}`
-      : 'FLUX.2 Klein 9B A100 + Face v2.0 + Body v2.5',
+    provider: usePoseGuided ? 'modal-comfyui-klein-pose-guided' : 'modal-comfyui-klein',
+    model:    `FLUX.2 Klein 9B ComfyUI + Combined LoRA${recipe ? ` (${recipe.category})` : ''}`,
     width,
     height,
     cost:     0,
