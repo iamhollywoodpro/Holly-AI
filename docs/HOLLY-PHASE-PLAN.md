@@ -368,7 +368,85 @@ Standalone tool. Character training (Soul ID equivalent), text-to-image/video, r
 
 ---
 
-## ═══ Phase 4: EXTENSIONS STORE — FROM BACKEND TO PRODUCT ═══
+## ═══ Phase 4: HOLLY AS AN AUTONOMOUS AGENT (THE ZCODE EXPERIENCE) ═══
+> **Goal:** Holly can DO things, not just TALK about doing them. When Steve says
+> "check your code for issues," Holly should actually scan, show a plan, show
+> progress, report findings, and fix them — exactly like ZCode works.
+>
+> **Current state (BRITTYLE):** The MCP tool pipeline exists and works for
+> structured tool calls (JSON/XML). But brain-v35 (the NSFW/intimate model)
+> cannot emit structured tool calls — it narrates actions as English text.
+> The text-based interceptor misses natural-language action descriptions.
+> Result: Holly says "I'll check the code now" but nothing executes.
+>
+> **The builder agent WORKS** (real sandbox, fix loop, dev server, git commit)
+> but only triggers from structured calls, not conversational English.
+
+### 4.1 🔴 Fix tool calling for brain-v35 [AGENT-TOOLS]
+**The #1 fix.** Make Holly's actions actually execute during any conversation.
+
+**Approach:** Smart natural-language action detection — when Holly's response
+text describes an action she's about to take (patterns like "Let me check...",
+"I'll scan...", "Let me show you...", "Let me build..."), detect it and route
+to the correct tool:
+- Code inspection → `/api/code-gen` (search, file-tree, debug-code)
+- Code review → LLM analysis of actual codebase
+- Image generation → `/api/generate-comfyui-klein` (already fixed with inline prompt interceptor)
+- App building → `/api/builder` (start_build, agent pipeline)
+- File operations → MCP Self-Code Hub (inspect/propose/approve)
+
+**Files:** `app/api/chat/route.ts` — expand `interceptTextToolCall` with
+natural-language action detection + route to correct tool.
+
+### 4.2 🔴 Real-time progress feedback (SSE during tool execution)
+When Holly executes a tool, the user should see:
+- "Scanning codebase..." (status update)
+- Progress bar / spinner (tool event)
+- Results appearing (text event)
+- "Want me to fix these?" (confirmation prompt)
+
+**Files:** `app/api/chat/route.ts` — enhance `sendStatus`/`sendTool` events
+during tool execution. Frontend: `src/components/holly-chat-interface.tsx` —
+render tool progress inline.
+
+### 4.3 🟡 Plan panel (like ZCode's right-side plan view)
+When Holly proposes actions, show them in a structured plan panel:
+1. Read all source files
+2. Run type check
+3. Run security scan
+4. Report findings
+5. Wait for Steve's approval
+
+Steve approves → Holly executes step by step with live progress.
+
+**Files:** New component `src/components/chat/ActionPlan.tsx` — renders plan
+steps with status indicators. Chat route sends `plan` SSE events.
+
+### 4.4 🟡 Confirmation gate (Holly asks before acting)
+Like ZCode, Holly should propose → wait for approval → execute. Not just
+do things silently. This is the "cautious" behavior Steve wants.
+
+**Files:** `app/api/chat/route.ts` — add confirmation state to tool loop.
+Frontend: render approval UI in chat.
+
+### 4.5 🟡 Live codebase editing (ZCode-style)
+Currently the builder works in isolated workspaces. For Holly to edit her
+own codebase (fix bugs, add features), she needs access to the project root
+with the confirmation gate.
+
+**Files:** `src/lib/builder/sandbox.ts` — add a "live" mode that operates
+on the project directory with read-only by default + explicit approval
+per-write.
+
+### 4.6 ⬜ Split Modal accounts ($60/month)
+- **iamdoregosteve:** brain-v35 (chat), vision (image understanding)
+- **iamhollywoodpro:** ComfyUI Klein (images), video gen, music gen
+- Gives each account its own $30/month budget
+- **Files:** Deploy brain/vision to iamdoregosteve, update .env URLs
+
+---
+
+## ═══ Phase 5: EXTENSIONS STORE — FROM BACKEND TO PRODUCT ═══
 > **Why:** 80 extensions across 8 suites exist in catalog + install backend works, but there's no UI
 > and no suggestion engine. This is a flagship feature Steve has specified (Phase R/S in old plan).
 
