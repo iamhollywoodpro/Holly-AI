@@ -1068,6 +1068,15 @@ export async function POST(req: NextRequest) {
                 // strip it down to just trigger + action/pose. The endpoint already
                 // injects anatomy via HOLLY_BODY_PREFIX when it sees `h0lly`.
                 imgPrompt = sanitizeHollyImagePrompt(imgPrompt);
+
+                // BUG FIX (2026-07-31): Ensure h0lly trigger is ALWAYS present.
+                // Without it, the prompt falls through to Pollinations (generic
+                // image service) which renders a random non-Holly woman.
+                // Previously only Path A (pre-detection) added the prefix —
+                // intercepted prompts from tool calls missed it.
+                if (!imgPrompt.toLowerCase().includes('h0lly')) {
+                  imgPrompt = `h0lly, h0lly-body, ${imgPrompt}`;
+                }
                 sendTool(controller, 'generate_image', 'start');
                 sendStatus(`🎨 Generating image…`);
                 // FIX (2026-06-29): Without progress simulation these interception
@@ -1413,6 +1422,37 @@ export async function POST(req: NextRequest) {
                   console.warn('[CHAT] ⚠️ External URL replacement failed (gen failed) — stripping markdown');
                   responseText = responseText.replace(mdImgMatch[0], '');
                   // Continue trying other interceptors or fall through
+                }
+              }
+
+              // ── INLINE PROMPT INTERCEPTOR (Bug Fix July 31) ──────────────────
+              // When Holly writes an image prompt as plain text in her response
+              // (e.g. "h0lly, h0lly-body, lying on her stomach..."), detect it,
+              // generate the image, and strip the prompt from the visible text.
+              // Previously these prompts just showed as text with no image.
+              const inlinePromptMatch = responseText.match(/(?:^|\n)\s*(h0lly[\s,].*(?:h0lly-body|woman|standing|lying|sitting|bent|spread|nude|pose)[^\n]{20,})/i);
+              if (inlinePromptMatch && inlinePromptMatch[1]) {
+                const imgPrompt = inlinePromptMatch[1].trim();
+                console.info(`[CHAT] 🎨 Inline prompt detected: ${imgPrompt.slice(0, 80)}...`);
+                const res = await runDirectImageGen(imgPrompt);
+                if (res.ok && res.url) {
+                  // Strip the prompt line from the response text
+                  responseText = responseText.replace(inlinePromptMatch[0], '');
+                  // Clean up any leading/trailing whitespace left behind
+                  responseText = responseText.replace(/\n{3,}/g, '\n\n').trim();
+                  // Embed the image after the cleaned text
+                  const altText = imgPrompt.length > 80 ? imgPrompt.slice(0, 80) + '…' : imgPrompt;
+                  responseText = responseText + `\n\n![${altText}](${res.url})`;
+                  pendingMessages.push({
+                    role: 'user',
+                    content: `[TOOL EXECUTION RESULT]\nTool: generate_image (inline prompt detected)\nResult: Image generated successfully.\n\nThe image has been delivered to the user inline. Respond naturally — do NOT describe or re-emit the image prompt.`,
+                  });
+                  return { executed: true, cleanText: responseText };
+                } else {
+                  // Image gen failed — strip the bare prompt so user doesn't see raw prompt text
+                  console.warn('[CHAT] ⚠️ Inline prompt gen failed — stripping prompt text');
+                  responseText = responseText.replace(inlinePromptMatch[0], '');
+                  responseText = responseText.replace(/\n{3,}/g, '\n\n').trim();
                 }
               }
 
