@@ -353,20 +353,33 @@ function classifySpecialist(prompt: string): SpecialistRecipe | null {
   // Critical anchors: BOTH feet must be positioned (flat on bed) and BOTH arms
   // must reach from shoulders with visible hand placement. Without these,
   // Klein drops or duplicates legs (R1-R8 limb failures per FACT.md).
-  const hasToy = /\b(dildo|toy|vibrator|silicone shaft|glass rod)\b/.test(p);
+  const hasToy = /\b(dildo|toy|vibrator|silicone shaft|glass rod|anal\s*beads|butt\s*plug|sex\s*toy)\b/.test(p);
   // \w* after masturbat so we catch "masturbating", "masturbates", "masturbate".
   // "yourself" added alongside "herself" so 2nd-person chat ("fuck yourself")
   // classifies the same as 3rd-person captions ("fucking herself").
+  // (Updated 2026-07-31): Expanded to cover anal, oral, object/food insertion,
+  // squirting, and all explicit action categories per Steve's spec.
   const hasMasturbate =
-    /\b(masturbat\w*|fuck(ing|s)? (herself|yourself)|pleasuring herself|screwing herself|penetrat(e|ing|ion)|inside her (pussy|ass)|her pussy (with|using))\b/.test(p);
+    /\b(masturbat\w*|fuck(ing|s)? (herself|yourself)|pleasuring herself|screwing herself|penetrat(e|ing|ion)|inside her (?:pussy|ass|anus)|her (?:pussy|ass) (?:with|using)|squirting?|cumming|orgasm\w*|climax|fingering|fisting|squirting?|insert\w*|riding\s+(?:a\s+)?(?:toy|dildo)|anal|blow\s*job|sucking|suck\s+off|deep\s*throat|oral|creampie|facial\s*cum)\b/.test(p);
+  const hasFood = /\b(cucumber|carrot|eggplant|banana|fruit|vegetable|food)\b/.test(p);
+  const hasAnal = /\b(anus|anal|asshole|butthole|ass\s+(?:spread|play|insert)|from\s+behind|anal\s+beads|butt\s+plug)\b/.test(p);
+  const hasExpression = /\b(orgasm|climax|cumming|squirting?|pain|ecstasy|joy|pleasure|screaming|moaning|gasping|trembling|convuls\w*|writhing|eyes\s+rolled|ahegao|tongue\s+out|drooling|messy|teary|blushing|flushed)\b/.test(p);
+
   // Default plain-"masturbating" to dildo path (with toy injected into prompt)
   if ((hasToy && hasMasturbate) || (hasMasturbate && !hasToy)) {
     // Masturbation/dildo needs pose-guided — Klein can't compose penetration from text
+    // Build reinforcement that includes emotional expression if requested
+    let reinforcement = hasToy
+      ? 'using a dildo, explicit, photorealistic'
+      : 'masturbating, touching herself, explicit, photorealistic';
+    if (hasAnal) reinforcement += ', anal play, from behind';
+    if (hasFood) reinforcement += ', using food object for insertion';
+    if (hasExpression) {
+      reinforcement += ', face showing intense pleasure and ecstasy, flushed cheeks, parted lips, eyes half-closed in passion, emotional expression matching the sexual act';
+    }
     return {
       category: 'dildo_masturbation',
-      reinforcement: hasToy
-        ? 'using a dildo, explicit, photorealistic'
-        : 'masturbating, touching herself, explicit, photorealistic',
+      reinforcement,
       usePoseGuided: true,
       poseRef: hasToy ? 'dildo_dildo_004.webp' : 'masturbation_masturbation_026.jpg',
     };
@@ -379,6 +392,37 @@ function classifySpecialist(prompt: string): SpecialistRecipe | null {
       reinforcement: 'using a dildo, explicit, photorealistic',
       usePoseGuided: true,
       poseRef: 'dildo_dildo_004.webp',
+    };
+  }
+
+  // ORAL — blowjob, sucking toy/fruit
+  const hasOral = /\b(blow\s*job|sucking|suck\s+off|deep\s*throat|oral)\b/.test(p);
+  if (hasOral) {
+    return {
+      category: 'oral',
+      reinforcement: 'sucking on an object close to her mouth, cheeks flushed with pleasure, eyes looking up, intimate expression, explicit, photorealistic',
+      usePoseGuided: true,
+      poseRef: 'dildo_dildo_015.webp',  // closest pose reference for oral
+    };
+  }
+
+  // SQUIRTING — needs pose-guided for the action
+  if (/\b(squirt\w*|cumming|female\s+ejaculat)\b/.test(p)) {
+    return {
+      category: 'squirting',
+      reinforcement: 'experiencing intense climax, body trembling, wetness visible, face showing overwhelming pleasure and release, explicit, photorealistic',
+      usePoseGuided: true,
+      poseRef: 'masturbation_masturbation_026.jpg',
+    };
+  }
+
+  // OBJECT/FOOD INSERTION — cucumber, carrot, eggplant, etc.
+  if (hasFood) {
+    return {
+      category: 'object_insertion',
+      reinforcement: `using a food object for intimate insertion, ${hasAnal ? 'anal' : 'vaginal'} insertion, face showing pleasure and intensity, explicit, photorealistic`,
+      usePoseGuided: true,
+      poseRef: hasAnal ? 'pose10-allfours-behind.png' : 'dildo_dildo_004.webp',
     };
   }
 

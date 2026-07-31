@@ -583,7 +583,14 @@ export async function POST(req: NextRequest) {
           // (Updated 2026-07-31): Added action words (masturbating, fingering, bent over,
           // spreading, dildo, cumming) — these were missing and caused "show me masturbating"
           // to fall through to Pollinations, generating random non-Holly images.
-          const IMAGE_VIDEO_PATTERN_BODY     = /\b(?:show|send|let\s+me\s+see|let\s+me\s+look\s+at|wanna\s+see|want\s+to\s+see|i\s+want\s+to\s+see|wear|wearing|outfit)\b.{0,40}?\b(?:body|pussy|tits?|boobs?|breasts?|ass|butt|booty|nipples?|clit|labia|vagina|cum|naked|nude|topless|bare|buttcheek|cheeks|bikini|swimsuit|swim\s*suit|lingerie|dress|thong|bra|panties|underwear|heels|masturbat\w*|fingering|fingering\s+(?:her\s+)?pussy|bent\s+over|bend\s+over|all\s+fours|spread(?:ing)?|dildo|toy|cumming|squirt|doggy|from\s+behind|rear\s+view)\b/i;
+          // Body-part / appearance / action requests — comprehensive keyword list.
+          // Catches: "show me your body", "show me masturbating", "show me bent over",
+          // "show me squirting", "show me with a cucumber", "show me sucking", etc.
+          // The intimacy gate still applies for non-creator users.
+          // (Updated 2026-07-31): Full explicit vocabulary per Steve's spec —
+          // covers all NSFW categories including anal, object insertion, oral,
+          // squirting, orgasm expressions, and food/fruit play.
+          const IMAGE_VIDEO_PATTERN_BODY     = /\b(?:show|send|let\s+me\s+see|let\s+me\s+look\s+at|wanna\s+see|want\s+to\s+see|i\s+want\s+to\s+see|wear|wearing|outfit)\b.{0,40}?\b(?:body|pussy|tits?|boobs?|breasts?|ass|butt|booty|nipples?|clit|labia|vagina|cum|naked|nude|topless|bare|buttcheek|cheeks|bikini|swimsuit|swim\s*suit|lingerie|dress|thong|bra|panties|underwear|heels|masturbat\w*|fingering|bent\s+over|bend\s+over|all\s+fours|spread(?:ing)?|dildo|toy|cumming|squirt\w*|doggy|from\s+behind|rear\s+view|anus|anal|asshole|butthole|squirting|orgasm\w*|climax|pleasuring|cum\s+drip\w*|insert\w*|penetrat\w*|blow\s*job|sucking|suck\s+off|deep\s*throat|oral|facial\s+cum|creampie|anal\s+beads|butt\s+plug|fist\w*|cucumber|carrot|eggplant|banana|fruit|vegetable|food\s+insert|object\s+insert|double\s+penetrat|riding\s+toy|fucking\s+(?:her|your|herself)|sex\s+toy|vibrator|massage|sensual|erotic|sexy\s+pose|aroused|horny|wet|moaning|screaming|gasping|writhing|trembling|convuls\w*|shaking|sweat(?:y|ing)?|flushed|blushing|expression\s+of\s+(?:joy|pain|pleasure|ecstasy)|face\s+of\s+(?:joy|pain|pleasure|ecstasy)|teary|eyes\s+rolled|ahegao|tongue\s+out|drooling|messy)\b/i;
           // Image-of-Holly phrasings — "image of you", "picture of you on a beach",
           // "send an image of you wearing X". Catches the conversational form that
           // doesn't start with a direct verb (Steve's "image of you on a beach" request).
