@@ -579,12 +579,11 @@ export async function POST(req: NextRequest) {
           // "I want to see those tits", "show me that ass". The intimacy gate below still
           // applies — non-creator users without enough trust get blocked.
           // (Updated 2026-07-02): Added clothing/appearance words (bikini, swimsuit, lingerie,
-          // dress, etc.) + "wear/wearing" verbs. Steve's request "image of you on a beach
-          // wearing a skimpy bikini" was missing all three prior patterns and slipped through
-          // to the model, which then emitted markdown image syntax as text (self-prompting
-          // bug). With clothing in the trigger list + "wear" in the verb list, this phrasing
-          // now correctly hits pre-detection → direct image gen → no text loop.
-          const IMAGE_VIDEO_PATTERN_BODY     = /\b(?:show|send|let\s+me\s+see|let\s+me\s+look\s+at|wanna\s+see|want\s+to\s+see|i\s+want\s+to\s+see|wear|wearing|outfit)\b.{0,40}?\b(?:body|pussy|tits?|boobs?|breasts?|ass|butt|booty|nipples?|clit|labia|vagina|cum|naked|nude|topless|bare|buttcheek|cheeks|bikini|swimsuit|swim\s*suit|lingerie|dress|thong|bra|panties|underwear|heels)\b/i;
+          // dress, etc.) + "wear/wearing" verbs.
+          // (Updated 2026-07-31): Added action words (masturbating, fingering, bent over,
+          // spreading, dildo, cumming) — these were missing and caused "show me masturbating"
+          // to fall through to Pollinations, generating random non-Holly images.
+          const IMAGE_VIDEO_PATTERN_BODY     = /\b(?:show|send|let\s+me\s+see|let\s+me\s+look\s+at|wanna\s+see|want\s+to\s+see|i\s+want\s+to\s+see|wear|wearing|outfit)\b.{0,40}?\b(?:body|pussy|tits?|boobs?|breasts?|ass|butt|booty|nipples?|clit|labia|vagina|cum|naked|nude|topless|bare|buttcheek|cheeks|bikini|swimsuit|swim\s*suit|lingerie|dress|thong|bra|panties|underwear|heels|masturbat\w*|fingering|fingering\s+(?:her\s+)?pussy|bent\s+over|bend\s+over|all\s+fours|spread(?:ing)?|dildo|toy|cumming|squirt|doggy|from\s+behind|rear\s+view)\b/i;
           // Image-of-Holly phrasings — "image of you", "picture of you on a beach",
           // "send an image of you wearing X". Catches the conversational form that
           // doesn't start with a direct verb (Steve's "image of you on a beach" request).
@@ -1427,10 +1426,14 @@ export async function POST(req: NextRequest) {
 
               // ── INLINE PROMPT INTERCEPTOR (Bug Fix July 31) ──────────────────
               // When Holly writes an image prompt as plain text in her response
-              // (e.g. "h0lly, h0lly-body, lying on her stomach..."), detect it,
-              // generate the image, and strip the prompt from the visible text.
-              // Previously these prompts just showed as text with no image.
-              const inlinePromptMatch = responseText.match(/(?:^|\n)\s*(h0lly[\s,].*(?:h0lly-body|woman|standing|lying|sitting|bent|spread|nude|pose)[^\n]{20,})/i);
+              // (e.g. "h0lly, h0lly-body, lying on her stomach..." OR "Holly bending
+              // over from behind..."), detect it, generate the image, and strip the
+              // prompt from the visible text. Previously these prompts just showed as
+              // text with no image.
+              // FIX (July 31): Accept BOTH 'h0lly' (zero) and 'Holly' (letter o) —
+              // Holly's model sometimes uses the wrong variant. Also expanded the
+              // keyword list to catch more pose descriptions.
+              const inlinePromptMatch = responseText.match(/(?:^|\n|:\s*)((?:h0lly|holly)[\s,].*(?:h0lly-body|woman|standing|lying|sitting|bent|spread|nude|pose|bending|bed|camera|green|skin|hair|body|thighs|breast|legs|lighting)[^\n]{10,})/i);
               if (inlinePromptMatch && inlinePromptMatch[1]) {
                 const imgPrompt = inlinePromptMatch[1].trim();
                 console.info(`[CHAT] 🎨 Inline prompt detected: ${imgPrompt.slice(0, 80)}...`);
