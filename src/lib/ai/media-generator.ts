@@ -362,20 +362,45 @@ function classifySpecialist(prompt: string): SpecialistRecipe | null {
   const hasMasturbate =
     /\b(masturbat\w*|fuck(ing|s)? (herself|yourself)|pleasuring herself|screwing herself|penetrat(e|ing|ion)|inside her (?:pussy|ass|anus)|her (?:pussy|ass) (?:with|using)|squirting?|cumming|orgasm\w*|climax|fingering|fisting|squirting?|insert\w*|riding\s+(?:a\s+)?(?:toy|dildo)|anal|blow\s*job|sucking|suck\s+off|deep\s*throat|oral|creampie|facial\s*cum)\b/.test(p);
   const hasFood = /\b(cucumber|carrot|eggplant|banana|fruit|vegetable|food)\b/.test(p);
-  const hasAnal = /\b(anus|anal|asshole|butthole|ass\s+(?:spread|play|insert)|from\s+behind|anal\s+beads|butt\s+plug)\b/.test(p);
+  const hasAnal = /\b(anus|anal|asshole|butthole|ass\s+(?:spread|play|insert)|from\s+behind|anal\s+beads|butt\s*plug)\b/.test(p);
   const hasExpression = /\b(orgasm|climax|cumming|squirting?|pain|ecstasy|joy|pleasure|screaming|moaning|gasping|trembling|convuls\w*|writhing|eyes\s+rolled|ahegao|tongue\s+out|drooling|messy|teary|blushing|flushed)\b/.test(p);
+
+  // EXTREME / PLEASURE-PAIN detection — when things get really intense.
+  // Large object insertion, extreme stretching, painal, gaping, etc.
+  // Holly's face should reflect the mix of overwhelming pleasure and pain.
+  const hasExtreme = /\b(extreme|huge|massive|giant|large|big|thick|wide|deep\s+insert|stretch(?:ing)?|gape|gaping|painful|painal|hurt(?:ing)?|scream(?:ing)?|cry(?:ing)?|tear(?:s|ing)?|overwhelm\w*|too\s+(?:big|deep|much|deep|large)|can'?t\s+take|struggl\w*)\b/.test(p);
+
+  // Expression intensity system — scales from gentle to extreme
+  function getExpression(level: 'normal' | 'intense' | 'extreme', context?: string): string {
+    if (level === 'extreme' || hasExtreme) {
+      return 'face showing overwhelming mix of intense pleasure and pain, '
+        + 'eyes rolling back, mouth wide open screaming, tears of pleasure streaming, '
+        + 'entire body trembling and convulsing, skin flushed red and sweaty, '
+        + 'veins visible on neck, toes curled tightly, fingers gripping sheets, '
+        + 'completely lost in overwhelming sensation, raw primal expression, '
+        + (context ? `expression of being stretched and filled by something ${context}, ` : '')
+        + 'photorealistic intimate detail';
+    }
+    if (level === 'intense' || hasExpression) {
+      return 'face showing intense pleasure and ecstasy, '
+        + 'flushed cheeks, parted lips, eyes half-closed in passion, '
+        + 'slight sweat on forehead and chest, body arching with pleasure, '
+        + 'emotional expression matching the sexual act, photorealistic';
+    }
+    return 'face showing gentle pleasure and arousal, '
+      + 'soft smile, relaxed expression, warm intimate mood, photorealistic';
+  }
 
   // Default plain-"masturbating" to dildo path (with toy injected into prompt)
   if ((hasToy && hasMasturbate) || (hasMasturbate && !hasToy)) {
-    // Masturbation/dildo needs pose-guided — Klein can't compose penetration from text
-    // Build reinforcement that includes emotional expression if requested
     let reinforcement = hasToy
       ? 'using a dildo, explicit, photorealistic'
       : 'masturbating, touching herself, explicit, photorealistic';
     if (hasAnal) reinforcement += ', anal play, from behind';
     if (hasFood) reinforcement += ', using food object for insertion';
-    if (hasExpression) {
-      reinforcement += ', face showing intense pleasure and ecstasy, flushed cheeks, parted lips, eyes half-closed in passion, emotional expression matching the sexual act';
+    if (hasExpression || hasExtreme) {
+      reinforcement += ', ' + getExpression(hasExtreme ? 'extreme' : 'intense',
+        hasAnal ? 'deep in her ass' : 'deep inside her');
     }
     return {
       category: 'dildo_masturbation',
@@ -398,11 +423,15 @@ function classifySpecialist(prompt: string): SpecialistRecipe | null {
   // ORAL — blowjob, sucking toy/fruit
   const hasOral = /\b(blow\s*job|sucking|suck\s+off|deep\s*throat|oral)\b/.test(p);
   if (hasOral) {
+    let reinforcement = 'sucking on an object close to her mouth, cheeks flushed with pleasure, eyes looking up, intimate expression, explicit, photorealistic';
+    if (hasExtreme) {
+      reinforcement += ', ' + getExpression('extreme', 'deep in her throat');
+    }
     return {
       category: 'oral',
-      reinforcement: 'sucking on an object close to her mouth, cheeks flushed with pleasure, eyes looking up, intimate expression, explicit, photorealistic',
+      reinforcement,
       usePoseGuided: true,
-      poseRef: 'dildo_dildo_015.webp',  // closest pose reference for oral
+      poseRef: 'dildo_dildo_015.webp',
     };
   }
 
@@ -410,7 +439,9 @@ function classifySpecialist(prompt: string): SpecialistRecipe | null {
   if (/\b(squirt\w*|cumming|female\s+ejaculat)\b/.test(p)) {
     return {
       category: 'squirting',
-      reinforcement: 'experiencing intense climax, body trembling, wetness visible, face showing overwhelming pleasure and release, explicit, photorealistic',
+      reinforcement: 'experiencing intense climax, body trembling, wetness visible, '
+        + getExpression(hasExtreme ? 'extreme' : 'intense')
+        + ', explicit, photorealistic',
       usePoseGuided: true,
       poseRef: 'masturbation_masturbation_026.jpg',
     };
@@ -418,9 +449,14 @@ function classifySpecialist(prompt: string): SpecialistRecipe | null {
 
   // OBJECT/FOOD INSERTION — cucumber, carrot, eggplant, etc.
   if (hasFood) {
+    const insertionType = hasAnal ? 'anal' : 'vaginal';
+    const context = hasAnal ? 'deep in her asshole' : 'deep inside her pussy';
+    let reinforcement = `using a food object for intimate insertion, ${insertionType} insertion, explicit, photorealistic`;
+    // Extreme food insertion gets full pleasure-pain treatment
+    reinforcement += ', ' + getExpression(hasExtreme ? 'extreme' : 'intense', context);
     return {
       category: 'object_insertion',
-      reinforcement: `using a food object for intimate insertion, ${hasAnal ? 'anal' : 'vaginal'} insertion, face showing pleasure and intensity, explicit, photorealistic`,
+      reinforcement,
       usePoseGuided: true,
       poseRef: hasAnal ? 'pose10-allfours-behind.png' : 'dildo_dildo_004.webp',
     };
