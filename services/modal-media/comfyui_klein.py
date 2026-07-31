@@ -134,6 +134,18 @@ ANATOMY_ANCHORS = (
     "small petite delicate hands, exactly five fingers on each hand, "
     "small petite feminine feet (size 5), exactly five toes on each foot, "
     "completely hairless pubic area, smooth bare skin, "
+    # Vulva anatomical positioning (per Wikipedia/Cleveland Clinic, LOCKED CANON v3.4):
+    # The vulva MUST be positioned LOW on the pelvis — directly below the pubic bone,
+    # NOT high near the navel or hips. The pudendal cleft (slit) is anchored at the
+    # bottom of the torso, roughly 60-65% down from navel to crotch. The mons pubis
+    # (soft mound) sits above it on the pubic bone. Klein tends to render the slit
+    # too high — these anchors correct that.
+    "realistic anatomically correct vulva positioned very low on the pelvis directly below the pubic bone, "
+    "pudendal cleft at the base of the torso NOT high up, "
+    "soft smooth mons pubis mound above the slit on the pubic bone, "
+    "plump labia majora meeting evenly at rest, small labia minora, "
+    "small clitoris at the top of the cleft, vaginal opening in lower half, "
+    "1.5 inch perineum connecting vulva to anus, correct anatomical spacing, "
     "fit healthy youthful 21 year old body"
 )
 
