@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
 
-    const vercelToken = process.env.VERCEL_TOKEN;
+    const vercelToken = process.env.VERCEL_API_TOKEN;
     if (!vercelToken) {
       return NextResponse.json({ 
         error: 'Vercel token not configured' 

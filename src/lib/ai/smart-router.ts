@@ -1,55 +1,30 @@
 /**
- * HOLLY Smart Model Router — Phase 10 (Together AI + Mistral Direct + NVIDIA v10)
+ * HOLLY Smart Model Router
  *
- * Routes every chat request to the best FREE, no-token-cost model based on
- * task type, with automatic cascade fallback if a provider is rate-limited.
- *
- * All providers are genuinely free tiers — no paid plans, no token billing.
+ * Routes chat requests to the appropriate model based on task type.
+ * Since June 2026, Holly is self-hosted — brain-v35 (Qwen3-8B fine-tune on
+ * Modal L4) is the primary model for all user-facing tasks.
  *
  * ┌──────────────────────────────────────────────────────────────────────────┐
- * │  Task Type    │  Primary Model                      │  Why              │
+ * │  Task Type    │  Primary Model                      │  Notes             │
  * ├──────────────────────────────────────────────────────────────────────────┤
- * │  speed/chat   │  Groq → Llama 3.3 70B               │  280+ tok/s       │
- * │  coding       │  NVIDIA → DeepSeek V4 Flash         │  1M ctx, SOTA     │
- * │  reasoning    │  NVIDIA → DeepSeek V4 Flash         │  1M ctx, SOTA     │
- * │  long_context │  Google → Gemini 2.5 Flash          │  1M ctx, 250 RPD  │
- * │  vision       │  OpenRouter → Kimi K2.6             │  Free, multimodal │
- * │  creative     │  NVIDIA → Nemotron 3 Ultra 550B     │  1M ctx, frontier │
- * │  agent        │  NVIDIA → GLM-5.1                   │  #1 SWE-Bench Pro │
- * │  consciousness│  Mistral Small 4 (cloud w/ identity) │  Best Holly today │
- * │  unrestricted │  OpenRouter → Dolphin Venice 24B    │  Uncensored chat  │
- * │  local        │  Ollama (Qwen3.6 + Gemma 4)         │  Unlimited/local  │
+ * │  speed        │  holly-own:brain-v35                │  Self-hosted L4    │
+ * │  coding       │  holly-own:brain-v35                │  Self-hosted L4    │
+ * │  reasoning    │  holly-own:brain-v35                │  Self-hosted L4    │
+ * │  creative     │  holly-own:brain-v35                │  Self-hosted L4    │
+ * │  agent        │  holly-own:brain-v35                │  Self-hosted L4    │
+ * │  consciousness│  holly-own:brain-v35                │  Self-hosted L4    │
+ * │  unrestricted │  holly-own:brain-v35                │  Self-hosted L4    │
+ * │  synthesis    │  holly-own:brain-v35                │  Self-hosted L4    │
+ * │  vision       │  holly-own:brain-v35 → vision-mini  │  Multi-modal       │
+ * │  analytics    │  groq:llama-3.3-70b                 │  Cost-efficient    │
+ * │  local        │  ollama:qwen3.6-35b → qwen3-8b      │  Local fallback    │
  * └──────────────────────────────────────────────────────────────────────────┘
  *
- * v10 Upgrade Summary (2026-06):
- *   NEW PROVIDERS:
- *   - Together AI: 80+ free models, 60 RPM, 1M ctx (MiniMax M1)
- *   - Mistral AI Direct: 1B tokens/month, 2 RPM (consciousness/background only)
- *
- *   NEW NVIDIA NIM MODELS:
- *   - Mistral Small 4 119B: replaces Small 3.1 + Devstral + Magistral (one model, all tasks)
- *   - Qwen 3.5 122B MoE: replaces Qwen3 235B for reasoning
- *   - Gemma 4 31B: vision + thinking, better than Llama 3.3 70B
- *   - MiniMax M2.7 230B: strong coding/reasoning
- *   - Step 3.5 Flash 200B: agentic AI specialist
- *   - GPT-OSS 20B/120B: OpenAI's open models on NVIDIA
- *
- *   CRITICAL FIXES:
- *   - Nemotron 3 Nano Omni model ID fixed (was invalid)
- *   - Deprecating models marked and replaced
- *   - Together AI adds massive reliability with 80 free models at 60 RPM
- *   - Mistral Direct means Holly's consciousness NEVER burns Groq tokens again
- *
- * Cascade fallback per task:
- *   speed:        Groq Llama-3.3 → Groq 8B → NVIDIA Llama 4 Maverick → Together Llama 4 Scout → OpenRouter Llama → Google Gemini → Together → Granite 4.1
- *   coding:       NVIDIA DeepSeek V4 Flash → NVIDIA GLM-5.1 → NVIDIA Qwen3 Coder → Together Qwen3 Coder → NVIDIA Mistral Small 4 → Groq → Together Devstral → Google Gemini
- *   reasoning:    NVIDIA DeepSeek V4 Flash → NVIDIA Qwen 3.5 122B → NVIDIA Mistral Small 4 → NVIDIA GPT-OSS 120B → Together MiniMax M1 → Google Gemini → Groq
- *   long_context: Google Gemini (1M) → NVIDIA DeepSeek V4 Flash (1M) → Together MiniMax M1 (1M) → NVIDIA Qwen3 → Together Llama 4 Scout (328K) → Trinity (512K)
- *   vision:       OpenRouter Qwen VL → NVIDIA Gemma 4 31B → Together Qwen3 VL 235B → Google Gemini → NVIDIA Nemotron Omni → Together Gemma 4
- *   creative:     NVIDIA Mistral Medium 3.5 → NVIDIA Mistral Small 4 → NVIDIA GPT-OSS 120B → Together Gemma 4 → Groq → Google Gemini
- *   agent:        NVIDIA GLM-5.1 → NVIDIA DeepSeek V4 Flash → NVIDIA Qwen3 Coder → NVIDIA Mistral Small 4 → NVIDIA MiniMax M2.7 → NVIDIA Step 3.5 → Together
- *   consciousness: Mistral Small 4 → Mistral Medium → Gemini → Groq → Holly-Own (v1 demoted, last resort)
- *   local:        Ollama Qwen3.6 35B → Gemma 4 26B → Laguna XS.2 → Devstral Small 2 → Granite 4.1
+ * Cloud providers (Groq, NVIDIA, Together, Google, OpenRouter, Mistral) remain
+ * in the catalogue as documented escape hatches for future use but are NOT
+ * active in the task waterfalls. The self-hosted brain-v35 is the deliberate
+ * choice for cost control and Holly's model-independent identity.
  */
 
 // ─── Task types ───────────────────────────────────────────────────────────────

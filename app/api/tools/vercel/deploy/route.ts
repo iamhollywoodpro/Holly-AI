@@ -14,10 +14,10 @@ export async function POST(req: NextRequest) {
       target = 'production',
     } = await req.json();
 
-    const VERCEL_TOKEN = process.env.VERCEL_TOKEN;
+    const VERCEL_API_TOKEN = process.env.VERCEL_API_TOKEN;
     const VERCEL_PROJECT_ID = process.env.VERCEL_PROJECT_ID;
 
-    if (!VERCEL_TOKEN) {
+    if (!VERCEL_API_TOKEN) {
       return NextResponse.json(
         { error: 'Vercel token not configured' },
         { status: 500 }
@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     const response = await fetch('https://api.vercel.com/v13/deployments', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${VERCEL_TOKEN}`,
+        'Authorization': `Bearer ${VERCEL_API_TOKEN}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({

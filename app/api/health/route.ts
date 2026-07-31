@@ -99,7 +99,7 @@ function getIntegrationStatus() {
     github:         !!process.env.GITHUB_TOKEN,
     google_drive:   !!process.env.GOOGLE_DRIVE_CLIENT_ID,
     fal_ai:         !!process.env.FAL_KEY,
-    replicate:      !!process.env.REPLICATE_API_TOKEN,
+    replicate:      !!process.env.REPLICATE_API_KEY,
     instagram:      !!process.env.INSTAGRAM_APP_ID,
     tiktok:         !!process.env.TIKTOK_CLIENT_KEY,
     dropbox:        !!process.env.DROPBOX_APP_KEY,

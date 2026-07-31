@@ -17,7 +17,7 @@ export async function GET() {
     NVIDIA_API_KEY: !!process.env.NVIDIA_API_KEY,
     OPENROUTER_API_KEY: !!process.env.OPENROUTER_API_KEY,
     GOOGLE_AI_API_KEY: !!process.env.GOOGLE_AI_API_KEY,
-    CF_API_TOKEN: !!process.env.CF_API_TOKEN,
+    CF_AI_TOKEN: !!process.env.CF_AI_TOKEN,
     CF_ACCOUNT_ID: !!process.env.CF_ACCOUNT_ID,
     OLLAMA_ENABLED: process.env.OLLAMA_ENABLED,
     DATABASE_URL: !!process.env.DATABASE_URL,

@@ -1306,24 +1306,9 @@ export const MEDIA_MODEL_REGISTRY: MediaModelRecord[] = [
     active:      false,
   },
   // ═══════════════════════════════════════════════════════════════════════════
-  // TTS (Text-to-Speech) — v2.6 Stack
-  // Primary: VoxCPM2 (48kHz, 30 languages, voice design, Apache-2.0)
-  // Fallback: Kokoro-82M (CPU-only, emergency, Apache-2.0)
+  // TTS (Text-to-Speech) — VoxCPM2 REMOVED 2026-07-30 (LiveKit not used)
+  // Current TTS: Kokoro-82M (CPU-only, Apache-2.0)
   // ═══════════════════════════════════════════════════════════════════════════
-  {
-    key:         'hf:voxcpm2',
-    type:        'audio',
-    provider:    'huggingface',
-    modelId:     'openbmb/VoxCPM2',
-    displayName: 'VoxCPM2 — PRIMARY TTS v2.6',
-    licence:     'Apache-2.0',
-    free:        true,
-    keyNeeded:   false,
-    quality:     'excellent',
-    note:        'v2.6 PRIMARY TTS. 2B params, 48kHz studio, 30 languages, voice design from text, emotion style tags, 3-mode cloning, streaming RTF 0.13. Apache-2.0.',
-    addedAt:     '2026-04-12',
-    active:      true,
-  },
   {
     key:         'hf:kokoro-82m',
     type:        'audio',

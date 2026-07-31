@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
     }
 
     // In production, would call Vercel API:
-    // const vercelToken = process.env.VERCEL_TOKEN;
+    // const vercelToken = process.env.VERCEL_API_TOKEN;
     // const response = await fetch(`https://api.vercel.com/v13/deployments/${deploymentId}/redeploy`, {
     //   method: 'POST',
     //   headers: {
