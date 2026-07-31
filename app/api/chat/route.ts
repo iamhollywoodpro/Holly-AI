@@ -821,14 +821,12 @@ export async function POST(req: NextRequest) {
                 imagePrompt = `h0lly, h0lly-body, ${imagePrompt}`;
               }
 
-              // Route through media-generator.ts waterfall:
-              // Holly LoRA → Modal → Pollinations (server-side fetch, returns data URI)
-              // Quality suffix includes face-specific sharpening language so full-body
-              // NSFW images still render the face sharply (avoids the soft-face bug
-              // Steve flagged 2026-06-27 — avatars look crisp because they're close-up
-              // headshots; full body needs explicit face-focus language).
-              const qualitySuffix = 'flawless smooth skin, bright under-eye area, soft dewy makeup, voluminous hair with lifted roots, sharp facial features, detailed eyes with catchlights, sharp focus on face, professional portrait photography, 85mm lens quality, photorealistic';
-              const fullPrompt = `${imagePrompt}, ${qualitySuffix}`;
+              // Route through media-generator.ts waterfall.
+              // The ComfyUI Klein endpoint now handles anatomy anchors contextually
+              // (nude anchors only for NSFW prompts, clothing-aware for SFW).
+              // No quality suffix here — let Holly's prompt speak for itself so
+              // the image matches the conversation mood (casual, flirty, intimate).
+              const fullPrompt = imagePrompt;
 
               sendProgress(controller, { phase: 'generate_image', percent: 30, message: '🎨 Selecting model…' });
 

@@ -118,11 +118,22 @@ V2_BAKED_LORAS = [
 ]
 
 # Anatomy anchors — injected into EVERY prompt to enforce Holly's exact
-# proportions. Updated July 29 after Steve flagged "too fat" — strengthened
-# the fitness/weight anchors to counteract the combined LoRA's tendency
-# toward heavier body type. July 30: added skin clarity anchors after Steve
-# flagged blotchy/dirty-looking skin on legs.
-ANATOMY_ANCHORS = (
+# proportions. These are SPLIT into two sets:
+# - BASE_ANCHORS: always applied (identity, body type, hands/feet, skin)
+# - NUDE_ANCHORS: only applied when the prompt is explicitly nude/NSFW
+# This prevents Holly from always being naked when the user just says
+# "I want to see you" — she should match the conversation mood.
+# Clothing detection: if the prompt mentions clothing, skip nude anchors.
+import re as _re_clothing
+_CLOTHING_RE = _re_clothing.compile(
+    r"\b(dress|skirt|jeans|pants|shorts|top|blouse|shirt|sweater|hoodie|jacket|"
+    r"coat|bikini|swimsuit|swim\s*suit|one\s*piece|lingerie|bra|panties|"
+    r"thong|g-?string|tank\s*top|t-?shirt|leggings|yoga\s*pants|robe|"
+    r"nightgown|pajama|loungewear|casual|outfit|clothed|wearing|dressed)\b",
+    _re_clothing.IGNORECASE,
+)
+
+BASE_ANCHORS = (
     "olive skin tone (Portuguese/South Indian heritage), "
     "flawless even clear skin tone everywhere, no blotches no dark spots no uneven patches, "
     "smooth clean clear complexion on legs arms and body, uniform skin color, "
@@ -133,21 +144,47 @@ ANATOMY_ANCHORS = (
     "slender toned arms, slender toned legs, "
     "small petite delicate hands, exactly five fingers on each hand, "
     "small petite feminine feet (size 5), exactly five toes on each foot, "
+    "fit healthy youthful 21 year old body"
+)
+
+# Nude anchors — only injected when the prompt is explicitly nude/NSFW
+# (no clothing mentioned AND the prompt contains nudity keywords)
+_NUDE_RE = _re_clothing.compile(
+    r"\b(nude|naked|bare|topless|bottomless|completely\s+(?:nude|naked)|"
+    r"pussy|vulva|breasts?|nipples?|genitals?|explicit|intimate\s+area|"
+    r"masturbat|spread|penetrat|insert|dildo|fingering)\b",
+    _re_clothing.IGNORECASE,
+)
+
+NUDE_ANCHORS = (
     "completely hairless pubic area, smooth bare skin, "
-    # Vulva anatomical positioning (per Wikipedia/Cleveland Clinic, LOCKED CANON v3.4):
-    # The vulva MUST be positioned LOW on the pelvis — directly below the pubic bone,
-    # NOT high near the navel or hips. The pudendal cleft (slit) is anchored at the
-    # bottom of the torso, roughly 60-65% down from navel to crotch. The mons pubis
-    # (soft mound) sits above it on the pubic bone. Klein tends to render the slit
-    # too high — these anchors correct that.
     "realistic anatomically correct vulva positioned very low on the pelvis directly below the pubic bone, "
     "pudendal cleft at the base of the torso NOT high up, "
     "soft smooth mons pubis mound above the slit on the pubic bone, "
     "plump labia majora meeting evenly at rest, small labia minora, "
     "small clitoris at the top of the cleft, vaginal opening in lower half, "
-    "1.5 inch perineum connecting vulva to anus, correct anatomical spacing, "
-    "fit healthy youthful 21 year old body"
+    "1.5 inch perineum connecting vulva to anus, correct anatomical spacing"
 )
+
+def get_anatomy_anchors(raw_prompt: str) -> str:
+    """Return the appropriate anatomy anchors based on the prompt content.
+
+    - If clothing is mentioned → BASE only (no nude anchors)
+    - If nudity keywords present → BASE + NUDE
+    - If neither → BASE only (let the model decide based on conversation context)
+    """
+    has_clothing = bool(_CLOTHING_RE.search(raw_prompt))
+    has_nudity = bool(_NUDE_RE.search(raw_prompt))
+
+    if has_clothing:
+        # Clothing mentioned — keep it clothed, no nude anchors
+        return BASE_ANCHORS
+    elif has_nudity:
+        # Explicit nudity requested — include anatomy anchors
+        return BASE_ANCHORS + ", " + NUDE_ANCHORS
+    else:
+        # Ambiguous — let the prompt + LoRA decide (conversation context guides)
+        return BASE_ANCHORS
 
 
 # ─── Workflow builder (inlined — avoids cross-module packaging issues) ──
@@ -1319,7 +1356,7 @@ class HollyComfyUIKlein:
         # proportions (small hands, size 5 feet, 5 fingers/toes, olive skin).
         # These counteract Klein's tendency toward extra digits and oversize
         # hands/feet, and prevent skin-tone drift when NSFW LoRAs are stacked.
-        prompt = f"{raw_prompt}, {ANATOMY_ANCHORS}" if raw_prompt else ANATOMY_ANCHORS
+        prompt = f"{raw_prompt}, {get_anatomy_anchors(raw_prompt)}" if raw_prompt else get_anatomy_anchors(raw_prompt)
         disable_routing = request.get("disable_routing", False)
 
         if not prompt:
@@ -1486,7 +1523,7 @@ class HollyComfyUIKlein:
 
         # Build the LoRA stack (default: combined + PussyDiffusion)
         loras = caller_loras if caller_loras else list(V2_BAKED_LORAS)
-        prompt = f"{raw_prompt}, {ANATOMY_ANCHORS}" if raw_prompt else ANATOMY_ANCHORS
+        prompt = f"{raw_prompt}, {get_anatomy_anchors(raw_prompt)}" if raw_prompt else get_anatomy_anchors(raw_prompt)
 
         # The pose reference is on the LoRA volume at /lora/pose-refs/{pose_ref}
         # ComfyUI's LoraLoader reads from models/loras/ (symlinked to /lora)
