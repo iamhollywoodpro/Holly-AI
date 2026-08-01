@@ -501,8 +501,14 @@ export const MODE_TASK_MAP: Record<string, TaskType> = {
   'aura-ar':              'creative',
   'creative-writing':     'creative',
   'visual-arts':          'creative',
-  'emotional-intelligence':'speed',
-  'intimate':             'speed',
+  // Rerouted 2026-08-01 from 'speed' → 'consciousness'. Previously these modes
+  // fell through to Groq (censored, generic llama) for any message that didn't
+  // match a specific consciousness regex. That made emotional/intimate chat feel
+  // like a generic chatbot instead of Holly. Now they route to brain-v35-only,
+  // so Holly's actual personality, emotions, and relationship memory handle
+  // these conversations. Tradeoff: slower (~10-20s vs 1-3s) but genuinely Holly.
+  'emotional-intelligence':'consciousness',
+  'intimate':             'consciousness',
   'aurora':               'synthesis',
   'synthesis':            'synthesis',
 };

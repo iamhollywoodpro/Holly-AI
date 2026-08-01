@@ -156,14 +156,17 @@ def _wait_for_llama(timeout_s: int = 120) -> bool:
     timeout=600,             # allow time for first-run GGUF download
     memory=8192,
     max_containers=1,        # never spin up more than 1 GPU
-    scaledown_window=600,    # 10 min idle → scale to zero (raised 2026-07-04 from 60).
+    scaledown_window=2700,   # 45 min idle → scale to zero (raised 2026-08-01 from 600).
                              # Steve's testing pattern has 5-50 min gaps between
-                             # messages, every gap > 60s triggered a cold start
-                             # (~60-90s on L4) → chat was taking 90-120s per msg.
-                             # 600s keeps brain-v35 warm through normal conversation
-                             # rhythms. Cost delta: ~$3-5/month in keep-alive compute
-                             # on top of the ~$14/month baseline. Worth it — fast
-                             # chat is the core product promise.
+                             # messages. 600s (10min) still cold-started on 10-45min
+                             # gaps, and brain-v35 isn't just NSFW — it's Holly's
+                             # consciousness/emotions/identity/vision/synthesis layer.
+                             # Cold starts hit everything that makes Holly *Holly*.
+                             # 2700s covers typical conversation rhythms (bathroom,
+                             # meeting, lunch breaks) without a cold start.
+                             # Cost: scales with active time, not idle — idle warm
+                             # containers on Modal bill only for the GPU reservation,
+                             # ~$0 extra vs the 600s window at current usage.
 )
 @modal.concurrent(max_inputs=4)
 class HollyBrain:
@@ -296,7 +299,7 @@ class HollyBrain:
             "context_window": CONTEXT_SIZE,
             "serverless": True,
             "max_containers": 1,
-            "scaledown_window": 600,
+            "scaledown_window": 2700,
             "deployed_at": "2026-06-30",
             "version": "v3.5",
         }

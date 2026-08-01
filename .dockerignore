@@ -77,7 +77,13 @@ browser-extension/
 mobile-app/
 
 # ── Scripts not needed at runtime ─────────────────────────────────────────────
+# EXCEPTION: holly-mcp-server.js MUST ship in the image — it is spawned as a
+# stdio child process at runtime (mcp-client.ts → ensureHollyTools). Without it
+# the spawn fails with ENOENT, tool loading silently fails, and Holly role-plays
+# actions instead of executing them. (Root cause of "Holly says she'll do X but
+# nothing happens," fixed 2026-08-01.)
 scripts/
+!scripts/holly-mcp-server.js
 
 # ── Services not needed in main build ─────────────────────────────────────────
 services/

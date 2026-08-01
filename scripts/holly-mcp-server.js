@@ -39,20 +39,25 @@
  * (25 tools total)
  */
 
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { ListToolsRequestSchema, CallToolRequestSchema } from "@modelcontextprotocol/sdk/types.js";
-import https from "https";
-import http from "http";
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
-import { exec } from "child_process";
-import util from "util";
+// Converted to CommonJS (2026-08-01): The package.json has no "type": "module"
+// field, so Node treats .js files as CommonJS by default. The previous ESM
+// import syntax caused "Cannot use import statement outside a module" errors,
+// which (combined with scripts/ being excluded from Docker) prevented the MCP
+// tool server from ever loading in production. This require()-based version
+// loads correctly under the existing CommonJS configuration.
+const { Server } = require("@modelcontextprotocol/sdk/server/index.js");
+const { StdioServerTransport } = require("@modelcontextprotocol/sdk/server/stdio.js");
+const { ListToolsRequestSchema, CallToolRequestSchema } = require("@modelcontextprotocol/sdk/types.js");
+const https = require("https");
+const http = require("http");
+const fs = require("fs");
+const path = require("path");
+const { exec } = require("child_process");
+const util = require("util");
 
 const execPromise = util.promisify(exec);
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+// In CommonJS, __dirname is a native global — no need for fileURLToPath.
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
