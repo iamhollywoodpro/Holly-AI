@@ -569,12 +569,14 @@ export async function POST(req: NextRequest) {
           // DO NOT add brittle keyword/phrase patterns here. If a phrasing slips through,
           // fix the system prompt (see prompt-builder.ts) or interceptor, not this regex.
           const IMAGE_VIDEO_PATTERN_DIRECT   = /\b(generate|create|draw|make|render|paint|show|send|take|snap|give)\b(?:\s+\w+){0,4}?\s+(?:image|picture|photo|video|clip|portrait|selfie|illustration|artwork|render|pic|film|animation|gif)\b/i;
-          // Indirect self-portrait requests — "show me yourself", "send a selfie", "let me see a portrait".
-          // NOTE: bare "you"/"her" deliberately EXCLUDED — they match far too much conversational
-          // text ("show me what you want to", "I want to show you how") and produced false
-          // positives that triggered unwanted image gen (Steve flagged 2026-06-28).
-          // Self-portrait detection now requires an explicit reflexive/selfie/portrait word.
-          const IMAGE_VIDEO_PATTERN_SELF     = /\b(?:show|send|let\s+me\s+see|wanna\s+see|want\s+to\s+see)\b(?:\s+\w+){0,3}?\s+(?:yourself|selfie|portrait)\b/i;
+          // Indirect self-portrait requests — "show me yourself", "send a selfie",
+          // "I want to see you", "let me see you", "wanna see you".
+          // (Updated 2026-08-01): Added "you" as a valid target ONLY after "see/look"
+          // verbs (not after "show" which is too broad). "I want to see you" is one
+          // of the most natural ways users ask for a self-portrait.
+          // "show me what you want" and "I want to show you" do NOT match because
+          // 'show' direction is FROM the user, not TO the user for self-portraits.
+          const IMAGE_VIDEO_PATTERN_SELF     = /\b(?:(?:show|send)\b(?:\s+\w+){0,3}?\s+(?:yourself|selfie|portrait)|(?:let\s+me\s+see|let\s+me\s+look\s+at|wanna\s+see|want\s+to\s+see|i\s+want\s+to\s+see)\b(?:\s+\w+){0,3}?\s+(?:yourself|selfie|portrait|you))\b/i;
           // Body-part / appearance requests — "show me your body", "let me see your pussy",
           // "I want to see those tits", "show me that ass". The intimacy gate below still
           // applies — non-creator users without enough trust get blocked.
