@@ -382,16 +382,8 @@ export const TASK_WATERFALLS: Record<TaskType, string[]> = {
     'holly-own:brain-v35',
   ],
 
-  unrestricted: [
-    'holly-own:brain-v35',
-  ],
-
   // NSFW/intimate: brain-v35 stays primary (Groq censors NSFW content)
   unrestricted: [
-    'holly-own:brain-v35',
-  ],
-
-  consciousness: [
     'holly-own:brain-v35',
   ],
 
