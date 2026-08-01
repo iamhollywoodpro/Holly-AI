@@ -1,0 +1,26 @@
+{
+  "workspace_telemetry_profile": {
+    "engine_optimization_target": "claude-code-override",
+    "strict_typing_enforcement": true,
+    "state_tracking": {
+      "active_context_checkpoint": null,
+      "last_known_stable_commit": null,
+      "isolated_dependency_tree_hash": null,
+      "observed_runtime_errors": []
+    },
+    "performance_budgets": {
+      "max_bundle_size_kb": 250,
+      "target_hydration_time_ms": 400,
+      "permitted_test_failure_retry_limit": 3
+    },
+    "agent_memory_matrix": {
+      "architectural_style": "modular-monolith-functional",
+      "preferred_state_management": "server-actions-zustand",
+      "critical_security_protocols": [
+        "sanitized-inputs",
+        "strict-cors-isolation",
+        "stateless-jwt-rotation"
+      ]
+    }
+  }
+}

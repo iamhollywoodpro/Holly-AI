@@ -334,15 +334,24 @@ export const MODEL_CATALOGUE: Record<string, ModelSpec> = {
 // Fast fail when Modal is unreachable — better a clear error than a 429 wall.
 
 export const TASK_WATERFALLS: Record<TaskType, string[]> = {
+  // COLD-START FIX (2026-08-01): Groq is ALWAYS hot (1-2s response, free tier).
+  // brain-v35 on Modal L4 cold-starts in 60-120s. Previously every waterfall
+  // started with brain-v35 — user saw "Thinking..." for 2 minutes on first msg.
+  // Now Groq is PRIMARY for speed/chat/coding/reasoning (instant response).
+  // brain-v35 is SECONDARY (kicks in if Groq is rate-limited, and for
+  // unrestricted/NSFW content where Groq would censor).
   speed: [
+    'groq:llama-3.3-70b',
     'holly-own:brain-v35',
   ],
 
   coding: [
+    'groq:llama-3.3-70b',
     'holly-own:brain-v35',
   ],
 
   reasoning: [
+    'groq:llama-3.3-70b',
     'holly-own:brain-v35',
   ],
 
@@ -360,10 +369,12 @@ export const TASK_WATERFALLS: Record<TaskType, string[]> = {
   ],
 
   creative: [
+    'groq:llama-3.3-70b',
     'holly-own:brain-v35',
   ],
 
   agent: [
+    'groq:llama-3.3-70b',
     'holly-own:brain-v35',
   ],
 
@@ -372,6 +383,15 @@ export const TASK_WATERFALLS: Record<TaskType, string[]> = {
   ],
 
   unrestricted: [
+    'holly-own:brain-v35',
+  ],
+
+  // NSFW/intimate: brain-v35 stays primary (Groq censors NSFW content)
+  unrestricted: [
+    'holly-own:brain-v35',
+  ],
+
+  consciousness: [
     'holly-own:brain-v35',
   ],
 

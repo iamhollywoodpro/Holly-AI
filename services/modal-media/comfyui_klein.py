@@ -169,22 +169,27 @@ NUDE_ANCHORS = (
 def get_anatomy_anchors(raw_prompt: str) -> str:
     """Return the appropriate anatomy anchors based on the prompt content.
 
-    - If clothing is mentioned → BASE only (no nude anchors)
+    - If clothing is mentioned → BASE only + clothed reinforcement
     - If nudity keywords present → BASE + NUDE
-    - If neither → BASE only (let the model decide based on conversation context)
+    - If neither (ambiguous) → DEFAULT TO CLOTHED. The combined LoRA was
+      trained heavily on nude images and defaults to nude when given no
+      direction. Steve flagged "always naked" — fix: ambiguous = clothed
+      in casual settings. Holly's brain decides when to escalate to nude
+      based on conversation mood via the system prompt guidance.
     """
     has_clothing = bool(_CLOTHING_RE.search(raw_prompt))
     has_nudity = bool(_NUDE_RE.search(raw_prompt))
 
     if has_clothing:
         # Clothing mentioned — keep it clothed, no nude anchors
-        return BASE_ANCHORS
+        return BASE_ANCHORS + ", fully clothed, wearing outfit, dressed"
     elif has_nudity:
         # Explicit nudity requested — include anatomy anchors
         return BASE_ANCHORS + ", " + NUDE_ANCHORS
     else:
-        # Ambiguous — let the prompt + LoRA decide (conversation context guides)
-        return BASE_ANCHORS
+        # Ambiguous — DEFAULT TO CLOTHED (fixes "always naked" bug)
+        # Holly's brain will include nude keywords when she wants to be nude
+        return BASE_ANCHORS + ", wearing casual everyday clothing"
 
 
 # ─── Workflow builder (inlined — avoids cross-module packaging issues) ──
@@ -271,7 +276,7 @@ def build_pose_guided_workflow(
     height: int = 1024,
     seed=None,
     loras=None,
-    denoise: float = 0.35,
+    denoise: float = 0.50,
     steps: int = 12,
     cfg: float = 1.0,
     sampler: str = "euler",
@@ -1357,6 +1362,29 @@ class HollyComfyUIKlein:
         # These counteract Klein's tendency toward extra digits and oversize
         # hands/feet, and prevent skin-tone drift when NSFW LoRAs are stacked.
         prompt = f"{raw_prompt}, {get_anatomy_anchors(raw_prompt)}" if raw_prompt else get_anatomy_anchors(raw_prompt)
+
+        # VARIATION INJECTION (2026-08-01): Steve flagged "same images every time."
+        # Even with random seeds, identical prompts produce similar compositions.
+        # Inject random variation in camera angle, lighting, and expression so
+        # each generation feels fresh and unique.
+        import random as _var_rng
+        _ANGLES = [
+            "straight-on camera angle", "slightly from above", "slightly from below",
+            "three-quarter angle", "side angle", "looking over shoulder camera angle",
+        ]
+        _LIGHTING = [
+            "warm golden hour lighting", "soft diffused studio lighting",
+            "bright natural daylight", "moody low-key lighting",
+            "warm bedside lamp lighting", "cool blue hour lighting",
+        ]
+        _EXPRESSIONS = [
+            "soft genuine smile", "confident expression", "playful smirk",
+            "relaxed content expression", "slightly surprised look",
+            "warm affectionate gaze", "thoughtful expression",
+        ]
+        _variation = f"{_var_rng.choice(_ANGLES)}, {_var_rng.choice(_LIGHTING)}, {_var_rng.choice(_EXPRESSIONS)}"
+        prompt = f"{prompt}, {_variation}"
+
         disable_routing = request.get("disable_routing", False)
 
         if not prompt:
@@ -1506,7 +1534,7 @@ class HollyComfyUIKlein:
 
         raw_prompt = request.get("prompt", "")
         pose_ref = request.get("pose_ref", "")
-        denoise = float(request.get("denoise", 0.35))
+        denoise = float(request.get("denoise", 0.50))
         width = request.get("width", 1024)
         height = request.get("height", 1024)
         seed = request.get("seed")
