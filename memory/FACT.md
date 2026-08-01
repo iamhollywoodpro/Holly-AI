@@ -953,3 +953,56 @@ base mismatch. This mistake persisted 3 months undiagnosed.
 #### HEALTH ENDPOINT
 `https://iamhollywoodpro--comfyui-klein-health.modal.run`
 
+## ─────────────────────────────────────────────────────────────────────────────
+## DEPLOYMENT — 2026-08-01 (commit a7ea4b9 on main)
+## ─────────────────────────────────────────────────────────────────────────────
+
+Three root-cause fixes shipped + two Modal deploys verified live.
+
+### WHAT WAS FIXED
+1. **MCP tool calling (THE "nothing happens" bug):**
+   - `scripts/holly-mcp-server.js` was excluded from Docker image (.dockerignore)
+   - AND used ESM imports in a CommonJS project (no `"type":"module"`)
+   - Result: stdio spawn failed silently → 46 core tools never loaded → Holly
+     role-played actions instead of executing them
+   - Fix: converted MCP server to CommonJS (`require()`) + added .dockerignore
+     exception for `scripts/holly-mcp-server.js`
+   - Verified: server boots, `initialize` + `tools/list` returns all 46 tools
+
+2. **brain-v35 cold start window (600s → 2700s):**
+   - 10-min window too short for real conversation rhythms (5-50 min gaps)
+   - brain-v35 isn't just NSFW — it's consciousness/emotions/identity/vision
+   - Fix: `scaledown_window=2700` (45 min) in deploy_holly_v35.py
+   - Verified live: health endpoint returns `"scaledown_window": 2700`
+
+3. **Emotional/intimate routing to Groq (should be brain-v35):**
+   - MODE_TASK_MAP had `emotional-intelligence` and `intimate` → 'speed' (Groq)
+   - Groq is censored/generic → emotional chat felt like a generic chatbot
+   - Fix: rerouted both modes to 'consciousness' (brain-v35-only waterfall)
+
+### MODAL DEPLOYS (both verified live via health endpoints)
+- `modal deploy services/modal-llm/deploy_holly_v35.py` → iamhollywoodpro ✅
+  - brain-health returns `"scaledown_window": 2700`
+- `modal deploy services/modal-media/comfyui_klein.py` → iamhollywoodpro ✅
+  - comfyui-klein-health returns `"status": "healthy"`, all LoRAs loaded
+  - Clothing-awareness + image-variation injection (252 combos) now LIVE
+
+### COOLIFY DEPLOY
+- Commit a7ea4b9 pushed to main → Coolify auto-deploy triggered
+- Rebuilds Docker image WITH holly-mcp-server.js (new .dockerignore exception)
+- MCP server will load as CommonJS on next container boot
+
+### ACCOUNT SPLIT (VERIFIED CORRECT — NO SWAP NEEDED)
+- iamhollywoodpro = brain-v35 + vision (consciousness, emotions, identity)
+- iamdoregosteve = older diffusers image endpoint (generate-holly-a100)
+- Note: comfyui-klein (the identity-locked image gen Holly actually uses)
+  lives on iamhollywoodpro, NOT iamdoregosteve. This is correct per production
+  env config (MODAL_HOLLY_LORA_URL → iamhollywoodpro--generate-comfyui-klein)
+
+### BRAIN V4.0 ROADMAP (NEXT MAJOR WORK)
+Phase 0: Fix training data collection (67 examples, 0 above 0.80 quality)
+Phase 1: Q4_K_M → Q8_0 quant (9.5GB, fits L4) — emotional nuance boost
+Phase 2: System prompt surgery (stale architecture description in holly-modes.ts:72)
+Phase 3: Fine-tune pipeline repair (retarget Qwen3-8B→Qwen3.5-9B, raise token cap)
+Phase 4: Deploy as holly-brain-v40, keep v35 as fallback
+
