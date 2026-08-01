@@ -1479,10 +1479,15 @@ export async function POST(req: NextRequest) {
               const hasTools = groqTools && groqTools.length > 0;
               const arceeApiKey = process.env.ARCEE_API_KEY;
               const arceeBaseUrl = process.env.ARCEE_BASE_URL || 'https://api.arcee.ai/api/v1';
-              // For unrestricted content, skip censored models (Groq/Arcee) and go straight
-              // to the cascade with uncensored models in the waterfall
-              const useGroqTools = !isUnrestricted && hasTools && groqClient;
-              const useArceeTools = !isUnrestricted && !useGroqTools && hasTools && arceeApiKey;
+              // CLAUDE-KILLER FIX (2026-08-01): Enable tool calling for ALL content
+              // including unrestricted/NSFW. Previously tools were disabled for
+              // unrestricted content which meant Holly could never execute tools
+              // during intimate conversations — she'd say "I'll build that" but
+              // nothing happened because brain-v35 has no native function calling.
+              // Now: Groq (qwen3-32b) handles tool calling for ALL conversations.
+              // The intimacy gate and hard rules still protect against unwanted content.
+              const useGroqTools = hasTools && groqClient;
+              const useArceeTools = !useGroqTools && hasTools && arceeApiKey;
 
               let isToolCall = false, toolName = '', toolArgs = '', toolCallId = '';
 
