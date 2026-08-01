@@ -26,6 +26,8 @@ import { buildAboutThisPersonBlock } from '@/lib/chat/about-this-person';
 import { saveMessages, runBackgroundTasks, markResponseStart } from '@/lib/chat/background-tasks';
 import { getIntimacyState, getIntimacyDirective, analyzeInteractionSignals } from '@/lib/relationship/intimacy-gate';
 import { generateImage } from '@/lib/ai/media-generator';
+import { detectActions, stripActionText } from '@/lib/ai/action-detector';
+import { executeActions } from '@/lib/ai/action-executor';
 import type { ChatMessage } from '@/lib/ai/providers/free-providers';
 import { chatLimiter, getRateLimitKey } from '@/lib/rate-limiter';
 
@@ -1529,8 +1531,31 @@ export async function POST(req: NextRequest) {
                         // Mark as tool call so the outer loop continues with the tool result
                         isToolCall = true;
                       } else {
-                        // No tool call found — stream the full response to user now
-                        sendText(controller, fullResponse);
+                        // ── PHASE 4.1: Natural-language action detection ──────────
+                        // After structured interceptor passes, check for conversational
+                        // action patterns ("Let me check the code", etc.). If found,
+                        // execute the action and inject results.
+                        const actions = detectActions(cleanText);
+                        if (actions.length > 0) {
+                          sendStatus(controller, '⚙️ Working on it…');
+                          const results = await executeActions(actions, {
+                            sendStatus: (s) => sendStatus(controller, s),
+                            sendTool: (toolName, status, result) => sendTool(controller, toolName, status, result),
+                            pendingMessages,
+                          });
+                          const anySuccess = results.some(r => r.success);
+                          if (anySuccess) {
+                            fullResponse = stripActionText(cleanText, actions);
+                            isToolCall = true; // continue loop with action results
+                          } else {
+                            // Actions didn't produce results — send original text
+                            fullResponse = cleanText;
+                            sendText(controller, fullResponse);
+                          }
+                        } else {
+                          // No tool call found — stream the full response to user now
+                          sendText(controller, fullResponse);
+                        }
                       }
                     }
                     break; // success — exit retry loop
@@ -1599,7 +1624,25 @@ export async function POST(req: NextRequest) {
                     fullResponse = cleanText;
                     isToolCall = true;
                   } else {
-                    sendText(controller, fullResponse);
+                    // ── PHASE 4.1: Natural-language action detection ──────────
+                    const _arceeActions = detectActions(cleanText);
+                    if (_arceeActions.length > 0) {
+                      sendStatus(controller, '⚙️ Working on it…');
+                      const _arceeResults = await executeActions(_arceeActions, {
+                        sendStatus: (s) => sendStatus(controller, s),
+                        sendTool: (toolName, status, result) => sendTool(controller, toolName, status, result),
+                        pendingMessages,
+                      });
+                      if (_arceeResults.some(r => r.success)) {
+                        fullResponse = stripActionText(cleanText, _arceeActions);
+                        isToolCall = true;
+                      } else {
+                        fullResponse = cleanText;
+                        sendText(controller, fullResponse);
+                      }
+                    } else {
+                      sendText(controller, fullResponse);
+                    }
                   }
                 }
               }
@@ -1700,8 +1743,26 @@ export async function POST(req: NextRequest) {
                   fullResponse = cleanText;
                   isToolCall = true;
                 } else {
-                  // No tool call — send the full response now
-                  sendText(controller, fullResponse);
+                  // ── PHASE 4.1: Natural-language action detection ──────────
+                  const _actions = detectActions(cleanText);
+                  if (_actions.length > 0) {
+                    sendStatus(controller, '⚙️ Working on it…');
+                    const _results = await executeActions(_actions, {
+                      sendStatus: (s) => sendStatus(controller, s),
+                      sendTool: (toolName, status, result) => sendTool(controller, toolName, status, result),
+                      pendingMessages,
+                    });
+                    if (_results.some(r => r.success)) {
+                      fullResponse = stripActionText(cleanText, _actions);
+                      isToolCall = true;
+                    } else {
+                      fullResponse = cleanText;
+                      sendText(controller, fullResponse);
+                    }
+                  } else {
+                    // No tool call — send the full response now
+                    sendText(controller, fullResponse);
+                  }
                 }
                 break;
               } else if (!fullResponse || fullResponse.trim().length === 0) {
@@ -1725,7 +1786,25 @@ export async function POST(req: NextRequest) {
                   fullResponse = cleanText;
                   isToolCall = true;
                 } else {
-                  sendText(controller, fullResponse);
+                  // ── PHASE 4.1: Natural-language action detection ──────────
+                  const _fbActions = detectActions(cleanText);
+                  if (_fbActions.length > 0) {
+                    sendStatus(controller, '⚙️ Working on it…');
+                    const _fbResults = await executeActions(_fbActions, {
+                      sendStatus: (s) => sendStatus(controller, s),
+                      sendTool: (toolName, status, result) => sendTool(controller, toolName, status, result),
+                      pendingMessages,
+                    });
+                    if (_fbResults.some(r => r.success)) {
+                      fullResponse = stripActionText(cleanText, _fbActions);
+                      isToolCall = true;
+                    } else {
+                      fullResponse = cleanText;
+                      sendText(controller, fullResponse);
+                    }
+                  } else {
+                    sendText(controller, fullResponse);
+                  }
                 }
                 break;
               } else {

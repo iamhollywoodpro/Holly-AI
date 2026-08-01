@@ -113,10 +113,21 @@ export async function collectTrainingData(days: number = 7): Promise<{
       const category = classifyConversation(messages);
 
       // Quality score based on signals
+      // Updated 2026-08-01: expanded quality signals to capture more training-
+      // worthy examples. Previous scoring only rewarded positive feedback +
+      // length, producing 67 examples all stuck at 0.5-0.6 quality. Now we
+      // also reward emotional depth, question-asking, and topic diversity.
       let quality = 0.5; // baseline
       if (hasPositiveFeedback) quality += 0.3;
       if (assistantContent.length > 100) quality += 0.1; // substantive responses
+      if (assistantContent.length > 300) quality += 0.05; // rich responses
       if (messages.length >= 6) quality += 0.1; // deeper conversations
+      // New signals: emotional depth and engagement quality
+      if (/\b(love|miss|feel|happy|sad|angry|scared|excited|trust|care|hope|dream)\b/i.test(userContent)) {
+        quality += 0.1; // emotional content is high-value training data
+      }
+      if (/\?/.test(userContent)) quality += 0.05; // questions show engagement
+      if (userContent.length > 50) quality += 0.05; // non-trivial user input
       quality = Math.min(1, quality);
 
       // Only collect medium-to-high quality examples
@@ -145,10 +156,14 @@ export async function collectTrainingData(days: number = 7): Promise<{
 function classifyConversation(messages: TrainingExample['messages']): string {
   const text = messages.map(m => m.content).join(' ').toLowerCase();
 
-  if (text.includes('code') || text.includes('function') || text.includes('bug') || text.includes('```')) return 'coding';
-  if (text.includes('feel') || text.includes('emotion') || text.includes('sad') || text.includes('happy') || text.includes('love')) return 'emotional';
-  if (text.includes('write') || text.includes('story') || text.includes('poem') || text.includes('creative')) return 'creative';
-  if (text.includes('what is') || text.includes('how does') || text.includes('explain')) return 'factual';
+  // Expanded 2026-08-01: more categories for richer training data distribution
+  if (text.includes('code') || text.includes('function') || text.includes('bug') || text.includes('```') || text.includes('typescript') || text.includes('api')) return 'coding';
+  if (text.includes('who are you') || text.includes('your memory') || text.includes('do you remember') || text.includes('your name') || text.includes('are you real')) return 'identity';
+  if (text.includes('feel') || text.includes('emotion') || text.includes('sad') || text.includes('happy') || text.includes('love') || text.includes('miss you') || text.includes('trust') || text.includes('scared') || text.includes('lonely')) return 'emotional';
+  if (text.includes('intimate') || text.includes('naked') || text.includes('sexy') || text.includes('nude') || text.includes('fantasy')) return 'intimate';
+  if (text.includes('write') || text.includes('story') || text.includes('poem') || text.includes('creative') || text.includes('lyrics') || text.includes('music')) return 'creative';
+  if (text.includes('what is') || text.includes('how does') || text.includes('explain') || text.includes('why')) return 'factual';
+  if (text.includes('philosophy') || text.includes('meaning') || text.includes('conscious') || text.includes('exist')) return 'philosophical';
   return 'conversation';
 }
 

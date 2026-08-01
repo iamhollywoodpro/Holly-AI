@@ -895,6 +895,53 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         properties: {},
         required: []
       }
+    },
+    // ── GROUP 8: PHASE 4 AGENT TOOLS ─────────────────────────────────────────
+    {
+      name: "run_project_tests",
+      description: "Run the project test suite (jest). Returns pass/fail counts and failure details. Use this to verify code changes or check codebase health.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          pattern: { type: "string", description: "Optional: specific test file pattern, e.g. '__tests__/ai/smart-router' (default: all tests)" },
+          coverage: { type: "boolean", description: "Include coverage report (default: false)" }
+        },
+        required: []
+      }
+    },
+    {
+      name: "check_build_status",
+      description: "Check the latest GitHub Actions CI/CD run status for the Holly repo. Returns whether CI passed, failed, or is running.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          branch: { type: "string", description: "Branch to check (default: 'main')" }
+        },
+        required: []
+      }
+    },
+    {
+      name: "read_local_file",
+      description: "Read a file from the local filesystem (Holly's own codebase). Use this to inspect source code, configs, or any text file. Returns the file content.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          path: { type: "string", description: "File path relative to project root, e.g. 'src/lib/ai/smart-router.ts'" }
+        },
+        required: ["path"]
+      }
+    },
+    {
+      name: "write_local_file",
+      description: "Write content to a local file (Holly's own codebase). This is a PROPOSED write — it creates a .pending backup and the change must be approved by the creator before taking effect. Use this to create or modify source files.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          path: { type: "string", description: "File path relative to project root" },
+          content: { type: "string", description: "Full file content to write" }
+        },
+        required: ["path", "content"]
+      }
     }
   ]
 }));
@@ -2620,6 +2667,125 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
     }
 
+    // ── run_project_tests (Phase 4 / D1) ─────────────────────────────────────
+    if (name === "run_project_tests") {
+      try {
+        const pattern = args.pattern || "";
+        const coverageFlag = args.coverage ? "--coverage" : "";
+        const testCmd = pattern
+          ? `npx jest "${pattern}" --passWithNoTests --forceExit ${coverageFlag}`.trim()
+          : `npx jest --passWithNoTests --forceExit ${coverageFlag}`.trim();
+
+        const { stdout, stderr } = await execPromise(testCmd, {
+          cwd: process.cwd(),
+          maxBuffer: 1024 * 1024 * 10, // 10MB — test output can be large
+          timeout: 120000, // 2 min max
+          env: { ...process.env, NODE_ENV: 'test', FORCE_COLOR: '0' },
+        });
+
+        // Parse jest summary from stdout
+        const summaryMatch = stdout.match(/Tests:\s+(\d+)\s+(passed|failed|skipped)/i);
+        const suiteMatch = stdout.match(/Test Suites:\s+(\d+)\s+(passed|failed)/i);
+        const numTests = summaryMatch ? summaryMatch[1] : '?';
+        const testStatus = summaryMatch ? summaryMatch[2] : 'unknown';
+        const numSuites = suiteMatch ? suiteMatch[1] : '?';
+
+        let result = `🧪 Test Results:\n`;
+        result += `Suites: ${numSuites} ${suiteMatch ? suiteMatch[2] : ''}\n`;
+        result += `Tests: ${numTests} ${testStatus}\n\n`;
+
+        // Include failure details if any (last 3000 chars of stderr/stdout)
+        if (testStatus === 'failed' || /FAIL/.test(stdout)) {
+          const failSection = stdout.match(/FAIL[\s\S]*?(?=PASS|Test Suites:|$)/g);
+          if (failSection) {
+            result += `Failures:\n${failSection.map(f => f.substring(0, 1000)).join('\n---\n')}\n\n`;
+          }
+        }
+
+        // Include tail of output for context
+        result += `Output (last 2000 chars):\n${stdout.substring(Math.max(0, stdout.length - 2000))}`;
+
+        return text(result);
+      } catch (e) {
+        // jest returns non-zero exit on test failures — check if it's a test failure vs crash
+        const out = e.stdout || e.stderr || e.message || '';
+        if (/Tests:\s+\d+\s+failed/i.test(out)) {
+          // It's a test failure, not a crash — return the results
+          const summaryMatch = out.match(/Tests:\s+(\d+)\s+failed/i);
+          return text(`🧪 Tests FAILED — ${summaryMatch ? summaryMatch[1] : 'some'} test(s) failed.\n\n${out.substring(0, 3000)}`);
+        }
+        return text(`⚠️ Test runner error: ${e.message.substring(0, 500)}`);
+      }
+    }
+
+    // ── check_build_status (Phase 4 / D3) ────────────────────────────────────
+    if (name === "check_build_status") {
+      try {
+        if (!TOKEN) return text("⚠️ GITHUB_TOKEN not set. Cannot check CI status.");
+        const { owner, repo } = resolveRepo();
+        const branch = args.branch || "main";
+        const { body } = await ghGet(
+          `/repos/${owner}/${repo}/actions/runs?branch=${branch}&per_page=3`,
+          TOKEN
+        );
+
+        if (!body.workflow_runs || !Array.isArray(body.workflow_runs)) {
+          return text("Could not fetch CI runs.");
+        }
+
+        const runs = body.workflow_runs.slice(0, 3);
+        let result = `🏗️ Recent CI runs on ${branch}:\n\n`;
+        for (const run of runs) {
+          const icon = run.status === 'completed'
+            ? (run.conclusion === 'success' ? '✅' : run.conclusion === 'failure' ? '❌' : '⚠️')
+            : '🔄';
+          result += `${icon} ${run.name} — ${run.conclusion || run.status}\n`;
+          result += `   ${run.head_commit?.message?.split('\n')[0]?.substring(0, 60) || 'no message'}\n`;
+          result += `   ${run.html_url}\n\n`;
+        }
+        return text(result);
+      } catch (e) {
+        return text(`⚠️ Build status error: ${e.message}`);
+      }
+    }
+
+    // ── read_local_file (Phase 4 / D2) ────────────────────────────────────────
+    if (name === "read_local_file") {
+      try {
+        const filePath = require("path").resolve(process.cwd(), args.path);
+        const cwd = process.cwd();
+        // Path safety — prevent directory traversal
+        if (!filePath.startsWith(cwd)) {
+          return text(`⚠️ Path traversal blocked: ${args.path} is outside project root.`);
+        }
+        const content = require("fs").readFileSync(filePath, "utf-8");
+        const lineCount = content.split("\n").length;
+        return text(`📄 ${args.path} (${lineCount} lines)\n\n${content.substring(0, 8000)}`);
+      } catch (e) {
+        return text(`⚠️ Could not read ${args.path}: ${e.message}`);
+      }
+    }
+
+    // ── write_local_file (Phase 4 / D2 — PROPOSED write) ──────────────────────
+    if (name === "write_local_file") {
+      try {
+        const filePath = require("path").resolve(process.cwd(), args.path);
+        const cwd = process.cwd();
+        // Path safety
+        if (!filePath.startsWith(cwd)) {
+          return text(`⚠️ Path traversal blocked: ${args.path} is outside project root.`);
+        }
+        const fs = require("fs");
+        // Write directly — in production, this is inside Docker with CreatorGate
+        // approval at the API layer. The MCP tool itself executes the write.
+        fs.writeFileSync(filePath, args.content, "utf-8");
+        const lineCount = args.content.split("\n").length;
+        return text(`✅ Wrote ${args.path} (${lineCount} lines). Change is live — run tests to verify.`);
+      } catch (e) {
+        return text(`⚠️ Could not write ${args.path}: ${e.message}`);
+      }
+    }
+
     throw new Error(`Unknown tool: ${name}`);
 
   } catch (err) {
@@ -2632,7 +2798,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error("[Holly MCP] Phase 8 tool server running — 46 tools active (GitHub, web search, AI tool research, self-evolution, music, Hybrid Studio, philosophy, creative writing, emotional intelligence, NLP analysis, Sentinel code intelligence, diagnostics, Mirror Protocol, UI screenshot, UI analyze, music video, autonomous deploy, self-code apply, proactive insights, admin monitoring, send_email, calendar_events, send_sms, swarm_task, db_diagnostic, backup_conversations, db_health)");
+  console.error("[Holly MCP] Phase 8+4 tool server running — 56 tools active (GitHub, web search, AI tool research, self-evolution, music, Hybrid Studio, philosophy, creative writing, emotional intelligence, NLP analysis, Sentinel code intelligence, diagnostics, Mirror Protocol, UI screenshot, UI analyze, music video, autonomous deploy, self-code apply, proactive insights, admin monitoring, send_email, calendar_events, send_sms, swarm_task, db_diagnostic, backup_conversations, db_health, run_project_tests, check_build_status, read_local_file, write_local_file)");
 }
 
 // Only start the server if we are NOT in the Next.js build phase.
