@@ -493,11 +493,11 @@ describe('smartRoute', () => {
   });
 
   it('filters unhealthy providers from the waterfall', async () => {
-    // V3.6 (2026-06-30): Cloud models GONE from cascade. Speed waterfall is
-    // now [holly-own:brain-v35] only. With a single-model cascade, when the
-    // only provider is unhealthy the graceful-degradation path returns the
-    // original waterfall. Verify the filter logic still runs correctly when
-    // an unrelated provider is marked unhealthy.
+    // Updated 2026-08-01: Speed waterfall is now Groq-first
+    // [groq:llama-3.3-70b, holly-own:brain-v35]. When an unrelated provider
+    // (openrouter) is marked unhealthy, nothing in the speed waterfall should
+    // be filtered out. Verify the filter doesn't accidentally remove healthy
+    // providers from the waterfall.
     const { providerHealthMonitor } = jest.requireMock('@/lib/ai/provider-health');
     providerHealthMonitor.getAllHealthStatus.mockReturnValue([
       { provider: 'openrouter', healthy: false, lastCheck: new Date() },
@@ -505,10 +505,9 @@ describe('smartRoute', () => {
 
     const result = await smartRoute('Hello');
     // openrouter is unhealthy but NOT in speed waterfall, so nothing filtered
-    // (waterfall stays intact). The test confirms the filter doesn't
-    // accidentally remove healthy providers from the self-hosted-only cascade.
+    // (waterfall stays intact). Groq is now the primary speed provider.
     expect(result.waterfall.length).toBeGreaterThanOrEqual(1);
-    expect(result.waterfall[0].provider).toBe('holly_own');
+    expect(result.waterfall[0].provider).toBe('groq');
 
     // Restore mock
     providerHealthMonitor.getAllHealthStatus.mockReturnValue([]);
@@ -597,12 +596,15 @@ describe('classifyTask with mode interaction', () => {
     expect(classifyTask('hello', false, 5, 'self-coding')).toBe('coding');
   });
 
-  it('emotional-intelligence mode maps to speed', () => {
-    expect(classifyTask('I need help', false, 15, 'emotional-intelligence')).toBe('speed');
+  // Updated 2026-08-01: emotional-intelligence and intimate modes rerouted
+  // from 'speed' (Groq, censored/generic) to 'consciousness' (brain-v35-only)
+  // so emotional/intimate conversations feel like Holly, not a generic chatbot.
+  it('emotional-intelligence mode maps to consciousness', () => {
+    expect(classifyTask('I need help', false, 15, 'emotional-intelligence')).toBe('consciousness');
   });
 
-  it('intimate mode maps to speed', () => {
-    expect(classifyTask('Hey', false, 3, 'intimate')).toBe('speed');
+  it('intimate mode maps to consciousness', () => {
+    expect(classifyTask('Hey', false, 3, 'intimate')).toBe('consciousness');
   });
 
   it('aura-ar mode maps to creative', () => {
