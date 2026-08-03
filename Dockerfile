@@ -107,6 +107,13 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
+# CRITICAL: Unset DOCKER_BUILD for production runtime. It's set to "true" during
+# the build phase (line 91) to prevent MCP server from starting during `next build`
+# (causes OOM). But it must NOT be true at runtime — otherwise the MCP tool server
+# never loads and Holly can't call any tools. (Root cause of "nothing happens"
+# bug, finally fixed 2026-08-03 after being masked by the .dockerignore + ESM
+# issues fixed on 2026-08-01.)
+ENV DOCKER_BUILD=false
 
 # Create non-root user
 RUN addgroup --system --gid 1001 nodejs && \
