@@ -695,7 +695,10 @@ export async function POST(req: NextRequest) {
           // (route.ts already truncates from the end), not bigger context.
           // Steve's "unlimited forever" directive is honored by never hitting
           // this cap in normal use — 60K chars ≈ 30-50 message exchanges.
-          const MAX_CONTEXT_CHARS = 60_000;
+          // Groq llama-3.3-70b supports 128K tokens. 200K chars ≈ 50K tokens —
+          // leaves room for system prompt + tools + response. Previously 60K
+          // was too aggressive and killed long conversations prematurely.
+          const MAX_CONTEXT_CHARS = 200_000;
           const systemMsg = messages[0];
           const systemChars = typeof systemMsg?.content === 'string' ? systemMsg.content.length : 0;
           const toolChars = groqTools ? JSON.stringify(groqTools).length : 0;
@@ -1477,6 +1480,44 @@ export async function POST(req: NextRequest) {
             let toolLoops = 0;
             const MAX_TOOL_LOOPS = 12;
             let pendingMessages = [...cascadeMessages];
+
+            // ── CASCADE CONTEXT SAFETY (2026-08-03) ──────────────────────────────
+            // pendingMessages can grow unboundedly across a long conversation. When
+            // it falls through to brain-v35/v40 (128K token context), a 1.4M-token
+            // payload caused "exceeds context size" errors → "trouble connecting."
+            // Holly DYING in chat is unacceptable — this is the core use case for an
+            // AI partner. Truncate to fit brain-v40's 128K context, keeping the
+            // system prompt + most recent messages.
+            const CASCADE_MAX_CHARS = 480_000; // ~120K tokens — safe under 128K limit
+            {
+              const sysMsgs = pendingMessages.filter((m: ChatMessage) => m.role === 'system');
+              const convMsgs = pendingMessages.filter((m: ChatMessage) => m.role !== 'system');
+              const systemChars = sysMsgs.reduce((s: number, m: ChatMessage) =>
+                s + (typeof m.content === 'string' ? m.content.length : JSON.stringify(m.content).length), 0);
+              const available = CASCADE_MAX_CHARS - systemChars - 10_000;
+              if (available > 0 && convMsgs.length > 0) {
+                let totalChars = 0;
+                let keepCount = 0;
+                for (let i = convMsgs.length - 1; i >= 0; i--) {
+                  const msgChars = typeof convMsgs[i].content === 'string'
+                    ? (convMsgs[i].content as string).length
+                    : JSON.stringify(convMsgs[i].content).length;
+                  totalChars += msgChars;
+                  if (totalChars > available) break;
+                  keepCount++;
+                }
+                if (keepCount < convMsgs.length) {
+                  const kept = convMsgs.slice(-Math.max(keepCount, 6)); // keep at least 6 recent msgs
+                  pendingMessages = [...sysMsgs, ...kept];
+                  logger.info('Chat', 'Cascade context truncated for safety', {
+                    originalConvCount: convMsgs.length,
+                    keptCount: kept.length,
+                    systemChars,
+                  });
+                }
+              }
+            }
+
             let lastError: { message: string; provider: string; type: string } | null = null;
 
             while (toolLoops < MAX_TOOL_LOOPS && waterfall.length > 0) {
