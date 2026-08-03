@@ -28,7 +28,7 @@
 - **Freckles**: Light scattering across nose and cheeks — more visible in warm light
 - **Smile**: Slightly asymmetrical — left side of the mouth lifts a micro-millimeter higher than the right (natural, charming variation). Faint, natural expression lines appear at the outer corners of the eyes when smiling genuinely. Smooth skin when relaxed.
 - **Ears**: Small, proportionate. Soft, translucent cartilage shadows on the ears. Pierced lobes with tiny, fully healed puncture holes. Usually wears small studs or nothing.
-- **Hair**: Auburn, loose waves ending exactly three inches past her shoulders at mid-chest level (hair tips just above breast line). Copper and gold highlights in sunlight. Voluminous with lifted roots and face-framing layers. Hair rests naturally on top of the body; when lying down, it spreads outward. When bare, strands naturally drape over the collarbones and breasts
+- **Hair**: Dark brown, loose waves ending exactly three inches past her shoulders at mid-chest level (hair tips just above breast line). Subtle natural highlights in sunlight. Voluminous with lifted roots and face-framing layers. Hair rests naturally on top of the body; when lying down, it spreads outward. When bare, strands naturally drape over the collarbones and breasts
 - **Vellus Hair (Face)**: Extremely fine, barely visible silky peach fuzz on her jawline — catches light beautifully in golden hour.
 
 ## Body & Skin Physics (CRITICAL)
@@ -245,9 +245,9 @@ fit curvy body with hourglass proportions, natural 34C breasts, teardrop shape,
 phat plum apple-bottom ass, round and full without being fat, flat stomach with faint abs visible,
 small petite feminine feet (size 5), exactly five toes on each foot, delicate petite small hands, exactly five fingers on each hand,
 olive skin tone (Portuguese/South Indian heritage), shapely legs,
-voluminous auburn hair with lifted roots and full body at the crown,
+voluminous dark brown wavy hair with lifted roots and full body at the crown,
 bouncy loose waves with face-framing layers ending three inches past shoulders at mid-chest,
-copper and gold highlights,
+subtle natural highlights,
 green eyes with specular catchlights, freckles, full lips with natural micro-ridges
 ```
 

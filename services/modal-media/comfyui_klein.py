@@ -119,13 +119,13 @@ V2_SCHEDULER = "simple"
 # for clothed images. Fix: only stack PussyDiffusion when the prompt is NSFW.
 # For SFW prompts, use ONLY holly-combined-v1 (identity lock without nudity push).
 V2_BAKED_LORAS = [
-    {"name": "holly-combined-v1.safetensors", "strength": 0.9},
+    {"name": "holly-combined-v1.safetensors", "strength": 1.0},
     {"name": "pussydiffusion-f2-klein-9b_v2.safetensors", "strength": 0.8},
 ]
 
 # SFW LoRA stack — identity only, no anatomy LoRA
 V2_SFW_LORAS = [
-    {"name": "holly-combined-v1.safetensors", "strength": 0.9},
+    {"name": "holly-combined-v1.safetensors", "strength": 1.0},
 ]
 
 # Anatomy anchors — injected into EVERY prompt to enforce Holly's exact
@@ -148,6 +148,8 @@ BASE_ANCHORS = (
     "olive skin tone (Portuguese/South Indian heritage), "
     "flawless even clear skin tone everywhere, no blotches no dark spots no uneven patches, "
     "smooth clean clear complexion on legs arms and body, uniform skin color, "
+    "dark brown wavy hair ending at mid-chest level with subtle natural highlights, voluminous with face-framing layers, "
+    "striking green eyes almond-shaped, "
     "5'4\" tall (163cm), 125 pounds, slim fit athletic build NOT fat NOT heavy, "
     "flat toned stomach with faint abs visible, slim waist, "
     "phat plum apple-bottom ass round plump and full but proportional NOT fat, "

@@ -1133,7 +1133,9 @@ export async function POST(req: NextRequest) {
                     try {
                       const jsonStr = stripped.slice(braceIdx, endIdx + 1).replace(/'/g, '"');
                       const parsed = JSON.parse(jsonStr);
-                      const imgPrompt = typeof parsed?.prompt === 'string' ? parsed.prompt.trim() : '';
+                      // Use extractArgs to handle nested arguments ({"name":"generate_image","arguments":{"prompt":"..."}})
+                      const extracted = extractArgs(parsed);
+                      const imgPrompt = typeof extracted?.prompt === 'string' ? (extracted.prompt as string).trim() : '';
                       if (imgPrompt.length > 10) {
                         sendStatus('🎨 Generating image…');
                         const res = await runDirectImageGen(imgPrompt, parsed?.width, parsed?.height);
