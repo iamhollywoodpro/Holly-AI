@@ -396,17 +396,26 @@ function classifySpecialist(prompt: string): SpecialistRecipe | null {
     let reinforcement = hasToy
       ? 'using a dildo, explicit, photorealistic'
       : 'masturbating, touching herself, explicit, photorealistic';
-    if (hasAnal) reinforcement += ', anal play, from behind';
+    if (hasAnal) reinforcement += ', anal play, finger in her asshole, from behind';
     if (hasFood) reinforcement += ', using food object for insertion';
     if (hasExpression || hasExtreme) {
       reinforcement += ', ' + getExpression(hasExtreme ? 'extreme' : 'intense',
         hasAnal ? 'deep in her ass' : 'deep inside her');
     }
+    // Choose pose ref based on action type:
+    // - Anal → from-behind pose (ass visible, hand reaching between legs)
+    // - Toy → dildo pose
+    // - Plain masturbation → standard masturbation pose
+    const poseRef = hasAnal
+      ? 'pose11-dildo-from-behind.png'
+      : hasToy
+        ? 'dildo_dildo_004.webp'
+        : 'masturbation_masturbation_026.jpg';
     return {
       category: 'dildo_masturbation',
       reinforcement,
       usePoseGuided: true,
-      poseRef: hasToy ? 'dildo_dildo_004.webp' : 'masturbation_masturbation_026.jpg',
+      poseRef,
     };
   }
 

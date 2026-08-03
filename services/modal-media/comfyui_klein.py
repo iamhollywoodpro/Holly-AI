@@ -180,7 +180,7 @@ NUDE_ANCHORS = (
 def get_anatomy_anchors(raw_prompt: str) -> str:
     """Return the appropriate anatomy anchors based on the prompt content.
 
-    - If clothing is mentioned → BASE only + clothed reinforcement
+    - If clothing is mentioned → BASE only + STRONG clothed reinforcement
     - If nudity keywords present → BASE + NUDE
     - If neither (ambiguous) → DEFAULT TO CLOTHED. The combined LoRA was
       trained heavily on nude images and defaults to nude when given no
@@ -192,8 +192,19 @@ def get_anatomy_anchors(raw_prompt: str) -> str:
     has_nudity = bool(_NUDE_RE.search(raw_prompt))
 
     if has_clothing:
-        # Clothing mentioned — keep it clothed, no nude anchors
-        return BASE_ANCHORS + ", fully clothed, wearing outfit, dressed"
+        # Clothing mentioned — keep it clothed with STRONG reinforcement.
+        # The combined LoRA was trained on nudes and fights clothing direction.
+        # We need explicit, forceful clothing language to override the LoRA bias.
+        # Also detect specific garment types for better rendering.
+        prompt_lower = raw_prompt.lower()
+        if any(w in prompt_lower for w in ['bikini', 'swimsuit', 'swim suit', 'one piece']):
+            return BASE_ANCHORS + ", wearing an opaque bikini swimsuit, fabric covering nipples and groin, solid swimwear material NOT transparent NOT see-through, fully covered"
+        elif any(w in prompt_lower for w in ['dress', 'gown']):
+            return BASE_ANCHORS + ", wearing a nice dress covering her body, opaque fabric NOT transparent NOT see-through, fully clothed"
+        elif any(w in prompt_lower for w in ['lingerie', 'bra', 'panties', 'underwear']):
+            return BASE_ANCHORS + ", wearing lingerie, fabric covering intimate areas, NOT naked"
+        else:
+            return BASE_ANCHORS + ", fully clothed wearing appropriate outfit, opaque fabric NOT transparent NOT see-through, dressed, no nudity"
     elif has_nudity:
         # Explicit nudity requested — include anatomy anchors
         return BASE_ANCHORS + ", " + NUDE_ANCHORS
