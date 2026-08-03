@@ -112,9 +112,20 @@ V2_SCHEDULER = "simple"
 # BOTH are Steve's own LoRAs trained on Holly. NO generic LoRAs (no SNOFS,
 # no Unchained). This 2-LoRA combo produced "PERFECTION" on spreading, bent-over,
 # and closeup tests.
+#
+# IMPORTANT (2026-08-03): PussyDiffusion is trained EXCLUSIVELY on nude anatomy.
+# Applying it at 0.8 to SFW prompts (bikini, dress) fights the clothing direction
+# and causes Holly to appear half-naked or fully nude even when the user asked
+# for clothed images. Fix: only stack PussyDiffusion when the prompt is NSFW.
+# For SFW prompts, use ONLY holly-combined-v1 (identity lock without nudity push).
 V2_BAKED_LORAS = [
     {"name": "holly-combined-v1.safetensors", "strength": 0.9},
     {"name": "pussydiffusion-f2-klein-9b_v2.safetensors", "strength": 0.8},
+]
+
+# SFW LoRA stack — identity only, no anatomy LoRA
+V2_SFW_LORAS = [
+    {"name": "holly-combined-v1.safetensors", "strength": 0.9},
 ]
 
 # Anatomy anchors — injected into EVERY prompt to enforce Holly's exact
@@ -664,7 +675,18 @@ def select_loras_for_prompt(prompt: str, extra_loras: list = None) -> list:
         Capped at 6 total (2 baked + up to 4 specialists/extras) to stay within
         ComfyUI's stable stacking range.
     """
-    stack = list(V2_BAKED_LORAS)  # always start with face @ 0.85 + body v1 @ 0.7
+    # SFW detection (2026-08-03): PussyDiffusion is trained exclusively on nude
+    # anatomy. Applying it at 0.8 to SFW prompts (bikini, dress) overrides the
+    # clothing direction and makes Holly appear nude. Fix: use SFW stack
+    # (identity only) when clothing is detected and no nudity keywords present.
+    has_clothing = bool(_CLOTHING_RE.search(prompt))
+    has_nudity = bool(_NUDE_RE.search(prompt))
+    if has_clothing and not has_nudity:
+        # SFW prompt with clothing — don't stack PussyDiffusion
+        stack = list(V2_SFW_LORAS)
+    else:
+        # NSFW or ambiguous — use full stack with PussyDiffusion
+        stack = list(V2_BAKED_LORAS)
 
     # Detect category (first-match-wins)
     category = None

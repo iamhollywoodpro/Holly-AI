@@ -493,7 +493,7 @@ async function generateWithHollyLoRA(req: ImageRequest): Promise<ImageResult> {
     ? JSON.stringify({
         prompt:    finalPrompt,
         pose_ref:  recipe!.poseRef,
-        denoise:   0.35,
+        denoise:   0.50,  // Raised from 0.35 → 0.50 for better action rendering
         width:     Math.min(width, 1024),
         height:    Math.min(height, 1024),
         seed:      req.seed,
