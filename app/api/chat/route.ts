@@ -161,7 +161,10 @@ const PROJECT_TOOLS = [
 ];
 
 const MODE_TOOL_FILTERS: Record<string, string[]> = {
-  'default':           [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...CODE_GEN_TOOLS, ...TASTE_TOOLS, ...TEMPORAL_TOOLS, ...COLLAB_TOOLS, ...PROJECT_TOOLS, 'run_code', 'generate_image', 'sentinel_analyze_code', 'sentinel_generate_code', 'memory_read', 'memory_write', 'self_code_apply', 'start_build'],
+  // Phase 4 (2026-08-03): Added local_read_file, local_write_file, run_project_tests,
+  // check_build_status to default mode so Holly can act as an autonomous agent
+  // in normal conversation, not just in self-coding mode.
+  'default':           [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...CODE_GEN_TOOLS, ...TASTE_TOOLS, ...TEMPORAL_TOOLS, ...COLLAB_TOOLS, ...PROJECT_TOOLS, 'run_code', 'generate_image', 'sentinel_analyze_code', 'sentinel_generate_code', 'memory_read', 'memory_write', 'self_code_apply', 'start_build', 'local_read_file', 'local_write_file', 'run_project_tests', 'check_build_status'],
   'deep-research':     [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...CODE_GEN_TOOLS, ...TASTE_TOOLS, ...TEMPORAL_TOOLS, ...PROJECT_TOOLS, 'memory_read', 'memory_list_keys', 'run_code', 'sentinel_analyze_code'],
   'self-coding':       [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...CODE_GEN_TOOLS, ...TASTE_TOOLS, ...TEMPORAL_TOOLS, ...COLLAB_TOOLS, ...PROJECT_TOOLS, 'run_code', 'sentinel_analyze_code', 'sentinel_generate_code', 'memory_read', 'memory_write', 'self_code_apply', 'trigger_deploy', 'local_read_file', 'local_write_file', 'diagnostic_check', 'read_logs', 'start_build', 'ui_screenshot', 'ui_analyze'],
   'full-stack':        [...GITHUB_SELF_EDIT_TOOLS, ...WEB_SENSE_TOOLS, ...CODE_GEN_TOOLS, ...TASTE_TOOLS, ...TEMPORAL_TOOLS, ...COLLAB_TOOLS, ...PROJECT_TOOLS, 'run_code', 'generate_image', 'memory_read', 'memory_write', 'sentinel_analyze_code', 'sentinel_generate_code', 'self_code_apply', 'trigger_deploy', 'start_build', 'ui_screenshot', 'ui_analyze'],
