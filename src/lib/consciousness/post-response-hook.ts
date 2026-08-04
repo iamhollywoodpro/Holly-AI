@@ -300,13 +300,14 @@ async function runTagTrainingReady(
   detectedMode: string,
 ): Promise<void> {
   try {
-    // Increment message count and update the mode tag
+    // Increment message count only. Do NOT write detectedMode into the title —
+    // it overwrites real AI-generated titles with the literal string "default".
+    // (Fixed 2026-08-04: every conversation was titled "default" because this
+    // code ran on every message and set title=mode.)
     await prisma.conversation.update({
       where: { id: conversationId },
       data: {
         messageCount: { increment: 1 },
-        // Store mode in title if not set (used for categorization later)
-        ...(detectedMode ? { title: detectedMode } : {}),
       },
     }).catch(() => {
       // Conversation may not exist in some flows — non-critical

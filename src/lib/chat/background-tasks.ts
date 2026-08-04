@@ -32,22 +32,22 @@ export async function saveMessages(
     // 8K chars (~2K tokens) is plenty for any legitimate Holly response;
     // anything longer is almost certainly a loop.
     //
-    // ALSO strip base64 data URIs before saving. The image-gen path in
-    // route.ts appends `![alt](data:image/jpeg;base64,...)` to fullResponse
-    // so the user sees the image via SSE during the session. But saving
-    // a 340KB base64 blob to the DB as part of the message means the next
-    // request loads it as history and brain-v35 chokes. Replace with a
-    // short placeholder so future loads see "[Image: description]" instead.
+    // IMAGE PERSISTENCE (Fixed 2026-08-04): Previously, base64 data URIs were
+    // stripped to "[Image: ...]" placeholders to avoid context bloat. This
+    // caused images to vanish on reload. Now: persist images to disk as real
+    // files and store the URL in the message. The URL is short (~60 chars)
+    // so it doesn't bloat context, and the image renders on reload.
     const MAX_RESPONSE_CHARS = 8_000;
-    const DATA_URI_PATTERN = /!\[([^\]]*)\]\(data:image\/[a-zA-Z+]+;base64,[A-Za-z0-9+/=]+\)/g;
-    let normalized = fullResponse.replace(DATA_URI_PATTERN, (_m, alt) => `[Image: ${(alt || '').slice(0, 80)}]`);
+    const { persistImagesInText } = await import('@/lib/chat/image-storage');
+    let normalized = await persistImagesInText(fullResponse, conversationId);
     // Also strip any standalone base64 data URIs not wrapped in markdown
+    // (these are rare — only if a data URI leaked without markdown wrapping)
     normalized = normalized.replace(/data:image\/[a-zA-Z+]+;base64,[A-Za-z0-9+/=]{200,}/g, '[base64 image data stripped]');
     const safeResponse = normalized.length > MAX_RESPONSE_CHARS
-      ? normalized.substring(0, MAX_RESPONSE_CHARS) + '\n\n[Response truncated: was ' + normalized.length + ' chars after data-URI strip. First 8K kept.]'
+      ? normalized.substring(0, MAX_RESPONSE_CHARS) + '\n\n[Response truncated: was ' + normalized.length + ' chars after image persistence. First 8K kept.]'
       : normalized;
     if (fullResponse.length > MAX_RESPONSE_CHARS || normalized.length !== fullResponse.length) {
-      console.warn('[saveMessages] Normalizing response: original=' + fullResponse.length + ' chars, after strip=' + normalized.length + ', final=' + safeResponse.length);
+      console.warn('[saveMessages] Normalizing response: original=' + fullResponse.length + ' chars, after image persist=' + normalized.length + ', final=' + safeResponse.length);
     }
     // Performance: run upsert and both message creates in parallel
     // The upsert ensures the conversation exists; message creates are independent
