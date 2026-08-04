@@ -208,13 +208,16 @@ def get_anatomy_anchors(raw_prompt: str) -> str:
         # The combined LoRA was trained on nudes and fights clothing direction.
         # We need explicit, forceful clothing language to override the LoRA bias.
         # Also detect specific garment types for better rendering.
+        # IMPORTANT: Do NOT use words that match _NUDE_RE (nipples, breasts, etc.)
+        # in the clothing anchors — they'll trigger NSFW routing and load
+        # PussyDiffusion, defeating the entire SFW fix.
         prompt_lower = raw_prompt.lower()
         if any(w in prompt_lower for w in ['bikini', 'swimsuit', 'swim suit', 'one piece']):
-            return BASE_ANCHORS + ", wearing an opaque bikini swimsuit, fabric covering nipples and groin, solid swimwear material NOT transparent NOT see-through, fully covered"
+            return BASE_ANCHORS + ", wearing an opaque bikini swimsuit, fabric fully covering chest and lower body, solid swimwear material NOT transparent NOT see-through, fully covered"
         elif any(w in prompt_lower for w in ['dress', 'gown']):
             return BASE_ANCHORS + ", wearing a nice dress covering her body, opaque fabric NOT transparent NOT see-through, fully clothed"
         elif any(w in prompt_lower for w in ['lingerie', 'bra', 'panties', 'underwear']):
-            return BASE_ANCHORS + ", wearing lingerie, fabric covering intimate areas, NOT naked"
+            return BASE_ANCHORS + ", wearing lingerie, fabric covering body, NOT naked"
         else:
             return BASE_ANCHORS + ", fully clothed wearing appropriate outfit, opaque fabric NOT transparent NOT see-through, dressed, no nudity"
     elif has_nudity:
