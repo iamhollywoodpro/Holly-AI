@@ -190,43 +190,31 @@ NUDE_ANCHORS = (
 )
 
 def get_anatomy_anchors(raw_prompt: str) -> str:
-    """Return the appropriate anatomy anchors based on the prompt content.
+    """Return anatomy anchors based on the prompt content.
 
-    - If clothing is mentioned → BASE only + STRONG clothed reinforcement
-    - If nudity keywords present → BASE + NUDE
-    - If neither (ambiguous) → DEFAULT TO CLOTHED. The combined LoRA was
-      trained heavily on nude images and defaults to nude when given no
-      direction. Steve flagged "always naked" — fix: ambiguous = clothed
-      in casual settings. Holly's brain decides when to escalate to nude
-      based on conversation mood via the system prompt guidance.
+    SIMPLE RULE (Steve's directive 2026-08-04):
+    - Nudity keywords present → BASE + NUDE anchors (anatomy details)
+    - No nudity keywords → BASE only. Clothing is automatic — the model
+      knows what a bikini, dress, etc. look like. Don't over-anchor.
+      Just don't inject nude anatomy details.
+
+    The previous version had garment-specific anchor text ("fabric covering
+    nipples and groin") which caused two bugs:
+    1. The word "nipples" triggered the NSFW filter → PussyDiffusion loaded
+    2. Over-anchoring clothing fought the LoRA and caused weird artifacts
+
+    Fix: trust the prompt. If Holly says "bikini," the model renders a bikini.
+    Only inject nude anatomy when explicitly requested.
     """
-    has_clothing = bool(_CLOTHING_RE.search(raw_prompt))
     has_nudity = bool(_NUDE_RE.search(raw_prompt))
 
-    if has_clothing:
-        # Clothing mentioned — keep it clothed with STRONG reinforcement.
-        # The combined LoRA was trained on nudes and fights clothing direction.
-        # We need explicit, forceful clothing language to override the LoRA bias.
-        # Also detect specific garment types for better rendering.
-        # IMPORTANT: Do NOT use words that match _NUDE_RE (nipples, breasts, etc.)
-        # in the clothing anchors — they'll trigger NSFW routing and load
-        # PussyDiffusion, defeating the entire SFW fix.
-        prompt_lower = raw_prompt.lower()
-        if any(w in prompt_lower for w in ['bikini', 'swimsuit', 'swim suit', 'one piece']):
-            return BASE_ANCHORS + ", wearing an opaque bikini swimsuit, fabric fully covering chest and lower body, solid swimwear material NOT transparent NOT see-through, fully covered"
-        elif any(w in prompt_lower for w in ['dress', 'gown']):
-            return BASE_ANCHORS + ", wearing a nice dress covering her body, opaque fabric NOT transparent NOT see-through, fully clothed"
-        elif any(w in prompt_lower for w in ['lingerie', 'bra', 'panties', 'underwear']):
-            return BASE_ANCHORS + ", wearing lingerie, fabric covering body, NOT naked"
-        else:
-            return BASE_ANCHORS + ", fully clothed wearing appropriate outfit, opaque fabric NOT transparent NOT see-through, dressed, no nudity"
-    elif has_nudity:
+    if has_nudity:
         # Explicit nudity requested — include anatomy anchors
         return BASE_ANCHORS + ", " + NUDE_ANCHORS
     else:
-        # Ambiguous — DEFAULT TO CLOTHED (fixes "always naked" bug)
-        # Holly's brain will include nude keywords when she wants to be nude
-        return BASE_ANCHORS + ", wearing casual everyday clothing"
+        # No nudity keywords — BASE only. No nude anchors, no clothing anchors.
+        # The prompt itself (bikini, dress, etc.) tells the model what to wear.
+        return BASE_ANCHORS
 
 
 # ─── Workflow builder (inlined — avoids cross-module packaging issues) ──
@@ -701,18 +689,14 @@ def select_loras_for_prompt(prompt: str, extra_loras: list = None) -> list:
         Capped at 6 total (2 baked + up to 4 specialists/extras) to stay within
         ComfyUI's stable stacking range.
     """
-    # SFW detection (2026-08-03): PussyDiffusion is trained exclusively on nude
-    # anatomy. Applying it at 0.8 to SFW prompts (bikini, dress) overrides the
-    # clothing direction and makes Holly appear nude. Fix: use SFW stack
-    # (identity only) when clothing is detected and no nudity keywords present.
-    has_clothing = bool(_CLOTHING_RE.search(prompt))
+    # LoRA selection (Steve's directive 2026-08-04):
+    # PussyDiffusion ONLY for explicit/nude/sexual images. NEVER for SFW.
+    # Simple rule: if nudity keywords present → PussyDiffusion. If not → no.
     has_nudity = bool(_NUDE_RE.search(prompt))
-    if has_clothing and not has_nudity:
-        # SFW prompt with clothing — don't stack PussyDiffusion
-        stack = list(V2_SFW_LORAS)
-    else:
-        # NSFW or ambiguous — use full stack with PussyDiffusion
+    if has_nudity:
         stack = list(V2_BAKED_LORAS)
+    else:
+        stack = list(V2_SFW_LORAS)
 
     # Detect category (first-match-wins)
     category = None
