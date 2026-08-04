@@ -117,15 +117,25 @@ V2_SCHEDULER = "simple"
 # Applying it at 0.8 to SFW prompts (bikini, dress) fights the clothing direction
 # and causes Holly to appear half-naked or fully nude even when the user asked
 # for clothed images. Fix: only stack PussyDiffusion when the prompt is NSFW.
-# For SFW prompts, use ONLY holly-combined-v1 (identity lock without nudity push).
+# For SFW prompts, use combined-v1 + face-v2 only (identity lock without nudity push).
+#
+# LAYER STACK STRATEGY (2026-08-04):
+# The combined-v1 LoRA does face + body + actions in one model, but the face
+# signal gets diluted. Stacking holly-face-v2 on top REINFORCES the face lock
+# without any retraining. This is additive identity enforcement.
+#   Layer 1: holly-combined-v1 @ 0.9  → overall identity (face+body+actions)
+#   Layer 2: holly-face-v2     @ 0.7  → REINFORCES face (green eyes, olive skin, dark brown hair)
+#   Layer 3: pussydiffusion    @ 0.8  → anatomy (NSFW ONLY)
 V2_BAKED_LORAS = [
-    {"name": "holly-combined-v1.safetensors", "strength": 1.0},
+    {"name": "holly-combined-v1.safetensors", "strength": 0.9},
+    {"name": "holly-face-v2.safetensors", "strength": 0.7},
     {"name": "pussydiffusion-f2-klein-9b_v2.safetensors", "strength": 0.8},
 ]
 
-# SFW LoRA stack — identity only, no anatomy LoRA
+# SFW LoRA stack — identity + face reinforcement, no anatomy LoRA
 V2_SFW_LORAS = [
-    {"name": "holly-combined-v1.safetensors", "strength": 1.0},
+    {"name": "holly-combined-v1.safetensors", "strength": 0.9},
+    {"name": "holly-face-v2.safetensors", "strength": 0.7},
 ]
 
 # Anatomy anchors — injected into EVERY prompt to enforce Holly's exact
