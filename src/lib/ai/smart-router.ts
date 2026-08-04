@@ -77,12 +77,19 @@ import { providerHealthMonitor } from './provider-health';
 
 export const MODEL_CATALOGUE: Record<string, ModelSpec> = {
   // ── HOLLY Brain V3.5 (PRIMARY — HauhauCS Qwen3.5-9B Uncensored) ──────────
-  // Deployed 2026-06-30. Fully uncensored (0/465 refusals), natively
-  // multimodal (text + image), 45 tok/s on T4. This is Holly's actual brain.
-  // Replaces DuoNeural Qwen3-8B (holly-own:qwen3-8b) as primary.
+  // Deployed 2026-08-01. Q8 quantization (9.5GB) of HauhauCS Qwen3.5-9B
+  // Uncensored. Fully uncensored (0/465 refusals), natively multimodal
+  // (text + image + video), 128K context. Holly's PRIMARY brain.
+  // brain-v35 (Q4) stays as rare fallback.
+  'holly-own:brain-v40': {
+    provider: 'holly_own', model: 'holly-brain-v40',
+    displayName: 'HOLLY Brain V4.0 (Q8 Uncensored)', contextK: 128, streaming: true,
+  },
+
+  // brain-v35 (Q4, 5.3GB) — fallback only. Used when v40 is cold/unreachable.
   'holly-own:brain-v35': {
     provider: 'holly_own', model: 'holly-brain-v35',
-    displayName: 'HOLLY Brain V3.5 (Uncensored)', contextK: 32, streaming: true,
+    displayName: 'HOLLY Brain V3.5 (Uncensored Fallback)', contextK: 128, streaming: true,
   },
 
   // ── HOLLY Vision (MiniCPM-V abliterated — vision fallback) ────────────────
@@ -342,52 +349,55 @@ export const TASK_WATERFALLS: Record<TaskType, string[]> = {
   // unrestricted/NSFW content where Groq would censor).
   speed: [
     'groq:llama-3.3-70b',
-    'holly-own:brain-v35',
+    'holly-own:brain-v40',
   ],
 
   coding: [
     'groq:llama-3.3-70b',
-    'holly-own:brain-v35',
+    'holly-own:brain-v40',
   ],
 
   reasoning: [
     'groq:llama-3.3-70b',
-    'holly-own:brain-v35',
+    'holly-own:brain-v40',
   ],
 
   // brain-v35's 128K context covers every real document. If a doc somehow
   // exceeds 128K, graceful failure with a clear message — NOT a cloud fallback.
   long_context: [
-    'holly-own:brain-v35',
+    'holly-own:brain-v40',
   ],
 
   // Two-tier uncensored vision. brain-v35 mmproj primary, Qwen3.5-4B gabliterated
   // fallback. If both Modal endpoints down → fail closed.
   vision: [
-    'holly-own:brain-v35',
+    'holly-own:brain-v40',
     'holly-own:vision-mini',
   ],
 
   creative: [
     'groq:llama-3.3-70b',
-    'holly-own:brain-v35',
+    'holly-own:brain-v40',
   ],
 
   agent: [
     'groq:llama-3.3-70b',
-    'holly-own:brain-v35',
+    'holly-own:brain-v40',
   ],
 
   consciousness: [
+    'holly-own:brain-v40',
     'holly-own:brain-v35',
   ],
 
-  // NSFW/intimate: brain-v35 stays primary (Groq censors NSFW content)
+  // NSFW/intimate: brain-v40 primary, v35 fallback (Groq censors NSFW content)
   unrestricted: [
+    'holly-own:brain-v40',
     'holly-own:brain-v35',
   ],
 
   synthesis: [
+    'holly-own:brain-v40',
     'holly-own:brain-v35',
   ],
 

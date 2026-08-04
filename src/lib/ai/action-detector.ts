@@ -175,12 +175,16 @@ const ACTION_PATTERNS: PatternDef[] = [
  * to keep the UX clean — multi-step comes in Phase B2).
  *
  * @param responseText Holly's full response text
- * @param minConfidence Only return actions above this threshold (default 0.70)
+ * @param minConfidence Only return actions above this threshold (default 0.95).
+ * High threshold prevents false triggers in casual conversation. Steve flagged
+ * (2026-08-04) that Holly was opening her sandbox and calling tools when he was
+ * just chatting casually — "Let me verify the current state" triggered
+ * code_inspect even though Steve didn't ask her to do anything.
  * @returns DetectedAction[] — may be empty if no actions found
  */
 export function detectActions(
   responseText: string,
-  minConfidence = 0.70,
+  minConfidence = 0.95,
 ): DetectedAction[] {
   const actions: DetectedAction[] = [];
 

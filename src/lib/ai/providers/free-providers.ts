@@ -654,14 +654,20 @@ const HOLLY_VISION_URL = process.env.HOLLY_VISION_MODEL_URL || '';
 
 /**
  * Pick the right Modal endpoint URL for a given holly_own model ID.
- * - holly-vision-mini → MiniCPM-V abliterated (vision fallback)
- * - everything else → brain-v35 (primary reasoning)
+ * - holly-vision-mini → vision endpoint
+ * - holly-brain-v35 → v35 endpoint (fallback)
+ * - everything else (holly-brain-v40) → HOLLY_OWN_MODEL_URL (v40 primary)
  */
+const HOLLY_V35_URL = process.env.HOLLY_V35_MODEL_URL || 'https://iamhollywoodpro--brain-chat.modal.run';
+
 function pickHollyEndpoint(model: string): string {
   if (model === 'holly-vision-mini' && HOLLY_VISION_URL) {
     return HOLLY_VISION_URL;
   }
-  return HOLLY_OWN_URL;
+  if (model === 'holly-brain-v35' && HOLLY_V35_URL) {
+    return HOLLY_V35_URL;
+  }
+  return HOLLY_OWN_URL; // v40 primary
 }
 
 const hollyOwnProvider: { isConfigured: () => boolean; streamChat: (messages: ChatMessage[], _model: string, opts?: StreamOptions) => TokenStream } = {
