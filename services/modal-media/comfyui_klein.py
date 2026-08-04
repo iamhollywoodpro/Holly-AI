@@ -186,17 +186,14 @@ def get_anatomy_anchors(raw_prompt: str) -> str:
 
     SIMPLE RULE (Steve's directive 2026-08-04):
     - Nudity keywords present → BASE + NUDE anchors (anatomy details)
-    - No nudity keywords → BASE only. Clothing is automatic — the model
-      knows what a bikini, dress, etc. look like. Don't over-anchor.
-      Just don't inject nude anatomy details.
+    - No nudity keywords → BASE + clothing reinforcement.
+      The combined-v1 LoRA was trained on nudes and defaults toward nudity
+      even when the prompt says "bikini." A simple "wearing clothes" anchor
+      counteracts this bias without using NSFW trigger words.
 
-    The previous version had garment-specific anchor text ("fabric covering
-    nipples and groin") which caused two bugs:
-    1. The word "nipples" triggered the NSFW filter → PussyDiffusion loaded
-    2. Over-anchoring clothing fought the LoRA and caused weird artifacts
-
-    Fix: trust the prompt. If Holly says "bikini," the model renders a bikini.
-    Only inject nude anatomy when explicitly requested.
+    IMPORTANT: Do NOT use words that match _NUDE_RE (nipples, breasts, pussy,
+    etc.) in clothing anchors — they'll trigger NSFW routing and load
+    PussyDiffusion. Use "clothes" not "covering nipples."
     """
     has_nudity = bool(_NUDE_RE.search(raw_prompt))
 
@@ -204,9 +201,11 @@ def get_anatomy_anchors(raw_prompt: str) -> str:
         # Explicit nudity requested — include anatomy anchors
         return BASE_ANCHORS + ", " + NUDE_ANCHORS
     else:
-        # No nudity keywords — BASE only. No nude anchors, no clothing anchors.
-        # The prompt itself (bikini, dress, etc.) tells the model what to wear.
-        return BASE_ANCHORS
+        # No nudity keywords — reinforce that she's wearing clothes.
+        # The combined-v1 LoRA (trained on nudes) needs this push to render
+        # actual fabric instead of see-through/missing clothing.
+        # Simple and direct — no NSFW trigger words.
+        return BASE_ANCHORS + ", wearing clothes, dressed, fabric covering her body"
 
 
 # ─── Workflow builder (inlined — avoids cross-module packaging issues) ──
