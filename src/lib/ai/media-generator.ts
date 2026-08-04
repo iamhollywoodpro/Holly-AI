@@ -394,23 +394,23 @@ function classifySpecialist(prompt: string): SpecialistRecipe | null {
   // Default plain-"masturbating" to dildo path (with toy injected into prompt)
   if ((hasToy && hasMasturbate) || (hasMasturbate && !hasToy)) {
     let reinforcement = hasToy
-      ? 'using a dildo, explicit, photorealistic'
-      : 'masturbating, touching herself, explicit, photorealistic';
+      ? 'using a dildo toy between her legs, penetrating herself with a toy, explicit, photorealistic'
+      : 'fingers inside her pussy, touching herself, masturbating, explicit, photorealistic';
     if (hasAnal) reinforcement += ', anal play, finger in her asshole, from behind';
-    if (hasFood) reinforcement += ', using food object for insertion';
+    if (hasFood) reinforcement += ', using a food object for penetration, explicit';
     if (hasExpression || hasExtreme) {
       reinforcement += ', ' + getExpression(hasExtreme ? 'extreme' : 'intense',
         hasAnal ? 'deep in her ass' : 'deep inside her');
     }
     // Choose pose ref based on action type:
-    // - Anal → from-behind pose (ass visible, hand reaching between legs)
-    // - Toy → dildo pose
-    // - Plain masturbation → standard masturbation pose
+    // - Anal → from-behind pose (ass visible)
+    // - Toy → dildo+masturbation pose (shows toy + hand in action position)
+    // - Finger/pussy → hands-on-pussy closeup (shows fingers in action position)
     const poseRef = hasAnal
       ? 'pose11-dildo-from-behind.png'
       : hasToy
-        ? 'dildo_dildo_004.webp'
-        : 'masturbation_masturbation_026.jpg';
+        ? 'dildo_mast_dildo_mast_015.webp'
+        : 'ts_hands_+_pussy_closeup_08_pussy_hands_001.png';
     return {
       category: 'dildo_masturbation',
       reinforcement,
@@ -502,7 +502,7 @@ async function generateWithHollyLoRA(req: ImageRequest): Promise<ImageResult> {
     ? JSON.stringify({
         prompt:    finalPrompt,
         pose_ref:  recipe!.poseRef,
-        denoise:   0.50,  // Raised from 0.35 → 0.50 for better action rendering
+        denoise:   0.65,  // 0.65 = 65% Klein freedom (generates fresh), 35% pose guidance
         width:     Math.min(width, 1024),
         height:    Math.min(height, 1024),
         seed:      req.seed,
