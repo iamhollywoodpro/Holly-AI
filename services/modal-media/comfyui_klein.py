@@ -1615,8 +1615,9 @@ class HollyComfyUIKlein:
             from fastapi import HTTPException
             raise HTTPException(status_code=400, detail="pose_ref is required (filename in pose-refs/)")
 
-        # Build the LoRA stack (default: combined + PussyDiffusion)
-        loras = caller_loras if caller_loras else list(V2_BAKED_LORAS)
+        # Build the LoRA stack — use select_loras_for_prompt for explicit detection
+        # This ensures the NSFW UNLOCKED LoRA loads for explicit action prompts
+        loras = caller_loras if caller_loras else select_loras_for_prompt(raw_prompt)
         prompt = f"{raw_prompt}, {get_anatomy_anchors(raw_prompt)}" if raw_prompt else get_anatomy_anchors(raw_prompt)
 
         # The pose reference is on the LoRA volume at /lora/pose-refs/{pose_ref}
