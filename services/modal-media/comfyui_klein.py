@@ -118,9 +118,30 @@ V2_SCHEDULER = "simple"
 # images. NEVER for SFW. combined-v1 alone is sufficient for identity (Steve
 # confirmed beach and bar images ARE Holly — GLM vision was wrong about identity).
 #
-#   SFW:  combined-v1 @ 0.9 only
-#   NSFW: combined-v1 @ 0.9 + pussydiffusion @ 0.8
+# NSFW UNLOCKED (2026-08-05): FLUX2_KLEIN_UNLOCKED_V2.safetensors — community
+# LoRA (Civitai model 2063193) that teaches Klein the explicit concepts it was
+# never trained on (penetration, insertion, masturbation actions). Klein's base
+# model simply never had this content in training data — the unlock LoRA patches
+# that gap. Used ONLY for explicit action prompts (insertion, penetration, etc).
+#
+# Three LoRA tiers:
+#   SFW:              combined-v1 @ 0.9 only
+#   NSFW (nude pose): combined-v1 @ 0.9 + pussydiffusion @ 0.8
+#   NSFW (explicit):  combined-v1 @ 0.9 + nsfw-unlocked @ 0.8 + pussydiffusion @ 0.8
 V2_BAKED_LORAS = [
+    {"name": "holly-combined-v1.safetensors", "strength": 0.9},
+    {"name": "pussydiffusion-f2-klein-9b_v2.safetensors", "strength": 0.8},
+]
+
+# Explicit action LoRA stack — adds NSFW UNLOCKED for penetration/insertion
+V2_EXPLICIT_LORAS = [
+    {"name": "holly-combined-v1.safetensors", "strength": 0.9},
+    {"name": "FLUX2_KLEIN_UNLOCKED_V2.safetensors", "strength": 0.8},
+    {"name": "pussydiffusion-f2-klein-9b_v2.safetensors", "strength": 0.8},
+]
+
+# NSFW nude pose LoRA stack — no unlock needed for static nudity
+V2_NUDE_LORAS = [
     {"name": "holly-combined-v1.safetensors", "strength": 0.9},
     {"name": "pussydiffusion-f2-klein-9b_v2.safetensors", "strength": 0.8},
 ]
@@ -147,19 +168,18 @@ _CLOTHING_RE = _re_clothing.compile(
 )
 
 BASE_ANCHORS = (
-    "single woman, one body, one head, exactly two arms, exactly two legs, exactly two hands, exactly two feet, "
     "olive skin tone (Portuguese/South Indian heritage), "
     "flawless even clear skin tone everywhere, no blotches no dark spots no uneven patches, "
     "smooth clean clear complexion on legs arms and body, uniform skin color, "
     "dark brown wavy hair ending at mid-chest level with subtle natural highlights, voluminous with face-framing layers, "
     "striking green eyes almond-shaped, "
-    "5'4\" tall (163cm), 125 pounds, slim fit athletic build NOT fat NOT heavy, "
+    "5'4\" tall (163cm), 125 pounds, slim fit athletic build, "
     "flat toned stomach with faint abs visible, slim waist, "
-    "phat plum apple-bottom ass round plump and full but proportional NOT fat, "
-    "thick thighs proportional to her plump ass but NOT heavy, "
-    "slender toned arms both visible, slender toned legs both visible, "
-    "small petite delicate hands, exactly five fingers on each hand, no extra fingers no extra hands, "
-    "small petite feminine feet (size 5), exactly five toes on each foot, "
+    "phat plum apple-bottom ass round plump and full but proportional, "
+    "thick thighs proportional to her plump ass, "
+    "slender toned arms, slender toned legs, "
+    "small petite delicate hands, five fingers on each hand, "
+    "small petite feminine feet (size 5), five toes on each foot, "
     "fit healthy youthful 21 year old body"
 )
 
@@ -687,10 +707,29 @@ def select_loras_for_prompt(prompt: str, extra_loras: list = None) -> list:
     # LoRA selection (Steve's directive 2026-08-04):
     # PussyDiffusion ONLY for explicit/nude/sexual images. NEVER for SFW.
     # Simple rule: if nudity keywords present → PussyDiffusion. If not → no.
+    # Three-tier LoRA selection (2026-08-05):
+    # 1. Explicit actions (insertion, penetration, dildo, masturbation) → unlock + identity + anatomy
+    # 2. Nude poses (naked, nude, no action) → identity + anatomy
+    # 3. SFW (no nudity keywords) → identity only
     has_nudity = bool(_NUDE_RE.search(prompt))
-    if has_nudity:
-        stack = list(V2_BAKED_LORAS)
+    _EXPLICIT_RE = re.compile(
+        r'\b(masturbat\w*|fingering|finger\s*inside|penetrat|insert|dildo|'
+        r'toy\s*inside|inside\s*her\s*(?:pussy|ass|anus)|'
+        r'fucking|herself|riding\s+(?:a\s+)?(?:toy|dildo)|'
+        r'spread.*pussy|pussy.*spread|anal|asshole|butthole|'
+        r'cumming|orgasm|squirting|climax)\b',
+        re.IGNORECASE,
+    )
+    has_explicit = bool(_EXPLICIT_RE.search(prompt))
+
+    if has_explicit:
+        # Explicit action — needs NSFW UNLOCKED to bypass Klein's content gap
+        stack = list(V2_EXPLICIT_LORAS)
+    elif has_nudity:
+        # Nude pose — anatomy only, no unlock needed
+        stack = list(V2_NUDE_LORAS)
     else:
+        # SFW — identity only
         stack = list(V2_SFW_LORAS)
 
     # Detect category (first-match-wins)
