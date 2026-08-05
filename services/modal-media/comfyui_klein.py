@@ -101,8 +101,10 @@ UNET_FILE = KLEIN_UNET_FILE
 # These match the recipe that produced the "Perfection" face + full-body verdicts.
 # Klein BASE settings (2026-08-05): Base honors CFG and needs more steps.
 # Distilled used CFG 1.0 (ignored) and 12 steps. Base needs real CFG + 25-30 steps.
+# CFG 4.0 caused cartoon/over-saturated look — lowered to 3.5.
+# Steps 28 gives good detail without being too slow.
 V2_STEPS = 28
-V2_CFG = 4.0
+V2_CFG = 3.5
 V2_SAMPLER = "euler"
 V2_SCHEDULER = "simple"
 
