@@ -479,16 +479,18 @@ async function generateWithHollyLoRA(req: ImageRequest): Promise<ImageResult> {
 
   const { width, height } = getDimensions(req.aspectRatio, { width: req.width, height: req.height });
 
-  // Detect specialist scenario — determines endpoint routing (text-only vs pose-guided)
+  // Detect specialist scenario — determines prompt reinforcement
   const recipe = classifySpecialist(req.prompt);
   const finalPrompt = recipe
     ? `${req.prompt}, ${recipe.reinforcement}`
     : req.prompt;
 
-  // Route to pose-guided endpoint for explicit actions (Klein can't compose
-  // penetration/insertion/dildo from text — needs a reference pose image).
-  // Falls back to text-only endpoint for simple poses (face, standing, bent-over).
-  const usePoseGuided = recipe?.usePoseGuided && MODAL_POSE_GUIDED_URL && recipe?.poseRef;
+  // DISABLED pose-guided routing (2026-08-05): Steve's directive.
+  // Let Klein generate explicit actions from text with the NSFW UNLOCKED LoRA.
+  // The unlock LoRA teaches Klein the concepts it was never trained on.
+  // No pose reference images — let Klein compose freely.
+  // const usePoseGuided = recipe?.usePoseGuided && MODAL_POSE_GUIDED_URL && recipe?.poseRef;
+  const usePoseGuided = false;
   const endpointUrl = usePoseGuided
     ? MODAL_POSE_GUIDED_URL.replace(/\/$/, '')
     : MODAL_HOLLY_LORA_URL.replace(/\/$/, '');
