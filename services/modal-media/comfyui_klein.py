@@ -79,8 +79,8 @@ COMFYUI_PORT = 8188
 # FLUX.2 Klein 9B Distilled model files (all ComfyUI single-file format).
 # UNET: the bf16 single-file is already on holly-flux2klein-weights (from the
 # diffusers endpoint's MODEL_CACHE). We symlink it into ComfyUI's models dir.
-KLEIN_UNET_FILE = "flux-2-klein-9b.safetensors"
-KLEIN_UNET_VOL_PATH = f"{KLEIN_VOL_MOUNT}/bf16/{KLEIN_UNET_FILE}"
+KLEIN_UNET_FILE = "flux-2-klein-base-9b.safetensors"
+KLEIN_UNET_VOL_PATH = f"{KLEIN_VOL_MOUNT}/bf16-base/{KLEIN_UNET_FILE}"
 
 # CLIP + VAE: from Comfy-Org (NOT gated, ComfyUI-formatted single files).
 # Repo: Comfy-Org/vae-text-encorder-for-flux-klein-9b (typo "encorder" is theirs)
@@ -99,8 +99,10 @@ UNET_FILE = KLEIN_UNET_FILE
 # v2-recipe defaults (decoded from Steve's perfect Civitai reference images):
 #   12 steps, CFG 1.0, Euler sampler, simple scheduler.
 # These match the recipe that produced the "Perfection" face + full-body verdicts.
-V2_STEPS = 12
-V2_CFG = 1.0
+# Klein BASE settings (2026-08-05): Base honors CFG and needs more steps.
+# Distilled used CFG 1.0 (ignored) and 12 steps. Base needs real CFG + 25-30 steps.
+V2_STEPS = 28
+V2_CFG = 4.0
 V2_SAMPLER = "euler"
 V2_SCHEDULER = "simple"
 
@@ -317,8 +319,8 @@ def build_pose_guided_workflow(
     seed=None,
     loras=None,
     denoise: float = 0.50,
-    steps: int = 12,
-    cfg: float = 1.0,
+    steps: int = V2_STEPS,
+    cfg: float = V2_CFG,
     sampler: str = "euler",
     scheduler: str = "simple",
     filename_prefix: str = "Holly",
@@ -415,8 +417,8 @@ def build_inpaint_workflow(
     loras,
     seed=None,
     denoise: float = 0.55,
-    steps: int = 12,
-    cfg: float = 1.0,
+    steps: int = V2_STEPS,
+    cfg: float = V2_CFG,
     sampler: str = "euler",
     scheduler: str = "simple",
     filename_prefix: str = "Holly_refined",
