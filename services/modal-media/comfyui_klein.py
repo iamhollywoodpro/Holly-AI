@@ -712,13 +712,13 @@ def select_loras_for_prompt(prompt: str, extra_loras: list = None) -> list:
     # 2. Nude poses (naked, nude, no action) → identity + anatomy
     # 3. SFW (no nudity keywords) → identity only
     has_nudity = bool(_NUDE_RE.search(prompt))
-    _EXPLICIT_RE = re.compile(
+    _EXPLICIT_RE = _re_clothing.compile(
         r'\b(masturbat\w*|fingering|finger\s*inside|penetrat|insert|dildo|'
         r'toy\s*inside|inside\s*her\s*(?:pussy|ass|anus)|'
         r'fucking|herself|riding\s+(?:a\s+)?(?:toy|dildo)|'
         r'spread.*pussy|pussy.*spread|anal|asshole|butthole|'
         r'cumming|orgasm|squirting|climax)\b',
-        re.IGNORECASE,
+        _re_clothing.IGNORECASE,
     )
     has_explicit = bool(_EXPLICIT_RE.search(prompt))
 
