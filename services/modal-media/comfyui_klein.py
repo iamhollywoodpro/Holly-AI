@@ -100,11 +100,11 @@ UNET_FILE = KLEIN_UNET_FILE
 #   12 steps, CFG 1.0, Euler sampler, simple scheduler.
 # These match the recipe that produced the "Perfection" face + full-body verdicts.
 # Klein BASE settings (2026-08-05): Base honors CFG and needs more steps.
-# Distilled used CFG 1.0 (ignored) and 12 steps. Base needs real CFG + 25-30 steps.
-# CFG 4.0 caused cartoon/over-saturated look — lowered to 3.5.
-# Steps 28 gives good detail without being too slow.
-V2_STEPS = 28
-V2_CFG = 3.5
+# The LoRAs were trained on Klein Base — they need Base-native settings.
+# CFG 3.5-4.0 caused cartoon look. Testing lower CFG values for photorealism.
+# FLUX Base models typically use CFG 2.5-3.0 for photorealistic output.
+V2_STEPS = 20
+V2_CFG = 2.8
 V2_SAMPLER = "euler"
 V2_SCHEDULER = "simple"
 
