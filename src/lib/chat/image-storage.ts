@@ -15,7 +15,9 @@ import path from 'path';
 import crypto from 'crypto';
 
 const IMAGE_DIR = path.join(process.cwd(), 'public', 'generated-images');
-const IMAGE_URL_PREFIX = '/generated-images';
+// Use /api/generated-images/ path — Next.js standalone doesn't serve runtime-
+// created files from public/ directly, so we route through an API endpoint.
+const IMAGE_URL_PREFIX = '/api/generated-images';
 
 // Ensure the directory exists
 let dirReady = false;

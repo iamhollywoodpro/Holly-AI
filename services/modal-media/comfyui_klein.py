@@ -147,6 +147,7 @@ _CLOTHING_RE = _re_clothing.compile(
 )
 
 BASE_ANCHORS = (
+    "single woman, one body, one head, exactly two arms, exactly two legs, exactly two hands, exactly two feet, "
     "olive skin tone (Portuguese/South Indian heritage), "
     "flawless even clear skin tone everywhere, no blotches no dark spots no uneven patches, "
     "smooth clean clear complexion on legs arms and body, uniform skin color, "
@@ -156,8 +157,8 @@ BASE_ANCHORS = (
     "flat toned stomach with faint abs visible, slim waist, "
     "phat plum apple-bottom ass round plump and full but proportional NOT fat, "
     "thick thighs proportional to her plump ass but NOT heavy, "
-    "slender toned arms, slender toned legs, "
-    "small petite delicate hands, exactly five fingers on each hand, "
+    "slender toned arms both visible, slender toned legs both visible, "
+    "small petite delicate hands, exactly five fingers on each hand, no extra fingers no extra hands, "
     "small petite feminine feet (size 5), exactly five toes on each foot, "
     "fit healthy youthful 21 year old body"
 )
@@ -178,7 +179,10 @@ NUDE_ANCHORS = (
     "soft smooth mons pubis mound above the slit on the pubic bone, "
     "plump labia majora meeting evenly at rest, small labia minora, "
     "small clitoris at the top of the cleft, vaginal opening in lower half, "
-    "1.5 inch perineum connecting vulva to anus, correct anatomical spacing"
+    "3 inch perineum connecting vulva to anus, generous spacing between vaginal opening and anus, "
+    "anus located in the buttock cleft between the ass cheeks NOT on the front, "
+    "anus is positioned behind and below the vaginal opening NOT directly beneath it, "
+    "correct anatomical positioning when sitting: anus hidden between cheeks, only visible from behind"
 )
 
 def get_anatomy_anchors(raw_prompt: str) -> str:
