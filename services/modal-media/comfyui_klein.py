@@ -667,26 +667,27 @@ import re as _re_cat
 
 # Keyword matchers per category (first-match-wins, most-specific first).
 _CATEGORY_PATTERNS = [
-    # bent_over / from behind — uses Unchained + femaleasshole
+    # ORDER MATTERS — most specific first, least specific last.
+    # dildo_masturbation must come before masturbation and dildo alone,
+    # because it combines both keywords and needs the dildo insertion LoRA.
+    ("dildo_masturbation", _re_cat.compile(
+        r"\b((?:masturbat\w*|touch\w*|pleasur\w*|slid\w*|push\w*|insert\w*|fuck\w*).{0,30}(?:dildo|toy|vibrator)|(?:dildo|toy|vibrator).{0,30}(?:masturbat\w*|inside|deep|pussy|penetrat\w*|insert\w*))\b",
+        _re_cat.IGNORECASE)),
+    # dildo alone — toy present but no masturbation context
+    ("dildo", _re_cat.compile(
+        r"\b(dildo|toy|vibrator|penetrat\w*|using\s+a\s*(?:dildo|toy))\b",
+        _re_cat.IGNORECASE)),
+    # masturbation / fingering — hand actions on body
+    ("masturbation", _re_cat.compile(
+        r"\b(masturbat\w*|fingering|finger\s*insert|insert\w*\s+(\w+\s+){0,3}finger|finger\w*\s+(inside|into|in)\s+(\w+\s+){0,2}(pussy|vagina|her)|touch\w*\s+(herself|yourself)|playing\s+with\s+(her\s+)?(pussy|clit|clitoris|vagina)|rubbing\s+(her\s+)?(pussy|clit|clitoris)|self\s*pleasur|hand\s+between)\b",
+        _re_cat.IGNORECASE)),
+    # spread / pussy closeup — MUST come after action categories
+    ("spread", _re_cat.compile(
+        r"\b(spread\w*|pussy\s*spread|spread\s*pussy|(pussy|vulva|clit)\s*close\s*up|(pussy|vulva|clit)\s*closeup|close\s*up\s*(pussy|vulva|clit)|vulva|labia)\b",
+        _re_cat.IGNORECASE)),
+    # bent_over / from behind — LEAST specific, comes last
     ("bent_over", _re_cat.compile(
         r"\b(bent\s*over|all\s*fours|on\s*(all\s*)?fours|doggy|doggiestyle|from\s*behind|rear\s*view|ass\s*in\s*the\s*air|looking\s*back)\b",
-        _re_cat.IGNORECASE)),
-    # masturbation / fingering — uses SNOFS + Masturbation LoRA.
-    # Must catch: "masturbating", "fingering", "inserting fingers", "finger
-    # inside", "rubbing pussy", "touching herself", "playing with clit", etc.
-    # NOTE: no trailing \b — "masturbat" must match inside "masturbating".
-    ("masturbation", _re_cat.compile(
-        r"\b(masturbat|fingering|finger\s*insert|insert\w*\s+(\w+\s+){0,3}finger|finger\w*\s+(inside|into|in)\s+(\w+\s+){0,2}(pussy|vagina|her)|touching\s+herself|playing\s+with\s+(her\s+)?(pussy|clit|clitoris|vagina)|rubbing\s+(her\s+)?(pussy|clit|clitoris)|self\s*pleasur|fingering\s+(her\s+)?pussy)",
-        _re_cat.IGNORECASE)),
-    # spread / pussy closeup — uses SNOFS + pussydiffusion.
-    # NOTE: "closeup" alone must NOT match (it would catch face closeups).
-    # Require spread/vulva/labia OR closeup-with-pussy context.
-    ("spread", _re_cat.compile(
-        r"\b(spread|spreading|spread\s*open|legs\s*spread|pussy\s*spread|spread\s*pussy|(pussy|vulva|clit)\s*close\s*up|(pussy|vulva|clit)\s*closeup|close\s*up\s*(pussy|vulva|clit)|vulva|labia)\b",
-        _re_cat.IGNORECASE)),
-    # dildo / toy — uses Unchained + dildo insertion
-    ("dildo", _re_cat.compile(
-        r"\b(dildo|toy|vibrator|penetrat|using\s*a\s*(dildo|toy))\b",
         _re_cat.IGNORECASE)),
 ]
 
