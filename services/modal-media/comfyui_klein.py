@@ -690,11 +690,44 @@ _CATEGORY_PATTERNS = [
         _re_cat.IGNORECASE)),
 ]
 
-# Specialist LoRA stacks per category — NOW EMPTY.
-# The combined LoRA (holly-combined-v1) was trained on all 8 categories
-# including explicit actions. No specialist stacking needed — one LoRA
-# handles everything. This eliminates the identity drift from stacking.
-_CATEGORY_STACKS = {}
+# Specialist LoRA stacks per category — RESTORED 2026-08-06.
+# These specialist LoRAs were trained by Steve on Civitai and produced
+# "PERFECT" results in Smoke8 testing (documented in FACT.md):
+#   FK_dildoinsertion @ 0.9    → PERFECT dildo penetration
+#   femaleasshole-musubituner @ 0.8 → PERFECT bent-over/anal views
+#   pussydiffusion @ 0.8       → PERFECT closeups/spreading
+#   SEXGOD_FemaleMasturbation @ 0.8 → masturbation positions
+#
+# They were removed during a "simplification" that broke ALL explicit actions.
+# combined-v1 handles identity; these specialists handle the ACTIONS.
+_CATEGORY_STACKS = {
+    "bent_over": [
+        {"name": "femaleasshole-f2-klein-9b-musubituner.safetensors", "strength": 0.8},
+    ],
+    "dildo": [
+        {"name": "FK_dildoinsertion.safetensors", "strength": 0.9},
+    ],
+    "dildo_masturbation": [
+        {"name": "FK_dildoinsertion.safetensors", "strength": 0.9},
+        {"name": "pussydiffusion-f2-klein-9b_v2.safetensors", "strength": 0.8},
+    ],
+    "masturbation": [
+        {"name": "SEXGOD_FemaleMasturbation_Klein9b_v1.safetensors", "strength": 0.8},
+    ],
+    "spread_poses": [
+        {"name": "pussydiffusion-f2-klein-9b_v2.safetensors", "strength": 0.85},
+    ],
+    "closeup": [
+        {"name": "pussydiffusion-f2-klein-9b_v2.safetensors", "strength": 0.85},
+    ],
+    "oral": [
+        {"name": "pussydiffusion-f2-klein-9b_v2.safetensors", "strength": 0.8},
+    ],
+    "squirting": [
+        {"name": "SEXGOD_FemaleMasturbation_Klein9b_v1.safetensors", "strength": 0.8},
+        {"name": "pussydiffusion-f2-klein-9b_v2.safetensors", "strength": 0.8},
+    ],
+}
 
 
 def select_loras_for_prompt(prompt: str, extra_loras: list = None) -> list:
