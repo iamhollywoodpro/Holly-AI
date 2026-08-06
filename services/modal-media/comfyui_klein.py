@@ -99,12 +99,14 @@ UNET_FILE = KLEIN_UNET_FILE
 # v2-recipe defaults (decoded from Steve's perfect Civitai reference images):
 #   12 steps, CFG 1.0, Euler sampler, simple scheduler.
 # These match the recipe that produced the "Perfection" face + full-body verdicts.
-# Klein BASE settings (2026-08-05): Base honors CFG and needs more steps.
-# The LoRAs were trained on Klein Base — they need Base-native settings.
-# CFG 3.5-4.0 caused cartoon look. Testing lower CFG values for photorealism.
-# FLUX Base models typically use CFG 2.5-3.0 for photorealistic output.
-V2_STEPS = 20
-V2_CFG = 2.8
+# Klein BASE settings (2026-08-05): Using Klein Base (correct base for LoRAs).
+# Keeping the PROVEN Distilled-era settings that produced all working images:
+# 12 steps, CFG 1.0, Euler, simple scheduler. These were documented in FACT.md
+# as the recipe that produced "PERFECTION" across all tests.
+# Base may honor CFG differently than Distilled, but changing settings broke
+# everything (cartoon look, missing limbs). Go back to what works, then tune.
+V2_STEPS = 12
+V2_CFG = 1.0
 V2_SAMPLER = "euler"
 V2_SCHEDULER = "simple"
 
