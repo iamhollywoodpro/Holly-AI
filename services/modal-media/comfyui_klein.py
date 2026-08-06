@@ -79,8 +79,8 @@ COMFYUI_PORT = 8188
 # FLUX.2 Klein 9B Distilled model files (all ComfyUI single-file format).
 # UNET: the bf16 single-file is already on holly-flux2klein-weights (from the
 # diffusers endpoint's MODEL_CACHE). We symlink it into ComfyUI's models dir.
-KLEIN_UNET_FILE = "flux-2-klein-base-9b.safetensors"
-KLEIN_UNET_VOL_PATH = f"{KLEIN_VOL_MOUNT}/bf16-base/{KLEIN_UNET_FILE}"
+KLEIN_UNET_FILE = "flux-2-klein-9b.safetensors"
+KLEIN_UNET_VOL_PATH = f"{KLEIN_VOL_MOUNT}/bf16/{KLEIN_UNET_FILE}"
 
 # CLIP + VAE: from Comfy-Org (NOT gated, ComfyUI-formatted single files).
 # Repo: Comfy-Org/vae-text-encorder-for-flux-klein-9b (typo "encorder" is theirs)
