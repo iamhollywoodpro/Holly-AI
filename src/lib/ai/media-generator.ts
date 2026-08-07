@@ -899,10 +899,10 @@ export async function generateImage(req: ImageRequest): Promise<ImageResult> {
   throw new Error(`All free image providers failed:\n${errors.join('\n')}`);
 }
 
-// ─── Video Provider 0: Modal.com Wan2.2-TI2V-5B (GPU quality, uses $30/mo credits) ─
+// ─── Video Provider 0: Modal.com CogVideoX-5B (GPU quality, uses $30/mo credits) ─
 // Deployed from services/modal-media/video_generate.py
-// Model: Wan2.2-TI2V-5B on A10G GPU — cinematic 720P, T2V + I2V
-// Cost: ~$0.092/video | $30/mo free = ~325 videos/mo
+// Model: CogVideoX-5B (THUDM) on A10G GPU — 720P, T2V
+// Cost: ~$0.028/video | $30/mo free = ~1,000 videos/mo
 // Set MODAL_VIDEO_URL to enable
 
 async function generateVideoWithModal(req: VideoRequest): Promise<VideoResult> {
@@ -910,7 +910,7 @@ async function generateVideoWithModal(req: VideoRequest): Promise<VideoResult> {
 
   const { width, height } = getDimensions(req.aspectRatio);
   const duration = Math.min(Math.max(req.duration ?? 5, 2), 10);
-  const fps      = req.fps ?? 24;  // Wan2.2 outputs 24fps
+  const fps      = req.fps ?? 8;   // CogVideoX outputs 8fps
 
   // Modal fastapi_endpoint URL is the full endpoint (no /generate path needed)
   const res = await fetch(MODAL_VIDEO_URL.replace(/\/$/, ''), {
@@ -920,8 +920,8 @@ async function generateVideoWithModal(req: VideoRequest): Promise<VideoResult> {
       prompt:              req.prompt,
       duration,
       fps,
-      width:               Math.min(width, 1280),  // Wan2.2 supports 720P = 1280x720
-      height:              Math.min(height, 720),
+      width:               Math.min(width, 720),   // CogVideoX supports 720x480
+      height:              Math.min(height, 480),
       num_inference_steps: 50,
       ...(req.inputImage && { input_image: req.inputImage }),
     }),
@@ -1020,7 +1020,7 @@ async function generateVideoWithWan22(req: VideoRequest): Promise<VideoResult> {
 
   const { width, height } = getDimensions(req.aspectRatio);
   const duration = Math.min(Math.max(req.duration ?? 5, 3), 5);  // Wan2.2 standard: 5s
-  const fps      = req.fps ?? 24;  // Wan2.2 outputs 24fps 720P
+  const fps      = req.fps ?? 8;   // CogVideoX outputs 8fps 720P
 
   const model = 'Wan-AI/Wan2.2-TI2V-5B';
 
