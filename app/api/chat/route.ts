@@ -28,6 +28,7 @@ import { getIntimacyState, getIntimacyDirective, analyzeInteractionSignals } fro
 import { generateImage } from '@/lib/ai/media-generator';
 import { detectActions, stripActionText } from '@/lib/ai/action-detector';
 import { executeActions } from '@/lib/ai/action-executor';
+import { modelHealth } from '@/lib/ai/model-health-monitor';
 import type { ChatMessage } from '@/lib/ai/providers/free-providers';
 import { chatLimiter, getRateLimitKey } from '@/lib/rate-limiter';
 
@@ -1549,11 +1550,16 @@ export async function POST(req: NextRequest) {
                 const si = gm.findIndex(m => m.role === 'system');
                 if (si !== -1) gm[si].content += TOOL_PROTOCOL;
 
+                // Auto-select a HEALTHY model for tool calling.
+                // If the primary model was deprecated/removed (like qwen/qwen3-32b),
+                // the health monitor automatically falls back to a working one.
+                const toolModel = modelHealth.getHealthyModel('groq', 'tool_calling');
+
                 // Attempt Groq tool calling with one retry on transient failures
                 for (let groqAttempt = 0; groqAttempt < 2; groqAttempt++) {
                   try {
                     const completion = await groqClient.chat.completions.create({
-                      messages: gm as any, model: 'llama-3.3-70b-versatile', temperature: userAiSettings.creativity, max_tokens: 16384,
+                      messages: gm as any, model: toolModel, temperature: userAiSettings.creativity, max_tokens: 16384,
                       tools: groqTools as any, tool_choice: 'auto', stream: true,
                     }, { timeout: 60_000 });
                     for await (const chunk of completion) {
@@ -1607,10 +1613,22 @@ export async function POST(req: NextRequest) {
                         }
                       }
                     }
+                    // Mark model as healthy after successful response
+                    modelHealth.markHealthy('groq', toolModel);
                     break; // success — exit retry loop
                   } catch (e) {
                     const errMsg = e instanceof Error ? e.message : String(e);
                     const isRetryable = errMsg.includes('rate_limit') || errMsg.includes('429') || errMsg.includes('timeout') || errMsg.includes('503');
+
+                    // Auto-detect deprecated/removed models and mark them unhealthy
+                    // so the next request uses a fallback automatically
+                    if (errMsg.includes('model_not_found') || errMsg.includes('does not exist') || errMsg.includes('404')) {
+                      modelHealth.markUnhealthy('groq', toolModel, errMsg);
+                      logger.error('Chat', `Model ${toolModel} not found — marked unhealthy, will use fallback next time`, { error: errMsg });
+                    } else {
+                      modelHealth.markUnhealthy('groq', toolModel, errMsg);
+                    }
+
                     logger.error('Chat', `Groq streaming attempt ${groqAttempt + 1} failed`, { error: errMsg, isRetryable });
                     if (!isRetryable || groqAttempt === 1) {
                       // Non-retryable or second failure — fall through to Arcee/cascade
