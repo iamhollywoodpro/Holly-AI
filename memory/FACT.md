@@ -993,7 +993,7 @@ Three root-cause fixes shipped + two Modal deploys verified live.
 - MCP server will load as CommonJS on next container boot
 
 ## ═══════════════════════════════════════════════════════════════════
-## CURRENT STATE — Updated 2026-08-07 (READ THIS FIRST IN ANY NEW SESSION)
+## CURRENT STATE — Updated 2026-08-07 END OF DAY (READ THIS FIRST IN ANY NEW SESSION)
 ## ═══════════════════════════════════════════════════════════════════
 
 ### WHAT'S WORKING ✅
@@ -1001,25 +1001,47 @@ Three root-cause fixes shipped + two Modal deploys verified live.
 - **SFW images:** Clothing works. PussyDiffusion removed for SFW. Wearing clothes, dressed anchor.
 - **Nude poses:** Working well. Test 3 = "perfection" per Steve.
 - **brain-v40 (Q8):** PRIMARY brain. v35 STOPPED (retired, saves $0.80/hr).
-- **Tool calling:** MCP 56 tools active. DOCKER_BUILD=false fix deployed.
+- **Tool calling:** FIXED — Groq deprecated qwen/qwen3-32b, changed to llama-3.3-70b-versatile.
+- **Model health monitor:** Auto-detects deprecated models, falls back automatically. Never breaks silently.
 - **Context overflow:** Fixed — cascade truncation at 480K chars.
 - **Image persistence:** Images saved to public/generated-images/ + served via /api/generated-images/[filename].
 - **Chat titles:** No more "default" — runTagTrainingReady no longer overwrites title.
 - **Personality:** System prompt rewritten — short casual responses, no AI monologues, no unsolicited tools.
 - **brain-v40 routing:** v40 primary in all waterfalls, v35 as cold-start-only fallback.
-- **Specialist LoRAs RECONNECTED:** _CATEGORY_STACKS restored with FK_dildoinsertion, SEXGOD_Masturbation, femaleasshole-musubituner, pussydiffusion.
-- **Category routing fixed:** dildo_masturbation → dildo → masturbation → spread → bent_over (order matters).
-- **NSFW UNLOCKED LoRA:** FLUX2_KLEIN_UNLOCKED_V2 @ 0.8 added for explicit action prompts.
-- **Pose-guided DISABLED:** Explicit actions go through text-only endpoint with full LoRA stack.
+- **LoRA stacks FIXED to match FACT.md LOCKED RECIPES:**
+  - FLUX2_KLEIN_UNLOCKED REMOVED (generic LoRA, caused identity drift)
+  - SEXGOD_Masturbation REMOVED (4 rounds ALL FAILED per FACT.md)
+  - dildo: combined-v1(0.9) + pussydiffusion(0.8) + FK_dildoinsertion(1.0) ← FACT.md PERFECT
+  - bent_over: combined-v1(0.9) + pussydiffusion(0.8) + femaleasshole(1.0) ← FACT.md PERFECT
+  - spread/closeup: combined-v1(0.9) + pussydiffusion(0.85-1.0) ← FACT.md PERFECT
 
-### WHAT'S IN PROGRESS ⏳
-- **holly-actions-v1 LoRA TRAINING:** Steve training on Civitai (126 images, 17 categories).
-  Same recipe as combined-v1: rank 32, 2000 steps, FLUX.2 Klein 9B base.
-  When done → Steve downloads .safetensors → Dev uploads to Modal volume → wires into endpoint.
-  This should fix explicit ACTIONS (dildo insertion, fingering, fisting, food insertion, oral, squirting).
-- **CD deploy pending:** Multiple commits stuck due to GitHub Actions outage (Aug 6).
-  Commits not yet deployed to Docker: specialist LoRA restore, category routing fix, NSFW UNLOCKED.
-  Need to retrigger CD once GitHub recovers.
+### WHAT'S NOT WORKING (documented in FACT.md, NOT fixable with LoRA training)
+- **Active fingering:** Klein Distilled CANNOT do this. 4 rounds, 3 LoRAs, ALL FAILED. Documented.
+- **Action LoRA training FAILED TWICE on Civitai:** Concept training for geometric actions doesn't work on Klein.
+  Attempt 1: Captions had h0lly trigger on faceless images → mutated identity.
+  Attempt 2: Captions fixed (neutral, unique) → STILL produced horror output.
+  DO NOT ATTEMPT AGAIN without a fundamentally different approach.
+- **Squirting:** 4 Klein LoRAs exhausted, all failed. Documented.
+- **Fisting/food insertion/oral:** No proven LoRAs exist. Klein can't compose these from text.
+- **These are ARCHITECTURAL limitations of Klein Distilled, not training data issues.**
+
+### WHAT'S PENDING
+- **CD deploy:** Latest commit (5ab2f23) needs to deploy via CI/CD. GitHub recovered from outage.
+- **Wan2.2 video endpoint:** Code written, deploy BLOCKED by Modal CLI connection issue from local machine.
+  The CLI returns "Could not connect to Modal server" despite api.modal.com being reachable via curl.
+  Existing endpoints (brain-v40, ComfyUI) still running fine — only CLI management is affected.
+  Need to retry deploy when CLI connection recovers.
+- **Modal CLI issue:** Both accounts (iamhollywoodpro + iamdoregosteve) affected. Tokens valid, network OK.
+  May be CLI version issue (1.4.3) or API rate limiting from heavy deploy cycles today.
+
+### NEW LESSONS ADDED (2026-08-07)
+6. **FLUX2_KLEIN_UNLOCKED is a GENERIC LoRA** — same as SNOFS/Unchained. Causes identity drift. BANNED.
+7. **Concept LoRA training for actions DOESN'T WORK on Klein** — tried twice, both horror output.
+   Klein doesn't have the latent space capacity to learn complex geometric actions (penetration, insertion).
+8. **Groq deprecates models silently** — qwen/qwen3-32b was removed with no notice.
+   Model health monitor now catches this automatically. Always use modelHealth.getHealthyModel().
+9. **Tool calls can get stuck** — when a tool fails (bad credentials), the conversation blocks.
+   Need to add a timeout/cleanup for failed tool calls in the chat loop.
 
 ### IMAGE GEN ARCHITECTURE (LOCKED — DO NOT CHANGE)
 - **Base model:** Flux.2 Klein 9B **DISTILLED** (NOT Base — Base produced cartoon output)
