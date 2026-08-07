@@ -139,10 +139,12 @@ V2_BAKED_LORAS = [
     {"name": "pussydiffusion-f2-klein-9b_v2.safetensors", "strength": 0.8},
 ]
 
-# Explicit action LoRA stack — adds NSFW UNLOCKED for penetration/insertion
+# Explicit action LoRA stack — uses ONLY Steve's own LoRAs (FACT.md rule #7:
+# "Generic LoRAs cause identity drift. Use Steve's own LoRAs only.")
+# FLUX2_KLEIN_UNLOCKED REMOVED — it's a generic LoRA that causes identity drift
+# (same category as SNOFS/Unchained which FACT.md explicitly bans).
 V2_EXPLICIT_LORAS = [
     {"name": "holly-combined-v1.safetensors", "strength": 0.9},
-    {"name": "FLUX2_KLEIN_UNLOCKED_V2.safetensors", "strength": 0.8},
     {"name": "pussydiffusion-f2-klein-9b_v2.safetensors", "strength": 0.8},
 ]
 
@@ -702,31 +704,22 @@ _CATEGORY_PATTERNS = [
 # They were removed during a "simplification" that broke ALL explicit actions.
 # combined-v1 handles identity; these specialists handle the ACTIONS.
 _CATEGORY_STACKS = {
+    # FACT.md LOCKED RECIPES — only Steve's own LoRAs, proven in Smoke8 testing.
+    # These EXACT combos produced "PERFECT" results. Don't add anything else.
     "bent_over": [
-        {"name": "femaleasshole-f2-klein-9b-musubituner.safetensors", "strength": 0.8},
+        {"name": "femaleasshole-f2-klein-9b-musubituner.safetensors", "strength": 1.0},
     ],
     "dildo": [
-        {"name": "FK_dildoinsertion.safetensors", "strength": 0.9},
+        {"name": "FK_dildoinsertion.safetensors", "strength": 1.0},
     ],
     "dildo_masturbation": [
-        {"name": "FK_dildoinsertion.safetensors", "strength": 0.9},
-        {"name": "pussydiffusion-f2-klein-9b_v2.safetensors", "strength": 0.8},
-    ],
-    "masturbation": [
-        {"name": "SEXGOD_FemaleMasturbation_Klein9b_v1.safetensors", "strength": 0.8},
+        {"name": "FK_dildoinsertion.safetensors", "strength": 1.0},
     ],
     "spread_poses": [
         {"name": "pussydiffusion-f2-klein-9b_v2.safetensors", "strength": 0.85},
     ],
     "closeup": [
-        {"name": "pussydiffusion-f2-klein-9b_v2.safetensors", "strength": 0.85},
-    ],
-    "oral": [
-        {"name": "pussydiffusion-f2-klein-9b_v2.safetensors", "strength": 0.8},
-    ],
-    "squirting": [
-        {"name": "SEXGOD_FemaleMasturbation_Klein9b_v1.safetensors", "strength": 0.8},
-        {"name": "pussydiffusion-f2-klein-9b_v2.safetensors", "strength": 0.8},
+        {"name": "pussydiffusion-f2-klein-9b_v2.safetensors", "strength": 1.0},
     ],
 }
 
