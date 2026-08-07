@@ -1532,8 +1532,11 @@ export async function POST(req: NextRequest) {
               // unrestricted content which meant Holly could never execute tools
               // during intimate conversations — she'd say "I'll build that" but
               // nothing happened because brain-v35 has no native function calling.
-              // Now: Groq (qwen3-32b) handles tool calling for ALL conversations.
+              // Now: Groq (llama-3.3-70b-versatile) handles tool calling for ALL conversations.
               // The intimacy gate and hard rules still protect against unwanted content.
+              // NOTE: Previously used qwen/qwen3-32b but Groq deprecated it (404 error).
+              // llama-3.3-70b-versatile supports native function calling and is the same
+              // model used for speed/chat tasks.
               const useGroqTools = hasTools && groqClient;
               const useArceeTools = !useGroqTools && hasTools && arceeApiKey;
 
@@ -1550,7 +1553,7 @@ export async function POST(req: NextRequest) {
                 for (let groqAttempt = 0; groqAttempt < 2; groqAttempt++) {
                   try {
                     const completion = await groqClient.chat.completions.create({
-                      messages: gm as any, model: 'qwen/qwen3-32b', temperature: userAiSettings.creativity, max_tokens: 16384,
+                      messages: gm as any, model: 'llama-3.3-70b-versatile', temperature: userAiSettings.creativity, max_tokens: 16384,
                       tools: groqTools as any, tool_choice: 'auto', stream: true,
                     }, { timeout: 60_000 });
                     for await (const chunk of completion) {
