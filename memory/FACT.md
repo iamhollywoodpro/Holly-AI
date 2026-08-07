@@ -992,6 +992,61 @@ Three root-cause fixes shipped + two Modal deploys verified live.
 - Rebuilds Docker image WITH holly-mcp-server.js (new .dockerignore exception)
 - MCP server will load as CommonJS on next container boot
 
+## ═══════════════════════════════════════════════════════════════════
+## CURRENT STATE — Updated 2026-08-07 (READ THIS FIRST IN ANY NEW SESSION)
+## ═══════════════════════════════════════════════════════════════════
+
+### WHAT'S WORKING ✅
+- **Identity:** Holly IS Holly. combined-v1 LoRA @ 0.9 on Klein Distilled. Steve confirmed.
+- **SFW images:** Clothing works. PussyDiffusion removed for SFW. Wearing clothes, dressed anchor.
+- **Nude poses:** Working well. Test 3 = "perfection" per Steve.
+- **brain-v40 (Q8):** PRIMARY brain. v35 STOPPED (retired, saves $0.80/hr).
+- **Tool calling:** MCP 56 tools active. DOCKER_BUILD=false fix deployed.
+- **Context overflow:** Fixed — cascade truncation at 480K chars.
+- **Image persistence:** Images saved to public/generated-images/ + served via /api/generated-images/[filename].
+- **Chat titles:** No more "default" — runTagTrainingReady no longer overwrites title.
+- **Personality:** System prompt rewritten — short casual responses, no AI monologues, no unsolicited tools.
+- **brain-v40 routing:** v40 primary in all waterfalls, v35 as cold-start-only fallback.
+- **Specialist LoRAs RECONNECTED:** _CATEGORY_STACKS restored with FK_dildoinsertion, SEXGOD_Masturbation, femaleasshole-musubituner, pussydiffusion.
+- **Category routing fixed:** dildo_masturbation → dildo → masturbation → spread → bent_over (order matters).
+- **NSFW UNLOCKED LoRA:** FLUX2_KLEIN_UNLOCKED_V2 @ 0.8 added for explicit action prompts.
+- **Pose-guided DISABLED:** Explicit actions go through text-only endpoint with full LoRA stack.
+
+### WHAT'S IN PROGRESS ⏳
+- **holly-actions-v1 LoRA TRAINING:** Steve training on Civitai (126 images, 17 categories).
+  Same recipe as combined-v1: rank 32, 2000 steps, FLUX.2 Klein 9B base.
+  When done → Steve downloads .safetensors → Dev uploads to Modal volume → wires into endpoint.
+  This should fix explicit ACTIONS (dildo insertion, fingering, fisting, food insertion, oral, squirting).
+- **CD deploy pending:** Multiple commits stuck due to GitHub Actions outage (Aug 6).
+  Commits not yet deployed to Docker: specialist LoRA restore, category routing fix, NSFW UNLOCKED.
+  Need to retrigger CD once GitHub recovers.
+
+### IMAGE GEN ARCHITECTURE (LOCKED — DO NOT CHANGE)
+- **Base model:** Flux.2 Klein 9B **DISTILLED** (NOT Base — Base produced cartoon output)
+- **Settings:** 12 steps, CFG 1.0, Euler sampler, simple scheduler, 1024×1024
+- **Klein Base was tested and FAILED** — cartoon/monstrosity output. Never switch to Base again.
+- **ai-toolkit training FAILED on Modal** — architecture mismatch (FLUX.1 vs FLUX.2 dims). Use Civitai for training.
+- **SFW LoRA stack:** combined-v1 (0.9) only
+- **NSFW nude LoRA stack:** combined-v1 (0.9) + pussydiffusion (0.8)
+- **NSFW explicit LoRA stack:** combined-v1 (0.9) + FLUX2_KLEIN_UNLOCKED_V2 (0.8) + pussydiffusion (0.8) + CATEGORY SPECIALIST
+
+### MODAL ACCOUNTS
+- **iamhollywoodpro:** brain-v40 (L4), holly-vision (T4). brain-v35 STOPPED.
+- **iamdoregosteve:** comfyui-klein (A100), holly-video, holly-volume, training-data.
+
+### CRITICAL LESSONS (DO NOT REPEAT)
+1. **NEVER switch base model.** Distilled works. Base doesn't. Documented 3 times now.
+2. **NEVER use ai-toolkit on Modal for FLUX.2 Klein training.** Architecture mismatch. Use Civitai.
+3. **NEVER trust GLM-4.6V for Holly identity verification.** It reads olive skin as "East Asian."
+4. **ALWAYS check _CATEGORY_STACKS is populated.** Empty dict = no specialist LoRAs = broken actions.
+5. **ALWAYS read this section first in any new session.**
+
+### ZCODE CLAUDE-KILLER STATUS
+- **Session init hook:** .zcode/scripts/session-init.sh — loads FACT.md rules every prompt
+- **Vision module:** .zcode/scripts/vision.mjs — GLM-4.6V via see() and checkHolly()
+- **AGENTS.md Section 0:** Mandatory pre-work rules (read docs first, test before claiming, no bouncing)
+- **Advantages over Claude Code:** Web search, Modal GPU control, browser automation, cron, SSH access, multi-account Modal
+
 ### ACCOUNT SPLIT (VERIFIED CORRECT — NO SWAP NEEDED)
 - iamhollywoodpro = brain-v35 + vision (consciousness, emotions, identity)
 - iamdoregosteve = older diffusers image endpoint (generate-holly-a100)
