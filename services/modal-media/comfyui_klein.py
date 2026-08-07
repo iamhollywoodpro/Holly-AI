@@ -124,11 +124,10 @@ V2_SCHEDULER = "simple"
 # images. NEVER for SFW. combined-v1 alone is sufficient for identity (Steve
 # confirmed beach and bar images ARE Holly — GLM vision was wrong about identity).
 #
-# NSFW UNLOCKED (2026-08-05): FLUX2_KLEIN_UNLOCKED_V2.safetensors — community
-# LoRA (Civitai model 2063193) that teaches Klein the explicit concepts it was
-# never trained on (penetration, insertion, masturbation actions). Klein's base
-# model simply never had this content in training data — the unlock LoRA patches
-# that gap. Used ONLY for explicit action prompts (insertion, penetration, etc).
+# REMOVED 2026-08-07: FLUX2_KLEIN_UNLOCKED_V2 — GENERIC LoRA that causes
+# identity drift (same as SNOFS/Unchained). FACT.md rule #7 bans generic LoRAs.
+# Klein's training data limitation for explicit actions is an ARCHITECTURAL limit,
+# not fixable with generic unlock LoRAs.
 #
 # Three LoRA tiers:
 #   SFW:              combined-v1 @ 0.9 only
@@ -756,7 +755,8 @@ def select_loras_for_prompt(prompt: str, extra_loras: list = None) -> list:
     has_explicit = bool(_EXPLICIT_RE.search(prompt))
 
     if has_explicit:
-        # Explicit action — needs NSFW UNLOCKED to bypass Klein's content gap
+        # Explicit action — uses Steve's own LoRAs only (FACT.md LOCKED RECIPES)
+        # Generic LoRAs (UNLOCKED, SNOFS, Unchained) BANNED — cause identity drift.
         stack = list(V2_EXPLICIT_LORAS)
     elif has_nudity:
         # Nude pose — anatomy only, no unlock needed
@@ -1421,13 +1421,14 @@ class HollyComfyUIKlein:
         (face @ 0.8 + body v1 @ 0.8 + 12 steps + CFG 1) and category-aware LoRA
         routing.
 
-        The endpoint automatically builds the LoRA stack from the prompt:
-          - Always: holly-face-v2 @ 0.85 + holly-body-v1 @ 0.7 (v2-recipe base)
-          - bent_over/from-behind: + Unchained @ 0.6 + femaleasshole @ 1.0
-          - masturbation/fingering: + SNOFS @ 0.85 + Masturbation @ 0.85
-          - spread/pussy-closeup: + SNOFS @ 0.85 + pussydiffusion @ 0.85
-          - dildo/toy: + Unchained @ 0.6 + dildoinsertion @ 1.0
-          - default (nude/clothed/face): baked layer only
+        The endpoint automatically builds the LoRA stack from the prompt.
+        Only Steve's own LoRAs are used (FACT.md LOCKED RECIPES):
+          - Always: holly-combined-v1 @ 0.9 (identity base)
+          - explicit dildo: + pussydiffusion @ 0.8 + FK_dildoinsertion @ 1.0
+          - bent_over: + pussydiffusion @ 0.8 + femaleasshole @ 1.0
+          - spread/closeup: + pussydiffusion @ 0.85-1.0
+          - nude pose: + pussydiffusion @ 0.8
+          - SFW: combined-v1 only
 
         Request body:
             prompt: str — the image prompt
@@ -1649,7 +1650,7 @@ class HollyComfyUIKlein:
             raise HTTPException(status_code=400, detail="pose_ref is required (filename in pose-refs/)")
 
         # Build the LoRA stack — use select_loras_for_prompt for explicit detection
-        # This ensures the NSFW UNLOCKED LoRA loads for explicit action prompts
+        # This ensures specialist LoRAs (FK_dildoinsertion, etc.) load for explicit prompts
         loras = caller_loras if caller_loras else select_loras_for_prompt(raw_prompt)
         prompt = f"{raw_prompt}, {get_anatomy_anchors(raw_prompt)}" if raw_prompt else get_anatomy_anchors(raw_prompt)
 
@@ -1730,13 +1731,14 @@ class HollyComfyUIKlein:
         vae_present = os.path.exists(f"{VAE_DIR}/{VAE_FILE}")
         models_present = all([unet_present, clip_present, vae_present])
 
-        # Check key LoRAs present (the v2-recipe baked + the 3 NSFW specialists)
+        # Check key LoRAs present — ONLY Steve's own LoRAs (FACT.md rule #7)
+        # Generic LoRAs (SNOFS, Unchained, FLUX2_KLEIN_UNLOCKED) are BANNED
+        # because they cause identity drift.
         key_loras = [
-            "holly-face-v2.safetensors",
-            "holly-body-v1.safetensors",
-            "SNOFS-Klein-9b-v1.4.safetensors",
-            "KLEIN-Unchained-V2.safetensors",
-            "Holly-Masturbation-Klein9b-v1.safetensors",
+            "holly-combined-v1.safetensors",
+            "pussydiffusion-f2-klein-9b_v2.safetensors",
+            "FK_dildoinsertion.safetensors",
+            "femaleasshole-f2-klein-9b-musubituner.safetensors",
         ]
         loras_present = {name: os.path.exists(f"{LORA_DIR}/{name}") for name in key_loras}
 
