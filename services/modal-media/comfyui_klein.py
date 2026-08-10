@@ -1766,6 +1766,7 @@ class HollyComfyUIKlein:
 @app.local_entrypoint()
 def main():
     print("═══ Holly ComfyUI Klein v2-recipe Endpoint ═══")
-    print(f"Deploy: modal deploy --profile iamhollywoodpro services/modal-media/comfyui_klein.py")
-    print(f"Generate: https://iamhollywoodpro--generate-comfyui-klein.modal.run")
-    print(f"Health:   https://iamhollywoodpro--comfyui-klein-health.modal.run")
+    print(f"Deploy: modal deploy services/modal-media/comfyui_klein.py")
+    print(f"  (deploy to the iamdoregosteve workspace — comfyui-klein lives there)")
+    print(f"Generate: https://iamdoregosteve--generate-comfyui-klein.modal.run")
+    print(f"Health:   https://iamdoregosteve--comfyui-klein-health.modal.run")

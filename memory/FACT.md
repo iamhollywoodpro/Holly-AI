@@ -993,7 +993,9 @@ Three root-cause fixes shipped + two Modal deploys verified live.
 - MCP server will load as CommonJS on next container boot
 
 ## ═══════════════════════════════════════════════════════════════════
-## CURRENT STATE — Updated 2026-08-07 END OF DAY (READ THIS FIRST IN ANY NEW SESSION)
+## CURRENT STATE — Updated 2026-08-10 (READ THIS FIRST IN ANY NEW SESSION)
+## NOTE: Earlier sections below may be stale (v35 URLs, old workspace names).
+## When this section conflicts with an earlier one, THIS SECTION WINS.
 ## ═══════════════════════════════════════════════════════════════════
 
 ### WHAT'S WORKING ✅
@@ -1025,14 +1027,25 @@ Three root-cause fixes shipped + two Modal deploys verified live.
 - **Fisting/food insertion/oral:** No proven LoRAs exist. Klein can't compose these from text.
 - **These are ARCHITECTURAL limitations of Klein Distilled, not training data issues.**
 
-### WHAT'S PENDING
-- **CD deploy:** Latest commit (5ab2f23) needs to deploy via CI/CD. GitHub recovered from outage.
-- **Wan2.2 video endpoint:** Code written, deploy BLOCKED by Modal CLI connection issue from local machine.
-  The CLI returns "Could not connect to Modal server" despite api.modal.com being reachable via curl.
-  Existing endpoints (brain-v40, ComfyUI) still running fine — only CLI management is affected.
-  Need to retry deploy when CLI connection recovers.
-- **Modal CLI issue:** Both accounts (iamhollywoodpro + iamdoregosteve) affected. Tokens valid, network OK.
-  May be CLI version issue (1.4.3) or API rate limiting from heavy deploy cycles today.
+### WHAT'S PENDING (updated 2026-08-10)
+- **CI/CD:** ✅ All green. Last 8 runs on main passed (HOLLY CI + HOLLY CD). Latest commit `9370cca` deployed.
+- **Modal CLI:** ✅ RECOVERED. Was unreachable 2026-08-07 ("Could not connect to Modal server"),
+  working again as of 2026-08-10 (v1.4.3). Not a blocker anymore.
+- **comfyui-klein redeployed 2026-08-10:** Caught that the live container was still serving pre-`5ab2f23`
+  code (banned `FLUX2_KLEIN_UNLOCKED_V2` active in the LoRA stack). Redeployed; verified clean via
+  container logs: dildo stack now = combined-v1(0.9) + pussydiffusion(0.8) + FK_dildoinsertion(1.0).
+  See lesson #10 below. **Steve must visually confirm the retest image** at
+  `~/Desktop/KLEIN-DILDO-RETEST-*/dildo_masturbation.png`.
+- **Wan2.2 video endpoint:** CORRECTED script written (`services/modal-media/video_generate.py`),
+  syntax-checked, retargeted to `Wan-AI/Wan2.2-TI2V-5B-Diffusers` (verified public, Apache-2.0,
+  documented for 24GB VRAM). HOLDING for Steve's model-choice approval before deploy.
+  Previous script referenced `Wan-AI/Wan2.2-T2V-A14B-FP8` — that repo never existed (401).
+  Options presented: (A) TI2V-5B [recommended, proven on 24GB], (B) NVIDIA FP8 A14B [B200-targeted,
+  risky], (C) full A14B BF16 [needs 80GB, impossible on A10G].
+- **Coolify env check NEEDED:** Verify `MODAL_HOLLY_LORA_URL` points at `iamdoregosteve--generate-comfyui-klein`
+  (not iamhollywoodpro). UNVERIFIED — run `sudo docker exec holly-app-* env | grep MODAL`.
+- **Health endpoint:** ✅ Now correct after 2026-08-10 redeploy. Checks the 4 actually-used LoRAs
+  (holly-combined-v1, pussydiffusion_v2, FK_dildoinsertion, femaleasshole-musubituner). All present.
 
 ### NEW LESSONS ADDED (2026-08-07)
 6. **FLUX2_KLEIN_UNLOCKED is a GENERIC LoRA** — same as SNOFS/Unchained. Causes identity drift. BANNED.
@@ -1042,6 +1055,25 @@ Three root-cause fixes shipped + two Modal deploys verified live.
    Model health monitor now catches this automatically. Always use modelHealth.getHealthyModel().
 9. **Tool calls can get stuck** — when a tool fails (bad credentials), the conversation blocks.
    Need to add a timeout/cleanup for failed tool calls in the chat loop.
+
+### NEW LESSONS ADDED (2026-08-10)
+10. **A "code fix" commit does NOT update the running Modal container.** Commits `5ab2f23` + `9370cca`
+    removed the banned `FLUX2_KLEIN_UNLOCKED_V2` from `comfyui_klein.py`, but the iamdoregosteve
+    container was NEVER REDEPLOYED. The live endpoint kept serving the old code with the banned LoRA
+    for 3 days, causing identity drift on dildo images. Steve caught it visually.
+    **THE RULE:** After ANY code change to a Modal service, you MUST run `modal deploy <script.py>`
+    AND verify the change took effect by reading the container logs (`modal app logs <app> | grep
+    "LoRA stack"`). "Merged to main" ≠ "deployed." "Deployed" ≠ "container restarted." Only the
+    container log is the source of truth for what's actually running.
+11. **GLM-4.6V is NOT a substitute for Steve's eyes on identity.** It called both pre-redeploy
+    dildo images "PERFECT" — they had the banned LoRA and lost Holly's likeness. Lesson #3 already
+    warned it misreads olive skin; this extends to: do not relay GLM-4.6V identity verdicts as
+    verified fact. Use it for anatomy/limb counting only. For identity, say "UNVERIFIED — needs
+    Steve's eyes."
+12. **Modal `.modal.run` URLs return 404 "invalid function call" when the function label doesn't
+    exist on that workspace** — NOT a network error. When an endpoint 404s, check `modal app list`
+    on the correct workspace to confirm the app/function is actually deployed there. Don't assume
+    the URL string in FACT.md or env vars is current.
 
 ### IMAGE GEN ARCHITECTURE (LOCKED — DO NOT CHANGE)
 - **Base model:** Flux.2 Klein 9B **DISTILLED** (NOT Base — Base produced cartoon output)
@@ -1069,17 +1101,30 @@ Three root-cause fixes shipped + two Modal deploys verified live.
 - **AGENTS.md Section 0:** Mandatory pre-work rules (read docs first, test before claiming, no bouncing)
 - **Advantages over Claude Code:** Web search, Modal GPU control, browser automation, cron, SSH access, multi-account Modal
 
-### ACCOUNT SPLIT (VERIFIED CORRECT — NO SWAP NEEDED)
-- iamhollywoodpro = brain-v35 + vision (consciousness, emotions, identity)
-- iamdoregosteve = older diffusers image endpoint (generate-holly-a100)
-- Note: comfyui-klein (the identity-locked image gen Holly actually uses)
-  lives on iamhollywoodpro, NOT iamdoregosteve. This is correct per production
-  env config (MODAL_HOLLY_LORA_URL → iamhollywoodpro--generate-comfyui-klein)
+### ACCOUNT SPLIT — VERIFIED 2026-08-10 via `modal app list` on both workspaces
+- **iamhollywoodpro** = brain-v40 (L4) + holly-vision (T4). brain-v35 retired.
+  - brain-v40 endpoint: `https://iamhollywoodpro--brain-chat-v40.modal.run`
+  - brain-v40 health:   `https://iamhollywoodpro--brain-health-v40.modal.run`
+  - (The old `--brain-chat` / `--brain-health` labels without `-v40` suffix
+    return 404 — v35 was replaced by v40 on 2026-08-01.)
+- **iamdoregosteve** = comfyui-klein (A100) + holly-video + holly-volume + training-data.
+  - comfyui-klein (Holly's identity-locked image gen) lives on iamdoregosteve,
+    NOT iamhollywoodpro. Verified: `iamdoregosteve--generate-comfyui-klein` returns
+    200; `iamhollywoodpro--generate-comfyui-klein` returns 404.
+  - The previous FACT.md claim that comfyui-klein "lives on iamhollywoodpro"
+    was WRONG. Corrected 2026-08-10.
+  - holly-video endpoint: `https://iamdoregosteve--video-generate.modal.run`
+    (Currently serving CogVideoX-5B. Wan2.2 upgrade scripted but not deployed —
+    see "Wan2.2 video status" below.)
+- **WARNING:** The env var MODAL_HOLLY_LORA_URL in Coolify MUST point at
+  `iamdoregosteve--generate-comfyui-klein`. If it points at iamhollywoodpro,
+  image gen 404s silently. UNVERIFIED whether Coolify env is currently correct —
+  needs a `sudo docker exec holly-app-* env | grep MODAL` check.
 
-### BRAIN V4.0 ROADMAP (NEXT MAJOR WORK)
-Phase 0: Fix training data collection (67 examples, 0 above 0.80 quality)
-Phase 1: Q4_K_M → Q8_0 quant (9.5GB, fits L4) — emotional nuance boost
-Phase 2: System prompt surgery (stale architecture description in holly-modes.ts:72)
-Phase 3: Fine-tune pipeline repair (retarget Qwen3-8B→Qwen3.5-9B, raise token cap)
-Phase 4: Deploy as holly-brain-v40, keep v35 as fallback
+### BRAIN V4.0 STATUS — v40 IS LIVE (deployed 2026-08-01, verified healthy 2026-08-10)
+- Phase 0: 🟡 Fix training data collection (67 examples, 0 above 0.80 quality) — still open
+- Phase 1: ✅ DONE — Q8_0 quant deployed (9.5GB GGUF on L4)
+- Phase 2: 🟡 System prompt surgery (stale architecture description in holly-modes.ts:72) — still open
+- Phase 3: 🟡 Fine-tune pipeline repair (retarget Qwen3-8B→Qwen3.5-9B, raise token cap) — still open
+- Phase 4: ✅ DONE — holly-brain-v40 deployed and healthy. v35 retired (not deployed).
 

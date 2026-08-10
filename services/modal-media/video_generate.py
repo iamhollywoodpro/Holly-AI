@@ -1,25 +1,31 @@
 #!/usr/bin/env python3
 """
-HOLLY Modal Video Generation Service — Wan2.2
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Model:  Wan2.2-T2V-A14B (Alibaba, Apache-2.0)
+HOLLY Modal Video Generation Service — Wan2.2 TI2V-5B
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Model:  Wan2.2-TI2V-5B (Alibaba, Apache-2.0)
 GPU:    NVIDIA A10G (24 GB VRAM)
-Cost:   ~$0.000306/s | ~180s/video → ~$0.055/video
-Free:   $30/mo Modal credits → ~545 videos/month FREE
+Cost:   ~$0.000306/s | ~120s/video → ~$0.037/video
+Free:   $30/mo Modal credits → ~800 videos/month FREE
 
-Wan2.2 advantages over CogVideoX-5B:
-  - MoE (Mixture-of-Experts) architecture = better quality
-  - 720P resolution (vs CogVideoX 480P)
-  - 16fps output (vs CogVideoX 8fps)
-  - Cinematic motion quality
-  - Better prompt adherence
+Why TI2V-5B (not T2V-A14B):
+  - A14B unquantized needs 80GB VRAM. The only official FP8 build
+    (nvidia/Wan2.2-T2V-A14B-Diffusers-FP8) targets Blackwell B200 and
+    ships a TRTLLM/SGLang CLI, NOT a drop-in diffusers WanPipeline.
+    Forcing FP8 via torch.float8_e4m3fn on the BF16 A14B weights is
+    unstable and undocumented. (Previous script did this and 401'd
+    because Wan-AI never published a T2V-A14B-FP8 repo.)
+  - TI2V-5B is EXPLICITLY documented by Wan-AI to run on 24GB VRAM
+    (RTX 4090 / A10G) with model CPU offload + T5 on CPU.
+    Source: https://huggingface.co/Wan-AI/Wan2.2-TI2V-5B-Diffusers
+  - TI2V = Text+Image-to-Video (superset of T2V). Outputs 720P @ 24fps.
+    Still a large upgrade over CogVideoX-5B (480P @ 8fps).
 
-Memory management on A10G (24GB):
-  - FP8 quantization reduces 14B model to ~14GB
-  - CPU offloading for text encoder (T5)
-  - VAE slicing + tiling for decode
-  - Total fits in 24GB with offloading
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Memory strategy on A10G (24GB) — matches Wan-AI's documented recipe:
+  - WanPipeline in BF16 (native dtype, do NOT force FP8)
+  - enable_model_cpu_offload() — swaps transformer/VAE to GPU by phase
+  - enable_vae_tiling() + enable_vae_slicing() for decode phase
+  - T5 text encoder runs on CPU during prompt encoding
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
 
 import io
@@ -28,23 +34,22 @@ import modal
 
 app = modal.App("holly-video-generate")
 
-WAN_MODEL = "Wan-AI/Wan2.2-T2V-A14B"
+# Verified repo (2026-08-10): Wan-AI/Wan2.2-TI2V-5B-Diffusers exists, is
+# public, Apache-2.0, and documented to run on 24GB VRAM. The previous
+# repo "Wan-AI/Wan2.2-T2V-A14B-FP8" did not exist (401 on snapshot_download).
+WAN_MODEL = "Wan-AI/Wan2.2-TI2V-5B-Diffusers"
 MODEL_CACHE = "/model-cache"
-
-# Use FP8 version for A10G (24GB) compatibility
-# Full BF16 A14B needs 60GB+ VRAM. FP8 fits in 24GB.
-WAN_FP8_MODEL = "Wan-AI/Wan2.2-T2V-A14B-FP8"
 
 
 def download_weights():
     from huggingface_hub import snapshot_download
-    print(f"📥 Downloading {WAN_FP8_MODEL} weights (Apache-2.0, FP8 for A10G)...")
+    print(f"📥 Downloading {WAN_MODEL} weights (Apache-2.0, BF16)...")
     snapshot_download(
-        repo_id=WAN_FP8_MODEL,
+        repo_id=WAN_MODEL,
         local_dir=MODEL_CACHE,
         ignore_patterns=["*.md", "*.txt", "*.json.bak", "original/*"],
     )
-    print("✅ Wan2.2-T2V-A14B-FP8 weights downloaded")
+    print(f"✅ {WAN_MODEL} weights downloaded")
 
 
 image = (
@@ -54,7 +59,9 @@ image = (
         "torch==2.5.1",
         "torchvision",
         "torchaudio",
-        "diffusers>=0.32.0",  # Wan2.2 needs diffusers 0.32+
+        # Wan2.2 pipeline landed in diffusers 0.35.0 (confirmed via release
+        # notes). 0.39.0 is current. Pin >=0.35 so the WanPipeline import works.
+        "diffusers>=0.35.0",
         "transformers>=4.46.3",
         "accelerate>=0.34.0",
         "sentencepiece",
@@ -66,12 +73,11 @@ image = (
         "fastapi[standard]",
         "pydantic>=2.0",
         "huggingface_hub>=0.26.0",
-        "bitsandbytes>=0.44.0",  # FP8 quantization support
         extra_options="--extra-index-url https://download.pytorch.org/whl/cu124",
     )
     .run_function(
         download_weights,
-        timeout=1800,  # 30 min — Wan2.2 FP8 is ~14GB download
+        timeout=1800,  # 30 min — TI2V-5B BF16 is ~20GB download
     )
 )
 
@@ -83,7 +89,7 @@ image = (
     scaledown_window=300,    # warm 5 min between requests
     timeout=900,             # 15 min max per video
     startup_timeout=900,     # 15 min startup
-    memory=32768,            # 32GB system RAM for offloading
+    memory=32768,            # 32GB system RAM for CPU offloading
 )
 class HollyVideoGenerator:
 
@@ -91,43 +97,39 @@ class HollyVideoGenerator:
     def load_model(self):
         import torch
         from diffusers import AutoencoderKLWan, WanPipeline
-        from transformers import T5EncoderModel
 
-        print(f"📥 Loading Wan2.2-T2V-A14B-FP8 from {MODEL_CACHE}...")
+        print(f"📥 Loading {WAN_MODEL} from {MODEL_CACHE} (BF16)...")
 
-        # Load components separately for memory management
-        # T5 text encoder offloaded to CPU (saves VRAM)
-        text_encoder = T5EncoderModel.from_pretrained(
-            MODEL_CACHE,
-            subfolder="text_encoder",
-            torch_dtype=torch.float8_e4m3fn,  # FP8 for memory
-            device_map="cpu",  # Keep on CPU, move to GPU only for encoding
-        )
-
-        # VAE
+        # VAE in float32 for numerical stability during decode
+        # (Wan-AI's own example loads VAE at float32 — mixing BF16 VAE with
+        # BF16 transformer causes color drift in decoded frames).
         vae = AutoencoderKLWan.from_pretrained(
             MODEL_CACHE,
             subfolder="vae",
-            torch_dtype=torch.float8_e4m3fn,
+            torch_dtype=torch.float32,
         )
 
-        # Main pipeline
+        # Pipeline in BF16 (native dtype). We do NOT force FP8 — the only
+        # official FP8 build is NVIDIA's Blackwell-targeted repo, which is
+        # not a drop-in diffusers model. BF16 + CPU offload is Wan-AI's
+        # documented 24GB recipe.
         self.pipe = WanPipeline.from_pretrained(
             MODEL_CACHE,
-            text_encoder=text_encoder,
             vae=vae,
-            torch_dtype=torch.float8_e4m3fn,
+            torch_dtype=torch.bfloat16,
         )
-        self.pipe = self.pipe.to("cuda")
 
-        # Memory optimization
+        # 24GB VRAM recipe (per Wan-AI model card for TI2V-5B on RTX 4090):
+        # - enable_model_cpu_offload: moves transformer↔VAE↔T5 between CPU
+        #   and GPU per pipeline phase, keeping peak VRAM under 24GB.
+        # - vae tiling + slicing: decode large frame batches in chunks.
         self.pipe.enable_model_cpu_offload()
         if hasattr(self.pipe.vae, 'enable_slicing'):
             self.pipe.vae.enable_slicing()
         if hasattr(self.pipe.vae, 'enable_tiling'):
             self.pipe.vae.enable_tiling()
 
-        print("✅ Wan2.2-T2V-A14B-FP8 loaded on A10G GPU")
+        print(f"✅ {WAN_MODEL} loaded (BF16 + CPU offload) on A10G GPU")
 
     @modal.fastapi_endpoint(method="POST", label="video-generate")
     def generate(self, request: dict):
@@ -139,10 +141,14 @@ class HollyVideoGenerator:
 
         prompt = (request.get("prompt") or "").strip()
         duration = min(float(request.get("duration", 5.0)), 8.0)
-        fps = int(request.get("fps", 16))  # Wan2.2 outputs 16fps
+        # TI2V-5B outputs 24fps natively (Wan-AI model card). 16fps is also
+        # supported; default to 24 to match the model's native cadence.
+        fps = int(request.get("fps", 24))
+        # TI2V-5B 720P dimensions (per Wan-AI card): 1280x704 or 704x1280.
+        # Both must be divisible by 16. Cap at 720P to stay within 24GB VRAM.
         width = min(int(request.get("width", 1280)), 1280)
-        height = min(int(request.get("height", 720)), 720)
-        steps = min(int(request.get("num_inference_steps", 30)), 40)  # Wan2.2 uses fewer steps
+        height = min(int(request.get("height", 704)), 704)
+        steps = min(int(request.get("num_inference_steps", 30)), 40)
         seed = request.get("seed")
         negative_prompt = request.get("negative_prompt", "low quality, blurry, distorted, watermark")
 
@@ -152,8 +158,9 @@ class HollyVideoGenerator:
                 media_type="application/json", status_code=400,
             )
 
-        # Wan2.2 frame calculation
-        num_frames = min(int(duration * fps), 121)  # Wan2.2 max ~121 frames
+        # Wan2.2 frame calculation. num_frames must be 4k+1 for Wan VAE.
+        raw_frames = int(duration * fps)
+        num_frames = min(((raw_frames // 4) * 4) + 1, 121)  # cap ~5s @ 24fps
         actual_dur = num_frames / fps
         print(f"🎬 {prompt[:80]} | {num_frames}f @ {fps}fps = {actual_dur:.1f}s | {width}x{height}")
 
@@ -178,7 +185,7 @@ class HollyVideoGenerator:
             tmp_path = tmp.name
 
         imageio.mimwrite(tmp_path, np_frames, fps=fps, codec="libx264",
-                         output_params=["-crf", "20", "-preset", "medium"])  # Higher quality CRF
+                         output_params=["-crf", "20", "-preset", "medium"])
 
         with open(tmp_path, "rb") as f:
             video_bytes = f.read()
@@ -190,7 +197,7 @@ class HollyVideoGenerator:
             content=video_bytes,
             media_type="video/mp4",
             headers={
-                "X-Model": "Wan2.2-T2V-A14B-FP8",
+                "X-Model": WAN_MODEL,
                 "X-Provider": "modal",
                 "X-Duration": str(round(actual_dur, 2)),
                 "X-FPS": str(fps),
@@ -206,13 +213,13 @@ class HollyVideoGenerator:
         from fastapi.responses import JSONResponse
         return JSONResponse({
             "status": "healthy",
-            "model": WAN_FP8_MODEL,
+            "model": WAN_MODEL,
             "gpu": "A10G",
             "licence": "Apache-2.0",
-            "cost": "~$0.055/video (A10G @$0.000306/s, ~180s inference)",
-            "free_quota": "$30/mo → ~545 videos/mo free (at ≤18/day)",
-            "version": "3.0.0",
-            "upgraded_from": "CogVideoX-5B → Wan2.2-T2V-A14B-FP8",
+            "cost": "~$0.037/video (A10G @$0.000306/s, ~120s inference)",
+            "free_quota": "$30/mo → ~800 videos/mo free (at ≤27/day)",
+            "version": "3.1.0",
+            "note": "Wan2.2-TI2V-5B (was CogVideoX-5B). A14B not used — needs 80GB VRAM.",
         })
 
 
