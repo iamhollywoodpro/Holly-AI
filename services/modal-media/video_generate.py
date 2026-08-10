@@ -55,19 +55,29 @@ def download_weights():
 image = (
     modal.Image.debian_slim(python_version="3.11")
     .apt_install("ffmpeg")
+    # Step 1: Install torch/torchvision/torchaudio pinned to the cu124 build.
+    # The local version tag (+cu124) forces pip to grab the CUDA 12.4 wheel
+    # specifically. Without it, pip resolves torch>=2.6.0 to the latest PyPI
+    # build (2.13.0+cu130 / CUDA 13), which produced severely degraded blocky
+    # video output on A10G (Ampere architecture). cu124 is the known-good
+    # wheel for Ampere GPUs (A10G/A100).
     .pip_install(
-        # torch>=2.6.0 (NOT pinned to 2.5.1) — matches the proven comfyui_klein.py
-        # image pattern. diffusers 0.35+ transitively expects a newer torch whose
-        # CUDA runtime libs match; pinning 2.5.1 caused libcudart.so.13 not found
-        # because the resolved diffusers wanted CUDA 13 libs that 2.5.1 doesn't ship.
-        "torch>=2.6.0",
-        "torchvision",
-        "torchaudio",
-        # Wan2.2 pipeline landed in diffusers 0.35.0 (confirmed via release
-        # notes). 0.39.0 is current. Pin >=0.35 so the WanPipeline import works.
-        "diffusers>=0.35.0",
-        "transformers>=4.46.3",
-        "accelerate>=0.34.0",
+        "torch==2.6.0+cu124",
+        "torchvision==0.21.0+cu124",
+        "torchaudio==2.6.0+cu124",
+        extra_options="--index-url https://download.pytorch.org/whl/cu124",
+    )
+    # Step 2: Install remaining deps from PyPI (default index). Done as a
+    # separate step so torch's cu124 pin from step 1 is preserved.
+    # Version pins match the Wan2.2 official requirements.txt + known-good combos:
+    #   - transformers <=4.51.3 (official Wan2.2 upper bound; newer versions break
+    #     accelerate's _hf_hook → AttributeError on WanTransformer3DModel)
+    #   - accelerate 1.6.0 (stable release compatible with torch 2.6 + diffusers 0.35+)
+    #   - diffusers >=0.35.1 (includes VAE patches fix PR #12041 for sharp output)
+    .pip_install(
+        "diffusers>=0.35.1,<0.40",
+        "transformers>=4.49.0,<=4.51.3",
+        "accelerate>=1.1.1,<=1.6.0",
         "sentencepiece",
         "protobuf",
         "imageio[ffmpeg]",
@@ -77,7 +87,6 @@ image = (
         "fastapi[standard]",
         "pydantic>=2.0",
         "huggingface_hub>=0.26.0",
-        extra_options="--extra-index-url https://download.pytorch.org/whl/cu124",
     )
     .run_function(
         download_weights,
@@ -152,7 +161,7 @@ class HollyVideoGenerator:
         # Both must be divisible by 16. Cap at 720P to stay within 24GB VRAM.
         width = min(int(request.get("width", 1280)), 1280)
         height = min(int(request.get("height", 704)), 704)
-        steps = min(int(request.get("num_inference_steps", 30)), 40)
+        steps = min(int(request.get("num_inference_steps", 50)), 50)  # Wan-AI recommends 50
         seed = request.get("seed")
         negative_prompt = request.get("negative_prompt", "low quality, blurry, distorted, watermark")
 
@@ -183,7 +192,17 @@ class HollyVideoGenerator:
             )
 
         frames = result.frames[0]
-        np_frames = [np.array(f) for f in frames]
+        # Explicitly convert frames to uint8 [0,255]. diffusers returns PIL
+        # Images (uint8) for WanPipeline, but some code paths return float32
+        # arrays in [0,1] range — imageio's auto-conversion of those is lossy
+        # and produces the "Lossy conversion from float32 to uint8" warning.
+        # Forcing uint8 here ensures clean, consistent encoding.
+        np_frames = []
+        for f in frames:
+            arr = np.array(f)
+            if arr.dtype != np.uint8:
+                arr = (arr * 255).clip(0, 255).astype(np.uint8)
+            np_frames.append(arr)
 
         with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as tmp:
             tmp_path = tmp.name
