@@ -56,7 +56,11 @@ image = (
     modal.Image.debian_slim(python_version="3.11")
     .apt_install("ffmpeg")
     .pip_install(
-        "torch==2.5.1",
+        # torch>=2.6.0 (NOT pinned to 2.5.1) — matches the proven comfyui_klein.py
+        # image pattern. diffusers 0.35+ transitively expects a newer torch whose
+        # CUDA runtime libs match; pinning 2.5.1 caused libcudart.so.13 not found
+        # because the resolved diffusers wanted CUDA 13 libs that 2.5.1 doesn't ship.
+        "torch>=2.6.0",
         "torchvision",
         "torchaudio",
         # Wan2.2 pipeline landed in diffusers 0.35.0 (confirmed via release
