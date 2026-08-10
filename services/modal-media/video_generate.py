@@ -80,6 +80,8 @@ image = (
         "accelerate>=1.1.1,<=1.6.0",
         "sentencepiece",
         "protobuf",
+        "ftfy",           # required by WanImageToVideoPipeline for prompt cleaning
+        "easydict",       # required by Wan2.2 official requirements.txt
         "imageio[ffmpeg]",
         "imageio-ffmpeg",
         "pillow",
@@ -143,6 +145,37 @@ class HollyVideoGenerator:
             self.pipe.vae.enable_tiling()
 
         print(f"✅ {WAN_MODEL} loaded (BF16 + CPU offload) on A10G GPU")
+        # I2V pipeline loaded lazily on first image-to-video request (saves
+        # VRAM at startup — both pipelines share the same weights but load
+        # separate pipeline wrappers).
+        self.i2v_pipe = None
+
+    def _ensure_i2v(self):
+        """Lazily load the WanImageToVideoPipeline on first I2V request."""
+        if self.i2v_pipe is not None:
+            return self.i2v_pipe
+        import torch
+        # ftfy must be imported BEFORE loading the I2V pipeline — diffusers v0.39
+        # has a bug where pipeline_wan_i2v.py uses ftfy.fix_text() in basic_clean()
+        # but only imports it conditionally (is_ftfy_available()), which fails the
+        # availability check even when ftfy is installed. Importing it here puts it
+        # in the global namespace so the pipeline can find it.
+        import ftfy  # noqa: F401 — required to fix diffusers NameError
+        from diffusers import AutoencoderKLWan, WanImageToVideoPipeline
+        print(f"📥 Loading WanImageToVideoPipeline (lazy, first I2V request)...")
+        vae = AutoencoderKLWan.from_pretrained(
+            MODEL_CACHE, subfolder="vae", torch_dtype=torch.float32,
+        )
+        self.i2v_pipe = WanImageToVideoPipeline.from_pretrained(
+            MODEL_CACHE, vae=vae, torch_dtype=torch.bfloat16,
+        )
+        self.i2v_pipe.enable_model_cpu_offload()
+        if hasattr(self.i2v_pipe.vae, 'enable_slicing'):
+            self.i2v_pipe.vae.enable_slicing()
+        if hasattr(self.i2v_pipe.vae, 'enable_tiling'):
+            self.i2v_pipe.vae.enable_tiling()
+        print("✅ WanImageToVideoPipeline loaded")
+        return self.i2v_pipe
 
     @modal.fastapi_endpoint(method="POST", label="video-generate")
     def generate(self, request: dict):
@@ -231,6 +264,120 @@ class HollyVideoGenerator:
             },
         )
 
+    @modal.fastapi_endpoint(method="POST", label="video-i2v")
+    def generate_i2v(self, request: dict):
+        """Image-to-video: animate a still image using Wan2.2-TI2V-5B.
+
+        Request body:
+            image_url: str  — URL of the image to animate (required)
+            prompt: str     — motion description (optional, guides the animation)
+            duration: float — seconds (default 3, max 5)
+            fps: int        — output fps (default 24)
+            seed: int       — optional reproducibility
+        """
+        import torch
+        import tempfile
+        import imageio
+        import numpy as np
+        from fastapi.responses import Response
+        from diffusers.utils import load_image
+
+        image_url = (request.get("image_url") or "").strip()
+        prompt = (request.get("prompt") or "").strip()
+        duration = min(float(request.get("duration", 3.0)), 5.0)
+        fps = int(request.get("fps", 24))
+        seed = request.get("seed")
+        negative_prompt = request.get("negative_prompt",
+            "low quality, blurry, distorted, watermark, static, no motion")
+
+        if not image_url:
+            return Response(
+                content=b'{"error":"image_url is required"}',
+                media_type="application/json", status_code=400,
+            )
+
+        # Load + resize the input image to Wan's expected dimensions.
+        # TI2V-5B works best at 832x480 (landscape) or 480x832 (portrait).
+        # Match the input image's aspect ratio to avoid distortion.
+        # Handle base64 data URLs (diffusers load_image doesn't support them).
+        import io as _io
+        import base64 as _b64
+        if image_url.startswith("data:"):
+            # data:image/png;base64,XXXX → decode
+            from PIL import Image as _PIL
+            header, b64data = image_url.split(",", 1)
+            input_img = _PIL.open(_io.BytesIO(_b64.b64decode(b64data))).convert("RGB")
+        else:
+            from diffusers.utils import load_image
+            input_img = load_image(image_url)
+        orig_w, orig_h = input_img.size
+        # Pick the closest Wan-supported resolution preserving aspect ratio
+        if orig_w >= orig_h:
+            width, height = 832, 480
+        else:
+            width, height = 480, 832
+        from PIL import Image as _PIL
+        input_img = input_img.resize((width, height), _PIL.LANCZOS)
+        print(f"🎬 I2V: {orig_w}x{orig_h} → {width}x{height} | "
+              f"prompt=\"{prompt[:60]}\" | {duration}s @ {fps}fps")
+
+        pipe = self._ensure_i2v()
+
+        raw_frames = int(duration * fps)
+        num_frames = min(((raw_frames // 4) * 4) + 1, 81)  # cap ~3s @ 24fps
+        actual_dur = num_frames / fps
+
+        generator = torch.Generator("cuda").manual_seed(seed) if seed is not None else None
+
+        with torch.inference_mode():
+            result = pipe(
+                image=input_img,
+                prompt=prompt or "subtle natural motion, gentle movement",
+                negative_prompt=negative_prompt,
+                num_frames=num_frames,
+                height=height,
+                width=width,
+                num_inference_steps=50,
+                guidance_scale=5.0,
+                generator=generator,
+            )
+
+        frames = result.frames[0]
+        np_frames = []
+        for f in frames:
+            arr = np.array(f)
+            if arr.dtype != np.uint8:
+                arr = (arr * 255).clip(0, 255).astype(np.uint8)
+            np_frames.append(arr)
+
+        with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as tmp:
+            tmp_path = tmp.name
+
+        imageio.mimwrite(tmp_path, np_frames, fps=fps, codec="libx264",
+                         output_params=["-crf", "20", "-preset", "medium"])
+
+        with open(tmp_path, "rb") as f:
+            video_bytes = f.read()
+        os.unlink(tmp_path)
+
+        print(f"✅ I2V {actual_dur:.1f}s MP4 — {len(video_bytes):,} bytes")
+
+        return Response(
+            content=video_bytes,
+            media_type="video/mp4",
+            headers={
+                "X-Model": WAN_MODEL,
+                "X-Mode": "image-to-video",
+                "X-Provider": "modal",
+                "X-Duration": str(round(actual_dur, 2)),
+                "X-FPS": str(fps),
+                "X-Width": str(width),
+                "X-Height": str(height),
+                "X-Licence": "Apache-2.0",
+                "Access-Control-Allow-Origin": "*",
+            },
+        )
+
     @modal.fastapi_endpoint(method="GET", label="video-health")
     def health(self):
         from fastapi.responses import JSONResponse
@@ -239,9 +386,10 @@ class HollyVideoGenerator:
             "model": WAN_MODEL,
             "gpu": "A10G",
             "licence": "Apache-2.0",
-            "cost": "~$0.037/video (A10G @$0.000306/s, ~120s inference)",
-            "free_quota": "$30/mo → ~800 videos/mo free (at ≤27/day)",
-            "version": "3.1.0",
+            "modes": "text-to-video (video-generate) + image-to-video (video-i2v)",
+            "cost": "~$0.05/video (A10G @$0.000306/s, ~180s at 50 steps)",
+            "free_quota": "$30/mo → ~600 videos/mo free",
+            "version": "3.2.0",
             "note": "Wan2.2-TI2V-5B (was CogVideoX-5B). A14B not used — needs 80GB VRAM.",
         })
 
@@ -249,5 +397,7 @@ class HollyVideoGenerator:
 @app.local_entrypoint()
 def main():
     print("Deploy: modal deploy services/modal-media/video_generate.py")
-    print("Endpoint: https://iamdoregosteve--video-generate.modal.run")
+    print("  (deploy to iamdoregosteve workspace)")
+    print("T2V: https://iamdoregosteve--video-generate.modal.run")
+    print("I2V: https://iamdoregosteve--video-i2v.modal.run")
     print("Health: https://iamdoregosteve--video-health.modal.run")
