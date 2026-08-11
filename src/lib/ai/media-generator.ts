@@ -485,12 +485,15 @@ async function generateWithHollyLoRA(req: ImageRequest): Promise<ImageResult> {
     ? `${req.prompt}, ${recipe.reinforcement}`
     : req.prompt;
 
-  // DISABLED pose-guided routing (2026-08-05): Steve's directive.
-  // Let Klein generate explicit actions from text with the NSFW UNLOCKED LoRA.
-  // The unlock LoRA teaches Klein the concepts it was never trained on.
-  // No pose reference images — let Klein compose freely.
-  // const usePoseGuided = recipe?.usePoseGuided && MODAL_POSE_GUIDED_URL && recipe?.poseRef;
-  const usePoseGuided = false;
+  // Pose-guided routing — RE-ENABLED 2026-08-11.
+  // Was disabled 2026-08-05 to rely on FLUX2_KLEIN_UNLOCKED LoRA for explicit
+  // actions, but that LoRA was BANNED 2026-08-07 (caused identity drift).
+  // Klein Distilled CANNOT compose explicit sexual actions from text alone
+  // (FACT.md lines 506-526, confirmed across R4-R8 testing). The pose-guided
+  // endpoint (img2img with reference poses) is the PROVEN path (Phase W).
+  // Verified 2026-08-11: dildo_masturbation via pose-guided produced correct
+  // action (dildo visible + inserted) where text-only produced reclining nudes.
+  const usePoseGuided = recipe?.usePoseGuided && !!MODAL_POSE_GUIDED_URL && !!recipe?.poseRef;
   const endpointUrl = usePoseGuided
     ? MODAL_POSE_GUIDED_URL.replace(/\/$/, '')
     : MODAL_HOLLY_LORA_URL.replace(/\/$/, '');
@@ -504,7 +507,11 @@ async function generateWithHollyLoRA(req: ImageRequest): Promise<ImageResult> {
     ? JSON.stringify({
         prompt:    finalPrompt,
         pose_ref:  recipe!.poseRef,
-        denoise:   0.65,  // 0.65 = 65% Klein freedom (generates fresh), 35% pose guidance
+        denoise:   0.45,  // 0.45 = 45% Klein freedom, 55% pose guidance.
+                           // Tested-working value (2026-08-11). Higher (0.65)
+                           // lets Klein drift back to "can't compose explicit
+                           // actions" failure mode. Lower keeps the action
+                           // geometry from the reference pose.
         width:     Math.min(width, 1024),
         height:    Math.min(height, 1024),
         seed:      req.seed,
