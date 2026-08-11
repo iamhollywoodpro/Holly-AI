@@ -183,8 +183,11 @@ function hfInferenceUrl(model: string): string {
 // Note: Modal GPU media services are deployed separately in services/modal-media/
 
 const MODAL_IMAGE_URL = process.env.MODAL_IMAGE_URL || '';  // set after deploying image_generate.py
-const MODAL_VIDEO_URL = process.env.MODAL_VIDEO_URL || '';  // Wan2.2 T2V (text-only video)
-const MODAL_VIDEO_I2V_URL = process.env.MODAL_VIDEO_I2V_URL || '';  // HunyuanVideo 1.5 I2V (image-to-video, identity-preserving)
+// HunyuanVideo 1.5 Distilled — unified video endpoint (replaces Wan2.2).
+// Won A/B test 2026-08-11 for face identity preservation.
+// T2V = text-only scenes, I2V = animate a still image.
+const MODAL_VIDEO_T2V_URL = process.env.MODAL_VIDEO_T2V_URL || process.env.MODAL_VIDEO_URL || '';
+const MODAL_VIDEO_I2V_URL = process.env.MODAL_VIDEO_I2V_URL || '';
 
 // ─── Holly ComfyUI Klein endpoint (self-portraits with locked identity) ──
 // ComfyUI on Modal A100, FLUX.2 Klein 9B Distilled
@@ -908,23 +911,22 @@ export async function generateImage(req: ImageRequest): Promise<ImageResult> {
 }
 
 // ─── Video Provider 0: Modal.com GPU video generation ─────────────────────
-// Two endpoints, routed by whether an input image is provided:
-//   T2V (text-only): MODAL_VIDEO_URL → Wan2.2-TI2V-5B on A10G
-//   I2V (image-to-video): MODAL_VIDEO_I2V_URL → HunyuanVideo 1.5 Distilled on A10G
-// HunyuanVideo wins on face identity preservation (A/B test 2026-08-11).
+// HunyuanVideo 1.5 Distilled on A10G — unified for both T2V and I2V.
+// Replaces Wan2.2 (A/B winner 2026-08-11, better face identity).
+// T2V: text-only scenes → MODAL_VIDEO_T2V_URL (hunyuan-t2v endpoint)
+// I2V: animate a still image → MODAL_VIDEO_I2V_URL (hunyuan-i2v endpoint)
 // Cost: ~$0.02/video | $30/mo free = ~1,000 videos/mo
 
 async function generateVideoWithModal(req: VideoRequest): Promise<VideoResult> {
-  // Route: I2V if we have an input image + HunyuanVideo endpoint, else T2V
   const useI2V = !!(req.inputImage && MODAL_VIDEO_I2V_URL);
   const endpointUrl = useI2V
     ? MODAL_VIDEO_I2V_URL.replace(/\/$/, '')
-    : MODAL_VIDEO_URL.replace(/\/$/, '');
+    : MODAL_VIDEO_T2V_URL.replace(/\/$/, '');
 
   if (!endpointUrl) {
     throw new Error(useI2V
       ? 'MODAL_VIDEO_I2V_URL not configured for image-to-video'
-      : 'MODAL_VIDEO_URL not configured for text-to-video');
+      : 'MODAL_VIDEO_T2V_URL not configured for text-to-video');
   }
 
   const duration = Math.min(Math.max(req.duration ?? 5, 2), 5);
@@ -941,8 +943,6 @@ async function generateVideoWithModal(req: VideoRequest): Promise<VideoResult> {
         prompt: req.prompt,
         duration,
         fps,
-        width: 832,
-        height: 480,
       });
 
   const res = await fetch(endpointUrl, {
@@ -964,14 +964,12 @@ async function generateVideoWithModal(req: VideoRequest): Promise<VideoResult> {
   return {
     url: dataUri,
     provider: 'modal',
-    model: useI2V
-      ? 'HunyuanVideo 1.5 (Modal A10G)'
-      : 'Wan2.2-TI2V-5B (Modal A10G)',
+    model: 'HunyuanVideo 1.5 Distilled (Modal A10G)',
     duration,
     fps,
     format: 'mp4',
     cost: 0,
-    licence: useI2V ? 'tencent-hunyuan-community' : 'Apache-2.0',
+    licence: 'tencent-hunyuan-community',
   };
 }
 
@@ -1202,9 +1200,9 @@ export async function generateVideo(req: VideoRequest): Promise<VideoResult> {
   const errors: string[] = [];
   let hfCreditExhausted = false;
 
-  // 0. Modal.com Wan2.2-TI2V-5B (GPU quality, $0.092/video from $30/mo free credits)
-  //    Only tried when MODAL_VIDEO_URL is configured in env
-  if (MODAL_VIDEO_URL) {
+  // 0. Modal.com HunyuanVideo 1.5 (GPU quality, ~$0.02/video from $30/mo free credits)
+  //    T2V uses MODAL_VIDEO_T2V_URL, I2V uses MODAL_VIDEO_I2V_URL
+  if (MODAL_VIDEO_T2V_URL || MODAL_VIDEO_I2V_URL) {
     try {
       return await generateVideoWithModal(req);
     } catch (e) {
@@ -1429,16 +1427,16 @@ export const MEDIA_PROVIDERS = {
   video: {
      active: [
        {
-         name:      'Modal.com — Wan2.2-TI2V-5B (A10G GPU) [BEST — deploy first]',
-         models:    ['Wan-AI/Wan2.2-TI2V-5B'],
-         licence:   'Apache-2.0',
+         name:      'Modal.com — HunyuanVideo 1.5 Distilled (A10G GPU) [PRIMARY]',
+         models:    ['hunyuanvideo-community/HunyuanVideo-1.5-Diffusers-480p_t2v_distilled'],
+         licence:   'tencent-hunyuan-community',
          free:      true,
          keyNeeded: false,
-         envVar:    'MODAL_VIDEO_URL',
-         deployCmd: 'cd services/modal-media && modal deploy video_generate.py',
+         envVar:    'MODAL_VIDEO_T2V_URL (T2V) + MODAL_VIDEO_I2V_URL (I2V)',
+         deployCmd: 'cd services/modal-media && modal deploy video_generate_hunyuan.py',
          quality:   'excellent',
-         cost:      '~$0.092/video | $30/mo free = ~325 videos/mo',
-         note:      'GPU-quality Wan2.2-TI2V-5B on YOUR Modal account. Set MODAL_VIDEO_URL after deploying.',
+         cost:      '~$0.02/video | $30/mo free = ~1,000 videos/mo',
+         note:      'HunyuanVideo 1.5 Distilled on A10G. A/B winner 2026-08-11. Replaces Wan2.2.',
        },
        {
          name:      'HuggingFace — CogVideoX-5B (FALLBACK)',
