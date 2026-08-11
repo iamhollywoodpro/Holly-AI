@@ -183,7 +183,8 @@ function hfInferenceUrl(model: string): string {
 // Note: Modal GPU media services are deployed separately in services/modal-media/
 
 const MODAL_IMAGE_URL = process.env.MODAL_IMAGE_URL || '';  // set after deploying image_generate.py
-const MODAL_VIDEO_URL = process.env.MODAL_VIDEO_URL || '';  // set after deploying video_generate.py
+const MODAL_VIDEO_URL = process.env.MODAL_VIDEO_URL || '';  // Wan2.2 T2V (text-only video)
+const MODAL_VIDEO_I2V_URL = process.env.MODAL_VIDEO_I2V_URL || '';  // HunyuanVideo 1.5 I2V (image-to-video, identity-preserving)
 
 // ─── Holly ComfyUI Klein endpoint (self-portraits with locked identity) ──
 // ComfyUI on Modal A100, FLUX.2 Klein 9B Distilled
@@ -906,54 +907,71 @@ export async function generateImage(req: ImageRequest): Promise<ImageResult> {
   throw new Error(`All free image providers failed:\n${errors.join('\n')}`);
 }
 
-// ─── Video Provider 0: Modal.com CogVideoX-5B (GPU quality, uses $30/mo credits) ─
-// Deployed from services/modal-media/video_generate.py
-// Model: CogVideoX-5B (THUDM) on A10G GPU — 720P, T2V
-// Cost: ~$0.028/video | $30/mo free = ~1,000 videos/mo
-// Set MODAL_VIDEO_URL to enable
+// ─── Video Provider 0: Modal.com GPU video generation ─────────────────────
+// Two endpoints, routed by whether an input image is provided:
+//   T2V (text-only): MODAL_VIDEO_URL → Wan2.2-TI2V-5B on A10G
+//   I2V (image-to-video): MODAL_VIDEO_I2V_URL → HunyuanVideo 1.5 Distilled on A10G
+// HunyuanVideo wins on face identity preservation (A/B test 2026-08-11).
+// Cost: ~$0.02/video | $30/mo free = ~1,000 videos/mo
 
 async function generateVideoWithModal(req: VideoRequest): Promise<VideoResult> {
-  if (!MODAL_VIDEO_URL) throw new Error('MODAL_VIDEO_URL not configured');
+  // Route: I2V if we have an input image + HunyuanVideo endpoint, else T2V
+  const useI2V = !!(req.inputImage && MODAL_VIDEO_I2V_URL);
+  const endpointUrl = useI2V
+    ? MODAL_VIDEO_I2V_URL.replace(/\/$/, '')
+    : MODAL_VIDEO_URL.replace(/\/$/, '');
 
-  const { width, height } = getDimensions(req.aspectRatio);
-  const duration = Math.min(Math.max(req.duration ?? 5, 2), 10);
-  const fps      = req.fps ?? 8;   // CogVideoX outputs 8fps
+  if (!endpointUrl) {
+    throw new Error(useI2V
+      ? 'MODAL_VIDEO_I2V_URL not configured for image-to-video'
+      : 'MODAL_VIDEO_URL not configured for text-to-video');
+  }
 
-  // Modal fastapi_endpoint URL is the full endpoint (no /generate path needed)
-  const res = await fetch(MODAL_VIDEO_URL.replace(/\/$/, ''), {
-    method:  'POST',
+  const duration = Math.min(Math.max(req.duration ?? 5, 2), 5);
+  const fps = req.fps ?? 24;
+
+  const body = useI2V
+    ? JSON.stringify({
+        image_url: req.inputImage,
+        prompt: req.prompt,
+        duration,
+        fps,
+      })
+    : JSON.stringify({
+        prompt: req.prompt,
+        duration,
+        fps,
+        width: 832,
+        height: 480,
+      });
+
+  const res = await fetch(endpointUrl, {
+    method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      prompt:              req.prompt,
-      duration,
-      fps,
-      width:               Math.min(width, 720),   // CogVideoX supports 720x480
-      height:              Math.min(height, 480),
-      num_inference_steps: 50,
-      ...(req.inputImage && { input_image: req.inputImage }),
-    }),
-    signal: AbortSignal.timeout(300_000),  // 5 min — video takes time even on GPU
+    body,
+    signal: AbortSignal.timeout(600_000),  // 10 min — cold starts + generation
   });
 
   if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`Modal video error ${res.status}: ${body.slice(0, 200)}`);
+    const errBody = await res.text();
+    throw new Error(`Modal video error ${res.status}: ${errBody.slice(0, 200)}`);
   }
 
-  // Modal returns raw MP4 bytes
   const arrayBuf = await res.arrayBuffer();
-  const base64   = Buffer.from(arrayBuf).toString('base64');
-  const dataUri  = `data:video/mp4;base64,${base64}`;
+  const base64 = Buffer.from(arrayBuf).toString('base64');
+  const dataUri = `data:video/mp4;base64,${base64}`;
 
   return {
-    url:      dataUri,
+    url: dataUri,
     provider: 'modal',
-    model:    'CogVideoX-5B (Modal A10G)',
+    model: useI2V
+      ? 'HunyuanVideo 1.5 (Modal A10G)'
+      : 'Wan2.2-TI2V-5B (Modal A10G)',
     duration,
     fps,
-    format:   'mp4',
-    cost:     0,
-    licence:  'Apache-2.0',
+    format: 'mp4',
+    cost: 0,
+    licence: useI2V ? 'tencent-hunyuan-community' : 'Apache-2.0',
   };
 }
 
