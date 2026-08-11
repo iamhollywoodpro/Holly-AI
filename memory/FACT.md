@@ -1076,13 +1076,18 @@ Three root-cause fixes shipped + two Modal deploys verified live.
     the URL string in FACT.md or env vars is current.
 
 ### IMAGE GEN ARCHITECTURE (LOCKED — DO NOT CHANGE)
-- **Base model:** Flux.2 Klein 9B **DISTILLED** (NOT Base — Base produced cartoon output)
+- **Base model:** Flux.2 Klein 9B **DISTILLED** (NOT Base)
 - **Settings:** 12 steps, CFG 1.0, Euler sampler, simple scheduler, 1024×1024
-- **Klein Base was tested and FAILED** — cartoon/monstrosity output. Never switch to Base again.
+- **Klein Base has been tested THREE TIMES and FAILED every time:**
+  - Aug 5: CFG 3.5 → cartoon. Aug 6: CFG 2.8 → cartoon. Aug 11: CFG 4.0, 20 steps → cartoon.
+  - GLM-4.6V confirmed all Aug 11 outputs: "obviously AI/cartoon, flat plastic skin, painted."
+  - The "LoRAs trained on Base should infer on Base" theory is EMPIRICALLY DISPROVEN.
+  - Distilled's 4-step distillation produces better photorealism with our LoRAs.
+  - **Do NOT test Base again. This is settled. The 4th test will produce the same result.**
 - **ai-toolkit training FAILED on Modal** — architecture mismatch (FLUX.1 vs FLUX.2 dims). Use Civitai for training.
 - **SFW LoRA stack:** combined-v1 (0.9) only
 - **NSFW nude LoRA stack:** combined-v1 (0.9) + pussydiffusion (0.8)
-- **NSFW explicit LoRA stack:** combined-v1 (0.9) + FLUX2_KLEIN_UNLOCKED_V2 (0.8) + pussydiffusion (0.8) + CATEGORY SPECIALIST
+- **NSFW explicit LoRA stack:** combined-v1 (0.9) + pussydiffusion (0.8) + CATEGORY SPECIALIST
 
 ### MODAL ACCOUNTS
 - **iamhollywoodpro:** brain-v40 (L4), holly-vision (T4). brain-v35 STOPPED.
