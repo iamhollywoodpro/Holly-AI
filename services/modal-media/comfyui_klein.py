@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
 """
-HOLLY ComfyUI + FLUX.2 Klein 9B — Modal Endpoint
+HOLLY ComfyUI + FLUX.2 Klein 9B DISTILLED — Modal Endpoint
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Deploy ComfyUI on Modal with FLUX.2 Klein 9B Distilled base for Holly's image
-generation. This is the v2-recipe path: the EXACT recipe decoded from Steve's
-perfect Civitai reference images (face @ 0.85 + body v1 @ 0.7 + 12 steps +
-CFG 1), running on ComfyUI so it can stack ALL the reference-image LoRAs
-including SNOFS (LyCORIS lokr format) that diffusers can't load.
+Deploy ComfyUI on Modal with FLUX.2 Klein 9B DISTILLED for Holly's image
+generation. This is the PROVEN photorealistic base — tested 3x against Base,
+Base always produces cartoon output. Distilled is locked.
 
 WHY COMFYUI (not diffusers) FOR THIS ENDPOINT:
   The v2-recipe needs 4 stacked LoRAs: Holly face + Holly body + the NSFW-unlock
@@ -76,9 +74,16 @@ MODEL_VOL = "/models"
 LORA_VOL_MOUNT = "/lora"
 COMFYUI_PORT = 8188
 
-# FLUX.2 Klein 9B Distilled model files (all ComfyUI single-file format).
-# UNET: the bf16 single-file is already on holly-flux2klein-weights (from the
-# diffusers endpoint's MODEL_CACHE). We symlink it into ComfyUI's models dir.
+# FLUX.2 Klein 9B DISTILLED — the proven base for photorealistic Holly.
+#
+# Base was tested THREE times (Aug 5, Aug 6, Aug 11) with multiple CFG values
+# (2.8, 3.5, 4.0) and step counts (12, 20, 28). EVERY test produced cartoon /
+# flat plastic output. GLM-4.6V confirmed all outputs are "obviously AI/cartoon,
+# not a photograph." Base does NOT work for our use case despite LoRAs being
+# trained on it. This is SETTLED — do not test Base again.
+#
+# Distilled + CFG 1.0 + 12 steps = the recipe that produces photorealistic Holly.
+# Steve confirmed this multiple times. This is the locked configuration.
 KLEIN_UNET_FILE = "flux-2-klein-9b.safetensors"
 KLEIN_UNET_VOL_PATH = f"{KLEIN_VOL_MOUNT}/bf16/{KLEIN_UNET_FILE}"
 
@@ -96,15 +101,10 @@ VAE_SUBPATH = "split_files/vae"
 # We symlink KLEIN_UNET_FILE there from the Klein volume.
 UNET_FILE = KLEIN_UNET_FILE
 
-# v2-recipe defaults (decoded from Steve's perfect Civitai reference images):
-#   12 steps, CFG 1.0, Euler sampler, simple scheduler.
-# These match the recipe that produced the "Perfection" face + full-body verdicts.
-# Klein BASE settings (2026-08-05): Using Klein Base (correct base for LoRAs).
-# Keeping the PROVEN Distilled-era settings that produced all working images:
-# 12 steps, CFG 1.0, Euler, simple scheduler. These were documented in FACT.md
-# as the recipe that produced "PERFECTION" across all tests.
-# Base may honor CFG differently than Distilled, but changing settings broke
-# everything (cartoon look, missing limbs). Go back to what works, then tune.
+# Distilled settings (PROVEN — produces photorealistic Holly):
+#   12 steps, CFG 1.0, Euler sampler, Simple scheduler.
+# Distilled ignores CFG (baked in during distillation) — the value is nominal.
+# This is the recipe that produced "PERFECTION" verdicts across all tests.
 V2_STEPS = 12
 V2_CFG = 1.0
 V2_SAMPLER = "euler"
@@ -1755,9 +1755,9 @@ class HollyComfyUIKlein:
                 "vae": vae_present,
             },
             "key_loras": loras_present,
-            "model": "FLUX.2-Klein-9B-v2-recipe",
+            "model": "FLUX.2-Klein-9B-Distilled",
             "backend": "ComfyUI",
-            "recipe": "face 0.85 + body-v1 0.7 + 12 steps + CFG 1.0 + Euler",
+            "recipe": f"Distilled + {V2_STEPS} steps + CFG {V2_CFG} + Euler + Simple (PROVEN photorealistic)",
             "version": "1.0.0-comfyui-klein",
         }
 
