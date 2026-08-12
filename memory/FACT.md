@@ -1076,18 +1076,26 @@ Three root-cause fixes shipped + two Modal deploys verified live.
     the URL string in FACT.md or env vars is current.
 
 ### IMAGE GEN ARCHITECTURE (LOCKED — DO NOT CHANGE)
-- **Base model:** Flux.2 Klein 9B **DISTILLED** (NOT Base)
+- **Base model:** SNOFS (Sex, Nudes, and Other Fun Stuff) Flux.2 Klein 9B Distilled FP8
+  - Civitai model 2416142, v1.4 Distilled FP8. File: `snofs-klein-9b-v14-distilled-fp8.safetensors`
+  - SNOFS is a NSFW-finetuned Klein Distilled checkpoint — same architecture, trained on explicit content.
+  - Switched from stock Klein Distilled on 2026-08-12. Steve confirmed SNOFS produces better quality (8/10 photorealism, realistic skin) vs stock Klein (1-3/10 for NSFW).
+  - The explicit action reference images (Holly-Actions-Training) were generated with SNOFS + Holly LoRAs on Civitai.
+- **Previous base (stock Klein Distilled):** Still on volume at `bf16/flux-2-klein-9b.safetensors`. Kept as fallback.
 - **Settings:** 12 steps, CFG 1.0, Euler sampler, simple scheduler, 1024×1024
 - **Klein Base has been tested THREE TIMES and FAILED every time:**
   - Aug 5: CFG 3.5 → cartoon. Aug 6: CFG 2.8 → cartoon. Aug 11: CFG 4.0, 20 steps → cartoon.
   - GLM-4.6V confirmed all Aug 11 outputs: "obviously AI/cartoon, flat plastic skin, painted."
-  - The "LoRAs trained on Base should infer on Base" theory is EMPIRICALLY DISPROVEN.
-  - Distilled's 4-step distillation produces better photorealism with our LoRAs.
   - **Do NOT test Base again. This is settled. The 4th test will produce the same result.**
 - **ai-toolkit training FAILED on Modal** — architecture mismatch (FLUX.1 vs FLUX.2 dims). Use Civitai for training.
+- **Best identity stack (Steve confirmed A wins, 2026-08-12):** combined-v1 (0.9) only
+  - Pussydiffusion at 0.8 makes it look LESS like Holly. Do NOT add for identity-sensitive images.
 - **SFW LoRA stack:** combined-v1 (0.9) only
-- **NSFW nude LoRA stack:** combined-v1 (0.9) + pussydiffusion (0.8)
-- **NSFW explicit LoRA stack:** combined-v1 (0.9) + pussydiffusion (0.8) + CATEGORY SPECIALIST
+- **NSFW nude LoRA stack:** combined-v1 (0.9) only (pussydiffusion removed — identity drift)
+- **FK_dildoinsertion does NOT consistently render dildo action on SNOFS via ComfyUI.**
+  - Tested 2026-08-12: 2 images with FK @ 1.0, neither showed dildo insertion.
+  - May work occasionally (1st test showed it) but not reliable.
+  - UNRESOLVED — needs investigation.
 
 ### MODAL ACCOUNTS
 - **iamhollywoodpro:** brain-v40 (L4), holly-vision (T4). brain-v35 STOPPED.

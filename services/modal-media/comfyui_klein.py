@@ -87,7 +87,12 @@ COMFYUI_PORT = 8188
 #
 # Distilled + CFG 1.0 + 12 steps = the recipe that produces photorealistic Holly.
 # Steve confirmed this multiple times. This is the locked configuration.
-KLEIN_UNET_FILE = "flux-2-klein-9b.safetensors"
+# SNOFS (2026-08-12): SNOFS is a Klein 9B Distilled NSFW checkpoint (Civitai 2416142).
+# This is the model that generated Holly's explicit action images on Civitai.
+# Steve confirmed: dildo renders correctly with SNOFS + combined-v1(0.9) + FK(1.0).
+# Settings: 12 steps, CFG 1.0 (same Distilled recipe — NOT 4-step Smoke8 which looks bad).
+# SNOFS quality: 8/10 photorealistic (vs 1-3/10 on stock Klein Distilled for NSFW).
+KLEIN_UNET_FILE = "snofs-klein-9b-v14-distilled-fp8.safetensors"
 KLEIN_UNET_VOL_PATH = f"{KLEIN_VOL_MOUNT}/bf16/{KLEIN_UNET_FILE}"
 
 # CLIP + VAE: from Comfy-Org (NOT gated, ComfyUI-formatted single files).
