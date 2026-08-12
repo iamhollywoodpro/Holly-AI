@@ -1980,7 +1980,230 @@ class HollyComfyUIKlein:
             },
         )
 
-    @modal.fastapi_endpoint(method="GET", label="comfyui-klein-health")
+    @modal.fastapi_endpoint(method="POST", label="generate-action")
+    def generate_action(self, request: dict) -> bytes:
+        """Two-step explicit action generation: base image → genital inpaint.
+
+        Step 1: Generate a base nude image with SNOFS + combined-v1 (perfect
+                identity, body, skin, pose — everything SNOFS does well).
+        Step 2: Mask the genital region and inpaint ONLY that area with the
+                action prompt + pussydiffusion LoRA at high denoise (0.85).
+                The model fills in a small region (fingers/dildo penetrating)
+                while keeping the rest of Holly's body untouched.
+
+        This is "Path C" from FACT.md (line 597-599):
+          "Generate base pose, then inpaint genital region with fingering.
+           PussyDiffusion author confirms works better as inpaint."
+
+        Different from the disabled ADetailer refinement pass (line 937):
+          - That used identity LoRAs in inpaint → net-negative on stock Klein.
+          - This uses ONLY pussydiffusion in inpaint → identity locked in base.
+          - That was on stock Klein Distilled → this is on SNOFS.
+
+        Request body:
+            prompt: str       — the full action prompt
+            action_prompt: str — prompt for the genital inpaint (defaults to prompt)
+            width: int        — default 1024
+            height: int       — default 1024
+            seed: int         — optional
+            mask_region: str  — "pussy" (default), "ass", or "auto"
+        """
+        import io
+        import uuid
+        from PIL import Image, ImageDraw
+        import numpy as np
+        from fastapi import Response
+
+        raw_prompt = request.get("prompt", "")
+        action_prompt = request.get("action_prompt", raw_prompt)
+        width = request.get("width", 1024)
+        height = request.get("height", 1024)
+        seed = request.get("seed")
+        mask_region = request.get("mask_region", "pussy")
+
+        if not raw_prompt:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=400, detail="prompt is required")
+
+        import random as _rng
+        base_seed = seed if seed is not None else _rng.randint(0, 2**63 - 1)
+
+        # ── STEP 1: Generate base image ──
+        # SNOFS + combined-v1 only. Generate a NUDE base (no action yet).
+        # The base prompt strips the action and just asks for a nude pose.
+        base_prompt = f"h0lly, h0lly-body, nude woman, {raw_prompt.split(',')[0]}, lying on back, legs spread, photorealistic"
+        print(f"🎨 [action-step1] base: {base_prompt[:80]}...")
+
+        base_loras = [{"name": "holly-combined-v1.safetensors", "strength": 0.9}]
+        base_bytes, _, job_id = self._generate_single(
+            base_prompt, width, height, base_seed, base_loras, V2_STEPS, V2_CFG
+        )
+
+        if base_bytes is None:
+            raise RuntimeError("Base image generation failed")
+
+        base_img = Image.open(io.BytesIO(base_bytes)).convert("RGB")
+        print(f"   ✅ Base image: {base_img.size}")
+
+        # ── STEP 2: Create genital mask ──
+        # For legs-spread poses, the genital region is in the lower-center
+        # of the image. Create a white rectangle mask there.
+        w, h = base_img.size
+        mask = Image.new("L", (w, h), 0)  # black background
+        draw = ImageDraw.Draw(mask)
+
+        if mask_region == "ass":
+            # For bent-over/ass poses, the region is lower-center but higher up
+            mask_box = (int(w * 0.25), int(h * 0.45), int(w * 0.75), int(h * 0.75))
+        else:
+            # For pussy/lying poses, lower-center
+            mask_box = (int(w * 0.30), int(h * 0.55), int(w * 0.70), int(h * 0.85))
+
+        draw.ellipse(mask_box, fill=255)  # white ellipse = inpaint this region
+        mask_path = f"{INPUT_DIR}/action_mask_{job_id}.png"
+        mask.save(mask_path)
+        print(f"   Mask: {mask_region} region at {mask_box}")
+
+        # ── STEP 3: Upload base image to ComfyUI input ──
+        buf = io.BytesIO()
+        base_img.save(buf, format="PNG")
+        base_filename = self._upload_image(buf.getvalue())
+
+        # ── STEP 4: Inpaint the masked region ──
+        # Use pussydiffusion ONLY (no identity LoRAs — identity is locked in base).
+        # High denoise (0.85) to fully replace the genital area with the action.
+        action_loras = [
+            {"name": "pussydiffusion-f2-klein-9b_v2.safetensors", "strength": 0.9},
+        ]
+        # Add FK for dildo actions
+        if "dildo" in action_prompt.lower() or "toy" in action_prompt.lower():
+            action_loras.append({"name": "FK_dildoinsertion.safetensors", "strength": 0.7})
+
+        # Build inpaint workflow with the custom mask
+        # We need to modify the workflow to use our targeted mask instead of
+        # the full-white mask from LoadImage.
+        workflow = self._build_masked_inpaint_workflow(
+            image_filename=base_filename,
+            mask_filename=f"action_mask_{job_id}.png",
+            prompt=f"{action_prompt}, explicit, close-up of genital region, fingers inside pussy, photorealistic",
+            width=width,
+            height=height,
+            loras=action_loras,
+            seed=base_seed + 1,
+            denoise=0.85,
+        )
+
+        print(f"🎨 [action-step2] inpaint: {action_prompt[:80]}...")
+        print(f"   LoRAs: {[(l['name'], l['strength']) for l in action_loras]}")
+        print(f"   denoise: 0.85 (high = replace region completely)")
+
+        prompt_id = self._post_workflow(workflow)
+        history = self._poll_history(prompt_id, timeout=300)
+        result_bytes = self._fetch_image(history)
+
+        print(f"✅ Action generation complete — {len(result_bytes):,} bytes")
+
+        return Response(
+            content=result_bytes,
+            media_type="image/png",
+            headers={
+                "X-Model": "FLUX.2-Klein-9B-SNOFS-Inpaint",
+                "X-Provider": "holly-comfyui-klein",
+                "X-Mode": "two-step-action-inpaint",
+                "X-Mask-Region": mask_region,
+                "X-Seed": str(base_seed),
+                "X-Job-Id": job_id,
+                "Access-Control-Allow-Origin": "*",
+            },
+        )
+
+    def _build_masked_inpaint_workflow(self, image_filename, mask_filename,
+                                        prompt, width, height, loras,
+                                        seed=None, denoise=0.85):
+        """Build ComfyUI inpaint workflow with a targeted mask (not full-white).
+
+        Loads both the base image AND a separate mask image, feeds them to
+        VAEEncodeForInpaint so only the masked region gets re-generated.
+        """
+        import random as _random
+        if seed is None:
+            seed = _random.randint(0, 2**63 - 1)
+
+        wf = {}
+        nid = [1]
+        def _id():
+            v = str(nid[0]); nid[0] += 1; return v
+
+        # Loaders
+        unet_id = _id()
+        wf[unet_id] = {"class_type": "UNETLoader", "inputs": {"unet_name": UNET_FILE, "weight_dtype": "default"}}
+        clip_id = _id()
+        wf[clip_id] = {"class_type": "CLIPLoader", "inputs": {"clip_name": CLIP_FILE, "type": "flux2"}}
+        vae_id = _id()
+        wf[vae_id] = {"class_type": "VAELoader", "inputs": {"vae_name": VAE_FILE}}
+
+        # Chained LoRAs
+        cur_model = [unet_id, 0]
+        cur_clip = [clip_id, 0]
+        for lora in loras:
+            lid = _id()
+            wf[lid] = {"class_type": "LoraLoader", "inputs": {
+                "lora_name": lora["name"],
+                "strength_model": lora.get("strength", 0.8),
+                "strength_clip": lora.get("strength_clip", lora.get("strength", 0.8)),
+                "model": cur_model, "clip": cur_clip,
+            }}
+            cur_model = [lid, 0]
+            cur_clip = [lid, 1]
+
+        # Conditioning
+        pos_id = _id()
+        wf[pos_id] = {"class_type": "CLIPTextEncode", "inputs": {"text": prompt, "clip": cur_clip}}
+        neg_id = _id()
+        wf[neg_id] = {"class_type": "ConditioningZeroOut", "inputs": {"conditioning": [pos_id, 0]}}
+
+        # Load base image
+        load_id = _id()
+        wf[load_id] = {"class_type": "LoadImage", "inputs": {"image": image_filename}}
+
+        # Load mask image (white = inpaint, black = keep)
+        mask_load_id = _id()
+        wf[mask_load_id] = {"class_type": "LoadImage", "inputs": {"image": mask_filename}}
+
+        # Convert the mask IMAGE to a MASK type (LoadImage outputs IMAGE, not MASK)
+        # ImageToMask extracts a channel as a mask. channel="R" works for grayscale PNGs.
+        mask_convert_id = _id()
+        wf[mask_convert_id] = {"class_type": "ImageToMask", "inputs": {
+            "image": [mask_load_id, 0],
+            "channel": "red",
+        }}
+
+        # VAEEncodeForInpaint with the targeted mask
+        vae_encode_id = _id()
+        wf[vae_encode_id] = {"class_type": "VAEEncodeForInpaint", "inputs": {
+            "pixels": [load_id, 0],
+            "vae": [vae_id, 0],
+            "mask": [mask_convert_id, 0],  # Now properly a MASK type
+            "grow_mask_by": 12,
+        }}
+
+        # KSampler with high denoise on masked region only
+        sampler_id = _id()
+        wf[sampler_id] = {"class_type": "KSampler", "inputs": {
+            "seed": seed, "steps": V2_STEPS, "cfg": V2_CFG,
+            "sampler_name": V2_SAMPLER, "scheduler": V2_SCHEDULER,
+            "denoise": denoise,
+            "model": cur_model, "positive": [pos_id, 0], "negative": [neg_id, 0],
+            "latent_image": [vae_encode_id, 0],
+        }}
+
+        # Decode + Save
+        decode_id = _id()
+        wf[decode_id] = {"class_type": "VAEDecode", "inputs": {"samples": [sampler_id, 0], "vae": [vae_id, 0]}}
+        save_id = _id()
+        wf[save_id] = {"class_type": "SaveImage", "inputs": {"images": [decode_id, 0], "filename_prefix": "Holly_action"}}
+
+        return {"prompt": wf}
     def health(self):
         """Health check — confirms ComfyUI is alive + Klein model is loaded."""
         import socket

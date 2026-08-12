@@ -1092,10 +1092,29 @@ Three root-cause fixes shipped + two Modal deploys verified live.
   - Pussydiffusion at 0.8 makes it look LESS like Holly. Do NOT add for identity-sensitive images.
 - **SFW LoRA stack:** combined-v1 (0.9) only
 - **NSFW nude LoRA stack:** combined-v1 (0.9) only (pussydiffusion removed — identity drift)
-- **FK_dildoinsertion does NOT consistently render dildo action on SNOFS via ComfyUI.**
-  - Tested 2026-08-12: 2 images with FK @ 1.0, neither showed dildo insertion.
-  - May work occasionally (1st test showed it) but not reliable.
-  - UNRESOLVED — needs investigation.
+- **FK_dildoinsertion on SNOFS — VERIFIED RESULTS (2026-08-12):**
+  - FK @ 1.0: dildo renders well BUT strays from Holly's likeness
+  - FK @ 0.7: dildo renders WELL + Holly identity preserved = ✅ PERFECT (Steve confirmed)
+  - FK turns EVERYTHING into a dildo (fingering→dildo, fisting→dildo) — use FK ONLY for dildo actions
+  - Without FK: fisting shows 4 fingers going in (close), fingering doesn't insert, anal goes to pussy
+- **Explicit action status on SNOFS (Steve-verified 2026-08-12):**
+  - Dildo in pussy: ✅ WORKS (combined-v1 0.9 + FK 0.7)
+  - Fisting (partial): ✅ CLOSE (combined-v1 0.9 only — 4 fingers, not full hand)
+  - Fingering: ❌ Doesn't insert, hand deformities
+  - Full fisting: ❌ Only 4 fingers, never full hand/wrist
+  - Anal dildo: ❌ Defaults to pussy, wrong anatomy orientation
+- **Inpainting for explicit actions: ❌ FAILED (2026-08-12)**
+  - Two-step (base image → genital region inpaint) produced monstrosities
+  - 3 images in 1, conjoined twins, alien shapes, 4 legs
+  - FACT.md line 937 already documented inpaint as "net-negative" — should NOT have been retried
+  - **Do NOT use inpainting for explicit action generation.**
+- **ControlNet for explicit actions: ❌ DOES NOT FIX ACTIONS (2026-08-12)**
+  - Skeleton guide: body pose correct but no objects (dildo invisible)
+  - Photo guide: still doesn't render insertion
+  - Combined blurred+skeleton: too washed out to guide
+  - Low strength (0.35): hand positions near genital but no insertion
+  - ControlNet positions the body correctly but can't make SNOFS render penetration geometry
+  - **ControlNet is useful for body pose guidance, NOT for explicit action composition.**
 
 ### MODAL ACCOUNTS
 - **iamhollywoodpro:** brain-v40 (L4), holly-vision (T4). brain-v35 STOPPED.
