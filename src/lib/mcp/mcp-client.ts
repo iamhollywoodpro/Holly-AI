@@ -201,6 +201,114 @@ export class MCPClientManager {
 
     // 14. Diagnostic Hub — HTTP proxy for system diagnostics (stdio-independent)
     this._registerDiagnosticHub();
+
+    // 15. Media Hub — HTTP proxy for Holly's structured image/video generation
+    this._registerMediaHub();
+  }
+
+  // ── Media Hub registration ───────────────────────────────────────────────
+  private _registerMediaHub(): void {
+    this.registerHttpServer(
+      'media-hub',
+      [
+        {
+          name: 'create_holly_media',
+          description: (
+            'Generate an image or video of Holly. ALWAYS use this tool when you want to show, send, or create ' +
+            'an image or video — whether the user asked or you initiated it. ' +
+            'Choose an action_id from the approved list. The backend handles LoRA selection, ' +
+            'reference photos, and generation settings automatically.\n\n' +
+            'Action IDs: sfw_clothed, nude_pose, dildo_pussy, dildo_anal, fingering, anal_fingering, ' +
+            'anal_fisting, food_insertion, object_insertion, masturbation, oral, spreading, closeup, ' +
+            'bent_over, self_suck, panties_aside, squirting\n\n' +
+            'For SFW images, always specify wardrobe (clothing). Clothing must fully cover.\n' +
+            'For NSFW, the action_id determines what happens.\n' +
+            'Do NOT claim media was created until this tool returns successfully.'
+          ),
+          inputSchema: {
+            type: 'object',
+            properties: {
+              type: { type: 'string', enum: ['image', 'video'], description: 'Media type (default: image)', default: 'image' },
+              request: { type: 'string', description: 'Natural-language description of what Holly should show/do' },
+              action_id: {
+                type: 'string',
+                description: 'Approved action identifier from the registry',
+                enum: [
+                  'sfw_clothed', 'nude_pose', 'dildo_pussy', 'dildo_anal',
+                  'fingering', 'anal_fingering', 'anal_fisting',
+                  'food_insertion', 'object_insertion', 'masturbation',
+                  'oral', 'spreading', 'closeup', 'bent_over',
+                  'self_suck', 'panties_aside', 'squirting',
+                ],
+              },
+              framing: {
+                type: 'string',
+                enum: ['selfie', 'portrait', 'half_body', 'full_body'],
+                description: 'Camera framing (default: full_body)',
+                default: 'full_body',
+              },
+              expression: { type: 'string', description: 'Facial expression (e.g., "soft smile", "naughty look")' },
+              wardrobe: { type: 'string', description: 'Clothing for SFW (e.g., "summer dress", "business suit")' },
+              setting: { type: 'string', description: 'Location/setting (e.g., "bedroom", "beach", "office")' },
+              initiated_by: { type: 'string', enum: ['user', 'holly'], description: 'Who initiated this (default: user)', default: 'user' },
+            },
+            required: ['request'],
+          },
+        },
+      ],
+      async (toolName: string, args: Record<string, unknown>) => {
+        if (toolName !== 'create_holly_media') {
+          return { content: [{ type: 'text', text: `Unknown tool: ${toolName}` }] };
+        }
+
+        try {
+          // Dynamic import to avoid circular dependencies
+          const { createHollyMedia } = await import('../ai/holly-media-tool');
+
+          const result = await createHollyMedia({
+            type: (args.type as 'image' | 'video') || 'image',
+            request: (args.request as string) || '',
+            action_id: args.action_id as string | undefined,
+            framing: args.framing as 'selfie' | 'portrait' | 'half_body' | 'full_body' | undefined,
+            expression: args.expression as string | undefined,
+            wardrobe: args.wardrobe as string | undefined,
+            setting: args.setting as string | undefined,
+            initiated_by: (args.initiated_by as 'user' | 'holly') || 'user',
+          });
+
+          if (!result.success) {
+            return {
+              content: [{
+                type: 'text',
+                text: `Media generation failed: ${result.error || 'unknown error'}\n\nAction: ${result.action_id}\nPrompt: ${result.prompt_used}`,
+              }],
+            };
+          }
+
+          // Return as markdown so the inline renderer picks it up
+          const isVideo = result.url.startsWith('data:video/');
+          const altText = args.request as string || 'Holly';
+          const mediaType = isVideo ? 'video' : 'image';
+
+          return {
+            content: [{
+              type: 'text',
+              text: (
+                `${mediaType === 'video' ? '🎬' : '🎨'} ${mediaType} generated successfully.\n\n` +
+                `Action: ${result.action_id}\n` +
+                `Seed: ${result.seed}\n` +
+                `LoRAs: ${result.lora_stack.join(', ')}\n\n` +
+                `![${altText}](${result.url})`
+              ),
+            }],
+          };
+        } catch (e) {
+          return {
+            content: [{ type: 'text', text: `Media generation error: ${(e as Error).message}` }],
+          };
+        }
+      },
+    );
   }
 
   // ── AURA Hub registration ──────────────────────────────────────────────────
