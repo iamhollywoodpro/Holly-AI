@@ -87,12 +87,11 @@ COMFYUI_PORT = 8188
 #
 # Distilled + CFG 1.0 + 12 steps = the recipe that produces photorealistic Holly.
 # Steve confirmed this multiple times. This is the locked configuration.
-# SNOFS (2026-08-12): SNOFS is a Klein 9B Distilled NSFW checkpoint (Civitai 2416142).
-# This is the model that generated Holly's explicit action images on Civitai.
-# Steve confirmed: dildo renders correctly with SNOFS + combined-v1(0.9) + FK(1.0).
-# Settings: 12 steps, CFG 1.0 (same Distilled recipe — NOT 4-step Smoke8 which looks bad).
-# SNOFS quality: 8/10 photorealistic (vs 1-3/10 on stock Klein Distilled for NSFW).
-KLEIN_UNET_FILE = "snofs-klein-9b-v14-distilled-fp8.safetensors"
+# Stock Klein Distilled checkpoint. SNOFS is loaded as a LoRA on top
+# (klein_snofs_v1_4.safetensors) at adjustable strength — the practitioner-
+# recommended approach (Reddit r/comfyui, SNOFS author AMA on r/StableDiffusion).
+# This gives strength control over NSFW logic that the baked checkpoint didn't.
+KLEIN_UNET_FILE = "flux-2-klein-9b.safetensors"
 KLEIN_UNET_VOL_PATH = f"{KLEIN_VOL_MOUNT}/bf16/{KLEIN_UNET_FILE}"
 
 # CLIP + VAE: from Comfy-Org (NOT gated, ComfyUI-formatted single files).
@@ -123,6 +122,15 @@ UNET_FILE = KLEIN_UNET_FILE
 V2_STEPS = 12
 V2_CFG = 1.0
 V2_SAMPLER = "euler"
+
+# Default negative prompt — prevents extra limbs/hands without positive anchors
+# that can backfire (FACT.md line 569-576 documents limb anchoring issues).
+V2_NEGATIVE_PROMPT = (
+    "extra arms, extra hands, extra legs, extra fingers, missing fingers, "
+    "fused fingers, deformed hands, malformed limbs, extra limbs, "
+    "mutated, disfigured, bad anatomy, conjoined, duplicate, "
+    "text, watermark, signature, low quality, blurry"
+)
 V2_SCHEDULER = "simple"
 
 # v2-recipe baked LoRAs — Holly's identity foundation.
@@ -309,7 +317,7 @@ def build_workflow(
     pos_id = _id()
     wf[pos_id] = {"class_type": "CLIPTextEncode", "inputs": {"text": prompt, "clip": cur_clip}}
     neg_id = _id()
-    wf[neg_id] = {"class_type": "ConditioningZeroOut", "inputs": {"conditioning": [pos_id, 0]}}
+    wf[neg_id] = {"class_type": "CLIPTextEncode", "inputs": {"text": V2_NEGATIVE_PROMPT, "clip": cur_clip}}
 
     # Latent + Sampler
     latent_id = _id()
@@ -397,7 +405,7 @@ def build_pose_guided_workflow(
     pos_id = _id()
     wf[pos_id] = {"class_type": "CLIPTextEncode", "inputs": {"text": prompt, "clip": cur_clip}}
     neg_id = _id()
-    wf[neg_id] = {"class_type": "ConditioningZeroOut", "inputs": {"conditioning": [pos_id, 0]}}
+    wf[neg_id] = {"class_type": "CLIPTextEncode", "inputs": {"text": V2_NEGATIVE_PROMPT, "clip": cur_clip}}
 
     # POSE-GUIDED PATH: LoadImage → VAEEncode → KSampler(low denoise)
     load_id = _id()
@@ -496,7 +504,7 @@ def build_controlnet_workflow(
     pos_id = _id()
     wf[pos_id] = {"class_type": "CLIPTextEncode", "inputs": {"text": prompt, "clip": cur_clip}}
     neg_id = _id()
-    wf[neg_id] = {"class_type": "ConditioningZeroOut", "inputs": {"conditioning": [pos_id, 0]}}
+    wf[neg_id] = {"class_type": "CLIPTextEncode", "inputs": {"text": V2_NEGATIVE_PROMPT, "clip": cur_clip}}
 
     # ControlNet — load and apply
     # Node class names from comfyui-flux2fun-controlnet custom node.
@@ -604,7 +612,7 @@ def build_inpaint_workflow(
     pos_id = _id()
     wf[pos_id] = {"class_type": "CLIPTextEncode", "inputs": {"text": prompt, "clip": cur_clip}}
     neg_id = _id()
-    wf[neg_id] = {"class_type": "ConditioningZeroOut", "inputs": {"conditioning": [pos_id, 0]}}
+    wf[neg_id] = {"class_type": "CLIPTextEncode", "inputs": {"text": V2_NEGATIVE_PROMPT, "clip": cur_clip}}
 
     # INPAINT path: LoadImage → VAEEncodeForInpaint (full-white mask = img2img)
     load_id = _id()
@@ -834,58 +842,103 @@ def link_models_to_comfyui():
 import re as _re_cat
 
 # Keyword matchers per category (first-match-wins, most-specific first).
+# Each category maps to EXACTLY ONE action LoRA — never mix action LoRAs.
 _CATEGORY_PATTERNS = [
     # ORDER MATTERS — most specific first, least specific last.
-    # dildo_masturbation must come before masturbation and dildo alone,
-    # because it combines both keywords and needs the dildo insertion LoRA.
+    # dildo_masturbation must come before masturbation and dildo alone.
     ("dildo_masturbation", _re_cat.compile(
         r"\b((?:masturbat\w*|touch\w*|pleasur\w*|slid\w*|push\w*|insert\w*|fuck\w*).{0,30}(?:dildo|toy|vibrator)|(?:dildo|toy|vibrator).{0,30}(?:masturbat\w*|inside|deep|pussy|penetrat\w*|insert\w*))\b",
         _re_cat.IGNORECASE)),
-    # dildo alone — toy present but no masturbation context
     ("dildo", _re_cat.compile(
         r"\b(dildo|toy|vibrator|penetrat\w*|using\s+a\s*(?:dildo|toy))\b",
         _re_cat.IGNORECASE)),
-    # masturbation / fingering — hand actions on body
+    ("dildo_anal", _re_cat.compile(
+        r"\b(?:dildo|toy|object).{0,20}(?:anal|ass|anus|asshole|butt|butthole|rear)|(?:anal|ass|anus|asshole).{0,20}(?:dildo|toy|insert\w*)\b",
+        _re_cat.IGNORECASE)),
+    ("anal_fingering", _re_cat.compile(
+        r"\b(?:finger\w*|fingering).{0,20}(?:anal|ass|anus|asshole|butt)|(?:anal|ass|anus|asshole).{0,20}(?:finger\w*|fingering)\b",
+        _re_cat.IGNORECASE)),
+    ("anal_fisting", _re_cat.compile(
+        r"\b(?:fist\w*).{0,20}(?:anal|ass|anus|asshole)|(?:anal|ass|anus|asshole).{0,20}(?:fist\w*)|(?:self\s*)?anal\s*fist\w*\b",
+        _re_cat.IGNORECASE)),
+    ("fingering", _re_cat.compile(
+        r"\b(finger\w*\s+(?:inside|into|in)\s+(\w+\s+){0,2}(?:pussy|vagina)|fingering\s+(?:her\s+)?(?:pussy|vagina)|fingers?\s+(?:in|inside|into)\s+(?:her\s+)?(?:pussy|vagina)|masturbat\w*\w*\s+(?:with\s+)?finger\w*)\b",
+        _re_cat.IGNORECASE)),
     ("masturbation", _re_cat.compile(
-        r"\b(masturbat\w*|fingering|finger\s*insert|insert\w*\s+(\w+\s+){0,3}finger|finger\w*\s+(inside|into|in)\s+(\w+\s+){0,2}(pussy|vagina|her)|touch\w*\s+(herself|yourself)|playing\s+with\s+(her\s+)?(pussy|clit|clitoris|vagina)|rubbing\s+(her\s+)?(pussy|clit|clitoris)|self\s*pleasur|hand\s+between)\b",
+        r"\b(masturbat\w*|touch\w*\s+(herself|yourself)|playing\s+with\s+(her\s+)?(pussy|clit|clitoris|vagina)|rubbing\s+(her\s+)?(pussy|clit|clitoris)|self\s*pleasur|hand\s+between)\b",
         _re_cat.IGNORECASE)),
-    # spread / pussy closeup — MUST come after action categories
     ("spread", _re_cat.compile(
-        r"\b(spread\w*|pussy\s*spread|spread\s*pussy|(pussy|vulva|clit)\s*close\s*up|(pussy|vulva|clit)\s*closeup|close\s*up\s*(pussy|vulva|clit)|vulva|labia)\b",
+        r"\b(spread\w*|pussy\s*spread|spread\s*pussy|(pussy|vulva|clit)\s*close\s*up|vulva|labia)\b",
         _re_cat.IGNORECASE)),
-    # bent_over / from behind — LEAST specific, comes last
     ("bent_over", _re_cat.compile(
-        r"\b(bent\s*over|all\s*fours|on\s*(all\s*)?fours|doggy|doggiestyle|from\s*behind|rear\s*view|ass\s*in\s*the\s*air|looking\s*back)\b",
+        r"\b(bent\s*over|all\s*fours|on\s*(all\s*)?fours|doggy|doggiestyle|from\s*behind|rear\s*view)\b",
         _re_cat.IGNORECASE)),
 ]
 
-# Specialist LoRA stacks per category — RESTORED 2026-08-06.
-# These specialist LoRAs were trained by Steve on Civitai and produced
-# "PERFECT" results in Smoke8 testing (documented in FACT.md):
-#   FK_dildoinsertion @ 0.9    → PERFECT dildo penetration
-#   femaleasshole-musubituner @ 0.8 → PERFECT bent-over/anal views
-#   pussydiffusion @ 0.8       → PERFECT closeups/spreading
-#   SEXGOD_FemaleMasturbation @ 0.8 → masturbation positions
+# Action LoRA stacks — ONE action LoRA per category, verified by Steve.
+# ALL action LoRAs at 0.7 strength (verified safe — preserves identity + limbs).
+# combined-v1 (1.0) is ALWAYS added LAST by select_loras_for_prompt.
 #
-# They were removed during a "simplification" that broke ALL explicit actions.
-# combined-v1 handles identity; these specialists handle the ACTIONS.
+# VERIFIED RESULTS (2026-08-13, Steve-confirmed):
+#   dildo_pussy (FK @ 0.7)           → ✅ PERFECT
+#   fingering (INSERT Kit @ 0.7)     → ✅ "fingers in her pussy"
+#   closeup (pussydiffusion @ 0.7)  → ✅ "looks great"
+#   SFW (combined-v1 only)           → ✅ PERFECT
+#
+# BANNED LoRAs (do NOT use — documented failures):
+#   klein_snofs_v1_4     → limb instability (3 arms/legs) when stacked
+#   anal_fingering_v1/v2 → wrong base or adds phantom 2nd person
+#   klein_nsfw_fix       → creates extra holes in wrong places
+#   presenting_bent_over → creates two bodies
+#   FLUX2_KLEIN_UNLOCKED → BANNED generic, identity drift
+#   SEXGOD_masturbation  → doesn't produce masturbation (3 tests, 0 success)
+#   FK_dildoinsertion    → ONLY for dildo — turns everything into dildo
+#
 _CATEGORY_STACKS = {
-    # FACT.md LOCKED RECIPES — only Steve's own LoRAs, proven in Smoke8 testing.
-    # These EXACT combos produced "PERFECT" results. Don't add anything else.
-    "bent_over": [
-        {"name": "femaleasshole-f2-klein-9b-musubituner.safetensors", "strength": 1.0},
+    "dildo_masturbation": [
+        {"name": "FK_dildoinsertion.safetensors", "strength": 0.7},
     ],
     "dildo": [
-        {"name": "FK_dildoinsertion.safetensors", "strength": 1.0},
+        {"name": "FK_dildoinsertion.safetensors", "strength": 0.7},
     ],
-    "dildo_masturbation": [
-        {"name": "FK_dildoinsertion.safetensors", "strength": 1.0},
+    "dildo_anal": [
+        {"name": "plug_that_hole_anal.safetensors", "strength": 0.7},
+    ],
+    "anal_fingering": [
+        {"name": "insert_kit.safetensors", "strength": 0.7},
+    ],
+    "anal_fisting": [
+        {"name": "self_fisting_anal.safetensors", "strength": 0.7},
+    ],
+    "fingering": [
+        {"name": "insert_kit.safetensors", "strength": 0.7},
+    ],
+    "food_insertion": [
+        {"name": "insert_kit.safetensors", "strength": 0.7},
+    ],
+    "object_insertion": [
+        {"name": "insert_kit.safetensors", "strength": 0.7},
+    ],
+    "masturbation": [
+        {"name": "insert_kit.safetensors", "strength": 0.7},
+    ],
+    "oral": [
+        {"name": "insert_kit.safetensors", "strength": 0.7},
     ],
     "spread_poses": [
-        {"name": "pussydiffusion-f2-klein-9b_v2.safetensors", "strength": 0.85},
+        {"name": "pussydiffusion-f2-klein-9b_v2.safetensors", "strength": 0.7},
     ],
     "closeup": [
-        {"name": "pussydiffusion-f2-klein-9b_v2.safetensors", "strength": 1.0},
+        {"name": "pussydiffusion-f2-klein-9b_v2.safetensors", "strength": 0.7},
+    ],
+    "bent_over": [
+        {"name": "femaleasshole-f2-klein-9b-musubituner.safetensors", "strength": 0.7},
+    ],
+    "self_suck": [
+        {"name": "self_suck_breasts.safetensors", "strength": 0.7},
+    ],
+    "panties_aside": [
+        {"name": "pull_play_panties.safetensors", "strength": 0.7},
     ],
 }
 
@@ -903,36 +956,28 @@ def select_loras_for_prompt(prompt: str, extra_loras: list = None) -> list:
         Capped at 6 total (2 baked + up to 4 specialists/extras) to stay within
         ComfyUI's stable stacking range.
     """
-    # LoRA selection (Steve's directive 2026-08-04):
-    # PussyDiffusion ONLY for explicit/nude/sexual images. NEVER for SFW.
-    # Simple rule: if nudity keywords present → PussyDiffusion. If not → no.
-    # Three-tier LoRA selection (2026-08-05):
-    # 1. Explicit actions (insertion, penetration, dildo, masturbation) → unlock + identity + anatomy
-    # 2. Nude poses (naked, nude, no action) → identity + anatomy
-    # 3. SFW (no nudity keywords) → identity only
+    # Action LoRA routing system (2026-08-12):
+    # - combined-v1 (0.9) is ALWAYS the identity base
+    # - For explicit/NSFW: SNOFS LoRA (0.8) added for quality
+    # - ONE action LoRA added only when the action is detected
+    # - SFW (no nudity) gets combined-v1 only — no action LoRAs ever
     has_nudity = bool(_NUDE_RE.search(prompt))
     _EXPLICIT_RE = _re_clothing.compile(
         r'\b(masturbat\w*|fingering|finger\s*inside|penetrat|insert|dildo|'
         r'toy\s*inside|inside\s*her\s*(?:pussy|ass|anus)|'
         r'fucking|herself|riding\s+(?:a\s+)?(?:toy|dildo)|'
         r'spread.*pussy|pussy.*spread|anal|asshole|butthole|'
-        r'cumming|orgasm|squirting|climax)\b',
+        r'fist\w*|cumming|orgasm|squirting|climax)\b',
         _re_clothing.IGNORECASE,
     )
     has_explicit = bool(_EXPLICIT_RE.search(prompt))
 
-    if has_explicit:
-        # Explicit action — uses Steve's own LoRAs only (FACT.md LOCKED RECIPES)
-        # Generic LoRAs (UNLOCKED, SNOFS, Unchained) BANNED — cause identity drift.
-        stack = list(V2_EXPLICIT_LORAS)
-    elif has_nudity:
-        # Nude pose — anatomy only, no unlock needed
-        stack = list(V2_NUDE_LORAS)
-    else:
-        # SFW — identity only
-        stack = list(V2_SFW_LORAS)
+    # LORA ORDER MATTERS in ComfyUI: later LoRAs in the chain have more influence.
+    # We put combined-v1 LAST so it has the final say on Holly's identity.
+    # Stack order: [action LoRA] → [SNOFS] → [combined-v1 (identity, last = strongest)]
+    stack = []
 
-    # Detect category (first-match-wins)
+    # 1. Action LoRA first (if detected) — at moderate strength
     category = None
     for cat, pattern in _CATEGORY_PATTERNS:
         if pattern.search(prompt):
@@ -940,9 +985,24 @@ def select_loras_for_prompt(prompt: str, extra_loras: list = None) -> list:
             break
 
     if category and category in _CATEGORY_STACKS:
-        stack.extend(_CATEGORY_STACKS[category])
+        # Lower action LoRA strengths slightly so identity can hold
+        for lora in _CATEGORY_STACKS[category]:
+            lora_copy = dict(lora)
+            # Cap ALL action LoRAs at 0.7 — verified as the safe strength
+            # that preserves both identity AND limb coherence (2026-08-13)
+            if lora_copy["strength"] > 0.7:
+                lora_copy["strength"] = 0.7
+            stack.append(lora_copy)
 
-    # Append caller-specified extras (for future per-request overrides)
+    # SNOFS LoRA REMOVED from stack — causes limb instability (3 arms, 3 legs)
+    # when stacked with action LoRAs. Verified 2026-08-13.
+    # If NSFW quality boost is needed, investigate alternatives that don't
+    # conflict with limb coherence.
+
+    # combined-v1 LAST — highest strength, last in chain = strongest influence on identity
+    stack.append({"name": "holly-combined-v1.safetensors", "strength": 1.0})
+
+    # Append caller-specified extras (after identity — for future per-request overrides)
     if extra_loras:
         stack.extend(extra_loras)
 
@@ -1624,35 +1684,50 @@ class HollyComfyUIKlein:
         # face-enhance, disabled June 27 for over-processing). Enable explicitly.
         enhance_details = request.get("enhance_details", False)
 
-        # Inject anatomy anchors into every prompt to enforce Holly's exact
-        # proportions (small hands, size 5 feet, 5 fingers/toes, olive skin).
-        # These counteract Klein's tendency toward extra digits and oversize
-        # hands/feet, and prevent skin-tone drift when NSFW LoRAs are stacked.
-        prompt = f"{raw_prompt}, {get_anatomy_anchors(raw_prompt)}" if raw_prompt else get_anatomy_anchors(raw_prompt)
-
-        # VARIATION INJECTION (2026-08-01): Steve flagged "same images every time."
-        # Even with random seeds, identical prompts produce similar compositions.
-        # Inject random variation in camera angle, lighting, and expression so
-        # each generation feels fresh and unique.
-        import random as _var_rng
-        _ANGLES = [
-            "straight-on camera angle", "slightly from above", "slightly from below",
-            "three-quarter angle", "side angle", "looking over shoulder camera angle",
-        ]
-        _LIGHTING = [
-            "warm golden hour lighting", "soft diffused studio lighting",
-            "bright natural daylight", "moody low-key lighting",
-            "warm bedside lamp lighting", "cool blue hour lighting",
-        ]
-        _EXPRESSIONS = [
-            "soft genuine smile", "confident expression", "playful smirk",
-            "relaxed content expression", "slightly surprised look",
-            "warm affectionate gaze", "thoughtful expression",
-        ]
-        _variation = f"{_var_rng.choice(_ANGLES)}, {_var_rng.choice(_LIGHTING)}, {_var_rng.choice(_EXPRESSIONS)}"
-        prompt = f"{prompt}, {_variation}"
+        # PROMPT CONSTRUCTION (2026-08-12):
+        # When an action LoRA is active, DON'T append anatomy anchors or variation
+        # — they bury the trigger words and fight the LoRA (400+ chars of anatomy
+        # description overwhelms the action). The action LoRA handles anatomy for
+        # its region. combined-v1 handles Holly's identity.
+        #
+        # For SFW and simple nude poses (no action LoRA), anatomy anchors + variation
+        # are still useful for quality and variety.
 
         disable_routing = request.get("disable_routing", False)
+
+        # First detect if there's an action category (to decide on anchors)
+        _detected_category = None
+        if not disable_routing:
+            for cat, pattern in _CATEGORY_PATTERNS:
+                if pattern.search(raw_prompt):
+                    _detected_category = cat
+                    break
+
+        _has_action_lora = (_detected_category and _detected_category in _CATEGORY_STACKS)
+
+        if _has_action_lora:
+            # Action prompt — keep it clean. Trigger words only, no anchors, no variation.
+            prompt = raw_prompt
+        else:
+            # SFW or simple nude — anatomy anchors + variation for quality
+            prompt = f"{raw_prompt}, {get_anatomy_anchors(raw_prompt)}" if raw_prompt else get_anatomy_anchors(raw_prompt)
+            import random as _var_rng
+            _ANGLES = [
+                "straight-on camera angle", "slightly from above", "slightly from below",
+                "three-quarter angle", "side angle", "looking over shoulder camera angle",
+            ]
+            _LIGHTING = [
+                "warm golden hour lighting", "soft diffused studio lighting",
+                "bright natural daylight", "moody low-key lighting",
+                "warm bedside lamp lighting", "cool blue hour lighting",
+            ]
+            _EXPRESSIONS = [
+                "soft genuine smile", "confident expression", "playful smirk",
+                "relaxed content expression", "slightly surprised look",
+                "warm affectionate gaze", "thoughtful expression",
+            ]
+            _variation = f"{_var_rng.choice(_ANGLES)}, {_var_rng.choice(_LIGHTING)}, {_var_rng.choice(_EXPRESSIONS)}"
+            prompt = f"{prompt}, {_variation}"
 
         if not prompt:
             from fastapi import HTTPException
@@ -1906,6 +1981,7 @@ class HollyComfyUIKlein:
         cn_strength = request.get("controlnet_strength", 0.7)
         steps = request.get("steps", V2_STEPS)
         cfg = request.get("cfg", V2_CFG)
+        sampler = request.get("sampler", V2_SAMPLER)
 
         if not pose_path:
             from fastapi import HTTPException
@@ -1953,6 +2029,7 @@ class HollyComfyUIKlein:
             loras=loras,
             steps=steps,
             cfg=cfg,
+            sampler=sampler,
             controlnet_strength=cn_strength,
             filename_prefix=f"Holly_cn_{job_id}",
         )
