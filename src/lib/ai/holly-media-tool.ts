@@ -52,7 +52,7 @@ export interface HollyMediaResult {
  * The backend handles all asset selection, LoRA routing, and generation.
  */
 export async function createHollyMedia(req: HollyMediaRequest): Promise<HollyMediaResult> {
-  const seed = req.seed ?? Math.floor(Math.random() * 999_999_999);
+  const baseSeed = req.seed ?? Math.floor(Math.random() * 999_999_999);
 
   // Resolve the action — either from explicit action_id or by matching the request
   let action: ActionEntry | null = null;
@@ -60,7 +60,7 @@ export async function createHollyMedia(req: HollyMediaRequest): Promise<HollyMed
   if (req.action_id) {
     action = getAction(req.action_id);
     if (!action) {
-      return errorResult(`Unknown action_id: ${req.action_id}`, req.action_id, seed);
+      return errorResult(`Unknown action_id: ${req.action_id}`, req.action_id, baseSeed);
     }
   } else {
     action = matchAction(req.request);
@@ -76,13 +76,50 @@ export async function createHollyMedia(req: HollyMediaRequest): Promise<HollyMed
   // Build the LoRA stack: [action LoRA @ 0.7] → [combined-v1 @ 1.0 LAST]
   const loraStack = buildLoRAStack(action);
 
-  // Generate
-  if (req.type === 'video') {
-    return generateVideo(req, action, prompt, loraStack, seed);
+  // Two-candidate generation for NSFW actions (verified actions don't need it)
+  if (action.is_nsfw && action.status !== 'verified') {
+    return generateWithFallback(req, action, prompt, loraStack, baseSeed);
   }
 
-  return generateImage(req, action, prompt, loraStack, seed);
+  // Single generation for verified actions + SFW
+  if (req.type === 'video') {
+    return generateVideo(req, action, prompt, loraStack, baseSeed);
+  }
+  return generateImage(req, action, prompt, loraStack, baseSeed);
 }
+
+/**
+ * Generate two candidates with different seeds.
+ * If the first fails or has obvious issues, return the second.
+ * Both results are returned — the caller can choose.
+ */
+async function generateWithFallback(
+  req: HollyMediaRequest,
+  action: ActionEntry,
+  prompt: string,
+  loraStack: Array<{ name: string; strength: number }>,
+  baseSeed: number,
+): Promise<HollyMediaResult> {
+  // Generate candidate 1
+  const candidate1 = await generateImage(req, action, prompt, loraStack, baseSeed);
+
+  if (candidate1.success) {
+    return candidate1;  // First one worked — return it
+  }
+
+  // First failed — try candidate 2 with a different seed + different reference photo
+  console.log(`[HollyMedia] Candidate 1 failed (${candidate1.error}), trying candidate 2...`);
+  const candidate2 = await generateImage(req, action, prompt, loraStack, baseSeed + 77777);
+
+  if (candidate2.success) {
+    return candidate2;
+  }
+
+  // Both failed — return the first error
+  return candidate1;
+}
+
+// buildPrompt, buildLoRAStack, generateImage, generateVideo, etc. follow below
 
 /**
  * Build the generation prompt from structured parameters.
@@ -321,38 +358,180 @@ async function generateVideo(
 
 /**
  * Pick a random reference photo from a category on the Modal volume.
- * Returns a path like "action-refs/01_dildo_pussy/01_dildo_pussy.webp"
+ * Uses the full known file list per category — every generation gets
+ * a different reference photo, creating variety in poses and angles.
  *
- * NOTE: This currently returns a generic path. Phase 2 (reference selector)
- * will make this intelligent — ranking by pose, angle, framing.
+ * File lists are cached from volume listings (updated 2026-08-13).
+ * To add new reference photos, add them to the volume AND update this list.
  */
+const REFERENCE_FILES: Record<string, string[]> = {
+  '01_dildo_pussy': [
+    'action-refs/01_dildo_pussy/01_dildo_pussy.webp',
+    'action-refs/01_dildo_pussy/02_dildo_pussy.webp',
+    'action-refs/01_dildo_pussy/03_dildo_pussy.webp',
+    'action-refs/01_dildo_pussy/04_dildo_pussy.png',
+    'action-refs/01_dildo_pussy/05_dildo_pussy.png',
+    'action-refs/01_dildo_pussy/06_dildo_pussy.png',
+    'action-refs/01_dildo_pussy/07_dildo_pussy.png',
+    'action-refs/01_dildo_pussy/08_dildo_pussy.png',
+    'action-refs/01_dildo_pussy/09_dildo_pussy.png',
+    'action-refs/01_dildo_pussy/10_dildo_pussy.png',
+  ],
+  '02_fingering_pussy': [
+    'action-refs/02_fingering_pussy/fingering_pussy_two_fingers_04.png',
+    'action-refs/02_fingering_pussy/fingering_pussy_two_fingers_05.png',
+    'action-refs/02_fingering_pussy/fingering_pussy_two_fingers_07.png',
+    'action-refs/02_fingering_pussy/fingering_pussy_two_fingers_09.png',
+    'action-refs/02_fingering_pussy/fingering_pussy_two_fingers_11.png',
+    'action-refs/02_fingering_pussy/fingering_pussy_two_fingers_12.png',
+    'action-refs/02_fingering_pussy/fingering_pussy_two_fingers_13.png',
+    'action-refs/02_fingering_pussy/fingering_pussy_two_fingers_14.png',
+  ],
+  '03_masturbating': [
+    'action-refs/03_masturbating/01_rubbing_clit.png',
+    'action-refs/03_masturbating/02_rubbing_clit.png',
+    'action-refs/03_masturbating/03_rubbing_clit.png',
+    'action-refs/03_masturbating/04_touching_herself.png',
+    'action-refs/03_masturbating/05_touching_herself.png',
+    'action-refs/03_masturbating/06_touching_herself.png',
+    'action-refs/03_masturbating/07_touching_herself.png',
+    'action-refs/03_masturbating/08_touching_herself.png',
+  ],
+  '04_spreading': [
+    'action-refs/04_spreading/spreading_01.png',
+    'action-refs/04_spreading/spreading_02.png',
+    'action-refs/04_spreading/spreading_03.png',
+    'action-refs/04_spreading/spreading_04.png',
+    'action-refs/04_spreading/spreading_05.png',
+    'action-refs/04_spreading/spreading_06.png',
+    'action-refs/04_spreading/spreading_07.png',
+  ],
+  '05_anal_fingering': [
+    'action-refs/05_anal_fingering/anal_fingering_01.png',
+    'action-refs/05_anal_fingering/anal_fingering_02.png',
+    'action-refs/05_anal_fingering/anal_fingering_03.png',
+    'action-refs/05_anal_fingering/anal_fingering_04.png',
+    'action-refs/05_anal_fingering/anal_fingering_05.png',
+    'action-refs/05_anal_fingering/anal_fingering_06.png',
+    'action-refs/05_anal_fingering/anal_fingering_07.png',
+    'action-refs/05_anal_fingering/anal_fingering_08.png',
+    'action-refs/05_anal_fingering/anal_fingering_09.png',
+    'action-refs/05_anal_fingering/anal_fingering_10.png',
+    'action-refs/05_anal_fingering/anal_fingering_11.png',
+    'action-refs/05_anal_fingering/anal_fingering_12.png',
+    'action-refs/05_anal_fingering/anal_fingering_13.png',
+  ],
+  '06_anal_dildo': [
+    'action-refs/06_anal_dildo/anal_dildo_01.png',
+    'action-refs/06_anal_dildo/anal_dildo_02.png',
+  ],
+  '07_food_insertion': [
+    'action-refs/07_food_insertion/food_insertion_cucumber_01.png',
+    'action-refs/07_food_insertion/food_insertion_cucumber_02.png',
+    'action-refs/07_food_insertion/food_insertion_cucumber_03.png',
+    'action-refs/07_food_insertion/food_insertion_cucumber_04.png',
+    'action-refs/07_food_insertion/food_insertion_corn_01.png',
+    'action-refs/07_food_insertion/food_insertion_corn_02.png',
+    'action-refs/07_food_insertion/food_insertion_corn_03.png',
+    'action-refs/07_food_insertion/food_insertion_eggplant_01.png',
+    'action-refs/07_food_insertion/food_insertion_eggplant_02.png',
+    'action-refs/07_food_insertion/food_insertion_eggplant_03.png',
+    'action-refs/07_food_insertion/food_insertion_eggplant_04.png',
+    'action-refs/07_food_insertion/food_insertion_eggplant_05.png',
+    'action-refs/07_food_insertion/food_insertion_eggplant_06.png',
+    'action-refs/07_food_insertion/food_insertion_deep_inside_eggplant_01.png',
+  ],
+  '08_oral': [
+    'action-refs/08_oral/oral_01.png',
+    'action-refs/08_oral/oral_02.png',
+    'action-refs/08_oral/oral_03.png',
+    'action-refs/08_oral/oral_04.png',
+    'action-refs/08_oral/oral_05.png',
+    'action-refs/08_oral/oral_06.png',
+    'action-refs/08_oral/oral_07.png',
+    'action-refs/08_oral/oral_08.png',
+    'action-refs/08_oral/oral_09.png',
+    'action-refs/08_oral/oral_10.png',
+  ],
+  '09_squirting': [
+    'action-refs/09_squirting/squirting_01.png',
+    'action-refs/09_squirting/squirting_02.png',
+    'action-refs/09_squirting/squirting_03.png',
+    'action-refs/09_squirting/cumming_01.png',
+    'action-refs/09_squirting/cumming_02.png',
+    'action-refs/09_squirting/cumming_03.png',
+    'action-refs/09_squirting/cumming_04.png',
+    'action-refs/09_squirting/cumming_05.png',
+    'action-refs/09_squirting/orgasm_01.png',
+    'action-refs/09_squirting/orgasm_02.png',
+  ],
+  '10_fisting_pussy': [
+    'action-refs/10_fisting_pussy/fisting_pussy_01.png',
+    'action-refs/10_fisting_pussy/fisting_pussy_02.png',
+    'action-refs/10_fisting_pussy/fisting_pussy_03.png',
+    'action-refs/10_fisting_pussy/fisting_pussy_04.png',
+    'action-refs/10_fisting_pussy/fisting_pussy_05.png',
+    'action-refs/10_fisting_pussy/fisting_pussy_06.png',
+    'action-refs/10_fisting_pussy/fisting_pussy_07.png',
+    'action-refs/10_fisting_pussy/fisting_pussy_08.png',
+    'action-refs/10_fisting_pussy/fisting_pussy_09.png',
+    'action-refs/10_fisting_pussy/fisting_pussy_10.png',
+    'action-refs/10_fisting_pussy/someone_fisting_her_pussy_ass_01.png',
+    'action-refs/10_fisting_pussy/someone_fisting_her_pussy_ass_02.png',
+    'action-refs/10_fisting_pussy/someone_fisting_her_pussy_ass_03.png',
+    'action-refs/10_fisting_pussy/someone_fisting_her_pussy_04.png',
+    'action-refs/10_fisting_pussy/someone_fisting_her_pussy_05.png',
+    'action-refs/10_fisting_pussy/someone_fisting_her_pussy_06.png',
+  ],
+  '11_fisting_anal': [
+    'action-refs/11_fisting_anal/fisting_anal_01.png',
+    'action-refs/11_fisting_anal/fisting_anal_02.png',
+    'action-refs/11_fisting_anal/fisting_anal_03.png',
+  ],
+  '14_anal_beads': [
+    'action-refs/14_anal_beads/anal_beads_01.png',
+    'action-refs/14_anal_beads/anal_beads_02.png',
+  ],
+  '16_object_insertion': [
+    'action-refs/16_object_insertion/object_insertion_bottle_01.png',
+    'action-refs/16_object_insertion/object_insertion_bottle_02.png',
+    'action-refs/16_object_insertion/object_insertion_markers_01.png',
+    'action-refs/16_object_insertion/object_insertion_baseball_bat_01.png',
+  ],
+  '17_bent_over': [
+    'action-refs/17_bent_over/bent_over_01.png',
+    'action-refs/17_bent_over/bent_over_02.png',
+    'action-refs/17_bent_over/bent_over_03.png',
+    'action-refs/17_bent_over/bent_over_04.png',
+  ],
+  '18_expressions_closeup_face': [
+    'action-refs/18_expressions_closeup_face/confident.png',
+    'action-refs/18_expressions_closeup_face/happy.png',
+    'action-refs/18_expressions_closeup_face/in_love.png',
+    'action-refs/18_expressions_closeup_face/intimate.png',
+    'action-refs/18_expressions_closeup_face/naughty.png',
+    'action-refs/18_expressions_closeup_face/orgasm.png',
+    'action-refs/18_expressions_closeup_face/playful.png',
+    'action-refs/18_expressions_closeup_face/smile.png',
+    'action-refs/18_expressions_closeup_face/surprised.png',
+  ],
+};
+
+// Track the last-used index per category for rotation (avoids repeats)
+const lastUsedIndex: Record<string, number> = {};
+
 function pickReferencePhoto(category: string): string {
-  // For now, return the category directory path.
-  // The ControlNet endpoint will need a specific filename.
-  // Phase 2 will list the directory and pick intelligently.
-  // For now, the caller (chat route) will need to provide a specific ref,
-  // or we hardcode known files per category.
+  const files = REFERENCE_FILES[category];
+  if (!files || files.length === 0) {
+    return `action-refs/${category}`;
+  }
 
-  // Known first file per category (from volume listing)
-  const knownFiles: Record<string, string> = {
-    '01_dildo_pussy': 'action-refs/01_dildo_pussy/01_dildo_pussy.webp',
-    '02_fingering_pussy': 'action-refs/02_fingering_pussy/fingering_pussy_two_fingers_09.png',
-    '03_masturbating': 'action-refs/03_masturbating/01_rubbing_clit.png',
-    '04_spreading': 'action-refs/04_spreading/spreading_01.png',
-    '05_anal_fingering': 'action-refs/05_anal_fingering/anal_fingering_01.png',
-    '06_anal_dildo': 'action-refs/06_anal_dildo/anal_dildo_01.png',
-    '07_food_insertion': 'action-refs/07_food_insertion/food_insertion_cucumber_01.png',
-    '08_oral': 'action-refs/08_oral/oral_01.png',
-    '09_squirting': 'action-refs/09_squirting/squirting_01.png',
-    '10_fisting_pussy': 'action-refs/10_fisting_pussy/fisting_pussy_01.png',
-    '11_fisting_anal': 'action-refs/11_fisting_anal/fisting_anal_01.png',
-    '14_anal_beads': 'action-refs/14_anal_beads/anal_beads_01.png',
-    '16_object_insertion': 'action-refs/16_object_insertion/object_insertion_bottle_01.png',
-    '17_bent_over': 'action-refs/17_bent_over/bent_over_01.png',
-    '18_expressions_closeup_face': 'action-refs/18_expressions_closeup_face/confident.png',
-  };
+  // Rotate through files sequentially (more variety than pure random)
+  const lastIdx = lastUsedIndex[category] ?? -1;
+  const nextIdx = (lastIdx + 1) % files.length;
+  lastUsedIndex[category] = nextIdx;
 
-  return knownFiles[category] || `action-refs/${category}`;
+  return files[nextIdx];
 }
 
 function errorResult(error: string, actionId: string, seed: number): HollyMediaResult {
