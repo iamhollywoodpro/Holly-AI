@@ -82,7 +82,7 @@ export const ACTION_REGISTRY: Record<string, ActionEntry> = {
   // ─── Dildo actions ───────────────────────────────────────────
   dildo_pussy: {
     action_id: 'dildo_pussy',
-    aliases: ['dildo in pussy', 'dildo in vagina', 'using a dildo', 'toy in pussy', 'vibrator', 'dildo masturbation', 'fucking herself with dildo'],
+    aliases: ['dildo', 'toy', 'vibrator', 'dildo masturbation', 'fuck her with dildo', 'using a dildo', 'dildo in her', 'dildo inside', 'toy in her', 'toy inside'],
     image_lora: 'FK_dildoinsertion.safetensors',
     image_lora_weight: 0.7,
     reference_category: '01_dildo_pussy',
@@ -97,7 +97,7 @@ export const ACTION_REGISTRY: Record<string, ActionEntry> = {
 
   dildo_anal: {
     action_id: 'dildo_anal',
-    aliases: ['dildo in ass', 'dildo in anus', 'dildo in asshole', 'anal dildo', 'toy in ass', 'anal toy'],
+    aliases: ['dildo in her ass', 'dildo in ass', 'dildo in anus', 'dildo in asshole', 'anal dildo', 'toy in ass', 'toy in her ass', 'anal toy', 'fuck her ass with dildo'],
     image_lora: 'plug_that_hole_anal.safetensors',
     image_lora_weight: 0.7,
     reference_category: '06_anal_dildo',
@@ -113,7 +113,7 @@ export const ACTION_REGISTRY: Record<string, ActionEntry> = {
   // ─── Fingering actions ───────────────────────────────────────
   fingering: {
     action_id: 'fingering',
-    aliases: ['fingering pussy', 'fingers inside', 'fingers in pussy', 'fingering herself', 'finger fucking'],
+    aliases: ['fingering', 'finger her', 'finger your', 'fingers in her', 'fingers inside', 'finger fuck', 'finger her pussy'],
     image_lora: 'insert_kit.safetensors',
     image_lora_weight: 0.7,
     reference_category: '02_fingering_pussy',
@@ -128,7 +128,7 @@ export const ACTION_REGISTRY: Record<string, ActionEntry> = {
 
   anal_fingering: {
     action_id: 'anal_fingering',
-    aliases: ['fingering ass', 'finger in ass', 'fingering asshole', 'anal finger'],
+    aliases: ['finger her ass', 'finger your ass', 'finger your asshole', 'finger in ass', 'finger in her ass', 'fingering ass', 'fingering asshole', 'anal finger', 'finger her asshole'],
     image_lora: 'insert_kit.safetensors',
     image_lora_weight: 0.7,
     reference_category: '05_anal_fingering',
@@ -142,9 +142,24 @@ export const ACTION_REGISTRY: Record<string, ActionEntry> = {
   },
 
   // ─── Fisting actions ─────────────────────────────────────────
+  pussy_fisting: {
+    action_id: 'pussy_fisting',
+    aliases: ['fist her pussy', 'fist your pussy', 'fist in pussy', 'fist in her pussy', 'fisting pussy', 'fisting her pussy', 'hand in her pussy', 'hand in your pussy'],
+    image_lora: 'self_fisting_anal.safetensors',
+    image_lora_weight: 0.7,
+    reference_category: '10_fisting_pussy',
+    reference_tags: ['fisting', 'pussy', 'hand', 'insertion'],
+    prompt_fragment: 'she is fisting her own pussy, she has her hand in her pussy',
+    is_nsfw: true,
+    use_controlnet: true,
+    controlnet_strength: 0.45,
+    status: 'close',
+    notes: 'Uses self_fisting_anal LoRA redirected to pussy trigger. 16 reference photos.',
+  },
+
   anal_fisting: {
     action_id: 'anal_fisting',
-    aliases: ['fisting ass', 'fist in ass', 'self anal fisting', 'fisting her ass', 'hand in ass'],
+    aliases: ['fist her ass', 'fisting ass', 'fist in ass', 'fist her asshole', 'self anal fisting', 'fisting her ass', 'hand in her ass', 'fist your ass'],
     image_lora: 'self_fisting_anal.safetensors',
     image_lora_weight: 0.7,
     reference_category: '11_fisting_anal',
@@ -191,7 +206,7 @@ export const ACTION_REGISTRY: Record<string, ActionEntry> = {
   // ─── Masturbation ────────────────────────────────────────────
   masturbation: {
     action_id: 'masturbation',
-    aliases: ['masturbating', 'touching herself', 'rubbing clit', 'playing with pussy', 'self pleasure', 'rubbing pussy'],
+    aliases: ['masturbate', 'masturbating', 'touching herself', 'touch your', 'rubbing clit', 'rub your clit', 'playing with pussy', 'play with your', 'self pleasure', 'rubbing pussy', 'rub your pussy', 'pleasure your'],
     image_lora: 'insert_kit.safetensors',
     image_lora_weight: 0.7,
     reference_category: '03_masturbating',
@@ -270,7 +285,7 @@ export const ACTION_REGISTRY: Record<string, ActionEntry> = {
   // ─── Other actions ───────────────────────────────────────────
   self_suck: {
     action_id: 'self_suck',
-    aliases: ['sucking own nipple', 'licking own nipple', 'breast suck', 'self suck breast'],
+    aliases: ['suck your nipple', 'suck her nipple', 'sucking own nipple', 'licking own nipple', 'lick your nipple', 'breast suck', 'self suck', 'suck your own'],
     image_lora: 'self_suck_breasts.safetensors',
     image_lora_weight: 0.7,
     reference_category: '18_expressions_closeup_face',
@@ -321,7 +336,10 @@ export const ACTION_REGISTRY: Record<string, ActionEntry> = {
 export function matchAction(userPrompt: string): ActionEntry | null {
   const prompt = userPrompt.toLowerCase();
 
-  // Score each action by how many aliases match
+  // Detect if the prompt specifies anal (ass/anus/asshole/butt/butthole)
+  // This disambiguates dildo_pussy vs dildo_anal, fingering vs anal_fingering, etc.
+  const isAnal = /\b(ass|anus|asshole|butt|butthole|anal)\b/.test(prompt);
+
   let bestMatch: ActionEntry | null = null;
   let bestScore = 0;
 
@@ -329,9 +347,23 @@ export function matchAction(userPrompt: string): ActionEntry | null {
     let score = 0;
     for (const alias of entry.aliases) {
       if (prompt.includes(alias.toLowerCase())) {
-        score += alias.length; // Longer matches score higher
+        score += alias.length;
       }
     }
+
+    // Priority bonus: if prompt mentions anal AND this action is anal-specific,
+    // boost its score so it beats the generic version.
+    // dildo_anal beats dildo_pussy, anal_fingering beats fingering, etc.
+    if (isAnal && entry.action_id.includes('anal')) {
+      score += 50; // Strong boost — anal context should win
+    }
+
+    // Penalty: if prompt mentions anal but this action is pussy-specific
+    // (not anal), reduce its score to avoid misdetection.
+    if (isAnal && (entry.action_id === 'dildo_pussy' || entry.action_id === 'fingering')) {
+      score = Math.floor(score * 0.3);
+    }
+
     if (score > bestScore) {
       bestScore = score;
       bestMatch = entry;

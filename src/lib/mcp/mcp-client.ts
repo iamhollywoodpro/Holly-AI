@@ -220,7 +220,7 @@ export class MCPClientManager {
             'reference photos, and generation settings automatically.\n\n' +
             'Action IDs: sfw_clothed, nude_pose, dildo_pussy, dildo_anal, fingering, anal_fingering, ' +
             'anal_fisting, food_insertion, object_insertion, masturbation, oral, spreading, closeup, ' +
-            'bent_over, self_suck, panties_aside, squirting\n\n' +
+            'bent_over, self_suck, panties_aside, squirting, pussy_fisting\n\n' +
             'For SFW images, always specify wardrobe (clothing). Clothing must fully cover.\n' +
             'For NSFW, the action_id determines what happens.\n' +
             'Do NOT claim media was created until this tool returns successfully.'
@@ -238,7 +238,7 @@ export class MCPClientManager {
                   'fingering', 'anal_fingering', 'anal_fisting',
                   'food_insertion', 'object_insertion', 'masturbation',
                   'oral', 'spreading', 'closeup', 'bent_over',
-                  'self_suck', 'panties_aside', 'squirting',
+                  'self_suck', 'panties_aside', 'squirting', 'pussy_fisting',
                 ],
               },
               framing: {
