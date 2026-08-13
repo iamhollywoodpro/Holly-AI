@@ -193,8 +193,14 @@ async function generateImage(
 ): Promise<HollyMediaResult> {
   try {
     if (action.use_controlnet && action.reference_category && MODAL_CONTROLNET_URL) {
-      // ControlNet path: pick a random reference photo from the category
-      const refPath = pickReferencePhoto(action.reference_category);
+      // ControlNet path: pick next reference photo from the category
+      let refPath = pickReferencePhoto(action.reference_category);
+
+      // If this action has a target_hole, use the hole-mapped version
+      // (the .holes.png file with colored insertion-point overlay)
+      if (action.target_hole) {
+        refPath = toHoleMappedPath(refPath);
+      }
 
       const body = JSON.stringify({
         pose_skeleton: refPath,
@@ -532,6 +538,21 @@ function pickReferencePhoto(category: string): string {
   lastUsedIndex[category] = nextIdx;
 
   return files[nextIdx];
+}
+
+/**
+ * Convert a reference photo path to its hole-mapped version.
+ * "action-refs/01_dildo_pussy/01_dildo_pussy.webp" → "action-refs/01_dildo_pussy/01_dildo_pussy.holes.png"
+ *
+ * The hole-mapped version has a colored circle (red=pussy, blue=ass, green=mouth)
+ * overlaid at the insertion point. ControlNet sees this and knows WHERE things go.
+ * Falls back to the original photo if the hole-mapped version doesn't exist yet
+ * (the batch creation script needs to run first).
+ */
+function toHoleMappedPath(refPath: string): string {
+  // Replace extension with .holes.png
+  const base = refPath.replace(/\.[^.]+$/, '');
+  return `${base}.holes.png`;
 }
 
 function errorResult(error: string, actionId: string, seed: number): HollyMediaResult {
