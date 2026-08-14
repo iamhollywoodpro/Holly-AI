@@ -192,7 +192,16 @@ function buildLoRAStack(action: ActionEntry): Array<{ name: string; strength: nu
 }
 
 /**
- * Generate an image via the ComfyUI ControlNet or text-only endpoint.
+ * Generate an image via the skeleton edit pipeline or text-only endpoint.
+ *
+ * The skeleton edit pipeline (generate-pose-guided at 0.9 denoise) is the
+ * VERIFIED pose-control method (Steve confirmed "Looks Perfect" 2026-08-14).
+ * ControlNet was abandoned — the custom node was silently broken (multigpu_clones
+ * bug meant the pose signal never reached the model).
+ *
+ * The skeleton+holes files (.skelholes.png) provide:
+ * - DWPose body skeleton → body position
+ * - Colored hole markers → insertion point accuracy (MediaPipe landmarks)
  */
 async function generateImage(
   req: HollyMediaRequest,
@@ -203,14 +212,8 @@ async function generateImage(
 ): Promise<HollyMediaResult> {
   try {
     if (action.use_controlnet && action.reference_category && MODAL_CONTROLNET_URL) {
-      // ControlNet path: pick next reference photo from the category
-      let refPath = pickReferencePhoto(action.reference_category, action.action_id);
-
-      // If this action has a target_hole, use the hole-mapped version
-      // (the .holes.png file with colored insertion-point overlay)
-      if (action.target_hole) {
-        refPath = toHoleMappedPath(refPath);
-      }
+      // Skeleton edit path: pick next skeleton+holes file from the category
+      const refPath = pickSkeletonHoles(action.reference_category, action.action_id);
 
       const gs = action.gen_settings || { steps: GENERATION_SETTINGS.steps, cfg: GENERATION_SETTINGS.cfg, sampler: GENERATION_SETTINGS.sampler };
 
@@ -227,7 +230,10 @@ async function generateImage(
         loras: loraStack,
       });
 
-      const res = await fetch(MODAL_CONTROLNET_URL.replace(/\/$/, ''), {
+      // Use the POSE-GUIDED endpoint (skeleton edit pipeline at 0.9 denoise)
+      // NOT the broken ControlNet endpoint
+      const poseGuidedUrl = process.env.MODAL_POSE_GUIDED_URL || '';
+      const res = await fetch(poseGuidedUrl.replace(/\/$/, ''), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body,
@@ -378,244 +384,228 @@ async function generateVideo(
 }
 
 /**
- * Pick a random reference photo from a category on the Modal volume.
- * Uses the full known file list per category — every generation gets
- * a different reference photo, creating variety in poses and angles.
+ * Skeleton+holes file system — the pose guidance library.
  *
- * File lists verified against actual volume contents 2026-08-13.
- * To add new reference photos: add them to the volume AND update this list.
+ * All 126 skeletons (34 original + 92 fullbody-derived) have .skelholes.png
+ * overlays with MediaPipe-accurate hole markers (red=pussy, blue=ass, green=mouth).
+ * These go through the edit pipeline at 0.9 denoise for pose control.
  */
-const REFERENCE_FILES: Record<string, string[]> = {
+const SKELETON_HOLES_FILES: Record<string, string[]> = {
   '01_dildo_pussy': [
-    'action-refs/01_dildo_pussy/01_dildo_pussy.webp',
-    'action-refs/01_dildo_pussy/02_dildo_pussy.webp',
-    'action-refs/01_dildo_pussy/03_dildo_pussy.webp',
-    'action-refs/01_dildo_pussy/04_dildo_pussy.png',
-    'action-refs/01_dildo_pussy/05_dildo_pussy.png',
-    'action-refs/01_dildo_pussy/06_dildo_pussy.png',
-    'action-refs/01_dildo_pussy/07_dildo_pussy.png',
-    'action-refs/01_dildo_pussy/08_dildo_pussy.png',
-    'action-refs/01_dildo_pussy/10_dildo_pussy.webp',
-    'action-refs/01_dildo_pussy/11_dildo_pussy.webp',
+    'action-combined-skeleton-holes/01_dildo_pussy/01_dildo_pussy.skelholes.png',
+    'action-combined-skeleton-holes/01_dildo_pussy/02_dildo_pussy.skelholes.png',
+    'action-combined-skeleton-holes/01_dildo_pussy/03_dildo_pussy.skelholes.png',
+    'action-combined-skeleton-holes/01_dildo_pussy/10_dildo_pussy.skelholes.png',
+    'action-combined-skeleton-holes/01_dildo_pussy/11_dildo_pussy.skelholes.png',
+    'action-combined-skeleton-holes/01_dildo_pussy/04_dildo_pussy.skelholes.png',
+    'action-combined-skeleton-holes/01_dildo_pussy/05_dildo_pussy.skelholes.png',
+    'action-combined-skeleton-holes/01_dildo_pussy/06_dildo_pussy.skelholes.png',
+    'action-combined-skeleton-holes/01_dildo_pussy/07_dildo_pussy.skelholes.png',
+    'action-combined-skeleton-holes/01_dildo_pussy/08_dildo_pussy.skelholes.png',
   ],
   '02_fingering_pussy': [
-    'action-refs/02_fingering_pussy/fingering_pussy_two_fingers_04.png',
-    'action-refs/02_fingering_pussy/fingering_pussy_two_fingers_05.png',
-    'action-refs/02_fingering_pussy/fingering_pussy_two_fingers_07.png',
-    'action-refs/02_fingering_pussy/fingering_pussy_two_fingers_09.png',
-    'action-refs/02_fingering_pussy/fingering_pussy_two_fingers_11.png',
-    'action-refs/02_fingering_pussy/fingering_pussy_two_fingers_12.png',
-    'action-refs/02_fingering_pussy/fingering_pussy_two_fingers_13.png',
-    'action-refs/02_fingering_pussy/fingering_pussy_two_fingers_14.png',
+    'action-combined-skeleton-holes/02_fingering_pussy/fingering_pussy_two_fingers_04.skelholes.png',
+    'action-combined-skeleton-holes/02_fingering_pussy/fingering_pussy_two_fingers_05.skelholes.png',
+    'action-combined-skeleton-holes/02_fingering_pussy/fingering_pussy_two_fingers_07.skelholes.png',
+    'action-combined-skeleton-holes/02_fingering_pussy/fingering_pussy_two_fingers_09.skelholes.png',
+    'action-combined-skeleton-holes/02_fingering_pussy/fingering_pussy_two_fingers_11.skelholes.png',
+    'action-combined-skeleton-holes/02_fingering_pussy/fingering_pussy_two_fingers_12.skelholes.png',
+    'action-combined-skeleton-holes/02_fingering_pussy/fingering_pussy_two_fingers_13.skelholes.png',
+    'action-combined-skeleton-holes/02_fingering_pussy/fingering_pussy_two_fingers_14.skelholes.png',
   ],
   '03_masturbating': [
-    'action-refs/03_masturbating/01_rubbing_clit.png',
-    'action-refs/03_masturbating/02_rubbing_clit.jpg',
-    'action-refs/03_masturbating/masturbating_01.jpg',
-    'action-refs/03_masturbating/masturbating_02.jpg',
-    'action-refs/03_masturbating/masturbating_03.jpg',
-    'action-refs/03_masturbating/masturbating_04.jpg',
-    'action-refs/03_masturbating/masturbating_05.jpg',
-    'action-refs/03_masturbating/masturbating_06.png',
+    'action-combined-skeleton-holes/03_masturbating/01_rubbing_clit.skelholes.png',
+    'action-combined-skeleton-holes/03_masturbating/02_rubbing_clit.skelholes.png',
+    'action-combined-skeleton-holes/03_masturbating/masturbating_01.skelholes.png',
+    'action-combined-skeleton-holes/03_masturbating/masturbating_02.skelholes.png',
+    'action-combined-skeleton-holes/03_masturbating/masturbating_03.skelholes.png',
+    'action-combined-skeleton-holes/03_masturbating/masturbating_04.skelholes.png',
+    'action-combined-skeleton-holes/03_masturbating/masturbating_05.skelholes.png',
+    'action-combined-skeleton-holes/03_masturbating/masturbating_06.skelholes.png',
   ],
   '04_spreading': [
-    'action-refs/04_spreading/spreading_01.png',
-    'action-refs/04_spreading/spreading_02.png',
-    'action-refs/04_spreading/spreading_03.png',
-    'action-refs/04_spreading/spreading_04.webp',
-    'action-refs/04_spreading/spreading_05.webp',
-    'action-refs/04_spreading/spreading_06.webp',
-    'action-refs/04_spreading/spreading_07.webp',
+    'action-combined-skeleton-holes/04_spreading/spreading_01.skelholes.png',
+    'action-combined-skeleton-holes/04_spreading/spreading_02.skelholes.png',
+    'action-combined-skeleton-holes/04_spreading/spreading_03.skelholes.png',
+    'action-combined-skeleton-holes/04_spreading/spreading_04.skelholes.png',
+    'action-combined-skeleton-holes/04_spreading/spreading_05.skelholes.png',
+    'action-combined-skeleton-holes/04_spreading/spreading_06.skelholes.png',
+    'action-combined-skeleton-holes/04_spreading/spreading_07.skelholes.png',
   ],
   '05_anal_fingering': [
-    'action-refs/05_anal_fingering/anal_fingering_01.png',
-    'action-refs/05_anal_fingering/anal_fingering_02.png',
-    'action-refs/05_anal_fingering/anal_fingering_03.png',
-    'action-refs/05_anal_fingering/anal_fingering_04.png',
-    'action-refs/05_anal_fingering/anal_fingering_05.png',
-    'action-refs/05_anal_fingering/anal_fingering_06.png',
-    'action-refs/05_anal_fingering/anal_fingering_07.png',
-    'action-refs/05_anal_fingering/anal_fingering_two_fingers_01.png',
-    'action-refs/05_anal_fingering/anal_fingering_two_fingers_02.png',
-    'action-refs/05_anal_fingering/anal_fingering_two_fingers_03.png',
-    'action-refs/05_anal_fingering/anal_fingering_two_fingers_04.png',
-    'action-refs/05_anal_fingering/anal_fingering_two_fingers_05.png',
-    'action-refs/05_anal_fingering/anal_fingering_two_fingers_06.png',
+    'action-combined-skeleton-holes/05_anal_fingering/anal_fingering_01.skelholes.png',
+    'action-combined-skeleton-holes/05_anal_fingering/anal_fingering_02.skelholes.png',
+    'action-combined-skeleton-holes/05_anal_fingering/anal_fingering_03.skelholes.png',
+    'action-combined-skeleton-holes/05_anal_fingering/anal_fingering_04.skelholes.png',
+    'action-combined-skeleton-holes/05_anal_fingering/anal_fingering_05.skelholes.png',
+    'action-combined-skeleton-holes/05_anal_fingering/anal_fingering_06.skelholes.png',
+    'action-combined-skeleton-holes/05_anal_fingering/anal_fingering_07.skelholes.png',
+    'action-combined-skeleton-holes/05_anal_fingering/anal_fingering_two_fingers_01.skelholes.png',
+    'action-combined-skeleton-holes/05_anal_fingering/anal_fingering_two_fingers_02.skelholes.png',
+    'action-combined-skeleton-holes/05_anal_fingering/anal_fingering_two_fingers_03.skelholes.png',
+    'action-combined-skeleton-holes/05_anal_fingering/anal_fingering_two_fingers_04.skelholes.png',
+    'action-combined-skeleton-holes/05_anal_fingering/anal_fingering_two_fingers_05.skelholes.png',
+    'action-combined-skeleton-holes/05_anal_fingering/anal_fingering_two_fingers_06.skelholes.png',
   ],
   '06_anal_dildo': [
-    'action-refs/06_anal_dildo/anal_dildo_01.png',
-    'action-refs/06_anal_dildo/anal_dildo_02.png',
+    'action-combined-skeleton-holes/06_anal_dildo/anal_dildo_01.skelholes.png',
+    'action-combined-skeleton-holes/06_anal_dildo/anal_dildo_02.skelholes.png',
   ],
   '07_food_insertion': [
-    'action-refs/07_food_insertion/food_insertion_corn_01.png',
-    'action-refs/07_food_insertion/food_insertion_corn_02.png',
-    'action-refs/07_food_insertion/food_insertion_corn_03.png',
-    'action-refs/07_food_insertion/food_insertion_cucumber_01.png',
-    'action-refs/07_food_insertion/food_insertion_cucumber_02.png',
-    'action-refs/07_food_insertion/food_insertion_cucumber_03.png',
-    'action-refs/07_food_insertion/food_insertion_cucumber_04.png',
-    'action-refs/07_food_insertion/food_insertion_deep_inside_eggplant_01.png',
-    'action-refs/07_food_insertion/food_insertion_eggplant_01.png',
-    'action-refs/07_food_insertion/food_insertion_eggplant_02.png',
-    'action-refs/07_food_insertion/food_insertion_eggplant_03.png',
-    'action-refs/07_food_insertion/food_insertion_eggplant_04.png',
-    'action-refs/07_food_insertion/food_insertion_eggplant_05.png',
-    'action-refs/07_food_insertion/food_insertion_eggplant_06.png',
+    'action-combined-skeleton-holes/07_food_insertion/food_insertion_corn_01.skelholes.png',
+    'action-combined-skeleton-holes/07_food_insertion/food_insertion_corn_02.skelholes.png',
+    'action-combined-skeleton-holes/07_food_insertion/food_insertion_corn_03.skelholes.png',
+    'action-combined-skeleton-holes/07_food_insertion/food_insertion_cucumber_01.skelholes.png',
+    'action-combined-skeleton-holes/07_food_insertion/food_insertion_cucumber_02.skelholes.png',
+    'action-combined-skeleton-holes/07_food_insertion/food_insertion_cucumber_03.skelholes.png',
+    'action-combined-skeleton-holes/07_food_insertion/food_insertion_cucumber_04.skelholes.png',
+    'action-combined-skeleton-holes/07_food_insertion/food_insertion_deep_inside_eggplant_01.skelholes.png',
+    'action-combined-skeleton-holes/07_food_insertion/food_insertion_eggplant_01.skelholes.png',
+    'action-combined-skeleton-holes/07_food_insertion/food_insertion_eggplant_02.skelholes.png',
+    'action-combined-skeleton-holes/07_food_insertion/food_insertion_eggplant_03.skelholes.png',
+    'action-combined-skeleton-holes/07_food_insertion/food_insertion_eggplant_04.skelholes.png',
+    'action-combined-skeleton-holes/07_food_insertion/food_insertion_eggplant_05.skelholes.png',
+    'action-combined-skeleton-holes/07_food_insertion/food_insertion_eggplant_06.skelholes.png',
   ],
   '08_oral': [
-    'action-refs/08_oral/oral_close_deep_in_mouth_12.png',
-    'action-refs/08_oral/oral_grabbing_over_head_pov_16.png',
-    'action-refs/08_oral/oral_pov_05.png',
-    'action-refs/08_oral/oral_pov_overhead_13.png',
-    'action-refs/08_oral/oral_side_07.png',
-    'action-refs/08_oral/oral_side_close_pov_11.png',
-    'action-refs/08_oral/oral_side_pov_08.png',
-    'action-refs/08_oral/oral_sideways_01.png',
-    'action-refs/08_oral/oral_sideways_03.png',
-    'action-refs/08_oral/oral_sucking_close_up_15.png',
+    'action-combined-skeleton-holes/08_oral/oral_close_deep_in_mouth_12.skelholes.png',
+    'action-combined-skeleton-holes/08_oral/oral_grabbing_over_head_pov_16.skelholes.png',
+    'action-combined-skeleton-holes/08_oral/oral_pov_05.skelholes.png',
+    'action-combined-skeleton-holes/08_oral/oral_pov_overhead_13.skelholes.png',
+    'action-combined-skeleton-holes/08_oral/oral_side_07.skelholes.png',
+    'action-combined-skeleton-holes/08_oral/oral_side_close_pov_11.skelholes.png',
+    'action-combined-skeleton-holes/08_oral/oral_side_pov_08.skelholes.png',
+    'action-combined-skeleton-holes/08_oral/oral_sideways_01.skelholes.png',
+    'action-combined-skeleton-holes/08_oral/oral_sideways_03.skelholes.png',
+    'action-combined-skeleton-holes/08_oral/oral_sucking_close_up_15.skelholes.png',
   ],
   '09_squirting': [
-    'action-refs/09_squirting/cumming_01.png',
-    'action-refs/09_squirting/cumming_02.png',
-    'action-refs/09_squirting/cumming_03.png',
-    'action-refs/09_squirting/cumming_04.png',
-    'action-refs/09_squirting/squirting_01.png',
-    'action-refs/09_squirting/squirting_02.png',
-    'action-refs/09_squirting/squirting_03.png',
-    'action-refs/09_squirting/squirting_04.png',
-    'action-refs/09_squirting/squirting_05.png',
-    'action-refs/09_squirting/squirting_06.png',
+    'action-combined-skeleton-holes/09_squirting/cumming_01.skelholes.png',
+    'action-combined-skeleton-holes/09_squirting/cumming_02.skelholes.png',
+    'action-combined-skeleton-holes/09_squirting/cumming_03.skelholes.png',
+    'action-combined-skeleton-holes/09_squirting/cumming_04.skelholes.png',
+    'action-combined-skeleton-holes/09_squirting/squirting_01.skelholes.png',
+    'action-combined-skeleton-holes/09_squirting/squirting_02.skelholes.png',
+    'action-combined-skeleton-holes/09_squirting/squirting_03.skelholes.png',
+    'action-combined-skeleton-holes/09_squirting/squirting_04.skelholes.png',
+    'action-combined-skeleton-holes/09_squirting/squirting_05.skelholes.png',
+    'action-combined-skeleton-holes/09_squirting/squirting_06.skelholes.png',
   ],
   '10_fisting_pussy': [
-    'action-refs/10_fisting_pussy/fisting_pussy_01.png',
-    'action-refs/10_fisting_pussy/fisting_pussy_02.png',
-    'action-refs/10_fisting_pussy/fisting_pussy_03.png',
-    'action-refs/10_fisting_pussy/fisting_pussy_04.png',
-    'action-refs/10_fisting_pussy/fisting_pussy_05.png',
-    'action-refs/10_fisting_pussy/fisting_pussy_06.png',
-    'action-refs/10_fisting_pussy/fisting_pussy_07.png',
-    'action-refs/10_fisting_pussy/fisting_pussy_08.png',
-    'action-refs/10_fisting_pussy/fisting_pussy_09.png',
-    'action-refs/10_fisting_pussy/fisting_pussy_10.png',
-    'action-refs/10_fisting_pussy/fisting_pussy_11.png',
-    'action-refs/10_fisting_pussy/fisting_pussy_12.png',
-    'action-refs/10_fisting_pussy/someone_fisting_her_pussy_01.png',
-    'action-refs/10_fisting_pussy/someone_fisting_her_pussy_02.png',
-    'action-refs/10_fisting_pussy/someone_fisting_her_pussy_03.png',
-    'action-refs/10_fisting_pussy/someone_fisting_her_pussy_ass_01.png',
+    'action-combined-skeleton-holes/10_fisting_pussy/fisting_pussy_01.skelholes.png',
+    'action-combined-skeleton-holes/10_fisting_pussy/fisting_pussy_02.skelholes.png',
+    'action-combined-skeleton-holes/10_fisting_pussy/fisting_pussy_03.skelholes.png',
+    'action-combined-skeleton-holes/10_fisting_pussy/fisting_pussy_04.skelholes.png',
+    'action-combined-skeleton-holes/10_fisting_pussy/fisting_pussy_05.skelholes.png',
+    'action-combined-skeleton-holes/10_fisting_pussy/fisting_pussy_06.skelholes.png',
+    'action-combined-skeleton-holes/10_fisting_pussy/fisting_pussy_07.skelholes.png',
+    'action-combined-skeleton-holes/10_fisting_pussy/fisting_pussy_08.skelholes.png',
+    'action-combined-skeleton-holes/10_fisting_pussy/fisting_pussy_09.skelholes.png',
+    'action-combined-skeleton-holes/10_fisting_pussy/fisting_pussy_10.skelholes.png',
+    'action-combined-skeleton-holes/10_fisting_pussy/fisting_pussy_11.skelholes.png',
+    'action-combined-skeleton-holes/10_fisting_pussy/fisting_pussy_12.skelholes.png',
+    'action-combined-skeleton-holes/10_fisting_pussy/someone_fisting_her_pussy_01.skelholes.png',
+    'action-combined-skeleton-holes/10_fisting_pussy/someone_fisting_her_pussy_02.skelholes.png',
+    'action-combined-skeleton-holes/10_fisting_pussy/someone_fisting_her_pussy_03.skelholes.png',
+    'action-combined-skeleton-holes/10_fisting_pussy/someone_fisting_her_pussy_ass_01.skelholes.png',
   ],
   '11_fisting_anal': [
-    'action-refs/11_fisting_anal/fisting_anal_01.png',
-    'action-refs/11_fisting_anal/fisting_anal_02.png',
-    'action-refs/11_fisting_anal/fisting_anal_03.png',
+    'action-combined-skeleton-holes/11_fisting_anal/fisting_anal_01.skelholes.png',
+    'action-combined-skeleton-holes/11_fisting_anal/fisting_anal_02.skelholes.png',
+    'action-combined-skeleton-holes/11_fisting_anal/fisting_anal_03.skelholes.png',
   ],
   '14_anal_beads': [
-    'action-refs/14_anal_beads/anal_beads_01.png',
-    'action-refs/14_anal_beads/anal_beads_02.png',
+    'action-combined-skeleton-holes/14_anal_beads/anal_beads_01.skelholes.png',
+    'action-combined-skeleton-holes/14_anal_beads/anal_beads_02.skelholes.png',
   ],
   '16_object_insertion': [
-    'action-refs/16_object_insertion/object_insertion_baseball_bat_01.png',
-    'action-refs/16_object_insertion/object_insertion_bottle_01.png',
-    'action-refs/16_object_insertion/object_insertion_bottle_02.png',
-    'action-refs/16_object_insertion/object_insertion_markers_01.png',
+    'action-combined-skeleton-holes/16_object_insertion/object_insertion_baseball_bat_01.skelholes.png',
+    'action-combined-skeleton-holes/16_object_insertion/object_insertion_bottle_01.skelholes.png',
+    'action-combined-skeleton-holes/16_object_insertion/object_insertion_bottle_02.skelholes.png',
+    'action-combined-skeleton-holes/16_object_insertion/object_insertion_markers_01.skelholes.png',
   ],
   '17_bent_over': [
-    'action-refs/17_bent_over/bentover_01.jpg',
-    'action-refs/17_bent_over/bentover_03.jpg',
-    'action-refs/17_bent_over/bentover_04.jpg',
-    'action-refs/17_bent_over/bentover_05.jpg',
+    'action-combined-skeleton-holes/17_bent_over/bentover_01.skelholes.png',
+    'action-combined-skeleton-holes/17_bent_over/bentover_03.skelholes.png',
+    'action-combined-skeleton-holes/17_bent_over/bentover_04.skelholes.png',
+    'action-combined-skeleton-holes/17_bent_over/bentover_05.skelholes.png',
   ],
   '18_expressions_closeup_face': [
-    'action-refs/18_expressions_closeup_face/confident.png',
-    'action-refs/18_expressions_closeup_face/happy.png',
-    'action-refs/18_expressions_closeup_face/in_love.png',
-    'action-refs/18_expressions_closeup_face/intimate.png',
-    'action-refs/18_expressions_closeup_face/naughty.png',
-    'action-refs/18_expressions_closeup_face/orgasm.png',
-    'action-refs/18_expressions_closeup_face/playful.png',
-    'action-refs/18_expressions_closeup_face/smile.png',
-    'action-refs/18_expressions_closeup_face/surprised.png',
+    'action-combined-skeleton-holes/18_expressions_closeup_face/confident.skelholes.png',
+    'action-combined-skeleton-holes/18_expressions_closeup_face/happy.skelholes.png',
+    'action-combined-skeleton-holes/18_expressions_closeup_face/in love.skelholes.png',
+    'action-combined-skeleton-holes/18_expressions_closeup_face/intimate.skelholes.png',
+    'action-combined-skeleton-holes/18_expressions_closeup_face/naughty.skelholes.png',
+    'action-combined-skeleton-holes/18_expressions_closeup_face/orgasm.skelholes.png',
+    'action-combined-skeleton-holes/18_expressions_closeup_face/playful.skelholes.png',
+    'action-combined-skeleton-holes/18_expressions_closeup_face/smile.skelholes.png',
+    'action-combined-skeleton-holes/18_expressions_closeup_face/surprised.skelholes.png',
   ],
 };
 
-// Pose variety pools — for actions that can happen in multiple positions.
-// These combine reference photos from DIFFERENT categories so Holly isn't
-// always in the same pose. The FK dildo LoRA works on any insertion pose.
+// Pose variety pools — same concept as before but with skeleton+holes paths
 const POSE_VARIETY_POOLS: Record<string, string[]> = {
-  // Dildo in pussy — can be done lying, sitting, bent over, sideways, standing
   'dildo_pussy': [
-    ...REFERENCE_FILES['01_dildo_pussy'] || [],       // lying on back dildo
-    ...REFERENCE_FILES['03_masturbating'] || [],       // sitting/sideways touching
-    ...REFERENCE_FILES['17_bent_over'] || [],           // bent over from behind
-    ...REFERENCE_FILES['02_fingering_pussy'] || [],    // various lying positions
+    ...SKELETON_HOLES_FILES['01_dildo_pussy'] || [],
+    ...SKELETON_HOLES_FILES['03_masturbating'] || [],
+    ...SKELETON_HOLES_FILES['17_bent_over'] || [],
+    ...SKELETON_HOLES_FILES['02_fingering_pussy'] || [],
   ],
-  // Dildo in ass — bent over, on knees, from behind
   'dildo_anal': [
-    ...REFERENCE_FILES['06_anal_dildo'] || [],
-    ...REFERENCE_FILES['17_bent_over'] || [],
-    ...REFERENCE_FILES['05_anal_fingering'] || [],
+    ...SKELETON_HOLES_FILES['06_anal_dildo'] || [],
+    ...SKELETON_HOLES_FILES['17_bent_over'] || [],
+    ...SKELETON_HOLES_FILES['05_anal_fingering'] || [],
   ],
-  // Fingering — multiple positions
   'fingering': [
-    ...REFERENCE_FILES['02_fingering_pussy'] || [],
-    ...REFERENCE_FILES['03_masturbating'] || [],
+    ...SKELETON_HOLES_FILES['02_fingering_pussy'] || [],
+    ...SKELETON_HOLES_FILES['03_masturbating'] || [],
   ],
-  // Anal fingering — bent over and various rear positions
   'anal_fingering': [
-    ...REFERENCE_FILES['05_anal_fingering'] || [],
-    ...REFERENCE_FILES['17_bent_over'] || [],
+    ...SKELETON_HOLES_FILES['05_anal_fingering'] || [],
+    ...SKELETON_HOLES_FILES['17_bent_over'] || [],
   ],
-  // Masturbation — various self-pleasure positions
   'masturbation': [
-    ...REFERENCE_FILES['03_masturbating'] || [],
-    ...REFERENCE_FILES['02_fingering_pussy'] || [],
+    ...SKELETON_HOLES_FILES['03_masturbating'] || [],
+    ...SKELETON_HOLES_FILES['02_fingering_pussy'] || [],
   ],
-  // Food/object insertion — same positions work
   'food_insertion': [
-    ...REFERENCE_FILES['07_food_insertion'] || [],
-    ...REFERENCE_FILES['01_dildo_pussy'] || [],        // similar insertion angle
+    ...SKELETON_HOLES_FILES['07_food_insertion'] || [],
+    ...SKELETON_HOLES_FILES['01_dildo_pussy'] || [],
   ],
   'object_insertion': [
-    ...REFERENCE_FILES['16_object_insertion'] || [],
-    ...REFERENCE_FILES['07_food_insertion'] || [],      // similar poses
+    ...SKELETON_HOLES_FILES['16_object_insertion'] || [],
+    ...SKELETON_HOLES_FILES['07_food_insertion'] || [],
   ],
-  // Fisting — use fisting + dildo refs (similar arm position)
   'pussy_fisting': [
-    ...REFERENCE_FILES['10_fisting_pussy'] || [],
-    ...REFERENCE_FILES['02_fingering_pussy'] || [],
+    ...SKELETON_HOLES_FILES['10_fisting_pussy'] || [],
+    ...SKELETON_HOLES_FILES['02_fingering_pussy'] || [],
   ],
   'anal_fisting': [
-    ...REFERENCE_FILES['11_fisting_anal'] || [],
-    ...REFERENCE_FILES['17_bent_over'] || [],
+    ...SKELETON_HOLES_FILES['11_fisting_anal'] || [],
+    ...SKELETON_HOLES_FILES['17_bent_over'] || [],
   ],
-  // Spreading — use spreading + bent over refs
   'spreading': [
-    ...REFERENCE_FILES['04_spreading'] || [],
-    ...REFERENCE_FILES['17_bent_over'] || [],
+    ...SKELETON_HOLES_FILES['04_spreading'] || [],
+    ...SKELETON_HOLES_FILES['17_bent_over'] || [],
   ],
   'closeup': [
-    ...REFERENCE_FILES['04_spreading'] || [],
-    ...REFERENCE_FILES['18_expressions_closeup_face'] || [],
+    ...SKELETON_HOLES_FILES['04_spreading'] || [],
+    ...SKELETON_HOLES_FILES['18_expressions_closeup_face'] || [],
   ],
-  // Bent over — primary pose category
   'bent_over': [
-    ...REFERENCE_FILES['17_bent_over'] || [],
-    ...REFERENCE_FILES['05_anal_fingering'] || [],
+    ...SKELETON_HOLES_FILES['17_bent_over'] || [],
+    ...SKELETON_HOLES_FILES['05_anal_fingering'] || [],
   ],
 };
 
-// Track the last-used index per action for rotation (avoids repeats)
+// Track last-used index per action for rotation (avoids repeats)
 const lastUsedIndex: Record<string, number> = {};
 
-function pickReferencePhoto(category: string, actionId?: string): string {
-  // Check if this action has a pose variety pool (multiple pose types)
+function pickSkeletonHoles(category: string, actionId?: string): string {
+  // Check pose variety pool first (multiple pose types)
   if (actionId && POSE_VARIETY_POOLS[actionId]) {
     const pool = POSE_VARIETY_POOLS[actionId];
     const lastIdx = lastUsedIndex[actionId] ?? -1;
-    // Instead of sequential (which cycles through one category at a time),
-    // use a stride that jumps across categories. This ensures consecutive
-    // generations always pull from DIFFERENT pose categories.
-    // Stride = number of categories in the pool (roughly pool.length / avg category size)
     const stride = Math.max(7, Math.floor(pool.length / 4));
     const nextIdx = (lastIdx + stride) % pool.length;
     lastUsedIndex[actionId] = nextIdx;
@@ -623,32 +613,14 @@ function pickReferencePhoto(category: string, actionId?: string): string {
   }
 
   // Default: rotate within the single category
-  const files = REFERENCE_FILES[category];
+  const files = SKELETON_HOLES_FILES[category];
   if (!files || files.length === 0) {
-    return `action-refs/${category}`;
+    return `action-combined-skeleton-holes/${category}`;
   }
-
-  // Rotate through files sequentially (more variety than pure random)
   const lastIdx = lastUsedIndex[category] ?? -1;
   const nextIdx = (lastIdx + 1) % files.length;
   lastUsedIndex[category] = nextIdx;
-
   return files[nextIdx];
-}
-
-/**
- * Convert a reference photo path to its hole-mapped version.
- * "action-refs/01_dildo_pussy/01_dildo_pussy.webp" → "action-refs/01_dildo_pussy/01_dildo_pussy.holes.png"
- *
- * The hole-mapped version has a colored circle (red=pussy, blue=ass, green=mouth)
- * overlaid at the insertion point. ControlNet sees this and knows WHERE things go.
- * Falls back to the original photo if the hole-mapped version doesn't exist yet
- * (the batch creation script needs to run first).
- */
-function toHoleMappedPath(refPath: string): string {
-  // Replace extension with .holes.png
-  const base = refPath.replace(/\.[^.]+$/, '');
-  return `${base}.holes.png`;
 }
 
 function errorResult(error: string, actionId: string, seed: number): HollyMediaResult {
