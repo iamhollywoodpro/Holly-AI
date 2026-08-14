@@ -104,12 +104,13 @@ VAE_FILE = "flux2-vae.safetensors"             # split_files/vae/
 CLIP_SUBPATH = "split_files/text_encoders"
 VAE_SUBPATH = "split_files/vae"
 
-# ControlNet: alibaba-pai/FLUX.2-dev-Fun-Controlnet-Union
-# Unified ControlNet — auto-detects pose/canny/depth from input image.
-# Works with any FLUX.2 architecture UNET (including Klein Distilled) via
-# runtime patching (flux_patch.py in the custom node).
-CONTROLNET_FILE = "FLUX.2-dev-Fun-Controlnet-Union.safetensors"
-CONTROLNET_REPO = "alibaba-pai/FLUX.2-dev-Fun-Controlnet-Union"
+# ControlNet: InstantX/FLUX.1-dev-Controlnet-Union
+# Uses ComfyUI's BUILT-IN ControlNetApplyAdvanced node (NOT the broken
+# comfyui-flux2fun-controlnet custom node). The built-in node patches the
+# MODEL directly — no multigpu_clones bug, no flux_patch.py, no custom node.
+# Works with FLUX.2 Klein because Klein shares the Flux architecture.
+CONTROLNET_FILE = "diffusion_pytorch_model.safetensors"
+CONTROLNET_REPO = "InstantX/FLUX.1-dev-Controlnet-Union"
 
 # ComfyUI UNETLoader expects the filename as it appears in models/diffusion_models/
 # We symlink KLEIN_UNET_FILE there from the Klein volume.
@@ -451,16 +452,15 @@ def build_controlnet_workflow(
     controlnet_strength: float = 0.7,
     filename_prefix: str = "Holly",
 ) -> dict:
-    """Build a ComfyUI workflow using ControlNet pose guidance.
+    """Build a ComfyUI workflow using BUILT-IN ControlNet (not the broken custom node).
 
-    Instead of img2img (tracing a reference photo), this feeds a DWPose
-    SKELETON (stick figure) to the ControlNet. Klein generates a completely
-    new image around the skeleton — different lighting, skin, expression,
-    camera angle — while keeping the pose geometry correct.
+    Uses ComfyUI's native ControlNetApplyAdvanced node which patches the MODEL
+    directly. No multigpu_clones bug, no flux_patch.py, no custom node needed.
+    The InstantX Union ControlNet model works with FLUX.2 Klein because they
+    share the Flux architecture.
 
-    Args:
-        pose_skeleton_path: path to the .pose.png skeleton file (on the volume)
-        controlnet_strength: 0.0-2.0, recommended 0.65-0.80
+    The control_image is the reference photo (or hole-mapped version).
+    The model gets patched with ControlNet hints, then KSampler generates.
     """
     import random as _random
     if seed is None:
@@ -474,7 +474,7 @@ def build_controlnet_workflow(
     def _id():
         v = str(nid[0]); nid[0] += 1; return v
 
-    # Loaders — same as build_workflow
+    # Loaders
     unet_id = _id()
     wf[unet_id] = {"class_type": "UNETLoader", "inputs": {"unet_name": UNET_FILE, "weight_dtype": "default"}}
     clip_id = _id()
@@ -496,30 +496,41 @@ def build_controlnet_workflow(
         cur_model = [lid, 0]
         cur_clip = [lid, 1]
 
-    # Load the pose skeleton image
-    skeleton_id = _id()
-    wf[skeleton_id] = {"class_type": "LoadImage", "inputs": {"image": pose_skeleton_path}}
+    # Load the control image (reference photo or hole-mapped version)
+    image_id = _id()
+    wf[image_id] = {"class_type": "LoadImage", "inputs": {"image": pose_skeleton_path}}
 
-    # Conditioning (positive + negative)
+    # Load the ControlNet model
+    cn_load_id = _id()
+    wf[cn_load_id] = {"class_type": "ControlNetLoader", "inputs": {
+        "control_net_name": CONTROLNET_FILE,
+    }}
+
+    # Apply ControlNet to the MODEL (not conditioning) using built-in node
+    # This patches the model weights — the ControlNet signal flows through
+    # the model's attention layers during sampling.
+    # strength: 0.0-2.0 (recommended 0.7-1.0 for pose guidance)
+    cn_apply_id = _id()
+    wf[cn_apply_id] = {"class_type": "ControlNetApplyAdvanced", "inputs": {
+        "positive": None,  # Will be set below
+        "negative": None,
+        "control_net": [cn_load_id, 0],
+        "vae": [vae_id, 0],
+        "image": [image_id, 0],
+        "strength": controlnet_strength,
+        "start_percent": 0.0,
+        "end_percent": 0.8,  # Apply CN for first 80% of denoising
+    }}
+
+    # Conditioning
     pos_id = _id()
     wf[pos_id] = {"class_type": "CLIPTextEncode", "inputs": {"text": prompt, "clip": cur_clip}}
     neg_id = _id()
     wf[neg_id] = {"class_type": "CLIPTextEncode", "inputs": {"text": V2_NEGATIVE_PROMPT, "clip": cur_clip}}
 
-    # ControlNet — load and apply
-    # Node class names from comfyui-flux2fun-controlnet custom node.
-    cn_load_id = _id()
-    wf[cn_load_id] = {"class_type": "Flux2FunControlNetLoader", "inputs": {
-        "controlnet_name": CONTROLNET_FILE,
-    }}
-    cn_apply_id = _id()
-    wf[cn_apply_id] = {"class_type": "Flux2FunControlNetApply", "inputs": {
-        "conditioning": [pos_id, 0],
-        "controlnet": [cn_load_id, 0],
-        "vae": [vae_id, 0],
-        "strength": controlnet_strength,
-        "control_image": [skeleton_id, 0],
-    }}
+    # Connect conditioning into ControlNetApplyAdvanced
+    wf[cn_apply_id]["inputs"]["positive"] = [pos_id, 0]
+    wf[cn_apply_id]["inputs"]["negative"] = [neg_id, 0]
 
     # Latent + Sampler
     latent_id = _id()
@@ -530,7 +541,7 @@ def build_controlnet_workflow(
         "sampler_name": sampler, "scheduler": scheduler, "denoise": 1.0,
         "model": cur_model,
         "positive": [cn_apply_id, 0],
-        "negative": [neg_id, 0],
+        "negative": [cn_apply_id, 1],
         "latent_image": [latent_id, 0],
     }}
 
@@ -678,25 +689,11 @@ image = (
     .run_commands(
         f"pip install -r /root/ComfyUI/requirements.txt",
     )
-    # Install ControlNet custom node (comfyui-flux2fun-controlnet)
-    # This provides Flux2FunControlNetLoader + Flux2FunControlNetApply nodes.
-    # Patches ComfyUI's Flux model at runtime to support ControlNet hint injection.
-    .run_commands(
-        f"git clone https://github.com/bryanmcguire/comfyui-flux2fun-controlnet.git {CUSTOM_NODES_DIR}/comfyui-flux2fun-controlnet",
-    )
-    # Patch the custom node for latest ComfyUI compatibility (2 known errors):
-    # 1. multigpu_clones: ComfyUI samplers.py:899 calls x['control'].multigpu_clones
-    #    but ControlNetWrapper doesn't have it → add empty dict attribute
-    # 2. timestep_zero_index: latest ComfyUI passes timestep_zero_index kwarg to
-    #    patched_forward_orig but the node doesn't accept it → add the param
-    .run_commands(
-        # Fix 1: add multigpu_clones attribute to ControlNetWrapper.__init__
-        f"sed -i '/self.previous_controlnet = None/a\\        self.multigpu_clones = {{}}' "
-        f"{CUSTOM_NODES_DIR}/comfyui-flux2fun-controlnet/nodes.py",
-        # Fix 2: add timestep_zero_index param to patched_forward_orig signature
-        f"sed -i 's/attn_mask: Tensor = None,/attn_mask: Tensor = None,\\n        timestep_zero_index=None,/' "
-        f"{CUSTOM_NODES_DIR}/comfyui-flux2fun-controlnet/flux_patch.py",
-    )
+    # NO custom ControlNet node needed — using ComfyUI's BUILT-IN
+    # ControlNetApplyAdvanced + ControlNetLoader nodes.
+    # The broken comfyui-flux2fun-controlnet custom node has been REMOVED.
+    # It caused silent ControlNet failure (multigpu_clones bug + timestep_zero_index
+    # + dtype mismatch). The built-in nodes work natively with InstantX Union CN.
     # Create model directories (ComfyUI expects these)
     .run_commands(
         f"mkdir -p {UNET_DIR} {CLIP_DIR} {VAE_DIR} {LORA_DIR} {CONTROLNET_DIR} {OUTPUT_DIR}",
@@ -760,11 +757,11 @@ def download_models():
             shutil.rmtree(f"{MODEL_VOL}/_dl", ignore_errors=True)
             print(f"✅ {filename} saved to volume")
 
-    # ControlNet model (~8.3GB, from alibaba-pai)
+    # ControlNet model (~6.0GB (InstantX Union), from alibaba-pai)
     if os.path.exists(controlnet_path):
         print(f"✅ {CONTROLNET_FILE} already cached")
     else:
-        print(f"📥 Downloading {CONTROLNET_FILE} from {CONTROLNET_REPO} (~8.3GB)...")
+        print(f"📥 Downloading {CONTROLNET_FILE} from {CONTROLNET_REPO} (~6.0GB (InstantX Union))...")
         downloaded = hf_hub_download(
             repo_id=CONTROLNET_REPO,
             filename=CONTROLNET_FILE,
@@ -896,10 +893,10 @@ _CATEGORY_PATTERNS = [
 #
 _CATEGORY_STACKS = {
     "dildo_masturbation": [
-        {"name": "FK_dildoinsertion.safetensors", "strength": 0.7},
+        {"name": "female_anatomy_dildo_riding_k3nk.safetensors", "strength": 1.0},
     ],
     "dildo": [
-        {"name": "FK_dildoinsertion.safetensors", "strength": 0.7},
+        {"name": "female_anatomy_dildo_riding_k3nk.safetensors", "strength": 1.0},
     ],
     "dildo_anal": [
         {"name": "plug_that_hole_anal.safetensors", "strength": 0.7},
@@ -1338,8 +1335,8 @@ class HollyComfyUIKlein:
             # If detection fails, don't reject — return the image
             return True, f"detection skipped ({e})"
 
-    def _generate_single(self, prompt, width, height, seed, loras, steps, cfg):
-        """Generate a single image via ComfyUI. Returns (img_bytes, prompt_id)."""
+    def _generate_single(self, prompt, width, height, seed, loras, steps, cfg, sampler=None):
+        """Generate a single image via ComfyUI. Returns (img_bytes, prompt_id, job_id)."""
         job_id = str(uuid.uuid4())[:8]
         workflow = build_workflow(
             prompt=prompt,
@@ -1349,6 +1346,7 @@ class HollyComfyUIKlein:
             loras=loras,
             steps=steps,
             cfg=cfg,
+            sampler=sampler or V2_SAMPLER,
             filename_prefix=f"Holly_{job_id}",
         )
         prompt_id = self._post_workflow(workflow)
@@ -1680,6 +1678,7 @@ class HollyComfyUIKlein:
         caller_loras = request.get("loras", [])
         steps = request.get("steps", V2_STEPS)
         cfg = request.get("cfg", V2_CFG)
+        sampler = request.get("sampler", V2_SAMPLER)
         # ADetailer-style refinement: OFF by default (same caution as diffusers
         # face-enhance, disabled June 27 for over-processing). Enable explicitly.
         enhance_details = request.get("enhance_details", False)
@@ -1781,7 +1780,7 @@ class HollyComfyUIKlein:
                 print(f"   Generation {attempt+1}/{max_attempts} (seed={attempt_seed})...")
 
                 img_bytes, prompt_id, job_id = self._generate_single(
-                    prompt, width, height, attempt_seed, loras, steps, cfg
+                    prompt, width, height, attempt_seed, loras, steps, cfg, sampler
                 )
 
                 # Quality check (auto-reject broken images)
@@ -1896,11 +1895,16 @@ class HollyComfyUIKlein:
         loras = caller_loras if caller_loras else select_loras_for_prompt(raw_prompt)
         prompt = f"{raw_prompt}, {get_anatomy_anchors(raw_prompt)}" if raw_prompt else get_anatomy_anchors(raw_prompt)
 
-        # The pose reference is on the LoRA volume at /lora/pose-refs/{pose_ref}
-        # ComfyUI's LoraLoader reads from models/loras/ (symlinked to /lora)
-        # But LoadImage reads from ComfyUI's input/ directory — we need to
-        # upload the pose image to ComfyUI's input/ first.
-        pose_path = f"{LORA_VOL_MOUNT}/pose-refs/{pose_ref}"
+        # The pose reference is on the LoRA volume. Accepts:
+        # 1. A full volume path (e.g. "action-poses/17_bent_over/bentover_01.pose.png")
+        # 2. Just a filename in pose-refs/ (e.g. "dildo_dildo_004.webp" — legacy)
+        # ComfyUI's LoadImage reads from input/ — we upload the pose image there.
+        if "/" in pose_ref:
+            # Full path form — resolve directly on volume
+            pose_path = f"{LORA_VOL_MOUNT}/{pose_ref}"
+        else:
+            # Legacy filename form — look in pose-refs/
+            pose_path = f"{LORA_VOL_MOUNT}/pose-refs/{pose_ref}"
         if not os.path.exists(pose_path):
             from fastapi import HTTPException
             raise HTTPException(status_code=400, detail=f"pose_ref not found: {pose_ref}")
@@ -2085,7 +2089,7 @@ class HollyComfyUIKlein:
         key_loras = [
             "holly-combined-v1.safetensors",
             "pussydiffusion-f2-klein-9b_v2.safetensors",
-            "FK_dildoinsertion.safetensors",
+            "female_anatomy_dildo_riding_k3nk.safetensors",
             "femaleasshole-f2-klein-9b-musubituner.safetensors",
         ]
         loras_present = {name: os.path.exists(f"{LORA_DIR}/{name}") for name in key_loras}
