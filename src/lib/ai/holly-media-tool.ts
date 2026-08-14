@@ -218,7 +218,7 @@ async function generateImage(
       const gs = action.gen_settings || { steps: GENERATION_SETTINGS.steps, cfg: GENERATION_SETTINGS.cfg, sampler: GENERATION_SETTINGS.sampler };
 
       const body = JSON.stringify({
-        pose_skeleton: refPath,
+        pose_ref: refPath,
         prompt,
         width: GENERATION_SETTINGS.width,
         height: GENERATION_SETTINGS.height,
