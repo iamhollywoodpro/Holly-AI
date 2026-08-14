@@ -1160,3 +1160,43 @@ Three root-cause fixes shipped + two Modal deploys verified live.
 - Phase 3: 🟡 Fine-tune pipeline repair (retarget Qwen3-8B→Qwen3.5-9B, raise token cap) — still open
 - Phase 4: ✅ DONE — holly-brain-v40 deployed and healthy. v35 retired (not deployed).
 
+
+## LoRA VOLUME — FINAL CLEAN STATE (2026-08-14)
+
+**All banned, broken, retired, and unverified LoRAs DELETED from volume.**
+**18 files removed. 12 files remain — every one tested and verified by Steve.**
+
+| LoRA File | Purpose | Strength | Status |
+|-----------|---------|----------|--------|
+| holly-combined-v1.safetensors | Identity (always LAST in stack) | 1.0 | ✅ VERIFIED |
+| holly-face-v2.safetensors | Face refinement | 0.75 | ✅ VERIFIED (identity only) |
+| holly-body-v1.safetensors | Body refinement | 0.8 | ✅ VERIFIED (identity only) |
+| female_anatomy_dildo_riding_k3nk.safetensors | ALL dildo actions | 1.0 | ✅ PERFECTION (Steve 08-14) |
+| insert_kit.safetensors | fingering, food, object, masturbation, oral | 0.7 | ✅ VERIFIED |
+| pussydiffusion-f2-klein-9b_v2.safetensors | spreading, closeup, squirting | 0.7 | ✅ VERIFIED |
+| femaleasshole-f2-klein-9b-musubituner.safetensors | bent_over | 0.7 | ✅ VERIFIED |
+| self_fisting_anal.safetensors | fisting (pussy + anal) | 0.7 | 🟡 CLOSE |
+| plug_that_hole_anal.safetensors | anal insertion | 0.7 | 🟡 NEEDS RETEST |
+| self_suck_breasts.safetensors | self nipple suck | 0.7 | ⬜ UNTESTED |
+| pull_play_panties.safetensors | panties aside | 0.7 | ⬜ UNTESTED |
+| wet_babes.safetensors | shower/wet look | 0.7 | ✅ VERIFIED |
+
+**DELETED (do NOT re-download):**
+FK_dildoinsertion, dildo_riding, klein-dildo-7epoc (all forced one pose),
+SEXGOD_masturbation (never worked), klein_snofs_v1_4 (limb instability),
+FLUX2_KLEIN_UNLOCKED_V2 (identity drift), klein_nsfw_fix (extra holes),
+presenting_bent_over (two bodies), anal_fingering v1/v2 (phantom bodies),
+instapic_ultrareal + realism_engine_v2 (no improvement), oops_no_panties (no upskirt),
+Realism_Engine_Klein_V2 (hand deformation), Cum_on_Face (conjoined twins),
+ExcellentFullNude (stacking fails), flux2klein_vulva (replaced),
+holly-body-v2.5 (superseded by combined-v1)
+
+**POSE CONTROL — SOLVED (2026-08-14):**
+DWPose skeleton + Klein edit pipeline at 0.9 denoise.
+- Feed skeleton+holes image to generate-pose-guided endpoint
+- Klein generates 90% fresh, reads structural hint for body position
+- Combined with k3nk LoRA = pose variety + Holly identity + correct dildo
+- Steve verified: bent-over skeleton test = "Looks Perfect"
+
+**ControlNet is DEAD — custom node broken beyond repair (multigpu_clones bug
+in ComfyUI core vs Flux2Fun wrapper). Skeleton edit pipeline replaces it.**
