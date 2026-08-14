@@ -76,12 +76,14 @@ export async function createHollyMedia(req: HollyMediaRequest): Promise<HollyMed
   // Build the LoRA stack: [action LoRA @ 0.7] → [combined-v1 @ 1.0 LAST]
   const loraStack = buildLoRAStack(action);
 
-  // Two-candidate generation for NSFW actions (verified actions don't need it)
-  if (action.is_nsfw && action.status !== 'verified') {
+  // Two-candidate generation for ALL NSFW actions (including verified ones).
+  // Verified actions still get deformities on bad seeds — two candidates
+  // doubles the chance of a clean image.
+  if (action.is_nsfw) {
     return generateWithFallback(req, action, prompt, loraStack, baseSeed);
   }
 
-  // Single generation for verified actions + SFW
+  // Single generation for SFW only
   if (req.type === 'video') {
     return generateVideo(req, action, prompt, loraStack, baseSeed);
   }
@@ -143,9 +145,11 @@ function buildPrompt(req: HollyMediaRequest, action: ActionEntry): string {
     parts.push('looking at camera');
   }
 
-  // Expression
+  // Expression — use request expression if provided, otherwise use action default
   if (req.expression) {
     parts.push(req.expression);
+  } else if (action.default_expression) {
+    parts.push(action.default_expression);
   }
 
   // Wardrobe (for SFW — must be explicitly clothed)
@@ -158,6 +162,12 @@ function buildPrompt(req: HollyMediaRequest, action: ActionEntry): string {
   // Setting
   if (req.setting) {
     parts.push(req.setting);
+  }
+
+  // Hand rule — Holly must ALWAYS be physically holding/controlling
+  // any inserted object (dildo, food, fingers). Objects never float.
+  if (action.hand_rule) {
+    parts.push(action.hand_rule);
   }
 
   return parts.join(', ');
@@ -194,7 +204,7 @@ async function generateImage(
   try {
     if (action.use_controlnet && action.reference_category && MODAL_CONTROLNET_URL) {
       // ControlNet path: pick next reference photo from the category
-      let refPath = pickReferencePhoto(action.reference_category);
+      let refPath = pickReferencePhoto(action.reference_category, action.action_id);
 
       // If this action has a target_hole, use the hole-mapped version
       // (the .holes.png file with colored insertion-point overlay)
@@ -367,8 +377,8 @@ async function generateVideo(
  * Uses the full known file list per category — every generation gets
  * a different reference photo, creating variety in poses and angles.
  *
- * File lists are cached from volume listings (updated 2026-08-13).
- * To add new reference photos, add them to the volume AND update this list.
+ * File lists verified against actual volume contents 2026-08-13.
+ * To add new reference photos: add them to the volume AND update this list.
  */
 const REFERENCE_FILES: Record<string, string[]> = {
   '01_dildo_pussy': [
@@ -380,8 +390,8 @@ const REFERENCE_FILES: Record<string, string[]> = {
     'action-refs/01_dildo_pussy/06_dildo_pussy.png',
     'action-refs/01_dildo_pussy/07_dildo_pussy.png',
     'action-refs/01_dildo_pussy/08_dildo_pussy.png',
-    'action-refs/01_dildo_pussy/09_dildo_pussy.png',
-    'action-refs/01_dildo_pussy/10_dildo_pussy.png',
+    'action-refs/01_dildo_pussy/10_dildo_pussy.webp',
+    'action-refs/01_dildo_pussy/11_dildo_pussy.webp',
   ],
   '02_fingering_pussy': [
     'action-refs/02_fingering_pussy/fingering_pussy_two_fingers_04.png',
@@ -395,22 +405,22 @@ const REFERENCE_FILES: Record<string, string[]> = {
   ],
   '03_masturbating': [
     'action-refs/03_masturbating/01_rubbing_clit.png',
-    'action-refs/03_masturbating/02_rubbing_clit.png',
-    'action-refs/03_masturbating/03_rubbing_clit.png',
-    'action-refs/03_masturbating/04_touching_herself.png',
-    'action-refs/03_masturbating/05_touching_herself.png',
-    'action-refs/03_masturbating/06_touching_herself.png',
-    'action-refs/03_masturbating/07_touching_herself.png',
-    'action-refs/03_masturbating/08_touching_herself.png',
+    'action-refs/03_masturbating/02_rubbing_clit.jpg',
+    'action-refs/03_masturbating/masturbating_01.jpg',
+    'action-refs/03_masturbating/masturbating_02.jpg',
+    'action-refs/03_masturbating/masturbating_03.jpg',
+    'action-refs/03_masturbating/masturbating_04.jpg',
+    'action-refs/03_masturbating/masturbating_05.jpg',
+    'action-refs/03_masturbating/masturbating_06.png',
   ],
   '04_spreading': [
     'action-refs/04_spreading/spreading_01.png',
     'action-refs/04_spreading/spreading_02.png',
     'action-refs/04_spreading/spreading_03.png',
-    'action-refs/04_spreading/spreading_04.png',
-    'action-refs/04_spreading/spreading_05.png',
-    'action-refs/04_spreading/spreading_06.png',
-    'action-refs/04_spreading/spreading_07.png',
+    'action-refs/04_spreading/spreading_04.webp',
+    'action-refs/04_spreading/spreading_05.webp',
+    'action-refs/04_spreading/spreading_06.webp',
+    'action-refs/04_spreading/spreading_07.webp',
   ],
   '05_anal_fingering': [
     'action-refs/05_anal_fingering/anal_fingering_01.png',
@@ -420,56 +430,56 @@ const REFERENCE_FILES: Record<string, string[]> = {
     'action-refs/05_anal_fingering/anal_fingering_05.png',
     'action-refs/05_anal_fingering/anal_fingering_06.png',
     'action-refs/05_anal_fingering/anal_fingering_07.png',
-    'action-refs/05_anal_fingering/anal_fingering_08.png',
-    'action-refs/05_anal_fingering/anal_fingering_09.png',
-    'action-refs/05_anal_fingering/anal_fingering_10.png',
-    'action-refs/05_anal_fingering/anal_fingering_11.png',
-    'action-refs/05_anal_fingering/anal_fingering_12.png',
-    'action-refs/05_anal_fingering/anal_fingering_13.png',
+    'action-refs/05_anal_fingering/anal_fingering_two_fingers_01.png',
+    'action-refs/05_anal_fingering/anal_fingering_two_fingers_02.png',
+    'action-refs/05_anal_fingering/anal_fingering_two_fingers_03.png',
+    'action-refs/05_anal_fingering/anal_fingering_two_fingers_04.png',
+    'action-refs/05_anal_fingering/anal_fingering_two_fingers_05.png',
+    'action-refs/05_anal_fingering/anal_fingering_two_fingers_06.png',
   ],
   '06_anal_dildo': [
     'action-refs/06_anal_dildo/anal_dildo_01.png',
     'action-refs/06_anal_dildo/anal_dildo_02.png',
   ],
   '07_food_insertion': [
+    'action-refs/07_food_insertion/food_insertion_corn_01.png',
+    'action-refs/07_food_insertion/food_insertion_corn_02.png',
+    'action-refs/07_food_insertion/food_insertion_corn_03.png',
     'action-refs/07_food_insertion/food_insertion_cucumber_01.png',
     'action-refs/07_food_insertion/food_insertion_cucumber_02.png',
     'action-refs/07_food_insertion/food_insertion_cucumber_03.png',
     'action-refs/07_food_insertion/food_insertion_cucumber_04.png',
-    'action-refs/07_food_insertion/food_insertion_corn_01.png',
-    'action-refs/07_food_insertion/food_insertion_corn_02.png',
-    'action-refs/07_food_insertion/food_insertion_corn_03.png',
+    'action-refs/07_food_insertion/food_insertion_deep_inside_eggplant_01.png',
     'action-refs/07_food_insertion/food_insertion_eggplant_01.png',
     'action-refs/07_food_insertion/food_insertion_eggplant_02.png',
     'action-refs/07_food_insertion/food_insertion_eggplant_03.png',
     'action-refs/07_food_insertion/food_insertion_eggplant_04.png',
     'action-refs/07_food_insertion/food_insertion_eggplant_05.png',
     'action-refs/07_food_insertion/food_insertion_eggplant_06.png',
-    'action-refs/07_food_insertion/food_insertion_deep_inside_eggplant_01.png',
   ],
   '08_oral': [
-    'action-refs/08_oral/oral_01.png',
-    'action-refs/08_oral/oral_02.png',
-    'action-refs/08_oral/oral_03.png',
-    'action-refs/08_oral/oral_04.png',
-    'action-refs/08_oral/oral_05.png',
-    'action-refs/08_oral/oral_06.png',
-    'action-refs/08_oral/oral_07.png',
-    'action-refs/08_oral/oral_08.png',
-    'action-refs/08_oral/oral_09.png',
-    'action-refs/08_oral/oral_10.png',
+    'action-refs/08_oral/oral_close_deep_in_mouth_12.png',
+    'action-refs/08_oral/oral_grabbing_over_head_pov_16.png',
+    'action-refs/08_oral/oral_pov_05.png',
+    'action-refs/08_oral/oral_pov_overhead_13.png',
+    'action-refs/08_oral/oral_side_07.png',
+    'action-refs/08_oral/oral_side_close_pov_11.png',
+    'action-refs/08_oral/oral_side_pov_08.png',
+    'action-refs/08_oral/oral_sideways_01.png',
+    'action-refs/08_oral/oral_sideways_03.png',
+    'action-refs/08_oral/oral_sucking_close_up_15.png',
   ],
   '09_squirting': [
-    'action-refs/09_squirting/squirting_01.png',
-    'action-refs/09_squirting/squirting_02.png',
-    'action-refs/09_squirting/squirting_03.png',
     'action-refs/09_squirting/cumming_01.png',
     'action-refs/09_squirting/cumming_02.png',
     'action-refs/09_squirting/cumming_03.png',
     'action-refs/09_squirting/cumming_04.png',
-    'action-refs/09_squirting/cumming_05.png',
-    'action-refs/09_squirting/orgasm_01.png',
-    'action-refs/09_squirting/orgasm_02.png',
+    'action-refs/09_squirting/squirting_01.png',
+    'action-refs/09_squirting/squirting_02.png',
+    'action-refs/09_squirting/squirting_03.png',
+    'action-refs/09_squirting/squirting_04.png',
+    'action-refs/09_squirting/squirting_05.png',
+    'action-refs/09_squirting/squirting_06.png',
   ],
   '10_fisting_pussy': [
     'action-refs/10_fisting_pussy/fisting_pussy_01.png',
@@ -482,12 +492,12 @@ const REFERENCE_FILES: Record<string, string[]> = {
     'action-refs/10_fisting_pussy/fisting_pussy_08.png',
     'action-refs/10_fisting_pussy/fisting_pussy_09.png',
     'action-refs/10_fisting_pussy/fisting_pussy_10.png',
+    'action-refs/10_fisting_pussy/fisting_pussy_11.png',
+    'action-refs/10_fisting_pussy/fisting_pussy_12.png',
+    'action-refs/10_fisting_pussy/someone_fisting_her_pussy_01.png',
+    'action-refs/10_fisting_pussy/someone_fisting_her_pussy_02.png',
+    'action-refs/10_fisting_pussy/someone_fisting_her_pussy_03.png',
     'action-refs/10_fisting_pussy/someone_fisting_her_pussy_ass_01.png',
-    'action-refs/10_fisting_pussy/someone_fisting_her_pussy_ass_02.png',
-    'action-refs/10_fisting_pussy/someone_fisting_her_pussy_ass_03.png',
-    'action-refs/10_fisting_pussy/someone_fisting_her_pussy_04.png',
-    'action-refs/10_fisting_pussy/someone_fisting_her_pussy_05.png',
-    'action-refs/10_fisting_pussy/someone_fisting_her_pussy_06.png',
   ],
   '11_fisting_anal': [
     'action-refs/11_fisting_anal/fisting_anal_01.png',
@@ -499,16 +509,16 @@ const REFERENCE_FILES: Record<string, string[]> = {
     'action-refs/14_anal_beads/anal_beads_02.png',
   ],
   '16_object_insertion': [
+    'action-refs/16_object_insertion/object_insertion_baseball_bat_01.png',
     'action-refs/16_object_insertion/object_insertion_bottle_01.png',
     'action-refs/16_object_insertion/object_insertion_bottle_02.png',
     'action-refs/16_object_insertion/object_insertion_markers_01.png',
-    'action-refs/16_object_insertion/object_insertion_baseball_bat_01.png',
   ],
   '17_bent_over': [
-    'action-refs/17_bent_over/bent_over_01.png',
-    'action-refs/17_bent_over/bent_over_02.png',
-    'action-refs/17_bent_over/bent_over_03.png',
-    'action-refs/17_bent_over/bent_over_04.png',
+    'action-refs/17_bent_over/bentover_01.jpg',
+    'action-refs/17_bent_over/bentover_03.jpg',
+    'action-refs/17_bent_over/bentover_04.jpg',
+    'action-refs/17_bent_over/bentover_05.jpg',
   ],
   '18_expressions_closeup_face': [
     'action-refs/18_expressions_closeup_face/confident.png',
@@ -523,10 +533,91 @@ const REFERENCE_FILES: Record<string, string[]> = {
   ],
 };
 
-// Track the last-used index per category for rotation (avoids repeats)
+// Pose variety pools — for actions that can happen in multiple positions.
+// These combine reference photos from DIFFERENT categories so Holly isn't
+// always in the same pose. The FK dildo LoRA works on any insertion pose.
+const POSE_VARIETY_POOLS: Record<string, string[]> = {
+  // Dildo in pussy — can be done lying, sitting, bent over, sideways, standing
+  'dildo_pussy': [
+    ...REFERENCE_FILES['01_dildo_pussy'] || [],       // lying on back dildo
+    ...REFERENCE_FILES['03_masturbating'] || [],       // sitting/sideways touching
+    ...REFERENCE_FILES['17_bent_over'] || [],           // bent over from behind
+    ...REFERENCE_FILES['02_fingering_pussy'] || [],    // various lying positions
+  ],
+  // Dildo in ass — bent over, on knees, from behind
+  'dildo_anal': [
+    ...REFERENCE_FILES['06_anal_dildo'] || [],
+    ...REFERENCE_FILES['17_bent_over'] || [],
+    ...REFERENCE_FILES['05_anal_fingering'] || [],
+  ],
+  // Fingering — multiple positions
+  'fingering': [
+    ...REFERENCE_FILES['02_fingering_pussy'] || [],
+    ...REFERENCE_FILES['03_masturbating'] || [],
+  ],
+  // Anal fingering — bent over and various rear positions
+  'anal_fingering': [
+    ...REFERENCE_FILES['05_anal_fingering'] || [],
+    ...REFERENCE_FILES['17_bent_over'] || [],
+  ],
+  // Masturbation — various self-pleasure positions
+  'masturbation': [
+    ...REFERENCE_FILES['03_masturbating'] || [],
+    ...REFERENCE_FILES['02_fingering_pussy'] || [],
+  ],
+  // Food/object insertion — same positions work
+  'food_insertion': [
+    ...REFERENCE_FILES['07_food_insertion'] || [],
+    ...REFERENCE_FILES['01_dildo_pussy'] || [],        // similar insertion angle
+  ],
+  'object_insertion': [
+    ...REFERENCE_FILES['16_object_insertion'] || [],
+    ...REFERENCE_FILES['07_food_insertion'] || [],      // similar poses
+  ],
+  // Fisting — use fisting + dildo refs (similar arm position)
+  'pussy_fisting': [
+    ...REFERENCE_FILES['10_fisting_pussy'] || [],
+    ...REFERENCE_FILES['02_fingering_pussy'] || [],
+  ],
+  'anal_fisting': [
+    ...REFERENCE_FILES['11_fisting_anal'] || [],
+    ...REFERENCE_FILES['17_bent_over'] || [],
+  ],
+  // Spreading — use spreading + bent over refs
+  'spreading': [
+    ...REFERENCE_FILES['04_spreading'] || [],
+    ...REFERENCE_FILES['17_bent_over'] || [],
+  ],
+  'closeup': [
+    ...REFERENCE_FILES['04_spreading'] || [],
+    ...REFERENCE_FILES['18_expressions_closeup_face'] || [],
+  ],
+  // Bent over — primary pose category
+  'bent_over': [
+    ...REFERENCE_FILES['17_bent_over'] || [],
+    ...REFERENCE_FILES['05_anal_fingering'] || [],
+  ],
+};
+
+// Track the last-used index per action for rotation (avoids repeats)
 const lastUsedIndex: Record<string, number> = {};
 
-function pickReferencePhoto(category: string): string {
+function pickReferencePhoto(category: string, actionId?: string): string {
+  // Check if this action has a pose variety pool (multiple pose types)
+  if (actionId && POSE_VARIETY_POOLS[actionId]) {
+    const pool = POSE_VARIETY_POOLS[actionId];
+    const lastIdx = lastUsedIndex[actionId] ?? -1;
+    // Instead of sequential (which cycles through one category at a time),
+    // use a stride that jumps across categories. This ensures consecutive
+    // generations always pull from DIFFERENT pose categories.
+    // Stride = number of categories in the pool (roughly pool.length / avg category size)
+    const stride = Math.max(7, Math.floor(pool.length / 4));
+    const nextIdx = (lastIdx + stride) % pool.length;
+    lastUsedIndex[actionId] = nextIdx;
+    return pool[nextIdx];
+  }
+
+  // Default: rotate within the single category
   const files = REFERENCE_FILES[category];
   if (!files || files.length === 0) {
     return `action-refs/${category}`;
