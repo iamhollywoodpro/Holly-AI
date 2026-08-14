@@ -835,7 +835,7 @@ def link_models_to_comfyui():
 #   Holly-Masturbation-Klein9b-v1.safetensors — fingering/insertion geometry
 #   pussydiffusion-f2-klein-9b_v2.safetensors — pussy closeup geometry
 #   femaleasshole-f2-klein-9b-musubituner.safetensors — anus/rear geometry
-#   FK_dildoinsertion.safetensors      — dildo insertion geometry
+#   female_anatomy_dildo_riding_k3nk.safetensors — dildo geometry + poses
 import re as _re_cat
 
 # Keyword matchers per category (first-match-wins, most-specific first).
@@ -882,14 +882,13 @@ _CATEGORY_PATTERNS = [
 #   closeup (pussydiffusion @ 0.7)  → ✅ "looks great"
 #   SFW (combined-v1 only)           → ✅ PERFECT
 #
-# BANNED LoRAs (do NOT use — documented failures):
-#   klein_snofs_v1_4     → limb instability (3 arms/legs) when stacked
-#   anal_fingering_v1/v2 → wrong base or adds phantom 2nd person
-#   klein_nsfw_fix       → creates extra holes in wrong places
-#   presenting_bent_over → creates two bodies
-#   FLUX2_KLEIN_UNLOCKED → BANNED generic, identity drift
-#   SEXGOD_masturbation  → doesn't produce masturbation (3 tests, 0 success)
-#   FK_dildoinsertion    → ONLY for dildo — turns everything into dildo
+# RETIRED LoRAs — deleted from volume 2026-08-14. Do NOT re-download:
+#   FK_dildoinsertion, dildo_riding, klein-dildo-7epoc (all forced one pose)
+#   SEXGOD_masturbation (never produced the action)
+#   klein_snofs_v1_4 (limb instability when stacked)
+#   FLUX2_KLEIN_UNLOCKED (identity drift)
+#   klein_nsfw_fix (extra holes), presenting_bent_over (two bodies)
+#   anal_fingering v1/v2 (phantom bodies), instapic/realism_engine (no improvement)
 #
 _CATEGORY_STACKS = {
     "dildo_masturbation": [
@@ -1649,7 +1648,7 @@ class HollyComfyUIKlein:
         The endpoint automatically builds the LoRA stack from the prompt.
         Only Steve's own LoRAs are used (FACT.md LOCKED RECIPES):
           - Always: holly-combined-v1 @ 0.9 (identity base)
-          - explicit dildo: + pussydiffusion @ 0.8 + FK_dildoinsertion @ 1.0
+          - explicit dildo: + k3nk @ 1.0 (FK retired)
           - bent_over: + pussydiffusion @ 0.8 + femaleasshole @ 1.0
           - spread/closeup: + pussydiffusion @ 0.85-1.0
           - nude pose: + pussydiffusion @ 0.8
@@ -1891,7 +1890,7 @@ class HollyComfyUIKlein:
             raise HTTPException(status_code=400, detail="pose_ref is required (filename in pose-refs/)")
 
         # Build the LoRA stack — use select_loras_for_prompt for explicit detection
-        # This ensures specialist LoRAs (FK_dildoinsertion, etc.) load for explicit prompts
+        # This ensures specialist LoRAs load for explicit prompts
         loras = caller_loras if caller_loras else select_loras_for_prompt(raw_prompt)
         prompt = f"{raw_prompt}, {get_anatomy_anchors(raw_prompt)}" if raw_prompt else get_anatomy_anchors(raw_prompt)
 

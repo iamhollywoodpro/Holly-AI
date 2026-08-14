@@ -212,6 +212,8 @@ async function generateImage(
         refPath = toHoleMappedPath(refPath);
       }
 
+      const gs = action.gen_settings || { steps: GENERATION_SETTINGS.steps, cfg: GENERATION_SETTINGS.cfg, sampler: GENERATION_SETTINGS.sampler };
+
       const body = JSON.stringify({
         pose_skeleton: refPath,
         prompt,
@@ -219,8 +221,9 @@ async function generateImage(
         height: GENERATION_SETTINGS.height,
         seed,
         controlnet_strength: action.controlnet_strength,
-        steps: GENERATION_SETTINGS.steps,
-        cfg: GENERATION_SETTINGS.cfg,
+        steps: gs.steps,
+        cfg: gs.cfg,
+        sampler: gs.sampler,
         loras: loraStack,
       });
 
@@ -251,13 +254,15 @@ async function generateImage(
       };
     } else {
       // Text-only path (SFW, nude poses, no ControlNet)
+      const gs = action.gen_settings || { steps: GENERATION_SETTINGS.steps, cfg: GENERATION_SETTINGS.cfg, sampler: GENERATION_SETTINGS.sampler };
       const body = JSON.stringify({
         prompt,
         width: GENERATION_SETTINGS.width,
         height: GENERATION_SETTINGS.height,
         seed,
-        steps: GENERATION_SETTINGS.steps,
-        cfg: GENERATION_SETTINGS.cfg,
+        steps: gs.steps,
+        cfg: gs.cfg,
+        sampler: gs.sampler,
         loras: loraStack,
         disable_routing: true,
       });

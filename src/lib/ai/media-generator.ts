@@ -490,7 +490,7 @@ async function generateWithHollyLoRA(req: ImageRequest): Promise<ImageResult> {
     : req.prompt;
 
   // Pose-guided routing — RE-ENABLED 2026-08-11.
-  // Was disabled 2026-08-05 to rely on FLUX2_KLEIN_UNLOCKED LoRA for explicit
+  // Was disabled 2026-08-05 (old unlock LoRA approach — retired)
   // actions, but that LoRA was BANNED 2026-08-07 (caused identity drift).
   // Klein Distilled CANNOT compose explicit sexual actions from text alone
   // (FACT.md lines 506-526, confirmed across R4-R8 testing). The pose-guided

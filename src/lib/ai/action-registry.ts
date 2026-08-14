@@ -337,7 +337,7 @@ export const ACTION_REGISTRY: Record<string, ActionEntry> = {
     default_expression: 'eyes closed, head tilted back, expression of building pleasure',
     gen_settings: { steps: 12, cfg: 1.0, sampler: 'lcm' },
     status: 'close',
-    notes: 'SEXGOD LoRA removed (failed 3x). INSERT Kit handles this.',
+    notes: 'INSERT Kit handles masturbation. (SEXGOD retired + deleted 2026-08-14.)',
   },
 
   // ─── Oral ────────────────────────────────────────────────────
