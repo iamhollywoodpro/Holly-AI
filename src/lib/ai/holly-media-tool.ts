@@ -223,7 +223,7 @@ async function generateImage(
         width: GENERATION_SETTINGS.width,
         height: GENERATION_SETTINGS.height,
         seed,
-        controlnet_strength: action.controlnet_strength,
+        denoise: 0.9,
         steps: gs.steps,
         cfg: gs.cfg,
         sampler: gs.sampler,
