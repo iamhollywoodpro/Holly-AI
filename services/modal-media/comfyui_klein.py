@@ -1692,6 +1692,7 @@ class HollyComfyUIKlein:
         # are still useful for quality and variety.
 
         disable_routing = request.get("disable_routing", False)
+        caller_loras = request.get("loras", [])
 
         # First detect if there's an action category (to decide on anchors)
         _detected_category = None
@@ -1701,7 +1702,14 @@ class HollyComfyUIKlein:
                     _detected_category = cat
                     break
 
-        _has_action_lora = (_detected_category and _detected_category in _CATEGORY_STACKS)
+        # Action detection: EITHER auto-routed category OR caller provided action LoRAs.
+        # When the tool sends disable_routing=true with its own LoRA stack, the caller
+        # clearly intends an action prompt — don't bury their trigger words under
+        # 400 chars of anatomy anchors.
+        _has_action_lora = (
+            (_detected_category and _detected_category in _CATEGORY_STACKS)
+            or (disable_routing and len(caller_loras) > 0)
+        )
 
         if _has_action_lora:
             # Action prompt — keep it clean. Trigger words only, no anchors, no variation.
