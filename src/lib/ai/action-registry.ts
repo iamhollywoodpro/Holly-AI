@@ -258,7 +258,7 @@ export const ACTION_REGISTRY: Record<string, ActionEntry> = {
     image_lora_weight: 1.0,
     reference_category: '10_fisting_pussy',
     reference_tags: ['fisting', 'pussy', 'hand', 'insertion'],
-    prompt_fragment: 'bending over, she is fisting her own pussy, she is fisting her pussy, she has her hand in her pussy, self fisting',
+    prompt_fragment: 'close-up shot, she is fisting her own pussy, she is fisting her pussy, she has her hand in her pussy, self fisting',
     is_nsfw: true,
     use_controlnet: true,
     controlnet_strength: 0.45,
@@ -267,7 +267,7 @@ export const ACTION_REGISTRY: Record<string, ActionEntry> = {
     // Self fisting creator: steps=6, CFG=1, Euler
     gen_settings: { steps: 6, cfg: 1.0, sampler: 'euler' },
     status: 'close',
-    notes: 'Uses self_fisting_anal LoRA redirected to pussy trigger. 16 reference photos.',
+    notes: 'CLOSE-UP ONLY — LoRA creator admits leg-horror on full body. Frame tight on the action.',
   },
 
   anal_fisting: {
@@ -278,7 +278,7 @@ export const ACTION_REGISTRY: Record<string, ActionEntry> = {
     image_lora_weight: 1.0,
     reference_category: '11_fisting_anal',
     reference_tags: ['fisting', 'anal', 'hand', 'insertion'],
-    prompt_fragment: 'bending over, she is self fisting her ass, she is fisting her own ass, she has her hand in her ass, self anal fisting',
+    prompt_fragment: 'close-up shot, she is self fisting her ass, she is fisting her own ass, she has her hand in her ass, self anal fisting',
     is_nsfw: true,
     use_controlnet: true,
     controlnet_strength: 0.45,
@@ -286,7 +286,7 @@ export const ACTION_REGISTRY: Record<string, ActionEntry> = {
     default_expression: 'mouth open, moaning',
     gen_settings: { steps: 6, cfg: 1.0, sampler: 'euler' },
     status: 'close',
-    notes: 'Action works at 1.0 but causes limb issues. At 0.7 action is weaker. Needs pose tuning.',
+    notes: 'CLOSE-UP ONLY — LoRA creator admits leg-horror on full body. Frame tight on the action.',
   },
 
   // ─── Food/object insertion ───────────────────────────────────
