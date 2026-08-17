@@ -34,6 +34,9 @@ export interface ActionEntry {
   is_nsfw: boolean;
   /** Whether ControlNet reference photo guidance should be used */
   use_controlnet: boolean;
+  /** Whether to use skeleton edit pipeline (true) or text-only (false).
+   * Some LoRAs (fisting) have their own trained poses — skeleton conflicts with them. */
+  use_skeleton?: boolean; // defaults to true
   /** ControlNet strength (0.0-1.0, lower = more freedom, higher = more tracing) */
   controlnet_strength: number;
   /** Target hole for insertion actions — enables hole-mapping overlay */
@@ -249,6 +252,7 @@ export const ACTION_REGISTRY: Record<string, ActionEntry> = {
   // ─── Fisting actions ─────────────────────────────────────────
   pussy_fisting: {
     action_id: 'pussy_fisting',
+    use_skeleton: false, // LoRA trained pose — skeleton conflicts
     aliases: ['fist her pussy', 'fist your pussy', 'fist in pussy', 'fist in her pussy', 'fisting pussy', 'fisting her pussy', 'hand in her pussy', 'hand in your pussy'],
     image_lora: 'self_fisting_anal.safetensors',
     image_lora_weight: 1.0,
@@ -268,6 +272,7 @@ export const ACTION_REGISTRY: Record<string, ActionEntry> = {
 
   anal_fisting: {
     action_id: 'anal_fisting',
+    use_skeleton: false, // LoRA trained pose — skeleton conflicts
     aliases: ['fist her ass', 'fisting ass', 'fist in ass', 'fist her asshole', 'self anal fisting', 'fisting her ass', 'hand in her ass', 'fist your ass'],
     image_lora: 'self_fisting_anal.safetensors',
     image_lora_weight: 1.0,

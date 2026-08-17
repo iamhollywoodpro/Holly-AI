@@ -211,7 +211,7 @@ async function generateImage(
   seed: number,
 ): Promise<HollyMediaResult> {
   try {
-    if (action.use_controlnet && action.reference_category && MODAL_CONTROLNET_URL) {
+    if (action.use_controlnet && action.use_skeleton !== false && action.reference_category) {
       // Skeleton edit path: pick next skeleton+holes file from the category
       const refPath = pickSkeletonHoles(action.reference_category, action.action_id);
 
