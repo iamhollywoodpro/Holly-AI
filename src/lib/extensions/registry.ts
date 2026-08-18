@@ -158,7 +158,10 @@ export async function listInstalledExtensions(): Promise<
  *   - Premium extensions are currently a no-op (everything free per Steve's directive).
  *   - If already installed, returns `alreadyInstalled: true` without error.
  */
-export async function installExtension(extensionId: string): Promise<InstallResult> {
+export async function installExtension(
+  extensionId: string,
+  options?: { autoInstalled?: boolean }
+): Promise<InstallResult> {
   const manifest = getExtensionById(extensionId);
   if (!manifest) {
     return {
@@ -230,6 +233,7 @@ export async function installExtension(extensionId: string): Promise<InstallResu
         userId: dbUserId,
         extensionId,
         suite: manifest.suite,
+        ...(options?.autoInstalled ? { autoInstalled: true } : {}),
       },
     });
     return { ok: true, extension: manifest, alreadyInstalled: false };

@@ -14,9 +14,11 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import OnboardingScreen from "@/components/onboarding/OnboardingScreen";
 import PartnerOnboarding from "@/components/onboarding/PartnerOnboarding";
+import UseCasePicker from "@/components/onboarding/UseCasePicker";
+import { USE_CASES } from "@/lib/onboarding/use-cases";
 import type { PartnerPreferences } from "@/components/onboarding/PartnerOnboarding";
 
-type FlowStep = "drive" | "partner" | "done";
+type FlowStep = "drive" | "use-cases" | "partner" | "done";
 
 export default function OnboardingFlow() {
   const router = useRouter();
@@ -26,6 +28,15 @@ export default function OnboardingFlow() {
   // OnboardingScreen handles its own navigation for the connect path;
   // for skip we transition to partner selection.
   const handleDriveDone = () => {
+    setStep("use-cases");
+  };
+
+  // Use-case selection done (extensions auto-installed server-side)
+  const handleUseCasesDone = () => {
+    setStep("partner");
+  };
+
+  const handleUseCasesSkip = () => {
     setStep("partner");
   };
 
@@ -54,6 +65,24 @@ export default function OnboardingFlow() {
     await markCompleteInDb();
     router.push("/chat");
   };
+
+  if (step === "use-cases") {
+    return (
+      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center p-6">
+        <UseCasePicker
+          useCases={USE_CASES.map(({ id, label, description, icon, starterExtensions }) => ({
+            id,
+            label,
+            description,
+            icon,
+            starterExtensionCount: starterExtensions.length,
+          }))}
+          onComplete={handleUseCasesDone}
+          onSkip={handleUseCasesSkip}
+        />
+      </div>
+    );
+  }
 
   if (step === "drive") {
     // Pass an onSkip that moves to partner selection instead of going straight to "/"
