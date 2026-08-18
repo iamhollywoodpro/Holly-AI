@@ -61,6 +61,31 @@ If I cannot empirically prove the theory is correct, I do NOT ship a fix. I ship
 
 **For migrations specifically:** the cost math (rate × estimated usage × budget impact) MUST appear in the proposal, not in the post-mortem.
 
+## MEDIA GENERATION STATE — create_holly_media TOOL (August 17, 2026, commit f5e68d6)
+
+**Steve-verified working (the ONLY list that counts — actions ship when Steve has seen them, not when a QA script passes):**
+- **Identity**: Holly being Holly — combined-v1 @ 1.0 last in every stack ("PERFECTION")
+- **SFW**: clothed portraits, wardrobe, locations/settings
+- **Pose variety**: 126-file skeleton+holes library, stride rotation across categories, skeleton edit pipeline at 0.9 denoise (ControlNet abandoned — custom node broken, never worked)
+- **NSFW**: nudity, dildo (k3nk @ 1.0 — "PERFECT"), fingering/food/object insertion (insert_kit @ 0.7), spreading (pussydiffusion @ 0.7), bent over (musubituner @ 0.7), wet/shower (wet_babes @ 0.7), oral (insert_kit)
+- **Tool end-to-end**: `create_holly_media` → action-registry → endpoint, verified through the full pipeline
+
+**BANNED — fisting (both holes), 2026-08-17, Steve's call after exhaustive testing:**
+- Every Klein 9B fisting LoRA (3 tested from 2 independent creators, ~25 config permutations: strengths 0.7–1.5, steps 6–24, CFG 1–3, negative on/off, identity LoRA on/off, creator prompts verbatim, both framings) produces either limb horror (fused/missing legs, arms merged into torso) or renders the action but drifts off Holly's face/body.
+- Root cause: all published fisting LoRAs were trained on ~40 close-up crops. "Fisting + full body with legs" does not co-occur in any training set on Civitai. This is a dataset boundary, not a settings problem.
+- LoRAs deleted from volume; registry entries `status: 'banned'`; `matchAction` skips banned; tool rejects banned action_ids. Revisit ONLY with an in-house trained LoRA (`services/fine-tuning/train_holly_actions.py` staged) on a full-body dataset.
+
+## CRITICAL LESSON — Automated QA Fabricates; Steve Is the Only Verified Judge for Explicit Images (Aug 17, 2026)
+
+Two full days were lost to trusting automated verifiers that were lying:
+1. **GLM-4.6V content-filters on explicit images and then fabricates.** Same image, 3 forensic-rubric runs: "zero hands, no head" → "two hands, natural face" → "black and white line drawing" (it was a photoreal PNG). Binary verdict prompts rubber-stamp; forced per-limb descriptions contradict each other run-to-run. It CANNOT gate explicit content. It's fine for SFW/layout QA.
+2. **MediaPipe Pose stamps a full 33-landmark skeleton on a torso-only image** — "body integrity OK" on an image with no legs, arms, or face. Landmark presence ≠ limb drawn.
+3. **Deployment drift**: the Modal app was deployed 4 minutes BEFORE the fix commit landed — "exact replication" tests were hitting old code. Always check `modal app list` timestamps vs `git log` when a previously-working request breaks.
+
+**THE RULE:** For explicit-action images, the acceptance gate is Steve's eyes — batch candidates into a numbered contact sheet so it costs him 10 seconds. Automated gates are for infra (HTTP errors, timeouts, hand-count sanity on SFW). "Close" does not ship.
+
+**Also learned:** Klein turbo recipe (6 steps, CFG 1) is tuned for identity LoRAs; Civitai action-LoRA creators evaluate at standard settings (20+ steps, CFG 2–4, portrait ~1248×1728) — check the creator's showcase image resolution before debugging action LoRAs that "don't render."
+
 ## CRITICAL LESSON — Producer vs Consumer when fixing data-shape bugs (July 2, 2026)
 When fixing any bug involving a message/data shape (e.g., `role: 'system'` being rejected by a chat template), you MUST consider both:
 1. **Producer** — code paths that CREATE new rows with the bad shape (e.g., `pendingMessages.push({ role: 'system', ... })`)
