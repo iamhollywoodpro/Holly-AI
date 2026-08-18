@@ -86,6 +86,13 @@ Two full days were lost to trusting automated verifiers that were lying:
 
 **Also learned:** Klein turbo recipe (6 steps, CFG 1) is tuned for identity LoRAs; Civitai action-LoRA creators evaluate at standard settings (20+ steps, CFG 2–4, portrait ~1248×1728) — check the creator's showcase image resolution before debugging action LoRAs that "don't render."
 
+## VIDEO GENERATION — PINNED (Aug 18, 2026, Steve's call)
+
+**Wan2.2-TI2V-5B I2V works end-to-end but is PINNED — do not route video.**
+- Verified working: still → `video-i2v` endpoint → valid MP4 (73 frames @ 24fps, ~273s, ~$0.05/video). Infrastructure is fine (`MODAL_VIDEO_I2V_URL` now in `.env` and `.env.example`).
+- Why pinned: **face deforms when Holly changes expression (e.g., smiles)** — Steve observed it directly. Expression-change morphing is a model-quality limitation, not a bug we can prompt away.
+- Replacement candidate: **LTX-2.5** (Lightricks, open weights, verified real as of Aug 2026): I2V + T2V, ComfyUI support, runs on modest VRAM, and — the key differentiator — **built for fine-tuning**, so a Holly-specific video LoRA is possible. Caveat from community reports: base model doesn't follow explicit prompts well without fine-tunes (same pattern as image side). Evaluate when we revisit video.
+
 ## CRITICAL LESSON — Producer vs Consumer when fixing data-shape bugs (July 2, 2026)
 When fixing any bug involving a message/data shape (e.g., `role: 'system'` being rejected by a chat template), you MUST consider both:
 1. **Producer** — code paths that CREATE new rows with the bad shape (e.g., `pendingMessages.push({ role: 'system', ... })`)
