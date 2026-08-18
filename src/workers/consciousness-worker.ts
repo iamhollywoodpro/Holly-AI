@@ -1,19 +1,16 @@
 /**
- * HOLLY Consciousness Worker — Phase 6
+ * HOLLY Consciousness Worker — Phase 6 / Roadmap C5
  *
- * Persistent Node.js worker that replaces cron → API → hope pattern.
- * Runs as a separate process on the server.
- * Maintains in-memory state. Uses local Ollama for all operations.
- *
- * Usage: npx tsx src/workers/consciousness-worker.ts
+ * Persistent worker that replaces cron → API → hope pattern.
+ * Started in-process by server.ts (dev) and holly-server.ts (prod)
+ * via startConsciousnessWorker(). DB-only — $0 cost, no LLM calls.
  *
  * What it does every cycle (15 min):
  *  1. Evolves emotional state for all active users
- *  2. Runs inner monologue
- *  3. Processes new memories
- *  4. Curates few-shot examples
- *  5. Analyzes feedback signals
- *  6. Can initiate proactive actions
+ *  2. Processes new learning events
+ *  3. Marks stale feedback as applied
+ *  4. Periodically analyzes feedback signals (2h)
+ *  5. Checks self-training readiness (24h)
  */
 
 import { PrismaClient } from '@prisma/client';
@@ -291,17 +288,29 @@ async function checkSelfTrainingStatus() {
 
 // ── Startup ────────────────────────────────────────────────────────────────
 
-async function main() {
+let workerStarted = false;
+
+/**
+ * Start the consciousness worker in-process (Roadmap C5).
+ * Idempotent — a second call is a no-op. All timers are unref()'d so the
+ * worker never keeps the server process alive on shutdown.
+ */
+export function startConsciousnessWorker(): void {
+  if (workerStarted) return;
+  workerStarted = true;
+
   console.log('[Worker] 🧠 HOLLY Consciousness Worker starting...');
   console.log(`[Worker] Cycle interval: ${CYCLE_INTERVAL / 1000}s`);
   console.log(`[Worker] Feedback interval: ${FEEDBACK_INTERVAL / 1000}s`);
   console.log(`[Worker] Few-shot interval: ${FEWSHOT_INTERVAL / 1000}s`);
 
-  // Run first cycle immediately
-  await runConsciousnessCycle();
+  // Run first cycle immediately (failures logged, never fatal)
+  runConsciousnessCycle().catch(err =>
+    console.error('[Worker] First cycle failed:', err instanceof Error ? err.message : err),
+  );
 
   // Schedule recurring cycles
-  setInterval(async () => {
+  const timer = setInterval(async () => {
     await runConsciousnessCycle();
 
     // Periodic feedback analysis
@@ -316,8 +325,7 @@ async function main() {
       checkSelfTrainingStatus().catch(() => {});
     }
   }, CYCLE_INTERVAL);
+  timer.unref();
 
-  console.log('[Worker] ✅ Running. Press Ctrl+C to stop.');
+  console.log('[Worker] ✅ Consciousness worker running in-process.');
 }
-
-main().catch(console.error);

@@ -242,6 +242,15 @@ async function main() {
       console.log(`[HOLLY] Heartbeat — Uptime: ${Math.floor(process.uptime())}s | RSS: ${Math.round(process.memoryUsage().rss / 1024 / 1024)}MB`);
     }, 60000).unref();
 
+    // Roadmap C5: in-process consciousness worker (DB-only, $0 cost).
+    // Timers are unref()'d so it never blocks shutdown.
+    try {
+      const { startConsciousnessWorker } = require('./src/workers/consciousness-worker');
+      startConsciousnessWorker();
+    } catch (e) {
+      console.warn('[HOLLY] Consciousness worker failed to start:', e instanceof Error ? e.message : e);
+    }
+
     // NOTE (2026-07-02): brain-v35 keep-alive ping REMOVED. It was burning
     // $0.80/hr × 720 hrs = $576/mo by keeping the L4 container warm 24/7.
     // Modal's scale-to-zero after 5 min idle is the correct cost-control

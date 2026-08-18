@@ -132,5 +132,13 @@ app.prepare().then(() => {
   server.listen(port, hostname, () => {
     console.log(`[HOLLY] Server ready on http://${hostname}:${port}`);
     console.log(`[HOLLY] WS terminal: ${WS_ENABLED ? 'ENABLED ✓' : 'DISABLED'}`);
+
+    // Roadmap C5: in-process consciousness worker (DB-only, $0 cost).
+    try {
+      const { startConsciousnessWorker } = require('./src/workers/consciousness-worker');
+      startConsciousnessWorker();
+    } catch (e) {
+      console.warn('[HOLLY] Consciousness worker failed to start:', e instanceof Error ? e.message : e);
+    }
   });
 });
