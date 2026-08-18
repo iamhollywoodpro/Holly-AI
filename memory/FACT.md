@@ -1310,3 +1310,13 @@ success, (3) application_deployment_queues.status == finished,
 Also: duplicate CD runs for the same SHA are normal (workflow_run fires
 per completed CI run); consecutive deploys 1111/1112 both finished clean.
 Disk at 84% — prune before next heavy deploys.
+
+**C6 — HPRF EXPORT/IMPORT UI SHIPPED (2026-08-12):** New Settings section
+/settings/relationship (nav "Relationship Data", heart icon) wired to the
+existing-but-UI-less Phase 16 engine (src/lib/memory/memory-portability.ts):
+GET /api/memory/export preview (days together + per-category counts),
+POST /api/memory/export download, file-picker import with client-side HPRF
+v1.0 validation → server dryRun preview → merge/append/replace strategy →
+real import with confirm + result summary. Also fixed dead link: Account
+page "Extract Archive" pointed at nonexistent /api/export-data — now goes
+to /settings/relationship. No engine changes; routes were already real.

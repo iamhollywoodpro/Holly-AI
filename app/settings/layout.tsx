@@ -16,6 +16,7 @@ import {
   KeyIcon,
   Bars3Icon,
   XMarkIcon,
+  HeartIcon,
 } from '@heroicons/react/24/outline';
 import { ReactNode, useState } from 'react';
 import { SettingsToast } from '@/components/notifications/SettingsToast';
@@ -33,6 +34,7 @@ const settingsSections = [
   { name: 'Notifications', href: '/settings/notifications', icon: BellIcon },
   { name: 'Developer Tools', href: '/settings/developer', icon: CodeBracketIcon },
   { name: 'API Keys',        href: '/settings/api-keys', icon: KeyIcon },
+  { name: 'Relationship Data', href: '/settings/relationship', icon: HeartIcon },
   { name: 'Account & Billing', href: '/settings/account', icon: UserCircleIcon },
   { name: 'Keyboard Shortcuts', href: '/settings/shortcuts', icon: CommandLineIcon },
 ];

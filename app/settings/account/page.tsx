@@ -313,7 +313,7 @@ export default function AccountPage() {
           className="block w-full px-6 py-4 bg-[#1E1B18] hover:bg-[#24211D] rounded-2xl border border-white/5 transition-all duration-300 text-left group"
           onClick={() => {
             if (confirm('Export all your conversation data? This may take a moment.')) {
-              window.location.href = '/api/export-data';
+              window.location.href = '/settings/relationship';
             }
           }}
         >
