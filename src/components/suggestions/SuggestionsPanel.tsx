@@ -34,9 +34,9 @@ export function SuggestionsPanel({
         {/* Header with dismiss button */}
         <div className="flex items-center justify-between mb-3 px-1">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-purple-400" />
+            <Sparkles className="w-4 h-4 text-primary" />
             <span className="text-sm font-medium text-gray-400">
-              AI Suggestions
+              Holly suggests
             </span>
           </div>
 

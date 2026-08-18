@@ -1279,3 +1279,20 @@ compose-managed, livekit env contains NO devkey (real keys from DB env),
 stale helper containers removed. Also: "health 200" alone is NOT proof
 of deploy success — an old container keeps serving during failures;
 always check application_deployment_queues.status == finished.
+
+**C4 — SUGGESTION ENGINE SHIPPED (2026-08-12):** Replaced the 504 stub
+at app/api/suggestions/generate/route.ts with a real engine: auth →
+ownership check (Conversation.userId) → last N messages + top-5 active
+RelationshipMemories + installed UserExtensions → one analytics-cascade
+LLM call (smartRoute forceTask:'analytics' + cascadeCollect, temp 0.4,
+200 max tokens — same cheap pattern as title generation) → strict JSON
+validation → {suggestions, contextUsed}. Honest-empty on <2 messages,
+garbage output, or cascade failure. UI wired: useSuggestions +
+SuggestionsPanel now render above the chat input in
+holly-chat-interface.tsx ("Holly suggests" strip); suggestions send via
+handleSend(text); refresh 2s after each completed exchange (skipped in
+voice call mode); icons mapped to lucide in SuggestionCard (engine
+returns icon names, not emojis). 8 tests in
+__tests__/api/suggestions-generate.test.ts. The client-side
+`conv-${Date.now()}` conversationId IS the DB id (saveMessages upserts
+with it — src/lib/chat/background-tasks.ts:55).

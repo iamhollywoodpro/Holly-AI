@@ -1,7 +1,19 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { Sparkles, Lightbulb, Zap, HelpCircle, MessageCircle, Wrench, Compass, type LucideIcon } from 'lucide-react';
 import type { Suggestion } from '@/types/suggestions';
+
+// Icon names allowed by the suggestion engine (app/api/suggestions/generate)
+const ICONS: Record<string, LucideIcon> = {
+  sparkles: Sparkles,
+  lightbulb: Lightbulb,
+  zap: Zap,
+  'help-circle': HelpCircle,
+  'message-circle': MessageCircle,
+  wrench: Wrench,
+  compass: Compass,
+};
 
 interface SuggestionCardProps {
   suggestion: Suggestion;
@@ -19,6 +31,7 @@ export function SuggestionCard({ suggestion, index, onClick }: SuggestionCardPro
   };
 
   const gradient = gradients[suggestion.type] || gradients.action;
+  const Icon = ICONS[suggestion.icon] || Sparkles;
 
   return (
     <motion.button
@@ -49,8 +62,8 @@ export function SuggestionCard({ suggestion, index, onClick }: SuggestionCardPro
       title={`Use suggestion: ${suggestion.text}`}
     >
       {/* Icon */}
-      <div className="text-2xl flex-shrink-0">
-        {suggestion.icon}
+      <div className="flex-shrink-0">
+        <Icon className="w-5 h-5 text-white/80" />
       </div>
 
       {/* Text */}

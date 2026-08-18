@@ -60,6 +60,8 @@ import type { HollyEmotion } from './holly/LivingLogo';
 import { LivingLogo } from './holly/LivingLogo';
 import { ModeTransitionOverlay, ModePill, MODE_CONFIGS } from './holly/ModeTransition';
 import { useAmbientSound } from './holly/AmbientSound';
+import { useSuggestions } from '@/hooks/useSuggestions';
+import { SuggestionsPanel } from './suggestions/SuggestionsPanel';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1949,6 +1951,13 @@ export default function HollyChatInterface() {
   const [sandboxOpen, setSandboxOpen] = useState(false);
   const [showScrollBtn, setShowScrollBtn] = useState(false);
   const [conversationId, setConversationId] = useState(() => `conv-${Date.now()}`);
+  // ── C4: contextual suggestions from the real suggestion engine ──
+  const {
+    suggestions,
+    isVisible: suggestionsVisible,
+    generateSuggestions,
+    dismiss: dismissSuggestions,
+  } = useSuggestions({ conversationId });
   const [initiatives, setInitiatives] = useState<InitiativeItem[]>([]);
   const [initiativeDismissed, setInitiativeDismissed] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
@@ -2851,6 +2860,10 @@ export default function HollyChatInterface() {
         // Refresh conversation list immediately and after 3.5s to catch async title generation
         setTimeout(() => loadPastConversations(), 1000);
         setTimeout(() => loadPastConversations(), 3500);
+        // C4: refresh contextual suggestions after the exchange is saved
+        if (!callModeRef.current) {
+          setTimeout(() => { void generateSuggestions(); }, 2000);
+        }
       }
     } catch (err: any) {
       if (err.name !== "AbortError") {
@@ -2865,7 +2878,7 @@ export default function HollyChatInterface() {
       // Voice Call Mode: if the reply never got spoken (error/abort), keep the call alive
       if (callModeRef.current && !callReplySpoken) void startListening();
     }
-  }, [input, isProcessing, messages, conversationId, attachments, isVoiceInput, autoRead, generateTitle, loadPastConversations, startListening]);
+  }, [input, isProcessing, messages, conversationId, attachments, isVoiceInput, autoRead, generateTitle, loadPastConversations, startListening, generateSuggestions]);
   // Keep the ref current so voiceLoop's onTranscript always calls the latest
   handleSendRef.current = handleSend;
 
@@ -3711,6 +3724,16 @@ export default function HollyChatInterface() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ── C4: Contextual suggestions strip ── */}
+      {!isProcessing && (
+        <SuggestionsPanel
+          suggestions={suggestions}
+          isVisible={suggestionsVisible && !isProcessing}
+          onSelectSuggestion={(s) => { dismissSuggestions(); void handleSend(s.text); }}
+          onDismiss={dismissSuggestions}
+        />
+      )}
 
       {/* ── Input area ── */}
       <div
