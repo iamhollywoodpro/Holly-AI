@@ -62,6 +62,14 @@ export async function createHollyMedia(req: HollyMediaRequest): Promise<HollyMed
     if (!action) {
       return errorResult(`Unknown action_id: ${req.action_id}`, req.action_id, baseSeed);
     }
+    if (action.status === 'banned') {
+      // Banned actions never generate — Holly should tell the user she can't
+      // do this one yet rather than shipping a broken image.
+      return errorResult(
+        `Action '${req.action_id}' is not available`,
+        req.action_id, baseSeed,
+      );
+    }
   } else {
     action = matchAction(req.request);
     // Default to SFW if no action matched

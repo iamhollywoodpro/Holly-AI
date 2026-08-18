@@ -254,39 +254,38 @@ export const ACTION_REGISTRY: Record<string, ActionEntry> = {
     action_id: 'pussy_fisting',
     use_skeleton: false, // LoRA trained pose — skeleton conflicts
     aliases: ['fist her pussy', 'fist your pussy', 'fist in pussy', 'fist in her pussy', 'fisting pussy', 'fisting her pussy', 'hand in her pussy', 'hand in your pussy'],
-    image_lora: 'self_fisting_anal.safetensors',
-    image_lora_weight: 1.0,
+    image_lora: '',
+    image_lora_weight: 0,
     reference_category: '10_fisting_pussy',
     reference_tags: ['fisting', 'pussy', 'hand', 'insertion'],
-    prompt_fragment: 'close-up shot, she is fisting her own pussy, she is fisting her pussy, she has her hand in her pussy, self fisting',
+    prompt_fragment: '',
     is_nsfw: true,
-    use_controlnet: true,
-    controlnet_strength: 0.45,
+    use_controlnet: false,
+    controlnet_strength: 0,
     target_hole: 'pussy',
-    default_expression: 'mouth open in pleasure',
-    // Self fisting creator: steps=6, CFG=1, Euler
+    default_expression: '',
     gen_settings: { steps: 6, cfg: 1.0, sampler: 'euler' },
-    status: 'close',
-    notes: 'CLOSE-UP ONLY — LoRA creator admits leg-horror on full body. Frame tight on the action.',
+    status: 'banned',
+    notes: 'BANNED 2026-08-17 (Steve): every available Klein fisting LoRA produces limb horror or identity drift; close-up renders the action but never looks like Holly. LoRAs deleted from volume. Revisit only with our own trained LoRA (services/fine-tuning/train_holly_actions.py).',
   },
 
   anal_fisting: {
     action_id: 'anal_fisting',
-    use_skeleton: false, // LoRA trained pose — skeleton conflicts
+    use_skeleton: false,
     aliases: ['fist her ass', 'fisting ass', 'fist in ass', 'fist her asshole', 'self anal fisting', 'fisting her ass', 'hand in her ass', 'fist your ass'],
-    image_lora: 'self_fisting_anal.safetensors',
-    image_lora_weight: 1.0,
+    image_lora: '',
+    image_lora_weight: 0,
     reference_category: '11_fisting_anal',
     reference_tags: ['fisting', 'anal', 'hand', 'insertion'],
-    prompt_fragment: 'close-up shot, she is self fisting her ass, she is fisting her own ass, she has her hand in her ass, self anal fisting',
+    prompt_fragment: '',
     is_nsfw: true,
-    use_controlnet: true,
-    controlnet_strength: 0.45,
+    use_controlnet: false,
+    controlnet_strength: 0,
     target_hole: 'ass',
-    default_expression: 'mouth open, moaning',
+    default_expression: '',
     gen_settings: { steps: 6, cfg: 1.0, sampler: 'euler' },
-    status: 'close',
-    notes: 'CLOSE-UP ONLY — LoRA creator admits leg-horror on full body. Frame tight on the action.',
+    status: 'banned',
+    notes: 'BANNED 2026-08-17 (Steve): same as pussy_fisting. Do not route.',
   },
 
   // ─── Food/object insertion ───────────────────────────────────
@@ -489,6 +488,10 @@ export function matchAction(userPrompt: string): ActionEntry | null {
   let bestScore = 0;
 
   for (const entry of Object.values(ACTION_REGISTRY)) {
+    // Banned actions never route — no LoRA, no generation (see notes on each)
+    if (entry.status === 'banned') {
+      continue;
+    }
     let score = 0;
     for (const alias of entry.aliases) {
       if (prompt.includes(alias.toLowerCase())) {

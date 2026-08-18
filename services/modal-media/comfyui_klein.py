@@ -275,6 +275,7 @@ def build_workflow(
     sampler: str = V2_SAMPLER,
     scheduler: str = V2_SCHEDULER,
     filename_prefix: str = "Holly",
+    negative_prompt: str = None,  # None = V2_NEGATIVE_PROMPT; "" = no negative
 ) -> dict:
     """Build ComfyUI API-format workflow for FLUX.2 Klein 9B text-to-image with LoRA stacking."""
     import random as _random
@@ -318,7 +319,8 @@ def build_workflow(
     pos_id = _id()
     wf[pos_id] = {"class_type": "CLIPTextEncode", "inputs": {"text": prompt, "clip": cur_clip}}
     neg_id = _id()
-    wf[neg_id] = {"class_type": "CLIPTextEncode", "inputs": {"text": V2_NEGATIVE_PROMPT, "clip": cur_clip}}
+    _neg_text = V2_NEGATIVE_PROMPT if negative_prompt is None else negative_prompt
+    wf[neg_id] = {"class_type": "CLIPTextEncode", "inputs": {"text": _neg_text, "clip": cur_clip}}
 
     # Latent + Sampler
     latent_id = _id()
@@ -855,9 +857,8 @@ _CATEGORY_PATTERNS = [
     ("anal_fingering", _re_cat.compile(
         r"\b(?:finger\w*|fingering).{0,20}(?:anal|ass|anus|asshole|butt)|(?:anal|ass|anus|asshole).{0,20}(?:finger\w*|fingering)\b",
         _re_cat.IGNORECASE)),
-    ("anal_fisting", _re_cat.compile(
-        r"\b(?:fist\w*).{0,20}(?:anal|ass|anus|asshole)|(?:anal|ass|anus|asshole).{0,20}(?:fist\w*)|(?:self\s*)?anal\s*fist\w*\b",
-        _re_cat.IGNORECASE)),
+    # anal_fisting removed 2026-08-17: LoRAs deleted from volume (banned —
+    # limb horror/identity drift). Re-add only with an in-house trained LoRA.
     ("fingering", _re_cat.compile(
         r"\b(finger\w*\s+(?:inside|into|in)\s+(\w+\s+){0,2}(?:pussy|vagina)|fingering\s+(?:her\s+)?(?:pussy|vagina)|fingers?\s+(?:in|inside|into)\s+(?:her\s+)?(?:pussy|vagina)|masturbat\w*\w*\s+(?:with\s+)?finger\w*)\b",
         _re_cat.IGNORECASE)),
@@ -903,9 +904,7 @@ _CATEGORY_STACKS = {
     "anal_fingering": [
         {"name": "insert_kit.safetensors", "strength": 0.7},
     ],
-    "anal_fisting": [
-        {"name": "self_fisting_anal.safetensors", "strength": 0.7},
-    ],
+    # anal_fisting stack removed — LoRA deleted from volume (banned 2026-08-17)
     "fingering": [
         {"name": "insert_kit.safetensors", "strength": 0.7},
     ],
@@ -1035,7 +1034,10 @@ def wait_for_comfyui(timeout: int = 120):
         MODEL_VOL: model_volume,
         LORA_VOL_MOUNT: lora_volume,
     },
-    secrets=[modal.Secret.from_name("huggingface-secret")],
+    secrets=[
+        modal.Secret.from_name("huggingface-secret"),
+        modal.Secret.from_name("holly-zai-vision"),  # ZAI_API_KEY — GLM-4.6V forensic QA gate
+    ],
 )
 class HollyComfyUIKlein:
     """ComfyUI + FLUX.2 Klein 9B v2-recipe endpoint with category-aware LoRA routing."""
@@ -1334,7 +1336,98 @@ class HollyComfyUIKlein:
             # If detection fails, don't reject — return the image
             return True, f"detection skipped ({e})"
 
-    def _generate_single(self, prompt, width, height, seed, loras, steps, cfg, sampler=None):
+    def _load_pose_detector(self):
+        """Lazy-load MediaPipe Pose detector (cached on instance)."""
+        if hasattr(self, '_pose_detector') and self._pose_detector is not None:
+            return self._pose_detector
+        try:
+            import mediapipe as mp
+            print("📥 Loading MediaPipe Pose detector (first use)...")
+            self._pose_detector = mp.solutions.pose.Pose(
+                static_image_mode=True, model_complexity=2,
+                min_detection_confidence=0.4,
+            )
+        except Exception as e:
+            print(f"⚠️ MediaPipe Pose unavailable: {e}")
+            self._pose_detector = False
+        return self._pose_detector or None
+
+    def _check_body_integrity(self, img_bytes, require_face=True, action_desc=None):
+        """Forensic vision QA via GLM-4.6V — the only gate that catches what
+        actually breaks (missing/fused limbs, hands not doing the action).
+
+        MediaPipe Pose proved useless here (2026-08-17): it stamps a full
+        33-landmark skeleton on a torso-only image, so it PASSED an image with
+        no legs, arms, or face. Binary vision verdicts ("PASS?") also rubber-
+        stamp. The rubric below forces per-limb DESCRIPTIONS before any
+        verdict — descriptions are much harder to fake.
+
+        Returns (passes, reason). passes requires: all four limbs described
+        as complete, no fusions, natural face (when require_face), AND — if
+        action_desc given — the action confirmed as actually happening.
+        """
+        import base64
+        import json as _json
+        import os as _os
+        import urllib.request as _ur
+
+        key = _os.environ.get("ZAI_API_KEY")
+        if not key:
+            return False, "vision QA unavailable (no ZAI_API_KEY)"
+
+        rubric = (
+            "You are a forensic image examiner. You MUST describe before you "
+            "conclude — no verdict without evidence. For this photorealistic "
+            "image, fill out each line:\n"
+            "LEFT LEG: describe (thigh, calf, foot) and where it ends. If not "
+            "complete, say exactly where it terminates or morphs.\n"
+            "RIGHT LEG: same.\n"
+            "LEFT ARM: shoulder to hand — the full path. Where is the hand?\n"
+            "RIGHT ARM: same.\n"
+            "HANDS: how many? Where is each?\n"
+            f"ACTION: {action_desc or 'no specific action required'} — is it "
+            "clearly happening as described? Be literal.\n"
+            "FUSIONS: does any limb merge into furniture, torso, or another limb?\n"
+            "FACE: natural or distorted (which features)?\n"
+            "FINAL LINE, exactly this format:\n"
+            "RESULT: LIMBS_OK|LIMBS_BAD reason=... ; ACTION_OK|ACTION_BAD "
+            "reason=... ; FACE_OK|FACE_BAD reason=..."
+        )
+        b64 = base64.b64encode(img_bytes).decode()
+        body = _json.dumps({
+            "model": "glm-4.6v", "max_tokens": 900,
+            "messages": [{"role": "user", "content": [
+                {"type": "image", "source": {
+                    "type": "base64", "media_type": "image/png", "data": b64}},
+                {"type": "text", "text": rubric},
+            ]}],
+        }).encode()
+        req = _ur.Request(
+            "https://api.z.ai/api/anthropic/v1/messages", data=body,
+            headers={"content-type": "application/json", "x-api-key": key,
+                     "anthropic-version": "2023-06-01"})
+        resp = _json.loads(_ur.urlopen(req, timeout=90).read().decode())
+        text = resp.get("content", [{}])[0].get("text", "")
+
+        # Parse the forced FINAL LINE
+        import re as _re
+        m = _re.search(r"RESULT:\s*(.+)", text, _re.S)
+        if not m:
+            return False, f"vision QA unparseable: {text[-200:]}"
+        verdict = m.group(1)
+
+        failures = []
+        if "LIMBS_BAD" in verdict:
+            failures.append("limb defect")
+        if action_desc and "ACTION_BAD" in verdict:
+            failures.append("action not performed")
+        if require_face and "FACE_BAD" in verdict:
+            failures.append("face defect")
+        if failures:
+            return False, f"vision QA: {'; '.join(failures)} — {verdict.strip()[:250]}"
+        return True, f"vision QA OK — {verdict.strip()[:150]}"
+
+    def _generate_single(self, prompt, width, height, seed, loras, steps, cfg, sampler=None, negative_prompt=None):
         """Generate a single image via ComfyUI. Returns (img_bytes, prompt_id, job_id)."""
         job_id = str(uuid.uuid4())[:8]
         workflow = build_workflow(
@@ -1347,6 +1440,7 @@ class HollyComfyUIKlein:
             cfg=cfg,
             sampler=sampler or V2_SAMPLER,
             filename_prefix=f"Holly_{job_id}",
+            negative_prompt=negative_prompt,
         )
         prompt_id = self._post_workflow(workflow)
         history = self._poll_history(prompt_id, timeout=300)
@@ -1678,6 +1772,9 @@ class HollyComfyUIKlein:
         steps = request.get("steps", V2_STEPS)
         cfg = request.get("cfg", V2_CFG)
         sampler = request.get("sampler", V2_SAMPLER)
+        # Negative prompt override: absent = V2 default; "" = none (for action
+        # LoRAs where "deformed hands" suppresses the action itself)
+        negative_prompt = request.get("negative_prompt", None)
         # ADetailer-style refinement: OFF by default (same caution as diffusers
         # face-enhance, disabled June 27 for over-processing). Enable explicitly.
         enhance_details = request.get("enhance_details", False)
@@ -1771,6 +1868,15 @@ class HollyComfyUIKlein:
         elif quality_mode == "best":
             max_attempts = 3
 
+        # Objective body-integrity gate (MediaPipe Pose): symmetric legs/arms,
+        # face visible. Off by default — actions that fight the model (fisting)
+        # set it because GLM/vision QA proved unreliable for limb defects.
+        body_integrity = request.get("body_integrity", False)
+        require_face = request.get("require_face", True)
+        action_desc = request.get("action_desc")  # e.g. "hand inserted into her vagina"
+        if body_integrity:
+            max_attempts = max(max_attempts, 6)
+
         import random as _rng
         base_seed = seed if seed is not None else _rng.randint(0, 2**63 - 1)
 
@@ -1780,6 +1886,7 @@ class HollyComfyUIKlein:
             job_id = None
             attempts_made = 0
             reject_reason = ""
+            best_candidate = (None, None, None, None, "")  # (severity, img, prompt_id, job_id, reason)
 
             for attempt in range(max_attempts):
                 attempt_seed = base_seed + attempt * 1000000  # different seed each try
@@ -1787,12 +1894,28 @@ class HollyComfyUIKlein:
                 print(f"   Generation {attempt+1}/{max_attempts} (seed={attempt_seed})...")
 
                 img_bytes, prompt_id, job_id = self._generate_single(
-                    prompt, width, height, attempt_seed, loras, steps, cfg, sampler
+                    prompt, width, height, attempt_seed, loras, steps, cfg, sampler,
+                    negative_prompt=negative_prompt,
                 )
 
                 # Quality check (auto-reject broken images)
                 if max_attempts > 1:
-                    passes, reason = self._check_image_quality(img_bytes)
+                    if body_integrity:
+                        passes, reason = self._check_body_integrity(
+                            img_bytes, require_face=require_face,
+                            action_desc=action_desc)
+                        # Track least-broken candidate for all-fail fallback:
+                        # fewer problems = better; asymmetric (fused/missing) is
+                        # worse than a soft fail like "face not visible".
+                        _sev = 0
+                        if not passes:
+                            _sev = reason.count(";") + 1
+                            if "asymmetric" in reason:
+                                _sev += 10  # fusions/missing limbs = worst
+                        if best_candidate[0] is None or _sev < best_candidate[0]:
+                            best_candidate = (_sev, img_bytes, prompt_id, job_id, reason)
+                    else:
+                        passes, reason = self._check_image_quality(img_bytes)
                     print(f"   Quality check: {reason}")
                     if passes:
                         print(f"   ✅ Accepted on attempt {attempt+1}")
@@ -1808,6 +1931,13 @@ class HollyComfyUIKlein:
 
             if img_bytes is None:
                 raise RuntimeError("All generation attempts failed")
+
+            # All candidates rejected → return the least-broken one instead of
+            # silently shipping the last seed's defects.
+            if body_integrity and reject_reason and best_candidate[1] is not None:
+                print(f"   ⚠️ No candidate passed integrity; returning least-broken "
+                      f"(severity={best_candidate[0]}, issues: {best_candidate[4]})")
+                img_bytes, prompt_id, job_id = best_candidate[1], best_candidate[2], best_candidate[3]
 
             # ── ADetailer-style refinement pass (hands, feet, faces) ──
             # Optional, gated by enhance_details flag. Detects anatomical regions
