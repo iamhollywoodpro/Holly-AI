@@ -1296,3 +1296,17 @@ returns icon names, not emojis). 8 tests in
 __tests__/api/suggestions-generate.test.ts. The client-side
 `conv-${Date.now()}` conversationId IS the DB id (saveMessages upserts
 with it — src/lib/chat/background-tasks.ts:55).
+
+**DEPLOY PIPELINE LESSON #3 (2026-08-12, C4 rollout):** The deploy chain
+is git push → Coolify direct webhook (fires IMMEDIATELY, before any image
+build) AND GitHub HOLLY CI (~10 min) → HOLLY CD (builds/pushes
+ghcr.io/iamhollywoodpro/holly-ai:latest, then triggers the Coolify deploy
+webhook itself). The direct git-push webhook deploys the OLD :latest
+image — deploys 1108/1109 for c79b680 raced each other on port 3000 AND
+served stale code. THE REAL DEPLOY is the one CD triggers after the
+image push. Verification order: (1) HOLLY CI success, (2) HOLLY CD
+success, (3) application_deployment_queues.status == finished,
+(4) probe the new endpoint's actual behavior (504 stub vs 401 auth).
+Also: duplicate CD runs for the same SHA are normal (workflow_run fires
+per completed CI run); consecutive deploys 1111/1112 both finished clean.
+Disk at 84% — prune before next heavy deploys.
