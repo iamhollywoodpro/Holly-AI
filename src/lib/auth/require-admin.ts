@@ -7,9 +7,8 @@
  * (creator or admin role) can access admin functionality.
  *
  * Authorization tiers:
- *   1. Creator (Steve) — hardcoded emails in src/lib/chat/auth.ts
- *   2. Clerk metadata role — publicMetadata.role === 'admin'
- *   3. Email domain — @nexamusicgroup.com (existing pattern)
+ *   1. Creator (Steve) — exact-match emails in src/lib/chat/auth.ts
+ *   2. Email domain — @nexamusicgroup.com (verified via Clerk email auth)
  *
  * Returns NextResponse (401/403) on failure, or AdminAuthResult on success.
  * Usage:
@@ -53,22 +52,9 @@ export async function requireAdmin(): Promise<NextResponse | AdminAuthResult> {
     };
   }
 
-  // Check Clerk metadata for admin role
-  // authenticateAndLoadUser doesn't expose Clerk metadata directly,
-  // so we check via the Clerk auth() helper for role
-  try {
-    const { auth: clerkAuth } = await import('@clerk/nextjs/server');
-    const clerkSession = clerkAuth();
-    const publicMetadata = (await clerkSession?.userId) ? clerkSession : null;
-
-    // Check Clerk publicMetadata/privateMetadata for role === 'admin'
-    // The existing isUserAdmin in services/route.ts checks both
-    // For now, we rely on email domain check below as the secondary tier
-  } catch {
-    // Clerk not available — fall through to email check
-  }
-
-  // Check email domain — @nexamusicgroup.com is the admin domain
+  // Check email domain — @nexamusicgroup.com is the admin domain.
+  // Email domain control (via Clerk verification) is proof of ownership,
+  // so this tier cannot be spoofed by self-registered users.
   if (auth.userEmail?.toLowerCase().endsWith('@nexamusicgroup.com')) {
     return {
       userId: auth.userId,

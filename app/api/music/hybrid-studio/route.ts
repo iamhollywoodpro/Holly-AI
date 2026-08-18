@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
+import { requireAdult } from '@/lib/auth/require-adult';
 import { sonautoProvider } from '@/lib/music/sonauto-provider';
 
 export const runtime = 'nodejs';
@@ -155,6 +156,9 @@ async function phaseAssembly(state: HybridStudioState): Promise<HybridStudioStat
 
 export async function POST(req: NextRequest) {
   try {
+    // A6: explicit lyrics/content possible — same age gate as chat and images
+    const adultGate = await requireAdult();
+    if (adultGate instanceof NextResponse) return adultGate;
     const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });

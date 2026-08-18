@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
+import { requireAdult } from '@/lib/auth/require-adult';
 
 /**
  * Music Cover Art Generation — 100% FREE via Pollinations AI (FLUX)
@@ -13,6 +14,9 @@ function buildPollinationsUrl(prompt: string, size = 1024): string {
 
 export async function POST(req: NextRequest) {
   try {
+    // A6: explicit lyrics/content possible — same age gate as chat and images
+    const adultGate = await requireAdult();
+    if (adultGate instanceof NextResponse) return adultGate;
     const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });

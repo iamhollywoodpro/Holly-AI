@@ -24,9 +24,53 @@ const CMD_TIMEOUT_MS = 120_000; // 2 min default timeout
 const ALLOWED_COMMANDS = new Set([
   'npm', 'npx', 'node', 'yarn', 'pnpm', 'python', 'python3', 'pip', 'pip3',
   'git', 'ls', 'cat', 'mkdir', 'rm', 'cp', 'mv', 'touch', 'echo', 'find',
-  'grep', 'sed', 'awk', 'curl', 'wget', 'unzip', 'tar', 'chmod', 'which',
+  'grep', 'sed', 'awk', 'unzip', 'tar', 'chmod', 'which',
   'next', 'vite', 'tsc', 'jest', 'vitest', 'eslint', 'prettier',
 ]);
+// NOTE: curl/wget removed from the allowlist — with no shell metacharacters
+// allowed, they were the only remaining network exfiltration vectors.
+
+// git subcommands safe for a build sandbox (protects credential helpers etc.)
+const ALLOWED_GIT_SUBCOMMANDS = new Set([
+  'status', 'log', 'diff', 'add', 'commit', 'push', 'pull', 'fetch',
+  'checkout', 'branch', 'merge', 'stash', 'show', 'init', 'remote',
+  'restore', 'rebase', 'clone',
+]);
+
+/**
+ * S6 FIX (whole-command validation): validate the FULL command, not just the
+ * first token. Enforces per-command argument rules on top of the metacharacter
+ * rejection above. Returns an error string, or null if the command is safe.
+ */
+function validateCommandArgs(command: string): string | null {
+  const parts = command.trim().split(/\s+/);
+  const baseCmd = parts[0];
+  const args = parts.slice(1);
+
+  if (baseCmd === 'git') {
+    // Skip global flags to find the actual subcommand
+    let i = 0;
+    while (i < args.length && args[i].startsWith('-')) i++;
+    const sub = args[i];
+    if (!sub || !ALLOWED_GIT_SUBCOMMANDS.has(sub)) {
+      return `git subcommand not allowed: ${sub || '(none)'}`;
+    }
+    if ((sub === 'push' || sub === 'pull' || sub === 'fetch') &&
+        args.some(a => a === '--force' || a === '-f' || a.startsWith('--force-'))) {
+      return 'force push/pull/fetch is not allowed';
+    }
+  }
+
+  if (baseCmd === 'rm') {
+    const badFlag = args.find(a => a.startsWith('-') && !/^-[rRfi]+v?$/.test(a));
+    if (badFlag) return `rm flag not allowed: ${badFlag}`;
+    const badTarget = args.find(a => !a.startsWith('-') &&
+      (a.startsWith('/') || a.startsWith('~') || a.includes('..') || a === '*' || a === '/*'));
+    if (badTarget) return `rm target outside workspace not allowed: ${badTarget}`;
+  }
+
+  return null;
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -202,12 +246,24 @@ export async function runCommand(
     };
   }
 
-  // Safety check
+  // Safety check — binary allowlist (whole token match)
   const baseCmd = command.trim().split(/\s+/)[0];
   if (!ALLOWED_COMMANDS.has(baseCmd)) {
     return {
       stdout: '',
       stderr: `Command not allowed: ${baseCmd}`,
+      exitCode: 1,
+      durationMs: 0,
+      timedOut: false,
+    };
+  }
+
+  // S6 FIX: argument-level validation of the whole command
+  const argError = validateCommandArgs(command);
+  if (argError) {
+    return {
+      stdout: '',
+      stderr: `Command rejected: ${argError}`,
       exitCode: 1,
       durationMs: 0,
       timedOut: false,

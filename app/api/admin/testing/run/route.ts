@@ -3,44 +3,15 @@ import { requireAdmin } from '@/lib/auth/require-admin';
 
 export const runtime = 'nodejs';
 
-
+// Real test execution is not wired to the actual Jest suite.
+// The previous implementation returned hardcoded fabricated results
+// (125 tests / 118 passed) — removed per the no-fake-data rule.
 export async function POST(req: NextRequest) {
-  try {
   const adminGate = await requireAdmin();
   if (adminGate instanceof NextResponse) return adminGate;
-    const { testSuite = 'all', coverage = false, userId } = await req.json();
-    
-    // Simulate test execution
-    const totalTests = 125;
-    const passed = 118;
-    const failed = 7;
-    
-    const result = {
-      success: true,
-      testSuite,
-      results: {
-        total: totalTests,
-        passed,
-        failed,
-        skipped: 0,
-        duration: '8.2s',
-        passRate: Math.round((passed / totalTests) * 100)
-      },
-      coverage: coverage ? {
-        statements: 82.5,
-        branches: 76.3,
-        functions: 88.1,
-        lines: 81.9
-      } : null,
-      failures: failed > 0 ? [
-        { test: 'test_authentication', error: 'Expected 200, got 401' },
-        { test: 'test_file_upload', error: 'Timeout exceeded' }
-      ].slice(0, failed) : [],
-      timestamp: new Date().toISOString()
-    };
 
-    return NextResponse.json(result);
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
-  }
+  return NextResponse.json(
+    { error: 'Test execution is not implemented — run `npx jest` for real results' },
+    { status: 504 }
+  );
 }

@@ -183,8 +183,10 @@ function hfInferenceUrl(model: string): string {
 // Note: Modal GPU media services are deployed separately in services/modal-media/
 
 const MODAL_IMAGE_URL = process.env.MODAL_IMAGE_URL || '';  // set after deploying image_generate.py
-// HunyuanVideo 1.5 Distilled — unified video endpoint (replaces Wan2.2).
-// Won A/B test 2026-08-11 for face identity preservation.
+// Video generation — Wan2.2-TI2V-5B via video_generate.py (Modal).
+// PINNED 2026-08-12: face deforms on expression changes; upgrade candidate
+// is Wan2.2 I2V-A14B + identity LoRA (Roadmap Phase D).
+// (video_generate_hunyuan.py was an A/B candidate — NOT the live path.)
 // T2V = text-only scenes, I2V = animate a still image.
 const MODAL_VIDEO_T2V_URL = process.env.MODAL_VIDEO_T2V_URL || process.env.MODAL_VIDEO_URL || '';
 const MODAL_VIDEO_I2V_URL = process.env.MODAL_VIDEO_I2V_URL || '';
@@ -911,11 +913,10 @@ export async function generateImage(req: ImageRequest): Promise<ImageResult> {
 }
 
 // ─── Video Provider 0: Modal.com GPU video generation ─────────────────────
-// HunyuanVideo 1.5 Distilled on A10G — unified for both T2V and I2V.
-// Replaces Wan2.2 (A/B winner 2026-08-11, better face identity).
-// T2V: text-only scenes → MODAL_VIDEO_T2V_URL (hunyuan-t2v endpoint)
-// I2V: animate a still image → MODAL_VIDEO_I2V_URL (hunyuan-i2v endpoint)
-// Cost: ~$0.02/video | $30/mo free = ~1,000 videos/mo
+// Wan2.2-TI2V-5B (video_generate.py, Modal) — unified for both T2V and I2V.
+// PINNED: face identity deforms on expression changes (Steve verdict 2026-08-12).
+// T2V: text-only scenes → MODAL_VIDEO_T2V_URL
+// I2V: animate a still image → MODAL_VIDEO_I2V_URL
 
 async function generateVideoWithModal(req: VideoRequest): Promise<VideoResult> {
   const useI2V = !!(req.inputImage && MODAL_VIDEO_I2V_URL);
@@ -964,12 +965,12 @@ async function generateVideoWithModal(req: VideoRequest): Promise<VideoResult> {
   return {
     url: dataUri,
     provider: 'modal',
-    model: 'HunyuanVideo 1.5 Distilled (Modal A10G)',
+    model: 'Wan2.2-TI2V-5B (Modal)',
     duration,
     fps,
     format: 'mp4',
     cost: 0,
-    licence: 'tencent-hunyuan-community',
+    licence: 'apache-2.0',
   };
 }
 
@@ -1200,7 +1201,7 @@ export async function generateVideo(req: VideoRequest): Promise<VideoResult> {
   const errors: string[] = [];
   let hfCreditExhausted = false;
 
-  // 0. Modal.com HunyuanVideo 1.5 (GPU quality, ~$0.02/video from $30/mo free credits)
+  // 0. Modal.com Wan2.2-TI2V-5B (GPU quality, ~$0.05/video)
   //    T2V uses MODAL_VIDEO_T2V_URL, I2V uses MODAL_VIDEO_I2V_URL
   if (MODAL_VIDEO_T2V_URL || MODAL_VIDEO_I2V_URL) {
     try {
@@ -1427,16 +1428,16 @@ export const MEDIA_PROVIDERS = {
   video: {
      active: [
        {
-         name:      'Modal.com — HunyuanVideo 1.5 Distilled (A10G GPU) [PRIMARY]',
-         models:    ['hunyuanvideo-community/HunyuanVideo-1.5-Diffusers-480p_t2v_distilled'],
-         licence:   'tencent-hunyuan-community',
+         name:      'Modal.com — Wan2.2-TI2V-5B [PRIMARY, PINNED]',
+         models:    ['Wan-AI/Wan2.2-TI2V-5B-Diffusers'],
+         licence:   'apache-2.0',
          free:      true,
          keyNeeded: false,
          envVar:    'MODAL_VIDEO_T2V_URL (T2V) + MODAL_VIDEO_I2V_URL (I2V)',
-         deployCmd: 'cd services/modal-media && modal deploy video_generate_hunyuan.py',
-         quality:   'excellent',
-         cost:      '~$0.02/video | $30/mo free = ~1,000 videos/mo',
-         note:      'HunyuanVideo 1.5 Distilled on A10G. A/B winner 2026-08-11. Replaces Wan2.2.',
+         deployCmd: 'cd services/modal-media && modal deploy video_generate.py',
+         quality:   'good (pinned: face deforms on expressions — Phase D upgrade pending)',
+         cost:      '~$0.05/video',
+         note:      'Wan2.2-TI2V-5B via video_generate.py. Pinned 2026-08-12. Upgrade path: Wan2.2 I2V-A14B + identity LoRA (Roadmap Phase D).',
        },
        {
          name:      'HuggingFace — CogVideoX-5B (FALLBACK)',

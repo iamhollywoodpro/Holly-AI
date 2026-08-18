@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { prisma } from '@/lib/db';
+import { auth } from '@clerk/nextjs/server';
 import { requireAdmin } from '@/lib/auth/require-admin';
 
 export const runtime = 'nodejs';
@@ -15,7 +16,12 @@ export async function POST(req: NextRequest) {
   try {
   const adminGate = await requireAdmin();
   if (adminGate instanceof NextResponse) return adminGate;
-    const { action = 'status', userId } = await req.json();
+    // Identity from the authenticated session — never trusted from the request body
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const { action = 'status' } = await req.json();
 
     const result: any = {
       success: true,

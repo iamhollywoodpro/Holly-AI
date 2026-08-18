@@ -2,6 +2,7 @@
 // CRUD operations on Integration table
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { auth } from '@clerk/nextjs/server';
 import { requireAdmin } from '@/lib/auth/require-admin';
 
 export const runtime = 'nodejs';
@@ -12,14 +13,12 @@ export async function POST(req: NextRequest) {
   try {
   const adminGate = await requireAdmin();
   if (adminGate instanceof NextResponse) return adminGate;
-    const { integration, action = 'status', userId, config } = await req.json();
-
+    // Identity from the authenticated session — never trusted from the request body
+    const { userId } = await auth();
     if (!userId) {
-      return NextResponse.json(
-        { success: false, error: 'userId required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    const { integration, action = 'status', config } = await req.json();
 
     let result: any = {
       success: true,
