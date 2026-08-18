@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
         diagnostics.issue = 'System Configuration Check';
         diagnostics.findings = {
           environment: process.env.NODE_ENV,
-          kokoroTts: process.env.KOKORO_TTS_URL ? 'Configured' : 'Not configured (run: cd services/kokoro-tts && docker compose up)',
+          nvidiaTts: process.env.NVIDIA_API_KEY ? 'Configured' : 'Not configured (set NVIDIA_API_KEY)',
           database: process.env.DATABASE_URL ? 'Connected' : 'Not connected',
           authentication: process.env.CLERK_SECRET_KEY ? 'Active' : 'Inactive'
         };

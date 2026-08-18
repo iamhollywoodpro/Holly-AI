@@ -22,7 +22,7 @@ export interface DiscoveredToolCandidate {
 const HOLLY_CAPS = {
   embedding: ['cloudflare/bge-large', 'nvidia/nv-embedqa', 'ollama/nomic-embed'],
   llm: ['groq/llama-3.3-70b', 'arcee/trinity-large', 'free-providers cascade'],
-  tts: ['kokoro-tts'], image: ['flux-schnell', 'dall-e'],
+  tts: ['nvidia-magpie-tts'], image: ['flux-schnell', 'dall-e'],
   music: ['suno', 'sonauto'], code: ['github-tools'], search: ['web-search'],
 };
 

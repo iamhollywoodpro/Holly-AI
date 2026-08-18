@@ -1306,23 +1306,9 @@ export const MEDIA_MODEL_REGISTRY: MediaModelRecord[] = [
     active:      false,
   },
   // ═══════════════════════════════════════════════════════════════════════════
-  // TTS (Text-to-Speech) — VoxCPM2 REMOVED 2026-07-30 (LiveKit not used)
-  // Current TTS: Kokoro-82M (CPU-only, Apache-2.0)
+  // TTS (Text-to-Speech) — NVIDIA Magpie is the sole provider (2026-08-12).
+  // Kokoro-82M + VoxCPM2 removed (Roadmap B1). Client: src/lib/voice/nvidia-tts-client.ts
   // ═══════════════════════════════════════════════════════════════════════════
-  {
-    key:         'hf:kokoro-82m',
-    type:        'audio',
-    provider:    'huggingface',
-    modelId:     'hexgrad/Kokoro-82M',
-    displayName: 'Kokoro-82M — FALLBACK TTS v2.6',
-    licence:     'Apache-2.0',
-    free:        true,
-    keyNeeded:   false,
-    quality:     'good',
-    note:        'v2.6 TTS FALLBACK. 82M params, CPU-only emergency, 54 voices, 8 languages. Runs when GPU is unavailable.',
-    addedAt:     '2026-04-12',
-    active:      true,
-  },
   // ═══════════════════════════════════════════════════════════════════════════
   // MUSIC GENERATION — v2.6 Stack
   // Primary: SUNO V5_5 API (best vocals, 12 languages)

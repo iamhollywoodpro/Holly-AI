@@ -50,7 +50,7 @@ export default function HollyVoicePlayer({
       .trim();
   };
 
-  // Generate and play audio using Kokoro TTS (VoxCPM2 fallback)
+  // Generate and play audio using NVIDIA Magpie TTS
   const generateAndPlay = async () => {
     if (!text || text.trim().length === 0) {
       setError('No text to speak');

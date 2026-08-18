@@ -9,7 +9,7 @@
  *   1. Text + Emotional State → Voice Style Mapping
  *   2. Inject Verbal Personality Markers
  *   3. Preprocess text for TTS consumption
- *   4. Route to best available TTS provider (NVIDIA Magpie → Kokoro fallback)
+ *   4. Synthesize with NVIDIA Magpie (sole provider — Kokoro/VoxCPM2 removed 2026-08-12)
  *   5. Return audio with metadata
  *
  * This engine is provider-agnostic — switching TTS providers doesn't require
@@ -28,7 +28,7 @@ import { logger } from "@/lib/monitoring/logger";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────────
 
-export type TTSProvider = "nvidia-magpie" | "kokoro" | "voxcpm2" | "none";
+export type TTSProvider = "nvidia-magpie" | "none";
 
 export interface VoiceCharacterInput {
   /** Holly's response text */
@@ -130,7 +130,7 @@ function preprocessForTTS(text: string, provider: TTSProvider): string {
   }
 
   // For providers that can't render personality markers, strip them
-  if (provider === "kokoro" || provider === "voxcpm2") {
+  if (provider !== "nvidia-magpie") {
     t = stripVerbalMarkers(t);
   }
 
@@ -163,12 +163,10 @@ function extractAppliedMarkers(original: string, processed: string): string[] {
  * state and response text, and it handles everything else.
  *
  * @param input - What Holly wants to say and how she feels
- * @param kokoroSynth - Optional Kokoro synthesis function (injected to avoid circular deps)
  * @returns Complete voice character result with audio and metadata
  */
 export async function synthesizeWithCharacter(
-  input: VoiceCharacterInput,
-  kokoroSynth?: (text: string, voice: string, speed: number) => Promise<Buffer>
+  input: VoiceCharacterInput
 ): Promise<VoiceCharacterResult> {
   const {
     text,
@@ -252,7 +250,7 @@ export async function synthesizeWithCharacter(
         };
       }
     } catch (nvidiaErr: any) {
-      logger.warn("NVIDIA Magpie failed, falling back to Kokoro", {
+      logger.warn("NVIDIA Magpie failed — no fallback provider (Kokoro/VoxCPM2 removed 2026-08-12)", {
         error: nvidiaErr.message,
         userId,
         category: "voice",
@@ -260,45 +258,7 @@ export async function synthesizeWithCharacter(
     }
   }
 
-  // ── Step 4: Fallback to Kokoro ─────────────────────────────────────────────
-  if (kokoroSynth) {
-    const processedText = preprocessForTTS(textWithMarkers, "kokoro");
-    const kokoroVoice = voice || "af_heart";
-
-    try {
-      const audioBuffer = await kokoroSynth(
-        processedText,
-        kokoroVoice,
-        prosody.speed
-      );
-
-      logger.info("Voice character engine: Kokoro fallback success", {
-        emotion,
-        voice: kokoroVoice,
-        markersApplied: markersApplied.length,
-        userId,
-        category: "voice",
-      });
-
-      return {
-        processedText,
-        prosody,
-        provider: "kokoro",
-        audio: audioBuffer,
-        contentType: "audio/wav",
-        estimatedDurationSec: Math.round((audioBuffer.length / 44100) * 10) / 10,
-        markersApplied,
-      };
-    } catch (kokoroErr: any) {
-      logger.error("Kokoro fallback also failed", {
-        error: kokoroErr.message,
-        userId,
-        category: "voice",
-      });
-    }
-  }
-
-  // ── Step 5: No audio available — return text-only result ────────────────────
+  // ── Step 4: No audio available — return text-only result ────────────────────
   const processedText = preprocessForTTS(textWithMarkers, "none");
 
   logger.warn("Voice character engine: no TTS provider available", {

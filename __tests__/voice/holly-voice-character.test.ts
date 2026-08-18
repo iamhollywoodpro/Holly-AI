@@ -343,24 +343,16 @@ describe("Holly Voice Character Engine", () => {
       }
     });
 
-    it("uses Kokoro fallback when provided", async () => {
-      const mockKokoroSynth = jest.fn<(text: string, voice: string, speed: number) => Promise<Buffer>>().mockResolvedValue(Buffer.alloc(44100));
+    it("returns text-only result when NVIDIA is not configured (Kokoro fallback removed 2026-08-12)", async () => {
+      const result = await synthesizeWithCharacter({
+        text: "Testing no-provider behavior for Holly.",
+        emotion: "idle",
+        userId: "test-user",
+      });
 
-      const result = await synthesizeWithCharacter(
-        {
-          text: "Testing Kokoro fallback synthesis for Holly.",
-          emotion: "idle",
-          userId: "test-user",
-        },
-        mockKokoroSynth
-      );
-
-      // If NVIDIA isn't configured, Kokoro should be called
-      if (result.provider === "kokoro") {
-        expect(mockKokoroSynth).toHaveBeenCalled();
-        expect(result.audio).toBeDefined();
-        expect(result.audio).not.toBeNull();
-      }
+      // Without NVIDIA_API_KEY the engine returns a text-only result —
+      // no fabricated audio, no fallback provider.
+      expect(result.processedText).toBeTruthy();
     });
 
     it("applies speed override", async () => {

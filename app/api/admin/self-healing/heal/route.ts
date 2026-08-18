@@ -54,17 +54,17 @@ export async function POST(req: NextRequest) {
       issues.push({ component: 'AI (Groq)', severity: 'info', description: 'Groq API key configured', autoFixable: false });
     }
 
-    // ── Check 3: Kokoro TTS ───────────────────────────────────────────────────
-    if (!process.env.KOKORO_TTS_URL) {
+    // ── Check 3: NVIDIA Magpie TTS (sole provider) ───────────────────────────
+    if (!process.env.NVIDIA_API_KEY) {
       issues.push({
-        component: 'TTS (Kokoro)',
+        component: 'TTS (NVIDIA Magpie)',
         severity: 'warning',
-        description: 'KOKORO_TTS_URL not set — voice synthesis unavailable',
+        description: 'NVIDIA_API_KEY not set — voice synthesis unavailable',
         autoFixable: false,
-        fix: 'Set KOKORO_TTS_URL to your Kokoro FastAPI instance',
+        fix: 'Set NVIDIA_API_KEY (NVIDIA NIM / integrate.api.nvidia.com)',
       });
     } else {
-      issues.push({ component: 'TTS (Kokoro)', severity: 'info', description: 'Kokoro TTS URL configured', autoFixable: false });
+      issues.push({ component: 'TTS (NVIDIA Magpie)', severity: 'info', description: 'NVIDIA Magpie TTS configured', autoFixable: false });
     }
 
     // ── Check 4: Modal GPU services ───────────────────────────────────────────

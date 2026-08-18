@@ -1,12 +1,12 @@
 /**
- * HOLLY LiveKit Voice Agent — VoxCPM2 TTS via WebRTC
+ * HOLLY LiveKit Voice Agent — NVIDIA Magpie TTS via WebRTC
  *
  * Architecture:
  *   1. User speaks → browser captures audio via LiveKit WebRTC
  *   2. Audio → transcribed via Groq Whisper (existing /api/voice/transcribe)
  *   3. Transcript → LLM chat (existing /api/chat)
- *   4. LLM response text → VoxCPM2 TTS (Modal endpoint)
- *   5. VoxCPM2 audio → streamed back to LiveKit room as agent audio
+ *   4. LLM response text → NVIDIA Magpie TTS (VoxCPM2 removed 2026-08-12)
+ *   5. Magpie audio → streamed back to LiveKit room as agent audio
  *   6. User hears HOLLY's voice with near-zero latency
  *
  * VAD (Voice Activity Detection):
@@ -18,11 +18,11 @@
 import type { AccessTokenOptions, VideoGrant } from 'livekit-server-sdk';
 import { AccessToken } from 'livekit-server-sdk';
 import { randomUUID } from 'crypto';
+import { synthesizeWithNvidia, isNvidiaTTSAvailable } from '../nvidia-tts-client';
 
 const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY || 'devkey';
 const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET || 'devsecret';
 const LIVEKIT_URL = process.env.LIVEKIT_URL || 'ws://livekit:7880';
-const VOXCPM2_URL = process.env.VOXCPM2_TTS_URL;
 
 export interface VoiceRoomConfig {
   roomName: string;
@@ -59,8 +59,8 @@ async function createToken(room: string, identity: string, isAgent: boolean): Pr
 }
 
 export async function synthesizeForStream(text: string): Promise<Buffer | null> {
-  if (!VOXCPM2_URL) {
-    console.warn('[LiveKit Agent] VOXCPM2_TTS_URL not configured');
+  if (!isNvidiaTTSAvailable()) {
+    console.warn('[LiveKit Agent] NVIDIA_API_KEY not configured');
     return null;
   }
 
@@ -72,22 +72,13 @@ export async function synthesizeForStream(text: string): Promise<Buffer | null> 
   if (!cleanedText) return null;
 
   try {
-    const response = await fetch(VOXCPM2_URL.replace(/\/$/, ''), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        text: cleanedText,
-        style_guidance: process.env.VOXCPM2_STYLE_GUIDANCE || 'natural, warm, confident',
-      }),
-      signal: AbortSignal.timeout(60_000),
+    const result = await synthesizeWithNvidia({
+      text: cleanedText,
+      style: 'Neutral',
     });
-
-    if (!response.ok) return null;
-
-    const arrayBuf = await response.arrayBuffer();
-    return Buffer.from(arrayBuf);
+    return result?.audioBuffer ?? null;
   } catch (err) {
-    console.error('[LiveKit Agent] VoxCPM2 synthesis failed:', err);
+    console.error('[LiveKit Agent] NVIDIA Magpie synthesis failed:', err);
     return null;
   }
 }

@@ -76,35 +76,6 @@ async function checkTtsProviders(baseUrl: string): Promise<DiagnosticCheckResult
   }
   results.push(synthesizeCheck);
 
-  const voxcpm2Check: DiagnosticCheckResult = { name: 'VoxCPM2 TTS', status: 'pass', detail: '' };
-  const voxcpm2Url = process.env.VOXCPM2_TTS_URL;
-  if (voxcpm2Url) {
-    voxcpm2Check.status = 'pass';
-    voxcpm2Check.detail = 'Configured (skip ping to avoid GPU wake)';
-  } else {
-    voxcpm2Check.status = 'warn';
-    voxcpm2Check.detail = 'VOXCPM2_TTS_URL not configured';
-  }
-  results.push(voxcpm2Check);
-
-  const kokoroCheck: DiagnosticCheckResult = { name: 'Kokoro TTS (Fallback)', status: 'pass', detail: '' };
-  const kokoroUrl = process.env.KOKORO_TTS_URL;
-  if (kokoroUrl) {
-    try {
-      const { status, latencyMs } = await fetchWithTimeout(kokoroUrl.replace(/\/$/, ''), CHECK_TIMEOUT_MS);
-      kokoroCheck.latencyMs = latencyMs;
-      kokoroCheck.status = status < 500 ? 'pass' : 'fail';
-      kokoroCheck.detail = status < 500 ? `Reachable (${status}, ${latencyMs}ms)` : `Error (${status})`;
-    } catch (err: any) {
-      kokoroCheck.status = 'warn';
-      kokoroCheck.detail = `Unreachable: ${err.message}`;
-    }
-  } else {
-    kokoroCheck.status = 'warn';
-    kokoroCheck.detail = 'KOKORO_TTS_URL not configured';
-  }
-  results.push(kokoroCheck);
-
   return results;
 }
 

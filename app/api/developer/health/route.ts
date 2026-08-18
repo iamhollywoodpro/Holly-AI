@@ -25,7 +25,7 @@ export async function POST(req: Request) {
     const apiKeysStatus = {
       groq: !!process.env.GROQ_API_KEY,
       openrouter: !!process.env.OPENROUTER_API_KEY,
-      kokoro_tts: !!process.env.KOKORO_TTS_URL,
+      nvidia_tts: !!process.env.NVIDIA_API_KEY,
       canva: !!process.env.CANVA_CLIENT_ID,
       github: !!process.env.GITHUB_TOKEN,
     };

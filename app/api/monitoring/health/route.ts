@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
     const apiKeysStatus = {
       groq: !!process.env.GROQ_API_KEY,
       openrouter: !!process.env.OPENROUTER_API_KEY,
-      kokoro_tts: !!process.env.KOKORO_TTS_URL,
+      nvidia_tts: !!process.env.NVIDIA_API_KEY,
       canva: !!process.env.CANVA_CLIENT_ID,
       github: !!process.env.GITHUB_TOKEN,
       clerk: !!process.env.CLERK_SECRET_KEY,
@@ -111,7 +111,7 @@ export async function POST(req: NextRequest) {
         issues: {
           critical: criticalIssues,
           warnings: [
-            !apiKeysStatus.kokoro_tts && 'Kokoro TTS (KOKORO_TTS_URL) not configured — run: cd services/kokoro-tts && docker compose up',
+            !apiKeysStatus.nvidia_tts && 'NVIDIA Magpie TTS (NVIDIA_API_KEY) not configured',
             !apiKeysStatus.canva && 'Canva integration not configured',
             !apiKeysStatus.github && 'GitHub integration not configured'
           ].filter(Boolean)

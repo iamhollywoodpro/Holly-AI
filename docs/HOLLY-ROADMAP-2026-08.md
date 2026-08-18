@@ -52,15 +52,17 @@
 
 ---
 
-## ═══ PHASE B: VOICE CLEANUP + REAL-TIME VOICE (1–2 days) ═══
+## ═══ PHASE B: VOICE CLEANUP ✅ B1 DONE (2026-08-12) + REAL-TIME VOICE ═══
+> B1 shipped: NVIDIA Magpie sole TTS provider. Deleted: services/kokoro-tts/, 6 orphan voice routes (stream-tts/stream/batch/pipeline/command/personality), 11 dead voice components/libs, Kokoro+VoxCPM2 branches in character engine/synthesize/health/diagnostics/registry, 3 env vars (KOKORO_TTS_URL, KOKORO_VOICE, VOXCPM2_TTS_URL), LiveKit agent now Magpie-backed. Verified: tsc, 2081/2081 Jest, build.
+> B2 BLOCKED on live test: NVIDIA_API_KEY only exists in prod env — verify speaker button after next deploy.
 
-### B1 ⬜ Consolidate TTS on NVIDIA Magpie only
+### B1 ✅ (2026-08-12) Consolidate TTS on NVIDIA Magpie only
 - KEEP (load-bearing chain): enhanced-voice-output.ts → /api/voice/synthesize → holly-voice-character.ts → nvidia-tts-client.ts + emotion-voice-map.ts + verbal-markers.ts
 - DELETE: services/kokoro-tts/, voice-handler.ts (0 importers), ambient-synthesizer.ts, voice-personality.ts, bidirectional-controller.ts (with dead enhanced-chat-interface.tsx), stream-tts route (0 callers), VoiceButton/VoiceSettingsModal/VoiceSettingsPanel (0 importers), capabilities/voice-interface.tsx + dashboard
 - SIMPLIFY: holly-voice-character.ts (drop kokoro/voxcpm2 branches), synthesize route, health/diagnostic Kokoro+VoxCPM2 checks
 - ENV: remove KOKORO_TTS_URL, KOKORO_VOICE, VOXCPM2_TTS_URL from .env.example/docs
 
-### B2 ⬜ Verify Instance 1 live: speaker button reads Holly's messages (NVIDIA key test)
+### B2 🟠 (blocked: needs prod NVIDIA_API_KEY or local key) Verify Instance 1 live: speaker button reads Holly's messages (NVIDIA key test)
 
 ### B3 ⬜ Wire Instance 2: real-time voice call
 - Import LiveKitVoiceConversation into chat UI behind "🎙 Voice call" toggle

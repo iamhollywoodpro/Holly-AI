@@ -52,10 +52,8 @@ export async function POST(req: NextRequest) {
       try {
         const res = await fetchJSON(`${BASE_URL}/api/voice/synthesize`);
         const b = typeof res.body === 'object' ? res.body : {};
-        const voxcpm = b.providers?.primary?.configured;
-        const kokoro = b.providers?.fallback?.configured;
-        results.push(`${voxcpm ? 'OK' : 'MISSING'} TTS VoxCPM2: ${voxcpm ? 'configured' : 'not configured'} (${b.providers?.primary?.url || 'N/A'})`);
-        results.push(`${kokoro ? 'OK' : 'MISSING'} TTS Kokoro: ${kokoro ? 'configured' : 'not configured'} (${b.providers?.fallback?.url || 'N/A'})`);
+        const magpie = b.providers?.primary?.configured;
+        results.push(`${magpie ? 'OK' : 'MISSING'} TTS NVIDIA Magpie: ${magpie ? 'configured' : 'not configured'}`);
       } catch (err: unknown) {
         results.push(`TTS check failed: ${(err as Error).message}`);
       }

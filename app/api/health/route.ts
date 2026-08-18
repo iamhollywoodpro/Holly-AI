@@ -52,21 +52,6 @@ async function checkDatabase(): Promise<'connected' | 'disconnected' | 'timeout'
   }
 }
 
-async function checkTtsProvider(url: string | undefined, label: string): Promise<{ provider: string; status: string }> {
-  if (!url) return { provider: label, status: 'not_configured' };
-  try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), TTS_TIMEOUT_MS);
-    // FastAPI services (Kokoro, VoxCPM2) may not have a root handler — use /docs or /openapi.json
-    const healthUrl = url.endsWith('/') ? `${url}docs` : `${url}/docs`;
-    const res = await fetch(healthUrl, { method: 'HEAD', signal: controller.signal });
-    clearTimeout(timer);
-    // Any HTTP response means the service is reachable (even 404 means the server is running)
-    return { provider: label, status: res.ok ? 'reachable' : `unhealthy_${res.status}` };
-  } catch {
-    return { provider: label, status: 'unreachable' };
-  }
-}
 
 // Check which AI providers are configured
 function getProviderStatus() {
@@ -88,8 +73,7 @@ function getIntegrationStatus() {
     clerk:          !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
     suno:           !!process.env.SUNO_API_KEY,
     acestep:        !!process.env.ACESTEP_MUSIC_URL,
-    kokoro_tts:     !!process.env.KOKORO_TTS_URL,
-    voxcpm2_tts:     !!process.env.VOXCPM2_TTS_URL,
+    nvidia_tts:     !!process.env.NVIDIA_API_KEY,
     blob_storage:   !!process.env.BLOB_READ_WRITE_TOKEN,
     spotify:        !!process.env.SPOTIFY_CLIENT_ID,
     soundcloud:     !!process.env.SOUNDCLOUD_CLIENT_ID,
@@ -134,12 +118,8 @@ export async function GET() {
     
     const overallStatus = computeOverallStatus(providers, integrations);
 
-    // Run actual TTS reachability checks (non-blocking, 3s timeout each)
-    const [voxcpm2Tts, kokoroTts] = await Promise.all([
-      checkTtsProvider(process.env.VOXCPM2_TTS_URL, 'voxcpm2_tts'),
-      checkTtsProvider(process.env.KOKORO_TTS_URL, 'kokoro_tts'),
-    ]);
-    const ttsProviders = [voxcpm2Tts, kokoroTts];
+    // NVIDIA Magpie is the sole TTS provider — config check, no ping needed
+    // (Kokoro/VoxCPM2 reachability checks removed 2026-08-12, Roadmap B1)
 
     // Get real provider health from the health monitor
     let providerHealth: any[] = [];
@@ -172,7 +152,7 @@ export async function GET() {
         gitCommit: process.env.NEXT_PUBLIC_DEPLOY_SHA ?? 'unknown',
         environment: process.env.NODE_ENV ?? 'production',
         database,
-        ttsProviders,
+        tts: { provider: 'nvidia-magpie', configured: !!process.env.NVIDIA_API_KEY },
         summary: {
           activeAiProviders: activeProviders,
           configuredIntegrations: activeIntegrations,
