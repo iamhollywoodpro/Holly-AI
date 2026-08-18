@@ -36,7 +36,7 @@ import remarkGfm from "remark-gfm";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import {
-  Send, Loader2, Sparkles, Mic, MicOff, Square,
+  Send, Loader2, Sparkles, Mic, MicOff, Square, Phone, PhoneOff,
   Copy, Check, ChevronDown, Terminal, Github,
   Globe, Code2, Brain, Image, Thermometer,
   Database, Search, Cpu, Zap, X, Bell, TrendingUp,
@@ -2491,16 +2491,54 @@ export default function HollyChatInterface() {
   }, []);
 
   // ── Voice ──────────────────────────────────────────────────────────────────
+  // Voice Call Mode (Roadmap B3): continuous loop — listen → transcribe →
+  // send through the normal chat pipeline (full Holly brain) → speak the
+  // reply via NVIDIA Magpie → listen again.
+  const [callMode, setCallMode] = useState(false);
+  const callModeRef = useRef(false);
+  const spokenMessageRef = useRef<string | null>(null);
+  const handleSendRef = useRef<typeof handleSend | null>(null);
+  // (assigned after handleSend is declared, below)
+
   const voiceLoop = useVoiceLoop({
     silenceTimeout: 1500,
     onTranscript: (text) => {
-      setInput(prev => prev ? `${prev} ${text}` : text);
-      setIsVoiceInput(true);
-      textareaRef.current?.focus();
+      if (callModeRef.current) {
+        // Call mode: transcript goes straight to Holly as a voice message
+        void handleSendRef.current?.(text);
+      } else {
+        setInput(prev => prev ? `${prev} ${text}` : text);
+        setIsVoiceInput(true);
+        textareaRef.current?.focus();
+      }
     },
   });
 
   const { phase: voicePhase, isListening, frequencyData, startListening, stopListening } = voiceLoop;
+
+  const toggleCallMode = useCallback(() => {
+    if (callModeRef.current) {
+      // Hang up
+      callModeRef.current = false;
+      setCallMode(false);
+      stopSpeaking();
+      stopListening();
+    } else {
+      callModeRef.current = true;
+      spokenMessageRef.current = null;
+      setCallMode(true);
+      void startListening();
+    }
+  }, [startListening, stopListening]);
+
+  // Auto-speak in call mode is handled by the existing wasVoiceInput
+  // auto-read path inside handleSend (it passes resume callbacks when
+  // call mode is active). Here we only keep spokenMessageRef for reference.
+  useEffect(() => {
+    if (!callMode || isProcessing) return;
+    const last = messages[messages.length - 1];
+    if (last?.role === "assistant") spokenMessageRef.current = last.id;
+  }, [callMode, isProcessing, messages]);
 
   // ── Scroll tracking ────────────────────────────────────────────────────────
   const scrollToBottom = useCallback((smooth = true) => {
@@ -2557,12 +2595,15 @@ export default function HollyChatInterface() {
   }, [input]);
 
   // ── Send message ───────────────────────────────────────────────────────────
-  const handleSend = useCallback(async () => {
-    if (!input.trim() || isProcessing) return;
+  const handleSend = useCallback(async (overrideText?: string) => {
+    // overrideText is used by Voice Call Mode — the transcript is sent
+    // directly instead of round-tripping through the input box.
+    const messageText = (overrideText ?? input).trim();
+    if (!messageText || isProcessing) return;
 
-    const messageText = input.trim();
-    const sentAttachments = [...attachments];
-    const wasVoiceInput = isVoiceInput;  // capture before reset
+    const sentAttachments = overrideText ? [] : [...attachments];
+    const wasVoiceInput = overrideText ? true : isVoiceInput;  // capture before reset
+    let callReplySpoken = false; // Voice Call Mode: tracks whether to resume listening on failure
     setInput("");
     setAttachments([]);
     setIsVoiceInput(false);  // reset for next message
@@ -2782,9 +2823,25 @@ export default function HollyChatInterface() {
         };
         setMessages(prev => [...prev, assistantMsg]);
         playReceive();
-        // Phase 0: auto-play if voice input OR auto-read is enabled
+        // Phase 0: auto-play if voice input OR auto-read is enabled.
+        // In Voice Call Mode, resume listening when Holly finishes speaking.
         if (wasVoiceInput || autoRead) {
-          speakText(assistantContent, { volume: 0.9, emotion: emotion || undefined }).catch(console.error);
+          const resumeCall = () => { if (callModeRef.current) void startListening(); };
+          if (callModeRef.current) {
+            spokenMessageRef.current = assistantMsg.id;
+            callReplySpoken = true;
+            speakText(assistantContent, {
+              volume: 0.9,
+              emotion: emotion || undefined,
+              onEnd: resumeCall,
+              onError: resumeCall,
+            }).catch(resumeCall);
+          } else {
+            speakText(assistantContent, { volume: 0.9, emotion: emotion || undefined }).catch(console.error);
+          }
+        } else if (callModeRef.current) {
+          // Reply wasn't spoken (no auto-read path) — still resume the call
+          void startListening();
         }
         // Phase A: auto-generate title for new conversations (first exchange)
         const isNewConv = messages.length === 0;
@@ -2805,8 +2862,12 @@ export default function HollyChatInterface() {
       setIsThinking(false);
       setIsStreaming(false);
       abortControllerRef.current = null;
+      // Voice Call Mode: if the reply never got spoken (error/abort), keep the call alive
+      if (callModeRef.current && !callReplySpoken) void startListening();
     }
-  }, [input, isProcessing, messages, conversationId, attachments, isVoiceInput, autoRead, generateTitle, loadPastConversations]);
+  }, [input, isProcessing, messages, conversationId, attachments, isVoiceInput, autoRead, generateTitle, loadPastConversations, startListening]);
+  // Keep the ref current so voiceLoop's onTranscript always calls the latest
+  handleSendRef.current = handleSend;
 
   const handleStop = () => {
     abortControllerRef.current?.abort();
@@ -3768,6 +3829,21 @@ export default function HollyChatInterface() {
                   className="hidden"
                   onChange={e => handleFileSelect(e.target.files)}
                 />
+                {/* Voice Call Mode — B3: continuous talk → reply-by-voice loop */}
+                <button
+                  onClick={toggleCallMode}
+                  disabled={isProcessing && !callMode}
+                  className={`p-2 rounded-xl transition-all ${
+                    callMode
+                      ? "bg-emerald-500/20 text-emerald-400 animate-pulse"
+                      : isProcessing && !callMode
+                      ? "opacity-30 cursor-wait text-gray-500"
+                      : "text-white/30 hover:text-white hover:bg-white/5"
+                  }`}
+                  title={callMode ? "End voice call" : "Voice Call (talk, Holly speaks)"}
+                >
+                  {callMode ? <PhoneOff className="w-5 h-5" /> : <Phone className="w-5 h-5" />}
+                </button>
                 {/* Voice */}
                 <button
                   onClick={isListening ? stopListening : startListening}
@@ -3887,6 +3963,20 @@ export default function HollyChatInterface() {
                 title="Upload Intelligence"
               >
                 <Paperclip className="w-5 h-5" />
+              </button>
+
+              {/* Voice Call Mode — B3 */}
+              <button
+                onClick={toggleCallMode}
+                disabled={isProcessing && !callMode}
+                className={`flex-shrink-0 p-3 rounded-2xl transition-all border border-transparent ${
+                  callMode
+                    ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30 animate-pulse"
+                    : "text-white/30 hover:text-white hover:bg-white/5"
+                }`}
+                title={callMode ? "End voice call" : "Voice Call"}
+              >
+                {callMode ? <PhoneOff className="w-5 h-5" /> : <Phone className="w-5 h-5" />}
               </button>
 
               {/* Voice button */}
