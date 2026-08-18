@@ -1267,3 +1267,15 @@ containers 0, consciousness worker starts in-process (prod logs show
 "[Worker] 🧠 HOLLY Consciousness Worker starting"), LiveKit up with
 real keys. Note: Coolify regenerates docker-compose.yaml from DB each
 deploy (see July 6 lesson) — DB is the source of truth.
+
+**DEPLOY FIX #2 (2026-08-18 evening):** Deploys 1096-1100 failed on
+"driver failed programming external connectivity on endpoint livekit"
+— MY manually-recreated livekit container held ports 7880-7882, blocking
+the compose-managed livekit service. Lesson recorded: NEVER hand-create
+containers that Coolify's compose manages; fix env in Coolify DB and
+let the deploy recreate. Fixed: removed rogue container → deploy 1101
+FINISHED clean. Verified: holly-app (healthy) + holly-cron + livekit all
+compose-managed, livekit env contains NO devkey (real keys from DB env),
+stale helper containers removed. Also: "health 200" alone is NOT proof
+of deploy success — an old container keeps serving during failures;
+always check application_deployment_queues.status == finished.
