@@ -61,7 +61,8 @@ image = (
     .env({"HF_HUB_ENABLE_HF_TRANSFER": "1"})
 )
 
-HF_TOKEN = "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"
+# HF token comes from the huggingface-secret Modal secret — NEVER hardcode it
+# here (GitHub push protection blocked a push on Aug 18 because of that).
 
 
 @app.function(
@@ -73,7 +74,7 @@ HF_TOKEN = "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"
     },
     timeout=7200,
     memory=32768,
-    secrets=[modal.Secret.from_dict({"HF_TOKEN": HF_TOKEN})],
+    secrets=[modal.Secret.from_name("huggingface-secret")],
 )
 def train():
     import subprocess
