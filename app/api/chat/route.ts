@@ -31,6 +31,7 @@ import { executeActions } from '@/lib/ai/action-executor';
 import { modelHealth } from '@/lib/ai/model-health-monitor';
 import type { ChatMessage } from '@/lib/ai/providers/free-providers';
 import { chatLimiter, getRateLimitKey } from '@/lib/rate-limiter';
+import { getActiveExtensions, getExtensionToolGrants, buildExtensionPromptBlock } from '@/lib/extensions/suite-tools';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -412,12 +413,19 @@ export async function POST(req: NextRequest) {
           // ── 6. MCP TOOLS ──
           sendStatus(controller, isSelfCode ? '🔧 Preparing my tools…' : '💭 Preparing my thoughts…');
           let mcpTools: import('@/lib/mcp/mcp-client').MCPTool[] | undefined;
+          // Roadmap C2: load the user's enabled extensions (used both for the
+          // tool grants below and the capability prompt block in buildPrompt).
+          const activeExtensions = dbUserId ? await getActiveExtensions(dbUserId) : [];
+
           if (!isInformationalMsg) {
             try { await Promise.race([mcpManager.ensureHollyTools(), new Promise(r => setTimeout(() => r(true), 15_000))]); } catch (e) { console.warn('[CHAT] MCP tools init timed out or failed:', e instanceof Error ? e.message : e); }
             mcpTools = await mcpManager.getAllTools();
             const filterKey = isSelfCode ? 'self-coding' : detectedMode;
             const allowed = MODE_TOOL_FILTERS[filterKey] || MODE_TOOL_FILTERS['default'];
-            if (mcpTools) mcpTools = mcpTools.filter(t => allowed.includes(t.name));
+            // Roadmap C2: enabled extensions grant their suite's tools on top
+            // of the mode filter — install = real capability activation.
+            const extensionGrants = dbUserId ? await getExtensionToolGrants(dbUserId) : new Set<string>();
+            if (mcpTools) mcpTools = mcpTools.filter(t => allowed.includes(t.name) || extensionGrants.has(t.name));
           }
 
           // ── 6b. INTIMACY STATE ──
@@ -499,7 +507,10 @@ export async function POST(req: NextRequest) {
             intimacyState,
             intimacyDirective,
             aboutThisPerson,
-          }) + onboardingNudge;
+          }) + onboardingNudge
+            // Roadmap C2: tell Holly which extensions the user has installed,
+            // so she knows her active capabilities match her granted tools.
+            + (activeExtensions.length > 0 ? buildExtensionPromptBlock(activeExtensions) : '');
 
           // 7b. INJECT AI BEHAVIOR SETTINGS
           let aiBehaviorDirectives = '';
