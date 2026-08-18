@@ -1254,3 +1254,16 @@ next Coolify redeploy of the app will regenerate it from the compose file
 using the updated DB env (values now non-empty, so LIVEKIT_KEYS will be
 correct). Deleted dead Coolify env rows: KOKORO_TTS_URL, KOKORO_VOICE,
 VOXCPM2_TTS_URL, HOLLY_TTS_API_KEY.
+
+**DEPLOY 2026-08-18 (B2+B3+C-phase batch) — disk-full incident + fix:**
+4 consecutive Coolify deploys failed with "No space left on device"
+(disk 96% full). Fixed: `docker image prune -a` freed 14.9GB (24 unused
+images incl. kokoro 4.9GB). ALSO found: Coolify's stored compose (DB
+docker_compose_raw) still defined the dead kokoro-tts service → every
+deploy recreated a 4.9GB container + re-pulled the image. Removed from
+both Coolify DB and repo docker-compose.coolify.yml (services now:
+holly-app, holly-cron, livekit). Deploys verified: health 200, kokoro
+containers 0, consciousness worker starts in-process (prod logs show
+"[Worker] 🧠 HOLLY Consciousness Worker starting"), LiveKit up with
+real keys. Note: Coolify regenerates docker-compose.yaml from DB each
+deploy (see July 6 lesson) — DB is the source of truth.
