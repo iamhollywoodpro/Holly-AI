@@ -29,15 +29,29 @@ export default function OnboardingFlow() {
     setStep("partner");
   };
 
+  // Persist completion to the DB so the server-side chat gate
+  // (app/chat/page.tsx Gate 5) doesn't redirect the user back here.
+  // Awaited BEFORE navigating — a fire-and-forget call would race the
+  // server-side gate and bounce the user back to /onboarding.
+  const markCompleteInDb = async () => {
+    try {
+      await fetch("/api/onboarding/complete", { method: "POST" });
+    } catch (err) {
+      console.error("[onboarding] failed to mark complete:", err);
+    }
+  };
+
   // Called when partner selection completes
-  const handlePartnerDone = (_prefs: PartnerPreferences) => {
+  const handlePartnerDone = async (_prefs: PartnerPreferences) => {
     localStorage.setItem("holly_onboarding_completed", "true");
+    await markCompleteInDb();
     router.push("/chat");
   };
 
   // Skip partner step
-  const handlePartnerSkip = () => {
+  const handlePartnerSkip = async () => {
     localStorage.setItem("holly_onboarding_completed", "true");
+    await markCompleteInDb();
     router.push("/chat");
   };
 

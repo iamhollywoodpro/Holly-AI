@@ -73,7 +73,7 @@
 
 ## ═══ PHASE C: FIX THE HALF-WIRED SYSTEMS (2–3 days) ═══
 
-### C1 ⬜ Route new users into onboarding (the multiplier)
+### C1 ✅ (2026-08-12) Route new users into onboarding (the multiplier)
 - Fix signup redirect (CLERK_AFTER_SIGN_UP_URL → /onboarding), revive or delete OnboardingCheck, chat page nudge to /onboarding until complete.
 
 ### C2 ⬜ Make extension install REAL

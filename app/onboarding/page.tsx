@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import OnboardingFlow from '@/components/onboarding/OnboardingFlow';
 import { prisma } from '@/lib/db';
 import { authenticateAndLoadUser } from '@/lib/chat/auth';
+import { needsOnboarding } from '@/lib/onboarding/onboarding-engine';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,6 +40,11 @@ export default async function OnboardingPage() {
       googleDriveIntegrations: true,
     },
   });
+
+  // Already completed onboarding → straight to chat (Roadmap C1)
+  if (authResult.dbUserId && !(await needsOnboarding(authResult.dbUserId))) {
+    redirect('/chat');
+  }
 
   // If already connected, mark onboarding complete and redirect
   if (user?.googleDriveIntegrations?.[0]?.isConnected) {

@@ -677,3 +677,25 @@ export async function needsOnboarding(userId: string): Promise<boolean> {
   });
   return !state || !state.completed;
 }
+
+/**
+ * Mark onboarding complete for a user — creates the state row if missing.
+ * Called by the UI flow (Roadmap C1) when the user finishes OR skips the
+ * partner/drive steps, so the server-side chat gate doesn't loop them back.
+ */
+export async function markOnboardingComplete(userId: string): Promise<void> {
+  const state = await prisma.onboardingState.findUnique({
+    where: { userId },
+  });
+
+  if (!state) {
+    await prisma.onboardingState.create({
+      data: { userId, completed: true, profileExtracted: true },
+    });
+    return;
+  }
+
+  if (!state.completed) {
+    await completeOnboarding(userId, state.id);
+  }
+}

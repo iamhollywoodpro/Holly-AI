@@ -19,6 +19,7 @@ import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import { authenticateAndLoadUser } from '@/lib/chat/auth';
+import { needsOnboarding } from '@/lib/onboarding/onboarding-engine';
 import ChatClient from '@/components/chat/ChatClient';
 
 export const dynamic = 'force-dynamic';
@@ -66,6 +67,14 @@ export default async function ChatPage() {
   if (!user.isAdult) {
     // Not verified — send to the age verification page (no skip button anymore).
     redirect('/onboarding/age-verify?redirect=/chat');
+  }
+
+  // ── Gate 5: Onboarding (Roadmap C1, 2026-08-12) ────────────────────────
+  // New users must pass through the onboarding flow (age verify → Drive →
+  // partner mode) before reaching chat. The flow marks completion in the DB
+  // on finish OR skip, so this never loops. Creator bypassed at Gate 3.
+  if (await needsOnboarding(authResult.dbUserId)) {
+    redirect('/onboarding');
   }
 
   // ── All gates passed — render the chat client ──────────────────────────
