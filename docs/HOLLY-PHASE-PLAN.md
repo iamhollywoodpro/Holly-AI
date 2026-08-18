@@ -81,13 +81,13 @@
 - **Files:** `src/lib/ai/media-generator.ts:857-900`; `app/api/video/generate/route.ts` GET metadata (line 46).
 - **DONE:** User-facing metadata matches the actual model.
 
-### 1.2 🟡 Replace admin mock-data routes [A-1]
+### 1.2 ✅ Replace admin mock-data routes [A-1]
 4 admin routes write `Math.random()` / canned data to the DB as if real (code-review, testing, cicd, docs).
 - **Fix:** Either wire to real analysis or clearly mark as "demo/off" and stop persisting fabricated rows. Recommend: gate behind `NODE_ENV !== 'production'` and return 504 in prod until real impl exists.
 - **Files:** `app/api/admin/{code-review,testing,cicd,docs}/route.ts`.
-- **DONE:** Production no longer stores fabricated analysis results.
+- **DONE (2026-08-12):** Prod gates added. code-review: review creation 504s in prod (approve/reject kept). testing: `run_tests` 504s (suite CRUD kept). cicd: deployment creation 504s (rollback kept). docs: all actions 504. Verified: tsc ✅, 2081/2081 Jest ✅, build ✅.
 
-### 1.3 🟡 Fix embedding dimension mismatch [DB-1]
+### 1.3 ✅ Fix embedding dimension mismatch [DB-1]
 `prisma/migrations/pgvector_setup.sql:30` declares `vector(4096)`; schema + code use 1024.
 - **Fix:** Correct the SQL to 1024 (or document why the divergence exists). Verify against the live column type before touching.
 - **Files:** `prisma/migrations/pgvector_setup.sql:30`.

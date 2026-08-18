@@ -10,6 +10,12 @@ import { requireAdmin } from '@/lib/auth/require-admin';
 
 export const runtime = 'nodejs';
 
+// Test runs generate mock results (Math.random) — block in production so the
+// DB never stores fabricated test outcomes. Suite CRUD remains available.
+function mockRunsDisabled() {
+  return process.env.NODE_ENV === 'production';
+}
+
 
 
 // POST: Create test suite OR run tests
@@ -26,6 +32,12 @@ export async function POST(req: NextRequest) {
     const { action } = body;
 
     if (action === 'run_tests') {
+      if (mockRunsDisabled()) {
+        return NextResponse.json(
+          { error: 'Test execution is not implemented — refusing to store fabricated results in production' },
+          { status: 504 }
+        );
+      }
       return await runTests(userId, body.suiteId);
     } else {
       // Create new test suite

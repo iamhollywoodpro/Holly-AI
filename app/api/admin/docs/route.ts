@@ -114,6 +114,15 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { action, docType, targetPath, format, templateId, config } = body;
 
+    // Documentation generation is mock (no real analysis) — block in production
+    // so responses never present fabricated docs as real.
+    if (process.env.NODE_ENV === 'production') {
+      return NextResponse.json(
+        { error: 'Documentation generation is not implemented — no mock output in production' },
+        { status: 504 }
+      );
+    }
+
     // Generate documentation action
     if (action === 'generate') {
       if (!templateId && !docType) {

@@ -10,6 +10,12 @@ import { requireAdmin } from '@/lib/auth/require-admin';
 
 export const runtime = 'nodejs';
 
+// Analysis generation is mock data (Math.random) — block in production so the
+// DB never stores fabricated results. Approve/reject actions remain available.
+function mockAnalysisDisabled() {
+  return process.env.NODE_ENV === 'production';
+}
+
 
 
 // POST: Create code review OR approve/reject
@@ -30,6 +36,12 @@ export async function POST(req: NextRequest) {
     } else if (action === 'reject') {
       return await rejectReview(userId, body.reviewId, body.reason);
     } else {
+      if (mockAnalysisDisabled()) {
+        return NextResponse.json(
+          { error: 'Code review analysis is not implemented — refusing to store fabricated results in production' },
+          { status: 504 }
+        );
+      }
       // Create new code review
       const {
         commitSha,

@@ -10,6 +10,13 @@ import { requireAdmin } from '@/lib/auth/require-admin';
 
 export const runtime = 'nodejs';
 
+// Deployment tracking simulates outcomes (Math.random) — block creation in
+// production so the DB never stores fabricated deployment results.
+// Rollback of real records remains available.
+function mockDeploysDisabled() {
+  return process.env.NODE_ENV === 'production';
+}
+
 
 
 // POST: Create deployment OR trigger rollback
@@ -28,6 +35,12 @@ export async function POST(req: NextRequest) {
     if (action === 'rollback') {
       return await rollbackDeployment(userId, body.deploymentId);
     } else {
+      if (mockDeploysDisabled()) {
+        return NextResponse.json(
+          { error: 'Deployment tracking is not implemented — refusing to store simulated deployments in production' },
+          { status: 504 }
+        );
+      }
       // Create new deployment
       const {
         environment,
