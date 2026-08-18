@@ -29,7 +29,7 @@ const V26_SPEC: Record<string, { expected: boolean; file?: string }> = {
   'ollama_qwen35_32b': { expected: true, file: 'src/lib/ai/smart-router.ts' },
   'ollama_deepseek_r1_14b': { expected: true, file: 'src/lib/ai/smart-router.ts' },
   'github_actions_ci': { expected: true, file: '.github/workflows/ci.yml' },
-  'livekit_voice': { expected: true, file: 'app/api/voice/livekit/route.ts' },
+  'voice_call_mode': { expected: true, file: 'src/components/holly-chat-interface.tsx' },
   'pgvector_semantic_memory': { expected: true, file: 'src/lib/memory/semantic-memory.ts' },
   'daily_diagnostic_cron': { expected: true, file: 'docker/cron/crontab' },
   'mirror_protocol_tool': { expected: true, file: 'scripts/holly-mcp-server.js' },
