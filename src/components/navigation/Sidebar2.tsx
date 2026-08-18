@@ -22,6 +22,7 @@ import {
   Image,
   Code2,
   LogOut,
+  Puzzle,
 } from 'lucide-react';
 import { UserButton, useClerk } from '@clerk/nextjs';
 import { useSidebar } from '@/hooks/use-sidebar';
@@ -210,6 +211,7 @@ export function Sidebar2({
         <NavLink href="/settings" icon={Settings} label="Settings" />
         <NavLink href="/autonomy" icon={Activity} label="Autonomy" />
         <NavLink href="/onboarding" icon={Users} label="Partner Setup" />
+        <NavLink href="/extensions" icon={Puzzle} label="Extensions" />
         
         {/* Sign Out Button */}
         <button
