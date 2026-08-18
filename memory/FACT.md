@@ -1232,3 +1232,25 @@ DWPose skeleton + Klein edit pipeline at 0.9 denoise.
 
 **ControlNet is DEAD — custom node broken beyond repair (multigpu_clones bug
 in ComfyUI core vs Flux2Fun wrapper). Skeleton edit pipeline replaces it.**
+
+**VOICE TTS — REAL (2026-08-18, B2):**
+Hosted NVIDIA Magpie = Riva gRPC (grpc.nvcf.nvidia.com:443, function-id
+877104f7-e885-42b9-8de8-f6e4c6303969). NO REST /v1/audio/speech — that
+endpoint 404s (old client was broken since B1 rewrite). New client:
+src/lib/voice/nvidia-tts-client.ts + vendored Riva protos in
+src/lib/voice/protos/. Voice = "Magpie-Multilingual.EN-US.Sofia" — hosted
+deployment has NO style subvoices (.Happy etc → "subvoice not found");
+client falls back to base voice automatically. Live test: 139KB WAV,
+3.16s speech, ~1.1s latency. Test: __tests__/voice/b2-live-nvidia-tts.test.ts
+(skips honestly without NVIDIA_API_KEY).
+
+**LIVEKIT — SECURED + RUNNING (2026-08-18, B3 setup):**
+Self-hosted on holly server (40.233.70.207:7880-7882), container name
+livekit-tx7n3f3clrlvdaiitob2vi3o-191723151565. Rotated off devkey/devsecret
+→ real key/secret (Coolify DB rows LIVEKIT_API_KEY/SECRET, encrypted via
+coolify container's artisan; plaintext copy at /root/.livekit-creds on
+server; also in local .env). NOTE: container was recreated manually —
+next Coolify redeploy of the app will regenerate it from the compose file
+using the updated DB env (values now non-empty, so LIVEKIT_KEYS will be
+correct). Deleted dead Coolify env rows: KOKORO_TTS_URL, KOKORO_VOICE,
+VOXCPM2_TTS_URL, HOLLY_TTS_API_KEY.
