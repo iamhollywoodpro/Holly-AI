@@ -1,0 +1,12 @@
+// Vendored from NVIDIA Riva (reconstructed from nvidia-riva-client 2.27.0
+// generated descriptors) — see src/lib/voice/nvidia-tts-client.ts
+syntax = "proto3";
+package nvidia.riva;
+enum AudioEncoding {
+  ENCODING_UNSPECIFIED = 0;
+  LINEAR_PCM = 1;
+  FLAC = 2;
+  MULAW = 3;
+  OGGOPUS = 4;
+  ALAW = 20;
+}

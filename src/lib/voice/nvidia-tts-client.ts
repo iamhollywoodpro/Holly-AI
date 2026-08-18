@@ -1,25 +1,37 @@
 /**
- * NVIDIA Magpie TTS Client
+ * NVIDIA Magpie TTS Client (Riva gRPC)
  *
- * API client for NVIDIA's Magpie TTS Multilingual model on NVIDIA NIM.
- * Free tier: 1,000–5,000 credits, 40 requests/min, 22kHz audio output.
+ * API client for NVIDIA's Magpie TTS Multilingual model via the hosted
+ * NVIDIA Cloud Functions gRPC endpoint (Riva SpeechSynthesis service).
  *
- * API docs: https://build.nvidia.com/nvidia/magpie-tts-multilingual
- * Uses REST inference endpoint (not gRPC) for simplicity.
+ * IMPORTANT (B2 fix, 2026-08-18): the hosted Magpie API is gRPC-only —
+ * there is no REST /v1/audio/speech endpoint. The previous REST client
+ * 404'd on every call. This client speaks real Riva gRPC:
+ *   endpoint:   grpc.nvcf.nvidia.com:443
+ *   function-id metadata routes to magpie-tts-multilingual
+ *   voices:     Magpie-Multilingual.EN-US.<Voice>[.<Style>]
+ *
+ * Docs: https://docs.nvidia.com/nim/speech/latest/tts/voices.html
+ * Protos vendored in ./protos/ (reconstructed from nvidia-riva-client 2.27.0)
  *
  * Voices: Sofia (primary), Aria, Jason, Leo, John
  * Styles: Happy, Calm, Sad, Angry, Neutral
  */
 
+import path from "path";
+import * as grpc from "@grpc/grpc-js";
+import * as protoLoader from "@grpc/proto-loader";
 import { logger } from "@/lib/monitoring/logger";
 import type { MagpieVoiceStyle, MagpieVoice } from "./emotion-voice-map";
 
 // ─── Configuration ─────────────────────────────────────────────────────────────────
 
 const NVIDIA_API_KEY = process.env.NVIDIA_API_KEY || "";
-const NVIDIA_TTS_URL =
-  process.env.NVIDIA_TTS_URL ||
-  "https://integrate.api.nvidia.com/v1/audio/speech";
+const RIVA_ENDPOINT = process.env.NVIDIA_TTS_GRPC_ENDPOINT || "grpc.nvcf.nvidia.com:443";
+// NVCF function-id for the hosted magpie-tts-multilingual deployment
+// (per https://huggingface.co/nvidia/magpie_tts_multilingual_357m quickstart)
+const RIVA_FUNCTION_ID =
+  process.env.NVIDIA_TTS_FUNCTION_ID || "877104f7-e885-42b9-8de8-f6e4c6303969";
 
 const REQUEST_TIMEOUT_MS = 30_000;
 
@@ -32,14 +44,16 @@ export interface NvidiaTTSOptions {
   voice?: MagpieVoice;
   /** Emotional style (default: Calm) */
   style?: MagpieVoiceStyle;
-  /** Speed multiplier (0.5–2.0, default: 1.0) */
+  /** Speed multiplier (unused by Riva API — kept for interface compat) */
   speed?: number;
   /** Sample rate (default: 22050) */
   sampleRate?: number;
+  /** BCP-47 language code (default: en-US) */
+  languageCode?: string;
 }
 
 export interface NvidiaTTSResult {
-  /** Synthesized audio buffer */
+  /** Synthesized audio buffer (WAV container, mono 16-bit PCM) */
   audioBuffer: Buffer;
   /** Content-Type of the audio */
   contentType: string;
@@ -49,15 +63,84 @@ export interface NvidiaTTSResult {
   provider: "nvidia-magpie";
 }
 
+// ─── gRPC client setup (lazy singleton) ────────────────────────────────────────────
+
+interface RivaTtsClient {
+  synthesize: (
+    req: unknown,
+    metadata: grpc.Metadata,
+    options: { deadline: number | Date },
+    callback: (err: grpc.ServiceError | null, response?: { audio: Buffer }) => void
+  ) => void;
+  close: () => void;
+}
+
+let cachedClient: RivaTtsClient | null = null;
+
+function getRivaClient(): RivaTtsClient {
+  if (cachedClient) return cachedClient;
+
+  const packageDef = protoLoader.loadSync(
+    [path.join(__dirname, "protos", "riva_tts.proto")],
+    {
+      includeDirs: [path.join(__dirname, "protos")],
+      keepCase: true,
+      longs: Number,
+      enums: String,
+      defaults: true,
+      oneofs: true,
+    }
+  );
+  const grpcPackage = grpc.loadPackageDefinition(packageDef) as Record<string, any>;
+  const ttsPackage = grpcPackage["nvidia"]?.["riva"]?.["tts"];
+  if (!ttsPackage?.RivaSpeechSynthesis) {
+    throw new Error("Failed to load RivaSpeechSynthesis from vendored protos");
+  }
+
+  const client = new ttsPackage.RivaSpeechSynthesis(
+    RIVA_ENDPOINT,
+    grpc.credentials.createSsl(),
+    { "grpc.keepalive_time_ms": 30_000 }
+  ) as RivaTtsClient;
+
+  cachedClient = client;
+  return client;
+}
+
+// ─── WAV container helpers ─────────────────────────────────────────────────────────
+
+/**
+ * Wrap raw mono 16-bit PCM in a WAV (RIFF) header so browsers can play it.
+ */
+function pcmToWav(pcm: Buffer, sampleRate: number): Buffer {
+  const header = Buffer.alloc(44);
+  const byteRate = sampleRate * 2; // mono, 16-bit
+
+  header.write("RIFF", 0, "ascii");
+  header.writeUInt32LE(36 + pcm.length, 4);
+  header.write("WAVE", 8, "ascii");
+  header.write("fmt ", 12, "ascii");
+  header.writeUInt32LE(16, 16);        // fmt chunk size
+  header.writeUInt16LE(1, 20);         // PCM
+  header.writeUInt16LE(1, 22);         // mono
+  header.writeUInt32LE(sampleRate, 24);
+  header.writeUInt32LE(byteRate, 28);
+  header.writeUInt16LE(2, 32);         // block align
+  header.writeUInt16LE(16, 34);        // bits per sample
+  header.write("data", 36, "ascii");
+  header.writeUInt32LE(pcm.length, 40);
+
+  return Buffer.concat([header, pcm]);
+}
+
 // ─── Client ────────────────────────────────────────────────────────────────────────
 
 /**
- * Synthesize speech using NVIDIA Magpie TTS.
+ * Synthesize speech using NVIDIA Magpie TTS (Riva gRPC).
  *
  * Falls back gracefully if:
  * - NVIDIA_API_KEY is not configured → returns null
- * - API returns error → throws with details
- * - Rate limited (429) → throws with retry guidance
+ * - gRPC call fails → throws with details
  */
 export async function synthesizeWithNvidia(
   options: NvidiaTTSOptions
@@ -73,8 +156,8 @@ export async function synthesizeWithNvidia(
     text,
     voice = "Sofia",
     style = "Calm",
-    speed = 1.0,
     sampleRate = 22050,
+    languageCode = "en-US",
   } = options;
 
   if (!text || text.trim().length === 0) {
@@ -84,109 +167,101 @@ export async function synthesizeWithNvidia(
   // Truncate very long text (Magpie has limits)
   const truncatedText = text.length > 5000 ? text.substring(0, 5000) : text;
 
-  logger.info("NVIDIA Magpie TTS synthesis starting", {
-    voice,
-    style,
-    speed,
+  // Riva voice naming: Magpie-Multilingual.EN-US.Sofia.Happy
+  // (locale segment is uppercase in the official voice catalogue)
+  const locale = languageCode.toUpperCase(); // en-US → EN-US
+  const voiceName = `Magpie-Multilingual.${locale}.${voice}.${style}`;
+
+  logger.info("NVIDIA Magpie TTS synthesis starting (Riva gRPC)", {
+    voice: voiceName,
     textLength: truncatedText.length,
     category: "voice",
   });
 
+  const metadata = new grpc.Metadata();
+  metadata.set("function-id", RIVA_FUNCTION_ID);
+  metadata.set("authorization", `Bearer ${NVIDIA_API_KEY}`);
+
+  const request = {
+    text: truncatedText,
+    language_code: languageCode,
+    encoding: 1, // LINEAR_PCM
+    sample_rate_hz: sampleRate,
+    voice_name: voiceName,
+  };
+
   try {
-    const response = await fetch(NVIDIA_TTS_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${NVIDIA_API_KEY}`,
-        Accept: "audio/wav",
-      },
-      body: JSON.stringify({
-        model: "nvidia/magpie-tts-multilingual",
-        input: truncatedText,
-        voice: voice,
-        style: style,
-        speed: speed,
-        sample_rate: sampleRate,
-        response_format: "wav",
-      }),
-      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-    });
+    const client = getRivaClient();
 
-    // Handle rate limiting
-    if (response.status === 429) {
-      const retryAfter = response.headers.get("Retry-After");
-      logger.warn("NVIDIA TTS rate limited", {
-        retryAfter,
-        category: "voice",
+    const call = (voice: string) =>
+      new Promise<{ audio: Buffer }>((resolve, reject) => {
+        client.synthesize(
+          { ...request, voice_name: voice },
+          metadata,
+          { deadline: Date.now() + REQUEST_TIMEOUT_MS },
+          (err, res) => {
+            if (err) reject(err);
+            else if (!res || !res.audio || res.audio.length === 0) {
+              reject(new Error("NVIDIA TTS returned empty audio buffer"));
+            } else resolve(res);
+          }
+        );
       });
-      throw new Error(
-        `NVIDIA TTS rate limited. Retry after ${retryAfter || "a few seconds"}.`
-      );
+
+    let response: { audio: Buffer };
+    try {
+      response = await call(voiceName);
+    } catch (err: any) {
+      // This hosted deployment serves base voices only (no style subvoices).
+      // If the styled subvoice isn't found, fall back to the plain voice.
+      if (err.code === grpc.status.INVALID_ARGUMENT && /subvoice/i.test(err.message ?? "")) {
+        const baseVoice = `Magpie-Multilingual.${locale}.${voice}`;
+        logger.info("NVIDIA TTS styled subvoice unavailable — using base voice", {
+          requested: voiceName,
+          fallback: baseVoice,
+          category: "voice",
+        });
+        response = await call(baseVoice);
+      } else {
+        throw err;
+      }
     }
 
-    // Handle auth errors
-    if (response.status === 401 || response.status === 403) {
-      logger.error("NVIDIA TTS authentication failed", {
-        status: response.status,
-        category: "voice",
-      });
-      throw new Error(
-        `NVIDIA TTS auth failed (${response.status}). Check NVIDIA_API_KEY.`
-      );
-    }
-
-    // Handle other errors
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => `HTTP ${response.status}`);
-      logger.error("NVIDIA TTS synthesis failed", {
-        status: response.status,
-        error: errorText,
-        category: "voice",
-      });
-      throw new Error(`NVIDIA TTS error ${response.status}: ${errorText}`);
-    }
-
-    const arrayBuffer = await response.arrayBuffer();
-
-    if (!arrayBuffer || arrayBuffer.byteLength === 0) {
-      throw new Error("NVIDIA TTS returned empty audio buffer");
-    }
-
-    const audioBuffer = Buffer.from(arrayBuffer);
-
-    // Estimate duration: WAV at 22kHz mono 16-bit = ~44,100 bytes/sec
+    const wav = pcmToWav(Buffer.from(response.audio), sampleRate);
     const estimatedDurationSec = Math.round(
-      (audioBuffer.length / (sampleRate * 2)) * 10
+      (response.audio.length / (sampleRate * 2)) * 10
     ) / 10;
 
     logger.info("NVIDIA Magpie TTS synthesis complete", {
-      audioSize: audioBuffer.length,
+      audioSize: wav.length,
       estimatedDurationSec,
       provider: "nvidia-magpie",
       category: "voice",
     });
 
     return {
-      audioBuffer,
+      audioBuffer: wav,
       contentType: "audio/wav",
       estimatedDurationSec,
       provider: "nvidia-magpie",
     };
   } catch (error: any) {
-    // Don't log timeouts as errors — they're expected under load
-    if (error.name === "TimeoutError" || error.message?.includes("abort")) {
-      logger.warn("NVIDIA TTS request timed out", {
-        timeout: REQUEST_TIMEOUT_MS,
-        category: "voice",
-      });
-      throw new Error("NVIDIA TTS request timed out");
-    }
-
-    logger.error("NVIDIA TTS synthesis error", {
+    logger.error("NVIDIA TTS synthesis error (Riva gRPC)", {
       error: error.message,
+      code: error.code,
       category: "voice",
     });
-    throw error;
+    // Transient gRPC states map to a clearer message
+    if (error.code === grpc.status.DEADLINE_EXCEEDED) {
+      throw new Error("NVIDIA TTS request timed out");
+    }
+    if (error.code === grpc.status.UNAVAILABLE) {
+      throw new Error(`NVIDIA TTS endpoint unavailable: ${RIVA_ENDPOINT}`);
+    }
+    if (error.code === grpc.status.UNAUTHENTICATED || error.code === grpc.status.PERMISSION_DENIED) {
+      throw new Error(`NVIDIA TTS auth failed (${error.code}). Check NVIDIA_API_KEY.`);
+    }
+    throw new Error(`NVIDIA TTS gRPC error ${error.code ?? "?"}: ${error.message}`);
   }
 }
 

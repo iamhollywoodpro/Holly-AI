@@ -1,0 +1,66 @@
+// Vendored from NVIDIA Riva (reconstructed from nvidia-riva-client 2.27.0
+// generated descriptors) — see src/lib/voice/nvidia-tts-client.ts
+syntax = "proto3";
+package nvidia.riva.tts;
+import "riva_common.proto";
+import "riva_audio.proto";
+
+message RivaSynthesisConfigRequest { string model_name = 1; }
+
+message RivaSynthesisConfigResponse {
+  message ParametersEntry {
+    string key = 1;
+    string value = 2;
+  }
+  message Config {
+    string model_name = 1;
+    repeated ParametersEntry parameters = 2;
+  }
+  repeated Config model_config = 1;
+}
+
+message ZeroShotData {
+  bytes audio_prompt = 1;
+  int32 sample_rate_hz = 2;
+  AudioEncoding encoding = 3;
+  int32 quality = 4;
+  string transcript = 5;
+}
+
+message SynthesizeSpeechRequest {
+  string text = 1;
+  string language_code = 2;
+  AudioEncoding encoding = 3;
+  int32 sample_rate_hz = 4;
+  string voice_name = 5;
+  ZeroShotData zero_shot_data = 6;
+  string custom_dictionary = 7;
+  map<string, string> custom_configuration = 8;
+  bool enable_word_time_offsets = 9;
+  nvidia.riva.RequestId id = 100;
+}
+
+message WordTiming {
+  string word = 1;
+  int32 start_time = 2;
+  int32 end_time = 3;
+}
+
+message SynthesizeSpeechResponseMetadata {
+  string text = 1;
+  string processed_text = 2;
+  repeated float predicted_durations = 8;
+  repeated WordTiming words = 9;
+}
+
+message SynthesizeSpeechResponse {
+  bytes audio = 1;
+  SynthesizeSpeechResponseMetadata meta = 2;
+  nvidia.riva.RequestId id = 100;
+}
+
+service RivaSpeechSynthesis {
+  rpc Synthesize(SynthesizeSpeechRequest) returns (SynthesizeSpeechResponse) {}
+  rpc SynthesizeOnline(stream SynthesizeSpeechRequest) returns (stream SynthesizeSpeechResponse) {}
+  rpc GetRivaSynthesisConfig(RivaSynthesisConfigRequest) returns (RivaSynthesisConfigResponse) {}
+}

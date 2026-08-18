@@ -1,0 +1,5 @@
+// Vendored from NVIDIA Riva (reconstructed from nvidia-riva-client 2.27.0
+// generated descriptors) — see src/lib/voice/nvidia-tts-client.ts
+syntax = "proto3";
+package nvidia.riva;
+message RequestId { string value = 1; }
