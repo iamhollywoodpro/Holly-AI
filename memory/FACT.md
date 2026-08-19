@@ -1338,3 +1338,24 @@ training-data/ (May 15 snapshot), empty gui-test-screenshots/,
 holly-server.js build artifact. .env.example voice section corrected to
 Riva gRPC reality (B2). Lesson: never trust old audit lists — re-grep
 `prisma.<camelCase>` before deleting models.
+
+**PHASE D1 — MINIMAX H3 VIDEO SERVICE LIVE (2026-08-12):**
+services/modal-media/video_generate_h3.py deployed (Modal app
+holly-h3-video, profile iamdoregosteve, A100-80GB, ComfyUI headless
+pattern). Endpoints verified with real generations:
+- h3-animate (I2V): HTTP 200, 80s execution, 5.17s/124f/864x480 mp4
+- h3-animate-ref (R2V): HTTP 200, 72s execution, same format
+GLM-4.6V frame QA: I2V = high face consistency, no limb issues, no
+motion blur (the Wan-killing metric). R2V = moderate (slight last-frame
+morph, minor hand issue at 4-step turbo/864x480) — acceptable, tune
+later if promoted to primary. Gotchas fixed during bring-up:
+SamplerCustomAdvanced input is `latent_image` NOT `latent`; latest
+ComfyUI needs torch 2.9 + cu130 index (+ torchaudio pinned 2.9.0 or
+ComfyUI requirements clobber it); Modal gpu="A100" = 40GB variant —
+must use "A100-80GB"; SaveVideo history artifacts don't appear under
+outputs['videos']/'gifs' — read newest holly_h3*.mp4 from OUTPUT_DIR
+(directory-scan fallback in _read_output_video). Cost ≈ $0.12 per 5s
+clip at A100-80GB rates. Wan2.2 TI2V service (video_generate.py) still
+deployed — retire in D2 swap. Test artifacts: /tmp/h3_test_i2v.mp4,
+/tmp/h3_test_r2v.mp4 (frame source: /tmp/holly_test_frame.png from
+Klein endpoint).
