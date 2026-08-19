@@ -1359,3 +1359,23 @@ clip at A100-80GB rates. Wan2.2 TI2V service (video_generate.py) still
 deployed — retire in D2 swap. Test artifacts: /tmp/h3_test_i2v.mp4,
 /tmp/h3_test_r2v.mp4 (frame source: /tmp/holly_test_frame.png from
 Klein endpoint).
+
+**PHASE D2 — H3 IS THE VIDEO STANDARD, WAN RETIRED (2026-08-12):** Commits
+768dc15 (H3 service), b69e252 (skin-texture standard), b0fcc3c (wiring
+swap), b507a3c (status force-dynamic). Two-stage everywhere: Klein still
+(identity lock + skin texture) → H3 I2V. Applies to SFW/NSFW/explicit via
+holly-media-tool + media-generator + generation-engine (single cascade).
+Env done durably on Coolify (artisan tinker via `docker exec -i coolify
+php artisan tinker < script` — NOTE: environment_variables uses
+resourceable_type/resourceable_id, NOT application_id): added
+MODAL_H3_VIDEO_URL + MODAL_H3_VIDEO_REF_URL (both preview rows), deleted
+MODAL_VIDEO_URL / MODAL_VIDEO_I2V_URL / MODAL_VIDEO_T2V_URL; .env +
+docker-compose.yaml patched on disk (watch trailing-newline glue when
+appending to .env); verified in container PID 1 env. Modal apps
+holly-video-generate + holly-video-hunyuan STOPPED (files deleted).
+GOTCHA: /api/multimodal/status was statically cached at build time —
+reported env as unset even when live (frozen timestamp is the tell).
+Fixed with export dynamic='force-dynamic' (b507a3c). Prod verified:
+status shows modal-minimax-h3 available:true, video endpoint set.
+(Deploy 1123 failed = known stale-webhook race; 1124 finished + live.)
+D3 (identity LoRA) NOT needed — Steve: "perfection".
