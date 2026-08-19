@@ -287,8 +287,8 @@ function buildAVSyncPlan(concept: string, syncMode: string): Record<string, unkn
 // ─── Error helper ─────────────────────────────────────────────────────────────
 
 function getSuggestion(errorMessage: string): string {
-  if (errorMessage.includes('VIDEO_NOT_CONFIGURED') || errorMessage.includes('MODAL_VIDEO_URL')) {
-    return 'Video generation runs on Holly\'s Modal CogVideoX-5B GPU. Ensure MODAL_VIDEO_URL is set in Coolify environment variables.';
+  if (errorMessage.includes('VIDEO_NOT_CONFIGURED') || errorMessage.includes('MODAL_H3_VIDEO_URL')) {
+    return 'Video generation runs on Holly\'s Modal MiniMax H3 GPU. Ensure MODAL_H3_VIDEO_URL is set in Coolify environment variables.';
   }
   if (errorMessage.includes('Modal video error') || errorMessage.includes('modal-cogvideox')) {
     return 'Modal video GPU may be cold-starting (scale-to-zero). Try again in 60 seconds — the worker spins up automatically.';
@@ -299,5 +299,5 @@ function getSuggestion(errorMessage: string): string {
   if (errorMessage.includes('Pollinations')) {
     return 'Pollinations fallback failed. Check network connectivity.';
   }
-  return 'Generation failed. Holly uses Modal.com GPU workers — check MODAL_IMAGE_URL and MODAL_VIDEO_URL in Coolify env vars.';
+  return 'Generation failed. Holly uses Modal.com GPU workers — check MODAL_IMAGE_URL and MODAL_H3_VIDEO_URL in Coolify env vars.';
 }

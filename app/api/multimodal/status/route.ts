@@ -17,7 +17,7 @@ export async function GET() {
   const registry = getProviderRegistry();
 
   const hasModalImage = !!process.env.MODAL_IMAGE_URL;
-  const hasModalVideo = !!process.env.MODAL_VIDEO_URL;
+  const hasModalVideo = !!(process.env.MODAL_H3_VIDEO_URL || process.env.MODAL_VIDEO_URL);
   const hasSuno       = !!process.env.SUNO_API_KEY;
   const hasGroq       = !!process.env.GROQ_API_KEY;
   const hasOpenRouter = !!process.env.OPENROUTER_API_KEY;
@@ -43,20 +43,20 @@ export async function GET() {
 
     endpoints: {
       image: process.env.MODAL_IMAGE_URL || null,
-      video: process.env.MODAL_VIDEO_URL || null,
+      video: process.env.MODAL_H3_VIDEO_URL || process.env.MODAL_VIDEO_URL || null,
     },
 
     keyConfiguration: {
       configured: [
         hasModalImage && 'MODAL_IMAGE_URL',
-        hasModalVideo && 'MODAL_VIDEO_URL',
+        hasModalVideo && (process.env.MODAL_H3_VIDEO_URL ? 'MODAL_H3_VIDEO_URL' : 'MODAL_VIDEO_URL'),
         hasSuno       && 'SUNO_API_KEY',
         hasGroq       && 'GROQ_API_KEY',
         hasOpenRouter && 'OPENROUTER_API_KEY',
       ].filter(Boolean),
       notes: {
         MODAL_IMAGE_URL: hasModalImage  ? '✅ Modal FLUX.1-schnell image GPU — active' : '⚠️ Not set — using Pollinations fallback',
-        MODAL_VIDEO_URL: hasModalVideo  ? '✅ Modal CogVideoX-5B video GPU — active'  : '⚠️ Not set — video generation unavailable',
+        MODAL_H3_VIDEO_URL: hasModalVideo ? '✅ Modal MiniMax H3 video GPU — active' : '⚠️ Not set — video generation unavailable',
         SUNO_API_KEY:    hasSuno        ? '✅ Suno V5_5 music generation — active'     : '⚠️ Not set — music generation unavailable',
       },
     },

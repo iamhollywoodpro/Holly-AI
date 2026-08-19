@@ -16,7 +16,7 @@ echo ""
 
 echo "2/2 Deploying Video Generation (CogVideoX-5B on A10G)..."
 echo "Note: First deploy will download ~35GB model weights (20 min build)"
-modal deploy "$SCRIPT_DIR/video_generate.py"
+modal deploy "$SCRIPT_DIR/video_generate_h3.py"
 echo ""
 
 echo "All Modal services deployed!"

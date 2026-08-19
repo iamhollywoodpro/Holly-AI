@@ -320,7 +320,7 @@ export async function POST(request: NextRequest) {
         } else if (svc === 'modal') {
           // Check Modal GPU endpoints
           const imageUrl = process.env.MODAL_IMAGE_URL;
-          const videoUrl = process.env.MODAL_VIDEO_URL;
+          const videoUrl = process.env.MODAL_H3_VIDEO_URL || process.env.MODAL_VIDEO_URL;
           if (!imageUrl && !videoUrl) {
             testDetail = 'MODAL_IMAGE_URL / MODAL_VIDEO_URL not set in Coolify';
           } else {

@@ -9,7 +9,7 @@
 | Service | File | GPU | Model | Cost | Quality |
 |---------|------|-----|-------|------|---------|
 | **Image** | `image_generate.py` | T4 | FLUX.1-schnell | ~$0.0001/img | Excellent |
-| **Video** | `video_generate.py` | A10G | CogVideoX-5B | ~$0.028/video | Excellent |
+| **Video** | `video_generate_h3.py` | A100-80GB | MiniMax H3 (I2V+R2V) | ~$0.12/5s clip | Excellent (image-anchored) |
 
 ---
 
@@ -44,7 +44,7 @@ Set in Coolify: `MODAL_IMAGE_URL=https://iamhollywoodpro--generate.modal.run`
 
 ```bash
 cd services/modal-media
-modal deploy video_generate.py
+modal deploy video_generate_h3.py
 ```
 
 Modal will print your endpoint URL:

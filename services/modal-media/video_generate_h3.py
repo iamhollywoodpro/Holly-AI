@@ -398,6 +398,34 @@ class HollyH3Video:
 
     # ── HTTP endpoints ──────────────────────────────────────────────────
 
+    def _auto_dims(self, request: dict) -> tuple:
+        """Width/height from request, else detect from the first input image.
+
+        Keeps portrait Klein frames portrait (no force-crop to 16:9).
+        Rounds to multiples of 16 and caps the long edge at 1280 (VRAM headroom
+        on A100-80GB with the 21GB int8 DiT + 16GB text encoder).
+        """
+        try:
+            w = int(request.get("width", 0))
+            h = int(request.get("height", 0))
+        except (TypeError, ValueError):
+            w = h = 0
+        if w > 0 and h > 0:
+            return w, h
+        from PIL import Image
+        b64 = (request.get("image_base64") or
+               (request.get("reference_images_base64") or [""])[0])
+        try:
+            import io
+            with Image.open(io.BytesIO(base64.b64decode(b64))) as img:
+                w, h = img.size
+        except Exception:
+            w, h = 864, 480
+        scale = min(1.0, 1280 / max(w, h))
+        w = max(256, int(round(w * scale / 16.0)) * 16)
+        h = max(256, int(round(h * scale / 16.0)) * 16)
+        return w, h
+
     @modal.fastapi_endpoint(method="POST", label="h3-animate")
     def animate(self, request: dict) -> bytes:
         """I2V: Klein-locked still frame → video. Prompt = motion only."""
@@ -410,8 +438,7 @@ class HollyH3Video:
             return JSONResponse({"error": "prompt and image_base64 required"}, status_code=400)
 
         duration = min(max(float(request.get("duration", 5.0)), 1.0), 15.0)
-        width = int(request.get("width", 864))
-        height = int(request.get("height", 480))
+        width, height = self._auto_dims(request)
         steps = min(max(int(request.get("steps", 8)), 4), 30)
         seed = int(request.get("seed") or uuid.uuid4().int % (2**48))
 
@@ -438,8 +465,7 @@ class HollyH3Video:
                 status_code=400)
 
         duration = min(max(float(request.get("duration", 5.0)), 1.0), 15.0)
-        width = int(request.get("width", 864))
-        height = int(request.get("height", 480))
+        width, height = self._auto_dims(request)
         steps = min(max(int(request.get("steps", 4)), 4), 30)
         seed = int(request.get("seed") or uuid.uuid4().int % (2**48))
 

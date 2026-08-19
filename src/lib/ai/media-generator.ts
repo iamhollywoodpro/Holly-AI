@@ -175,7 +175,7 @@ function hfInferenceUrl(model: string): string {
 //
 // Set these in Coolify after deploying services/modal-media/:
 //   MODAL_IMAGE_URL=https://iamhollywoodpro--holly-image-generate.modal.run
-//   MODAL_VIDEO_URL=https://iamhollywoodpro--holly-video-generate.modal.run
+//   MODAL_H3_VIDEO_URL=https://iamdoregosteve--h3-animate.modal.run
 //
 // When set: Modal is used FIRST (GPU quality, ~$0.0001/image, ~$0.028/video)
 // When not set: Pollinations is used (always free, decent quality)
@@ -183,13 +183,11 @@ function hfInferenceUrl(model: string): string {
 // Note: Modal GPU media services are deployed separately in services/modal-media/
 
 const MODAL_IMAGE_URL = process.env.MODAL_IMAGE_URL || '';  // set after deploying image_generate.py
-// Video generation — Wan2.2-TI2V-5B via video_generate.py (Modal).
-// PINNED 2026-08-12: face deforms on expression changes; upgrade candidate
-// is Wan2.2 I2V-A14B + identity LoRA (Roadmap Phase D).
-// (video_generate_hunyuan.py was an A/B candidate — NOT the live path.)
-// T2V = text-only scenes, I2V = animate a still image.
-const MODAL_VIDEO_T2V_URL = process.env.MODAL_VIDEO_T2V_URL || process.env.MODAL_VIDEO_URL || '';
-const MODAL_VIDEO_I2V_URL = process.env.MODAL_VIDEO_I2V_URL || '';
+// Video generation — MiniMax H3 via video_generate_h3.py (Modal, ComfyUI).
+// Image-anchored: still frame (Klein identity + skin standard) → H3 I2V.
+// Retired 2026-08-12: Wan2.2-TI2V-5B (face morphing/blur on motion).
+const MODAL_H3_VIDEO_URL = process.env.MODAL_H3_VIDEO_URL || '';
+const MODAL_H3_VIDEO_REF_URL = process.env.MODAL_H3_VIDEO_REF_URL || '';
 
 // ─── Holly ComfyUI Klein endpoint (self-portraits with locked identity) ──
 // ComfyUI on Modal A100, FLUX.2 Klein 9B Distilled
@@ -912,50 +910,54 @@ export async function generateImage(req: ImageRequest): Promise<ImageResult> {
   throw new Error(`All free image providers failed:\n${errors.join('\n')}`);
 }
 
-// ─── Video Provider 0: Modal.com GPU video generation ─────────────────────
-// Wan2.2-TI2V-5B (video_generate.py, Modal) — unified for both T2V and I2V.
-// PINNED: face identity deforms on expression changes (Steve verdict 2026-08-12).
-// T2V: text-only scenes → MODAL_VIDEO_T2V_URL
-// I2V: animate a still image → MODAL_VIDEO_I2V_URL
+// ─── Video Provider 0: Modal.com MiniMax H3 (ComfyUI) ──────────────────────
+// H3 is IMAGE-anchored: every video starts from a still. When the caller
+// supplies inputImage it is used directly; otherwise a still is generated
+// first via generateImage() (Holly self-portraits go through the Klein
+// identity lock + skin-texture standard; generic scenes use the normal
+// image cascade). The prompt passed to H3 is motion-only guidance.
+//
+// MODAL_H3_VIDEO_URL → h3-animate (I2V)
+// MODAL_H3_VIDEO_REF_URL → h3-animate-ref (R2V, optional — 1-3 refs)
 
 async function generateVideoWithModal(req: VideoRequest): Promise<VideoResult> {
-  const useI2V = !!(req.inputImage && MODAL_VIDEO_I2V_URL);
-  const endpointUrl = useI2V
-    ? MODAL_VIDEO_I2V_URL.replace(/\/$/, '')
-    : MODAL_VIDEO_T2V_URL.replace(/\/$/, '');
+  const h3Url = MODAL_H3_VIDEO_URL.replace(/\/$/, '');
+  if (!h3Url) throw new Error('MODAL_H3_VIDEO_URL not configured');
 
-  if (!endpointUrl) {
-    throw new Error(useI2V
-      ? 'MODAL_VIDEO_I2V_URL not configured for image-to-video'
-      : 'MODAL_VIDEO_T2V_URL not configured for text-to-video');
+  const duration = Math.min(Math.max(req.duration ?? 5, 2), 15);
+  const fps = 24; // H3 native output rate
+
+  // Two-stage: no input still → generate one first (Klein standard for Holly)
+  let stillBase64: string | null = null;
+  if (req.inputImage) {
+    stillBase64 = req.inputImage.replace(/^data:[^;]+;base64,/, '');
+  } else {
+    // Video styles don't map 1:1 to image styles — map to closest image style
+    const styleMap: Partial<Record<VideoStyle, ImageStyle>> = {
+      realistic: 'realistic', cinematic: 'cinematic', anime: 'anime',
+    };
+    const imageResult = await generateImage({
+      prompt: req.prompt,
+      aspectRatio: req.aspectRatio,
+      style: (req.style && styleMap[req.style]) || 'photographic',
+    });
+    stillBase64 = imageResult.url.replace(/^data:[^;]+;base64,/, '');
   }
 
-  const duration = Math.min(Math.max(req.duration ?? 5, 2), 5);
-  const fps = req.fps ?? 24;
-
-  const body = useI2V
-    ? JSON.stringify({
-        image_url: req.inputImage,
-        prompt: req.prompt,
-        duration,
-        fps,
-      })
-    : JSON.stringify({
-        prompt: req.prompt,
-        duration,
-        fps,
-      });
-
-  const res = await fetch(endpointUrl, {
+  const res = await fetch(h3Url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body,
-    signal: AbortSignal.timeout(600_000),  // 10 min — cold starts + generation
+    body: JSON.stringify({
+      image_base64: stillBase64,
+      prompt: req.prompt,
+      duration,
+    }),
+    signal: AbortSignal.timeout(900_000),  // 15 min — cold starts + generation
   });
 
   if (!res.ok) {
     const errBody = await res.text();
-    throw new Error(`Modal video error ${res.status}: ${errBody.slice(0, 200)}`);
+    throw new Error(`Modal H3 video error ${res.status}: ${errBody.slice(0, 200)}`);
   }
 
   const arrayBuf = await res.arrayBuffer();
@@ -965,12 +967,12 @@ async function generateVideoWithModal(req: VideoRequest): Promise<VideoResult> {
   return {
     url: dataUri,
     provider: 'modal',
-    model: 'Wan2.2-TI2V-5B (Modal)',
+    model: 'MiniMax H3 I2V (Modal)',
     duration,
     fps,
     format: 'mp4',
     cost: 0,
-    licence: 'apache-2.0',
+    licence: 'minimax-community (Canada OK)',
   };
 }
 
@@ -1201,9 +1203,9 @@ export async function generateVideo(req: VideoRequest): Promise<VideoResult> {
   const errors: string[] = [];
   let hfCreditExhausted = false;
 
-  // 0. Modal.com Wan2.2-TI2V-5B (GPU quality, ~$0.05/video)
-  //    T2V uses MODAL_VIDEO_T2V_URL, I2V uses MODAL_VIDEO_I2V_URL
-  if (MODAL_VIDEO_T2V_URL || MODAL_VIDEO_I2V_URL) {
+  // 0. Modal.com MiniMax H3 (GPU quality, ~$0.12/clip) — two-stage,
+  //    image-anchored (Klein still → H3 animation)
+  if (MODAL_H3_VIDEO_URL) {
     try {
       return await generateVideoWithModal(req);
     } catch (e) {
@@ -1428,16 +1430,16 @@ export const MEDIA_PROVIDERS = {
   video: {
      active: [
        {
-         name:      'Modal.com — Wan2.2-TI2V-5B [PRIMARY, PINNED]',
-         models:    ['Wan-AI/Wan2.2-TI2V-5B-Diffusers'],
-         licence:   'apache-2.0',
-         free:      true,
+         name:      'Modal.com — MiniMax H3 [PRIMARY]',
+         models:    ['Comfy-Org/MiniMax-H3 (fl2va pruned int8 + turbo LoRA)'],
+         licence:   'minimax-community (Canada OK)',
+         free:      false,
          keyNeeded: false,
-         envVar:    'MODAL_VIDEO_T2V_URL (T2V) + MODAL_VIDEO_I2V_URL (I2V)',
-         deployCmd: 'cd services/modal-media && modal deploy video_generate.py',
-         quality:   'good (pinned: face deforms on expressions — Phase D upgrade pending)',
-         cost:      '~$0.05/video',
-         note:      'Wan2.2-TI2V-5B via video_generate.py. Pinned 2026-08-12. Upgrade path: Wan2.2 I2V-A14B + identity LoRA (Roadmap Phase D).',
+         envVar:    'MODAL_H3_VIDEO_URL (I2V) + MODAL_H3_VIDEO_REF_URL (R2V, optional)',
+         deployCmd: 'cd services/modal-media && modal deploy video_generate_h3.py',
+         quality:   'excellent (image-anchored: Klein identity lock + skin-texture standard → H3 animation; verified 2026-08-12)',
+         cost:      '~$0.12/5s clip (A100-80GB)',
+         note:      'Two-stage: still frame first (generateImage cascade), then H3 I2V. Wan2.2 retired 2026-08-12 (face morphing/blur on motion).',
        },
        {
          name:      'HuggingFace — CogVideoX-5B (FALLBACK)',

@@ -322,7 +322,8 @@ async function generateImage(
 }
 
 /**
- * Generate a video: first create a still image, then animate it via HunyuanVideo I2V.
+ * Generate a video: first create a still image (Klein identity lock + skin
+ * texture standard), then animate it via MiniMax H3 I2V.
  */
 async function generateVideo(
   req: HollyMediaRequest,
@@ -331,10 +332,10 @@ async function generateVideo(
   loraStack: Array<{ name: string; strength: number }>,
   seed: number,
 ): Promise<HollyMediaResult> {
-  const videoI2vUrl = process.env.MODAL_VIDEO_I2V_URL || '';
+  const h3VideoUrl = process.env.MODAL_H3_VIDEO_URL || '';
 
-  if (!videoI2vUrl) {
-    return errorResult('Video I2V endpoint not configured', action.action_id, seed);
+  if (!h3VideoUrl) {
+    return errorResult('MODAL_H3_VIDEO_URL not configured (MiniMax H3 video)', action.action_id, seed);
   }
 
   try {
@@ -344,15 +345,16 @@ async function generateVideo(
       return errorResult(`Image generation failed: ${imageResult.error}`, action.action_id, seed);
     }
 
-    // Step 2: Animate via HunyuanVideo I2V
+    // Step 2: Animate via MiniMax H3 I2V. Prompt is motion-only — appearance
+    // comes from the Klein-locked frame (never describe looks here).
+    const imageBase64 = imageResult.url.replace(/^data:[^;]+;base64,/, '');
     const videoBody = JSON.stringify({
-      image_url: imageResult.url,
+      image_base64: imageBase64,
       prompt: req.request || 'subtle natural motion',
-      duration: 2,
-      fps: 24,
+      duration: 5,
     });
 
-    const videoRes = await fetch(videoI2vUrl.replace(/\/$/, ''), {
+    const videoRes = await fetch(h3VideoUrl.replace(/\/$/, ''), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: videoBody,
@@ -370,7 +372,7 @@ async function generateVideo(
 
     return {
       url: videoDataUri,
-      provider: 'modal-hunyuanvideo-i2v',
+      provider: 'modal-minimax-h3-i2v',
       action_id: action.action_id,
       seed,
       lora_stack: loraStack.map(l => l.name),
@@ -380,7 +382,7 @@ async function generateVideo(
   } catch (e) {
     return {
       url: '',
-      provider: 'modal-hunyuanvideo-i2v',
+      provider: 'modal-minimax-h3-i2v',
       action_id: action.action_id,
       seed,
       lora_stack: loraStack.map(l => l.name),

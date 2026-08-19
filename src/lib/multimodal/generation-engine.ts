@@ -8,7 +8,7 @@
  *     2. FLUX.1-schnell on Modal — Apache 2.0 proven fallback
  *
  *   Video:
- *     1. MODAL_VIDEO_URL  — Holly's own Wan2.2-TI2V-5B GPU on Modal (set in Coolify ✅)
+ *     1. MODAL_H3_VIDEO_URL  — Holly's own MiniMax H3 GPU on Modal (set in Coolify ✅)
  *     2. CogVideoX-5B on Modal — Apache 2.0 fallback
  *     ↳ Graceful error if Modal video is not responding (cold start / scale-to-zero)
  *
@@ -159,14 +159,14 @@ export function getProviderRegistry(): ProviderCapability[] {
     },
     // ── Video providers ──
     {
-      name: 'modal-cogvideox',
+      name: 'modal-minimax-h3',
       modalities: ['video'],
-      maxDuration: 10,
+      maxDuration: 15,
       requiresKey: false,
-      quality: 4,
+      quality: 5,
       speed: 'slow', // GPU cold start may take ~60s
-      costTier: 'free',
-      available: !!process.env.MODAL_VIDEO_URL,
+      costTier: 'medium',
+      available: !!process.env.MODAL_H3_VIDEO_URL,
     },
     // ── Music providers ──
     {
@@ -306,66 +306,30 @@ async function generateImagePollinations(
 // ─── Video Generation ─────────────────────────────────────────────────────────
 
 export async function generateVideo(req: VideoGenerationRequest): Promise<GenerationResult> {
-  const modalUrl = process.env.MODAL_VIDEO_URL;
-
-  if (!modalUrl) {
-    throw new Error(
-      'VIDEO_NOT_CONFIGURED: MODAL_VIDEO_URL is not set. ' +
-      'The Holly CogVideoX-5B Modal endpoint is not configured. ' +
-      'Check Coolify environment variables.'
-    );
-  }
-
-  return await generateVideoModal(req, modalUrl);
-}
-
-async function generateVideoModal(
-  req: VideoGenerationRequest,
-  endpointUrl: string,
-): Promise<GenerationResult> {
-  const duration = Math.min(req.duration || 6, 10); // CogVideoX supports up to ~10s
-  const ar = req.aspectRatio || '16:9';
-
-  const payload = {
+  // Single source of truth: src/lib/ai/media-generator.ts cascade.
+  // Two-stage MiniMax H3 (Klein still → I2V animation); legacy direct
+  // CogVideoX/Wan payload code removed with the Wan retirement (2026-08-12).
+  const { generateVideo: mediaGenerateVideo } = await import('@/lib/ai/media-generator');
+  const result = await mediaGenerateVideo({
     prompt: req.prompt,
-    negative_prompt: req.negativePrompt || '',
-    num_frames: duration * (req.fps || 8),   // CogVideoX default 8fps
-    fps: req.fps || 8,
-    guidance_scale: 6,
-    num_inference_steps: 50,
-    seed: Math.floor(Math.random() * 1_000_000),
-  };
-
-  console.log(`[Generation] Modal video: ${endpointUrl}/video-generate, ${duration}s, ${ar}`);
-
-  const res = await fetch(`${endpointUrl}/video-generate`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-    signal: AbortSignal.timeout(600_000), // 10 min — video generation can be slow
+    duration: req.duration,
+    aspectRatio: req.aspectRatio,
+    style: (['realistic', 'anime', 'cinematic', 'abstract'] as const).includes(req.style as never)
+      ? (req.style as 'realistic' | 'anime' | 'cinematic' | 'abstract')
+      : undefined,
+    inputImage: req.referenceImageUrl || undefined,
   });
-
-  if (!res.ok) {
-    const errText = await res.text().catch(() => res.statusText);
-    throw new Error(`Modal video error: ${res.status} — ${errText.substring(0, 300)}`);
-  }
-
-  const data = await res.json() as { video_url?: string; url?: string; error?: string };
-  if (data.error) throw new Error(`Modal video returned error: ${data.error}`);
-
-  const url = data.video_url || data.url;
-  if (!url) throw new Error('Modal video endpoint returned no URL');
 
   return {
     success: true,
     modality: 'video',
-    url,
-    duration,
-    provider: 'modal-cogvideox',
-    model: 'CogVideoX-5B',
+    url: result.url,
+    duration: result.duration,
+    provider: result.provider,
+    model: result.model,
     prompt: req.prompt,
     generatedAt: new Date(),
-    estimatedCost: 0,
+    estimatedCost: result.cost,
   };
 }
 
@@ -389,7 +353,7 @@ function resolveImageDimensions(req: ImageGenerationRequest): [number, number] {
 
 export function getGenerationSystemBlock(): string {
   const hasModalImage = !!process.env.MODAL_IMAGE_URL;
-  const hasModalVideo = !!process.env.MODAL_VIDEO_URL;
+  const hasModalVideo = !!process.env.MODAL_H3_VIDEO_URL;
   const hasSuno       = !!process.env.SUNO_API_KEY;
 
   return `
@@ -403,7 +367,7 @@ HOLLY has access to a full multi-modal generation studio powered by her own Moda
   Trigger words: "generate an image", "create a picture", "make art", "design", "visualize",
                  "album art", "album cover", "poster", "thumbnail", "render", "illustrate"
 
-**Videos** (${hasModalVideo ? '✅ ACTIVE — Modal Wan2.2-TI2V-5B GPU online' : '⚠️ MODAL_VIDEO_URL not set — video unavailable'})
+**Videos** (${hasModalVideo ? '✅ ACTIVE — Modal MiniMax H3 GPU online (image-anchored)' : '⚠️ MODAL_H3_VIDEO_URL not set — video unavailable'})
   Primary: Holly's own Wan2.2-TI2V-5B on Modal (720P 24fps, Apache 2.0)
   Fallback: CogVideoX-5B on Modal (480P 8fps, Apache 2.0)
   Note: First request may take ~60s if the GPU worker is cold (scale-to-zero)
