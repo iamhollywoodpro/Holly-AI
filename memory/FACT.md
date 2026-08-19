@@ -1320,3 +1320,21 @@ v1.0 validation → server dryRun preview → merge/append/replace strategy →
 real import with confirm + result summary. Also fixed dead link: Account
 page "Extract Archive" pointed at nonexistent /api/export-data — now goes
 to /settings/relationship. No engine changes; routes were already real.
+
+**PHASE E — DEAD CODE REMOVAL (2026-08-12):** IMPORTANT: the audit doc's
+"39 dead Prisma models" list was STALE — re-verification with correct
+grep found 23 of 39 now have live code refs (incl. RelationshipMilestone
+— 10 refs + 16 prod rows; OnboardingState, SelfCodeRollback, MonitoringAlert
+etc. all live). Only 18 verified dead (0 code refs incl. tests, 0 prod
+rows): AuraAgent, AuraMessage, AgentRegistry, BuildSandbox, BuildTerminal,
+BuildPreview, CollectionItem, NarrativeTemplate, BrainstormSession,
+CreativeInsight, RefinementHistory, EmotionalTrigger, UserEngagementScore,
+UserFeedbackV2, ProjectAsset, GitHubIntegration, Collection, AuraWorkspace
+(last 2 discovered dead during this pass). Removed from schema.prisma +
+back-relation fields on User/Project/CreativeAsset/AuraAnalysis/
+BuildSession. Next deploy's startup `prisma db push` drops those 18
+EMPTY tables. Also removed: services/modal-training/ (run_modal.py),
+training-data/ (May 15 snapshot), empty gui-test-screenshots/,
+holly-server.js build artifact. .env.example voice section corrected to
+Riva gRPC reality (B2). Lesson: never trust old audit lists — re-grep
+`prisma.<camelCase>` before deleting models.

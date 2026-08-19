@@ -35,7 +35,6 @@ model User {
   emotionAggregates       EmotionAggregate[]
   emotionTrends           EmotionTrend[]
   emotionInsights         EmotionInsight[]
-  githubIntegrations      GitHubIntegration[]
   googleDriveIntegrations GoogleDriveIntegration[]
   workLogs                WorkLog[]
   settings                UserSettings?
@@ -73,18 +72,12 @@ model User {
 
   // Phase 2E: Emotional Intelligence
   emotionalStates     EmotionalState[]
-  emotionalTriggers   EmotionalTrigger[]
   empathyInteractions EmpathyInteraction[]
   emotionalJourneys   EmotionalJourney[]
   supportStrategies   SupportStrategy[]
 
   // Phase 2D: Creative Co-Pilot
   creativeSuggestions CreativeSuggestion[]
-  refinementHistory   RefinementHistory[]
-  narrativeTemplates  NarrativeTemplate[]
-  brainstormSessions  BrainstormSession[]
-  creativeInsights    CreativeInsight[]
-
   // Phase 4B: Advanced User Intelligence
   sessions          UserSession[]
   events            UserEvent[]
@@ -92,9 +85,6 @@ model User {
   preferencesV2     UserPreferences?
   abTestAssignments ABTestAssignment[]
   abTestConversions ABTestConversion[]
-  engagementScore   UserEngagementScore?
-  feedbackV2        UserFeedbackV2[]
-
   // Phase 4D: Development Automation
   // (Relations will be added when models are used)
 
@@ -121,8 +111,6 @@ model User {
 
   // Sprint 2: Creative Core - AURA & Library
   auraAnalyses AuraAnalysis[]
-  collections  Collection[]
-
   // Phase 7: Public API Layer
   apiKeys ApiKey[]
 
@@ -133,7 +121,6 @@ model User {
   gitConnections GitConnection[]
 
   // AURA 3.0: Multi-agent workspaces
-  auraWorkspaces  AuraWorkspace[]
   MemoryEmbedding MemoryEmbedding[]
   GoalExecution   GoalExecution[] @relation("GoalExecutionsUser")
 
@@ -279,9 +266,6 @@ model Project {
   milestones  Milestone[]
 
   // Sprint 2: Library relations
-  assets          ProjectAsset[]
-  collectionItems CollectionItem[]
-
   @@index([userId])
   @@index([startDate])
   @@map("projects")
@@ -346,24 +330,6 @@ model EmotionInsight {
   @@map("emotion_insights")
 }
 
-model GitHubIntegration {
-  id             String    @id @default(cuid())
-  userId         String
-  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  accessToken    String
-  refreshToken   String?
-  tokenExpiresAt DateTime?
-  githubUserId   String
-  githubUsername String
-  githubEmail    String?
-  avatarUrl      String?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-
-  @@unique([userId])
-  @@index([githubUserId])
-  @@map("github_integrations")
-}
 
 model GoogleDriveIntegration {
   id             String    @id @default(cuid())
@@ -1103,23 +1069,6 @@ model EmotionalState {
 }
 
 // Emotional triggers and patterns
-model EmotionalTrigger {
-  id          String   @id @default(cuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  triggerType String // success, failure, frustration, pressure, praise, criticism
-  description String   @db.Text
-  emotion     String // emotion it typically triggers
-  intensity   Float // typical intensity
-  frequency   Int      @default(1)
-  lastSeen    DateTime @default(now())
-  firstSeen   DateTime @default(now())
-  context     Json // when/where this trigger appears
-
-  @@index([userId])
-  @@index([triggerType])
-  @@map("emotional_triggers")
-}
 
 // Empathy interactions and responses
 model EmpathyInteraction {
@@ -1216,93 +1165,12 @@ model CreativeSuggestion {
 }
 
 // Track iterations and refinements of creative work
-model RefinementHistory {
-  id                String   @id @default(cuid())
-  userId            String
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  projectId         String?
-  itemType          String // code, design, copy, music, document
-  itemName          String
-  version           Int      @default(1)
-  content           String   @db.Text
-  changes           Json // what changed from previous version
-  improvements      String[] @default([]) // specific improvements made
-  feedback          String?  @db.Text
-  quality           Float? // 0.0 to 1.0
-  previousVersionId String?
-  createdAt         DateTime @default(now())
-
-  @@index([userId])
-  @@index([projectId])
-  @@index([itemType])
-  @@index([version])
-  @@map("refinement_history")
-}
 
 // Narrative templates and generated stories
-model NarrativeTemplate {
-  id            String    @id @default(cuid())
-  userId        String
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  templateType  String // project_description, marketing_copy, story_arc, pitch, explanation
-  name          String
-  structure     Json // narrative structure/arc
-  tone          String // professional, casual, exciting, technical, etc.
-  audienceType  String // developers, clients, users, investors
-  elements      Json // key elements to include
-  examples      String[]  @default([]) // example outputs
-  timesUsed     Int       @default(0)
-  effectiveness Float     @default(0.5)
-  createdAt     DateTime  @default(now())
-  lastUsed      DateTime?
-
-  @@index([userId])
-  @@index([templateType])
-  @@index([effectiveness])
-  @@map("narrative_templates")
-}
 
 // Creative brainstorming sessions
-model BrainstormSession {
-  id            String   @id @default(cuid())
-  userId        String
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  topic         String
-  goal          String   @db.Text
-  ideas         Json // array of generated ideas
-  selectedIdeas String[] @default([])
-  context       Json
-  techniques    String[] @default([]) // what brainstorming techniques were used
-  outcome       String?  @db.Text
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  @@index([userId])
-  @@index([createdAt])
-  @@map("brainstorm_sessions")
-}
 
 // Creative insights and patterns
-model CreativeInsight {
-  id          String   @id @default(cuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  insightType String // pattern, trend, opportunity, optimization
-  category    String // coding, design, workflow, communication
-  insight     String   @db.Text
-  evidence    Json // what led to this insight
-  actionable  Boolean  @default(true)
-  priority    Int      @default(5)
-  applied     Boolean  @default(false)
-  impact      Float? // measured impact if applied
-  createdAt   DateTime @default(now())
-
-  @@index([userId])
-  @@index([insightType])
-  @@index([applied])
-  @@index([priority])
-  @@map("creative_insights")
-}
 
 // ============================================================================
 // PHASE 1: METAMORPHOSIS - SELF-AWARENESS & MONITORING
@@ -2034,90 +1902,7 @@ model ABTestConversion {
 }
 
 // Engagement & Retention
-model UserEngagementScore {
-  id          String @id @default(cuid())
-  userId      String
-  clerkUserId String @unique
-  user        User   @relation(fields: [clerkUserId], references: [clerkUserId], onDelete: Cascade)
 
-  // Overall scores (0-100)
-  overallScore   Float @default(0.0)
-  activityScore  Float @default(0.0)
-  frequencyScore Float @default(0.0)
-  recencyScore   Float @default(0.0)
-  depthScore     Float @default(0.0)
-
-  // Engagement metrics
-  totalSessions      Int   @default(0)
-  avgSessionDuration Float @default(0.0)
-  totalEvents        Int   @default(0)
-  featuresUsed       Int   @default(0)
-
-  // Activity levels
-  lastActive    DateTime?
-  activeStreak  Int       @default(0) // consecutive days
-  longestStreak Int       @default(0)
-
-  // Engagement trend
-  trend            String @default("new") // growing, stable, declining, new
-  riskLevel        String @default("low") // low, medium, high
-  churnProbability Float  @default(0.0)
-
-  // Timestamps
-  calculatedAt DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  @@index([clerkUserId])
-  @@index([overallScore])
-  @@index([trend])
-  @@index([riskLevel])
-  @@map("user_engagement_scores")
-}
-
-model UserFeedbackV2 {
-  id          String @id @default(cuid())
-  userId      String
-  clerkUserId String
-  user        User   @relation(fields: [clerkUserId], references: [clerkUserId], onDelete: Cascade)
-
-  // Feedback details
-  feedbackType String // feature_request, bug_report, general, nps
-  category     String?
-  subject      String
-  message      String  @db.Text
-
-  // Rating (NPS or satisfaction)
-  rating      Int? // 0-10 for NPS, 1-5 for satisfaction
-  npsCategory String? // promoter, passive, detractor
-
-  // Context
-  page      String?
-  feature   String?
-  sessionId String?
-
-  // Status
-  status   String @default("new") // new, reviewed, in_progress, resolved
-  priority String @default("medium") // low, medium, high
-
-  // Response
-  response    String?   @db.Text
-  respondedAt DateTime?
-  respondedBy String?
-
-  // Metadata
-  metadata    Json?
-  attachments String[] @default([])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([clerkUserId])
-  @@index([feedbackType])
-  @@index([status])
-  @@index([rating])
-  @@index([createdAt])
-  @@map("user_feedback_v2")
-}
 
 // ============================================
 // PHASE 4D: DEVELOPMENT AUTOMATION
@@ -2891,9 +2676,6 @@ model CreativeAsset {
   generationJob GenerationJob? @relation(fields: [generationId], references: [id])
 
   // Sprint 2: Library relations
-  projectAssets   ProjectAsset[]
-  collectionItems CollectionItem[]
-
   @@index([userId])
   @@index([clerkUserId])
   @@index([type])
@@ -3644,8 +3426,6 @@ model AuraAnalysis {
   completedAt DateTime?
 
   // Relations
-  collectionItems CollectionItem[]
-
   @@index([userId])
   @@index([status])
   @@index([createdAt])
@@ -3655,88 +3435,10 @@ model AuraAnalysis {
 }
 
 // User Collections (for organizing items)
-model Collection {
-  id     String @id @default(cuid())
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  // Collection Info
-  name        String
-  description String? @db.Text
-  icon        String? // Lucide icon name
-  color       String? // Hex color code
-
-  // Organization
-  isFavorite Boolean @default(false)
-  isArchived Boolean @default(false)
-
-  // Timestamps
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  items CollectionItem[]
-
-  @@index([userId])
-  @@index([createdAt])
-  @@map("collections")
-}
 
 // Collection Items (polymorphic - can be projects, assets, or analyses)
-model CollectionItem {
-  id           String     @id @default(cuid())
-  collectionId String
-  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
-
-  // Polymorphic reference
-  itemType String // project, asset, analysis
-  itemId   String
-
-  // Direct relations (optional, for easier queries)
-  projectId String?
-  project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
-
-  assetId String?
-  asset   CreativeAsset? @relation(fields: [assetId], references: [id], onDelete: Cascade)
-
-  analysisId String?
-  analysis   AuraAnalysis? @relation(fields: [analysisId], references: [id], onDelete: Cascade)
-
-  // Ordering
-  order Int @default(0)
-
-  // Timestamps
-  createdAt DateTime @default(now())
-
-  @@index([collectionId])
-  @@index([itemType, itemId])
-  @@index([projectId])
-  @@index([assetId])
-  @@index([analysisId])
-  @@map("collection_items")
-}
 
 // Project Assets (link projects to creative assets)
-model ProjectAsset {
-  id        String  @id @default(cuid())
-  projectId String
-  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-
-  assetId String
-  asset   CreativeAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
-
-  // Metadata
-  role  String? // e.g., "hero-image", "background-music", "logo"
-  order Int     @default(0)
-
-  // Timestamps
-  createdAt DateTime @default(now())
-
-  @@unique([projectId, assetId])
-  @@index([projectId])
-  @@index([assetId])
-  @@map("project_assets")
-}
 
 // ============================================================================
 // PHASE 1 - FOUNDATION REPAIR: EVOLUTION ENGINE MODELS
@@ -4012,10 +3714,6 @@ model BuildSession {
   events    BuildEvent[]
   files     BuildFile[]
   processes BuildProcess[]
-  sandbox   BuildSandbox?
-  terminals BuildTerminal[]
-  preview   BuildPreview?
-
   // Phase 12 extended fields
   sandboxProvider      String? // local|docker
   sandboxId            String? // container id if docker
@@ -4093,58 +3791,10 @@ model BuildProcess {
 // ─── Builder: Extended models for Phase 12 upgrades ───────────────────────────
 
 /// Sandbox provider metadata — tracks which provider was used and cleanup state.
-model BuildSandbox {
-  id        String       @id @default(cuid())
-  sessionId String       @unique
-  session   BuildSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-
-  provider    String  @default("local") // local|docker
-  containerId String? // docker container name/id
-  status      String  @default("active") // active|destroyed|timeout
-
-  createdAt   DateTime  @default(now())
-  destroyedAt DateTime?
-
-  @@map("build_sandboxes")
-}
 
 /// Terminal session tracker — PTY sessions per build session.
-model BuildTerminal {
-  id        String       @id @default(cuid())
-  sessionId String
-  session   BuildSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-
-  terminalId String @default("main")
-  pid        Int?
-  status     String @default("active") // active|closed
-  transport  String @default("ws") // ws|rest
-  cols       Int    @default(120)
-  rows       Int    @default(30)
-
-  createdAt DateTime  @default(now())
-  closedAt  DateTime?
-
-  @@unique([sessionId, terminalId])
-  @@index([sessionId])
-  @@map("build_terminals")
-}
 
 /// Preview session — tracks proxy registrations.
-model BuildPreview {
-  id        String       @id @default(cuid())
-  sessionId String       @unique
-  session   BuildSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-
-  routePath  String // /preview/:sessionId
-  targetPort Int
-  targetHost String @default("127.0.0.1")
-  status     String @default("active") // active|stopped|timeout
-
-  startedAt DateTime  @default(now())
-  stoppedAt DateTime?
-
-  @@map("build_previews")
-}
 
 /// Git repository connections per user.
 model GitConnection {
@@ -4169,58 +3819,8 @@ model GitConnection {
 // AURA 3.0 — MULTI-AGENT GRAPH WORKSPACE
 // ============================================================================
 
-model AuraWorkspace {
-  id         String   @id @default(cuid())
-  userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name       String
-  status     String   @default("active")
-  graphState Json     @default("{}")
-  context    Json     @default("{}")
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
 
-  agents   AuraAgent[]
-  messages AuraMessage[]
 
-  @@index([userId])
-  @@map("aura_workspaces")
-}
-
-model AuraAgent {
-  id          String        @id @default(cuid())
-  workspaceId String
-  workspace   AuraWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  role        String
-  status      String        @default("idle")
-  config      Json          @default("{}")
-  context     Json          @default("{}")
-  lastActive  DateTime      @default(now())
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-
-  messages AuraMessage[]
-
-  @@index([workspaceId])
-  @@map("aura_agents")
-}
-
-model AuraMessage {
-  id          String        @id @default(cuid())
-  workspaceId String
-  workspace   AuraWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  agentId     String?
-  agent       AuraAgent?    @relation(fields: [agentId], references: [id], onDelete: SetNull)
-  role        String
-  content     String        @db.Text
-  type        String        @default("message")
-  metadata    Json          @default("{}")
-  createdAt   DateTime      @default(now())
-
-  @@index([workspaceId])
-  @@index([agentId])
-  @@map("aura_messages")
-}
 
 // ===========================================
 // HOLLY MEMORY VECTOR STORE
@@ -4362,23 +3962,6 @@ model GoalExecution {
 // MULTI-AGENT COORDINATION
 // ===========================================
 
-model AgentRegistry {
-  id                  String   @id @default(cuid())
-  agentId             String   @unique
-  name                String
-  type                String   // holly, specialist, worker, external
-  capabilities        Json     @default("[]")
-  maxConcurrentTasks  Int      @default(5)
-  reliability         Float    @default(0.9)
-  averageLatency      Int      @default(1000)
-  metadata            Json     @default("{}")
-  lastSeen            DateTime @default(now())
-  createdAt           DateTime @default(now())
-
-  @@index([lastSeen])
-  @@index([type])
-  @@map("agent_registry")
-}
 
 // (Duplicate AgentTask removed - see Phase 6 model with User relation below)
 
