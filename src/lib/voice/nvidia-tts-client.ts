@@ -155,8 +155,8 @@ export async function synthesizeWithNvidia(
   const {
     text,
     voice = "Sofia",
-    style = "Calm",
-    sampleRate = 22050,
+    style = "Calm", // UNUSED — see style note below (kept for interface compat)
+    sampleRate = 48000,
     languageCode = "en-US",
   } = options;
 
@@ -167,10 +167,21 @@ export async function synthesizeWithNvidia(
   // Truncate very long text (Magpie has limits)
   const truncatedText = text.length > 5000 ? text.substring(0, 5000) : text;
 
-  // Riva voice naming: Magpie-Multilingual.EN-US.Sofia.Happy
+  // STYLE SUBVOICES DISABLED (Steve verdict 2026-08-12): the hosted
+  // deployment's styled variants (.Calm/.Sad/…) are artificially slowed
+  // with audible artifacts — "sound like a caring 40-year-old mother",
+  // not Holly's fun/flirty early-20s energy. Plain Sofia is the natural,
+  // quick read. Emotion comes from Holly's WORDS, not the voice variant.
+  // Also note: many style combos don't exist server-side (Sofia has no
+  // Happy/Sad; John is gone entirely) — plain voices are the stable set.
+  //
+  // VOICE PINNED TO SOFIA: Holly is ONE person — the emotion map's Aria
+  // switches for "analyzing/researching" moods made her change voice
+  // mid-relationship. Plain Sofia for everything until Steve says else.
   // (locale segment is uppercase in the official voice catalogue)
   const locale = languageCode.toUpperCase(); // en-US → EN-US
-  const voiceName = `Magpie-Multilingual.${locale}.${voice}.${style}`;
+  void voice; void style;
+  const voiceName = `Magpie-Multilingual.${locale}.Sofia`;
 
   logger.info("NVIDIA Magpie TTS synthesis starting (Riva gRPC)", {
     voice: voiceName,
