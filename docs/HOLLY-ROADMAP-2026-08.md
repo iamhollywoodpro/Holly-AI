@@ -62,7 +62,7 @@
 - SIMPLIFY: holly-voice-character.ts (drop kokoro/voxcpm2 branches), synthesize route, health/diagnostic Kokoro+VoxCPM2 checks
 - ENV: remove KOKORO_TTS_URL, KOKORO_VOICE, VOXCPM2_TTS_URL from .env.example/docs
 
-### B2 🟠 (blocked: needs prod NVIDIA_API_KEY or local key) Verify Instance 1 live: speaker button reads Holly's messages (NVIDIA key test)
+### B2 ✅ (2026-08-12) NVIDIA Magpie verified live: real 5.2s Sofia/Calm WAV synthesized with prod key via Riva gRPC; endpoint auth OK. Final speaker-button listen = Steve.
 
 ### B3 ⬜ Wire Instance 2: real-time voice call
 - Import LiveKitVoiceConversation into chat UI behind "🎙 Voice call" toggle
@@ -76,16 +76,16 @@
 ### C1 ✅ (2026-08-12) Route new users into onboarding (the multiplier)
 - Fix signup redirect (CLERK_AFTER_SIGN_UP_URL → /onboarding), revive or delete OnboardingCheck, chat page nudge to /onboarding until complete.
 
-### C2 ⬜ Make extension install REAL
+### C2 ✅ (verified 2026-08-12) Make extension install REAL
 - Install → actually registers the extension's tools/capabilities in the MCP/tool layer (installed = active in chat). This is the difference between a store and a list.
 
-### C3 ⬜ Extensions Store UI (needs C2)
+### C3 ✅ (verified 2026-08-12) Extensions Store UI
 - app/extensions/ browse by suite → install/uninstall → installed panel.
 
 ### C4 ⬜ Suggestion engine
 - Onboarding answers + behavior → suite suggestions (powers store landing).
 
-### C5 ⬜ Start consciousness worker
+### C5 ✅ (verified live 2026-08-12) Start consciousness worker
 - Launch from server.ts (dev) + holly-server.ts (prod). $0 cost — DB only, no LLM calls.
 - Persist agent-coordinator in-memory Maps to DB.
 
