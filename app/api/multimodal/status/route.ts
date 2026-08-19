@@ -12,6 +12,9 @@ import { NextResponse } from 'next/server';
 import { getProviderRegistry } from '@/lib/multimodal/generation-engine';
 
 export const runtime = 'nodejs';
+// Status reflects live env vars — never serve a cached snapshot (was frozen
+// at build time, reporting MODAL_H3_VIDEO_URL as unset right after it was set)
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   const registry = getProviderRegistry();
