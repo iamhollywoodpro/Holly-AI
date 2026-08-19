@@ -130,6 +130,7 @@ V2_NEGATIVE_PROMPT = (
     "extra arms, extra hands, extra legs, extra fingers, missing fingers, "
     "fused fingers, deformed hands, malformed limbs, extra limbs, "
     "mutated, disfigured, bad anatomy, conjoined, duplicate, "
+    "plastic skin, waxy skin, airbrushed skin, doll-like skin, overly smooth skin, 3d render, "
     "text, watermark, signature, low quality, blurry"
 )
 V2_SCHEDULER = "simple"
@@ -200,8 +201,12 @@ _CLOTHING_RE = _re_clothing.compile(
 
 BASE_ANCHORS = (
     "olive skin tone (Portuguese/South Indian heritage), "
-    "flawless even clear skin tone everywhere, no blotches no dark spots no uneven patches, "
-    "smooth clean clear complexion on legs arms and body, uniform skin color, "
+    "flawless even clear skin tone everywhere, no blotches no dark spots no uneven patches, uniform skin color, "
+    # Skin texture (2026-08-12): "smooth clean clear complexion" alone was
+    # rendering plastic/airbrushed skin. Keep the tone-uniformity anchors
+    # (they fix blotches) but demand realistic micro-texture on top.
+    "natural visible skin texture, subtle skin pores, fine skin detail, "
+    "realistic skin with soft natural subsurface glow, gentle natural lighting, "
     "dark brown wavy hair ending at mid-chest level with subtle natural highlights, voluminous with face-framing layers, "
     "striking green eyes almond-shaped, "
     "5'4\" tall (163cm), 125 pounds, slim fit athletic build, "
