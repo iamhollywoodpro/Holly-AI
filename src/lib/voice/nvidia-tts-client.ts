@@ -113,6 +113,14 @@ function getRivaClient(): RivaTtsClient {
  * Wrap raw mono 16-bit PCM in a WAV (RIFF) header so browsers can play it.
  */
 function pcmToWav(pcm: Buffer, sampleRate: number): Buffer {
+  // 15ms fade-out — insurance against the server's abrupt tail
+  // (full-amplitude stop sounds like mid-word cut-off even when complete)
+  const fadeSamples = Math.min(Math.floor(sampleRate * 0.015), pcm.length / 2);
+  for (let i = 0; i < fadeSamples; i++) {
+    const gain = 1 - i / fadeSamples;
+    const off = pcm.length - 2 * (i + 1);
+    pcm.writeInt16LE(Math.round(pcm.readInt16LE(off) * gain), off);
+  }
   const header = Buffer.alloc(44);
   const byteRate = sampleRate * 2; // mono, 16-bit
 
@@ -167,6 +175,16 @@ export async function synthesizeWithNvidia(
   // Truncate very long text (Magpie has limits)
   const truncatedText = text.length > 5000 ? text.substring(0, 5000) : text;
 
+  // TAIL-CLIP WORKAROUND (verified 2026-08-12): the hosted Magpie NIM ends
+  // synthesis at FULL speech amplitude — the final word gets chopped mid-
+  // voicing ("I like those t…"). Measured: last 50ms window RMS ~3000 with
+  // zero decay. Appending ".." after final punctuation makes the model
+  // finish the prosodic contour; envelope then decays naturally (937→955
+  // declining). The dots are not spoken (Whisper-verified full text).
+  const tailSafeText = /[.!?…]$/.test(truncatedText.trim())
+    ? truncatedText.trimEnd() + ".."
+    : truncatedText;
+
   // STYLE SUBVOICES DISABLED (Steve verdict 2026-08-12): the hosted
   // deployment's styled variants (.Calm/.Sad/…) are artificially slowed
   // with audible artifacts — "sound like a caring 40-year-old mother",
@@ -194,7 +212,7 @@ export async function synthesizeWithNvidia(
   metadata.set("authorization", `Bearer ${NVIDIA_API_KEY}`);
 
   const request = {
-    text: truncatedText,
+    text: tailSafeText,
     language_code: languageCode,
     encoding: 1, // LINEAR_PCM
     sample_rate_hz: sampleRate,
