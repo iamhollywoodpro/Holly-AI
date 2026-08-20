@@ -190,8 +190,17 @@ export async function synthesizeWithNvidia(
     return null;
   }
 
+  // EMOJI/MULTIBYTE STRIP (2026-08-12): the hosted Magpie Triton ensemble dies
+  // with "Encountered a multichar start character but not an end character"
+  // when the text contains emoji/surrogate pairs (observed in prod logs —
+  // killed the entire voice fallback chain, 503s to the client). Strip
+  // anything outside the BMP plus common symbol blocks before synthesis.
+  const emojiStripped = text
+    .replace(/[\u{10000}-\u{10FFFF}]/gu, '') // astral-plane chars (most emoji)
+    .replace(/[\u2600-\u27BF\uFE0F\u2190-\u21FF]/g, ''); // misc symbols, variation selectors, arrows
+
   // Truncate very long text (Magpie has limits)
-  const truncatedText = text.length > 5000 ? text.substring(0, 5000) : text;
+  const truncatedText = emojiStripped.length > 5000 ? emojiStripped.substring(0, 5000) : emojiStripped;
 
   // TAIL-CLIP WORKAROUND (verified 2026-08-12): the hosted Magpie NIM ends
   // synthesis at FULL speech amplitude — the final word gets chopped mid-

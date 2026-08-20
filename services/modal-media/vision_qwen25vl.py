@@ -169,13 +169,20 @@ class HollyVision:
 
     QA_PROMPT = """You are QA-checking an AI-generated image of a woman named Holly (a 22-year-old with a consistent face and body). The generation prompt context was: "{context}"
 
-Look at the image carefully and answer with ONLY a JSON object, no other text:
+Look at the image VERY carefully — zoom in mentally on the intimate areas. Be STRICT: minor flaws should fail. Answer with ONLY a JSON object, no other text:
 {{
   "is_single_person": true/false,
   "identity_consistent": true/false,   // does she look like ONE consistent young woman (not a blend of two faces, not obviously a different person than described)
-  "anatomy_ok": true/false,            // limbs (2 arms 2 legs), hands, breasts and genital anatomy look natural and correctly placed for the pose; no holes/openings in wrong places (e.g. on the lower back), no horror-movie or malformed genitalia
+  "anatomy_ok": true/false,            // see checklist below
   "issues": ["short list of concrete problems, empty if all ok"]
 }}
+
+ANATOMY CHECKLIST (fail anatomy_ok if ANY is violated):
+- Genitals (if visible): labia majora symmetric and smooth, natural pink coloration, NO warty/bumpy/cauliflower texture, NO extra or misplaced orifices/openings, NO holes on the lower back, buttocks, stomach or thighs, clitoris anatomically sized and positioned at TOP of cleft, vaginal opening in lower half.
+- Anus (if visible): located in the buttock cleft only, natural pigmentation, not duplicated.
+- Breasts (if visible): symmetric pair, natural shape and nipple placement, no third nipple, no fused tissue.
+- Limbs: exactly 2 arms, 2 legs; hands with 5 fingers each, no merged fingers.
+- Skin: continuous unbroken skin everywhere except natural orifices; no seams, no texture-noise patches on intimate skin.
 If the image is clothed/SFW, still check identity_consistent and anatomy_ok for visible body parts."""
 
     @modal.fastapi_endpoint(method="POST", label="vision-qa")

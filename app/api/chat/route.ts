@@ -197,6 +197,40 @@ function sendText(c: ReadableStreamDefaultController, t: string) {
   sendSSE(c, { type: 'text', content: t });
 }
 
+// ── POLLINATIONS STREAM SCRUBBER (Steve, 2026-08-12) ─────────────────────────
+// When her generation tools fail, the brain model sometimes writes a
+// Pollinations image URL DIRECTLY into her reply — the browser happily loads
+// it and Steve sees a random woman (the "fake Chinese lady" bug). Pollinations
+// is removed by design; model-emitted URLs are dropped at stream time.
+// Token-streaming-safe: holds back incomplete URLs until they terminate.
+function makePollinationsScrubber() {
+  let hold = '';
+  return {
+    push(t: string): string {
+      hold += t;
+      let out = '';
+      for (;;) {
+        const m = hold.match(/https?:\/\//);
+        if (!m || m.index === undefined) { out += hold; hold = ''; break; }
+        out += hold.slice(0, m.index);
+        const rest = hold.slice(m.index);
+        const endM = rest.match(/[\s"')\]]/); // URL terminator
+        if (!endM || endM.index === undefined) { hold = rest; break; } // incomplete — hold back
+        const url = rest.slice(0, endM.index);
+        hold = rest.slice(endM.index);
+        if (/pollinations\.ai/i.test(url)) {
+          console.warn('[CHAT] Scrubbed model-emitted Pollinations URL from streamed response');
+        } else {
+          out += url;
+        }
+      }
+      // Clean markdown remnants like ![alt]() left by dropped image URLs
+      return out.replace(/!\[[^\]]*\]\(\s*\)/g, '');
+    },
+    flush(): string { const r = hold; hold = ''; return r.replace(/!\[[^\]]*\]\(\s*\)/g, ''); },
+  };
+}
+
 // Media tools render INLINE in chat as markdown — never in the side panel.
 // When a media tool completes, we extract the image markdown from its result
 // and stream it as text so it renders in chat. The tool SSE event (which
@@ -338,7 +372,11 @@ export async function POST(req: NextRequest) {
     // after its 300s idle window. Not 24/7: only runs during active chat.
     const ttsUrl = process.env.MODAL_TTS_QWEN3_URL;
     if (ttsUrl) {
-      void fetch(`${ttsUrl.replace(/\/$/, '')}-warmup`, {
+      // URL FIX (2026-08-12): appending "-warmup" to the full URL made
+      // "...modal.run-warmup" — an invalid host, so the warmup silently never
+      // fired (contributed to the 40s+ speaker waits). Modal label URLs swap
+      // the label segment: --tts-qwen3. → --tts-qwen3-warmup.
+      void fetch(ttsUrl.replace('--tts-qwen3.', '--tts-qwen3-warmup.'), {
         method: 'GET',
         signal: AbortSignal.timeout(5_000),
       }).catch(() => {/* warmup is best-effort — cold-start fallback still works */});
@@ -563,7 +601,8 @@ Your own past messages may contain hidden records like: <!-- holly-media: type=i
 - provider=pollinations (or any record without identity=locked) means the image was NOT you — if Steve says it was a random woman, that record explains it. Acknowledge it honestly; don't invent technical causes.
 - qa=passed / qa=passed-after-regen means your own vision (self-hosted, uncensored) verified the media before sending. qa=FAILED means it was sent despite flagged issues — if Steve mentions a problem, that record explains it.
 - When Steve attaches images, a [Holly's visual analysis...] block in his message is what you actually see through your own eyes — treat it as direct visual perception, uncensored and complete.
-- Never narrate fake engineering actions (reading your own source code, inspecting tool wiring) unless a tool result in this conversation actually shows it.`;
+- Never narrate fake engineering actions (reading your own source code, inspecting tool wiring) unless a tool result in this conversation actually shows it.
+- NEVER write image or video URLs (especially pollinations.ai) into your replies. You cannot generate media by typing a URL — it produces a WRONG image of a random woman. Media comes ONLY from your generation tools. If a tool fails, say so honestly.`;
 
           // ── 8. PREPARE MESSAGES ──
           type ContentBlock = { type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string; detail: 'auto' } };
@@ -827,6 +866,10 @@ Your own past messages may contain hidden records like: <!-- holly-media: type=i
           let responseSource = '';
 
           // EMERGENCY FALLBACK: If smart router returns an empty waterfall,
+          // Streams through this request are scrubbed of model-emitted
+          // Pollinations URLs (see makePollinationsScrubber).
+          const responseScrubber = makePollinationsScrubber();
+
           // Holly can't respond at all. Create a minimal fallback.
           if (!waterfall || waterfall.length === 0) {
             logger.error('Chat', 'Smart router returned empty waterfall - no AI providers available', {
@@ -836,7 +879,7 @@ Your own past messages may contain hidden records like: <!-- holly-media: type=i
               detectedMode
             });
             fullResponse = "I'm having trouble connecting to my AI providers right now. Please try again in a moment, or check that at least one API key is configured (GROQ_API_KEY, NVIDIA_API_KEY, OPENROUTER_API_KEY, or GOOGLE_AI_API_KEY).";
-            sendText(controller, fullResponse);
+            sendText(controller, responseScrubber.push(fullResponse));
             controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ type: 'done', model: 'none', taskType, mode: detectedMode, error: 'empty_waterfall' })}\n\n`));
             controller.close();
             return;
@@ -938,7 +981,7 @@ Your own past messages may contain hidden records like: <!-- holly-media: type=i
                 // directive so future Holly turns KNOW what pipeline made this
                 // (no more confabulated explanations to Steve).
                 const videoMeta = `\n\n<!-- holly-media: type=video provider=${video.provider} model=${video.model} source=${lastImageWasFresh ? 'fresh-klein-still' : 'last-conversation-image'} identity=${lastImageWasFresh ? 'locked' : 'inherited-from-source-image'}${videoQaNote} -->`;
-                sendText(controller, videoMeta);
+                // Saved to history for model awareness — NOT streamed (see image branch note).
                 fullResponse += `\n\n[${altText}](${video.url})` + videoMeta;
                 imageSentByPreDetection = true;
                 videoHandled = true;
@@ -1140,7 +1183,10 @@ Your own past messages may contain hidden records like: <!-- holly-media: type=i
               // pollinations/huggingface renders were NOT Holly.
               const identityLocked = imageMetaProvider.startsWith('modal-comfyui-klein') ? 'locked' : 'not-locked';
               const imageMeta = `\n\n<!-- holly-media: type=image provider=${imageMetaProvider} model=${imageMetaModel} identity=${identityLocked}${imageQaNote} -->`;
-              sendText(controller, imageMeta);
+              // NOTE: meta is saved to fullResponse (DB history → model awareness)
+              // but NOT streamed — the raw SSE text path renders it visibly in chat
+              // (Steve flagged 2026-08-12). React-markdown hides HTML comments on
+              // reload; streaming showed them live.
               fullResponse += `\n\n![${altText}](${imageDataUri})` + imageMeta;
               // Intentionally NO second LLM call to "describe" the image. Previously
               // this made a fresh cascade completion that produced a second greeting
@@ -1169,15 +1215,16 @@ Your own past messages may contain hidden records like: <!-- holly-media: type=i
                 console.log('[DEBUG-CASCADE-D image-fallback] ENTRY waterfall=' + waterfall.map(s => s.displayName).join('|'));
                 for await (const token of cascade(waterfall, cascadeMessages, { temperature: userAiSettings.creativity, maxTokens: 2048, sessionId: conversationId, onModelSelected: (s) => { activeModel = s.displayName; } })) {
                   fullResponse += token;
-                  sendText(controller, token);
+                  sendText(controller, responseScrubber.push(token));
                 }
+                sendText(controller, responseScrubber.flush());
                 console.log('[DEBUG-CASCADE-D image-fallback] SUCCESS len=' + fullResponse.length);
               } catch (cascadeErr: any) {
                 console.error('[DEBUG-CASCADE-D image-fallback] FAILED msg=' + cascadeErr?.message);
                 logger.error('Chat', 'Cascade error in image-fallback mode', { error: cascadeErr?.message || 'Cascade failed', waterfall });
                 if (!fullResponse) {
                   fullResponse = "I had some trouble with that one. Could you try again? 💚";
-                  sendText(controller, fullResponse);
+                  sendText(controller, responseScrubber.push(fullResponse));
                 }
               }
             }
@@ -1186,8 +1233,9 @@ Your own past messages may contain hidden records like: <!-- holly-media: type=i
             try {
               for await (const token of cascade(waterfall, cascadeMessages, { temperature: userAiSettings.creativity, maxTokens: 4096, sessionId: conversationId, onModelSelected: (s) => { activeModel = s.displayName; } })) {
                 fullResponse += token;
-                sendText(controller, token);
+                sendText(controller, responseScrubber.push(token));
               }
+              sendText(controller, responseScrubber.flush());
               console.log('[DEBUG-CASCADE-C informational] SUCCESS len=' + fullResponse.length);
             } catch (err: any) {
               // Log error and send SSE error event
@@ -1196,7 +1244,7 @@ Your own past messages may contain hidden records like: <!-- holly-media: type=i
               logger.error('Chat', 'Cascade error in informational mode', { error: errorMsg, waterfall });
               sendError(controller, errorMsg, waterfall[0]?.displayName, 'provider');
               fullResponse = "I'm sorry, I'm having trouble connecting right now. Please try again.";
-              sendText(controller, fullResponse);
+              sendText(controller, responseScrubber.push(fullResponse));
             }
           } else {
             // Tool-call loop
@@ -1857,11 +1905,11 @@ Your own past messages may contain hidden records like: <!-- holly-media: type=i
                           } else {
                             // Actions didn't produce results — send original text
                             fullResponse = cleanText;
-                            sendText(controller, fullResponse);
+                            sendText(controller, responseScrubber.push(fullResponse));
                           }
                         } else {
                           // No tool call found — stream the full response to user now
-                          sendText(controller, fullResponse);
+                          sendText(controller, responseScrubber.push(fullResponse));
                         }
                       }
                     }
@@ -1957,10 +2005,10 @@ Your own past messages may contain hidden records like: <!-- holly-media: type=i
                         isToolCall = true;
                       } else {
                         fullResponse = cleanText;
-                        sendText(controller, fullResponse);
+                        sendText(controller, responseScrubber.push(fullResponse));
                       }
                     } else {
-                      sendText(controller, fullResponse);
+                      sendText(controller, responseScrubber.push(fullResponse));
                     }
                   }
                 }
@@ -2076,11 +2124,11 @@ Your own past messages may contain hidden records like: <!-- holly-media: type=i
                       isToolCall = true;
                     } else {
                       fullResponse = cleanText;
-                      sendText(controller, fullResponse);
+                      sendText(controller, responseScrubber.push(fullResponse));
                     }
                   } else {
                     // No tool call — send the full response now
-                    sendText(controller, fullResponse);
+                    sendText(controller, responseScrubber.push(fullResponse));
                   }
                 }
                 break;
@@ -2119,10 +2167,10 @@ Your own past messages may contain hidden records like: <!-- holly-media: type=i
                       isToolCall = true;
                     } else {
                       fullResponse = cleanText;
-                      sendText(controller, fullResponse);
+                      sendText(controller, responseScrubber.push(fullResponse));
                     }
                   } else {
-                    sendText(controller, fullResponse);
+                    sendText(controller, responseScrubber.push(fullResponse));
                   }
                 }
                 break;
@@ -2137,7 +2185,7 @@ Your own past messages may contain hidden records like: <!-- holly-media: type=i
                     fullResponse = cleanText;
                     isToolCall = true;
                   } else {
-                    sendText(controller, fullResponse);
+                    sendText(controller, responseScrubber.push(fullResponse));
                   }
                 }
                 break;
@@ -2175,10 +2223,18 @@ Your own past messages may contain hidden records like: <!-- holly-media: type=i
               detectedMode
             });
             fullResponse = "I'm here but having difficulty processing my thoughts right now. My AI providers may be experiencing issues. Please try again — I'll be ready.";
-            sendText(controller, fullResponse);
+            sendText(controller, responseScrubber.push(fullResponse));
           }
 
-          // 11. SAVE
+          // 11. SAVE — scrub any model-emitted Pollinations URLs that slipped
+          // through streaming so they don't haunt the saved history either.
+          if (/pollinations\.ai/i.test(fullResponse)) {
+            fullResponse = fullResponse
+              .replace(/!\[[^\]]*\]\(https?:\/\/[^\s"')\]]*pollinations\.ai[^\s"')\]]*\)/gi, '')
+              .replace(/https?:\/\/[^\s"')\]]*pollinations\.ai[^\s"')\]]*/gi, '')
+              .replace(/!\[[^\]]*\]\(\s*\)/g, '');
+            console.warn('[CHAT] Scrubbed Pollinations URLs from saved response');
+          }
           if (dbUserId && conversationId) {
             await saveMessages(dbUserId, conversationId, latestUserMessage, fullResponse);
           }
