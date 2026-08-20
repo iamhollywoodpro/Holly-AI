@@ -143,7 +143,9 @@ class EnhancedVoiceOutput {
       for (let i = 0; i < chunks.length; i++) {
         if (this._aborted) break;
 
-        const deadline = Date.now() + 10_000;
+        // Must exceed the server's worst-case synthesis time (see _fetchChunk)
+        // or chunks get silently skipped → "speaker does nothing".
+        const deadline = Date.now() + 75_000;
         while (!audioBuffers[i] && Date.now() < deadline) {
           if (this._aborted) break;
           await new Promise(r => setTimeout(r, 100));
@@ -185,7 +187,10 @@ class EnhancedVoiceOutput {
           temperature: options.temperature ?? 1.0,
           emotion: options.emotion || undefined,
         }),
-        signal: AbortSignal.timeout(30_000),
+        // Server worst case (2026-08-20): Qwen3 cold attempt 40s + Magpie
+        // fallback ~5-10s ≈ 50s. The old 30s abort killed every cold-start
+        // request while the server was still synthesizing.
+        signal: AbortSignal.timeout(75_000),
       });
 
       if (!res.ok) {

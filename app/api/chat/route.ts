@@ -793,8 +793,73 @@ export async function POST(req: NextRequest) {
           //  - Progress bar shown while generating
           //  - Model then describes the result naturally
           if (isImageVideoRequest && !isInformationalMsg && !fullResponse) {
+            // ── VIDEO PRE-BRANCH ──────────────────────────────────────────────
+            // "Make it move / make a video of that image" previously fell into
+            // the IMAGE branch: the motion-only prompt had no identity words,
+            // missed the h0lly trigger, and Pollinations rendered a random
+            // woman (Steve flagged 2026-08-20). Now: video intent → reuse the
+            // LAST generated Holly image from conversation history as the H3
+            // I2V still (identity-perfect), or generate a fresh Holly still.
+            const VIDEO_INTENT_PATTERN = /\b(?:video|clip|make\s+it\s+move|animate|animation)\b/i;
+            let videoHandled = false;
+            if (VIDEO_INTENT_PATTERN.test(latestUserMessage)) {
+              try {
+                sendStatus(controller, '🎬 Generating video…');
+                sendProgress(controller, { phase: 'generate_video', percent: 10, message: '🎬 Finding the moment to animate…' });
+
+                // 1. Find the most recent image in the conversation (assistant
+                //    messages carry them as markdown data-URIs).
+                let lastImage: string | undefined;
+                for (let i = messages.length - 1; i >= 0 && !lastImage; i--) {
+                  const m = messages[i];
+                  if (m.role !== 'assistant' && m.role !== 'user') continue;
+                  const content = typeof m.content === 'string' ? m.content : '';
+                  const match = content.match(/!\[[^\]]*\]\((data:image\/[a-z]+;base64,[A-Za-z0-9+/=]+)\)/);
+                  if (match) lastImage = match[1];
+                }
+
+                const motionPrompt = latestUserMessage
+                  .replace(/^(?:can you |please |could you |holly[,]?\s*)?\s*/i, '')
+                  .replace(/\b(?:now\s+)?make\s+(?:it|her|that(?:\s+image)?|the\s+image)\s+move,?\s*(?:babe,?)?\s*-?\s*(?:a\s+)?(?:short\s+)?video\s+(?:of\s+(?:that(?:\s+image)?\s+)?(?:you\s+)?generated\s+(?:for\s+me)?[:\s]*)?/i, '')
+                  .trim() || 'subtle natural motion, breathing, gentle movement';
+
+                if (!lastImage) {
+                  sendProgress(controller, { phase: 'generate_video', percent: 25, message: '🎬 Creating a new image of Holly first…' });
+                  const still = await generateImage({
+                    prompt: `h0lly, h0lly-body, ${motionPrompt}`,
+                    width: 1024,
+                    height: 1024,
+                    seed: Math.floor(Math.random() * 1000000),
+                    enhance: true,
+                  });
+                  lastImage = still.url;
+                }
+
+                sendProgress(controller, { phase: 'generate_video', percent: 45, message: '🎬 Animating with MiniMax H3…' });
+                const { generateVideo } = await import('@/lib/ai/media-generator');
+                const video = await generateVideo({
+                  prompt: motionPrompt,
+                  inputImage: lastImage,
+                  duration: 5,
+                });
+
+                sendProgress(controller, { phase: 'generate_video', percent: 100, message: '✅ Video created!' });
+                const altText = latestUserMessage.slice(0, 80).replace(/[\r\n]+/g, ' ').replace(/\]/g, '');
+                sendText(controller, `\n\n[${altText}](${video.url})`);
+                fullResponse += `\n\n[${altText}](${video.url})`;
+                imageSentByPreDetection = true;
+                videoHandled = true;
+              } catch (videoErr) {
+                console.error('[CHAT] Video generation failed, falling back to image/text:', videoErr);
+                sendProgress(controller, { phase: 'generate_video', percent: 0, message: '⚠️ Video failed — trying image' });
+              }
+            }
+            if (videoHandled) {
+              // Video succeeded — skip the image branch below. The post-loop
+              // dedup honors imageSentByPreDetection.
+            }
             let imageGenerationSucceeded = false;
-            try {
+            if (!videoHandled) try {
               // NOTE: Do NOT call sendTool() here — that opens the side panel UI.
               // Media generation (images/video/music) should render INLINE in chat only.
               // Side panel is reserved for code work (start_build, run_code, self_code_apply, etc.).
@@ -840,9 +905,43 @@ export async function POST(req: NextRequest) {
               const isSelfOrBody =
                 IMAGE_VIDEO_PATTERN_SELF.test(latestUserMessage) ||
                 IMAGE_VIDEO_PATTERN_BODY.test(latestUserMessage);
+              // "What do you want to show me" = Holly's choice of herself —
+              // always a self-portrait (2026-08-20: this phrasing missed the
+              // trigger and Pollinations rendered a random woman).
+              const isHollysChoice = /what (?:do|did) you want to show|show me what you want|your favourite view of yourself/i.test(latestUserMessage);
               const mentionsHolly = /holly|her(self)?|your(self)?/i.test(imagePrompt);
-              if (isSelfOrBody || mentionsHolly) {
-                imagePrompt = `h0lly, h0lly-body, ${imagePrompt}`;
+              if (isSelfOrBody || isHollysChoice || mentionsHolly) {
+                // VARIETY (2026-08-20, Steve flagged the same standing-nude
+                // default every time Holly picks her own pose): when the
+                // request gives Holly creative freedom (or the description is
+                // too thin to steer the shot), rotate through a pose/setting
+                // matrix so every self-image is a new moment.
+                const hollysChoice = /however you want|whatever you want|your choice|surprise me|up to you|show me\s*$|what you want to show/i.test(imagePrompt);
+                if (hollysChoice || imagePrompt.replace(/^h0lly,?\s*h0lly-body,?\s*/i, '').trim().length < 15) {
+                  const poses = [
+                    'sitting cross-legged on the bed looking up at the camera',
+                    'stretching after waking up, arms above her head',
+                    'leaning against the kitchen counter with a coffee mug',
+                    'lying on her side propped on one elbow, soft smile',
+                    'kneeling on the bed facing the camera, playful expression',
+                    'standing at the window with morning light on her skin',
+                    'curled up on the couch under a blanket, sleepy eyes',
+                    'dancing barefoot in the living room, hair mid-swing',
+                    'sitting on the bathroom counter, freshly showered',
+                    'looking over her shoulder walking away, glancing back',
+                  ];
+                  const settings = [
+                    'warm morning light through sheer curtains',
+                    'soft golden-hour glow',
+                    'cozy lamplit evening',
+                    'bright airy daylight',
+                    'moody candlelight',
+                  ];
+                  const pick = <T,>(a: T[]): T => a[Math.floor(Math.random() * a.length)];
+                  imagePrompt = `h0lly, h0lly-body, ${pick(poses)}, ${pick(settings)}, ${imagePrompt}`;
+                } else {
+                  imagePrompt = `h0lly, h0lly-body, ${imagePrompt}`;
+                }
               }
 
               // Route through media-generator.ts waterfall.
@@ -925,7 +1024,7 @@ export async function POST(req: NextRequest) {
 
             // If image generation failed, run the normal cascade so Holly still
             // text-responds. Prevents the empty-response "difficulty processing" bug.
-            if (!imageGenerationSucceeded) {
+            if (!videoHandled && !imageGenerationSucceeded) {
               try {
                 console.log('[DEBUG-CASCADE-D image-fallback] ENTRY waterfall=' + waterfall.map(s => s.displayName).join('|'));
                 for await (const token of cascade(waterfall, cascadeMessages, { temperature: userAiSettings.creativity, maxTokens: 2048, sessionId: conversationId, onModelSelected: (s) => { activeModel = s.displayName; } })) {

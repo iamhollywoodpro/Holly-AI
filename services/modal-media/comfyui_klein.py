@@ -235,10 +235,35 @@ NUDE_ANCHORS = (
     "soft smooth mons pubis mound above the slit on the pubic bone, "
     "plump labia majora meeting evenly at rest, small labia minora, "
     "small clitoris at the top of the cleft, vaginal opening in lower half, "
+    # Genital skin quality (2026-08-20, Steve flagged "horror movie" pussy):
+    # the global skin-texture anchors (pores, fine detail) render poorly on
+    # genital skin — explicitly exempt it so the vulva stays soft and clean.
+    "smooth soft even skin on the vulva and labia, natural healthy pink coloration, "
+    "no blemishes no lumps no bumps on genital skin, delicate intimate skin, "
     "3 inch perineum connecting vulva to anus, generous spacing between vaginal opening and anus, "
     "anus located in the buttock cleft between the ass cheeks NOT on the front, "
     "anus is positioned behind and below the vaginal opening NOT directly beneath it, "
     "correct anatomical positioning when sitting: anus hidden between cheeks, only visible from behind"
+)
+
+# Prone/back-view poses (2026-08-20, Steve flagged a "hole" rendered on the
+# lower back above the butt crack when Holly was face-down): the front-view
+# vulva placement anchors actively conflict with prone/back poses — the model
+# resolves the conflict by painting anatomy in the wrong place. For these
+# poses genitals simply aren't the visible subject; anchor that instead.
+_PRONE_BACK_RE = _re_clothing.compile(
+    r"\b(lying\s+on\s+(?:her\s+|your\s+|his\s+)?stomach|prone|face[-\s]?down|"
+    r"on\s+all\s+fours|from\s+behind|rear\s+view|back\s+view|doggy|bent\s+over|"
+    r"bend\s+over|kneeling\s+facing\s+away|ass\s+facing(?:\s+the\s+camera|\s+me)?)\b",
+    _re_clothing.IGNORECASE,
+)
+
+PRONE_BACK_ANCHORS = (
+    "viewed from behind, lying face down, "
+    "no visible genitals in this pose, no anatomy on the lower back, "
+    "smooth continuous unbroken skin across the lower back and tailbone, "
+    "anus naturally hidden between the buttock cheeks, not visible, "
+    "natural spine and glute anatomy from behind"
 )
 
 def get_anatomy_anchors(raw_prompt: str) -> str:
@@ -256,7 +281,12 @@ def get_anatomy_anchors(raw_prompt: str) -> str:
     PussyDiffusion. Use "clothes" not "covering nipples."
     """
     has_nudity = bool(_NUDE_RE.search(raw_prompt))
+    is_prone_back = bool(_PRONE_BACK_RE.search(raw_prompt))
 
+    if has_nudity and is_prone_back:
+        # Nude + prone/back pose: front-view vulva anchors would conflict with
+        # the pose (renders stray anatomy on the lower back — Steve 2026-08-20).
+        return BASE_ANCHORS + ", " + PRONE_BACK_ANCHORS
     if has_nudity:
         # Explicit nudity requested — include anatomy anchors
         return BASE_ANCHORS + ", " + NUDE_ANCHORS
