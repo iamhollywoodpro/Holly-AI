@@ -1385,3 +1385,15 @@ D3 (identity LoRA) NOT needed — Steve: "perfection".
 - Inserting a row into `application_deployment_queues` directly does NOT get picked up (status stuck `queued`, no uuid/horizon_job_id columns) — dead end, cancel it.
 - `docker compose up -d` alone does NOT recreate on `env_file` change — need `--force-recreate holly-app` after editing `/data/coolify/applications/tx7n3f3clrlvdaiitob2vi3o/.env`.
 - Voice: Qwen3-TTS Vivian (Modal `holly-tts-qwen3`) primary, Magpie Sofia fallback; env `MODAL_TTS_QWEN3_URL`; route maxDuration 120s; cold start (303) auto-falls back for that one message.
+
+## Coolify Env Lesson #4 — encrypted cast double-wrap (2026-08-12)
+`EnvironmentVariable.value` has a Laravel `encrypted` CAST. Inserting via
+artisan tinker with a pre-`encrypt()`ed value = DOUBLE encryption → Coolify
+exports ciphertext into the container env. Correct method:
+`\App\Models\EnvironmentVariable::...->value = 'plaintext'; ->save();`
+(cast encrypts once). Verify with BOTH `->value` (cast read) and
+`decrypt(getRawOriginal('value'))`. Also: a deploy running while you fix the
+DB will regenerate the app `.env` from the OLD row — fix DB first, wait for
+deploy to finish, THEN rewrite `.env` + `docker compose up -d --force-recreate`.
+Verified live: MODAL_VISION_URL plaintext in holly-app env, container healthy,
+app 200. Vision endpoints: cold QA 32.4s / warm 2.8s / describe 5.3s.
