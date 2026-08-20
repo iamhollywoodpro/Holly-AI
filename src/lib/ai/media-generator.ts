@@ -606,73 +606,10 @@ async function generateWithModal(req: ImageRequest): Promise<ImageResult> {
   };
 }
 
-// ─── Image Provider 1: Pollinations AI (no key, always free) ─────────────────
-
-function pollinationsImageUrl(
-  prompt:    string,
-  model:     string = 'flux',
-  width:     number = 1024,
-  height:    number = 1024,
-  seed?:     number,
-  enhance:   boolean = true,
-): string {
-  const encoded = encodeURIComponent(prompt);
-  const params = new URLSearchParams({
-    width:   String(width),
-    height:  String(height),
-    nologo:  'true',
-    enhance: enhance ? 'true' : 'false',
-    model,
-  });
-  if (seed !== undefined) params.set('seed', String(seed));
-  return `https://image.pollinations.ai/prompt/${encoded}?${params}`;
-}
-
-async function generateWithPollinations(req: ImageRequest): Promise<ImageResult> {
-  const { width, height } = getDimensions(req.aspectRatio, { width: req.width, height: req.height });
-
-  const pollinationsModel = req.model === 'sdxl' ? 'stable-diffusion-xl'
-    : req.model === 'turbo' ? 'turbo'
-    : 'flux';
-
-  const url = pollinationsImageUrl(
-    req.prompt,
-    pollinationsModel,
-    width,
-    height,
-    req.seed,
-    req.enhance !== false,
-  );
-
-  const res = await fetch(url, {
-    signal: AbortSignal.timeout(60_000),
-    headers: { 'User-Agent': 'HOLLY-AI/2.5' },
-  });
-  if (!res.ok) throw new Error(`Pollinations returned ${res.status}`);
-
-  const contentType = res.headers.get('content-type') || '';
-  if (!contentType.startsWith('image/') && !contentType.startsWith('application/octet-stream')) {
-    throw new Error(`Pollinations returned unexpected content type: ${contentType}`);
-  }
-
-  const arrayBuf = await res.arrayBuffer();
-  if (arrayBuf.byteLength < 1000) {
-    throw new Error(`Pollinations returned empty or tiny image (${arrayBuf.byteLength} bytes)`);
-  }
-
-  const base64  = Buffer.from(arrayBuf).toString('base64');
-  const dataUri = `data:image/jpeg;base64,${base64}`;
-
-  return {
-    url:      dataUri,
-    provider: 'pollinations',
-    model:    'FLUX.1-schnell (Pollinations)',
-    width,
-    height,
-    cost:     0,
-    licence:  'Apache-2.0',
-  };
-}
+// ─── Pollinations REMOVED (Steve, 2026-08-12) ─────────────────────────────────
+// The "always free" fallback rendered random women whenever it caught a prompt
+// the identity pipeline hadn't locked, and it can't run Holly's LoRAs. Removed
+// from both the image and video cascades. Honest failure > wrong image.
 
 // ─── Image Provider 2: HuggingFace FLUX.2-klein 4B (NEW 2026) ───────────────
 // FLUX.2[klein] released Jan 2026. 4B distilled model, sub-second generation.
@@ -831,24 +768,14 @@ export async function generateImage(req: ImageRequest): Promise<ImageResult> {
     }
   }
 
-  // 1. Pollinations (no key — always free, always available, $0 forever)
-  try {
-    return await generateWithPollinations(req);
-  } catch (e) {
-    errors.push(`Pollinations: ${(e as Error).message}`);
-    console.warn('[MediaGen] Pollinations failed:', (e as Error).message);
-  }
-
-  // HF providers — only attempted if HF_INFERENCE_ENABLED=true
+  // POLLINATIONS REMOVED (Steve, 2026-08-12): the "always free" fallback was
+  // rendering random women whenever it caught a prompt the identity pipeline
+  // didn't lock. An honest failure ("generation unavailable") is better than
+  // a wrong image. Non-Holly subjects (a duck in a pond) route via Modal /
+  // HF below; if those are down we throw.
   if (!HF_INFERENCE_ENABLED) {
-    // HF is disabled (default) — no billing risk. Retry Pollinations with new seed.
-    console.info('[MediaGen] HF inference disabled (HF_INFERENCE_ENABLED=false) — Pollinations only');
-    try {
-      return await generateWithPollinations({ ...req, seed: Math.floor(Math.random() * 99999) });
-    } catch (e) {
-      errors.push(`Pollinations retry: ${(e as Error).message}`);
-    }
-    throw new Error(`Image generation failed (Pollinations unavailable):\n${errors.join('\n')}`);
+    console.info('[MediaGen] HF inference disabled (HF_INFERENCE_ENABLED=false) — Modal only');
+    throw new Error(`Image generation unavailable (Modal failed or not configured, Pollinations removed by design):\n${errors.join('\n')}`);
   }
 
   // 2. HuggingFace FLUX.2-klein 4B (opt-in, Apache-2.0, uses HF credit)
@@ -899,15 +826,8 @@ export async function generateImage(req: ImageRequest): Promise<ImageResult> {
     }
   }
 
-  // 5. FINAL SAFETY NET: Pollinations retry — user always gets an image
-  console.info('[MediaGen] HF path failed/exhausted — Pollinations final safety net');
-  try {
-    return await generateWithPollinations({ ...req, seed: Math.floor(Math.random() * 99999) });
-  } catch (e) {
-    errors.push(`Pollinations (final retry): ${(e as Error).message}`);
-  }
-
-  throw new Error(`All free image providers failed:\n${errors.join('\n')}`);
+  // Pollinations final safety net REMOVED (Steve, 2026-08-12) — see note above.
+  throw new Error(`All image providers failed:\n${errors.join('\n')}`);
 }
 
 // ─── Video Provider 0: Modal.com MiniMax H3 (ComfyUI) ──────────────────────
@@ -936,8 +856,17 @@ async function generateVideoWithModal(req: VideoRequest): Promise<VideoResult> {
     const styleMap: Partial<Record<VideoStyle, ImageStyle>> = {
       realistic: 'realistic', cinematic: 'cinematic', anime: 'anime',
     };
+    // IDENTITY LOCK (Steve, 2026-08-12): a motion-only prompt ("make it
+    // breathe gently") contains no h0lly trigger → the still fell through to
+    // a non-identity provider and the video showed a random woman. Holly is
+    // the default subject of her own videos: prepend the identity trigger
+    // whenever the prompt refers to her (or doesn't name another subject).
+    const HOLLY_SUBJECT_RE = /\b(yourself|holly|h0lly|your\s+body|her\s+body|she\b|her\b|you\b)\b/i;
+    const stillPrompt = isHollySelfPortrait(req.prompt) || HOLLY_SUBJECT_RE.test(req.prompt)
+      ? `h0lly, h0lly-body, ${req.prompt}`
+      : req.prompt; // explicit other subject ("a duck swimming in a pond") — untouched
     const imageResult = await generateImage({
-      prompt: req.prompt,
+      prompt: stillPrompt,
       aspectRatio: req.aspectRatio,
       style: (req.style && styleMap[req.style]) || 'photographic',
     });
@@ -1102,49 +1031,6 @@ async function generateVideoWithWan22(req: VideoRequest): Promise<VideoResult> {
 }
 
 /**
- * Video Provider 3: Pollinations video (experimental, no key)
- * Returns a GIF/WebM URL for short clips. LTX-Video based internally.
- */
-async function generateVideoWithPollinations(req: VideoRequest): Promise<VideoResult> {
-  const { width, height } = getDimensions(req.aspectRatio);
-  const duration = Math.min(Math.max(req.duration ?? 4, 2), 8);
-  const fps      = req.fps ?? 8;
-
-  const encoded = encodeURIComponent(req.prompt);
-  const pollUrl = `https://image.pollinations.ai/prompt/${encoded}?width=${width}&height=${height}&nologo=true&model=flux&seed=${Math.floor(Math.random() * 99999)}`;
-
-  const res = await fetch(pollUrl, {
-    signal: AbortSignal.timeout(120_000),
-    headers: { 'User-Agent': 'HOLLY-AI/2.5' },
-  });
-  if (!res.ok) throw new Error(`Pollinations video/image returned ${res.status}`);
-
-  const contentType = res.headers.get('content-type') || '';
-  if (!contentType.startsWith('image/') && !contentType.startsWith('application/octet-stream')) {
-    throw new Error(`Pollinations returned unexpected content type: ${contentType}`);
-  }
-
-  const arrayBuf = await res.arrayBuffer();
-  if (arrayBuf.byteLength < 1000) {
-    throw new Error(`Pollinations returned empty data (${arrayBuf.byteLength} bytes)`);
-  }
-
-  const base64  = Buffer.from(arrayBuf).toString('base64');
-  const dataUri = `data:image/jpeg;base64,${base64}`;
-
-  return {
-    url:      dataUri,
-    provider: 'pollinations',
-    model:    'Pollinations (FLUX-based visual)',
-    duration,
-    fps,
-    format:   'mp4',
-    cost:     0,
-    licence:  'Apache-2.0',
-  };
-}
-
-/**
  * Video Provider 4: HuggingFace AnimateDiff (GIF fallback, Apache-2.0)
  * Legacy 2023 model — last resort only. Replaced by CogVideoX + Wan2.2.
  */
@@ -1248,16 +1134,11 @@ export async function generateVideo(req: VideoRequest): Promise<VideoResult> {
       }
     }
   } else {
-    console.info('[MediaGen] HF inference disabled (HF_INFERENCE_ENABLED=false) — Pollinations video only');
+    console.info('[MediaGen] HF inference disabled (HF_INFERENCE_ENABLED=false) — Modal H3 only');
   }
 
-  // 3. Pollinations video (no key, ALWAYS FREE — tried regardless of HF setting)
-  try {
-    return await generateVideoWithPollinations(req);
-  } catch (e) {
-    errors.push(`Pollinations Video: ${(e as Error).message}`);
-    console.warn('[MediaGen] Pollinations video failed:', (e as Error).message);
-  }
+  // POLLINATIONS VIDEO REMOVED (Steve, 2026-08-12): free fallback produced
+  // off-identity clips. H3 + HF only; honest failure if all are down.
 
   // 4. AnimateDiff GIF fallback — only if HF enabled and credits still available
   if (HF_INFERENCE_ENABLED && !hfCreditExhausted) {
