@@ -1379,3 +1379,9 @@ Fixed with export dynamic='force-dynamic' (b507a3c). Prod verified:
 status shows modal-minimax-h3 available:true, video endpoint set.
 (Deploy 1123 failed = known stale-webhook race; 1124 finished + live.)
 D3 (identity LoRA) NOT needed — Steve: "perfection".
+
+## 2026-08-20 — Qwen3 Vivian voice deploy + Coolify env gotchas
+- **Coolify `environment_variables.value` is ENCRYPTED** (`encrypt($v)` Laravel serialize=true, app key). Inserting plaintext breaks every subsequent deploy with `DecryptException: The payload is invalid` (deploy 1130 failed this way). Insert via `docker exec -i coolify php artisan tinker` with `encrypt('...')`. Table has NO `is_real` column; flags: `is_runtime=1, is_buildtime=0, is_literal=0`.
+- Inserting a row into `application_deployment_queues` directly does NOT get picked up (status stuck `queued`, no uuid/horizon_job_id columns) — dead end, cancel it.
+- `docker compose up -d` alone does NOT recreate on `env_file` change — need `--force-recreate holly-app` after editing `/data/coolify/applications/tx7n3f3clrlvdaiitob2vi3o/.env`.
+- Voice: Qwen3-TTS Vivian (Modal `holly-tts-qwen3`) primary, Magpie Sofia fallback; env `MODAL_TTS_QWEN3_URL`; route maxDuration 120s; cold start (303) auto-falls back for that one message.
