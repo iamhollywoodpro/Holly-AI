@@ -25,7 +25,7 @@
  */
 
 export interface ModelRecord {
-  key:           string;        // catalogue key  e.g. 'groq:llama-3.3-70b'
+  key:           string;        // catalogue key  e.g. 'groq:gpt-oss-120b'
   provider:      string;        // 'groq' | 'cf_workers' | 'nvidia_nim' | 'openrouter' | 'ollama'
   modelId:       string;        // provider's model ID string
   displayName:   string;        // internal name (NEVER shown to user)
@@ -54,10 +54,10 @@ export interface ModelRecord {
 export const MODEL_REGISTRY: ModelRecord[] = [
   // ─── Groq ────────────────────────────────────────────────────────────────
   {
-    key:          'groq:llama-3.3-70b',
+    key:          'groq:gpt-oss-120b',
     provider:     'groq',
-    modelId:      'llama-3.3-70b-versatile',
-    displayName:  'Llama 3.3 70B (Groq)',
+    modelId:      'openai/gpt-oss-120b',
+    displayName:  'GPT-OSS 120B (Groq)',
     contextK:     128,
     streaming:    true,
     licence:      'Llama-3',
@@ -96,10 +96,10 @@ export const MODEL_REGISTRY: ModelRecord[] = [
     benchmarks:   { mmlu: 88, math: 86 },
   },
   {
-    key:          'groq:llama-3.3-70b-specdec',
+    key:          'groq:gpt-oss-120b-specdec',
     provider:     'groq',
-    modelId:      'llama-3.3-70b-specdec',
-    displayName:  'Llama 3.3 70B SpecDec (Groq)',
+    modelId:      'gpt-oss-120b-specdec',
+    displayName:  'GPT-OSS 120B SpecDec (Groq)',
     contextK:     8,
     streaming:    true,
     licence:      'Llama-3',
@@ -124,9 +124,9 @@ export const MODEL_REGISTRY: ModelRecord[] = [
     benchmarks:   { mmlu: 87, humaneval: 85, contextK: 256 },
   },
   {
-    key:          'cf:llama-3.3-70b',
+    key:          'cf:gpt-oss-120b',
     provider:     'cf_workers',
-    modelId:      '@cf/meta/llama-3.3-70b-instruct-fp8-fast',
+    modelId:      '@cf/meta/gpt-oss-120b-instruct-fp8-fast',
     displayName:  'Llama 3.3 70B (Cloudflare)',
     contextK:     128,
     streaming:    true,
@@ -182,9 +182,9 @@ export const MODEL_REGISTRY: ModelRecord[] = [
     supersedes:   'nvidia:deepseek-v4-flash',
   },
   {
-    key:          'nvidia:llama-3.3-70b',
+    key:          'nvidia:gpt-oss-120b',
     provider:     'nvidia_nim',
-    modelId:      'meta/llama-3.3-70b-instruct',
+    modelId:      'meta/gpt-oss-120b-instruct',
     displayName:  'Llama 3.3 70B (NVIDIA)',
     contextK:     128,
     streaming:    true,
@@ -603,9 +603,9 @@ export const MODEL_REGISTRY: ModelRecord[] = [
     benchmarks:   { humaneval: 92 },
   },
   {
-    key:          'openrouter:llama-3.3-70b',
+    key:          'openrouter:gpt-oss-120b',
     provider:     'openrouter',
-    modelId:      'meta-llama/llama-3.3-70b-instruct:free',
+    modelId:      'openai/gpt-oss-120b:free',
     displayName:  'Llama 3.3 70B (OpenRouter)',
     contextK:     66,
     streaming:    true,
@@ -946,7 +946,7 @@ export const MODEL_CANDIDATES: Array<{
     modelId:    'qwen3-72b',
     licence:    'Apache-2.0',
     taskTypes:  ['speed', 'coding', 'reasoning'],
-    supersedes: 'groq:llama-3.3-70b',
+    supersedes: 'groq:gpt-oss-120b',
     contextK:   128,
     reason:     'Qwen3 72B: stronger multilingual + coding than Llama 3.3 70B at same size',
   },
@@ -1018,7 +1018,7 @@ export const MODEL_CANDIDATES: Array<{
     modelId:    'google/gemma-4-31b-it',
     licence:    'Gemma',
     taskTypes:  ['reasoning', 'creative', 'vision'],
-    supersedes: 'nvidia:llama-3.3-70b',
+    supersedes: 'nvidia:gpt-oss-120b',
     contextK:   256,
     reason:     'Gemma 4 31B on NVIDIA: vision+thinking, better than Llama 3.3 70B for multimodal',
   },

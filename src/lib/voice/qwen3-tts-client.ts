@@ -26,7 +26,10 @@ import type { HollyEmotion } from "@/components/holly/LivingLogo";
 // without it, and prod misconfiguration should be loud, not silent).
 const QWEN3_TTS_URL = process.env.MODAL_TTS_QWEN3_URL || "";
 
-const REQUEST_TIMEOUT_MS = 110_000;
+// 40s: warm generation is 5–15s execution (prod-verified); anything longer
+// means a cold container that won't finish inside a reasonable wait — abort
+// early so the Magpie fallback answers fast instead of hanging the user.
+const REQUEST_TIMEOUT_MS = 40_000;
 
 /** Speaker locked to the bake-off winner — do not change without Steve. */
 const SPEAKER = "Vivian";

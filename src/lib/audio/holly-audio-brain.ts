@@ -194,7 +194,7 @@ Format your response as a structured analysis with clear section headers.
 End with a section called "HOLLY'S TAKE" — your honest, direct creative and technical opinion.`;
 
   const completion = await groq.chat.completions.create({
-    model:       'llama-3.3-70b-versatile',
+    model:       'openai/gpt-oss-120b',
     messages: [
       { role: 'system', content: AUDIO_ENGINEERING_SYSTEM },
       { role: 'user',   content: prompt },

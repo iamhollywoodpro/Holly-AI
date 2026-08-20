@@ -102,7 +102,7 @@ export async function POST(req: Request) {
             compactMode: false,
           },
           ai: {
-            model: 'groq-llama-3.3-70b',
+            model: 'groq-gpt-oss-120b',
             temperature: 0.7,
             personality: 'balanced',
           },

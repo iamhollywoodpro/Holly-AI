@@ -360,7 +360,7 @@ export async function conductLearningSession(
   }
 
   if (!webContext) {
-    searchSource = 'deep-reasoning (llama-3.3-70b)';
+    searchSource = 'deep-reasoning (gpt-oss-120b)';
   }
 
   const systemPrompt = `You are HOLLY — an advanced AI in a continuous self-learning mode.
@@ -403,7 +403,7 @@ CONFIDENCE: (0-10, how well you understand this topic now)
 APPLICATION: (One specific, actionable way you'll use this knowledge when helping Steve next time)`;
 
   const response = await groq.chat.completions.create({
-    model:       'llama-3.3-70b-versatile',
+    model:       'openai/gpt-oss-120b',
     messages: [
       { role: 'system', content: systemPrompt },
       { role: 'user',   content: userPrompt },

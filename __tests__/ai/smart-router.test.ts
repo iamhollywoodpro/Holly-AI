@@ -429,11 +429,11 @@ describe('smartRoute', () => {
   // --- forceModel ---
   it('forceModel bypasses classification entirely', async () => {
     const result = await smartRoute('Simple greeting', {
-      forceModel: 'groq:llama-3.3-70b',
+      forceModel: 'groq:gpt-oss-120b',
     });
     expect(result.taskType).toBe('speed'); // default when forceTask not given
     expect(result.waterfall).toHaveLength(1);
-    expect(result.waterfall[0].model).toBe('llama-3.3-70b-versatile');
+    expect(result.waterfall[0].model).toBe('openai/gpt-oss-120b');
     expect(result.reason).toContain('Forced model');
     expect(result.filteredByHealth).toBe(false);
   });

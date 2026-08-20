@@ -709,7 +709,7 @@ export async function POST(req: NextRequest) {
           // (route.ts already truncates from the end), not bigger context.
           // Steve's "unlimited forever" directive is honored by never hitting
           // this cap in normal use — 60K chars ≈ 30-50 message exchanges.
-          // Groq llama-3.3-70b supports 128K tokens. 200K chars ≈ 50K tokens —
+          // Groq gpt-oss-120b supports 128K tokens. 200K chars ≈ 50K tokens —
           // leaves room for system prompt + tools + response. Previously 60K
           // was too aggressive and killed long conversations prematurely.
           const MAX_CONTEXT_CHARS = 200_000;
@@ -1546,10 +1546,10 @@ export async function POST(req: NextRequest) {
               // unrestricted content which meant Holly could never execute tools
               // during intimate conversations — she'd say "I'll build that" but
               // nothing happened because brain-v35 has no native function calling.
-              // Now: Groq (llama-3.3-70b-versatile) handles tool calling for ALL conversations.
+              // Now: Groq (openai/gpt-oss-120b) handles tool calling for ALL conversations.
               // The intimacy gate and hard rules still protect against unwanted content.
               // NOTE: Previously used qwen/qwen3-32b but Groq deprecated it (404 error).
-              // llama-3.3-70b-versatile supports native function calling and is the same
+              // openai/gpt-oss-120b supports native function calling and is the same
               // model used for speed/chat tasks.
               const useGroqTools = hasTools && groqClient;
               const useArceeTools = !useGroqTools && hasTools && arceeApiKey;

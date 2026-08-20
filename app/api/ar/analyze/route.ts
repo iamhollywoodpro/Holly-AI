@@ -28,7 +28,7 @@ export async function GET() {
     endpoint:    'POST /api/ar/analyze',
     description: 'HOLLY A&R Analysis — professional music industry evaluation',
     version:     'AR-v1.0',
-    poweredBy:   'AURA analysis engine + HOLLY A&R persona (Groq llama-3.3-70b)',
+    poweredBy:   'AURA analysis engine + HOLLY A&R persona (Groq gpt-oss-120b)',
     fields: {
       required: ['audioUrl', 'fileName'],
       optional: ['trackTitle', 'artistName', 'genre', 'lyricsText', 'referenceTrack', 'userQuestion'],

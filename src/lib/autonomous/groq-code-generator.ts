@@ -84,7 +84,7 @@ CRITICAL RULES:
             content: prompt
           }
         ],
-        model: 'llama-3.3-70b-versatile',
+        model: 'openai/gpt-oss-120b',
         temperature: 0.3, // Lower temperature for more consistent code
         max_tokens: 4000
       });
@@ -154,7 +154,7 @@ ${context || 'No additional context'}
             content: prompt
           }
         ],
-        model: 'llama-3.3-70b-versatile',
+        model: 'openai/gpt-oss-120b',
         temperature: 0.2,
         max_tokens: 4000
       });
@@ -196,7 +196,7 @@ Include:
             content: prompt
           }
         ],
-        model: 'llama-3.3-70b-versatile',
+        model: 'openai/gpt-oss-120b',
         temperature: 0.3,
         max_tokens: 3000
       });
@@ -257,7 +257,7 @@ Respond in JSON format:
             content: prompt
           }
         ],
-        model: 'llama-3.3-70b-versatile',
+        model: 'openai/gpt-oss-120b',
         temperature: 0.2,
         max_tokens: 2000
       });

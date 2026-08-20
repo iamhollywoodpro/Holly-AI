@@ -11,6 +11,14 @@ const nextConfig = {
   // Do NOT make this conditional — DOCKER_BUILD env var is not reliable at build time
   output: 'standalone',
 
+  // Vendored Riva gRPC protos are read from disk at runtime by
+  // src/lib/voice/nvidia-tts-client.ts (Magpie Sofia fallback). Standalone
+  // output only traces files imported by JS — protos must be listed here or
+  // the fallback 500s with ENOENT in prod (seen 2026-08-20).
+  outputFileTracingIncludes: {
+    '/api/voice/synthesize': ['./src/lib/voice/protos/**'],
+  },
+
   // ── Build memory control ──────────────────────────────────────────────────
   // On Coolify (ARM64 Oracle Cloud, 4-core), Next.js static page generation
   // spawns one worker per CPU. With NODE_OPTIONS='--max-old-space-size=4096',

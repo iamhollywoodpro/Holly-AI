@@ -12,7 +12,7 @@
  *   import { modelHealth } from '@/lib/ai/model-health-monitor';
  *
  *   // Before using a model:
- *   if (!modelHealth.isHealthy('groq', 'llama-3.3-70b-versatile')) {
+ *   if (!modelHealth.isHealthy('groq', 'openai/gpt-oss-120b')) {
  *     const alt = modelHealth.getAlternative('groq', 'tool_calling');
  *     // use alt instead
  *   }
@@ -21,7 +21,7 @@
  *   modelHealth.markUnhealthy('groq', 'qwen/qwen3-32b', '404 model not found');
  *
  *   // When a call succeeds:
- *   modelHealth.markHealthy('groq', 'llama-3.3-70b-versatile');
+ *   modelHealth.markHealthy('groq', 'openai/gpt-oss-120b');
  */
 
 import { logger } from '../logging/structured-logger';
@@ -40,17 +40,17 @@ const MODEL_FALLBACKS: Record<string, Record<string, string[]>> = {
   groq: {
     // For tool calling (native function calling support)
     tool_calling: [
-      'llama-3.3-70b-versatile',
+      'openai/gpt-oss-120b',
       'llama-3.1-8b-instant',
     ],
     // For chat/speed
     speed: [
-      'llama-3.3-70b-versatile',
+      'openai/gpt-oss-120b',
       'llama-3.1-8b-instant',
     ],
     // For coding
     coding: [
-      'llama-3.3-70b-versatile',
+      'openai/gpt-oss-120b',
       'llama-3.1-8b-instant',
     ],
   },
@@ -80,7 +80,7 @@ export class ModelHealthMonitor {
     const fallbacks = MODEL_FALLBACKS[provider]?.[useCase];
     if (!fallbacks || fallbacks.length === 0) {
       // No fallbacks defined — return a reasonable default
-      if (provider === 'groq') return 'llama-3.3-70b-versatile';
+      if (provider === 'groq') return 'openai/gpt-oss-120b';
       return '';
     }
 

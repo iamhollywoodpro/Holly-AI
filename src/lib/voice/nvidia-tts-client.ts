@@ -77,13 +77,31 @@ interface RivaTtsClient {
 
 let cachedClient: RivaTtsClient | null = null;
 
+/**
+ * Resolve the vendored proto directory.
+ *
+ * __dirname points at the compiled route chunk dir in standalone builds
+ * (/app/.next/server/app/api/voice/synthesize/...) — the protos aren't there.
+ * With outputFileTracingIncludes (next.config.js) they land at
+ * <cwd>/src/lib/voice/protos in the standalone bundle, so try that first.
+ */
+function resolveProtoDir(): string {
+  const candidates = [
+    path.join(process.cwd(), "src", "lib", "voice", "protos"),
+    path.join(__dirname, "protos"),
+  ];
+  const fs = require("fs") as typeof import("fs");
+  return candidates.find((d) => fs.existsSync(path.join(d, "riva_tts.proto"))) || candidates[0];
+}
+
 function getRivaClient(): RivaTtsClient {
   if (cachedClient) return cachedClient;
 
+  const protoDir = resolveProtoDir();
   const packageDef = protoLoader.loadSync(
-    [path.join(__dirname, "protos", "riva_tts.proto")],
+    [path.join(protoDir, "riva_tts.proto")],
     {
-      includeDirs: [path.join(__dirname, "protos")],
+      includeDirs: [protoDir],
       keepCase: true,
       longs: Number,
       enums: String,

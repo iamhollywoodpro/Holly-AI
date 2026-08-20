@@ -23,7 +23,7 @@ async function callLLM(prompt: string, systemPrompt: string = 'You are Holly, an
   const baseUrl = process.env.GROQ_API_KEY
     ? 'https://api.groq.com/openai/v1/chat/completions'
     : 'https://openrouter.ai/api/v1/chat/completions';
-  const model = process.env.GROQ_API_KEY ? 'llama-3.3-70b-versatile' : 'meta-llama/llama-3.3-70b-instruct';
+  const model = process.env.GROQ_API_KEY ? 'openai/gpt-oss-120b' : 'openai/gpt-oss-120b';
 
   if (!apiKey) throw new Error('No LLM API key configured for goal execution');
 

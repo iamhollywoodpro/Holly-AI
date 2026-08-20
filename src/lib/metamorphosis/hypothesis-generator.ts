@@ -80,7 +80,7 @@ export class HypothesisGenerator {
 
       if (!groqClient) throw new Error('GROQ_API_KEY not configured');
       const response = await groqClient.chat.completions.create({
-        model: 'llama-3.3-70b-versatile',
+        model: 'openai/gpt-oss-120b',
         messages: [
           {
             role: 'system',

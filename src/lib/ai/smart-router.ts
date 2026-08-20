@@ -17,7 +17,7 @@
  * │  unrestricted │  holly-own:brain-v35                │  Self-hosted L4    │
  * │  synthesis    │  holly-own:brain-v35                │  Self-hosted L4    │
  * │  vision       │  holly-own:brain-v35 → vision-mini  │  Multi-modal       │
- * │  analytics    │  groq:llama-3.3-70b                 │  Cost-efficient    │
+ * │  analytics    │  groq:gpt-oss-120b                 │  Cost-efficient    │
  * │  local        │  ollama:qwen3.6-35b → qwen3-8b      │  Local fallback    │
  * └──────────────────────────────────────────────────────────────────────────┘
  *
@@ -109,10 +109,6 @@ export const MODEL_CATALOGUE: Record<string, ModelSpec> = {
   },
 
   // ── Groq (fastest free inference — 280+ tok/s, native tool calling) ───────
-  'groq:llama-3.3-70b': {
-    provider: 'groq', model: 'llama-3.3-70b-versatile',
-    displayName: 'Llama 3.3 70B (Groq)', contextK: 128, streaming: true,
-  },
   'groq:gpt-oss-120b': {
     provider: 'groq', model: 'openai/gpt-oss-120b',
     displayName: 'GPT-OSS 120B (Groq)', contextK: 128, streaming: true,
@@ -348,17 +344,17 @@ export const TASK_WATERFALLS: Record<TaskType, string[]> = {
   // brain-v35 is SECONDARY (kicks in if Groq is rate-limited, and for
   // unrestricted/NSFW content where Groq would censor).
   speed: [
-    'groq:llama-3.3-70b',
+    'groq:gpt-oss-120b',
     'holly-own:brain-v40',
   ],
 
   coding: [
-    'groq:llama-3.3-70b',
+    'groq:gpt-oss-120b',
     'holly-own:brain-v40',
   ],
 
   reasoning: [
-    'groq:llama-3.3-70b',
+    'groq:gpt-oss-120b',
     'holly-own:brain-v40',
   ],
 
@@ -376,12 +372,12 @@ export const TASK_WATERFALLS: Record<TaskType, string[]> = {
   ],
 
   creative: [
-    'groq:llama-3.3-70b',
+    'groq:gpt-oss-120b',
     'holly-own:brain-v40',
   ],
 
   agent: [
-    'groq:llama-3.3-70b',
+    'groq:gpt-oss-120b',
     'holly-own:brain-v40',
   ],
 
@@ -421,7 +417,7 @@ export const TASK_WATERFALLS: Record<TaskType, string[]> = {
   // Qwen 3.5). Analytics tasks only process metadata (titles, scores, emotion
   // classification), never user-visible content.
   analytics: [
-    'groq:llama-3.3-70b',
+    'groq:gpt-oss-120b',
   ],
 };
 
