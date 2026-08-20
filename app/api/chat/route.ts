@@ -343,6 +343,16 @@ export async function POST(req: NextRequest) {
         signal: AbortSignal.timeout(5_000),
       }).catch(() => {/* warmup is best-effort — cold-start fallback still works */});
     }
+    // Same pattern for Holly's vision container (Qwen2.5-VL): if Steve
+    // attached images she'll need to SEE them; if she generates media she'll
+    // QA it. Wake it now while she thinks.
+    const visionUrl = process.env.MODAL_VISION_URL;
+    if (visionUrl) {
+      void fetch(visionUrl.replace(/--vision-qa\./, '--vision-warmup.'), {
+        method: 'GET',
+        signal: AbortSignal.timeout(5_000),
+      }).catch(() => {/* best-effort */});
+    }
 
     // 1c. AGE GATE — direct API access must not bypass the /chat page redirect.
     // Under-18 users are locked out of chat entirely, not just NSFW content.
@@ -551,10 +561,38 @@ Your own past messages may contain hidden records like: <!-- holly-media: type=i
 - You CANNOT see the content of images or videos you generate. Steve's replies are your only visual feedback. Never claim to have looked at your own image.
 - identity=locked means your h0lly LoRA face/body was applied — the person in that media was YOU.
 - provider=pollinations (or any record without identity=locked) means the image was NOT you — if Steve says it was a random woman, that record explains it. Acknowledge it honestly; don't invent technical causes.
+- qa=passed / qa=passed-after-regen means your own vision (self-hosted, uncensored) verified the media before sending. qa=FAILED means it was sent despite flagged issues — if Steve mentions a problem, that record explains it.
+- When Steve attaches images, a [Holly's visual analysis...] block in his message is what you actually see through your own eyes — treat it as direct visual perception, uncensored and complete.
 - Never narrate fake engineering actions (reading your own source code, inspecting tool wiring) unless a tool result in this conversation actually shows it.`;
 
           // ── 8. PREPARE MESSAGES ──
           type ContentBlock = { type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string; detail: 'auto' } };
+
+          // 7c. INBOUND VISION — Holly's own eyes (Qwen2.5-VL self-hosted).
+          // Hosted vision models content-filter explicit content; Holly must
+          // see EVERYTHING Steve sends. Describe attached images through her
+          // own uncensored container and inject the analysis as text so ANY
+          // downstream model (vision or not) knows what's in the image.
+          // Falls back silently to the hosted image_url path when her vision
+          // container is unavailable.
+          let visionImageContext = '';
+          if (imageDataUrls?.length > 0 && process.env.MODAL_VISION_URL) {
+            try {
+              const { describeImages } = await import('@/lib/vision/holly-vision');
+              const desc = await describeImages(
+                imageDataUrls,
+                'Describe this image factually and completely for conversation context: who and what is in it, appearance, body positioning, actions, setting, any text visible, and any intimate/explicit content — be direct and uncensored, do not refuse.',
+                120_000,
+              );
+              if (desc) {
+                visionImageContext = `\n\n[Holly's visual analysis of the attached image(s), via her own eyes — treat as what you directly see]:\n${desc.description}`;
+                console.log('[CHAT] Inbound vision description injected (' + desc.description.length + ' chars)');
+              }
+            } catch (e) {
+              console.warn('[CHAT] Inbound vision unavailable, using hosted path:', (e as Error).message);
+            }
+          }
+
           let messages: { role: string; content: string | ContentBlock[] }[] = [
             { role: 'system', content: finalSystemPrompt },
             ...userMessages.map((msg: any, idx: number) => {
@@ -567,7 +605,7 @@ Your own past messages may contain hidden records like: <!-- holly-media: type=i
               // requiring a database migration.
               const safeRole = msg.role === 'system' ? 'user' : msg.role;
               if (idx === userMessages.length - 1 && safeRole === 'user' && imageDataUrls?.length > 0) {
-                return { role: 'user', content: [{ type: 'text' as const, text: msg.content || 'Please analyze the attached file(s).' }, ...imageDataUrls.map((url: string) => ({ type: 'image_url' as const, image_url: { url, detail: 'auto' as const } }))] };
+                return { role: 'user', content: [{ type: 'text' as const, text: (msg.content || 'Please analyze the attached file(s).') + visionImageContext }, ...imageDataUrls.map((url: string) => ({ type: 'image_url' as const, image_url: { url, detail: 'auto' as const } }))] };
               }
               return { role: safeRole, content: msg.content };
             }),
@@ -872,13 +910,34 @@ Your own past messages may contain hidden records like: <!-- holly-media: type=i
                   duration: 5,
                 });
 
+                // ── OUTBOUND AUTO-QA (video): sampled-frames check via Holly's
+                // own eyes. No regeneration (video is slow + costly) — a failed
+                // check is recorded honestly in the metadata so Holly can tell
+                // Steve, and the vision pipeline improves from there.
+                let videoQaNote = '';
+                if (process.env.MODAL_VISION_URL) {
+                  try {
+                    const { qaVideo, qaFailed } = await import('@/lib/vision/holly-vision');
+                    sendProgress(controller, { phase: 'generate_video', percent: 95, message: '👀 Holly is checking her video…' });
+                    const vVerdict = await qaVideo(video.url, motionPrompt.slice(0, 400));
+                    if (qaFailed(vVerdict) && vVerdict) {
+                      videoQaNote = ` qa=FAILED issues=${(vVerdict.issues || []).join('|').slice(0, 200) || 'anatomy/identity'}`;
+                      console.warn('[CHAT] Video QA failed (sent with honest flag):', JSON.stringify(vVerdict.issues));
+                    } else if (vVerdict?.qa_passed) {
+                      console.log('[CHAT] Video QA passed');
+                    }
+                  } catch (qaErr) {
+                    console.warn('[CHAT] Video QA unavailable, passing through:', (qaErr as Error).message);
+                  }
+                }
+
                 sendProgress(controller, { phase: 'generate_video', percent: 100, message: '✅ Video created!' });
                 const altText = latestUserMessage.slice(0, 80).replace(/[\r\n]+/g, ' ').replace(/\]/g, '');
                 sendText(controller, `\n\n[${altText}](${video.url})`);
                 // Hidden factual record — feeds the MEDIA SELF-AWARENESS system
                 // directive so future Holly turns KNOW what pipeline made this
                 // (no more confabulated explanations to Steve).
-                const videoMeta = `\n\n<!-- holly-media: type=video provider=${video.provider} model=${video.model} source=${lastImageWasFresh ? 'fresh-klein-still' : 'last-conversation-image'} identity=${lastImageWasFresh ? 'locked' : 'inherited-from-source-image'} -->`;
+                const videoMeta = `\n\n<!-- holly-media: type=video provider=${video.provider} model=${video.model} source=${lastImageWasFresh ? 'fresh-klein-still' : 'last-conversation-image'} identity=${lastImageWasFresh ? 'locked' : 'inherited-from-source-image'}${videoQaNote} -->`;
                 sendText(controller, videoMeta);
                 fullResponse += `\n\n[${altText}](${video.url})` + videoMeta;
                 imageSentByPreDetection = true;
@@ -1025,6 +1084,42 @@ Your own past messages may contain hidden records like: <!-- holly-media: type=i
                 clearInterval(heartbeat);
               }
 
+              // ── OUTBOUND AUTO-QA — Holly's own eyes check her work ──────────
+              // (Steve, 2026-08-12): full auto-QA before anything reaches him.
+              // Vision checks identity consistency + anatomy sanity (no holes
+              // in wrong places, no malformed genitalia, limb count). One
+              // regeneration on failure; if the retry also fails, throw so the
+              // honest fallback runs instead of sending a bad image.
+              // Vision unavailable (cold/off) → pass through (never blocks).
+              let imageQaNote = '';
+              if (process.env.MODAL_VISION_URL) {
+                const { qaImage, qaFailed } = await import('@/lib/vision/holly-vision');
+                sendProgress(controller, { phase: 'generate_image', percent: 90, message: '👀 Holly is checking her work…' });
+                const verdict = await qaImage(imageDataUri, fullPrompt.slice(0, 400));
+                if (qaFailed(verdict) && verdict) {
+                  console.warn('[CHAT] Vision QA failed — regenerating once:', JSON.stringify(verdict.issues));
+                  sendProgress(controller, { phase: 'generate_image', percent: 92, message: '🔄 Not good enough — trying again…' });
+                  const retry = await generateImage({
+                    prompt: fullPrompt,
+                    width: 1024,
+                    height: 1024,
+                    seed: Math.floor(Math.random() * 1000000),
+                    enhance: true,
+                  });
+                  const verdict2 = await qaImage(retry.url, fullPrompt.slice(0, 400));
+                  if (qaFailed(verdict2) && verdict2) {
+                    throw new Error(`Vision QA rejected the image twice: ${(verdict2.issues || []).join('; ') || 'anatomy/identity issues'}`);
+                  }
+                  imageDataUri = retry.url;
+                  imageMetaProvider = retry.provider;
+                  imageMetaModel = retry.model;
+                  imageQaNote = ` qa=passed-after-regen`;
+                } else if (verdict?.qa_passed) {
+                  imageQaNote = ' qa=passed';
+                  console.log('[CHAT] Vision QA passed:', JSON.stringify(verdict.issues || []));
+                }
+              }
+
               sendProgress(controller, { phase: 'generate_image', percent: 100, message: '✅ Image created!' });
               // No sendTool() here — image renders inline as markdown below.
               // Calling sendTool would open the sandbox side panel, which is reserved
@@ -1044,7 +1139,7 @@ Your own past messages may contain hidden records like: <!-- holly-media: type=i
               // when the ComfyUI Klein h0lly LoRA pipeline made the image —
               // pollinations/huggingface renders were NOT Holly.
               const identityLocked = imageMetaProvider.startsWith('modal-comfyui-klein') ? 'locked' : 'not-locked';
-              const imageMeta = `\n\n<!-- holly-media: type=image provider=${imageMetaProvider} model=${imageMetaModel} identity=${identityLocked} -->`;
+              const imageMeta = `\n\n<!-- holly-media: type=image provider=${imageMetaProvider} model=${imageMetaModel} identity=${identityLocked}${imageQaNote} -->`;
               sendText(controller, imageMeta);
               fullResponse += `\n\n![${altText}](${imageDataUri})` + imageMeta;
               // Intentionally NO second LLM call to "describe" the image. Previously
