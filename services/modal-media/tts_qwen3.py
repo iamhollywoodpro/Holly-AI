@@ -66,3 +66,12 @@ class Qwen3TTS:
             media_type="audio/wav",
             headers={"X-Speaker": speaker, "X-SampleRate": str(int(sr))},
         )
+
+    @modal.fastapi_endpoint(method="GET", label="tts-qwen3-warmup")
+    def warmup(self) -> dict:
+        """GET wakes the container (loads the model via @modal.enter) without
+        running a synthesis. Called fire-and-forget by the chat route on each
+        user message so the speaker button hits a WARM container (~5-15s synth
+        instead of ~40s cold start + Magpie fallback). Container still scales
+        to zero after scaledown_window=300 — no 24/7 GPU burn."""
+        return {"ok": True, "model": "Qwen3-TTS-12Hz-1.7B-CustomVoice", "speaker": "Vivian"}

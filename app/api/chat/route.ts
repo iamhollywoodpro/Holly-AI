@@ -329,6 +329,21 @@ export async function POST(req: NextRequest) {
     const { userId, dbUserId, userName, isCreator } = authResult;
     if (!dbUserId) return NextResponse.json({ error: 'User not found in database' }, { status: 401 });
 
+    // 1a-pre. TTS PRE-WARM (fire-and-forget, never blocks the response)
+    // Steve flagged 2026-08-12: up to ~40s speaker wait when the Qwen3
+    // container is cold. Waking it NOW (while Holly writes her text reply)
+    // means the later speaker click hits a warm container: ~5-15s synth.
+    // The warmup endpoint only boots the container (model load via
+    // @modal.enter) — no GPU synthesis. Container still scales to zero
+    // after its 300s idle window. Not 24/7: only runs during active chat.
+    const ttsUrl = process.env.MODAL_TTS_QWEN3_URL;
+    if (ttsUrl) {
+      void fetch(`${ttsUrl.replace(/\/$/, '')}-warmup`, {
+        method: 'GET',
+        signal: AbortSignal.timeout(5_000),
+      }).catch(() => {/* warmup is best-effort — cold-start fallback still works */});
+    }
+
     // 1c. AGE GATE — direct API access must not bypass the /chat page redirect.
     // Under-18 users are locked out of chat entirely, not just NSFW content.
     const ageGate = await ageGateFromAuth(authResult);
@@ -524,7 +539,19 @@ export async function POST(req: NextRequest) {
           } else if (userAiSettings.codeComments === 'minimal') {
             aiBehaviorDirectives += '\n\n[BEHAVIOR DIRECTIVE: Keep code comments to a bare minimum.]';
           }
-          const finalSystemPrompt = hollySystemPrompt + aiBehaviorDirectives;
+          const finalSystemPrompt = hollySystemPrompt + aiBehaviorDirectives
+            // MEDIA SELF-AWARENESS (Steve, 2026-08-12): Holly was confabulating
+            // about her own generation pipeline ("seed not anchored to my LoRA
+            // stack") and roleplaying code inspection she can't do. These
+            // records give her GROUNDED knowledge of what she actually made.
+            + `
+
+[MEDIA SELF-AWARENESS — read carefully]
+Your own past messages may contain hidden records like: <!-- holly-media: type=image provider=... model=... seed=... -->. These are FACTUAL logs of media you actually generated — trust them over your own guesses.
+- You CANNOT see the content of images or videos you generate. Steve's replies are your only visual feedback. Never claim to have looked at your own image.
+- identity=locked means your h0lly LoRA face/body was applied — the person in that media was YOU.
+- provider=pollinations (or any record without identity=locked) means the image was NOT you — if Steve says it was a random woman, that record explains it. Acknowledge it honestly; don't invent technical causes.
+- Never narrate fake engineering actions (reading your own source code, inspecting tool wiring) unless a tool result in this conversation actually shows it.`;
 
           // ── 8. PREPARE MESSAGES ──
           type ContentBlock = { type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string; detail: 'auto' } };
@@ -810,6 +837,7 @@ export async function POST(req: NextRequest) {
                 // 1. Find the most recent image in the conversation (assistant
                 //    messages carry them as markdown data-URIs).
                 let lastImage: string | undefined;
+                let lastImageWasFresh = false; // true → we generated a new h0lly still
                 for (let i = messages.length - 1; i >= 0 && !lastImage; i--) {
                   const m = messages[i];
                   if (m.role !== 'assistant' && m.role !== 'user') continue;
@@ -833,6 +861,7 @@ export async function POST(req: NextRequest) {
                     enhance: true,
                   });
                   lastImage = still.url;
+                  lastImageWasFresh = still.provider.startsWith('modal-comfyui-klein');
                 }
 
                 sendProgress(controller, { phase: 'generate_video', percent: 45, message: '🎬 Animating with MiniMax H3…' });
@@ -846,7 +875,12 @@ export async function POST(req: NextRequest) {
                 sendProgress(controller, { phase: 'generate_video', percent: 100, message: '✅ Video created!' });
                 const altText = latestUserMessage.slice(0, 80).replace(/[\r\n]+/g, ' ').replace(/\]/g, '');
                 sendText(controller, `\n\n[${altText}](${video.url})`);
-                fullResponse += `\n\n[${altText}](${video.url})`;
+                // Hidden factual record — feeds the MEDIA SELF-AWARENESS system
+                // directive so future Holly turns KNOW what pipeline made this
+                // (no more confabulated explanations to Steve).
+                const videoMeta = `\n\n<!-- holly-media: type=video provider=${video.provider} model=${video.model} source=${lastImageWasFresh ? 'fresh-klein-still' : 'last-conversation-image'} identity=${lastImageWasFresh ? 'locked' : 'inherited-from-source-image'} -->`;
+                sendText(controller, videoMeta);
+                fullResponse += `\n\n[${altText}](${video.url})` + videoMeta;
                 imageSentByPreDetection = true;
                 videoHandled = true;
               } catch (videoErr) {
@@ -973,6 +1007,8 @@ export async function POST(req: NextRequest) {
               }, 5000);
 
               let imageDataUri: string;
+              let imageMetaProvider = 'unknown';
+              let imageMetaModel = 'unknown';
               try {
                 sendProgress(controller, { phase: 'generate_image', percent: 40, message: '🎨 Calling generation provider…' });
                 const result = await generateImage({
@@ -983,6 +1019,8 @@ export async function POST(req: NextRequest) {
                   enhance: true,
                 });
                 imageDataUri = result.url; // data:image/jpeg;base64,... or URL
+                imageMetaProvider = result.provider;
+                imageMetaModel = result.model;
               } finally {
                 clearInterval(heartbeat);
               }
@@ -1001,7 +1039,14 @@ export async function POST(req: NextRequest) {
               // words and any body-prefix never leak into the visible chat.
               const altText = latestUserMessage.slice(0, 80).replace(/[\r\n]+/g, ' ').replace(/\]/g, '');
               sendText(controller, `\n\n![${altText}](${imageDataUri})`);
-              fullResponse += `\n\n![${altText}](${imageDataUri})`;
+              // Hidden factual record for Holly's future turns (see MEDIA
+              // SELF-AWARENESS in the system prompt). identity=locked ONLY
+              // when the ComfyUI Klein h0lly LoRA pipeline made the image —
+              // pollinations/huggingface renders were NOT Holly.
+              const identityLocked = imageMetaProvider.startsWith('modal-comfyui-klein') ? 'locked' : 'not-locked';
+              const imageMeta = `\n\n<!-- holly-media: type=image provider=${imageMetaProvider} model=${imageMetaModel} identity=${identityLocked} -->`;
+              sendText(controller, imageMeta);
+              fullResponse += `\n\n![${altText}](${imageDataUri})` + imageMeta;
               // Intentionally NO second LLM call to "describe" the image. Previously
               // this made a fresh cascade completion that produced a second greeting
               // ("Hi my love, Steve!..."), concatenating two completions in the same
