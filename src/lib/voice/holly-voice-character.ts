@@ -9,7 +9,8 @@
  *   1. Text + Emotional State → Voice Style Mapping
  *   2. Inject Verbal Personality Markers
  *   3. Preprocess text for TTS consumption
- *   4. Synthesize with NVIDIA Magpie (sole provider — Kokoro/VoxCPM2 removed 2026-08-12)
+ *   4. Synthesize with Qwen3-TTS Vivian (primary — Steve's 2026-08-20 bake-off
+ *      pick, bo_qwen3_vivian_casual); NVIDIA Magpie Sofia as fallback
  *   5. Return audio with metadata
  *
  * This engine is provider-agnostic — switching TTS providers doesn't require
@@ -23,12 +24,13 @@ import {
   stripVerbalMarkers,
   type MarkerContext,
 } from "./verbal-markers";
-import { synthesizeWithNvidia, isNvidiaTTSAvailable, type NvidiaTTSResult } from "./nvidia-tts-client";
+import { synthesizeWithNvidia, isNvidiaTTSAvailable } from "./nvidia-tts-client";
+import { synthesizeWithQwen3, isQwen3TTSAvailable } from "./qwen3-tts-client";
 import { logger } from "@/lib/monitoring/logger";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────────
 
-export type TTSProvider = "nvidia-magpie" | "none";
+export type TTSProvider = "qwen3-vivian" | "nvidia-magpie" | "none";
 
 export interface VoiceCharacterInput {
   /** Holly's response text */
@@ -218,7 +220,39 @@ export async function synthesizeWithCharacter(
   const textWithMarkers = injectVerbalMarkers(text, markerContext);
   const markersApplied = extractAppliedMarkers(text, textWithMarkers);
 
-  // ── Step 3: Try NVIDIA Magpie (primary) ────────────────────────────────────
+  // ── Step 3: Try Qwen3-TTS Vivian (primary — Holly's voice) ────────────────
+  if (isQwen3TTSAvailable()) {
+    // Qwen3 can't render asterisk markers as audio cues — strip them
+    const processedText = preprocessForTTS(textWithMarkers, "qwen3-vivian");
+
+    try {
+      const result = await synthesizeWithQwen3({ text: processedText, emotion });
+      logger.info("Voice character engine: Qwen3 Vivian success", {
+        emotion,
+        markersApplied: markersApplied.length,
+        userId,
+        category: "voice",
+      });
+
+      return {
+        processedText,
+        prosody,
+        provider: "qwen3-vivian",
+        audio: result.audioBuffer,
+        contentType: result.contentType,
+        estimatedDurationSec: result.estimatedDurationSec,
+        markersApplied,
+      };
+    } catch (qwenErr: any) {
+      logger.warn("Qwen3 Vivian failed — falling back to Magpie Sofia", {
+        error: qwenErr.message,
+        userId,
+        category: "voice",
+      });
+    }
+  }
+
+  // ── Step 3b: NVIDIA Magpie Sofia (fallback) ────────────────────────────────
   if (isNvidiaTTSAvailable()) {
     const processedText = preprocessForTTS(textWithMarkers, "nvidia-magpie");
 
@@ -231,7 +265,7 @@ export async function synthesizeWithCharacter(
       });
 
       if (result) {
-        logger.info("Voice character engine: NVIDIA Magpie success", {
+        logger.info("Voice character engine: NVIDIA Magpie success (fallback)", {
           emotion,
           style: prosody.style,
           markersApplied: markersApplied.length,
@@ -250,7 +284,7 @@ export async function synthesizeWithCharacter(
         };
       }
     } catch (nvidiaErr: any) {
-      logger.warn("NVIDIA Magpie failed — no fallback provider (Kokoro/VoxCPM2 removed 2026-08-12)", {
+      logger.warn("NVIDIA Magpie failed — no provider left", {
         error: nvidiaErr.message,
         userId,
         category: "voice",

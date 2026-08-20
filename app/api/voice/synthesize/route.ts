@@ -5,19 +5,21 @@ import { synthesizeWithCharacter, type VoiceCharacterInput } from "@/lib/voice/h
 import type { HollyEmotion } from "@/components/holly/LivingLogo";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+// Qwen3 warm generation is 25–90s — needs headroom over the old 60s Magpie budget
+export const maxDuration = 120;
 
 /**
  * POST /api/voice/synthesize
  *
- * Holly's Voice Character Engine — NVIDIA Magpie TTS (sole provider)
+ * Holly's Voice Character Engine
  *
  * Pipeline: Text + Emotion → Verbal Markers → Voice Style → TTS → Audio
  *
- * NVIDIA Magpie TTS Multilingual:
- *   - Free API with emotional style control (Happy, Calm, Sad, Angry, Neutral)
- *   - 5 English voices: Sofia (primary), Aria, Jason, Leo, John
- *   - 22kHz audio, gRPC/REST streaming
+ * Primary: Qwen3-TTS Vivian (self-hosted Modal GPU, 2026-08-20 bake-off
+ * winner — bo_qwen3_vivian_casual). Emotion drives the model's `instruct`
+ * string (trigger-word emote system; instruct is never spoken or shown).
+ *
+ * Fallback: NVIDIA Magpie Sofia (plain, 48kHz, tail-clip ".." workaround).
  *
  * Kokoro + VoxCPM2 removed 2026-08-12 (Roadmap B1) — dead fallback weight.
  */
@@ -50,13 +52,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Text is required" }, { status: 400 });
     }
 
-    // ── Voice Character Engine (always; NVIDIA Magpie is the sole provider) ────
+    // ── Voice Character Engine (Qwen3 Vivian primary, Magpie Sofia fallback) ──
 
-    if (!process.env.NVIDIA_API_KEY) {
+    if (!process.env.MODAL_TTS_QWEN3_URL && !process.env.NVIDIA_API_KEY) {
       return NextResponse.json(
         {
           error: "Voice not available",
-          detail: "No TTS provider configured. Set NVIDIA_API_KEY for Magpie TTS.",
+          detail:
+            "No TTS provider configured. Set MODAL_TTS_QWEN3_URL (primary) " +
+            "and/or NVIDIA_API_KEY (fallback) for voice synthesis.",
         },
         { status: 503 }
       );
@@ -68,7 +72,7 @@ export async function POST(req: NextRequest) {
       userId,
       textLength: text.length,
       emotion: finalEmotion,
-      primaryProvider: "nvidia-magpie",
+      primaryProvider: "qwen3-vivian",
       category: "voice",
     });
 
@@ -114,7 +118,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         error: "TTS synthesis failed",
-        detail: "NVIDIA Magpie synthesis failed. Check NVIDIA_API_KEY and NIM availability.",
+        detail: "Both providers failed. Check the Qwen3 Modal endpoint and NVIDIA_API_KEY.",
       },
       { status: 503 }
     );
