@@ -2532,36 +2532,68 @@ export default function HollyChatInterface() {
 
   const { phase: voicePhase, isListening, frequencyData, startListening, stopListening, startPTT, stopPTT, isBrowserSTTAvailable, startBrowserSTT, stopBrowserSTT } = voiceLoop;
 
-  // ── PUSH-TO-TALK (Jarvis-style, 2026-08-21): hold Space to talk ─────────
-  // Only active when NOT typing in a text field (space must type spaces).
-  // Esc while held cancels without sending. Latency telemetry → console.
-  useEffect(() => {
-    const isTypingTarget = (el: EventTarget | null) => {
-      const t = el as HTMLElement | null;
-      return Boolean(t && (t.tagName === 'TEXTAREA' || t.tagName === 'INPUT' || t.isContentEditable));
-    };
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.code !== 'Space' || e.repeat || isTypingTarget(e.target) || callModeRef.current) return;
-      e.preventDefault();
+  // ── PUSH-TO-TALK (2026-08-21): HOLD the mic button to talk ──────────────
+  // Hold ≥300ms → record; release → transcribe (Whisper) → send directly.
+  // Drag off the button or pointercancel → abort, nothing sent.
+  // Quick tap (<300ms) → normal toggle-listening behaviour.
+  // Latency telemetry → console.
+  const [pttHoldActive, setPttHoldActive] = useState(false);
+  const pttHoldRef = useRef(false);
+  const pttHoldTimerRef = useRef<number | null>(null);
+  const lastPttEndRef = useRef(0); // suppresses the trailing click after a hold
+
+  const beginMicHold = useCallback(() => {
+    if (callModeRef.current || voicePhase === 'processing' || pttHoldTimerRef.current !== null) return;
+    pttHoldTimerRef.current = window.setTimeout(() => {
+      pttHoldTimerRef.current = null;
+      pttHoldRef.current = true;
+      setPttHoldActive(true);
       pttSendRef.current = true; // PTT transcripts send directly
-      void startPTT().then(ok => { if (!ok) pttSendRef.current = false; });
-    };
-    const onKeyUp = (e: KeyboardEvent) => {
-      if (e.code !== 'Space') return;
-      if (isTypingTarget(e.target)) return;
-      e.preventDefault();
-      stopPTT(false);
-    };
-    const onCancel = () => { pttSendRef.current = false; stopPTT(true); };
-    window.addEventListener('keydown', onKeyDown);
-    window.addEventListener('keyup', onKeyUp);
-    window.addEventListener('blur', onCancel);
-    return () => {
-      window.removeEventListener('keydown', onKeyDown);
-      window.removeEventListener('keyup', onKeyUp);
-      window.removeEventListener('blur', onCancel);
-    };
-  }, [startPTT, stopPTT]);
+      void startPTT().then(ok => {
+        if (!ok) { pttSendRef.current = false; pttHoldRef.current = false; setPttHoldActive(false); }
+      });
+    }, 300);
+  }, [startPTT, voicePhase]);
+
+  const endMicHold = useCallback(() => {
+    if (pttHoldTimerRef.current !== null) {
+      clearTimeout(pttHoldTimerRef.current);
+      pttHoldTimerRef.current = null;
+      return; // quick tap — never entered PTT
+    }
+    if (pttHoldRef.current) {
+      pttHoldRef.current = false;
+      setPttHoldActive(false);
+      lastPttEndRef.current = Date.now();
+      stopPTT(false); // release → transcribe + send
+    }
+  }, [stopPTT]);
+
+  const cancelMicHold = useCallback(() => {
+    if (pttHoldTimerRef.current !== null) {
+      clearTimeout(pttHoldTimerRef.current);
+      pttHoldTimerRef.current = null;
+      return;
+    }
+    if (pttHoldRef.current) {
+      pttHoldRef.current = false;
+      setPttHoldActive(false);
+      lastPttEndRef.current = Date.now();
+      pttSendRef.current = false;
+      stopPTT(true); // dragged off / cancelled → nothing sent
+    }
+  }, [stopPTT]);
+
+  // Click that fires right after a hold's pointerup must not toggle listening.
+  const pttClickSuppressed = () => Date.now() - lastPttEndRef.current < 400;
+
+  // Esc cancels an active hold (keyboard safety valve).
+  useEffect(() => {
+    if (!pttHoldActive) return;
+    const onEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') cancelMicHold(); };
+    window.addEventListener('keydown', onEsc);
+    return () => window.removeEventListener('keydown', onEsc);
+  }, [pttHoldActive, cancelMicHold]);
 
   const toggleCallMode = useCallback(() => {
     if (callModeRef.current) {
@@ -3928,9 +3960,14 @@ export default function HollyChatInterface() {
                     </button>
                   );
                 })()}
-                {/* Voice */}
+                {/* Voice — hold to talk, tap to toggle */}
                 <button
+                  onPointerDown={() => { if (!browserSttOn) beginMicHold(); }}
+                  onPointerUp={() => { if (!browserSttOn) endMicHold(); }}
+                  onPointerLeave={() => { if (!browserSttOn) cancelMicHold(); }}
+                  onPointerCancel={() => { if (!browserSttOn) cancelMicHold(); }}
                   onClick={() => {
+                    if (pttClickSuppressed()) return;
                     if (browserSttOn) {
                       if (voicePhase === 'listening') stopBrowserSTT();
                       else startBrowserSTT();
@@ -3940,8 +3977,10 @@ export default function HollyChatInterface() {
                     }
                   }}
                   disabled={!browserSttOn && voicePhase === 'processing'}
-                  className={`p-2 rounded-xl transition-all ${
-                    isListening
+                  className={`p-2 rounded-xl transition-all select-none ${
+                    pttHoldActive
+                      ? "bg-red-500/30 text-red-400 animate-pulse"
+                      : isListening
                       ? "bg-red-500/20 text-red-400"
                       : voicePhase === 'processing'
                       ? "opacity-30 cursor-wait text-gray-500"
@@ -3949,7 +3988,7 @@ export default function HollyChatInterface() {
                       ? "bg-holly-teal/20 text-holly-teal"
                       : "text-white/30 hover:text-white hover:bg-white/5"
                   }`}
-                  title={voicePhase === 'listening' ? "Stop recording" : "Voice Input — or hold Space anywhere to talk (Esc cancels)"}
+                  title={browserSttOn ? "Voice mode: Browser (fast) — tap to start/stop" : "HOLD to talk, release to send — or tap for continuous mode (Esc cancels)"}
                 >
                   {voicePhase === 'processing' ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
@@ -4071,12 +4110,22 @@ export default function HollyChatInterface() {
                 {callMode ? <PhoneOff className="w-5 h-5" /> : <Phone className="w-5 h-5" />}
               </button>
 
-              {/* Voice button */}
+              {/* Voice button — hold to talk, tap to toggle */}
               <button
-                onClick={isListening ? stopListening : startListening}
+                onPointerDown={beginMicHold}
+                onPointerUp={endMicHold}
+                onPointerLeave={cancelMicHold}
+                onPointerCancel={cancelMicHold}
+                onClick={() => {
+                  if (pttClickSuppressed()) return;
+                  if (isListening) stopListening();
+                  else startListening();
+                }}
                 disabled={voicePhase === 'processing'}
-                className={`flex-shrink-0 p-3 rounded-2xl transition-all border border-transparent ${
-                  isListening
+                className={`flex-shrink-0 p-3 rounded-2xl transition-all border border-transparent select-none ${
+                  pttHoldActive
+                    ? "bg-red-500/30 text-red-400 border-red-500/40 animate-pulse"
+                    : isListening
                     ? "bg-red-500/20 text-red-400 border-red-500/30 hover:bg-red-500/30"
                     : voicePhase === 'processing'
                     ? "opacity-30 cursor-wait text-gray-500"
@@ -4084,7 +4133,7 @@ export default function HollyChatInterface() {
                     ? "bg-holly-teal/20 text-holly-teal border-holly-teal/30 hover:bg-holly-teal/30"
                     : "text-white/30 hover:text-holly-teal hover:bg-holly-teal/10 hover:border-holly-teal/20"
                 }`}
-                title={voicePhase === 'listening' ? "Stop recording" : voicePhase === 'processing' ? "Transcribing..." : "Neural Voice Input"}
+                title={voicePhase === 'listening' ? "Stop recording" : voicePhase === 'processing' ? "Transcribing..." : "HOLD to talk, release to send — or tap for continuous mode (Esc cancels)"}
               >
                 <AnimatePresence mode="wait">
                   {voicePhase === 'processing' ? (
