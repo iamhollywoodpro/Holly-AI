@@ -23,6 +23,7 @@ export interface MusicVideoRequest {
   genre?: string;           // Music genre hint
   width?: number;           // Video width (default: 1280)
   height?: number;          // Video height (default: 720)
+  audioDataUri?: string;    // The ACTUAL song (data:audio/mp3|wav;base64,...) — merged into the video
 }
 
 export async function POST(req: NextRequest) {
@@ -95,13 +96,15 @@ export async function POST(req: NextRequest) {
       }, { status: 500 });
     }
 
-    // Step 2: For now, create a silent slideshow (audio generation requires Suno/Acestep API)
-    // The audio can be provided separately via the /api/music/generate endpoint
-    // and combined using the composeMusicVideo function
-
-    // Generate a simple 440Hz tone as placeholder audio for the slideshow
-    // In production, this would be replaced with actual generated music
-    const audioUrl = `data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=`;
+    // Step 2: Audio — the real song when provided, honest failure otherwise.
+    // (Previously a 44-byte silent placeholder WAV was merged in — a fake.
+    //  Flagged and removed 2026-08-21: no video ships without its song.)
+    if (!body.audioDataUri || !/^data:audio\/[a-z0-9]+;base64,/.test(body.audioDataUri)) {
+      return NextResponse.json({
+        error: 'audioDataUri is required — provide the song to set the video to (data:audio/...;base64,...)',
+      }, { status: 400 });
+    }
+    const audioUrl = body.audioDataUri;
 
     // Step 3: Compose video
     const result = await composeMusicVideo({
@@ -130,7 +133,7 @@ export async function POST(req: NextRequest) {
       scenesGenerated: successfulImages.length,
       style,
       prompt: body.prompt,
-      note: 'Video generated with scene images. For full music video with audio, use /api/music/generate first and provide the audio URL.',
+      note: 'Video generated with scene images + the provided song audio.',
     });
   } catch (err: any) {
     return NextResponse.json(

@@ -12,14 +12,14 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { RemixSongModal } from '@/components/music/remix-song-modal';
-import { StemSeparationModal } from '@/components/music/stem-separation-modal';
 import { ExtendSongModal } from '@/components/music/extend-song-modal';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 type GenerationMode = 'describe' | 'custom';
-type EngineType = 'suno' | 'sonauto' | 'hybrid';
+type EngineType = 'suno' | 'sonauto' | 'hybrid' | 'holly';
+type OutputFormat = 'mp3' | 'wav';
 
 interface GeneratedTrack {
   id:             string;
@@ -38,6 +38,10 @@ interface GeneratedTrack {
   liked?:         boolean;
   plays?:         number;
   createdAt:      Date;
+  // Holly engine extras (2026-08-21)
+  lyrics?:        string;   // exact text we rendered — powers Extract Lyrics
+  seed?:          number;   // reproducibility
+  format?:        OutputFormat;
 }
 
 interface Toast {
@@ -74,6 +78,7 @@ const MODEL_OPTIONS = [
 ];
 
 const ENGINE_OPTIONS: { value: EngineType; label: string; badge: string; desc: string; color: string }[] = [
+  { value: 'holly',    label: 'Holly',         badge: 'Ours',     desc: 'Our engine · writes + renders · MP3/WAV',      color: 'from-teal-400 to-violet-400' },
   { value: 'suno',     label: 'SUNO',          badge: 'Primary',  desc: 'Industry-leading AI vocals · V5.5',            color: 'from-purple-500 to-pink-500' },
   { value: 'sonauto',  label: 'Sonauto',       badge: 'Free',     desc: 'Melodia v3 · free generation · stems',         color: 'from-emerald-500 to-teal-500' },
   { value: 'hybrid',   label: 'Hybrid Studio', badge: 'Pro',      desc: '4-phase: Sonauto lyrics→stems→SUNO vocals→mix', color: 'from-amber-500 to-orange-500' },
@@ -140,6 +145,7 @@ function MiniPlayer({
   onClose,
   onSkipNext,
   onSkipPrev,
+  onLike,
 }: {
   track: GeneratedTrack;
   isPlaying: boolean;
@@ -153,6 +159,7 @@ function MiniPlayer({
   onClose: () => void;
   onSkipNext: () => void;
   onSkipPrev: () => void;
+  onLike: () => void;
 }) {
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 bg-black/95 backdrop-blur-xl border-t border-white/10">
@@ -172,7 +179,7 @@ function MiniPlayer({
             <p className="text-white/50 text-xs">{track.style || 'AI Generated'}</p>
           </div>
           <button
-            onClick={() => {}}
+            onClick={onLike}
             className={`ml-2 p-1.5 rounded-full transition-colors ${track.liked ? 'text-pink-400' : 'text-white/30 hover:text-pink-400'}`}
           >
             <Heart className={`w-4 h-4 ${track.liked ? 'fill-pink-400' : ''}`} />
@@ -235,26 +242,31 @@ function TrackCard({
   track,
   isActive,
   isPlaying,
+  regeneratingCover,
   onPlay,
   onDownload,
   onExtend,
   onLike,
   onRemix,
-  onStems,
-  onMore,
+  onExtractLyrics,
+  onCreateVideo,
+  onRegenerateCover,
 }: {
   track: GeneratedTrack;
   isActive: boolean;
   isPlaying: boolean;
+  regeneratingCover: boolean;
   onPlay: () => void;
   onDownload: () => void;
   onExtend: () => void;
   onLike: () => void;
   onRemix: () => void;
-  onStems: () => void;
-  onMore: () => void;
+  onExtractLyrics: () => void;
+  onCreateVideo: () => void;
+  onRegenerateCover: () => void;
 }) {
   const [showActions, setShowActions] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
 
   if (track.status === 'generating') {
     return (
@@ -346,7 +358,7 @@ function TrackCard({
           )}
         </div>
 
-        <div className={`flex items-center gap-0.5 transition-all duration-200 ${showActions ? 'opacity-100' : 'opacity-0'}`}>
+        <div className={`flex items-center gap-0.5 relative transition-all duration-200 ${showActions || showMenu ? 'opacity-100' : 'opacity-0'}`}>
           <button
             onClick={onLike}
             className={`p-1.5 rounded-lg transition-colors ${
@@ -356,34 +368,74 @@ function TrackCard({
           >
             <Heart className={`w-4 h-4 ${track.liked ? 'fill-pink-400' : ''}`} />
           </button>
-          <button
-            onClick={onExtend}
-            className="p-1.5 rounded-lg text-white/40 hover:text-[#3DAF76] transition-colors"
-            title="Extend"
-          >
-            <Zap className="w-4 h-4" />
-          </button>
+          {track.clipId && (
+            <button
+              onClick={onExtend}
+              className="p-1.5 rounded-lg text-white/40 hover:text-[#3DAF76] transition-colors"
+              title="Extend"
+            >
+              <Zap className="w-4 h-4" />
+            </button>
+          )}
           <button
             onClick={onRemix}
             className="p-1.5 rounded-lg text-white/40 hover:text-[#3DAF76] transition-colors"
-            title="Remix"
+            title={track.engine === 'holly' ? 'Remix (real re-render)' : 'Re-generate'}
           >
             <RefreshCw className="w-4 h-4" />
           </button>
           <button
-            onClick={onStems}
-            className="p-1.5 rounded-lg text-white/40 hover:text-amber-400 transition-colors"
-            title="Separate Stems"
-          >
-            <Layers className="w-4 h-4" />
-          </button>
-          <button
             onClick={onDownload}
             className="p-1.5 rounded-lg text-white/40 hover:text-green-400 transition-colors"
-            title="Download"
+            title={`Download ${((track.format === 'wav') || track.audioUrl?.startsWith('data:audio/wav')) ? 'WAV' : 'MP3'}`}
           >
             <Download className="w-4 h-4" />
           </button>
+          {/* ⋮ per-song menu (Suno style) */}
+          <button
+            onClick={() => setShowMenu(v => !v)}
+            className={`p-1.5 rounded-lg transition-colors ${showMenu ? 'text-white' : 'text-white/40 hover:text-white'}`}
+            title="More"
+          >
+            <MoreHorizontal className="w-4 h-4" />
+          </button>
+
+          {showMenu && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
+              <div className="absolute right-0 top-8 z-50 w-52 py-1.5 rounded-xl bg-[#1A1820] border border-white/10 shadow-2xl">
+                {track.lyrics && (
+                  <button
+                    onClick={() => { setShowMenu(false); onExtractLyrics(); }}
+                    className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-white/70 hover:text-white hover:bg-white/5 text-left"
+                  >
+                    <FileText className="w-4 h-4" /> Extract Lyrics
+                  </button>
+                )}
+                <button
+                  onClick={() => { setShowMenu(false); onCreateVideo(); }}
+                  className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-white/70 hover:text-white hover:bg-white/5 text-left"
+                >
+                  <ImageIcon className="w-4 h-4" /> Create Music Video
+                </button>
+                <button
+                  onClick={() => { setShowMenu(false); onRegenerateCover(); }}
+                  disabled={regeneratingCover}
+                  className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-white/70 hover:text-white hover:bg-white/5 text-left disabled:opacity-50"
+                >
+                  <RotateCcw className={`w-4 h-4 ${regeneratingCover ? 'animate-spin' : ''}`} />
+                  {regeneratingCover ? 'Generating…' : 'New Cover Art'}
+                </button>
+                <div className="my-1 h-px bg-white/5" />
+                <button
+                  onClick={() => { setShowMenu(false); onDownload(); }}
+                  className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-white/70 hover:text-white hover:bg-white/5 text-left"
+                >
+                  <Download className="w-4 h-4" /> Download Audio
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </motion.div>
@@ -418,9 +470,16 @@ export default function MusicStudio() {
   const audioRef                                = useRef<HTMLAudioElement | null>(null);
   const progressInterval                        = useRef<NodeJS.Timeout | null>(null);
 
+  const [outputFormat, setOutputFormat]         = useState<OutputFormat>('mp3');
+
   const [remixTrack, setRemixTrack]             = useState<GeneratedTrack | null>(null);
-  const [stemsTrack, setStemsTrack]             = useState<GeneratedTrack | null>(null);
   const [extendTrack, setExtendTrack]           = useState<GeneratedTrack | null>(null);
+  const [lyricsTrack, setLyricsTrack]           = useState<GeneratedTrack | null>(null);
+  const [videoTrack, setVideoTrack]             = useState<GeneratedTrack | null>(null);
+  const [videoStyle, setVideoStyle]             = useState('cinematic');
+  const [videoUrl, setVideoUrl]                 = useState<string | null>(null);
+  const [isMakingVideo, setIsMakingVideo]       = useState(false);
+  const [regeneratingCover, setRegeneratingCover] = useState<string | null>(null);
 
   const activeTrack = tracks.find(t => t.id === activeTrackId) ?? null;
   const activeIndex = tracks.filter(t => t.status === 'complete').findIndex(t => t.id === activeTrackId);
@@ -509,7 +568,10 @@ export default function MusicStudio() {
         body: JSON.stringify({ title: trackTitle, style: trackStyle }),
       });
       const json = await res.json();
-      if (json.success && json.imageUrl) return json.imageUrl;
+      // Route returns { success, data: { imageUrl } } — the old `json.imageUrl`
+      // check never matched, so covers silently never applied (fixed 2026-08-21)
+      const url = json?.data?.imageUrl ?? json?.imageUrl;
+      if (json.success && url) return url;
     } catch {}
     return undefined;
   }, []);
@@ -613,7 +675,44 @@ export default function MusicStudio() {
     }, ...prev]);
 
     try {
-      if (engine === 'hybrid') {
+      if (engine === 'holly') {
+        // OUR ENGINE: lyric-brain writes (describe mode) or user lyrics (custom)
+        // → ACE-Step renders on our Modal GPUs → data-URI audio
+        const res = await fetch('/api/music/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            forceEngine: 'acestep',
+            customMode: isCustom,
+            prompt: isCustom ? lyrics : prompt,
+            style: style || undefined,
+            title: trackTitle,
+            duration: 60,
+            format: outputFormat,
+          }),
+        });
+        const json = await res.json();
+        if (!json.success) throw new Error(json.error || 'Holly engine failed');
+
+        const d = json.data;
+        const coverUrl = await generateCoverArt(trackTitle, style || prompt.slice(0, 60));
+        setTracks(prev => prev.map(t =>
+          t.id === trackId
+            ? {
+                ...t,
+                status: 'complete',
+                audioUrl: d.audioDataUri,
+                imageUrl: coverUrl,
+                duration: d.duration,
+                lyrics: d.lyrics,
+                seed: d.seed,
+                format: (d.format === 'wav' ? 'wav' : 'mp3'),
+                model: 'ACE-Step 1.5',
+              }
+            : t
+        ));
+        addToast('Song ready — written & rendered by Holly 🌿', 'success');
+      } else if (engine === 'hybrid') {
         setHybridPhase('lyrics');
         const res = await fetch('/api/music/hybrid-studio', {
           method: 'POST',
@@ -793,6 +892,51 @@ export default function MusicStudio() {
     audio_url: string; prompt: string; style: string; title: string;
     audio_weight: number; style_weight: number;
   }) => {
+    // REAL remix on our engine: same lyrics, user's style edits, NEW seed →
+    // genuine re-render (Suno path below is a text re-generation, honestly labeled)
+    if (remixTrack?.engine === 'holly' && remixTrack.lyrics) {
+      const trackId = uid();
+      setTracks(prev => [{
+        id: trackId,
+        title: `${data.title || remixTrack.title} (Remix)`,
+        audioUrl: '',
+        status: 'generating',
+        model: 'ACE-Step 1.5',
+        engine: 'holly',
+        style: data.style || remixTrack.style,
+        parentTitle: remixTrack.title,
+        lyrics: remixTrack.lyrics,
+        createdAt: new Date(),
+      }, ...prev]);
+      try {
+        const res = await fetch('/api/music/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            forceEngine: 'acestep',
+            customMode: true,
+            prompt: remixTrack.lyrics,
+            style: data.style || remixTrack.style,
+            duration: remixTrack.duration || 60,
+            format: remixTrack.format || 'mp3',
+          }),
+        });
+        const json = await res.json();
+        if (!json.success) throw new Error(json.error || 'Remix render failed');
+        const d = json.data;
+        setTracks(prev => prev.map(t =>
+          t.id === trackId
+            ? { ...t, status: 'complete', audioUrl: d.audioDataUri, duration: d.duration, seed: d.seed, format: d.format === 'wav' ? 'wav' : 'mp3' }
+            : t
+        ));
+        addToast('Remix rendered 🎛️', 'success');
+      } catch (err: any) {
+        setTracks(prev => prev.map(t => t.id === trackId ? { ...t, status: 'error' } : t));
+        addToast(err.message || 'Remix failed', 'error');
+      }
+      return;
+    }
+
     const trackId = uid();
     setTracks(prev => [{
       id:        trackId,
@@ -825,34 +969,92 @@ export default function MusicStudio() {
     }
   }, [model, pollStatus, addToast]);
 
-  const handleStemSeparation = useCallback(async (data: { audio_url: string; song_id: string; stems: string[] }) => {
-    addToast('Stem separation starting… this may take 30-90 seconds', 'info');
+  const handleDownload = useCallback((track: GeneratedTrack) => {
+    if (!track.audioUrl) return;
+    const ext = track.format === 'wav' ? 'wav'
+      : track.audioUrl.startsWith('data:audio/wav') ? 'wav'
+      : 'mp3';
+    const a = document.createElement('a');
+    a.href     = track.audioUrl;
+    a.download = `${track.title.replace(/[^a-z0-9]/gi, '_')}.${ext}`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    addToast(`Downloading ${ext.toUpperCase()}…`, 'success');
+  }, [addToast]);
+
+  // Extract Lyrics — the exact text that was rendered (we wrote it, not AI-guessed)
+  const handleDownloadLyrics = useCallback((track: GeneratedTrack) => {
+    if (!track.lyrics) return;
+    const blob = new Blob([`${track.title}\n${'='.repeat(track.title.length)}\n\n${track.lyrics}\n`], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${track.title.replace(/[^a-z0-9]/gi, '_')}_lyrics.txt`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    addToast('Lyrics downloaded', 'success');
+  }, [addToast]);
+
+  const handleCopyLyrics = useCallback(async (track: GeneratedTrack) => {
+    if (!track.lyrics) return;
     try {
-      const res = await fetch('/api/music/stem-separate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-      const json = await res.json();
-      if (json.success) {
-        addToast('Stems separated! Check your downloads.', 'success');
-        return json;
-      }
-      throw new Error(json.error || 'Separation failed');
-    } catch (err: any) {
-      addToast(err.message || 'Stem separation not available yet', 'error');
-      throw err;
+      await navigator.clipboard.writeText(track.lyrics);
+      addToast('Lyrics copied', 'success');
+    } catch {
+      addToast('Copy failed — use Download instead', 'error');
     }
   }, [addToast]);
 
-  const handleDownload = useCallback((track: GeneratedTrack) => {
-    if (!track.audioUrl) return;
-    const a = document.createElement('a');
-    a.href     = track.audioUrl;
-    a.download = `${track.title.replace(/[^a-z0-9]/gi, '_')}.mp3`;
-    a.click();
-    addToast('Downloading…', 'success');
-  }, [addToast]);
+  // Create Music Video — scene images + the ACTUAL song merged via FFmpeg
+  const handleCreateVideo = useCallback(async () => {
+    if (!videoTrack?.audioUrl || !videoTrack.audioUrl.startsWith('data:audio/')) {
+      addToast('Music video needs the song audio (Holly engine tracks have it)', 'error');
+      return;
+    }
+    setIsMakingVideo(true);
+    setVideoUrl(null);
+    try {
+      const res = await fetch('/api/media/music-video', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: `${videoTrack.title} — ${videoTrack.style || 'music video'}`,
+          style: videoStyle,
+          scenes: 4,
+          durationPerScene: 5,
+          lyrics: videoTrack.lyrics,
+          audioDataUri: videoTrack.audioUrl,
+        }),
+      });
+      const json = await res.json();
+      if (!json.success || !json.video) throw new Error(json.error || 'Video generation failed');
+      setVideoUrl(json.video);
+      addToast('Music video ready! 🎬', 'success');
+    } catch (err: any) {
+      addToast(err.message || 'Music video failed', 'error');
+    } finally {
+      setIsMakingVideo(false);
+    }
+  }, [videoTrack, videoStyle, addToast]);
+
+  // Regenerate cover art on demand
+  const handleRegenerateCover = useCallback(async (track: GeneratedTrack) => {
+    setRegeneratingCover(track.id);
+    try {
+      const coverUrl = await generateCoverArt(track.title, track.style || '');
+      if (coverUrl) {
+        setTracks(prev => prev.map(t => t.id === track.id ? { ...t, imageUrl: coverUrl } : t));
+        addToast('New cover art ✨', 'success');
+      } else {
+        addToast('Cover art failed', 'error');
+      }
+    } finally {
+      setRegeneratingCover(null);
+    }
+  }, [generateCoverArt, addToast]);
 
   const handleLike = useCallback((trackId: string) => {
     setTracks(prev => prev.map(t => t.id === trackId ? { ...t, liked: !t.liked } : t));
@@ -1141,6 +1343,42 @@ export default function MusicStudio() {
             </div>
             )}
 
+            {engine === 'holly' && (
+            <div className="space-y-3">
+              <div className="bg-teal-500/10 border border-teal-500/20 rounded-2xl p-4 space-y-2">
+                <p className="text-teal-300 text-sm font-semibold flex items-center gap-2">
+                  <Music2 className="w-4 h-4" />
+                  Holly Engine — Ours
+                </p>
+                <p className="text-white/50 text-xs leading-relaxed">
+                  Her songwriting system writes the lyrics (11 languages), then ACE-Step renders
+                  them on our own GPUs. ~$0.0006/song. Lyrics stored per track — extractable.
+                </p>
+              </div>
+              <div>
+                <p className="text-white/30 text-xs uppercase tracking-wider mb-2">Output Format</p>
+                <div className="flex gap-2">
+                  {(['mp3', 'wav'] as const).map(f => (
+                    <button
+                      key={f}
+                      onClick={() => setOutputFormat(f)}
+                      className={`flex-1 py-2.5 rounded-xl border text-xs font-medium transition-all ${
+                        outputFormat === f
+                        ? 'bg-[#66CCCC]/20 border-[#66CCCC]/50 text-white'
+                        : 'bg-white/5 border-white/10 text-white/40 hover:text-white/80 hover:border-white/20'
+                      }`}
+                    >
+                      <span className="block text-sm font-semibold uppercase">{f}</span>
+                      <span className="block text-[10px] text-white/40 mt-0.5">
+                        {f === 'mp3' ? '192k · compact' : '48kHz lossless · large'}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            )}
+
             {engine === 'hybrid' && (
             <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 space-y-2">
               <p className="text-amber-300 text-sm font-semibold flex items-center gap-2">
@@ -1248,8 +1486,9 @@ export default function MusicStudio() {
             </motion.button>
 
             <p className="text-center text-white/20 text-xs">
-              {engine === 'hybrid' ? '~5-10 min · 4-phase pipeline · Best quality' :
-               engine === 'sonauto' ? '~30-60 sec · Free generation · No credits used' :
+              {engine === 'holly'    ? '~30-60 sec · Our GPUs · MP3/WAV · lyrics included' :
+               engine === 'hybrid'   ? '~5-10 min · 4-phase pipeline · Best quality' :
+               engine === 'sonauto'  ? '~30-60 sec · Free generation · No credits used' :
                'Each generation creates 2 variations · ~1-3 minutes'}
             </p>
           </div>
@@ -1288,13 +1527,15 @@ export default function MusicStudio() {
                   track={track}
                   isActive={activeTrackId === track.id}
                   isPlaying={activeTrackId === track.id && isPlaying}
+                  regeneratingCover={regeneratingCover === track.id}
                   onPlay={() => playTrack(track)}
                   onDownload={() => handleDownload(track)}
                   onExtend={() => setExtendTrack(track)}
                   onLike={() => handleLike(track.id)}
                   onRemix={() => setRemixTrack(track)}
-                  onStems={() => setStemsTrack(track)}
-                  onMore={() => {}}
+                  onExtractLyrics={() => setLyricsTrack(track)}
+                  onCreateVideo={() => { setVideoTrack(track); setVideoUrl(null); }}
+                  onRegenerateCover={() => handleRegenerateCover(track)}
                 />
               ))}
             </div>
@@ -1324,6 +1565,7 @@ export default function MusicStudio() {
           }}
           onSkipNext={handleSkipNext}
           onSkipPrev={handleSkipPrev}
+          onLike={() => handleLike(activeTrack.id)}
         />
       )}
 
@@ -1384,19 +1626,113 @@ export default function MusicStudio() {
         />
       )}
 
-      {/* Stem separation modal */}
-      {stemsTrack && (
-        <StemSeparationModal
-          isOpen={true}
-          onClose={() => setStemsTrack(null)}
-          song={{
-            id: stemsTrack.id,
-            title: stemsTrack.title,
-            audio_url: stemsTrack.audioUrl,
-            image_url: stemsTrack.imageUrl,
-          }}
-          onSeparate={handleStemSeparation}
-        />
+      {/* Stem separation — REMOVED 2026-08-21: /api/music/stem-separate never
+          existed; the button always failed. Real stems (Demucs on Modal)
+          queued for the Sept 1 batch. Nothing fake stays in the UI. */}
+
+      {/* Extract Lyrics modal — the exact text that was rendered */}
+      {lyricsTrack && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-[#141420] border border-white/10 rounded-3xl p-6 w-full max-w-lg shadow-2xl max-h-[80vh] flex flex-col">
+            <h3 className="text-white font-semibold text-lg mb-1">Lyrics</h3>
+            <p className="text-white/40 text-sm mb-4">"{lyricsTrack.title}" — written by Holly's songwriting system</p>
+            <pre className="flex-1 overflow-y-auto whitespace-pre-wrap font-sans text-sm text-white/80 bg-white/5 border border-white/8 rounded-xl p-4 mb-4">
+              {lyricsTrack.lyrics}
+            </pre>
+            <div className="flex gap-2">
+              <button
+                onClick={() => handleCopyLyrics(lyricsTrack)}
+                className="flex-1 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white/70 hover:text-white text-sm font-medium transition-all"
+              >
+                Copy
+              </button>
+              <button
+                onClick={() => handleDownloadLyrics(lyricsTrack)}
+                className="flex-1 py-2.5 rounded-xl bg-[#66CCCC]/15 border border-[#66CCCC]/30 text-[#66CCCC] hover:bg-[#66CCCC]/25 text-sm font-medium transition-all"
+              >
+                Download .txt
+              </button>
+              <button
+                onClick={() => setLyricsTrack(null)}
+                className="px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white/50 hover:text-white text-sm transition-all"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create Music Video modal — scene style picker + player */}
+      {videoTrack && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-[#141420] border border-white/10 rounded-3xl p-6 w-full max-w-xl shadow-2xl max-h-[85vh] overflow-y-auto">
+            <h3 className="text-white font-semibold text-lg mb-1">Create Music Video</h3>
+            <p className="text-white/40 text-sm mb-4">"{videoTrack.title}" — scene images + your actual song, merged by FFmpeg</p>
+
+            {videoUrl ? (
+              <div className="space-y-4">
+                <video controls src={videoUrl} className="w-full rounded-xl border border-white/10" />
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      const a = document.createElement('a');
+                      a.href = videoUrl;
+                      a.download = `${videoTrack.title.replace(/[^a-z0-9]/gi, '_')}_video.mp4`;
+                      document.body.appendChild(a); a.click(); a.remove();
+                    }}
+                    className="flex-1 py-2.5 rounded-xl bg-[#66CCCC]/15 border border-[#66CCCC]/30 text-[#66CCCC] hover:bg-[#66CCCC]/25 text-sm font-medium transition-all"
+                  >
+                    Download MP4
+                  </button>
+                  <button
+                    onClick={() => { setVideoTrack(null); setVideoUrl(null); }}
+                    className="px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white/50 hover:text-white text-sm transition-all"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <p className="text-white/30 text-xs uppercase tracking-wider mb-2">Visual Style</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {['cinematic', 'anime', 'abstract', 'neon', 'natural'].map(st => (
+                      <button
+                        key={st}
+                        onClick={() => setVideoStyle(st)}
+                        className={`py-2.5 px-3 rounded-xl border text-xs font-medium capitalize transition-all ${
+                          videoStyle === st
+                          ? 'bg-[#66CCCC]/20 border-[#66CCCC]/50 text-white'
+                          : 'bg-white/5 border-white/10 text-white/50 hover:text-white/80'
+                        }`}
+                      >
+                        {st}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <p className="text-white/30 text-xs">4 scenes · 5s each · uses your song as the audio track</p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleCreateVideo}
+                    disabled={isMakingVideo}
+                    className="flex-1 py-2.5 rounded-xl bg-[#66CCCC]/15 border border-[#66CCCC]/30 text-[#66CCCC] hover:bg-[#66CCCC]/25 text-sm font-medium transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {isMakingVideo ? <><Loader2 className="w-4 h-4 animate-spin" /> Creating…</> : '🎬 Create Video'}
+                  </button>
+                  <button
+                    onClick={() => setVideoTrack(null)}
+                    className="px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white/50 hover:text-white text-sm transition-all"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       )}
 
       {/* Toast notifications */}

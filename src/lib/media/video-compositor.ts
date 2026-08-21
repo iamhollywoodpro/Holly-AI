@@ -119,8 +119,11 @@ export async function composeMusicVideo(opts: ComposeOptions): Promise<ComposeRe
       imagePaths.push(imgPath);
     }
 
-    // Download audio
-    const audioPath = path.join(tmpDir, 'audio.mp3');
+    // Download audio — extension follows the actual data-URI mime (wav ≠ mp3;
+    // ffmpeg probes content so this is a hint, but keep it honest)
+    const audioMime = (opts.audio.match(/^data:([^;]+);/) || [])[1] || 'audio/mpeg';
+    const audioExt = audioMime.includes('wav') ? 'wav' : audioMime.includes('ogg') ? 'ogg' : 'mp3';
+    const audioPath = path.join(tmpDir, `audio.${audioExt}`);
     await resolveMedia(opts.audio, audioPath);
 
     // Get audio duration

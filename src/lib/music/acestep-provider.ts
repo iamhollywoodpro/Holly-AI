@@ -23,6 +23,8 @@ export interface AceStepRenderParams {
   duration?: number;
   /** Optional seed for reproducibility. */
   seed?: number;
+  /** Output format: mp3 (default, compact) or wav (lossless, ~10MB/60s). */
+  format?: 'mp3' | 'wav';
 }
 
 export interface AceStepRenderResult {
@@ -57,6 +59,7 @@ export const acestepProvider = {
     const body: Record<string, unknown> = {
       lyrics: params.lyrics,
       duration: Math.min(240, Math.max(30, Math.round(params.duration ?? 60))),
+      format: params.format ?? 'mp3',
     };
     if (params.stylePrompt) body.style_prompt = params.stylePrompt;
     if (params.seed != null) body.seed = params.seed;

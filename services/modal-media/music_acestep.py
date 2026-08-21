@@ -98,6 +98,9 @@ class HollyMusic:
         tags = (request.get("tags") or "").strip()
         duration = min(max(int(request.get("duration", 120)), 30), 240)
         seed = int(request.get("seed") or random.randrange(2**31 - 1))
+        out_format = str(request.get("format") or "mp3").lower()
+        if out_format not in ("mp3", "wav"):
+            return {"error": f"unsupported format '{out_format}' — use mp3 or wav"}
 
         style_prompt = ", ".join(x for x in (prompt, tags) if x) or "modern pop production, clean mix"
 
@@ -128,6 +131,17 @@ class HollyMusic:
         if not candidates:
             return {"error": "ACE-Step produced no output files"}
         wav_path = candidates[-1]
+
+        # WAV requested → lossless raw render, skip conversion (~10MB/60s)
+        if out_format == "wav":
+            with open(wav_path, "rb") as f:
+                return {
+                    "audio": base64.b64encode(f.read()).decode(),
+                    "format": "wav",
+                    "seed": seed,
+                    "duration": duration,
+                    "model": ACE_REPO,
+                }
 
         # → mp3 via ffmpeg (smaller payloads over the wire)
         proc = subprocess.run(

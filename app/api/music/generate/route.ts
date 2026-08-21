@@ -71,6 +71,10 @@ export async function POST(req: NextRequest) {
       weirdnessConstraint,
       model          = DEFAULT_MODEL,
       negativeTags,
+      forceEngine,             // 'acestep' → skip Suno/Sonauto, use OUR engine directly (Music Hub)
+      duration      = 60,
+      format        = 'mp3',   // output format for our engine: mp3 | wav
+      seed,
     } = body;
 
     console.log('[Music API] Generation request:', { prompt: prompt?.slice(0, 80), style, title, instrumental, customMode, model });
@@ -120,6 +124,41 @@ export async function POST(req: NextRequest) {
     }
 
     console.log('[Music API] Calling Suno API:', { ...sunoRequest, prompt: sunoRequest.prompt?.slice(0, 100) });
+
+    // ── OUR ENGINE FIRST when forced (Music Hub "Holly" engine) ─────────────
+    // Same render path as the last-resort branch below — just prioritized.
+    if (forceEngine === 'acestep' && ACESTEP_URL) {
+      try {
+        let lyrics = customMode ? (prompt as string) : '';
+        if (!lyrics) {
+          const { writeLyrics } = await import('@/lib/music/lyric-brain');
+          const written = await writeLyrics({ theme: prompt, style, mood: 'emotional, heartfelt' });
+          lyrics = written.lyrics;
+        }
+        const { acestepProvider } = await import('@/lib/music/acestep-provider');
+        const rendered = await acestepProvider.renderSong({
+          lyrics, stylePrompt: style,
+          duration, format: format === 'wav' ? 'wav' : 'mp3', seed,
+        });
+        return NextResponse.json({
+          success: true,
+          provider: 'acestep',
+          data: {
+            audioDataUri: rendered.dataUri,
+            format: rendered.format,
+            seed: rendered.seed,
+            duration: rendered.duration,
+            lyrics,
+          },
+        });
+      } catch (aceErr) {
+        console.error('[Music API] Forced ACE-Step failed:', aceErr);
+        return NextResponse.json(
+          { success: false, error: aceErr instanceof Error ? aceErr.message : 'ACE-Step generation failed' },
+          { status: 502 },
+        );
+      }
+    }
 
     // ── Try SUNO V5.5 (primary) ─────────────────────────────────────────────
     if (SUNO_API_KEY) {
