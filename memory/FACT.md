@@ -1397,3 +1397,9 @@ DB will regenerate the app `.env` from the OLD row — fix DB first, wait for
 deploy to finish, THEN rewrite `.env` + `docker compose up -d --force-recreate`.
 Verified live: MODAL_VISION_URL plaintext in holly-app env, container healthy,
 app 200. Vision endpoints: cold QA 32.4s / warm 2.8s / describe 5.3s.
+
+## Coolify env insert — corrected procedure (2026-08-21)
+- Coolify env table uses `resourceable_type`/`resourceable_id` (NOT environmentable_*) in current version.
+- `resourceable_type` must be EXACTLY `App\Models\Application` — SINGLE backslashes (22 chars). Double backslashes save fine but Coolify silently EXCLUDES the var from the generated .env (no error anywhere). Use chr(92) ONCE per separator in tinker, never twice.
+- App `.env` at /data/coolify/applications/<uuid>/.env often has NO trailing newline after `HOST=0.0.0.0` — appending glues onto that line. Always repair with a split after append, or append `\nVAR=...` with a leading newline.
+- Verify end-to-end: `docker exec <app> env | grep VAR` after `docker compose up -d --force-recreate` (needs `sudo bash -c` for compose; plain `cd` as ubuntu gets permission denied).
