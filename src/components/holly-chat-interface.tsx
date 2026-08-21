@@ -55,7 +55,7 @@ import { useVoiceLoop } from '../lib/voice/use-voice-loop';
 import { WaveformVisualizer } from './holly2/WaveformVisualizer';
 import { HollyOrb } from './holly/HollyOrb';
 import { HollyAvatar, HollyAvatarCompact } from './holly/HollyAvatar';
-import { useHollyEmotion } from './holly/HollyEmotionContext';
+import { useHollyEmotion, type HollyActivity } from './holly/HollyEmotionContext';
 import type { HollyEmotion } from './holly/LivingLogo';
 import { LivingLogo } from './holly/LivingLogo';
 import { ModeTransitionOverlay, ModePill, MODE_CONFIGS } from './holly/ModeTransition';
@@ -438,6 +438,7 @@ function SpeakButton({ text, messageId, emotion }: { text: string; messageId: st
   const [playing, setPlaying]       = useState(false);
   const [error, setError]           = useState<string | null>(null);
   const [loadingDots, setLoadingDots] = useState("");
+  const { setActivity }             = useHollyEmotion(); // state face: show "Speaking…" while she talks
   const activeIdRef                 = useRef<string | null>(null);
   const timeoutRef                  = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dotsRef                     = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -479,6 +480,7 @@ function SpeakButton({ text, messageId, emotion }: { text: string; messageId: st
     if (playing && activeIdRef.current === messageId) {
       stopSpeaking();
       setPlaying(false);
+      setActivity('idle');
       activeIdRef.current = null;
       clearLoadingGuard();
       return;
@@ -511,14 +513,17 @@ function SpeakButton({ text, messageId, emotion }: { text: string; messageId: st
           stopDotsAnimation();
           setLoading(false);
           setPlaying(true);
+          setActivity('speaking');
         },
         onEnd: () => {
           setPlaying(false);
+          setActivity('idle');
           activeIdRef.current = null;
         },
         onError: (err) => {
           clearLoadingGuard();
           stopDotsAnimation();
+          setActivity('idle');
           setLoading(false);
           setPlaying(false);
           // Show a short user-friendly error message
@@ -1895,7 +1900,7 @@ export default function HollyChatInterface() {
 
   const { notifications, unreadCount, markAsRead } = useNotifications(user?.id);
   const prevNotifCountRef = useRef(0);
-  const { emotion, setEmotion, setIsThinking, setIsStreaming } = useHollyEmotion();
+  const { emotion, setEmotion, setActivity, setIsThinking, setIsStreaming } = useHollyEmotion();
   const [activeMode, setActiveMode] = useState<string>('default');
   const [showModeTransition, setShowModeTransition] = useState(false);
   const prevModeRef = useRef('default');
@@ -2587,6 +2592,20 @@ export default function HollyChatInterface() {
   // Click that fires right after a hold's pointerup must not toggle listening.
   const pttClickSuppressed = () => Date.now() - lastPttEndRef.current < 400;
 
+  // ── STATE FACE (2026-08-21): what Holly is DOING drives her face ──────────
+  // Priority: speaking > listening > transcribing > generating > thinking.
+  const [autoSpeaking, setAutoSpeaking] = useState(false);
+
+  useEffect(() => {
+    let a: HollyActivity = 'idle';
+    if (autoSpeaking) a = 'speaking';
+    else if (isListening || pttHoldActive || voicePhase === 'listening') a = 'listening';
+    else if (voicePhase === 'processing') a = 'transcribing';
+    else if (isProcessing && /Generating|Composing|video|Rendering/i.test(currentStatus || '')) a = 'generating';
+    else if (isProcessing) a = 'thinking';
+    setActivity(a);
+  }, [autoSpeaking, isListening, pttHoldActive, voicePhase, isProcessing, currentStatus, setActivity]);
+
   // Esc cancels an active hold (keyboard safety valve).
   useEffect(() => {
     if (!pttHoldActive) return;
@@ -2912,11 +2931,18 @@ export default function HollyChatInterface() {
             speakText(assistantContent, {
               volume: 0.9,
               emotion: emotion || undefined,
-              onEnd: resumeCall,
-              onError: resumeCall,
-            }).catch(resumeCall);
+              onStart: () => setAutoSpeaking(true),
+              onEnd: () => { setAutoSpeaking(false); resumeCall(); },
+              onError: () => { setAutoSpeaking(false); resumeCall(); },
+            }).catch(() => { setAutoSpeaking(false); resumeCall(); });
           } else {
-            speakText(assistantContent, { volume: 0.9, emotion: emotion || undefined }).catch(console.error);
+            speakText(assistantContent, {
+              volume: 0.9,
+              emotion: emotion || undefined,
+              onStart: () => setAutoSpeaking(true),
+              onEnd: () => setAutoSpeaking(false),
+              onError: () => setAutoSpeaking(false),
+            }).catch(() => setAutoSpeaking(false));
           }
         } else if (callModeRef.current) {
           // Reply wasn't spoken (no auto-read path) — still resume the call

@@ -17,7 +17,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useHollyEmotion } from './HollyEmotionContext';
+import { useHollyEmotion, type HollyActivity } from './HollyEmotionContext';
 import type { HollyEmotion } from './LivingLogo';
 
 // ─── Avatar Emotion Types ────────────────────────────────────────────────────
@@ -67,6 +67,29 @@ const EMOTION_TO_AVATAR: Record<HollyEmotion, AvatarEmotion> = {
   shy:           'shy',
   playful:       'playful',
 };
+
+// ─── Activity States (state face, 2026-08-21) ────────────────────────────────
+// While Holly is actively doing something (voice loop / media generation),
+// the activity face overrides the emotion face. Uses the existing expression
+// folder — one verified photo per state.
+
+const ACTIVITY_VIEW: Record<Exclude<HollyActivity, 'idle'>, { face: AvatarEmotion; label: string }> = {
+  listening:    { face: 'flirty',    label: 'Listening…' },
+  transcribing: { face: 'thinking',  label: 'Transcribing…' },
+  thinking:     { face: 'thinking',  label: 'Thinking…' },
+  generating:   { face: 'confident', label: 'Creating…' },
+  speaking:     { face: 'happy',     label: 'Speaking…' },
+};
+
+/** Resolve the face + label shown, blending emotion (feel) with activity (doing). */
+function resolveFace(emotion: HollyEmotion, activity: HollyActivity, overrideEmotion?: HollyEmotion): { face: AvatarEmotion; label: string | null } {
+  if (activity !== 'idle') {
+    const view = ACTIVITY_VIEW[activity];
+    return { face: view.face, label: view.label };
+  }
+  const e = overrideEmotion ?? emotion;
+  return { face: EMOTION_TO_AVATAR[e] || 'default', label: null };
+}
 
 // ─── Avatar Configuration ────────────────────────────────────────────────────
 
@@ -271,9 +294,9 @@ export function HollyAvatar({
   className = '',
   overrideEmotion,
 }: HollyAvatarProps) {
-  const { emotion } = useHollyEmotion();
+  const { emotion, activity } = useHollyEmotion();
   const activeEmotion = overrideEmotion ?? emotion;
-  const avatarEmotion = EMOTION_TO_AVATAR[activeEmotion] || 'default';
+  const { face: avatarEmotion, label: activityLabel } = resolveFace(emotion, activity, overrideEmotion);
   const config = AVATAR_CONFIGS[avatarEmotion];
 
   // Preload all 20 avatar images on mount
@@ -314,7 +337,7 @@ export function HollyAvatar({
         </AnimatePresence>
 
         {/* Active emotion overlay — subtle pulse */}
-        {activeEmotion !== 'idle' && showGlow && (
+        {(activeEmotion !== 'idle' || activity !== 'idle') && showGlow && (
           <motion.div
             className="absolute inset-0 rounded-full pointer-events-none"
             style={{ background: `radial-gradient(circle, transparent 40%, ${config.glowColor})` }}
@@ -324,13 +347,13 @@ export function HollyAvatar({
         )}
       </div>
 
-      {/* Label */}
+      {/* Label — activity label wins (Listening… / Thinking…) over emotion */}
       {showLabel && (
         <span
           className="mt-1 text-xs font-medium tracking-wide opacity-60"
           style={{ color: config.borderColor }}
         >
-          {config.label}
+          {activityLabel ?? config.label}
         </span>
       )}
     </div>
@@ -349,8 +372,8 @@ interface HollyAvatarCompactProps {
 }
 
 export function HollyAvatarCompact({ size = 40, showGlow = true, className = '' }: HollyAvatarCompactProps) {
-  const { emotion } = useHollyEmotion();
-  const avatarEmotion = EMOTION_TO_AVATAR[emotion] || 'default';
+  const { emotion, activity } = useHollyEmotion();
+  const { face: avatarEmotion } = resolveFace(emotion, activity);
   const config = AVATAR_CONFIGS[avatarEmotion];
 
   return (
