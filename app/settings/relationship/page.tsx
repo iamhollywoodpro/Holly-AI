@@ -61,6 +61,7 @@ export default function RelationshipDataPage() {
   const [preview, setPreview] = useState<ExportPreview | null>(null);
   const [previewLoading, setPreviewLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
+  const [vaultExporting, setVaultExporting] = useState(false);
 
   const [importFile, setImportFile] = useState<{ name: string; data: unknown } | null>(null);
   const [importPreview, setImportPreview] = useState<ImportPreview | null>(null);
@@ -103,6 +104,32 @@ export default function RelationshipDataPage() {
       alert(err instanceof Error ? err.message : 'Export failed');
     } finally {
       setExporting(false);
+    }
+  }, []);
+
+  // Vault → download human-readable markdown mirror
+  const handleVaultDownload = useCallback(async () => {
+    setVaultExporting(true);
+    try {
+      const res = await fetch('/api/memory/vault', { method: 'POST' });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || `Vault generation failed (${res.status})`);
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `holly-memory-vault-${new Date().toISOString().split('T')[0]}.md`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('[Memory Vault]', err);
+      alert(err instanceof Error ? err.message : 'Vault generation failed');
+    } finally {
+      setVaultExporting(false);
     }
   }, []);
 
@@ -202,6 +229,18 @@ export default function RelationshipDataPage() {
               >
                 {exporting ? 'Preparing archive…' : 'Download Relationship Archive'}
               </button>
+              {/* Memory Vault — human-readable markdown mirror of the same data */}
+              <button
+                onClick={handleVaultDownload}
+                disabled={vaultExporting}
+                className="mt-3 w-full px-4 py-3 bg-[#C7B8EA]/10 hover:bg-[#C7B8EA]/20 disabled:opacity-50 text-[#C7B8EA] text-[11px] font-black uppercase tracking-widest rounded-xl border border-[#C7B8EA]/20 transition-colors"
+              >
+                {vaultExporting ? 'Writing the vault…' : 'Download Memory Vault (readable)'}
+              </button>
+              <p className="mt-3 text-[11px] text-[#8C8476] leading-relaxed">
+                The archive (JSON) is for restoring into Holly. The vault (markdown) is for you —
+                open it anywhere, print it, keep it forever. Postgres stays the source of truth.
+              </p>
             </>
           )}
         </div>
