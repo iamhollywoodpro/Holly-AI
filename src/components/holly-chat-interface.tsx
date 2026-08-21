@@ -1992,6 +1992,9 @@ export default function HollyChatInterface() {
   const [autoRead, setAutoRead] = useState(false);
   // ── Phase 0: Voice-mode — true when the CURRENT input came from the mic ───────
   const [isVoiceInput, setIsVoiceInput] = useState(false);
+  // Browser STT (fast mode): Web Speech API — zero server round-trip for
+  // transcription. Holly's server Whisper (Groq) stays the quality default.
+  const [browserSttOn, setBrowserSttOn] = useState(false);
   // ── Phase F: Growth stats ───────────────────────────────────────────────────
   const [growthStats, setGrowthStats] = useState<GrowthStats | null>(null);
   // ── Active model routing (backend tracking only — not shown to user) ─────────
@@ -2509,11 +2512,14 @@ export default function HollyChatInterface() {
   const handleSendRef = useRef<typeof handleSend | null>(null);
   // (assigned after handleSend is declared, below)
 
+  const pttSendRef = useRef(false);
   const voiceLoop = useVoiceLoop({
     silenceTimeout: 1500,
+    onLatency: (t) => console.info('[PTT] STT latency:', t.sttMs, 'ms'),
     onTranscript: (text) => {
-      if (callModeRef.current) {
-        // Call mode: transcript goes straight to Holly as a voice message
+      if (callModeRef.current || pttSendRef.current) {
+        // Call mode / push-to-talk: transcript goes straight to Holly
+        pttSendRef.current = false;
         void handleSendRef.current?.(text);
       } else {
         setInput(prev => prev ? `${prev} ${text}` : text);
@@ -2523,7 +2529,39 @@ export default function HollyChatInterface() {
     },
   });
 
-  const { phase: voicePhase, isListening, frequencyData, startListening, stopListening } = voiceLoop;
+
+  const { phase: voicePhase, isListening, frequencyData, startListening, stopListening, startPTT, stopPTT, isBrowserSTTAvailable, startBrowserSTT, stopBrowserSTT } = voiceLoop;
+
+  // ── PUSH-TO-TALK (Jarvis-style, 2026-08-21): hold Space to talk ─────────
+  // Only active when NOT typing in a text field (space must type spaces).
+  // Esc while held cancels without sending. Latency telemetry → console.
+  useEffect(() => {
+    const isTypingTarget = (el: EventTarget | null) => {
+      const t = el as HTMLElement | null;
+      return Boolean(t && (t.tagName === 'TEXTAREA' || t.tagName === 'INPUT' || t.isContentEditable));
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.code !== 'Space' || e.repeat || isTypingTarget(e.target) || callModeRef.current) return;
+      e.preventDefault();
+      pttSendRef.current = true; // PTT transcripts send directly
+      void startPTT().then(ok => { if (!ok) pttSendRef.current = false; });
+    };
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.code !== 'Space') return;
+      if (isTypingTarget(e.target)) return;
+      e.preventDefault();
+      stopPTT(false);
+    };
+    const onCancel = () => { pttSendRef.current = false; stopPTT(true); };
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    window.addEventListener('blur', onCancel);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+      window.removeEventListener('blur', onCancel);
+    };
+  }, [startPTT, stopPTT]);
 
   const toggleCallMode = useCallback(() => {
     if (callModeRef.current) {
@@ -3867,10 +3905,41 @@ export default function HollyChatInterface() {
                 >
                   {callMode ? <PhoneOff className="w-5 h-5" /> : <Phone className="w-5 h-5" />}
                 </button>
+                {/* Browser STT toggle — fast mode, zero server round-trip */}
+                {(() => {
+                  if (!isBrowserSTTAvailable()) return null;
+                  return (
+                    <button
+                      onClick={() => {
+                        setBrowserSttOn(prev => {
+                          const next = !prev;
+                          if (!next && voicePhase === 'listening') stopBrowserSTT();
+                          return next;
+                        });
+                      }}
+                      className={`p-2 rounded-xl transition-all ${
+                        browserSttOn
+                          ? "bg-sky-500/20 text-sky-400"
+                          : "text-white/30 hover:text-white hover:bg-white/5"
+                      }`}
+                      title={browserSttOn ? "Voice mode: Browser (fast, no upload) — click for Holly's Whisper (quality)" : "Voice mode: Holly's Whisper (quality) — click for Browser (fast, no upload)"}
+                    >
+                      <Zap className="w-4 h-4" />
+                    </button>
+                  );
+                })()}
                 {/* Voice */}
                 <button
-                  onClick={isListening ? stopListening : startListening}
-                  disabled={voicePhase === 'processing'}
+                  onClick={() => {
+                    if (browserSttOn) {
+                      if (voicePhase === 'listening') stopBrowserSTT();
+                      else startBrowserSTT();
+                    } else {
+                      if (isListening) stopListening();
+                      else void startListening();
+                    }
+                  }}
+                  disabled={!browserSttOn && voicePhase === 'processing'}
                   className={`p-2 rounded-xl transition-all ${
                     isListening
                       ? "bg-red-500/20 text-red-400"
@@ -3880,7 +3949,7 @@ export default function HollyChatInterface() {
                       ? "bg-holly-teal/20 text-holly-teal"
                       : "text-white/30 hover:text-white hover:bg-white/5"
                   }`}
-                  title={voicePhase === 'listening' ? "Stop recording" : "Voice Input"}
+                  title={voicePhase === 'listening' ? "Stop recording" : "Voice Input — or hold Space anywhere to talk (Esc cancels)"}
                 >
                   {voicePhase === 'processing' ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
