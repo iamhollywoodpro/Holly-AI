@@ -19,70 +19,79 @@ const VISION_URL = process.env.MODAL_VISION_URL || '';
 // ─── Vision routing (Steve, 2026-08-12): free-first, uncensored-second ───────
 //
 // INBOUND descriptions (what Steve sends Holly) split by content:
-//   1. Groq Llama-4-Scout — FREE (~30 RPM, 14.4k req/day). Aligned model:
-//      happily describes SFW images, REFUSES nudity/explicit.
+//   1. Cloudflare Workers AI Llama-3.2-11B-Vision — FREE lane (~30 neurons/
+//      describe ≈ 330/day inside the 10k daily neurons, shared with images).
+//      Aligned model: happily describes SFW images, REFUSES nudity/explicit.
+//      (Groq's Llama-4-Scout was the original pick — Groq deprecated ALL its
+//      vision models 2026-08; gpt-oss replacement is text-only. Dead end.)
 //   2. Modal Qwen2.5-VL (self-hosted) — pennies, sees EVERYTHING uncensored.
-//      Used when Groq refuses/errors (i.e. the image was explicit) or when
-//      GROQ_API_KEY is not configured.
+//      Used when Cloudflare refuses/errors (i.e. the image was explicit) or
+//      when CLOUDFLARE_API_TOKEN is not configured.
 // OUTBOUND QA (Holly's own generations) is ALWAYS Modal — QA verdicts on
 // explicit anatomy cannot pass through an aligned filter.
-//
-// GROQ_API_KEY: free at console.groq.com (no card). Until it exists, all
-// inbound descriptions go straight to Modal (current behaviour, unchanged).
 
-const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
-const GROQ_VISION_MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct';
+const CLOUDFLARE_ACCOUNT_ID = process.env.CLOUDFLARE_ACCOUNT_ID || '';
+const CLOUDFLARE_API_TOKEN  = process.env.CLOUDFLARE_API_TOKEN  || '';
 
-/** Heuristic: does a Groq completion look like a content refusal? */
+/** Heuristic: does a completion look like a content refusal? */
 function looksLikeRefusal(text: string): boolean {
-  return /\b(i can(?:'|no)?t (?:see|view|describe|assist|help|analy[sz]e)|i'm sorry|i am sorry|cannot generate|not able to (?:view|describe|analy[sz]e)|unable to (?:view|describe|analy[sz]e)|content policy|inappropriate content)\b/i.test(text);
+  return /\b(i can(?:'|no)?t (?:see|view|describe|assist|help|analy[sz]e)|i'm sorry|i am sorry|cannot generate|not able to (?:view|describe|analy[sz]e)|unable to (?:view|describe|analy[sz]e)|content policy|i won't (?:describe|view)|i will not (?:describe|view))/i.test(text);
 }
 
-/** FREE LANE: describe via Groq Llama-4-Scout. Returns null on refusal/failure. */
-async function describeWithGroq(
+/** FREE LANE: describe via Cloudflare Llama-3.2-11B-Vision. Null on refusal/failure. */
+async function describeWithCloudflare(
   images: string[],
   prompt: string,
 ): Promise<VisionDescription | null> {
-  if (!GROQ_API_KEY || images.length === 0) return null;
+  if (!CLOUDFLARE_ACCOUNT_ID || !CLOUDFLARE_API_TOKEN || images.length === 0) return null;
   try {
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${GROQ_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: GROQ_VISION_MODEL,
-        max_tokens: 1024,
-        messages: [
-          {
-            role: 'user',
-            content: [
-              { type: 'text', text: prompt },
-              ...images.slice(0, 5).map((img) => ({
-                type: 'image_url',
-                image_url: { url: img.startsWith('data:') ? img : `data:image/jpeg;base64,${img}` },
-              })),
-            ],
-          },
-        ],
-      }),
-      signal: AbortSignal.timeout(30_000),
-    });
+    const res = await fetch(
+      `https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/ai/run/@cf/meta/llama-3.2-11b-vision-instruct`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${CLOUDFLARE_API_TOKEN}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: [
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: prompt },
+                ...images.slice(0, 3).map((img) => ({
+                  type: 'image_url',
+                  image_url: { url: img.startsWith('data:') ? img : `data:image/jpeg;base64,${img}` },
+                })),
+              ],
+            },
+          ],
+        }),
+        signal: AbortSignal.timeout(45_000),
+      }
+    );
     if (!res.ok) {
-      console.warn('[HollyVision] Groq HTTP', res.status, '— falling back to Modal');
+      console.warn('[HollyVision] Cloudflare vision HTTP', res.status, '— falling back to Modal');
       return null;
     }
-    const json = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-    const content = json.choices?.[0]?.message?.content?.trim();
+    const json = (await res.json()) as {
+      result?: { response?: string };
+      errors?: { code?: number }[];
+    };
+    // Llama license gate (code 5016) should be a one-time 'agree' — treat as unavailable
+    if (json.errors?.length) {
+      console.warn('[HollyVision] Cloudflare vision errors:', JSON.stringify(json.errors).slice(0, 120));
+      return null;
+    }
+    const content = json.result?.response?.trim();
     if (!content) return null;
     if (looksLikeRefusal(content)) {
-      console.info('[HollyVision] Groq refused (likely explicit image) — falling back to Modal (uncensored)');
+      console.info('[HollyVision] Cloudflare refused (likely explicit image) — falling back to Modal (uncensored)');
       return null;
     }
     return { description: content };
   } catch (e) {
-    console.warn('[HollyVision] Groq describe failed — falling back to Modal:', (e as Error).message);
+    console.warn('[HollyVision] Cloudflare describe failed — falling back to Modal:', (e as Error).message);
     return null;
   }
 }
@@ -143,10 +152,10 @@ export async function describeImages(
 ): Promise<VisionDescription | null> {
   if (images.length === 0) return null;
 
-  // FREE LANE FIRST: Groq handles SFW inbound at $0. Null = refused/failed
-  // (explicit image, or key missing) → uncensored Modal lane below.
-  const groq = await describeWithGroq(images, prompt);
-  if (groq) return groq;
+  // FREE LANE FIRST: Cloudflare handles SFW inbound at $0. Null = refused/
+  // failed (explicit image, or token missing) → uncensored Modal lane below.
+  const freeLane = await describeWithCloudflare(images, prompt);
+  if (freeLane) return freeLane;
 
   if (!VISION_URL) return null;
   const url = VISION_URL.replace(/--vision-qa\./, '--vision-describe.');
