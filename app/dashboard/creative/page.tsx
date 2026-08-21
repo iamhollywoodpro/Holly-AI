@@ -68,7 +68,7 @@ export default function CreativeDashboardPage() {
 function GenerateTab() {
   const { generate, loading: generating, error: genError } = useImageGeneration();
   const [imagePrompt, setImagePrompt] = useState('');
-  const [imageModel, setImageModel] = useState('pollinations-flux');
+  const [imageModel, setImageModel] = useState('auto');
   const [imageSize, setImageSize] = useState('1024x1024');
   const [contentTopic, setContentTopic] = useState('');
   const [contentType, setContentType] = useState('blog');
@@ -149,7 +149,7 @@ function GenerateTab() {
                   onChange={(e) => setImageModel(e.target.value)}
                   className="w-full rounded-lg border border-white/10 px-3 py-2 text-sm focus:border-[#66CCCC]/40 focus:outline-none focus:ring-1 focus:ring-[#66CCCC]/30"
                 >
-                  <option value="pollinations-flux">FLUX via Pollinations (FREE, no key)</option>
+                  <option value="auto">Auto — Cloudflare free / Modal (content-aware)</option>
                   <option value="flux">FLUX via Fal.ai (FREE credits)</option>
                   <option value="sdxl">Stable Diffusion XL (FREE)</option>
                 </select>

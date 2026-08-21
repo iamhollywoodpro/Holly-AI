@@ -3,38 +3,30 @@ import { NextRequest, NextResponse } from 'next/server';
 export const runtime = 'nodejs';
 
 /**
- * Album Cover Generation — 100% FREE via Pollinations AI (FLUX model)
- * No API key. No cost. No limits.
- * https://image.pollinations.ai
+ * Album Cover Generation — canonical media-generator cascade
+ * (Cloudflare free lane / Modal / Klein, content-aware routing).
+ *
+ * POLLINATIONS REMOVED (Steve, 2026-08-12): banned permanently.
  */
-
-function buildPollinationsUrl(prompt: string, width = 1024, height = 1024): string {
-  const encoded = encodeURIComponent(prompt);
-  return `https://image.pollinations.ai/prompt/${encoded}?width=${width}&height=${height}&nologo=true&enhance=true&model=flux`;
-}
 
 export async function POST(request: NextRequest) {
   try {
     const albumData = await request.json() as any;
     const prompt = buildAlbumCoverPrompt(albumData);
-    const imageUrl = buildPollinationsUrl(prompt);
-
-    // Pollinations generates synchronously — verify it's reachable
-    const check = await fetch(imageUrl, { method: 'HEAD', signal: AbortSignal.timeout(20000) });
-    if (!check.ok) {
-      throw new Error(`Image generation failed (${check.status})`);
-    }
+    const { generateImage } = await import('@/lib/ai/media-generator');
+    const result = await generateImage({ prompt, width: 1024, height: 1024 });
 
     return NextResponse.json({
       success: true,
-      imageUrl,
+      imageUrl: result.url,
       prompt,
-      provider: 'pollinations-flux',
+      provider: result.provider,
+      model: result.model,
     });
   } catch (error) {
     console.error('Album cover generation error:', error);
     return NextResponse.json(
-      { error: 'Failed to generate album cover' },
+      { error: 'Failed to generate album cover', detail: (error as Error).message.slice(0, 200) },
       { status: 500 }
     );
   }
@@ -42,7 +34,7 @@ export async function POST(request: NextRequest) {
 
 function buildAlbumCoverPrompt(data: any): string {
   let prompt = `Professional album cover art`;
-  
+
   if (data.trackTitle && data.artist) {
     prompt += ` for "${data.trackTitle}" by ${data.artist}`;
   }

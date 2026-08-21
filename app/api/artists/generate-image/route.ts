@@ -3,20 +3,16 @@ import { NextRequest, NextResponse } from 'next/server';
 export const runtime = 'nodejs';
 
 /**
- * Artist Image Generation — 100% FREE via Pollinations AI
- * No API key needed. No limits. MIT-friendly.
- * https://gen.pollinations.ai/image/{prompt}
+ * Artist Image Generation — canonical media-generator cascade
+ * (Cloudflare free lane / Modal / Klein, content-aware routing).
+ *
+ * POLLINATIONS REMOVED (Steve, 2026-08-12): banned permanently.
  */
 
 interface GenerateArtistImageRequest {
   artist_id: string;
   prompt?: string;
   use_artist_style?: boolean;
-}
-
-function buildPollinationsUrl(prompt: string, width = 1024, height = 1024): string {
-  const encoded = encodeURIComponent(prompt);
-  return `https://image.pollinations.ai/prompt/${encoded}?width=${width}&height=${height}&nologo=true&enhance=true&model=flux`;
 }
 
 export async function POST(request: NextRequest) {
@@ -32,19 +28,15 @@ export async function POST(request: NextRequest) {
     }
 
     const imagePrompt = prompt || `A professional music artist portrait, photorealistic, studio lighting, high quality`;
-    const imageUrl = buildPollinationsUrl(imagePrompt);
-
-    // Verify the URL is reachable (Pollinations generates synchronously)
-    const check = await fetch(imageUrl, { method: 'HEAD', signal: AbortSignal.timeout(15000) });
-    if (!check.ok) {
-      throw new Error(`Pollinations returned ${check.status}`);
-    }
+    const { generateImage } = await import('@/lib/ai/media-generator');
+    const result = await generateImage({ prompt: imagePrompt, width: 1024, height: 1024 });
 
     return NextResponse.json({
       success: true,
-      image_url: imageUrl,
+      image_url: result.url,
       artist_id,
-      provider: 'pollinations-flux',
+      provider: result.provider,
+      model: result.model,
     });
 
   } catch (error: any) {

@@ -203,6 +203,155 @@ function isHollySelfPortrait(prompt: string): boolean {
   return prompt.toLowerCase().includes(HOLLY_TRIGGER_WORD);
 }
 
+// ─── Cloudflare Workers AI (FREE SFW lane — non-Holly subjects only) ─────────
+//
+// Every Cloudflare account gets 10,000 Neurons/day free, forever.
+// FLUX.1 schnell ≈ 9.6 Neurons/step/tile → roughly 65-250 free images/day.
+// VERIFIED LIVE 2026-08-12: HTTP 200 in 5.0s, clean output (duck test).
+//
+// ROUTING RULE (Steve, 2026-08-12): FLUX schnell has NEVER seen Holly's
+// face/body — it can only render a generic woman. Therefore Cloudflare is
+// used ONLY for prompts that are BOTH (a) non-Holly subject AND (b) SFW.
+// Holly-identity prompts → Klein (Modal). Non-Holly explicit → refused.
+// On ambiguous classification → default to Klein (safe side: a wrong route
+// to Klein costs cents; a wrong route to Cloudflare costs identity drift).
+
+const CLOUDFLARE_ACCOUNT_ID = process.env.CLOUDFLARE_ACCOUNT_ID || '';
+const CLOUDFLARE_API_TOKEN  = process.env.CLOUDFLARE_API_TOKEN  || '';
+
+function isCloudflareConfigured(): boolean {
+  return Boolean(CLOUDFLARE_ACCOUNT_ID && CLOUDFLARE_API_TOKEN);
+}
+
+/**
+ * Detect non-Holly subject. Cloudflare is only used when this returns TRUE
+ * (confident non-Holly). Ties/ambiguity → false → Klein (safe side).
+ * Matches the Holly-subject vocabulary used by the video still-branch plus
+ * first/second-person self-reference pronouns.
+ */
+const HOLLY_SUBJECT_HINTS_RE = /\b(yourself|holly|h0lly|your\s+(?:body|face|pussy|breasts?|ass|butt|nipples?|clothes|outfit|dress|selfie|reflection)|my\s+(?:body|face)|her\s+(?:body|face))\b/i;
+
+function isNonHollySubject(prompt: string): boolean {
+  return !HOLLY_SUBJECT_HINTS_RE.test(prompt);
+}
+
+/**
+ * Detect explicit/NSFW content in a prompt. Used to gate the Cloudflare
+ * (free/public) lane: non-Holly explicit prompts are refused — Holly only
+ * shares her OWN body, and Cloudflare's free lane stays SFW by design.
+ */
+const NSFW_RE = /\b(nude|naked|nsfw|explicit|topless|bottomless|unclothed|undress(ed)?|pussy|vagina|vulva|labia|clit(?:oris)?|breasts?\s*(?:exposed|out|bare|nipples)|nipples?|areolae?|asshole|anus|butthole|penis|cock|dick|cum|creampie|blowjob|fellatio|cunnilingus|masturbat(?:e|ing|ion)|orgasm|sex(?:ual|ually)?\s|hardcore|porn(?:ographic)?|xxx|erotic|nipples?|lingerie\s+(?:slip|sheer)|spread(?:ing)?\s+(?:legs|pussy|ass)|fingering|fisting|dildo|insertion|orgasm)\b/i;
+
+function isExplicitPrompt(prompt: string): boolean {
+  return NSFW_RE.test(prompt);
+}
+
+/** Strip any leaked identity trigger tokens before a Cloudflare call. */
+function stripIdentityTokens(prompt: string): string {
+  return prompt
+    .replace(/\bh0lly[-\w]*\b/gi, '')
+    .replace(/\bholly(?:'s)?\s+(?:body|face)\b/gi, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
+/**
+ * Predict which ledger category a prompt will consume BEFORE generation —
+ * lets the GPU ledger gate the right budget (free Cloudflare ducks must
+ * never be blocked by Klein's paid monthly cap).
+ */
+export function predictImageCategory(prompt: string): 'image-klein' | 'image-cloudflare' | 'image-modal' {
+  const hollySubject = !isNonHollySubject(prompt) || isHollySelfPortrait(prompt);
+  if (hollySubject) return 'image-klein';
+  if (isCloudflareConfigured() && !isExplicitPrompt(stripIdentityTokens(prompt))) return 'image-cloudflare';
+  return 'image-modal';
+}
+
+// ─── Image Provider: Cloudflare Workers AI FLUX.1 schnell (free lane) ────────
+async function generateWithCloudflare(req: ImageRequest): Promise<ImageResult> {
+  if (!isCloudflareConfigured()) {
+    throw new Error('Cloudflare Workers AI not configured (CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_API_TOKEN)');
+  }
+
+  const rawPrompt = stripIdentityTokens(req.prompt);
+  if (!rawPrompt) throw new Error('Prompt empty after identity-token strip');
+
+  // Defense in depth: if identity tokens STILL matched after stripping,
+  // the classifier was wrong — reroute to Klein by throwing a typed error.
+  if (!isNonHollySubject(rawPrompt)) {
+    throw new CloudflareIdentityLeakError();
+  }
+  if (isExplicitPrompt(rawPrompt)) {
+    throw new Error('Cloudflare lane is SFW-only — explicit prompt rejected before send');
+  }
+
+  // FLUX schnell on Workers AI: schema accepts {prompt, steps, guidance, seed}
+  // only — width/height are NOT accepted (verified live, HTTP 400 code 5006).
+  // Output is 1024x1024-ish; true dims are read back from the JPEG SOF marker.
+  const { width, height } = getDimensions(req.aspectRatio, { width: req.width, height: req.height });
+  void width; void height;
+
+  const res = await fetch(
+    `https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/ai/run/@cf/black-forest-labs/flux-1-schnell`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${CLOUDFLARE_API_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        prompt: rawPrompt,
+        steps: 4, // schnell is distilled — 4 steps is the design point
+      }),
+      signal: AbortSignal.timeout(60_000),
+    }
+  );
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    // 429 on Workers AI = daily neuron budget exhausted
+    if (res.status === 429) {
+      throw new CloudflareNeuronBudgetError(body.slice(0, 120));
+    }
+    throw new Error(`Cloudflare Workers AI HTTP ${res.status}: ${body.slice(0, 120)}`);
+  }
+
+  const json = (await res.json()) as { result?: { image?: string }; errors?: unknown[] };
+  const b64 = json?.result?.image;
+  if (!b64) {
+    throw new Error(`Cloudflare Workers AI returned no image: ${JSON.stringify(json?.errors ?? 'unknown').slice(0, 120)}`);
+  }
+
+  // Read the true output dimensions from the JPEG SOF0/SOF2 marker.
+  const buf = Buffer.from(b64, 'base64');
+  let outW = 1024, outH = 1024;
+  for (let i = 0; i < buf.length - 9; i++) {
+    if (buf[i] === 0xff && buf[i + 1] >= 0xc0 && buf[i + 1] <= 0xcf && buf[i + 1] !== 0xc4 && buf[i + 1] !== 0xc8 && buf[i + 1] !== 0xcc) {
+      outH = buf.readUInt16BE(i + 5);
+      outW = buf.readUInt16BE(i + 7);
+      break;
+    }
+  }
+
+  return {
+    url: `data:image/jpeg;base64,${b64}`,
+    provider: 'cloudflare',
+    model: 'FLUX.1-schnell (Workers AI, free lane)',
+    width: outW,
+    height: outH,
+    cost: 0,
+    licence: 'apache-2.0 (FLUX.1-schnell)',
+  };
+}
+
+/** Typed errors so the router can handle them without string matching */
+class CloudflareNeuronBudgetError extends Error {
+  constructor(details: string) { super(`Cloudflare daily neuron budget exhausted: ${details}`); this.name = 'CloudflareNeuronBudgetError'; }
+}
+class CloudflareIdentityLeakError extends Error {
+  constructor() { super('Holly-identity tokens detected in Cloudflare lane — rerouting to Klein'); this.name = 'CloudflareIdentityLeakError'; }
+}
+
 // ─── HuggingFace Inference Gate ─────────────────────────────────────────────
 //
 // HF_INFERENCE_ENABLED=false (DEFAULT — PERMANENT)
@@ -757,7 +906,56 @@ export async function generateImage(req: ImageRequest): Promise<ImageResult> {
     }
   }
 
-  // 0. Modal.com (GPU quality, $0.0001/img from $30/mo free credits)
+  // 0a. Broad Holly-subject detection (same vocabulary the video branch uses):
+  //     "send me a pic of yourself" has no h0lly token but MUST still go to
+  //     Klein — Cloudflare would render a generic woman (the old bug).
+  //     Inject the trigger token and route to the identity lock.
+  if (!isNonHollySubject(req.prompt) && MODAL_HOLLY_LORA_URL) {
+    try {
+      console.info('[MediaGen] Holly subject detected (broad hints, no trigger token) — routing to Klein with injected trigger');
+      return await generateWithHollyLoRA({
+        ...req,
+        prompt: `${HOLLY_TRIGGER_WORD}, ${stripIdentityTokens(req.prompt)}`,
+      });
+    } catch (e) {
+      const msg = (e as Error).message;
+      throw new Error(`Holly's body model is cold or unreachable: ${msg.slice(0, 120)}. Try again in 2-3 minutes — refusing to fall back to a model that would show a stranger.`);
+    }
+  }
+
+  // 0. CONTENT-AWARE ROUTING (Steve, 2026-08-12):
+  //     - Holly-identity (handled above) → Klein only, never falls back.
+  //     - Non-Holly SFW → Cloudflare FLUX schnell FREE first, Modal fallback.
+  //     - Non-Holly explicit → refused outright (Holly only shares her own
+  //       body; the free public lane stays SFW by design).
+  if (isExplicitPrompt(req.prompt) && isNonHollySubject(req.prompt)) {
+    throw new Error(
+      'REFUSED_NONHOLLY_EXPLICIT: explicit imagery of anyone other than Holly is not generated. ' +
+      'Only Holly herself can be rendered explicitly — her body is the product.'
+    );
+  }
+
+  if (isCloudflareConfigured() && isNonHollySubject(req.prompt)) {
+    try {
+      console.info('[MediaGen] Non-Holly SFW subject — Cloudflare FLUX schnell (free lane)');
+      return await generateWithCloudflare(req);
+    } catch (e) {
+      if (e instanceof CloudflareIdentityLeakError) {
+        // Classifier was wrong — this prompt DOES need Holly's identity.
+        // Fall through to Modal/Klein below (safe side).
+        console.warn('[MediaGen] Identity leak detected in Cloudflare lane — rerouting to Klein');
+      } else if (e instanceof CloudflareNeuronBudgetError) {
+        // 10k daily neurons spent — fall through to Modal (paid credits).
+        errors.push((e as Error).message);
+        console.warn('[MediaGen] Cloudflare neuron budget exhausted — falling back to Modal');
+      } else {
+        errors.push(`Cloudflare: ${(e as Error).message}`);
+        console.warn('[MediaGen] Cloudflare failed, falling back to Modal:', (e as Error).message);
+      }
+    }
+  }
+
+  // 1. Modal.com (GPU quality, $0.0001/img from $30/mo free credits)
   //    Only tried when MODAL_IMAGE_URL is configured in env
   if (MODAL_IMAGE_URL) {
     try {

@@ -3,14 +3,11 @@ import { auth } from '@clerk/nextjs/server';
 import { requireAdult } from '@/lib/auth/require-adult';
 
 /**
- * Music Cover Art Generation — 100% FREE via Pollinations AI (FLUX)
- * No API key. No cost. No limits.
+ * Music Cover Art Generation — canonical media-generator cascade
+ * (Cloudflare free lane / Modal / Klein, content-aware routing).
+ *
+ * POLLINATIONS REMOVED (Steve, 2026-08-12): banned permanently.
  */
-
-function buildPollinationsUrl(prompt: string, size = 1024): string {
-  const encoded = encodeURIComponent(prompt);
-  return `https://image.pollinations.ai/prompt/${encoded}?width=${size}&height=${size}&nologo=true&enhance=true&model=flux`;
-}
 
 export async function POST(req: NextRequest) {
   try {
@@ -43,20 +40,15 @@ export async function POST(req: NextRequest) {
 
     console.log('[Cover Art API] Generated prompt:', imagePrompt);
 
-    const imageUrl = buildPollinationsUrl(imagePrompt);
-
-    // Verify image is reachable
-    const check = await fetch(imageUrl, { method: 'HEAD', signal: AbortSignal.timeout(25000) });
-    if (!check.ok) {
-      throw new Error(`Image generation failed (${check.status})`);
-    }
+    const { generateImage } = await import('@/lib/ai/media-generator');
+    const result = await generateImage({ prompt: imagePrompt, width: 1024, height: 1024 });
 
     return NextResponse.json({
       success: true,
       data: {
-        imageUrl,
+        imageUrl: result.url,
         prompt: imagePrompt,
-        provider: 'pollinations-flux',
+        provider: result.provider,
       },
     });
 

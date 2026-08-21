@@ -68,6 +68,17 @@ export async function POST(req: NextRequest) {
 
     const finalEmotion = (emotion as HollyEmotion | undefined) ?? "idle";
 
+    // GPU LEDGER GATE (Steve, 2026-08-12): Qwen3 on Modal is the only paid
+    // TTS lane (Magpie is free) — daily quota + monthly cap before synth.
+    const { checkQuota, recordUsage } = await import("@/lib/ai/gpu-ledger");
+    const ttsQuota = await checkQuota(userId, "tts");
+    if (!ttsQuota.allowed) {
+      return NextResponse.json(
+        { error: "Voice budget reached", detail: ttsQuota.reason },
+        { status: 429 } // 429 = fall back to Magpie client-side, not a hard error
+      );
+    }
+
     logger.info("Voice synthesis requested", {
       userId,
       textLength: text.length,
@@ -91,6 +102,13 @@ export async function POST(req: NextRequest) {
 
     if (result.audio) {
       const providerHeader = result.provider;
+
+      // Record actual lane used (qwen3/modal = paid, magpie = free)
+      void recordUsage({
+        userId,
+        category: "tts",
+        provider: providerHeader,
+      });
 
       logger.info("Voice synthesis completed", {
         userId,

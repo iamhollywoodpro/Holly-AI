@@ -1073,7 +1073,7 @@ export const MODEL_CANDIDATES: Array<{
   //   FLUX.1-Kontext   → FLUX.1-dev Non-Commercial License ❌ NOT Apache-2.0
   //   SD 3.5 Large     → Stability AI Community License (free, permissive) ✅
   //   SD 3.5 Turbo     → Stability AI Community License ✅
-  //   Pollinations     → serves FLUX under their own free API terms ✅
+  //   Cloudflare      → Workers AI free lane (10k neurons/day) ✅
   //
   // STATUS: Our current primary (FLUX.1-schnell via HF, Apache-2.0) is
   // CORRECT and still the best fully-free commercial-safe image model in 2026.
@@ -1161,7 +1161,7 @@ export const MODEL_CANDIDATES: Array<{
 export interface MediaModelRecord {
   key:          string;
   type:         'image' | 'video' | 'audio';
-  provider:     'pollinations' | 'huggingface' | 'local';
+  provider:    'cloudflare' | 'modal' | 'huggingface' | 'local';
   modelId:      string;         // HF repo ID or provider model name
   displayName:  string;
   licence:      string;
@@ -1211,17 +1211,21 @@ export const MEDIA_MODEL_REGISTRY: MediaModelRecord[] = [
     active:      true,
   },
   {
-    key:         'pollinations:flux',
+    // POLLINATIONS RETIRED (Steve, 2026-08-12): banned permanently. The free
+    // emergency image lane is now Cloudflare Workers AI FLUX.1 schnell
+    // (10k neurons/day free) — see media-generator.ts content-aware router.
+    key:         'cloudflare:flux-schnell',
     type:        'image',
-    provider:    'pollinations',
-    modelId:     'flux',
-    displayName: 'FLUX via Pollinations — EMERGENCY',
+    provider:    'cloudflare',
+    modelId:     '@cf/black-forest-labs/flux-1-schnell',
+    displayName: 'FLUX.1-schnell (Cloudflare Workers AI) — FREE EMERGENCY',
     licence:     'Apache-2.0',
     free:        true,
-    keyNeeded:   false,
+    keyNeeded:   true,
+    keyEnv:      'CLOUDFLARE_API_TOKEN',
     quality:     'good',
-    note:        'No API key needed. Emergency fallback when HF/Modal are down.',
-    addedAt:     '2025-01-01',
+    note:        'Free lane: 10,000 neurons/day (~65-250 images). Non-Holly SFW subjects only — identity prompts route to Klein.',
+    addedAt:     '2026-08-12',
     active:      true,
   },
   // ═══════════════════════════════════════════════════════════════════════════

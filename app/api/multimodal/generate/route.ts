@@ -4,7 +4,7 @@
  * POST /api/multimodal/generate
  *
  * Unified endpoint for:
- *   - Image generation (Modal FLUX.1-schnell → Pollinations fallback)
+ *   - Image generation (Modal → Cloudflare free-lane fallback)
  *   - Video generation (Modal CogVideoX-5B)
  *   - Audio-visual synchronization (beat-sync, lyric-sync)
  *
@@ -201,8 +201,8 @@ export async function GET() {
     models: {
       image: [
         { id: 'flux-schnell', name: 'FLUX.1-schnell (Modal)', provider: 'Holly Modal GPU', quality: 'production', speed: 'fast', cost: 'free', requiresKey: null },
-        { id: 'pollinations',  name: 'Pollinations FLUX',    provider: 'pollinations.ai',  quality: 'good',       speed: 'fast', cost: 'free', requiresKey: null },
-        { id: 'auto', name: 'Auto (Modal → Pollinations)',   provider: 'varies',            quality: 'best_available', speed: 'fast', cost: 'free', requiresKey: null },
+        { id: 'cloudflare',  name: 'FLUX.1-schnell (Cloudflare, free)',  provider: 'Cloudflare Workers AI',  quality: 'good',       speed: 'fast', cost: 'free', requiresKey: null },
+        { id: 'auto', name: 'Auto (Modal → Cloudflare)',   provider: 'varies',            quality: 'best_available', speed: 'fast', cost: 'free', requiresKey: null },
       ],
       video: [
         { id: 'cogvideox', name: 'CogVideoX-5B (Modal)', provider: 'Holly Modal GPU', quality: 'high', speed: 'slow', cost: 'free', requiresKey: null },
@@ -294,10 +294,10 @@ function getSuggestion(errorMessage: string): string {
     return 'Modal video GPU may be cold-starting (scale-to-zero). Try again in 60 seconds — the worker spins up automatically.';
   }
   if (errorMessage.includes('Modal image error') || errorMessage.includes('modal-flux')) {
-    return 'Modal image GPU is unavailable. Holly will automatically fall back to Pollinations (free, always available).';
+    return 'Modal image GPU is unavailable. Holly will automatically fall back to the free Cloudflare lane (non-Holly SFW images).';
   }
-  if (errorMessage.includes('Pollinations')) {
-    return 'Pollinations fallback failed. Check network connectivity.';
+  if (errorMessage.includes('Cloudflare')) {
+    return 'Cloudflare free image lane failed — check CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_API_TOKEN.';
   }
   return 'Generation failed. Holly uses Modal.com GPU workers — check MODAL_IMAGE_URL and MODAL_H3_VIDEO_URL in Coolify env vars.';
 }

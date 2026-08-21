@@ -225,8 +225,26 @@ export async function generateImage(req: ImageGenerationRequest): Promise<Genera
     }
   }
 
-  // 2. FLUX.1-schnell on Modal — Apache 2.0 proven fallback
-  return await generateImagePollinations(enrichedPrompt, req);
+  // 2. Canonical media-generator cascade (Cloudflare free / Modal / Klein)
+  // POLLINATIONS REMOVED (Steve, 2026-08-12) — banned permanently.
+  const { generateImage: mediaGenerateImage } = await import('@/lib/ai/media-generator');
+  const result = await mediaGenerateImage({
+    prompt: enrichedPrompt,
+    negativePrompt: req.negativePrompt,
+    width: resolveImageDimensions(req)[0],
+    height: resolveImageDimensions(req)[1],
+    seed: req.seed,
+  });
+  return {
+    success: true,
+    modality: 'image',
+    url: result.url,
+    provider: result.provider,
+    model: result.model,
+    prompt: enrichedPrompt,
+    generatedAt: new Date(),
+    estimatedCost: 0,
+  };
 }
 
 async function generateImageModal(
@@ -278,30 +296,8 @@ async function generateImageModal(
   };
 }
 
-async function generateImagePollinations(
-  prompt: string,
-  req: ImageGenerationRequest,
-): Promise<GenerationResult> {
-  const [w, h] = resolveImageDimensions(req);
-  const seed = req.seed || Math.floor(Math.random() * 1_000_000);
-  const encodedPrompt = encodeURIComponent(prompt);
-  const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?seed=${seed}&width=${w}&height=${h}&model=flux&nologo=true`;
-
-  // Verify Pollinations responds
-  const check = await fetch(url, { method: 'HEAD', signal: AbortSignal.timeout(30_000) });
-  if (!check.ok) throw new Error('Pollinations returned non-OK');
-
-  return {
-    success: true,
-    modality: 'image',
-    url,
-    provider: 'modal-flux-schnell-fallback',
-    model: 'FLUX.1-schnell',
-    prompt,
-    generatedAt: new Date(),
-    estimatedCost: 0,
-  };
-}
+// generateImagePollinations REMOVED (Steve, 2026-08-12): Pollinations banned
+// permanently — replaced by the canonical media-generator cascade above.
 
 // ─── Video Generation ─────────────────────────────────────────────────────────
 

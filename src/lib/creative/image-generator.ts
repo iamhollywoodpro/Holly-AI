@@ -108,33 +108,26 @@ export async function generateImage(
       data: { status: 'processing', currentStep: 'generating', progress: 50 },
     });
 
-    // Use the real media-generator waterfall (Pollinations / Modal / HF cascade)
+    // Use the real media-generator waterfall (Cloudflare / Modal / Klein cascade)
+    // POLLINATIONS REMOVED (Steve, 2026-08-12): banned permanently — its
+    // "always free" fallback rendered random women. Honest failure instead.
     let resultUrl: string;
-    let actualProvider = 'pollinations';
-    let actualModel = 'FLUX.1-schnell';
+    let actualProvider = 'unknown';
+    let actualModel = 'unknown';
 
-    try {
-      const { generateImage: generateWithWaterfall } = await import('@/lib/ai/media-generator');
-      const result = await generateWithWaterfall({
-        prompt,
-        negativePrompt: options.negativePrompt,
-        model: options.model === 'sdxl' ? 'sdxl' : options.model === 'flux-dev' ? 'flux-dev' : 'flux-schnell',
-        width: options.width,
-        height: options.height,
-        seed: options.seed ? parseInt(options.seed) : undefined,
-        style: options.style as any,
-      });
-      resultUrl = result.url;
-      actualProvider = result.provider;
-      actualModel = result.model;
-    } catch (genError) {
-      console.warn('[ImageGenerator] Waterfall failed, using Pollinations direct:', (genError as Error).message);
-      // Fallback: direct Pollinations URL (always free, no account needed)
-      const encoded = encodeURIComponent(prompt);
-      const w = options.width || 1024;
-      const h = options.height || 1024;
-      resultUrl = `https://image.pollinations.ai/prompt/${encoded}?width=${w}&height=${h}&nologo=true&enhance=true&model=flux`;
-    }
+    const { generateImage: generateWithWaterfall } = await import('@/lib/ai/media-generator');
+    const result = await generateWithWaterfall({
+      prompt,
+      negativePrompt: options.negativePrompt,
+      model: options.model === 'sdxl' ? 'sdxl' : options.model === 'flux-dev' ? 'flux-dev' : 'flux-schnell',
+      width: options.width,
+      height: options.height,
+      seed: options.seed ? parseInt(options.seed) : undefined,
+      style: options.style as any,
+    });
+    resultUrl = result.url;
+    actualProvider = result.provider;
+    actualModel = result.model;
 
     await prisma.generationJob.update({
       where: { id: job.id },

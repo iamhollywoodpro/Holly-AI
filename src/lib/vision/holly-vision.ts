@@ -16,6 +16,77 @@
 
 const VISION_URL = process.env.MODAL_VISION_URL || '';
 
+// ─── Vision routing (Steve, 2026-08-12): free-first, uncensored-second ───────
+//
+// INBOUND descriptions (what Steve sends Holly) split by content:
+//   1. Groq Llama-4-Scout — FREE (~30 RPM, 14.4k req/day). Aligned model:
+//      happily describes SFW images, REFUSES nudity/explicit.
+//   2. Modal Qwen2.5-VL (self-hosted) — pennies, sees EVERYTHING uncensored.
+//      Used when Groq refuses/errors (i.e. the image was explicit) or when
+//      GROQ_API_KEY is not configured.
+// OUTBOUND QA (Holly's own generations) is ALWAYS Modal — QA verdicts on
+// explicit anatomy cannot pass through an aligned filter.
+//
+// GROQ_API_KEY: free at console.groq.com (no card). Until it exists, all
+// inbound descriptions go straight to Modal (current behaviour, unchanged).
+
+const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
+const GROQ_VISION_MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct';
+
+/** Heuristic: does a Groq completion look like a content refusal? */
+function looksLikeRefusal(text: string): boolean {
+  return /\b(i can(?:'|no)?t (?:see|view|describe|assist|help|analy[sz]e)|i'm sorry|i am sorry|cannot generate|not able to (?:view|describe|analy[sz]e)|unable to (?:view|describe|analy[sz]e)|content policy|inappropriate content)\b/i.test(text);
+}
+
+/** FREE LANE: describe via Groq Llama-4-Scout. Returns null on refusal/failure. */
+async function describeWithGroq(
+  images: string[],
+  prompt: string,
+): Promise<VisionDescription | null> {
+  if (!GROQ_API_KEY || images.length === 0) return null;
+  try {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${GROQ_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: GROQ_VISION_MODEL,
+        max_tokens: 1024,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: prompt },
+              ...images.slice(0, 5).map((img) => ({
+                type: 'image_url',
+                image_url: { url: img.startsWith('data:') ? img : `data:image/jpeg;base64,${img}` },
+              })),
+            ],
+          },
+        ],
+      }),
+      signal: AbortSignal.timeout(30_000),
+    });
+    if (!res.ok) {
+      console.warn('[HollyVision] Groq HTTP', res.status, '— falling back to Modal');
+      return null;
+    }
+    const json = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+    const content = json.choices?.[0]?.message?.content?.trim();
+    if (!content) return null;
+    if (looksLikeRefusal(content)) {
+      console.info('[HollyVision] Groq refused (likely explicit image) — falling back to Modal (uncensored)');
+      return null;
+    }
+    return { description: content };
+  } catch (e) {
+    console.warn('[HollyVision] Groq describe failed — falling back to Modal:', (e as Error).message);
+    return null;
+  }
+}
+
 /** Strip a data-URI prefix, returning raw base64. */
 function toB64(input: string): string {
   return input.startsWith('data:') ? input.split(',', 2)[1] : input;
@@ -70,7 +141,14 @@ export async function describeImages(
   prompt: string,
   timeoutMs = 120_000,
 ): Promise<VisionDescription | null> {
-  if (!VISION_URL || images.length === 0) return null;
+  if (images.length === 0) return null;
+
+  // FREE LANE FIRST: Groq handles SFW inbound at $0. Null = refused/failed
+  // (explicit image, or key missing) → uncensored Modal lane below.
+  const groq = await describeWithGroq(images, prompt);
+  if (groq) return groq;
+
+  if (!VISION_URL) return null;
   const url = VISION_URL.replace(/--vision-qa\./, '--vision-describe.');
   try {
     const res = await postWithColdRetry(url, { images: images.map(toB64), prompt }, timeoutMs, /* retryOnCold */ true);

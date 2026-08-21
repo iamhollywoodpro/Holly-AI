@@ -4,7 +4,7 @@
  * HOLLY Generation Studio — Phase 11
  *
  * Full multi-modal creation suite:
- *   - Image generation (Holly Modal FLUX.1-schnell → Pollinations fallback — 100% free)
+ *   - Image generation (content-aware: Cloudflare free lane / Modal / Klein)
  *   - Video generation (Holly Modal CogVideoX-5B)
  *   - Music video creation (storyboard + frame generation)
  *   - Audio-visual sync planner
@@ -18,7 +18,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Tab = 'image' | 'video' | 'music-video' | 'av-sync';
-type ImageModel = 'auto' | 'flux-1-1-pro' | 'flux-schnell' | 'flux-dev' | 'stable-diffusion-xl' | 'pollinations';
+type ImageModel = 'auto' | 'flux-1-1-pro' | 'flux-schnell' | 'flux-dev' | 'stable-diffusion-xl' | 'cloudflare';
 type VideoModel = 'auto' | 'cogvideox';
 type AspectRatio = '16:9' | '9:16' | '1:1' | '4:3' | '3:4';
 type MusicVideoStyle = 'cinematic' | 'visualizer' | 'lyric-video' | 'performance' | 'abstract' | 'animated' | 'documentary';
@@ -290,7 +290,7 @@ export default function GenerationStudio() {
                 >
                   <SectionHeader
                     title="Image Generation"
-                    subtitle="Create stunning visuals using FLUX, Stable Diffusion, or Pollinations — 100% FREE"
+                    subtitle="Create stunning visuals using FLUX, Stable Diffusion, or the free Cloudflare lane"
                     icon="🎨"
                   />
 
@@ -1045,7 +1045,7 @@ const IMAGE_MODELS = [
   { value: 'flux-schnell', label: 'FLUX Schnell — Fast' },
   { value: 'flux-dev', label: 'FLUX Dev — Balanced' },
   { value: 'stable-diffusion-xl', label: 'Stable Diffusion XL' },
-  { value: 'pollinations', label: 'Pollinations FLUX — Free, no key' },
+  { value: 'cloudflare', label: 'FLUX schnell (Cloudflare) — Free lane' },
 ];
 
 const VIDEO_MODELS = [

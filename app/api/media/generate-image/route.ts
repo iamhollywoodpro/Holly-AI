@@ -3,17 +3,12 @@ import { NextRequest, NextResponse } from 'next/server';
 export const runtime = 'nodejs';
 
 /**
- * Image Generation API — 100% FREE via Pollinations AI (FLUX)
- * No API key. No cost. No limits. MIT-friendly.
- * https://image.pollinations.ai
+ * Image Generation API — canonical media-generator cascade.
+ * Routes content-aware: Holly-identity → Klein (Modal), non-Holly SFW →
+ * Cloudflare Workers AI (FREE, 10k neurons/day), non-Holly explicit → refused.
  *
- * Falls back to Fal.ai FLUX if FAL_KEY is set (optional, for higher quality).
+ * POLLINATIONS REMOVED (Steve, 2026-08-12): banned permanently.
  */
-
-function buildPollinationsUrl(prompt: string, width = 1024, height = 1024): string {
-  const encoded = encodeURIComponent(prompt);
-  return `https://image.pollinations.ai/prompt/${encoded}?width=${width}&height=${height}&nologo=true&enhance=true&model=flux`;
-}
 
 function getAspectDimensions(aspectRatio?: string): { width: number; height: number } {
   const map: Record<string, { width: number; height: number }> = {
@@ -35,22 +30,23 @@ export async function POST(request: NextRequest) {
     }
 
     const { width, height } = getAspectDimensions(aspectRatio);
-    const imageUrl = buildPollinationsUrl(prompt, width, height);
-
-    // Pollinations generates on-the-fly — verify URL works
-    const check = await fetch(imageUrl, { method: 'HEAD', signal: AbortSignal.timeout(25000) });
-    if (!check.ok) {
-      throw new Error(`Image generation failed (${check.status})`);
-    }
+    const { generateImage } = await import('@/lib/ai/media-generator');
+    const result = await generateImage({ prompt, width, height });
 
     return NextResponse.json({
       success: true,
-      imageUrl,
+      imageUrl: result.url,
       prompt,
-      provider: 'pollinations-flux',
+      provider: result.provider,
+      model: result.model,
     });
   } catch (error) {
     console.error('Image generation error:', error);
-    return NextResponse.json({ error: 'Failed to generate image' }, { status: 500 });
+    const message = (error as Error).message || 'Failed to generate image';
+    // Refusals are policy outcomes, not server errors
+    if (message.startsWith('REFUSED_NONHOLLY_EXPLICIT')) {
+      return NextResponse.json({ error: message }, { status: 422 });
+    }
+    return NextResponse.json({ error: 'Failed to generate image', detail: message.slice(0, 200) }, { status: 502 });
   }
 }

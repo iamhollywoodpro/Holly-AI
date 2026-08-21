@@ -1,7 +1,7 @@
 /**
  * HOLLY IMAGE GENERATION API - PHASE 4C
  * 
- * Generate images using free open-source AI models (FLUX, SDXL, Pollinations)
+ * Generate images via the canonical media-generator cascade (Cloudflare/Modal/Klein)
  * Endpoints: /api/admin/creative/image
  * 
  * Actions:
@@ -196,7 +196,7 @@ export async function POST(request: NextRequest) {
       const {
         prompt,
         negativePrompt,
-        model = 'pollinations-flux',
+        model = 'auto',
         width = 1024,
         height = 1024,
         category = 'art',
@@ -227,7 +227,7 @@ export async function POST(request: NextRequest) {
 
       // In a real implementation, you would:
       // 1. Queue the job to a background worker
-      // 2. Call the AI provider API (Pollinations, Fal.ai FLUX, HuggingFace SDXL, etc.)
+      // 2. Call the media-generator cascade (Cloudflare free / Modal / Klein)
       // 3. Update job status and create CreativeAsset when complete
       
       // For now, return the job ID for polling

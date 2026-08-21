@@ -946,11 +946,23 @@ Your own past messages may contain hidden records like: <!-- holly-media: type=i
                 }
 
                 sendProgress(controller, { phase: 'generate_video', percent: 45, message: '🎬 Animating with MiniMax H3…' });
+                // GPU LEDGER GATE: video is the most expensive lane (~$0.03) —
+                // strict daily (5) + monthly cap checked BEFORE the H3 call.
+                const { checkQuota, recordUsage } = await import('@/lib/ai/gpu-ledger');
+                const vQuota = await checkQuota(dbUserId || 'system', 'video-h3');
+                if (!vQuota.allowed) {
+                  throw new Error(`MEDIA_BUDGET: ${vQuota.reason}`);
+                }
                 const { generateVideo } = await import('@/lib/ai/media-generator');
                 const video = await generateVideo({
                   prompt: motionPrompt,
                   inputImage: lastImage,
                   duration: 5,
+                });
+                void recordUsage({
+                  userId: dbUserId || 'system',
+                  category: 'video-h3',
+                  provider: video.provider,
                 });
 
                 // ── OUTBOUND AUTO-QA (video): sampled-frames check via Holly's
@@ -1112,6 +1124,16 @@ Your own past messages may contain hidden records like: <!-- holly-media: type=i
               let imageMetaProvider = 'unknown';
               let imageMetaModel = 'unknown';
               try {
+                // GPU LEDGER GATE (Steve, 2026-08-12): per-user daily quota +
+                // monthly category cap checked BEFORE any GPU call. The gate
+                // uses the PREDICTED lane so free Cloudflare ducks are never
+                // blocked by Klein's paid cap.
+                const { checkQuota } = await import('@/lib/ai/gpu-ledger');
+                const { predictImageCategory } = await import('@/lib/ai/media-generator');
+                const quota = await checkQuota(dbUserId || 'system', predictImageCategory(fullPrompt));
+                if (!quota.allowed) {
+                  throw new Error(`MEDIA_BUDGET: ${quota.reason}`);
+                }
                 sendProgress(controller, { phase: 'generate_image', percent: 40, message: '🎨 Calling generation provider…' });
                 const result = await generateImage({
                   prompt: fullPrompt,
@@ -1123,6 +1145,13 @@ Your own past messages may contain hidden records like: <!-- holly-media: type=i
                 imageDataUri = result.url; // data:image/jpeg;base64,... or URL
                 imageMetaProvider = result.provider;
                 imageMetaModel = result.model;
+                // Record actual lane used (cloudflare = free, klein/modal = paid)
+                const { recordUsage, imageCategoryFor } = await import('@/lib/ai/gpu-ledger');
+                void recordUsage({
+                  userId: dbUserId || 'system',
+                  category: imageCategoryFor(result.provider),
+                  provider: result.provider,
+                });
               } finally {
                 clearInterval(heartbeat);
               }
@@ -1664,8 +1693,9 @@ Your own past messages may contain hidden records like: <!-- holly-media: type=i
                       const resultText = (result as any)?.content?.[0]?.text || (result as any)?.content || JSON.stringify(result);
                       sendTool(controller, tName, 'complete', result);
                       if (tName === 'generate_image') {
-                        const pollMatch = resultText.match(/https?:\/\/(?:image\.pollinations\.ai\/prompt|gen\.pollinations\.ai\/image)\/[^\s"')\]]+/);
-                        if (pollMatch) generatedImageUrls.push(pollMatch[0]);
+                        // POLLINATIONS BANNED (Steve, 2026-08-12): never render
+                        // pollinations URLs. Data URIs from the canonical
+                        // cascade are handled by the dedicated media path.
                       }
                       const truncated = JSON.stringify(result, null, 2);
                       pendingMessages.push({ role: 'user', content: `[TOOL EXECUTION RESULT]\nTool: ${tName}\nResult:\n${truncated.length > 8000 ? truncated.substring(0, 8000) + '\n...[truncated]' : truncated}\n\nAnalyze this result. Respond to the user naturally. If this was an image generation, briefly describe what you created.` });
@@ -1690,11 +1720,12 @@ Your own past messages may contain hidden records like: <!-- holly-media: type=i
               //
               // This catches ANY markdown image whose URL is NOT:
               //   - data: URI (real generated images embedded inline)
-              //   - our own image gen endpoint (modal.run / pollinations.ai)
+              //   - our own image gen endpoint (modal.run / iamhollywoodpro-- / iamdoregosteve--)
+              // pollinations.ai deliberately NOT allowlisted (banned 2026-08-12)
               // When matched: extract alt text → run REAL image gen → swap URL.
               // ════════════════════════════════════════════════════════════════════
               const MD_IMG_URL_REGEX = /!\[([^\]]*)\]\((https?:\/\/[^)\s]+)(?:\s+"[^)]*")?\)/gi;
-              const ALLOWED_IMG_HOSTS = /^(data:|https?:\/\/(?:[^/]*\.)?(?:modal\.run|pollinations\.ai|iamhollywoodpro--|iamdoregosteve--))/i;
+              const ALLOWED_IMG_HOSTS = /^(data:|https?:\/\/(?:[^/]*\.)?(?:modal\.run|iamhollywoodpro--|iamdoregosteve--))/i;
               let mdImgMatch: RegExpExecArray | null;
               MD_IMG_URL_REGEX.lastIndex = 0;
               while ((mdImgMatch = MD_IMG_URL_REGEX.exec(responseText)) !== null) {
@@ -2062,10 +2093,9 @@ Your own past messages may contain hidden records like: <!-- holly-media: type=i
                     sendTool(controller, toolName, 'complete', result);
                     // Track image URLs from generate_image results for direct frontend rendering
                     if (toolName === 'generate_image') {
-                      const pollinationsMatch = resultStr.match(/https?:\/\/(?:image\.pollinations\.ai\/prompt|gen\.pollinations\.ai\/image)\/[^\s"')\]]+/);
-                      if (pollinationsMatch) {
-                        generatedImageUrls.push(pollinationsMatch[0]);
-                      }
+                      // POLLINATIONS BANNED (Steve, 2026-08-12): never render
+                      // pollinations URLs. Data URIs from the canonical
+                      // cascade are handled by the dedicated media path.
                     }
                     const truncated = resultStr.length > 8000 ? resultStr.substring(0, 8000) + '\n...[truncated]' : resultStr;
                     pendingMessages.push({ role: 'user', content: `[TOOL EXECUTION RESULT]\nTool: ${toolName}\nResult:\n${truncated}\n\nAnalyze this result. Respond to the user naturally. If this was an image generation, briefly describe what you created.` });
