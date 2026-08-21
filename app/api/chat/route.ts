@@ -250,6 +250,12 @@ function sendTool(c: ReadableStreamDefaultController, toolName: string, status: 
       if (imgMarkdowns && imgMarkdowns.length > 0) {
         sendText(c, '\n\n' + imgMarkdowns.join('\n\n'));
       }
+      // Songs from the own engine (ACE-Step) arrive as base64 audio data URIs
+      // on their own line — stream them so the inline player picks them up.
+      const audioUris = resultText.match(/data:audio\/[a-z0-9]+;base64,[A-Za-z0-9+/=]{100,}/g);
+      if (audioUris && audioUris.length > 0) {
+        sendText(c, '\n\n' + audioUris.join('\n\n'));
+      }
     }
     return;
   }
@@ -2097,7 +2103,11 @@ Your own past messages may contain hidden records like: <!-- holly-media: type=i
                       // pollinations URLs. Data URIs from the canonical
                       // cascade are handled by the dedicated media path.
                     }
-                    const truncated = resultStr.length > 8000 ? resultStr.substring(0, 8000) + '\n...[truncated]' : resultStr;
+                    // Strip embedded media payloads (base64 audio from the music
+                    // engine) before the model sees the result — multi-MB of
+                    // base64 wastes context and adds nothing to her reply.
+                    const llmResult = resultStr.replace(/data:audio\/[a-z0-9]+;base64,[A-Za-z0-9+/=]{100,}/g, '[audio attached — playable in chat]');
+                    const truncated = llmResult.length > 8000 ? llmResult.substring(0, 8000) + '\n...[truncated]' : llmResult;
                     pendingMessages.push({ role: 'user', content: `[TOOL EXECUTION RESULT]\nTool: ${toolName}\nResult:\n${truncated}\n\nAnalyze this result. Respond to the user naturally. If this was an image generation, briefly describe what you created.` });
                   } else {
                     if (progressInterval) clearInterval(progressInterval);

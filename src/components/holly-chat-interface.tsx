@@ -1305,6 +1305,8 @@ function AssistantContent({ content }: { content: string }) {
   const pollinationsRegex = /https?:\/\/(?:image\.pollinations\.ai\/prompt|gen\.pollinations\.ai\/image)\/[^\s)\]]+/gi;
   // Detect audio URLs (Suno, SoundCloud, mp3 links)
   const audioUrlRegex = /(?:audio|music|track|song).*?(https?:\/\/[^\s]+\.(?:mp3|wav|ogg|m4a|aac)|https?:\/\/(?:suno\.com|soundcloud\.com|cdn\.suno\.ai)[^\s]*)/gi;
+  // Detect base64 audio data URIs (ACE-Step renders — own engine returns embedded mp3)
+  const audioDataUrlRegex = /data:audio\/[a-z0-9]+;base64,[A-Za-z0-9+/=]{100,}/g;
   // Detect plain image data URLs embedded in text
   const dataUrlRegex = /(data:image\/[a-z]+;base64,[A-Za-z0-9+/=]{100,})/g;
 
@@ -1315,6 +1317,7 @@ function AssistantContent({ content }: { content: string }) {
   while ((m = imageUrlRegex.exec(content)) !== null) images.push(m[1] || m[0]);
   while ((m = pollinationsRegex.exec(content)) !== null) images.push(m[0]);
   while ((m = audioUrlRegex.exec(content)) !== null) audios.push(m[1]);
+  while ((m = audioDataUrlRegex.exec(content)) !== null) audios.push(m[0]);
   while ((m = dataUrlRegex.exec(content)) !== null) images.push(m[1]);
 
   return (
@@ -1327,6 +1330,9 @@ function AssistantContent({ content }: { content: string }) {
           // a reference-style image with no definition, which rendered as raw text
           // `![alt][image]` (Steve flagged 2026-06-28).
           .replace(/!\[[^\]]*\]\(data:image\/[a-z]+;base64,[A-Za-z0-9+/=]+\)/gi, '')
+          // Strip base64 audio data URIs from the text — the inline player below
+          // renders them; leaving them in would dump megabytes of base64 as text.
+          .replace(/data:audio\/[a-z0-9]+;base64,[A-Za-z0-9+/=]{100,}/gi, '')
           // Strip markdown image syntax for Pollinations URLs (rendered separately below)
           .replace(/!\[.*?\]\(https?:\/\/(?:image\.pollinations\.ai\/prompt|gen\.pollinations\.ai\/image)\/[^\s)]+\)/gi, '')
           // Strip bare "Image URL:" lines

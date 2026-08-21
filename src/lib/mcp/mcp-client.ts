@@ -204,6 +204,110 @@ export class MCPClientManager {
 
     // 15. Media Hub — HTTP proxy for Holly's structured image/video generation
     this._registerMediaHub();
+    this._registerMusicHub();
+  }
+
+  // ── Music Hub registration (2026-08-21) ────────────────────────────────────
+  // The REAL generate_music tool — previously referenced in mode filters and
+  // prompts but never registered (chat hit "Tool not found"). Architecture:
+  // lyric-brain (Holly's songwriter) authors → ACE-Step renders on our GPUs.
+  private _registerMusicHub(): void {
+    this.registerHttpServer(
+      'music-hub',
+      [
+        {
+          name: 'generate_music',
+          description: (
+            'Write and render a complete song. Holly writes the lyrics herself (human songwriting ' +
+            'system, 11 languages), then renders them to finished audio on our own music engine ' +
+            '(ACE-Step). Returns playable audio + the lyrics. Do NOT claim a song was created ' +
+            'until this tool returns successfully.\n\n' +
+            'Provide `lyrics` yourself only if the user already wrote them — otherwise pass `theme` ' +
+            'and let the writing engine do its work.'
+          ),
+          inputSchema: {
+            type: 'object',
+            properties: {
+              theme: { type: 'string', description: 'What the song is about (used when lyrics not provided)' },
+              lyrics: { type: 'string', description: 'Exact lyrics with [Verse]/[Chorus] tags — skips the writing engine' },
+              style: { type: 'string', description: 'Style tags (e.g. "pop, female vocals, emotional, 120 bpm")' },
+              mood: { type: 'string', description: 'Emotional tone for the lyrics' },
+              language: { type: 'string', description: 'Lyric language (default: english)' },
+              duration: { type: 'number', description: 'Song length in seconds, 30–240 (default 60)' },
+              seed: { type: 'number', description: 'Optional seed for reproducible renders' },
+            },
+            required: [],
+          },
+        },
+      ],
+      async (toolName: string, args: Record<string, unknown>) => {
+        if (toolName !== 'generate_music') {
+          return { content: [{ type: 'text', text: `Unknown tool: ${toolName}` }] };
+        }
+
+        try {
+          const { acestepProvider } = await import('../music/acestep-provider');
+          const { writeLyrics } = await import('../music/lyric-brain');
+
+          if (!acestepProvider.isConfigured) {
+            return {
+              content: [{
+                type: 'text',
+                text: 'Music engine not configured: ACESTEP_MUSIC_URL is not set. Tell the user honestly — do not pretend a song was created.',
+              }],
+            };
+          }
+
+          const style = (args.style as string) || undefined;
+          const theme = (args.theme as string) || undefined;
+          let lyrics = (args.lyrics as string) || '';
+
+          // 1. WRITE — Holly's songwriting system (skipped when lyrics given)
+          let writer = 'user-provided';
+          if (!lyrics.trim()) {
+            if (!theme) {
+              return {
+                content: [{ type: 'text', text: 'Provide either `theme` (I write the song) or `lyrics` (I render yours).' }],
+              };
+            }
+            const written = await writeLyrics({
+              theme,
+              style,
+              mood: (args.mood as string) || undefined,
+              language: (args.language as string) || 'english',
+            });
+            lyrics = written.lyrics;
+            writer = `lyric-brain (${written.provider})`;
+          }
+
+          // 2. RENDER — ACE-Step on our Modal GPUs
+          const rendered = await acestepProvider.renderSong({
+            lyrics,
+            stylePrompt: style,
+            duration: (args.duration as number) || 60,
+            seed: args.seed as number | undefined,
+          });
+
+          return {
+            content: [{
+              type: 'text',
+              text: (
+                `🎵 Song generated successfully.\n\n` +
+                `Writer: ${writer}\n` +
+                `Style: ${style || 'pop'}\n` +
+                `Duration: ${rendered.duration}s | Seed: ${rendered.seed} | Engine: ACE-Step 1.5 (our GPUs)\n\n` +
+                `Lyrics:\n${lyrics}\n\n` +
+                `Audio (playable):\n${rendered.dataUri}`
+              ),
+            }],
+          };
+        } catch (e) {
+          return {
+            content: [{ type: 'text', text: `Music generation failed: ${(e as Error).message}\n\nTell the user honestly what failed — do not pretend a song was created.` }],
+          };
+        }
+      },
+    );
   }
 
   // ── Media Hub registration ───────────────────────────────────────────────
@@ -1764,9 +1868,11 @@ export class MCPClientManager {
         throw new Error(`[MCP] Client ${serverId} not connected — tool unavailable`);
       }
 
-      // Media tools need longer — image generation can take 60s+ on cold starts
+      // Media tools need longer — image generation can take 60s+ on cold starts.
+      // Music (own ACE-Step engine) can take 2-4min: cold GPU boot + full render.
+      const isMusicTool = toolName === 'generate_music' || toolName === 'hybrid_studio';
       const isMediaTool = ['generate_image', 'generate_video', 'generate_music', 'hybrid_studio'].includes(toolName);
-      const toolTimeout = isMediaTool ? 120_000 : 30_000;
+      const toolTimeout = isMusicTool ? 300_000 : isMediaTool ? 120_000 : 30_000;
       const timeoutPromise = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error(`Stdio tool timeout: ${toolName} (${toolTimeout / 1000}s)`)), toolTimeout)
       );

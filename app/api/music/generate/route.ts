@@ -178,41 +178,49 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // ── Last resort: ACE-Step XL Turbo (self-hosted) ────────────────────────
+    // ── Last resort: ACE-Step 1.5 (our own engine, self-hosted Modal) ──────
+    // Correct contract per services/modal-media/music_acestep.py:
+    // { lyrics (required), style_prompt, duration, seed } → { audio: base64 mp3, ... }
     if (ACESTEP_URL) {
       try {
-        console.log('[Music API] Calling ACE-Step fallback at', ACESTEP_URL);
+        console.log('[Music API] Calling ACE-Step at', ACESTEP_URL);
 
-        const aceBody: Record<string, any> = {
-          prompt:      customMode ? (sunoRequest.prompt || prompt) : wrapPromptForFullSong(prompt),
-          instrumental,
-          duration:    30,
-        };
-        if (style)  aceBody.style = style;
-        if (title)  aceBody.title = title;
-
-        const aceRes = await fetch(ACESTEP_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify(aceBody),
-        });
-
-        const aceData = await aceRes.json();
-
-        if (aceRes.ok) {
-          return NextResponse.json({ success: true, data: aceData, provider: 'acestep' });
+        // ACE-Step renders lyrics — it does not write them. If the request has
+        // no lyrics, write them with Holly's lyric brain first.
+        let lyrics = customMode ? (prompt as string) : '';
+        if (!lyrics) {
+          const { writeLyrics } = await import('@/lib/music/lyric-brain');
+          const written = await writeLyrics({
+            theme: prompt,
+            style,
+            mood: 'emotional, heartfelt',
+          });
+          lyrics = written.lyrics;
         }
 
-        console.error('[Music API] ACE-Step error:', aceData);
-        return NextResponse.json(
-          { success: false, error: aceData.error || 'ACE-Step generation failed' },
-          { status: aceRes.status },
-        );
+        const { acestepProvider } = await import('@/lib/music/acestep-provider');
+        const rendered = await acestepProvider.renderSong({
+          lyrics,
+          stylePrompt: style,
+          duration: 60,
+        });
+
+        return NextResponse.json({
+          success: true,
+          provider: 'acestep',
+          data: {
+            audioDataUri: rendered.dataUri,
+            format: rendered.format,
+            seed: rendered.seed,
+            duration: rendered.duration,
+            lyrics,
+          },
+        });
       } catch (aceErr) {
-        console.error('[Music API] ACE-Step fetch failed:', aceErr);
+        console.error('[Music API] ACE-Step failed:', aceErr);
         return NextResponse.json(
-          { success: false, error: 'All music providers unavailable' },
-          { status: 503 },
+          { success: false, error: aceErr instanceof Error ? aceErr.message : 'ACE-Step generation failed' },
+          { status: 502 },
         );
       }
     }
