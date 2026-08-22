@@ -72,6 +72,7 @@ export async function POST(req: NextRequest) {
       model          = DEFAULT_MODEL,
       negativeTags,
       forceEngine,             // 'acestep' → skip Suno/Sonauto, use OUR engine directly (Music Hub)
+      lengthPreset,            // 'full' | 'reel' | 'commercial' — drives lyric structure (Music Hub)
       duration      = 60,
       format        = 'mp3',   // output format for our engine: mp3 | wav
       seed,
@@ -132,7 +133,10 @@ export async function POST(req: NextRequest) {
         let lyrics = customMode ? (prompt as string) : '';
         if (!lyrics) {
           const { writeLyrics } = await import('@/lib/music/lyric-brain');
-          const written = await writeLyrics({ theme: prompt, style, mood: 'emotional, heartfelt' });
+          const written = await writeLyrics({
+            theme: prompt, style, mood: 'emotional, heartfelt',
+            lengthPreset: lengthPreset === 'reel' || lengthPreset === 'commercial' ? lengthPreset : 'full',
+          });
           lyrics = written.lyrics;
         }
         const { acestepProvider } = await import('@/lib/music/acestep-provider');

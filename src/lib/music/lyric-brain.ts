@@ -103,41 +103,20 @@ export const LANGUAGE_CONFIGS: Record<string, {
 
 // ── Writing ──────────────────────────────────────────────────────────────────
 
-export interface WriteLyricsParams {
-  /** What the song is about. */
-  theme: string;
-  /** Genre/style (e.g. pop, hip-hop, R&B). */
-  style?: string;
-  /** Emotional tone. */
-  mood?: string;
-  /** Target language (default: english). */
-  language?: string;
-}
+export type LengthPreset = 'full' | 'reel' | 'commercial';
 
-export interface WrittenLyrics {
-  lyrics: string;
-  language: string;
-  languageCode: string;
-  provider: string;
-  model: string;
-}
+/** Structure templates per length preset — the song's length is determined
+ *  by its structure, so the writer must know the target BEFORE writing. */
+const LENGTH_STRUCTURES: Record<LengthPreset, {
+  guidance: string;
+  structure: string;
+  maxTokens: number;
+}> = {
+  full: {
+    guidance: 'Write a FULL SONG (2:30–4:00). Let the structure, lyric density and implied BPM naturally determine the length — a full arc, not padding.',
+    structure: `[Intro]
+...
 
-export async function writeLyrics(params: WriteLyricsParams): Promise<WrittenLyrics> {
-  const langKey = (params.language ?? 'english').toLowerCase().replace(/\s+/g, '-');
-  const langConfig = LANGUAGE_CONFIGS[langKey] ?? LANGUAGE_CONFIGS['english'];
-
-  const systemPrompt = `You are a world-class professional songwriter and lyricist with deep expertise in ${langConfig.name} music.
-${langConfig.culturalContext}
-${langConfig.scriptNote ? langConfig.scriptNote : ''}
-Always write authentic, culturally-grounded lyrics that respect the musical traditions of the language.`;
-
-  const userPrompt = `${langConfig.instruction}
-
-Write a complete song about: "${params.theme}"
-Genre/Style: ${params.style || 'pop'}
-Mood: ${params.mood || 'emotional, heartfelt'}
-
-Structure the lyrics with clearly labeled sections:
 [Verse 1]
 ...
 
@@ -156,6 +135,75 @@ Structure the lyrics with clearly labeled sections:
 [Chorus]
 ...
 
+[Outro]
+...`,
+    maxTokens: 1400,
+  },
+  reel: {
+    guidance: 'Write a SOCIAL MEDIA REEL song — HARD MAXIMUM 60 seconds total. Roughly 12–16 sung lines. ONE hook that hits in the first 5 seconds, one short verse, hook repeats once. No bridge, no outro padding. Every line must earn its place.',
+    structure: `[Hook]
+...
+
+[Verse]
+...
+
+[Hook]
+...`,
+    maxTokens: 700,
+  },
+  commercial: {
+    guidance: 'Write a 30-second COMMERCIAL SPOT — HARD MAXIMUM 30 seconds. Roughly 6–8 sung lines total. One instantly memorable hook (the product/brand feeling), one payoff line that works as a tagline. Nothing else. Think "you already love this song" energy, immediately.',
+    structure: `[Hook]
+...
+
+[Tag]
+...`,
+    maxTokens: 400,
+  },
+};
+
+export interface WriteLyricsParams {
+  /** What the song is about. */
+  theme: string;
+  /** Genre/style (e.g. pop, hip-hop, R&B). */
+  style?: string;
+  /** Emotional tone. */
+  mood?: string;
+  /** Target language (default: english). */
+  language?: string;
+  /** Length preset — drives structure (default: full). */
+  lengthPreset?: LengthPreset;
+}
+
+export interface WrittenLyrics {
+  lyrics: string;
+  language: string;
+  languageCode: string;
+  provider: string;
+  model: string;
+}
+
+export async function writeLyrics(params: WriteLyricsParams): Promise<WrittenLyrics> {
+  const langKey = (params.language ?? 'english').toLowerCase().replace(/\s+/g, '-');
+  const langConfig = LANGUAGE_CONFIGS[langKey] ?? LANGUAGE_CONFIGS['english'];
+  const length = LENGTH_STRUCTURES[params.lengthPreset ?? 'full'];
+
+  const systemPrompt = `You are a world-class professional songwriter and lyricist with deep expertise in ${langConfig.name} music.
+${langConfig.culturalContext}
+${langConfig.scriptNote ? langConfig.scriptNote : ''}
+Always write authentic, culturally-grounded lyrics that respect the musical traditions of the language.
+${length.guidance}`;
+
+  const userPrompt = `${langConfig.instruction}
+
+Write a complete song about: "${params.theme}"
+Genre/Style: ${params.style || 'pop'}
+Mood: ${params.mood || 'emotional, heartfelt'}
+
+Structure the lyrics EXACTLY with these labeled sections (use only the sections shown, in this order):
+
+${length.structure}
+
 Make the lyrics emotionally resonant, culturally authentic, and lyrically powerful. Use the rich poetic devices of ${langConfig.name} music.`;
 
   const routeResult = await smartRoute(userPrompt, { taskHint: 'creative' });
@@ -168,7 +216,7 @@ Make the lyrics emotionally resonant, culturally authentic, and lyrically powerf
   const { text, model: usedModel } = await cascadeCollect(
     routeResult.waterfall,
     messages,
-    { temperature: 0.92, maxTokens: 1400 },
+    { temperature: 0.92, maxTokens: length.maxTokens },
   );
 
   if (!text) {

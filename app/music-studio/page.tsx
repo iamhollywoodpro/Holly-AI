@@ -20,6 +20,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 type GenerationMode = 'describe' | 'custom';
 type EngineType = 'suno' | 'sonauto' | 'hybrid' | 'holly';
 type OutputFormat = 'mp3' | 'wav';
+type LengthPreset = 'full' | 'reel' | 'commercial';
+/** Renderer durations per preset — hard caps, engine obeys. Full = 3:00 target;
+ *  ACE-Step ceiling is 4:00 so a 5:30 song needs a future concat pipeline. */
+const PRESET_DURATION: Record<LengthPreset, number> = { full: 180, reel: 60, commercial: 30 };
 
 interface GeneratedTrack {
   id:             string;
@@ -471,6 +475,7 @@ export default function MusicStudio() {
   const progressInterval                        = useRef<NodeJS.Timeout | null>(null);
 
   const [outputFormat, setOutputFormat]         = useState<OutputFormat>('mp3');
+  const [lengthPreset, setLengthPreset]         = useState<LengthPreset>('full');
 
   const [remixTrack, setRemixTrack]             = useState<GeneratedTrack | null>(null);
   const [extendTrack, setExtendTrack]           = useState<GeneratedTrack | null>(null);
@@ -687,7 +692,8 @@ export default function MusicStudio() {
             prompt: isCustom ? lyrics : prompt,
             style: style || undefined,
             title: trackTitle,
-            duration: 60,
+            duration: PRESET_DURATION[lengthPreset],
+            lengthPreset,
             format: outputFormat,
           }),
         });
@@ -1356,6 +1362,34 @@ export default function MusicStudio() {
                 </p>
               </div>
               <div>
+                <p className="text-white/30 text-xs uppercase tracking-wider mb-2">Song Length</p>
+                <div className="flex gap-2">
+                  {([
+                    { value: 'full',       label: 'Full Song',   hint: '2:30–4:00 · structure-driven' },
+                    { value: 'reel',       label: 'Reel',        hint: '60 sec max · hard cap' },
+                    { value: 'commercial', label: 'Commercial',  hint: '30 sec max · hard cap' },
+                  ] as const).map(p => (
+                    <button
+                      key={p.value}
+                      onClick={() => setLengthPreset(p.value)}
+                      className={`flex-1 py-2.5 rounded-xl border text-xs font-medium transition-all ${
+                        lengthPreset === p.value
+                        ? 'bg-[#66CCCC]/20 border-[#66CCCC]/50 text-white'
+                        : 'bg-white/5 border-white/10 text-white/40 hover:text-white/80 hover:border-white/20'
+                      }`}
+                    >
+                      <span className="block text-sm font-semibold">{p.label}</span>
+                      <span className="block text-[10px] text-white/40 mt-0.5">{p.hint}</span>
+                    </button>
+                  ))}
+                </div>
+                <p className="text-white/30 text-[10px] mt-1.5">
+                  {lengthPreset === 'full'
+                    ? 'Lyric structure & BPM determine the length — full arc, no padding.'
+                    : `Renderer enforces the cap — a ${lengthPreset === 'reel' ? 'reel' : 'spot'} cannot come out longer. Writer trims the structure to fit.`}
+                </p>
+              </div>
+              <div>
                 <p className="text-white/30 text-xs uppercase tracking-wider mb-2">Output Format</p>
                 <div className="flex gap-2">
                   {(['mp3', 'wav'] as const).map(f => (
@@ -1370,7 +1404,7 @@ export default function MusicStudio() {
                     >
                       <span className="block text-sm font-semibold uppercase">{f}</span>
                       <span className="block text-[10px] text-white/40 mt-0.5">
-                        {f === 'mp3' ? '192k · compact' : '48kHz lossless · large'}
+                        {f === 'mp3' ? '320k · compact' : '48kHz lossless · large'}
                       </span>
                     </button>
                   ))}
