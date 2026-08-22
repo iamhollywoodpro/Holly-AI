@@ -87,7 +87,7 @@ const MODEL_OPTIONS = [
 ];
 
 const ENGINE_OPTIONS: { value: EngineType; label: string; badge: string; desc: string; color: string }[] = [
-  { value: 'holly',    label: 'Holly',         badge: 'Ours',     desc: 'Our engine · writes + renders · MP3/WAV',      color: 'from-teal-400 to-violet-400' },
+  { value: 'holly',    label: 'Holly',         badge: 'Ours',     desc: 'Our engine · writes + renders · MP3/WAV',      color: 'from-[#007AFF] to-[#4DA3FF]' },
   { value: 'suno',     label: 'SUNO',          badge: 'Primary',  desc: 'Industry-leading AI vocals · V5.5',            color: 'from-purple-500 to-pink-500' },
   { value: 'sonauto',  label: 'Sonauto',       badge: 'Free',     desc: 'Melodia v3 · free generation · stems',         color: 'from-emerald-500 to-teal-500' },
   { value: 'hybrid',   label: 'Hybrid Studio', badge: 'Pro',      desc: '4-phase: Sonauto lyrics→stems→SUNO vocals→mix', color: 'from-amber-500 to-orange-500' },
@@ -136,6 +136,63 @@ function Waveform({ isPlaying, bars = 32 }: { isPlaying: boolean; bars?: number 
         />
       ))}
     </div>
+  );
+}
+
+// ── ARTIST/SIDE brand mark ─────────────────────────────────────────────────────
+
+function ArtistSideMark({ size = 'base' }: { size?: 'base' | 'lg' }) {
+  return (
+    <span className={`font-black uppercase tracking-[0.18em] select-none ${size === 'lg' ? 'text-lg' : 'text-sm'}`}>
+      <span className="text-white">ARTIST</span>
+      <span className="text-[#007AFF] mx-0.5">/</span>
+      <span className="text-white">SIDE</span>
+    </span>
+  );
+}
+
+// ── Live feed card (Create view right rail — Suno's feed pattern) ─────────────
+
+function FeedCard({
+  track, isActive, isPlaying, onPlay,
+}: { track: GeneratedTrack; isActive: boolean; isPlaying: boolean; onPlay: () => void }) {
+  return (
+    <button
+      onClick={onPlay}
+      className={`w-full flex items-center gap-3 p-2 rounded-xl text-left transition-all ${
+        isActive ? 'bg-[#007AFF]/15 border border-[#007AFF]/40' : 'border border-transparent hover:bg-white/5'
+      }`}
+    >
+      <div className="relative w-11 h-11 rounded-lg overflow-hidden flex-shrink-0 bg-white/5">
+        {track.imageUrl ? (
+          <img src={track.imageUrl} alt="" className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-[#007AFF]/60 to-[#0A1E3C] flex items-center justify-center">
+            <Music2 className="w-4 h-4 text-white/50" />
+          </div>
+        )}
+        {track.status === 'complete' && (
+          <div className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
+            {isActive && isPlaying
+              ? <Pause className="w-4 h-4 text-white fill-white" />
+              : <Play className="w-4 h-4 text-white fill-white ml-0.5" />}
+          </div>
+        )}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-white text-sm font-medium truncate">{track.title}</p>
+        <p className="text-white/40 text-xs truncate">
+          {track.status === 'generating' ? (
+            <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-[#007AFF] animate-pulse" /> rendering…</span>
+          ) : track.status === 'error' ? 'failed' : (
+            <>
+              {track.style || 'AI Generated'} · {fmtDur(track.duration)}
+            </>
+          )}
+        </p>
+      </div>
+      {track.status === 'generating' && <Loader2 className="w-4 h-4 text-[#007AFF] animate-spin flex-shrink-0" />}
+    </button>
   );
 }
 
@@ -219,7 +276,7 @@ function MiniPlayer({
             <input
               type="range" min="0" max="100" value={progress}
               onChange={e => onSeek(Number(e.target.value))}
-              className="flex-1 h-1 accent-[#66CCCC] bg-white/10 rounded-full cursor-pointer transition-all"
+              className="flex-1 h-1 accent-[#007AFF] bg-white/10 rounded-full cursor-pointer transition-all"
             />
             <span className="text-white/40 text-xs w-8">{fmtDur(track.duration)}</span>
           </div>
@@ -233,7 +290,7 @@ function MiniPlayer({
             <input
               type="range" min="0" max="1" step="0.01" value={volume}
               onChange={e => onVolume(Number(e.target.value))}
-              className="w-20 h-1 accent-[#66CCCC] bg-white/10 rounded-full cursor-pointer transition-all"
+              className="w-20 h-1 accent-[#007AFF] bg-white/10 rounded-full cursor-pointer transition-all"
             />
           </div>
           <button onClick={onClose} className="text-white/40 hover:text-white ml-2">
@@ -323,8 +380,8 @@ function TrackCard({
       transition={{ type: "spring", stiffness: 300, damping: 20 }}
       className={`group relative rounded-2xl overflow-hidden border transition-all duration-200 ${
         isActive
-          ? 'bg-[#66CCCC]/15 border-[#66CCCC]/45 shadow-lg shadow-[#66CCCC]/10'
-          : 'sdi-glass border-white/5 hover:border-[#66CCCC]/20 hover:bg-white/5'
+          ? 'bg-[#007AFF]/15 border-[#007AFF]/45 shadow-lg shadow-[#007AFF]/10'
+          : 'sdi-glass border-white/5 hover:border-[#007AFF]/20 hover:bg-white/5'
       }`}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
@@ -353,11 +410,19 @@ function TrackCard({
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <p className="text-white font-semibold truncate">{track.title}</p>
-              <p className="text-white/50 text-sm truncate">{track.style || 'AI Generated'} · {fmtDur(track.duration)}</p>
+              <p className="text-white/50 text-sm truncate">
+                {track.style || 'AI Generated'} · {fmtDur(track.duration)}
+                {track.bpm ? <span className="text-white/30"> · {track.bpm} BPM</span> : null}
+              </p>
+              {(track.lengthPreset === 'reel' || track.lengthPreset === 'commercial') && (
+                <span className="inline-block mt-1 px-2 py-0 rounded-full bg-[#007AFF]/15 border border-[#007AFF]/25 text-[#5AA9FF] text-[9px] font-bold uppercase tracking-wider">
+                  {track.lengthPreset === 'reel' ? 'Reel ≤60s' : 'Commercial ≤30s'}
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-1 flex-shrink-0">
               {track.model && (
-                <span className="px-2 py-0.5 rounded-full bg-[#66CCCC]/20 text-[#3DAF76] text-xs">
+                <span className="px-2 py-0.5 rounded-full bg-[#007AFF]/15 text-[#5AA9FF] text-xs">
                   {track.engine === 'hybrid' ? 'Hybrid' : track.engine === 'sonauto' ? 'Sonauto' : track.model}
                 </span>
               )}
@@ -384,7 +449,7 @@ function TrackCard({
           {track.clipId && (
             <button
               onClick={onExtend}
-              className="p-1.5 rounded-lg text-white/40 hover:text-[#3DAF76] transition-colors"
+              className="p-1.5 rounded-lg text-white/40 hover:text-[#5AA9FF] transition-colors"
               title="Extend"
             >
               <Zap className="w-4 h-4" />
@@ -392,7 +457,7 @@ function TrackCard({
           )}
           <button
             onClick={onRemix}
-            className="p-1.5 rounded-lg text-white/40 hover:text-[#3DAF76] transition-colors"
+            className="p-1.5 rounded-lg text-white/40 hover:text-[#5AA9FF] transition-colors"
             title={track.engine === 'holly' ? 'Remix (real re-render)' : 'Re-generate'}
           >
             <RefreshCw className="w-4 h-4" />
@@ -507,6 +572,9 @@ export default function MusicStudio() {
   const [rerenderStyle, setRerenderStyle]       = useState('');
   const [isRerendering, setIsRerendering]       = useState(false);
 
+  const [view, setView]                         = useState<'create' | 'library'>('create');
+  const [libraryFilter, setLibraryFilter]       = useState<'all' | 'liked' | 'full' | 'reel' | 'commercial'>('all');
+
   const [remixTrack, setRemixTrack]             = useState<GeneratedTrack | null>(null);
   const [extendTrack, setExtendTrack]           = useState<GeneratedTrack | null>(null);
   const [lyricsTrack, setLyricsTrack]           = useState<GeneratedTrack | null>(null);
@@ -519,6 +587,12 @@ export default function MusicStudio() {
   const activeTrack = tracks.find(t => t.id === activeTrackId) ?? null;
   const activeIndex = tracks.filter(t => t.status === 'complete').findIndex(t => t.id === activeTrackId);
   const completedTracks = tracks.filter(t => t.status === 'complete');
+  // Library filter chips — real filtering on liked / lengthPreset
+  const libraryTracks = completedTracks.filter(t =>
+    libraryFilter === 'all'      ? true :
+    libraryFilter === 'liked'    ? !!t.liked :
+    t.lengthPreset === libraryFilter
+  );
 
   const addToast = useCallback((msg: string, type: Toast['type'] = 'info') => {
     const id = uid();
@@ -1255,38 +1329,58 @@ export default function MusicStudio() {
   const charPct    = Math.min(charCount / charLimit, 1);
 
   return (
-    <div className="flex h-screen bg-[#0A0908] text-white overflow-hidden">
+    <div className="flex flex-col h-screen bg-black text-white overflow-hidden">
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-        <div className="absolute top-[-20%] left-[10%] w-[600px] h-[600px] rounded-full bg-[#66CCCC]/10 blur-[150px]" />
-        <div className="absolute top-[30%] right-[-10%] w-[500px] h-[500px] rounded-full bg-[#C7B8EA]/8 blur-[120px]" />
-        <div className="absolute bottom-[-10%] left-[30%] w-[400px] h-[400px] rounded-full bg-[#1F3D30]/8 blur-[100px]" />
+        <div className="absolute top-[-20%] left-[10%] w-[600px] h-[600px] rounded-full bg-[#007AFF]/10 blur-[150px]" />
+        <div className="absolute top-[30%] right-[-10%] w-[500px] h-[500px] rounded-full bg-[#4DA3FF]/8 blur-[120px]" />
+        <div className="absolute bottom-[-10%] left-[30%] w-[400px] h-[400px] rounded-full bg-[#0A1E3C]/10 blur-[100px]" />
       </div>
 
-      {/* LEFT PANE - Creation Controls */}
-      <div className="relative z-10 w-[380px] h-full flex flex-col sdi-glass border-r border-[#66CCCC]/15 flex-shrink-0">
-        
-        {/* Header */}
-        <div className="p-5 border-b border-white/5 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-3">
-            <Link
-              href="/chat"
-              className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/60 hover:text-white transition-all flex-shrink-0"
-              title="Back to Chat"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </Link>
-            <div className="min-w-0">
-              <h1 className="text-xl font-bold bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent truncate">
-                Music Studio
-              </h1>
-              <p className="text-white/40 text-[11px] truncate">Powered by HOLLY SDI</p>
-            </div>
-          </div>
+      {/* ── TOP BAR — ARTIST/SIDE ─────────────────────────────────────────── */}
+      <header className="relative z-20 flex items-center justify-between gap-4 px-5 py-3 border-b border-white/8 bg-black/80 backdrop-blur-xl shrink-0">
+        <div className="flex items-center gap-3 min-w-0">
+          <Link
+            href="/chat"
+            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/60 hover:text-white transition-all flex-shrink-0"
+            title="Back to Chat"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </Link>
+          <ArtistSideMark />
+          <span className="hidden sm:inline text-white/25 text-[10px] uppercase tracking-[0.25em] mt-0.5">Studio</span>
         </div>
 
-        {/* Scrollable Form Area */}
-        <div className={`flex-1 overflow-y-auto p-5 space-y-6 ${activeTrack ? 'pb-32' : 'pb-8'} [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full`}>
-          
+        <div className="flex p-1 bg-white/5 rounded-full border border-white/10">
+          {(['create', 'library'] as const).map(v => (
+            <button
+              key={v}
+              onClick={() => setView(v)}
+              className={`px-5 py-1.5 rounded-full text-xs font-bold uppercase tracking-[0.15em] transition-all ${
+                view === v ? 'bg-[#007AFF] text-white' : 'text-white/50 hover:text-white'
+              }`}
+            >
+              {v === 'create' ? 'Create' : 'Library'}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-2 min-w-0">
+          {completedTracks.length > 0 && (
+            <span className="text-white/40 text-xs font-medium bg-white/5 px-3 py-1.5 rounded-full border border-white/5">
+              {completedTracks.length} song{completedTracks.length === 1 ? '' : 's'}
+            </span>
+          )}
+        </div>
+      </header>
+
+      <div className="relative z-10 flex flex-1 overflow-hidden">
+
+      {/* ── CREATE VIEW — centered panel + live feed rail ─────────────────── */}
+      {view === 'create' ? (
+        <>
+        <div className={`flex-1 overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full ${activeTrack ? 'pb-32' : ''}`}>
+        <div className="max-w-2xl mx-auto px-4 py-8">
+
           {/* Creation panel */}
           <div className="space-y-5">
 
@@ -1325,7 +1419,7 @@ export default function MusicStudio() {
               onClick={() => setInstrumental(p => !p)}
               className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-all ${
                 instrumental
-                  ? 'bg-[#66CCCC]/20 border-[#66CCCC]/50 text-[#66CCCC]'
+                  ? 'bg-[#007AFF]/20 border-[#007AFF]/50 text-[#007AFF]'
                   : 'sdi-glass border-white/10 text-white/60 hover:border-white/25 hover:text-white'
               }`}
             >
@@ -1334,7 +1428,7 @@ export default function MusicStudio() {
                 Instrumental (no vocals)
               </span>
               <div className={`w-10 h-5 rounded-full transition-all relative ${
-                instrumental ? 'bg-[#66CCCC]' : 'bg-white/10'
+                instrumental ? 'bg-[#007AFF]' : 'bg-white/10'
               }`}>
                 <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all shadow-sm ${
                   instrumental ? 'left-[calc(100%-18px)]' : 'left-0.5'
@@ -1350,14 +1444,14 @@ export default function MusicStudio() {
                     onChange={e => setPrompt(e.target.value.slice(0, charLimit))}
                     placeholder="Describe the song you want to create…"
                     rows={4}
-                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3.5 text-white placeholder-white/30 resize-none focus:outline-none focus:border-[#66CCCC]/50 focus:bg-white/8 transition-all text-sm"
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3.5 text-white placeholder-white/30 resize-none focus:outline-none focus:border-[#007AFF]/50 focus:bg-white/8 transition-all text-sm"
                   />
                   <div className="absolute bottom-3 right-3 flex items-center gap-2">
                     <div className="relative w-6 h-6">
                       <svg viewBox="0 0 24 24" className="w-6 h-6 -rotate-90">
                         <circle cx="12" cy="12" r="10" strokeWidth="2" className="stroke-white/10 fill-none" />
                         <circle cx="12" cy="12" r="10" strokeWidth="2"
-                          className={`fill-none transition-all ${charPct > 0.9 ? 'stroke-red-400' : 'stroke-[#66CCCC]'}`}
+                          className={`fill-none transition-all ${charPct > 0.9 ? 'stroke-red-400' : 'stroke-[#007AFF]'}`}
                           strokeDasharray={`${charPct * 62.8} 62.8`}
                           strokeLinecap="round"
                         />
@@ -1389,7 +1483,7 @@ export default function MusicStudio() {
                   value={title}
                   onChange={e => setTitle(e.target.value)}
                   placeholder="Song title (optional)"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#66CCCC]/50 focus:bg-white/8 transition-all text-sm"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#007AFF]/50 focus:bg-white/8 transition-all text-sm"
                 />
 
                 <div>
@@ -1397,7 +1491,7 @@ export default function MusicStudio() {
                     value={style}
                     onChange={e => setStyle(e.target.value)}
                     placeholder="Style tags: genre, mood, instruments… e.g. dark trap, 808s, melodic"
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#66CCCC]/50 focus:bg-white/8 transition-all text-sm"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#007AFF]/50 focus:bg-white/8 transition-all text-sm"
                   />
                   <div className="flex flex-wrap gap-1.5 mt-2">
                     {STYLE_PRESETS.slice(0, 8).map(p => (
@@ -1419,7 +1513,7 @@ export default function MusicStudio() {
                       <button
                         onClick={handleGenLyrics}
                         disabled={isGenLyrics}
-                        className="flex items-center gap-1.5 text-xs text-[#3DAF76] hover:text-[#66CCCC] transition-colors disabled:opacity-50"
+                        className="flex items-center gap-1.5 text-xs text-[#5AA9FF] hover:text-[#007AFF] transition-colors disabled:opacity-50"
                       >
                         {isGenLyrics ? (
                           <Loader2 className="w-3 h-3 animate-spin" />
@@ -1434,7 +1528,7 @@ export default function MusicStudio() {
                         <button
                           key={tag}
                           onClick={() => insertTag(tag)}
-                          className="px-2 py-0.5 rounded-md text-xs bg-white/5 border border-white/10 text-white/50 hover:bg-[#66CCCC]/20 hover:text-[#3DAF76] hover:border-[#66CCCC]/30 transition-all"
+                          className="px-2 py-0.5 rounded-md text-xs bg-white/5 border border-white/10 text-white/50 hover:bg-[#007AFF]/20 hover:text-[#5AA9FF] hover:border-[#007AFF]/30 transition-all"
                         >
                           {tag}
                         </button>
@@ -1445,7 +1539,7 @@ export default function MusicStudio() {
                       onChange={e => setLyrics(e.target.value.slice(0, charLimit))}
                       placeholder={"[Verse 1]\nWrite your lyrics here…\n\n[Chorus]\n…"}
                       rows={8}
-                      className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3.5 text-white placeholder-white/30 resize-none focus:outline-none focus:border-[#66CCCC]/50 focus:bg-white/8 transition-all text-sm font-mono"
+                      className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3.5 text-white placeholder-white/30 resize-none focus:outline-none focus:border-[#007AFF]/50 focus:bg-white/8 transition-all text-sm font-mono"
                     />
                     <p className="text-white/30 text-xs mt-1 text-right">{lyrics.length}/{charLimit}</p>
                   </div>
@@ -1511,13 +1605,13 @@ export default function MusicStudio() {
                     onClick={() => setModel(m.value)}
                     className={`flex-1 py-2.5 px-3 rounded-xl border text-xs font-medium transition-all relative ${
                       model === m.value
-                        ? 'bg-[#66CCCC]/20 border-[#66CCCC]/50 text-white'
+                        ? 'bg-[#007AFF]/20 border-[#007AFF]/50 text-white'
                         : 'bg-white/5 border-white/10 text-white/50 hover:text-white/80 hover:border-white/20'
                     }`}
                   >
                     {m.badge && (
                       <span className={`absolute -top-1.5 left-1/2 -translate-x-1/2 px-1.5 py-0 rounded-full text-[9px] font-semibold ${
-                        model === m.value ? 'bg-[#66CCCC] text-white' : 'bg-white/20 text-white/60'
+                        model === m.value ? 'bg-[#007AFF] text-white' : 'bg-white/20 text-white/60'
                       }`}>
                         {m.badge}
                       </span>
@@ -1531,8 +1625,8 @@ export default function MusicStudio() {
 
             {engine === 'holly' && (
             <div className="space-y-3">
-              <div className="bg-teal-500/10 border border-teal-500/20 rounded-2xl p-4 space-y-2">
-                <p className="text-teal-300 text-sm font-semibold flex items-center gap-2">
+              <div className="bg-[#007AFF]/10 border border-[#007AFF]/25 rounded-2xl p-4 space-y-2">
+                <p className="text-[#5AA9FF] text-sm font-semibold flex items-center gap-2">
                   <Music2 className="w-4 h-4" />
                   Holly Engine — Ours
                 </p>
@@ -1554,7 +1648,7 @@ export default function MusicStudio() {
                       onClick={() => setLengthPreset(p.value)}
                       className={`flex-1 py-2.5 rounded-xl border text-xs font-medium transition-all ${
                         lengthPreset === p.value
-                        ? 'bg-[#66CCCC]/20 border-[#66CCCC]/50 text-white'
+                        ? 'bg-[#007AFF]/20 border-[#007AFF]/50 text-white'
                         : 'bg-white/5 border-white/10 text-white/40 hover:text-white/80 hover:border-white/20'
                       }`}
                     >
@@ -1578,7 +1672,7 @@ export default function MusicStudio() {
                       onClick={() => setOutputFormat(f)}
                       className={`flex-1 py-2.5 rounded-xl border text-xs font-medium transition-all ${
                         outputFormat === f
-                        ? 'bg-[#66CCCC]/20 border-[#66CCCC]/50 text-white'
+                        ? 'bg-[#007AFF]/20 border-[#007AFF]/50 text-white'
                         : 'bg-white/5 border-white/10 text-white/40 hover:text-white/80 hover:border-white/20'
                       }`}
                     >
@@ -1609,7 +1703,7 @@ export default function MusicStudio() {
                   Sonauto generates instrumental stems
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="w-5 h-5 rounded-full bg-[#66CCCC]/30 text-[#3DAF76] flex items-center justify-center text-[10px] font-bold">3</span>
+                  <span className="w-5 h-5 rounded-full bg-[#007AFF]/30 text-[#5AA9FF] flex items-center justify-center text-[10px] font-bold">3</span>
                   SUNO adds vocals via Audio-to-Audio
                 </div>
                 <div className="flex items-center gap-2">
@@ -1658,7 +1752,7 @@ export default function MusicStudio() {
                         onClick={() => setVocalGender(g)}
                         className={`flex-1 py-2 rounded-xl text-xs font-medium border transition-all ${
                           vocalGender === g
-                            ? 'bg-[#66CCCC]/20 border-[#66CCCC]/50 text-white'
+                            ? 'bg-[#007AFF]/20 border-[#007AFF]/50 text-white'
                             : 'bg-white/5 border-white/10 text-white/40 hover:text-white/70'
                         }`}
                       >
@@ -1676,7 +1770,7 @@ export default function MusicStudio() {
                       value={bpm}
                       onChange={e => setBpm(e.target.value)}
                       placeholder="Auto"
-                      className="flex-1 py-2 px-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder-white/30 focus:outline-none focus:border-[#66CCCC]/50"
+                      className="flex-1 py-2 px-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder-white/30 focus:outline-none focus:border-[#007AFF]/50"
                     />
                     <button
                       onClick={() => setBpm('')}
@@ -1716,8 +1810,8 @@ export default function MusicStudio() {
               whileTap={{ scale: 0.98 }}
               onClick={handleGenerate}
               disabled={isGenerating}
-              className="w-full py-4 rounded-2xl font-semibold text-base transition-all relative overflow-hidden disabled:opacity-60 disabled:cursor-not-allowed group shadow-lg shadow-[#66CCCC]/10"
-              style={{ background: 'linear-gradient(135deg, #66CCCC 0%, #C7B8EA 100%)' }}
+              className="w-full py-4 rounded-2xl font-semibold text-base transition-all relative overflow-hidden disabled:opacity-60 disabled:cursor-not-allowed group shadow-lg shadow-[#007AFF]/10"
+              style={{ background: '#007AFF' }}
             >
               <div className="absolute inset-0 bg-white/0 group-hover:bg-white/10 transition-all" />
               {isGenerating ? (
@@ -1742,34 +1836,110 @@ export default function MusicStudio() {
           </div>
 
         </div>
-      </div>
+        </div>
 
-      {/* RIGHT PANE - Tracks Library */}
-      <div className={`relative z-10 flex-1 h-full overflow-y-auto px-8 py-8 ${activeTrack ? 'pb-32' : 'pb-8'} [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full`}>
-        <div className="max-w-4xl mx-auto space-y-6">
-          <div className="flex items-center justify-between pb-4 border-b border-white/5">
-            <div>
-              <h2 className="text-white font-bold text-xl tracking-tight">
-                Your Tracks
-              </h2>
-              <p className="text-white/40 text-sm mt-1">Listen, extending, and remix your ideas</p>
-            </div>
-            {tracks.length > 0 && (
-              <span className="text-white/40 text-sm font-medium bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">{completedTracks.length} ready</span>
+        {/* Live feed rail — this session's generations (Suno feed pattern) */}
+        <aside className="hidden xl:flex w-[340px] flex-col border-l border-white/8 bg-black/40 backdrop-blur-xl shrink-0 overflow-hidden">
+          <div className="px-4 py-4 border-b border-white/5 shrink-0">
+            <h3 className="text-white/50 text-[10px] font-bold uppercase tracking-[0.2em]">Live Feed</h3>
+            <p className="text-white/25 text-xs mt-0.5">This session</p>
+          </div>
+          <div className={`flex-1 overflow-y-auto p-2 space-y-1 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-white/10`}>
+            {tracks.length === 0 ? (
+              <div className="px-3 py-8 text-center">
+                <Music2 className="w-6 h-6 text-white/15 mx-auto mb-2" />
+                <p className="text-white/25 text-xs">Songs you create appear here</p>
+              </div>
+            ) : (
+              <>
+                {tracks.slice(0, 12).map(track => (
+                  <FeedCard
+                    key={track.id}
+                    track={track}
+                    isActive={activeTrackId === track.id}
+                    isPlaying={activeTrackId === track.id && isPlaying}
+                    onPlay={() => playTrack(track)}
+                  />
+                ))}
+                {tracks.length > completedTracks.length && (
+                  <button
+                    onClick={() => setView('library')}
+                    className="w-full py-2 text-[#5AA9FF] text-xs font-medium hover:text-white transition-colors"
+                  >
+                    View all in Library →
+                  </button>
+                )}
+              </>
             )}
           </div>
+        </aside>
+        </>
+      ) : (
+      <>
+      {/* ── LIBRARY VIEW — rows + filter chips (Suno Library pattern) ────── */}
+      <div className={`flex-1 overflow-y-auto px-6 sm:px-8 py-8 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full ${activeTrack ? 'pb-32' : 'pb-8'}`}>
+        <div className="max-w-4xl mx-auto space-y-6">
+          <div className="pb-4 border-b border-white/5">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-white font-black text-xl uppercase tracking-[0.12em]">
+                  Library
+                </h2>
+                <p className="text-white/40 text-sm mt-1">Your songs — saved across sessions</p>
+              </div>
+              {completedTracks.length > 0 && (
+                <span className="text-white/40 text-sm font-medium bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">{completedTracks.length} ready</span>
+              )}
+            </div>
+            {/* Filter chips */}
+            <div className="flex flex-wrap gap-2 mt-4">
+              {([
+                { value: 'all',       label: 'All' },
+                { value: 'liked',     label: 'Liked' },
+                { value: 'full',      label: 'Full Songs' },
+                { value: 'reel',      label: 'Reels' },
+                { value: 'commercial',label: 'Commercials' },
+              ] as const).map(f => (
+                <button
+                  key={f.value}
+                  onClick={() => setLibraryFilter(f.value)}
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                    libraryFilter === f.value
+                    ? 'bg-[#007AFF] border-[#007AFF] text-white'
+                    : 'bg-white/5 border-white/10 text-white/50 hover:text-white hover:border-white/25'
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          </div>
 
-          {tracks.length === 0 ? (
+          {libraryTracks.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-32 text-center">
               <div className="w-24 h-24 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-6 shadow-2xl">
                 <Music2 className="w-10 h-10 text-white/20" />
               </div>
-              <p className="text-white/60 font-medium text-lg">No tracks yet</p>
-              <p className="text-white/30 text-sm mt-2 max-w-xs leading-relaxed">Enter a prompt in the left sidebar and click generate to create your first masterpiece.</p>
+              <p className="text-white/60 font-medium text-lg">
+                {libraryFilter === 'all' ? 'No songs yet' : libraryFilter === 'liked' ? 'No liked songs' : `No ${libraryFilter === 'full' ? 'full songs' : libraryFilter === 'reel' ? 'reels' : 'commercials'} yet`}
+              </p>
+              <p className="text-white/30 text-sm mt-2 max-w-xs leading-relaxed">
+                {libraryFilter === 'all'
+                  ? 'Describe a song in Create and press Create — it saves here automatically.'
+                  : `Switch to Create and set length to ${libraryFilter === 'full' ? 'Full Song' : libraryFilter === 'reel' ? 'Reel' : 'Commercial'}.`}
+              </p>
+              {libraryFilter !== 'all' && (
+                <button
+                  onClick={() => setLibraryFilter('all')}
+                  className="mt-4 px-4 py-2 rounded-full bg-[#007AFF]/15 border border-[#007AFF]/30 text-[#5AA9FF] hover:bg-[#007AFF]/25 text-xs font-medium transition-all"
+                >
+                  Show all
+                </button>
+              )}
             </div>
           ) : (
-            <div className="grid gap-4">
-              {tracks.map(track => (
+            <div className="grid gap-3">
+              {libraryTracks.map(track => (
                 <TrackCard
                   key={track.id}
                   track={track}
@@ -1791,6 +1961,9 @@ export default function MusicStudio() {
             </div>
           )}
         </div>
+      </div>
+      </>
+      )}
       </div>
 
       {/* Mini player */}
@@ -1839,7 +2012,7 @@ export default function MusicStudio() {
       {/* Fallback extend modal for tracks without clipId */}
       {extendTrack && !extendTrack.clipId && (
         <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-[#141420] border border-white/10 rounded-3xl p-6 w-full max-w-md shadow-2xl">
+          <div className="bg-[#0E0E10] border border-white/10 rounded-3xl p-6 w-full max-w-md shadow-2xl">
             <h3 className="text-white font-semibold text-lg mb-1">Extend Song</h3>
             <p className="text-white/40 text-sm mb-4">"{extendTrack.title}"</p>
             <textarea
@@ -1847,7 +2020,7 @@ export default function MusicStudio() {
               onChange={() => {}}
               placeholder="This track doesn't have a clip ID for extension. Try generating a new track."
               rows={3}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 resize-none focus:outline-none focus:border-[#66CCCC]/50 text-sm mb-4"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 resize-none focus:outline-none focus:border-[#007AFF]/50 text-sm mb-4"
               disabled
             />
             <button
@@ -1883,7 +2056,7 @@ export default function MusicStudio() {
       {/* Re-render · Same Seed modal — same take, new production */}
       {rerenderTrack && (
         <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-[#141420] border border-white/10 rounded-3xl p-6 w-full max-w-md shadow-2xl">
+          <div className="bg-[#0E0E10] border border-white/10 rounded-3xl p-6 w-full max-w-md shadow-2xl">
             <h3 className="text-white font-semibold text-lg mb-1">Re-render · Same Seed</h3>
             <p className="text-white/40 text-sm mb-1">"{rerenderTrack.title}"</p>
             <p className="text-white/30 text-xs mb-4">
@@ -1896,14 +2069,14 @@ export default function MusicStudio() {
               onChange={e => setRerenderStyle(e.target.value)}
               placeholder="e.g. dark trap, 808s, cinematic synths…"
               rows={3}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 resize-none focus:outline-none focus:border-[#66CCCC]/50 text-sm mb-4"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 resize-none focus:outline-none focus:border-[#007AFF]/50 text-sm mb-4"
             />
             <div className="flex gap-3">
               <button
                 onClick={handleRerenderSameSeed}
                 disabled={isRerendering}
                 className="flex-1 py-2.5 rounded-xl font-semibold text-sm text-black disabled:opacity-60"
-                style={{ background: 'linear-gradient(135deg, #66CCCC 0%, #C7B8EA 100%)' }}
+                style={{ background: '#007AFF' }}
               >
                 {isRerendering ? 'Rendering…' : 'Re-render'}
               </button>
@@ -1922,7 +2095,7 @@ export default function MusicStudio() {
       {/* Extract Lyrics modal — the exact text that was rendered */}
       {lyricsTrack && (
         <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-[#141420] border border-white/10 rounded-3xl p-6 w-full max-w-lg shadow-2xl max-h-[80vh] flex flex-col">
+          <div className="bg-[#0E0E10] border border-white/10 rounded-3xl p-6 w-full max-w-lg shadow-2xl max-h-[80vh] flex flex-col">
             <h3 className="text-white font-semibold text-lg mb-1">Lyrics</h3>
             <p className="text-white/40 text-sm mb-4">"{lyricsTrack.title}" — written by Holly's songwriting system</p>
             <pre className="flex-1 overflow-y-auto whitespace-pre-wrap font-sans text-sm text-white/80 bg-white/5 border border-white/8 rounded-xl p-4 mb-4">
@@ -1937,7 +2110,7 @@ export default function MusicStudio() {
               </button>
               <button
                 onClick={() => handleDownloadLyrics(lyricsTrack)}
-                className="flex-1 py-2.5 rounded-xl bg-[#66CCCC]/15 border border-[#66CCCC]/30 text-[#66CCCC] hover:bg-[#66CCCC]/25 text-sm font-medium transition-all"
+                className="flex-1 py-2.5 rounded-xl bg-[#007AFF]/15 border border-[#007AFF]/30 text-[#007AFF] hover:bg-[#007AFF]/25 text-sm font-medium transition-all"
               >
                 Download .txt
               </button>
@@ -1955,7 +2128,7 @@ export default function MusicStudio() {
       {/* Create Music Video modal — scene style picker + player */}
       {videoTrack && (
         <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-[#141420] border border-white/10 rounded-3xl p-6 w-full max-w-xl shadow-2xl max-h-[85vh] overflow-y-auto">
+          <div className="bg-[#0E0E10] border border-white/10 rounded-3xl p-6 w-full max-w-xl shadow-2xl max-h-[85vh] overflow-y-auto">
             <h3 className="text-white font-semibold text-lg mb-1">Create Music Video</h3>
             <p className="text-white/40 text-sm mb-4">"{videoTrack.title}" — scene images + your actual song, merged by FFmpeg</p>
 
@@ -1970,7 +2143,7 @@ export default function MusicStudio() {
                       a.download = `${videoTrack.title.replace(/[^a-z0-9]/gi, '_')}_video.mp4`;
                       document.body.appendChild(a); a.click(); a.remove();
                     }}
-                    className="flex-1 py-2.5 rounded-xl bg-[#66CCCC]/15 border border-[#66CCCC]/30 text-[#66CCCC] hover:bg-[#66CCCC]/25 text-sm font-medium transition-all"
+                    className="flex-1 py-2.5 rounded-xl bg-[#007AFF]/15 border border-[#007AFF]/30 text-[#007AFF] hover:bg-[#007AFF]/25 text-sm font-medium transition-all"
                   >
                     Download MP4
                   </button>
@@ -1993,7 +2166,7 @@ export default function MusicStudio() {
                         onClick={() => setVideoStyle(st)}
                         className={`py-2.5 px-3 rounded-xl border text-xs font-medium capitalize transition-all ${
                           videoStyle === st
-                          ? 'bg-[#66CCCC]/20 border-[#66CCCC]/50 text-white'
+                          ? 'bg-[#007AFF]/20 border-[#007AFF]/50 text-white'
                           : 'bg-white/5 border-white/10 text-white/50 hover:text-white/80'
                         }`}
                       >
@@ -2007,7 +2180,7 @@ export default function MusicStudio() {
                   <button
                     onClick={handleCreateVideo}
                     disabled={isMakingVideo}
-                    className="flex-1 py-2.5 rounded-xl bg-[#66CCCC]/15 border border-[#66CCCC]/30 text-[#66CCCC] hover:bg-[#66CCCC]/25 text-sm font-medium transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                    className="flex-1 py-2.5 rounded-xl bg-[#007AFF]/15 border border-[#007AFF]/30 text-[#007AFF] hover:bg-[#007AFF]/25 text-sm font-medium transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                   >
                     {isMakingVideo ? <><Loader2 className="w-4 h-4 animate-spin" /> Creating…</> : '🎬 Create Video'}
                   </button>
