@@ -145,7 +145,7 @@ class HollyMusic:
 
         # → mp3 via ffmpeg (smaller payloads over the wire)
         proc = subprocess.run(
-            ["ffmpeg", "-y", "-i", wav_path, "-b:a", "192k", "-f", "mp3", "pipe:1"],
+            ["ffmpeg", "-y", "-i", wav_path, "-b:a", "320k", "-f", "mp3", "pipe:1"],  # 320k = highest MP3 quality
             capture_output=True,
         )
         if proc.returncode != 0 or not proc.stdout:
