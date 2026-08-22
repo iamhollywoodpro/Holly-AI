@@ -82,10 +82,13 @@ class HollyMusic:
           lyrics  — FULL song text from Holly's writing engine (required —
                     this service does not write lyrics)
           tags    — comma-separated style tags (optional, merged with prompt)
-          duration — seconds, 30-240 (default 120)
+          duration — seconds, 30-240 (default 120); HARD CAP — output is
+                      ffmpeg-trimmed if the render runs even 1s over
           seed    — int (default random; returned for reproducibility)
+          bpm     — int 60-220 (optional, appended to style tags)
         """
         import glob
+        import json
         import os
         import random
         import subprocess
@@ -94,15 +97,24 @@ class HollyMusic:
         lyrics = (request.get("lyrics") or "").strip()
         if not lyrics:
             return {"error": "lyrics are required — render only, Holly's writing engine authors the text"}
-        prompt = (request.get("prompt") or "").strip()
+        # Accept both keys — the TS provider sends style_prompt, curl tests send prompt
+        prompt = (request.get("prompt") or request.get("style_prompt") or "").strip()
         tags = (request.get("tags") or "").strip()
         duration = min(max(int(request.get("duration", 120)), 30), 240)
         seed = int(request.get("seed") or random.randrange(2**31 - 1))
+        bpm = request.get("bpm")
+        if bpm is not None:
+            try:
+                bpm = min(max(int(bpm), 60), 220)
+            except (TypeError, ValueError):
+                bpm = None
         out_format = str(request.get("format") or "mp3").lower()
         if out_format not in ("mp3", "wav"):
             return {"error": f"unsupported format '{out_format}' — use mp3 or wav"}
 
         style_prompt = ", ".join(x for x in (prompt, tags) if x) or "modern pop production, clean mix"
+        if bpm is not None:
+            style_prompt = f"{style_prompt}, {bpm} bpm"
 
         out_dir = tempfile.mkdtemp(prefix="acestep_")
         try:
@@ -132,6 +144,32 @@ class HollyMusic:
             return {"error": "ACE-Step produced no output files"}
         wav_path = candidates[-1]
 
+        # ── Post-render duration guarantee ────────────────────────────────────
+        # duration is a HARD CAP: if ACE-Step runs even 1s over, trim. A reel
+        # can never come back at 2+ minutes (the Suno failure mode).
+        def probe_duration(path: str) -> float:
+            try:
+                p = subprocess.run(
+                    ["ffprobe", "-v", "quiet", "-print_format", "json", "-show_format", path],
+                    capture_output=True, text=True, timeout=30,
+                )
+                return float(json.loads(p.stdout or "{}").get("format", {}).get("duration", 0))
+            except Exception:  # noqa: BLE001 — probe failure must not kill the song
+                return 0.0
+
+        actual = probe_duration(wav_path)
+        trimmed = False
+        if actual > duration + 1.0:
+            trimmed_path = wav_path + ".trim.wav"
+            t = subprocess.run(
+                ["ffmpeg", "-y", "-i", wav_path, "-t", str(duration), "-c", "copy", trimmed_path],
+                capture_output=True,
+            )
+            if t.returncode == 0 and os.path.getsize(trimmed_path) > 0:
+                wav_path = trimmed_path
+                actual = probe_duration(wav_path)
+                trimmed = True
+
         # WAV requested → lossless raw render, skip conversion (~10MB/60s)
         if out_format == "wav":
             with open(wav_path, "rb") as f:
@@ -139,13 +177,15 @@ class HollyMusic:
                     "audio": base64.b64encode(f.read()).decode(),
                     "format": "wav",
                     "seed": seed,
-                    "duration": duration,
+                    "duration": round(actual if actual > 0 else duration, 2),
+                    "requested_duration": duration,
+                    "trimmed": trimmed,
                     "model": ACE_REPO,
                 }
 
-        # → mp3 via ffmpeg (smaller payloads over the wire)
+        # → mp3 via ffmpeg (smaller payloads over the wire); -t enforces the cap again
         proc = subprocess.run(
-            ["ffmpeg", "-y", "-i", wav_path, "-b:a", "320k", "-f", "mp3", "pipe:1"],  # 320k = highest MP3 quality
+            ["ffmpeg", "-y", "-i", wav_path, "-t", str(duration), "-b:a", "320k", "-f", "mp3", "pipe:1"],  # 320k = highest MP3 quality
             capture_output=True,
         )
         if proc.returncode != 0 or not proc.stdout:
@@ -155,12 +195,15 @@ class HollyMusic:
                     "audio": base64.b64encode(f.read()).decode(),
                     "format": os.path.splitext(wav_path)[1].lstrip("."),
                     "seed": seed,
-                    "duration": duration,
+                    "duration": round(actual if actual > 0 else duration, 2),
+                    "trimmed": trimmed,
                 }
         return {
             "audio": base64.b64encode(proc.stdout).decode(),
             "format": "mp3",
             "seed": seed,
-            "duration": duration,
+            "duration": round(actual if actual > 0 else duration, 2),
+            "requested_duration": duration,
+            "trimmed": trimmed,
             "model": ACE_REPO,
         }

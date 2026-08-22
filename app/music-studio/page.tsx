@@ -21,9 +21,9 @@ type GenerationMode = 'describe' | 'custom';
 type EngineType = 'suno' | 'sonauto' | 'hybrid' | 'holly';
 type OutputFormat = 'mp3' | 'wav';
 type LengthPreset = 'full' | 'reel' | 'commercial';
-/** Renderer durations per preset — hard caps, engine obeys. Full = 3:00 target;
- *  ACE-Step ceiling is 4:00 so a 5:30 song needs a future concat pipeline. */
-const PRESET_DURATION: Record<LengthPreset, number> = { full: 180, reel: 60, commercial: 30 };
+/** Renderer durations per preset — hard caps (ffmpeg-trimmed server-side),
+ *  engine obeys. Full = 4:00 = ACE-Step's ceiling; 5:30 needs a concat pipeline. */
+const PRESET_DURATION: Record<LengthPreset, number> = { full: 240, reel: 60, commercial: 30 };
 
 interface GeneratedTrack {
   id:             string;
@@ -46,6 +46,11 @@ interface GeneratedTrack {
   lyrics?:        string;   // exact text we rendered — powers Extract Lyrics
   seed?:          number;   // reproducibility
   format?:        OutputFormat;
+  // Library persistence (2026-08-21)
+  dbId?:          string;   // Postgres StudioSong id — saved across sessions
+  lengthPreset?:  LengthPreset;
+  bpm?:           number;
+  audioNeedsFetch?: boolean; // saved in library but audio not loaded yet (lazy PATCH)
 }
 
 interface Toast {
@@ -255,6 +260,8 @@ function TrackCard({
   onExtractLyrics,
   onCreateVideo,
   onRegenerateCover,
+  onRerenderSeed,
+  onDeleteFromLibrary,
 }: {
   track: GeneratedTrack;
   isActive: boolean;
@@ -268,6 +275,8 @@ function TrackCard({
   onExtractLyrics: () => void;
   onCreateVideo: () => void;
   onRegenerateCover: () => void;
+  onRerenderSeed: () => void;
+  onDeleteFromLibrary: () => void;
 }) {
   const [showActions, setShowActions] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
@@ -416,6 +425,14 @@ function TrackCard({
                     <FileText className="w-4 h-4" /> Extract Lyrics
                   </button>
                 )}
+                {track.lyrics && track.seed != null && (
+                  <button
+                    onClick={() => { setShowMenu(false); onRerenderSeed(); }}
+                    className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-white/70 hover:text-white hover:bg-white/5 text-left"
+                  >
+                    <RefreshCw className="w-4 h-4" /> Re-render · Same Seed
+                  </button>
+                )}
                 <button
                   onClick={() => { setShowMenu(false); onCreateVideo(); }}
                   className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-white/70 hover:text-white hover:bg-white/5 text-left"
@@ -437,6 +454,14 @@ function TrackCard({
                 >
                   <Download className="w-4 h-4" /> Download Audio
                 </button>
+                {track.dbId && (
+                  <button
+                    onClick={() => { setShowMenu(false); onDeleteFromLibrary(); }}
+                    className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-red-400/80 hover:text-red-400 hover:bg-red-500/10 text-left"
+                  >
+                    <X className="w-4 h-4" /> Remove from Library
+                  </button>
+                )}
               </div>
             </>
           )}
@@ -476,6 +501,11 @@ export default function MusicStudio() {
 
   const [outputFormat, setOutputFormat]         = useState<OutputFormat>('mp3');
   const [lengthPreset, setLengthPreset]         = useState<LengthPreset>('full');
+  const [bpm, setBpm]                           = useState(''); // '' = auto
+
+  const [rerenderTrack, setRerenderTrack]       = useState<GeneratedTrack | null>(null);
+  const [rerenderStyle, setRerenderStyle]       = useState('');
+  const [isRerendering, setIsRerendering]       = useState(false);
 
   const [remixTrack, setRemixTrack]             = useState<GeneratedTrack | null>(null);
   const [extendTrack, setExtendTrack]           = useState<GeneratedTrack | null>(null);
@@ -503,8 +533,76 @@ export default function MusicStudio() {
     };
   }, []);
 
-  const playTrack = useCallback((track: GeneratedTrack) => {
-    if (!track.audioUrl) return;
+  // ── Library: load saved Holly-engine songs on mount (persistence) ──────────
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch('/api/music/studio-tracks');
+        if (!res.ok) return;
+        const json = await res.json();
+        if (!json.success || !Array.isArray(json.songs)) return;
+        setTracks(prev => {
+          const loaded: GeneratedTrack[] = json.songs.map((s: {
+            id: string; title: string; style?: string | null; engine?: string;
+            lengthPreset?: string; bpm?: number | null; duration?: number | null;
+            format?: string; seed?: number | null; liked?: boolean;
+            lyrics?: string | null; coverUrl?: string | null;
+            audioStored?: boolean; createdAt?: string;
+          }) => ({
+            id:            'db_' + s.id,
+            dbId:          s.id,
+            title:         s.title,
+            style:         s.style ?? undefined,
+            engine:        (s.engine === 'holly' ? 'holly' : 'holly') as EngineType,
+            status:        'complete' as const,
+            audioUrl:      '',                    // fetched lazily on first play
+            audioNeedsFetch: !!s.audioStored,
+            imageUrl:      s.coverUrl ?? undefined,
+            duration:      s.duration ?? undefined,
+            lyrics:        s.lyrics ?? undefined,
+            seed:          s.seed ?? undefined,
+            format:        s.format === 'wav' ? 'wav' : 'mp3',
+            lengthPreset:  (['full', 'reel', 'commercial'].includes(s.lengthPreset ?? '')
+                              ? s.lengthPreset : 'full') as LengthPreset,
+            bpm:           s.bpm ?? undefined,
+            liked:         !!s.liked,
+            model:         'ACE-Step 1.5',
+            createdAt:     s.createdAt ? new Date(s.createdAt) : new Date(),
+          }));
+          // Saved songs first, then anything still generating this session
+          return [...prev.filter(t => t.status === 'generating'), ...loaded];
+        });
+      } catch {
+        /* library load failure is non-fatal — session still works */
+      }
+    })();
+  }, []);
+
+  const playTrack = useCallback(async (track: GeneratedTrack) => {
+    let url = track.audioUrl;
+
+    // Library track whose audio wasn't loaded yet — fetch it on first play
+    if (!url && track.dbId) {
+      if (!track.audioNeedsFetch) {
+        addToast('Audio too large to store (WAV) — use ⋮ → Re-render · Same Seed to recover it exactly', 'info');
+        return;
+      }
+      try {
+        const res = await fetch('/api/music/studio-tracks', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: track.dbId }),
+        });
+        const json = await res.json();
+        if (!json.success || !json.audioDataUri) throw new Error('no audio');
+        url = json.audioDataUri;
+        setTracks(prev => prev.map(t => t.id === track.id ? { ...t, audioUrl: url, audioNeedsFetch: false } : t));
+      } catch {
+        addToast('Could not load saved audio', 'error');
+        return;
+      }
+    }
+    if (!url) return;
 
     if (activeTrackId === track.id) {
       if (isPlaying) {
@@ -520,7 +618,7 @@ export default function MusicStudio() {
     audioRef.current?.pause();
     if (progressInterval.current) clearInterval(progressInterval.current);
 
-    const audio = new Audio(track.audioUrl);
+    const audio = new Audio(url);
     audio.volume = volume;
     audioRef.current = audio;
     setActiveTrackId(track.id);
@@ -694,6 +792,7 @@ export default function MusicStudio() {
             title: trackTitle,
             duration: PRESET_DURATION[lengthPreset],
             lengthPreset,
+            bpm: bpm ? Number(bpm) : undefined,
             format: outputFormat,
           }),
         });
@@ -713,11 +812,27 @@ export default function MusicStudio() {
                 lyrics: d.lyrics,
                 seed: d.seed,
                 format: (d.format === 'wav' ? 'wav' : 'mp3'),
+                lengthPreset,
+                bpm: bpm ? Number(bpm) : undefined,
                 model: 'ACE-Step 1.5',
               }
             : t
         ));
         addToast('Song ready — written & rendered by Holly 🌿', 'success');
+        // Persist to library — non-blocking; failure is non-fatal (toast only)
+        fetch('/api/music/studio-tracks', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: trackTitle, style: style || undefined, engine: 'holly',
+            lengthPreset, bpm: bpm ? Number(bpm) : undefined,
+            duration: d.duration, format: d.format === 'wav' ? 'wav' : 'mp3',
+            seed: d.seed, lyrics: d.lyrics, coverUrl,
+            audioDataUri: d.audioDataUri,
+          }),
+        }).then(r => r.ok ? r.json() : null).then(j => {
+          if (j?.success) setTracks(prev => prev.map(t => t.id === trackId ? { ...t, dbId: j.song.id } : t));
+        }).catch(() => addToast('Saved to session only — library save failed', 'info'));
       } else if (engine === 'hybrid') {
         setHybridPhase('lyrics');
         const res = await fetch('/api/music/hybrid-studio', {
@@ -893,6 +1008,71 @@ export default function MusicStudio() {
       addToast(err.message || 'Extend failed', 'error');
     }
   }, [extendTrack, pollStatus, addToast]);
+
+  // ── Re-render · Same Seed — producer iteration: identical seed + lyrics,
+  // tweaked style → the same musical take with the new production (2026-08-21)
+  const handleRerenderSameSeed = useCallback(async () => {
+    if (!rerenderTrack || !rerenderTrack.lyrics || rerenderTrack.seed == null) return;
+    setIsRerendering(true);
+    const trackId = uid();
+    setTracks(prev => [{
+      id: trackId,
+      title: `${rerenderTrack.title} (Same Seed)`,
+      audioUrl: '',
+      status: 'generating',
+      model: 'ACE-Step 1.5',
+      engine: 'holly',
+      style: rerenderStyle || rerenderTrack.style,
+      parentTitle: rerenderTrack.title,
+      lyrics: rerenderTrack.lyrics,
+      createdAt: new Date(),
+    }, ...prev]);
+    try {
+      const res = await fetch('/api/music/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          forceEngine: 'acestep',
+          customMode: true,
+          prompt: rerenderTrack.lyrics,
+          style: rerenderStyle || rerenderTrack.style,
+          seed: rerenderTrack.seed,              // the point: same take
+          duration: rerenderTrack.duration || 60,
+          bpm: rerenderTrack.bpm,
+          format: rerenderTrack.format || 'mp3',
+        }),
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || 'Re-render failed');
+      const d = json.data;
+      setTracks(prev => prev.map(t =>
+        t.id === trackId
+          ? { ...t, status: 'complete', audioUrl: d.audioDataUri, duration: d.duration, seed: d.seed, format: d.format === 'wav' ? 'wav' : 'mp3' }
+          : t
+      ));
+      addToast('Re-rendered from seed — same take, new production 🎛️', 'success');
+      setRerenderTrack(null);
+    } catch (err: any) {
+      setTracks(prev => prev.map(t => t.id === trackId ? { ...t, status: 'error' } : t));
+      addToast(err.message || 'Re-render failed', 'error');
+    } finally {
+      setIsRerendering(false);
+    }
+  }, [rerenderTrack, rerenderStyle, addToast]);
+
+  // ── Delete from library (persisted songs only) ─────────────────────────────
+  const handleDeleteFromLibrary = useCallback(async (track: GeneratedTrack) => {
+    if (!track.dbId) return;
+    try {
+      const res = await fetch(`/api/music/studio-tracks?id=${encodeURIComponent(track.dbId)}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error();
+      setTracks(prev => prev.filter(t => t.id !== track.id));
+      if (activeTrackId === track.id) { audioRef.current?.pause(); setActiveTrackId(null); setIsPlaying(false); }
+      addToast('Removed from library', 'info');
+    } catch {
+      addToast('Could not remove from library', 'error');
+    }
+  }, [activeTrackId, addToast]);
 
   const handleRemix = useCallback(async (data: {
     audio_url: string; prompt: string; style: string; title: string;
@@ -1487,6 +1667,40 @@ export default function MusicStudio() {
                     ))}
                   </div>
                 </div>
+                {engine === 'holly' && (
+                <div>
+                  <p className="text-white/50 text-xs mb-2">BPM (tempo)</p>
+                  <div className="flex gap-2">
+                    <input
+                      type="number" min={60} max={220} step={1}
+                      value={bpm}
+                      onChange={e => setBpm(e.target.value)}
+                      placeholder="Auto"
+                      className="flex-1 py-2 px-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder-white/30 focus:outline-none focus:border-[#66CCCC]/50"
+                    />
+                    <button
+                      onClick={() => setBpm('')}
+                      className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white/40 hover:text-white text-xs transition-all"
+                    >
+                      Auto
+                    </button>
+                    {[{ l: 'Reels', v: '120' }, { l: 'Trap', v: '140' }, { l: 'House', v: '128' }].map(p => (
+                      <button
+                        key={p.v}
+                        onClick={() => setBpm(p.v)}
+                        className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white/50 hover:text-white text-xs transition-all"
+                        title={`${p.v} BPM`}
+                      >
+                        {p.l}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-white/30 text-[10px] mt-1.5">
+                    Tempo is passed to the renderer AND the writer — syllable density
+                    matches the target so Reels land inside 60s. Reels trend at 120.
+                  </p>
+                </div>
+                )}
               </div>
             )}
 
@@ -1570,6 +1784,8 @@ export default function MusicStudio() {
                   onExtractLyrics={() => setLyricsTrack(track)}
                   onCreateVideo={() => { setVideoTrack(track); setVideoUrl(null); }}
                   onRegenerateCover={() => handleRegenerateCover(track)}
+                  onRerenderSeed={() => { setRerenderStyle(track.style || ''); setRerenderTrack(track); }}
+                  onDeleteFromLibrary={() => handleDeleteFromLibrary(track)}
                 />
               ))}
             </div>
@@ -1663,6 +1879,45 @@ export default function MusicStudio() {
       {/* Stem separation — REMOVED 2026-08-21: /api/music/stem-separate never
           existed; the button always failed. Real stems (Demucs on Modal)
           queued for the Sept 1 batch. Nothing fake stays in the UI. */}
+
+      {/* Re-render · Same Seed modal — same take, new production */}
+      {rerenderTrack && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-[#141420] border border-white/10 rounded-3xl p-6 w-full max-w-md shadow-2xl">
+            <h3 className="text-white font-semibold text-lg mb-1">Re-render · Same Seed</h3>
+            <p className="text-white/40 text-sm mb-1">"{rerenderTrack.title}"</p>
+            <p className="text-white/30 text-xs mb-4">
+              Seed {rerenderTrack.seed} is locked — same lyrics, same musical take.
+              Change the style below to re-produce it. This is how producers iterate.
+            </p>
+            <p className="text-white/50 text-xs mb-2">Style / production</p>
+            <textarea
+              value={rerenderStyle}
+              onChange={e => setRerenderStyle(e.target.value)}
+              placeholder="e.g. dark trap, 808s, cinematic synths…"
+              rows={3}
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 resize-none focus:outline-none focus:border-[#66CCCC]/50 text-sm mb-4"
+            />
+            <div className="flex gap-3">
+              <button
+                onClick={handleRerenderSameSeed}
+                disabled={isRerendering}
+                className="flex-1 py-2.5 rounded-xl font-semibold text-sm text-black disabled:opacity-60"
+                style={{ background: 'linear-gradient(135deg, #66CCCC 0%, #C7B8EA 100%)' }}
+              >
+                {isRerendering ? 'Rendering…' : 'Re-render'}
+              </button>
+              <button
+                onClick={() => setRerenderTrack(null)}
+                disabled={isRerendering}
+                className="flex-1 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white/60 hover:text-white text-sm font-medium transition-all disabled:opacity-50"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Extract Lyrics modal — the exact text that was rendered */}
       {lyricsTrack && (

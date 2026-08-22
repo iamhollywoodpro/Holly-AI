@@ -74,6 +74,7 @@ export async function POST(req: NextRequest) {
       forceEngine,             // 'acestep' → skip Suno/Sonauto, use OUR engine directly (Music Hub)
       lengthPreset,            // 'full' | 'reel' | 'commercial' — drives lyric structure (Music Hub)
       duration      = 60,
+      bpm,                     // optional 60-220 — style tags + writer pacing
       format        = 'mp3',   // output format for our engine: mp3 | wav
       seed,
     } = body;
@@ -136,6 +137,7 @@ export async function POST(req: NextRequest) {
           const written = await writeLyrics({
             theme: prompt, style, mood: 'emotional, heartfelt',
             lengthPreset: lengthPreset === 'reel' || lengthPreset === 'commercial' ? lengthPreset : 'full',
+            bpm: typeof bpm === 'number' ? bpm : undefined,
           });
           lyrics = written.lyrics;
         }
@@ -143,6 +145,7 @@ export async function POST(req: NextRequest) {
         const rendered = await acestepProvider.renderSong({
           lyrics, stylePrompt: style,
           duration, format: format === 'wav' ? 'wav' : 'mp3', seed,
+          bpm: typeof bpm === 'number' ? bpm : undefined,
         });
         return NextResponse.json({
           success: true,

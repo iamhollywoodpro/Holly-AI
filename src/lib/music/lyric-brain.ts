@@ -173,6 +173,9 @@ export interface WriteLyricsParams {
   language?: string;
   /** Length preset — drives structure (default: full). */
   lengthPreset?: LengthPreset;
+  /** Target BPM 60–220 — drives syllable density & pacing so the lyric
+   *  structure naturally lands near the target duration. */
+  bpm?: number;
 }
 
 export interface WrittenLyrics {
@@ -192,7 +195,7 @@ export async function writeLyrics(params: WriteLyricsParams): Promise<WrittenLyr
 ${langConfig.culturalContext}
 ${langConfig.scriptNote ? langConfig.scriptNote : ''}
 Always write authentic, culturally-grounded lyrics that respect the musical traditions of the language.
-${length.guidance}`;
+${length.guidance}${params.bpm ? `\nTarget tempo: ${params.bpm} BPM — match syllable density and line length to this tempo so the sung structure lands naturally within the time limit.` : ''}`;
 
   const userPrompt = `${langConfig.instruction}
 

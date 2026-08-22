@@ -25,6 +25,8 @@ export interface AceStepRenderParams {
   seed?: number;
   /** Output format: mp3 (default, compact) or wav (lossless, ~10MB/60s). */
   format?: 'mp3' | 'wav';
+  /** Optional BPM 60–220 — appended to style tags by the renderer. */
+  bpm?: number;
 }
 
 export interface AceStepRenderResult {
@@ -62,6 +64,7 @@ export const acestepProvider = {
       format: params.format ?? 'mp3',
     };
     if (params.stylePrompt) body.style_prompt = params.stylePrompt;
+    if (params.bpm != null) body.bpm = params.bpm;
     if (params.seed != null) body.seed = params.seed;
 
     const res = await fetch(url, {
